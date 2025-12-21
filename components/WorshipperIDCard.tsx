@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Church, RefreshCw, User, X, Phone, Mail, MapPin, UploadCloud, CheckCircle, ArrowRight, Download, Sparkles, Youtube } from 'lucide-react';
+import { Church, RefreshCw, User, X, Phone, Mail, MapPin, UploadCloud, CheckCircle, ArrowRight, Download, Sparkles, Youtube, FileText } from 'lucide-react';
 import { Button } from './Button';
 import { toPng } from 'html-to-image';
+import { jsPDF } from 'jspdf';
 
 interface EntrustCardProps {
     name?: string;
@@ -211,6 +212,44 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister }
         setIsProcessing(false);
     };
 
+    const handleDownloadPDF = async () => {
+        setIsProcessing(true);
+        const node = document.getElementById('entrust-card-download-area');
+        if (node) {
+            try {
+                const dataUrl = await toPng(node, {
+                    cacheBust: true,
+                    style: { borderRadius: '0' }
+                });
+
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+
+                // Card dimensions in mm (approximate for 320x520 aspect ratio)
+                const imgProps = pdf.getImageProperties(dataUrl);
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+                // Center on page if height is less than A4 height
+                const yPos = (pdf.internal.pageSize.getHeight() - pdfHeight) / 2;
+
+                pdf.addImage(dataUrl, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight);
+                pdf.save(`ENTRUST-CARD-${uniqueId}.pdf`);
+
+                if (onRegister) {
+                    onRegister({ ...formData, uniqueId, photo });
+                }
+            } catch (err) {
+                console.error('oops, something went wrong!', err);
+                alert("Failed to download PDF. Please try again.");
+            }
+        }
+        setIsProcessing(false);
+    };
+
     return (
         <section className="min-h-screen pt-24 md:pt-48 pb-32 bg-slate-50 relative overflow-hidden">
             <div className="container mx-auto px-6 relative z-10">
@@ -311,15 +350,26 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister }
                             </div>
 
                             <div className="space-y-6">
-                                <Button
-                                    onClick={handleDownload}
-                                    variant="primary"
-                                    fullWidth
-                                    className="py-6 text-base bg-brand-900 shadow-2xl shadow-brand-900/40"
-                                    disabled={isProcessing}
-                                >
-                                    {isProcessing ? "Processing..." : <><Download size={20} /> Download My ID Card</>}
-                                </Button>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <Button
+                                        onClick={handleDownload}
+                                        variant="primary"
+                                        fullWidth
+                                        className="py-5 text-sm bg-brand-900"
+                                        disabled={isProcessing}
+                                    >
+                                        {isProcessing ? "..." : <><Download size={18} /> PNG</>}
+                                    </Button>
+                                    <Button
+                                        onClick={handleDownloadPDF}
+                                        variant="primary"
+                                        fullWidth
+                                        className="py-5 text-sm bg-accent-600 shadow-xl shadow-accent-600/20"
+                                        disabled={isProcessing}
+                                    >
+                                        {isProcessing ? "..." : <><FileText size={18} /> PDF</>}
+                                    </Button>
+                                </div>
 
                                 <Button
                                     onClick={() => setUniqueId(`COT-${Math.floor(1000 + Math.random() * 9000)}`)}
