@@ -970,13 +970,11 @@ const App: React.FC = () => {
         <div className="container mx-auto px-6 relative z-10">
           <div className="grid md:grid-cols-4 gap-12 mb-20">
             <div className="col-span-1 md:col-span-1">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="bg-white/10 p-2 rounded-xl backdrop-blur-md">
-                  <Church size={24} className="text-white" />
-                </div>
+              <div className="flex items-center gap-4 mb-8">
+                <img src="/brand-logo.png" alt="COT Logo" className="w-16 h-16 object-contain" />
                 <div>
-                  <h3 className="text-xl font-serif font-bold text-white leading-none">City of Truth</h3>
-                  <p className="text-[10px] text-brand-200 uppercase tracking-widest mt-1">Ministries</p>
+                  <h3 className="text-2xl font-serif font-black text-white leading-none">City of Truth</h3>
+                  <p className="text-[11px] text-accent-400 font-black uppercase tracking-[0.3em] mt-1">Ministries</p>
                 </div>
               </div>
               <p className="text-brand-100/60 leading-relaxed text-sm mb-6">

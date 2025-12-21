@@ -69,9 +69,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
         <div className="container mx-auto px-6 flex items-center justify-between">
           {/* Logo Section */}
           <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setView(ViewState.HOME)}>
-            <div className="p-2 bg-brand-800/50 rounded-xl border border-white/10 text-white shadow-lg shadow-black/20 group-hover:bg-brand-700 transition-colors">
-              <Church size={28} />
-            </div>
+            <img src="/brand-logo.png" alt="COT Logo" className="w-12 h-12 object-contain group-hover:scale-110 transition-transform" />
             <div className="flex flex-col">
               <span className="font-serif font-black text-xl tracking-tighter text-white">
                 City of Truth

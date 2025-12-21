@@ -52,9 +52,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
             <div className="bg-brand-900 text-white p-4 relative overflow-hidden shrink-0">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-accent-400/20 rounded-full blur-2xl"></div>
                 <div className="flex items-center gap-3 relative z-10">
-                    <div className="bg-white/10 p-2 rounded-lg border border-white/10">
-                        <Church size={20} className="text-accent-300" />
-                    </div>
+                    <img src="/brand-logo.png" alt="Logo" className="w-12 h-12 object-contain" />
                     <div>
                         <h2 className="font-bold text-xs uppercase tracking-wider">City of Truth Ministries</h2>
                         <p className="text-[10px] text-accent-200 font-medium mt-0.5">சத்திய நகரம் ஊழியங்கள்</p>
@@ -118,9 +116,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
         >
             <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
             <div className="relative z-10 flex-1 flex flex-col items-center justify-center">
-                <div className="bg-white/10 p-3 rounded-full mb-6 border border-white/20">
-                    <Church size={32} className="text-accent-300" />
-                </div>
+                <img src="/brand-logo.png" alt="Logo" className="w-20 h-20 object-contain mb-6 drop-shadow-2xl" />
                 <h3 className="text-lg font-serif font-bold text-white mb-4">Ministry Covenant</h3>
                 <p className="text-indigo-100 text-sm italic font-serif leading-relaxed mb-8 px-2">
                     "But my servant Moses is not so; he is faithful in all mine house. With him will I speak mouth to mouth."
