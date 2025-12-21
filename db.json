@@ -1,0 +1,21 @@
+{
+    "users": [
+        {
+            "id": "COT-8859",
+            "name": "S. Shaveesh Jeshurun",
+            "email": "shaveesh@example.com",
+            "password": "user",
+            "phone": "9876543210",
+            "role": "Member",
+            "status": "Active",
+            "dob": "1995-08-20",
+            "location": "Valparai",
+            "bloodGroup": "O+ve",
+            "emergency": "9876543210",
+            "memberSince": "2015",
+            "gender": "Male",
+            "joinedDate": "2015-05-10",
+            "photo": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?fit=crop&w=200&h=200"
+        }
+    ]
+}
