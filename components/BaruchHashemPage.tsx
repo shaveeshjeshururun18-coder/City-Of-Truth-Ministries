@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, Play, Info, ArrowRight, Share2, Phone, MessageCircle, Heart, Flame, Shield, Crown } from 'lucide-react';
 import { Button } from './Button';
@@ -89,6 +89,20 @@ export const BaruchHashemPage: React.FC = () => {
         navigator.clipboard.writeText(text);
         alert("Copied to clipboard!");
     };
+
+    useEffect(() => {
+        // Attempt auto-play when entering page
+        const timer = setTimeout(() => {
+            if (audioRef.current) {
+                audioRef.current.play().then(() => {
+                    setIsPlaying(true);
+                }).catch(err => {
+                    console.log("Autoplay blocked by browser. User interaction required.", err);
+                });
+            }
+        }, 1500); // Small delay to ensure page is loaded
+        return () => clearTimeout(timer);
+    }, []);
 
     const toggleAudio = () => {
         if (audioRef.current) {
