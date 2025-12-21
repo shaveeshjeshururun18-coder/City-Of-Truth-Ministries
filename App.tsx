@@ -334,7 +334,7 @@ const App: React.FC = () => {
                   <div className="absolute inset-0 bg-black/40" />
                 </div>
 
-                <div className="relative z-10 text-center px-4 md:px-6 max-w-7xl mx-auto w-full pt-16">
+                <div className="relative z-10 text-center px-4 md:px-6 max-w-7xl mx-auto w-full pt-10 md:pt-16">
                   <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1 }}>
                     <div className="inline-block mb-6 px-6 py-2.5 rounded-full border border-accent-400/30 bg-black/40 backdrop-blur-xl shadow-lg">
                       <span className="text-accent-300 font-bold tracking-[0.25em] uppercase text-[10px] md:text-xs">Divine Grace Sanctuary</span>
@@ -342,14 +342,14 @@ const App: React.FC = () => {
 
                     <div className="flex flex-col items-center justify-center mb-10 relative">
                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] h-[90%] bg-accent-500/20 blur-[100px] rounded-full -z-10"></div>
-                      <h2 className="text-xl md:text-3xl text-brand-100 font-serif italic tracking-wide mb-3 drop-shadow-md">City of Truth Ministries</h2>
+                      <h2 className="text-lg md:text-3xl text-brand-100 font-serif italic tracking-wide mb-3 drop-shadow-md">City of Truth Ministries</h2>
                       <h1 className="font-bold tracking-tight leading-none py-4">
-                        <span className="block text-6xl sm:text-8xl md:text-9xl text-transparent bg-clip-text bg-gradient-to-b from-brand-50 via-brand-100 to-brand-200 drop-shadow-2xl pb-4">சத்திய நகரம்</span>
-                        <span className="block text-3xl sm:text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-br from-white via-accent-100 to-brand-300 mt-2 tracking-tighter">ஊழியங்கள்</span>
+                        <span className="block text-5xl sm:text-8xl md:text-9xl text-transparent bg-clip-text bg-gradient-to-b from-brand-50 via-brand-100 to-brand-200 drop-shadow-2xl pb-4">சத்திய நகரம்</span>
+                        <span className="block text-2xl sm:text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-br from-white via-accent-100 to-brand-300 mt-2 tracking-tighter">ஊழியங்கள்</span>
                       </h1>
                     </div>
 
-                    <p className="text-lg md:text-xl text-brand-50/80 max-w-2xl mx-auto mb-12 leading-relaxed font-light font-serif italic px-6">"Then you will know the truth, and the truth will set you free." <br />— John 8:32</p>
+                    <p className="text-base md:text-xl text-brand-50/80 max-w-2xl mx-auto mb-12 leading-relaxed font-light font-serif italic px-6">"Then you will know the truth, and the truth will set you free." <br />— John 8:32</p>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-6 w-full px-6 sm:px-0">
                       <Button variant="accent" onClick={() => setCurrentView(ViewState.MINISTRIES)} className="w-full sm:w-auto px-12 py-5 text-sm uppercase tracking-[0.2em] font-black">
@@ -392,7 +392,7 @@ const App: React.FC = () => {
                       </div>
 
                       <div className="absolute -top-10 -left-10 w-40 h-40 bg-accent-500 rounded-full blur-[80px] opacity-20"></div>
-                      <div className="absolute bottom-10 -left-10 z-30 bg-white p-6 rounded-2xl shadow-xl shadow-brand-900/10 animate-[bounce_3s_infinite]">
+                      <div className="absolute bottom-10 -left-10 z-30 bg-white p-6 rounded-2xl shadow-xl shadow-brand-900/10 animate-[bounce_3s_infinite] hidden sm:block">
                         <div className="flex items-center gap-4">
                           <div className="bg-brand-50 p-3 rounded-full text-brand-600"><Users size={24} /></div>
                           <div>
@@ -553,9 +553,9 @@ const App: React.FC = () => {
           )}
 
           {currentView === ViewState.ABOUT && (
-            <motion.div key="about" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-48 pb-32">
+            <motion.div key="about" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-24 md:pt-48 pb-32">
               <div className="container mx-auto px-6 text-center">
-                <h1 className="text-6xl md:text-8xl font-serif font-bold text-brand-950 mb-8 tracking-tighter">Divine <span className="text-accent-600">Legacy</span></h1>
+                <h1 className="text-4xl sm:text-6xl md:text-8xl font-serif font-bold text-brand-950 mb-8 tracking-tighter">Divine <span className="text-accent-600">Legacy</span></h1>
                 <p className="text-2xl text-slate-500 max-w-3xl mx-auto font-light leading-relaxed mb-16">Since 2010, City of Truth Ministries has been a lighthouse in the hills of Valparai, dedicated to teaching the Word of God with uncompromising truth and love.</p>
 
                 <div className="grid md:grid-cols-3 gap-12 text-left max-w-6xl mx-auto">
@@ -764,7 +764,7 @@ const App: React.FC = () => {
 
 
           {currentView === ViewState.CONTACT && (
-            <motion.div key="contact" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-32 pb-20 bg-slate-50 min-h-screen">
+            <motion.div key="contact" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-24 md:pt-32 pb-20 bg-slate-50 min-h-screen">
               <div className="container mx-auto px-6 max-w-7xl">
                 {/* Header */}
                 <header className="text-center mb-16 max-w-2xl mx-auto">
@@ -775,7 +775,7 @@ const App: React.FC = () => {
                   >
                     <Headset size={14} /> WE'D LOVE TO HEAR FROM YOU
                   </motion.span>
-                  <h1 className="text-5xl md:text-6xl font-serif font-bold text-brand-950 mb-6 tracking-tight">Get in Touch</h1>
+                  <h1 className="text-4xl md:text-6xl font-serif font-bold text-brand-950 mb-6 tracking-tight">Get in Touch</h1>
                   <p className="text-lg text-slate-500 font-normal leading-relaxed">
                     Whether you have a prayer request, a question about our ministries, or just want to say hello, we are here for you.
                   </p>

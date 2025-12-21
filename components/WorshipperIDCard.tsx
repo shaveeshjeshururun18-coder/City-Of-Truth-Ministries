@@ -212,10 +212,10 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister }
     };
 
     return (
-        <section className="min-h-screen pt-48 pb-32 bg-slate-50 relative overflow-hidden">
+        <section className="min-h-screen pt-24 md:pt-48 pb-32 bg-slate-50 relative overflow-hidden">
             <div className="container mx-auto px-6 relative z-10">
                 <div className="text-center max-w-3xl mx-auto mb-16">
-                    <h1 className="text-5xl md:text-6xl font-serif font-bold text-brand-950 mb-6 tracking-tight">Generate Your ID</h1>
+                    <h1 className="text-4xl md:text-6xl font-serif font-bold text-brand-950 mb-6 tracking-tight">Generate Your ID</h1>
                     <p className="text-xl text-gray-500 font-normal">Complete your profile to generate your official digital City of Truth Entrust Card.</p>
                 </div>
 
@@ -224,7 +224,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister }
                     <motion.div
                         initial={{ opacity: 0, x: -30 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="bg-white p-8 md:p-12 rounded-[3.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden"
+                        className="bg-white p-6 md:p-12 rounded-[2rem] md:rounded-[3.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden"
                     >
                         <div className="absolute top-0 right-0 w-32 h-32 bg-accent-50 rounded-full blur-3xl opacity-50 -mr-16 -mt-16"></div>
 
@@ -241,7 +241,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister }
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Member Photo</label>
                                 <div className="relative group">
                                     <input type="file" onChange={handlePhotoUpload} className="absolute inset-0 opacity-0 cursor-pointer z-20" accept="image/*" />
-                                    <div className="border-2 border-dashed border-slate-200 rounded-3xl p-6 transition-all group-hover:border-accent-400 group-hover:bg-accent-50/20 bg-slate-50/50 flex items-center gap-6">
+                                    <div className="border-2 border-dashed border-slate-200 rounded-3xl p-4 md:p-6 transition-all group-hover:border-accent-400 group-hover:bg-accent-50/20 bg-slate-50/50 flex flex-col sm:flex-row items-center gap-4 md:gap-6">
                                         <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-slate-400 shadow-sm border border-slate-100 overflow-hidden shrink-0">
                                             {photo ? <img src={photo} className="w-full h-full object-cover" /> : <UploadCloud size={24} />}
                                         </div>

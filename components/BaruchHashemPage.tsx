@@ -33,14 +33,14 @@ const GallerySection: React.FC = () => {
     const images = Array.from({ length: 22 }, (_, i) => {
         const num = i + 1;
         const ext = num === 1 ? 'jpg' : 'png';
-        return `/barch%20hasem/${num}.${ext}`;
+        return `/barch_hasem/${num}.${ext}`;
     });
 
     return (
         <section className="py-24 bg-[#0b1121] overflow-hidden border-y border-white/5">
             <div className="container mx-auto px-6 mb-12 text-center">
                 <span className="text-amber-500 font-bold uppercase tracking-widest text-xs">Visual Journey</span>
-                <h2 className="text-4xl font-serif font-bold text-white mt-2">Treasury of Grace</h2>
+                <h2 className="text-3xl md:text-4xl font-serif font-bold text-white mt-2">Treasury of Grace</h2>
             </div>
 
             <div className="relative flex overflow-x-hidden group">
@@ -48,10 +48,10 @@ const GallerySection: React.FC = () => {
                     {[...images, ...images].map((src, i) => (
                         <a
                             key={i}
-                            href="https://youtube.com/@cityoftruthministries"
+                            href="https://youtube.com/@cotministries"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="relative w-[350px] aspect-video rounded-2xl overflow-hidden shrink-0 border border-white/10 hover:border-amber-500/50 transition-all duration-500 group/item active:scale-95"
+                            className="relative w-[280px] md:w-[350px] aspect-video rounded-2xl overflow-hidden shrink-0 border border-white/10 hover:border-amber-500/50 transition-all duration-500 group/item active:scale-95"
                         >
                             <img src={src} alt={`Gallery ${i}`} className="w-full h-full object-cover transition-transform duration-700 group-hover/item:scale-110" />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 flex items-end p-6">
@@ -105,7 +105,7 @@ export const BaruchHashemPage: React.FC = () => {
         <div className="min-h-screen bg-slate-50 font-sans">
 
             {/* 1. Hero Section (Blessing Page) */}
-            <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#0b1121] text-white pt-20">
+            <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#0b1121] text-white pt-24 md:pt-20">
                 {/* Background Menorah Watermark */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
                     <Flame size={600} className="text-amber-500 animate-pulse-slow" />
@@ -121,7 +121,7 @@ export const BaruchHashemPage: React.FC = () => {
 
                             <div className="max-w-4xl">
                                 <p className="text-amber-500 font-bold uppercase tracking-[0.3em] mb-4 text-sm font-tamil">சத்திய நகர ஊழியங்கள்</p>
-                                <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif font-bold mb-6 bg-gradient-to-b from-amber-100 to-amber-600 bg-clip-text text-transparent">
+                                <h1 className="text-4xl sm:text-7xl lg:text-8xl font-serif font-bold mb-6 bg-gradient-to-b from-amber-100 to-amber-600 bg-clip-text text-transparent">
                                     הַקָּדוֹשׁ בָּרוּךְ הוּא
                                 </h1>
                                 <h2 className="text-2xl md:text-4xl font-serif text-amber-200 mb-2">Baruch Hashem</h2>
@@ -129,7 +129,7 @@ export const BaruchHashemPage: React.FC = () => {
 
                                 <div className="w-24 h-1 bg-amber-600 mx-auto mb-10 rounded-full"></div>
 
-                                <h3 className="text-4xl md:text-6xl font-bold font-tamil mb-4 text-white leading-tight">ஆத்தும நன்றி பலிகள்</h3>
+                                <h3 className="text-3xl md:text-6xl font-bold font-tamil mb-4 text-white leading-tight">ஆத்தும நன்றி பலிகள்</h3>
                                 <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto mb-12 leading-relaxed">
                                     "Give thanks to our God" <br />
                                     <span className="text-amber-500 font-tamil">போற்றுதலுக்குரிய புனிதமான ஆண்டவரது திருப்பெயர் மகிமைப்படுவதாக</span>

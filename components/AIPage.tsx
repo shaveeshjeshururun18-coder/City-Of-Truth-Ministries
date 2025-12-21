@@ -7,7 +7,7 @@ export const AIPage: React.FC = () => {
     const [prompt, setPrompt] = useState("");
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white pt-32 pb-20 relative overflow-hidden">
+        <div className="min-h-screen bg-slate-950 text-white pt-24 md:pt-32 pb-20 relative overflow-hidden">
             {/* Background Effects */}
             <div className="absolute inset-0 z-0">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-indigo-600/20 rounded-full blur-[120px] animate-pulse-slow"></div>
@@ -29,7 +29,7 @@ export const AIPage: React.FC = () => {
                 <motion.h1
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="text-5xl md:text-7xl font-sans font-bold mb-6 tracking-tight"
+                    className="text-4xl md:text-7xl font-sans font-bold mb-6 tracking-tight"
                 >
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-white to-violet-300">Divine</span> <span className="text-indigo-500">AI</span> Assistant
                 </motion.h1>
@@ -48,7 +48,7 @@ export const AIPage: React.FC = () => {
                     initial={{ opacity: 0, y: 40 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="w-full max-w-4xl bg-slate-900/60 border border-indigo-500/20 rounded-[2rem] p-8 md:p-12 backdrop-blur-xl shadow-2xl relative overflow-hidden group"
+                    className="w-full max-w-4xl bg-slate-900/60 border border-indigo-500/20 rounded-3xl md:rounded-[2rem] p-6 md:p-12 backdrop-blur-xl shadow-2xl relative overflow-hidden group"
                 >
                     {/* Glowing border effect */}
                     <div className="absolute inset-0 rounded-[2rem] border border-indigo-500/0 group-hover:border-indigo-500/40 transition-colors duration-500 pointer-events-none"></div>
@@ -69,11 +69,11 @@ export const AIPage: React.FC = () => {
                                 value={prompt}
                                 onChange={(e) => setPrompt(e.target.value)}
                                 placeholder="Ask about a bible verse, topic, or prayer..."
-                                className="w-full bg-slate-950/80 border border-indigo-500/20 rounded-2xl p-6 pr-32 text-white placeholder:text-indigo-400/30 focus:outline-none focus:border-indigo-500 text-lg transition-all shadow-inner"
+                                className="w-full bg-slate-950/80 border border-indigo-500/20 rounded-2xl p-4 md:p-6 pr-24 md:pr-32 text-white placeholder:text-indigo-400/30 focus:outline-none focus:border-indigo-500 text-base md:text-lg transition-all shadow-inner"
                             />
                             <div className="absolute right-3 top-3 bottom-3">
                                 <Button className="h-full px-6 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center gap-2 font-bold shadow-lg shadow-indigo-600/20">
-                                    Ask <Send size={18} />
+                                    Ask <Send size={18} className="hidden sm:block" />
                                 </Button>
                             </div>
                         </div>
