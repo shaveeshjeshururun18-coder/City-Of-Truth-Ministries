@@ -128,49 +128,36 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
-              transition={{ type: "spring", damping: 35, stiffness: 400 }}
-              className="fixed top-0 right-0 bottom-0 z-[70] w-full max-w-[320px] bg-brand-950 border-l border-white/5 flex flex-col shadow-2xl"
+              transition={{ type: "spring", damping: 40, stiffness: 400 }}
+              className="fixed top-0 right-0 bottom-0 z-[70] w-[260px] bg-brand-950/95 backdrop-blur-2xl border-l border-white/5 flex flex-col shadow-2xl"
             >
-              <header className="p-8 flex items-center justify-between border-b border-white/5">
-                <div className="flex flex-col">
-                  <h2 className="font-serif font-black text-xl text-white leading-tight underline decoration-accent-500 underline-offset-8">MENU</h2>
-                </div>
-                <button onClick={() => setMobileMenuOpen(false)} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition-all text-white border border-white/10"><X size={20} /></button>
+              <header className="p-6 flex items-center justify-between border-b border-white/5">
+                <h2 className="font-serif font-black text-xs text-accent-400 uppercase tracking-[0.3em]">Navigation</h2>
+                <button onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-white/5 rounded-full transition-all text-white/50 hover:text-white"><X size={18} /></button>
               </header>
 
-              <motion.div variants={menuItemsContainer} initial="closed" animate="open" className="flex-1 overflow-y-auto py-8 px-6 space-y-2">
+              <motion.div variants={menuItemsContainer} initial="closed" animate="open" className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
                 {navItems.map((item) => (
                   <motion.button
                     key={item.label}
                     variants={menuItem}
                     onClick={() => { setView(item.view); setMobileMenuOpen(false); }}
-                    className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all border ${currentView === item.view ? 'bg-accent-600 text-white border-accent-500 shadow-lg shadow-accent-600/20' : 'bg-transparent text-white/70 border-white/5 hover:bg-white/5 hover:text-white'}`}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${currentView === item.view ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
                   >
-                    <div className={`${currentView === item.view ? 'text-white' : 'text-accent-400'}`}>
-                      {getIcon(item.view)}
+                    <div className={currentView === item.view ? 'text-accent-400' : 'text-white/20'}>
+                      {React.cloneElement(getIcon(item.view) as React.ReactElement, { size: 16 })}
                     </div>
-                    <span className="font-serif font-bold text-sm tracking-widest">{item.label}</span>
-                    {currentView === item.view && <Sparkles size={14} className="ml-auto text-accent-200" />}
+                    <span className="font-serif font-bold text-[11px] tracking-[0.2em] uppercase">{item.label}</span>
                   </motion.button>
                 ))}
               </motion.div>
 
-              <footer className="p-8 bg-black/40 border-t border-white/5">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="p-3 bg-brand-800/50 rounded-xl text-white border border-white/10 shadow-lg"><Phone size={18} className="text-accent-400" /></div>
-                  <div>
-                    <p className="text-[10px] font-black text-white/40 uppercase tracking-widest leading-none mb-1">Prayer Support</p>
-                    <p className="text-sm font-bold text-white">+91 80561 25478</p>
-                  </div>
-                </div>
-                <div className="flex gap-4 justify-center">
-                  {[
-                    { Icon: Youtube, color: 'hover:text-red-500' },
-                    { Icon: Facebook, color: 'hover:text-blue-500' },
-                    { Icon: Instagram, color: 'hover:text-pink-500' }
-                  ].map(({ Icon, color }, i) => (
-                    <a key={i} href="#" className={`w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-white/60 transition-all border border-white/5 ${color} hover:scale-110 active:scale-90`}>
-                      <Icon size={22} />
+              <footer className="p-6 bg-black/20 border-t border-white/5 flex flex-col items-center">
+                <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em] mb-4">Support & Social</p>
+                <div className="flex gap-4">
+                  {[Youtube, Facebook, Instagram].map((Icon, i) => (
+                    <a key={i} href="#" className="text-white/20 hover:text-accent-400 transition-colors">
+                      <Icon size={18} />
                     </a>
                   ))}
                 </div>
