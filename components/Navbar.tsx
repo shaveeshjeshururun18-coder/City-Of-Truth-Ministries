@@ -65,34 +65,34 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
   return (
     <>
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-700 bg-brand-950/95 backdrop-blur-xl border-b border-white/5 py-4`}>
-        <div className="container mx-auto px-6 flex items-center justify-between">
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-700 bg-brand-950/95 backdrop-blur-xl border-b border-white/5 py-2.5`}>
+        <div className="container mx-auto px-4 flex items-center justify-between gap-4">
           {/* Logo Section */}
-          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setView(ViewState.HOME)}>
-            <img src="/brand-logo.png" alt="COT Logo" className="w-12 h-12 object-contain group-hover:scale-110 transition-transform" />
+          <div className="flex items-center gap-2 cursor-pointer group shrink-0" onClick={() => setView(ViewState.HOME)}>
+            <img src="/brand-logo.png" alt="COT Logo" className="w-10 h-10 object-contain group-hover:scale-110 transition-transform" />
             <div className="flex flex-col">
-              <span className="font-serif font-black text-xl tracking-tighter text-white">
+              <span className="font-serif font-black text-lg tracking-tighter text-white whitespace-nowrap">
                 City of Truth
               </span>
-              <span className="text-[9px] font-black uppercase tracking-[0.3em] text-accent-400">Ministries</span>
+              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-accent-400">Ministries</span>
             </div>
           </div>
 
           {/* Desktop Nav */}
-          <nav className="hidden 2xl:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-px">
             {navItems.map((item) => {
               const isActive = currentView === item.view;
               return (
                 <button
                   key={item.label}
                   onClick={() => setView(item.view)}
-                  className={`px-3 py-2 text-[10px] font-bold tracking-[0.15em] transition-all relative group ${isActive ? 'text-white' : 'text-white/60 hover:text-white'}`}
+                  className={`px-2 py-1 text-[8.5px] font-bold tracking-widest transition-all relative group whitespace-nowrap ${isActive ? 'text-white' : 'text-white/40 hover:text-white'}`}
                 >
                   <span className="relative z-10">{item.label}</span>
                   {isActive && (
                     <motion.div
                       layoutId="navHeaderIndicator"
-                      className="absolute inset-0 bg-white/10 rounded-lg -z-0"
+                      className="absolute inset-0 bg-white/10 rounded-md -z-0"
                     />
                   )}
                 </button>
@@ -101,12 +101,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
           </nav>
 
           {/* Right Section */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 shrink-0">
             <button
               onClick={onLoginClick}
-              className="hidden lg:flex items-center gap-2 px-6 py-2.5 border-2 border-white text-white font-bold text-[11px] tracking-widest uppercase rounded-full hover:bg-white hover:text-brand-950 transition-all duration-300"
+              className="hidden xl:flex items-center gap-2 px-5 py-2 border border-white/40 text-white font-bold text-[9px] tracking-widest uppercase rounded-full hover:bg-white hover:text-brand-950 transition-all duration-300 whitespace-nowrap"
             >
-              <LogIn size={16} />
+              <LogIn size={12} />
               {currentUser ? 'DASHBOARD' : 'MEMBER LOGIN'}
             </button>
 
