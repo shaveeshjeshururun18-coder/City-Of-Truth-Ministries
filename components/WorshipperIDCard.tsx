@@ -18,6 +18,7 @@ interface EntrustCardProps {
     photo?: string;
     gender?: string;
     className?: string;
+    forceFront?: boolean;
 }
 
 export const EntrustCard3D: React.FC<EntrustCardProps> = ({
@@ -32,89 +33,87 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
     uniqueId = "COT-SAMPLE",
     gender = "Male",
     photo,
-    className = ""
+    className = "",
+    forceFront = false
 }) => {
     const [isFlipped, setIsFlipped] = useState(false);
+
+    // If forceFront is true, we always show the front face without 3D transforms
+    const showFront = forceFront || !isFlipped;
 
     const fullDetails = `CITY OF TRUTH MINISTRIES\nID: ${uniqueId}\nName: ${name}\nRole: ${role}`.trim();
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(fullDetails)}&bgcolor=ffffff&color=2c298c&margin=2`;
 
-    return (
-        <div
-            className={`relative w-full max-w-[320px] h-[520px] cursor-pointer mx-auto ${className}`}
-            onClick={() => setIsFlipped(!isFlipped)}
-            style={{ perspective: "1000px" }}
-        >
-            <motion.div
-                className="w-full h-full relative"
-                style={{ transformStyle: "preserve-3d" }}
-                animate={{ rotateY: isFlipped ? 180 : 0 }}
-                transition={{ duration: 0.6, ease: "easeInOut" }}
+    const CardContent = () => (
+        <div className="w-full h-full relative" style={forceFront ? {} : { transformStyle: "preserve-3d" }}>
+            {/* FRONT FACE */}
+            <div
+                className={`absolute inset-0 bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-2xl flex flex-col ${forceFront ? '' : 'backface-hidden'}`}
+                style={forceFront ? { zIndex: 10 } : { backfaceVisibility: 'hidden' }}
             >
-                {/* FRONT FACE */}
-                <div className="absolute inset-0 bg-white rounded-2xl overflow-hidden backface-hidden border border-gray-200 shadow-2xl flex flex-col" style={{ backfaceVisibility: 'hidden' }}>
-                    <div className="bg-brand-900 text-white p-4 relative overflow-hidden shrink-0">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-accent-400/20 rounded-full blur-2xl"></div>
-                        <div className="flex items-center gap-3 relative z-10">
-                            <div className="bg-white/10 p-2 rounded-lg border border-white/10">
-                                <Church size={20} className="text-accent-300" />
-                            </div>
-                            <div>
-                                <h2 className="font-bold text-xs uppercase tracking-wider">City of Truth Ministries</h2>
-                                <p className="text-[10px] text-accent-200 font-medium mt-0.5">சத்திய நகரம் ஊழியங்கள்</p>
-                            </div>
+                <div className="bg-brand-900 text-white p-4 relative overflow-hidden shrink-0">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-accent-400/20 rounded-full blur-2xl"></div>
+                    <div className="flex items-center gap-3 relative z-10">
+                        <div className="bg-white/10 p-2 rounded-lg border border-white/10">
+                            <Church size={20} className="text-accent-300" />
                         </div>
-                    </div>
-
-                    <div className="bg-accent-50 py-1.5 text-center border-b border-accent-100 shrink-0">
-                        <p className="text-accent-700 font-bold text-[10px] uppercase tracking-widest">ENTRUST CARD</p>
-                    </div>
-
-                    <div className="p-6 flex-1 flex flex-col relative">
-                        <div className="flex justify-between items-start mb-6">
-                            <div className="text-[10px] font-mono font-bold text-brand-800 bg-brand-50 px-2 py-1 rounded border border-brand-100">
-                                ID: {uniqueId}
-                            </div>
-                            <div className="w-20 h-24 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-center text-slate-300 overflow-hidden shadow-inner">
-                                {photo ? <img src={photo} alt="P" className="w-full h-full object-cover" /> : <User size={40} />}
-                            </div>
+                        <div>
+                            <h2 className="font-bold text-xs uppercase tracking-wider">City of Truth Ministries</h2>
+                            <p className="text-[10px] text-accent-200 font-medium mt-0.5">சத்திய நகரம் ஊழியங்கள்</p>
                         </div>
-
-                        <div className="space-y-4 flex-1">
-                            <div>
-                                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Full Member Name</label>
-                                <p className="text-sm font-bold text-brand-900 uppercase leading-tight">{name || '—'}</p>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Birth Date</label>
-                                    <p className="text-xs font-semibold text-slate-700">{dob || '—'}</p>
-                                </div>
-                                <div>
-                                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Blood Group</label>
-                                    <p className="text-xs font-semibold text-slate-700">{bloodGroup || '—'}</p>
-                                </div>
-                            </div>
-                            <div>
-                                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Location</label>
-                                <p className="text-xs font-semibold text-slate-700">{location || '—'}</p>
-                            </div>
-                        </div>
-
-                        <div className="mt-auto flex justify-between items-end pt-4 border-t border-slate-50">
-                            <p className="text-[9px] text-slate-400 italic font-serif leading-tight">"Faith • Truth • Love"</p>
-                            <div className="bg-white p-1 border border-slate-100 rounded-md">
-                                <img src={qrCodeUrl} alt="QR" className="w-14 h-14" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-brand-950 p-2 text-center border-t-2 border-accent-400">
-                        <span className="text-[8px] font-bold tracking-widest text-accent-300 uppercase italic">Walking in Divine Light</span>
                     </div>
                 </div>
 
-                {/* BACK FACE */}
+                <div className="bg-accent-50 py-1.5 text-center border-b border-accent-100 shrink-0">
+                    <p className="text-accent-700 font-bold text-[10px] uppercase tracking-widest">ENTRUST CARD</p>
+                </div>
+
+                <div className="p-6 flex-1 flex flex-col relative">
+                    <div className="flex justify-between items-start mb-6">
+                        <div className="text-[10px] font-mono font-bold text-brand-800 bg-brand-50 px-2 py-1 rounded border border-brand-100">
+                            ID: {uniqueId}
+                        </div>
+                        <div className="w-20 h-24 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-center text-slate-300 overflow-hidden shadow-inner">
+                            {photo ? <img src={photo} alt="P" className="w-full h-full object-cover" /> : <User size={40} />}
+                        </div>
+                    </div>
+
+                    <div className="space-y-4 flex-1">
+                        <div>
+                            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Full Member Name</label>
+                            <p className="text-sm font-bold text-brand-900 uppercase leading-tight">{name || '—'}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Birth Date</label>
+                                <p className="text-xs font-semibold text-slate-700">{dob || '—'}</p>
+                            </div>
+                            <div>
+                                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Blood Group</label>
+                                <p className="text-xs font-semibold text-slate-700">{bloodGroup || '—'}</p>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Location</label>
+                            <p className="text-xs font-semibold text-slate-700">{location || '—'}</p>
+                        </div>
+                    </div>
+
+                    <div className="mt-auto flex justify-between items-end pt-4 border-t border-slate-50">
+                        <p className="text-[9px] text-slate-400 italic font-serif leading-tight">"Faith • Truth • Love"</p>
+                        <div className="bg-white p-1 border border-slate-100 rounded-md">
+                            <img src={qrCodeUrl} alt="QR" className="w-14 h-14" />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-brand-950 p-2 text-center border-t-2 border-accent-400">
+                    <span className="text-[8px] font-bold tracking-widest text-accent-300 uppercase italic">Walking in Divine Light</span>
+                </div>
+            </div>
+
+            {/* BACK FACE (Only render if not forceFront) */}
+            {!forceFront && (
                 <div
                     className="absolute inset-0 bg-gradient-to-br from-brand-900 to-indigo-950 rounded-2xl overflow-hidden border border-brand-900 shadow-2xl flex flex-col p-8 text-center"
                     style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
@@ -143,7 +142,28 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                     </div>
                     <p className="relative z-10 text-[9px] text-indigo-400 mt-4">Authorized for spiritual community access only.</p>
                 </div>
-            </motion.div>
+            )}
+        </div>
+    );
+
+    return (
+        <div
+            className={`relative w-full max-w-[320px] h-[520px] ${forceFront ? '' : 'cursor-pointer'} mx-auto ${className}`}
+            onClick={() => !forceFront && setIsFlipped(!isFlipped)}
+            style={forceFront ? {} : { perspective: "1000px" }}
+        >
+            {forceFront ? (
+                <CardContent />
+            ) : (
+                <motion.div
+                    className="w-full h-full relative"
+                    style={{ transformStyle: "preserve-3d" }}
+                    animate={{ rotateY: isFlipped ? 180 : 0 }}
+                    transition={{ duration: 0.6, ease: "easeInOut" }}
+                >
+                    <CardContent />
+                </motion.div>
+            )}
         </div>
     );
 };
@@ -190,12 +210,15 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister }
 
     const handleDownload = async () => {
         setIsProcessing(true);
-        const node = document.getElementById('entrust-card-download-area');
+        // We use a hidden static area for capture to avoid 3D transform issues
+        const node = document.getElementById('entrust-card-static-capture');
         if (node) {
             try {
+                // Ensure images are loaded before capture
                 const dataUrl = await toPng(node, {
                     cacheBust: true,
-                    style: { borderRadius: '0' }
+                    pixelRatio: 2, // High quality
+                    skipFonts: false,
                 });
                 const link = document.createElement('a');
                 link.download = `ENTRUST-CARD-${uniqueId}.png`;
@@ -214,12 +237,12 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister }
 
     const handleDownloadPDF = async () => {
         setIsProcessing(true);
-        const node = document.getElementById('entrust-card-download-area');
+        const node = document.getElementById('entrust-card-static-capture');
         if (node) {
             try {
                 const dataUrl = await toPng(node, {
                     cacheBust: true,
-                    style: { borderRadius: '0' }
+                    pixelRatio: 2,
                 });
 
                 const pdf = new jsPDF({
@@ -228,12 +251,9 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister }
                     format: 'a4'
                 });
 
-                // Card dimensions in mm (approximate for 320x520 aspect ratio)
                 const imgProps = pdf.getImageProperties(dataUrl);
                 const pdfWidth = pdf.internal.pageSize.getWidth();
                 const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-                // Center on page if height is less than A4 height
                 const yPos = (pdf.internal.pageSize.getHeight() - pdfHeight) / 2;
 
                 pdf.addImage(dataUrl, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight);
@@ -252,6 +272,13 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister }
 
     return (
         <section className="min-h-screen pt-24 md:pt-48 pb-32 bg-slate-50 relative overflow-hidden">
+            {/* HIDDEN STATIC AREA FOR CLEAN CAPTURE */}
+            <div className="fixed left-[-9999px] top-0 overflow-hidden pointer-events-none">
+                <div id="entrust-card-static-capture" className="bg-white p-0">
+                    <EntrustCard3D {...formData} uniqueId={uniqueId} photo={photo} forceFront={true} />
+                </div>
+            </div>
+
             <div className="container mx-auto px-6 relative z-10">
                 <div className="text-center max-w-3xl mx-auto mb-16">
                     <h1 className="text-4xl md:text-6xl font-serif font-bold text-brand-950 mb-6 tracking-tight">Generate Your ID</h1>
@@ -343,7 +370,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister }
                         className="flex flex-col items-center lg:sticky lg:top-40"
                     >
                         <div className="w-full max-w-[400px]">
-                            <div id="entrust-card-download-area" className="relative group mb-10 flex justify-center">
+                            <div className="relative group mb-10 flex justify-center">
                                 <div className="relative shrink-0 w-[320px]">
                                     <EntrustCard3D {...formData} uniqueId={uniqueId} photo={photo} />
                                 </div>
@@ -355,7 +382,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister }
                                         onClick={handleDownload}
                                         variant="primary"
                                         fullWidth
-                                        className="py-5 text-sm bg-brand-900"
+                                        className="py-5 text-sm bg-brand-950"
                                         disabled={isProcessing}
                                     >
                                         {isProcessing ? "..." : <><Download size={18} /> PNG</>}

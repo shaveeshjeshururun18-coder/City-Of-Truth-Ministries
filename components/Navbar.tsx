@@ -56,12 +56,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
     closed: { opacity: 0 },
     open: {
       opacity: 1,
-      transition: { staggerChildren: 0.05, delayChildren: 0.1 }
+      transition: { staggerChildren: 0.04, delayChildren: 0.1 }
     }
   };
 
   const menuItem = {
-    closed: { x: 20, opacity: 0 },
+    closed: { x: 15, opacity: 0 },
     open: { x: 0, opacity: 1 }
   };
 
@@ -115,51 +115,47 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
       <AnimatePresence>
         {mobileMenuOpen && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileMenuOpen(false)} className="fixed inset-0 z-[60] bg-brand-950/60 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileMenuOpen(false)} className="fixed inset-0 z-[60] bg-brand-950/40 backdrop-blur-sm" />
             <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed top-0 right-0 bottom-0 z-[70] w-full max-w-sm bg-white shadow-2xl flex flex-col"
+              transition={{ type: "spring", damping: 30, stiffness: 350 }}
+              className="fixed top-0 right-0 bottom-0 z-[70] w-full max-w-[280px] bg-white shadow-2xl flex flex-col"
             >
-              <header className="p-8 flex items-center justify-between border-b border-brand-50">
-                <div className="flex items-center gap-4">
-                  <div className="p-2 bg-brand-600 rounded-xl text-white shadow-lg shadow-brand-600/20"><Church size={20} /></div>
-                  <h2 className="font-serif font-black text-xl text-brand-950">Navigation</h2>
+              <header className="p-6 flex items-center justify-between border-b border-brand-50">
+                <div className="flex flex-col">
+                  <h2 className="font-serif font-black text-lg text-brand-950 leading-tight">Menu</h2>
+                  <p className="text-[9px] font-bold text-brand-400 uppercase tracking-widest">Navigation</p>
                 </div>
-                <button onClick={() => setMobileMenuOpen(false)} className="p-2 bg-brand-50 hover:bg-brand-100 rounded-full transition-all text-brand-950"><X size={24} /></button>
+                <button onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-brand-50 rounded-full transition-all text-brand-950"><X size={20} /></button>
               </header>
 
-              <motion.div variants={menuItemsContainer} initial="closed" animate="open" className="flex-1 overflow-y-auto pt-6 px-4 space-y-2">
+              <motion.div variants={menuItemsContainer} initial="closed" animate="open" className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
                 {navItems.map((item) => (
                   <motion.button
                     key={item.label}
                     variants={menuItem}
                     onClick={() => { setView(item.view); setMobileMenuOpen(false); }}
-                    className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all border ${currentView === item.view ? 'bg-brand-600 text-white border-brand-500 shadow-lg' : 'bg-transparent text-brand-900 border-transparent hover:bg-brand-50'}`}
+                    className={`w-full flex items-center gap-3 p-3.5 rounded-xl transition-all ${currentView === item.view ? 'bg-brand-600 text-white shadow-lg' : 'bg-transparent text-slate-700 hover:bg-brand-50'}`}
                   >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${currentView === item.view ? 'bg-white/20' : 'bg-brand-50'}`}>
+                    <div className={`${currentView === item.view ? 'text-white' : 'text-brand-400'}`}>
                       {getIcon(item.view)}
                     </div>
-                    <span className="font-black tracking-widest uppercase text-[10px]">{item.label}</span>
-                    {currentView === item.view && <Sparkles size={14} className="ml-auto text-accent-300" />}
+                    <span className="font-serif font-bold text-[13px] tracking-wide">{item.label}</span>
                   </motion.button>
                 ))}
               </motion.div>
 
-              <footer className="p-8 bg-brand-50 mt-auto">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="bg-white p-2.5 rounded-xl shadow-sm"><Phone size={18} className="text-brand-600" /></div>
-                  <div>
-                    <p className="text-[10px] font-black text-brand-400 uppercase tracking-widest leading-none mb-1">Prayer Line</p>
-                    <p className="text-base font-black text-brand-900">+91 80561 25478</p>
-                  </div>
+              <footer className="p-6 bg-white border-t border-brand-50">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-brand-50 rounded-lg text-brand-600"><Phone size={14} /></div>
+                  <span className="text-[11px] font-black text-brand-900">+91 80561 25478</span>
                 </div>
-                <div className="flex gap-4 justify-center">
-                  <Youtube size={22} className="text-brand-400 hover:text-brand-600 cursor-pointer transition-colors" />
-                  <Facebook size={22} className="text-brand-400 hover:text-brand-600 cursor-pointer transition-colors" />
-                  <Instagram size={22} className="text-brand-400 hover:text-brand-600 cursor-pointer transition-colors" />
+                <div className="flex gap-4">
+                  <Youtube size={18} className="text-slate-400 hover:text-red-600 cursor-pointer" />
+                  <Facebook size={18} className="text-slate-400 hover:text-blue-600 cursor-pointer" />
+                  <Instagram size={18} className="text-slate-400 hover:text-pink-600 cursor-pointer" />
                 </div>
               </footer>
             </motion.div>
