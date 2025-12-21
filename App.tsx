@@ -43,7 +43,8 @@ import {
   ChevronRight,
   UploadCloud,
   CheckCircle,
-  CreditCard
+  CreditCard,
+  Globe
 } from 'lucide-react';
 import { ViewState, User, UserRole, UserStatus } from './types';
 import { Navbar } from './components/Navbar';
@@ -576,10 +577,36 @@ const App: React.FC = () => {
           )}
 
           {currentView === ViewState.MINISTRIES && (
-            <motion.div key="ministries" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-32 pb-20">
-              <div className="container mx-auto px-6 max-w-4xl text-center">
-                <h1 className="text-6xl font-serif font-bold text-sky-950 mb-8">Our Ministries</h1>
-                <p className="text-xl text-sky-800/80">Serving the community through Prayer, Worship, and the Word.</p>
+            <motion.div key="ministries" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-32 pb-20 bg-slate-50 min-h-screen">
+              <div className="container mx-auto px-6">
+                <div className="max-w-4xl mx-auto text-center mb-20">
+                  <motion.span initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-accent-600 font-black tracking-[0.3em] uppercase text-[10px] mb-4 block">Our Divine Calling</motion.span>
+                  <h1 className="text-5xl md:text-7xl font-serif font-bold text-brand-950 mb-8">Sacred Ministries</h1>
+                  <p className="text-xl text-slate-500 leading-relaxed">Serving the people of Valparai and the global community through dedicated spiritual outreach and community support.</p>
+                </div>
+
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                  {[
+                    { title: "Sunday Worship", icon: <Church size={30} />, desc: "Join us for our weekly celebration of faith, truth, and communal worship in the heart of Valparai." },
+                    { title: "Youth Fellowship", icon: <Zap size={30} />, desc: "Empowering the next generation to lead with wisdom, integrity, and spiritual strength." },
+                    { title: "Global Outreach", icon: <Globe size={30} />, desc: "Extending our hand to those in need through humanitarian missions and spiritual support worldwide." },
+                    { title: "Bible Study", icon: <BookOpen size={30} />, desc: "Deep diving into the scriptures to discover profound truths for modern living." }
+                  ].map((m, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.1 }}
+                      className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50 hover:shadow-2xl transition-all group"
+                    >
+                      <div className="w-16 h-16 bg-brand-50 text-brand-600 rounded-2xl flex items-center justify-center mb-8 group-hover:bg-brand-600 group-hover:text-white transition-all">
+                        {m.icon}
+                      </div>
+                      <h3 className="text-2xl font-serif font-bold text-brand-950 mb-4">{m.title}</h3>
+                      <p className="text-slate-500 leading-relaxed text-sm">{m.desc}</p>
+                    </motion.div>
+                  ))}
+                </div>
               </div>
             </motion.div>
           )}
