@@ -51,11 +51,11 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
         <div className="absolute inset-0 bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-2xl flex flex-col" style={{ backfaceVisibility: 'hidden' }}>
             <div className="bg-brand-900 text-white p-4 relative overflow-hidden shrink-0">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-accent-400/20 rounded-full blur-2xl"></div>
-                <div className="flex items-center gap-3 relative z-10">
-                    <img src="/brand-logo.png" alt="Logo" className="w-12 h-12 object-contain" />
+                <div className="flex items-center gap-2 relative z-10">
+                    <img src="/brand-logo.png" alt="Logo" className="w-10 h-10 object-contain" />
                     <div>
-                        <h2 className="font-bold text-xs uppercase tracking-wider">City of Truth Ministries</h2>
-                        <p className="text-[10px] text-accent-200 font-medium mt-0.5">சத்திய நகரம் ஊழியங்கள்</p>
+                        <h2 className="font-bold text-[10px] uppercase tracking-wider">City of Truth Ministries</h2>
+                        <p className="text-[8px] text-accent-200 font-medium mt-0.5 whitespace-nowrap">சத்திய நகரம் ஊழியங்கள்</p>
                     </div>
                 </div>
             </div>
@@ -116,8 +116,8 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
         >
             <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
             <div className="relative z-10 flex-1 flex flex-col items-center justify-center">
-                <img src="/brand-logo.png" alt="Logo" className="w-20 h-20 object-contain mb-6 drop-shadow-2xl" />
-                <h3 className="text-lg font-serif font-bold text-white mb-4">Ministry Covenant</h3>
+                <img src="/brand-logo.png" alt="Logo" className="w-16 h-16 object-contain mb-4 drop-shadow-2xl" />
+                <h3 className="text-base font-serif font-bold text-white mb-2">Ministry Covenant</h3>
                 <p className="text-indigo-100 text-sm italic font-serif leading-relaxed mb-8 px-2">
                     "But my servant Moses is not so; he is faithful in all mine house. With him will I speak mouth to mouth."
                     <span className="block mt-2 text-accent-400 font-sans font-bold not-italic text-[10px] tracking-widest uppercase">- Numbers 12:7-8</span>
@@ -140,7 +140,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
 
     if (isStatic) {
         return (
-            <div className={`relative w-[320px] h-[520px] bg-slate-100 rounded-2xl`}>
+            <div className={`relative w-[320px] h-[480px] bg-slate-100 rounded-2xl`}>
                 {isBackSide ? <BackFace /> : <FrontFace />}
             </div>
         );
@@ -148,7 +148,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
 
     return (
         <div
-            className={`relative w-full max-w-[320px] h-[520px] cursor-pointer mx-auto ${className}`}
+            className={`relative w-full max-w-[320px] h-[480px] cursor-pointer mx-auto ${className}`}
             onClick={() => setIsFlipped(!isFlipped)}
             style={{ perspective: "1000px" }}
         >
@@ -240,7 +240,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister }
 
                 // Page 1: Front
                 const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = (520 * pdfWidth) / 320;
+                const pdfHeight = (480 * pdfWidth) / 320;
                 const yPos = (pdf.internal.pageSize.getHeight() - pdfHeight) / 2;
                 pdf.addImage(frontDataUrl, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight);
 

@@ -65,34 +65,34 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
   return (
     <>
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-700 bg-brand-950/95 backdrop-blur-xl border-b border-white/5 py-2.5`}>
-        <div className="container mx-auto px-4 flex items-center justify-between gap-4">
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 bg-brand-950/95 backdrop-blur-md border-b border-white/5 py-1.5`}>
+        <div className="container mx-auto px-4 flex items-center justify-between gap-3">
           {/* Logo Section */}
           <div className="flex items-center gap-2 cursor-pointer group shrink-0" onClick={() => setView(ViewState.HOME)}>
-            <img src="/brand-logo.png" alt="COT Logo" className="w-10 h-10 object-contain group-hover:scale-110 transition-transform" />
+            <img src="/brand-logo.png" alt="COT Logo" className="w-8 h-8 object-contain transition-transform group-hover:scale-105" />
             <div className="flex flex-col">
-              <span className="font-serif font-black text-lg tracking-tighter text-white whitespace-nowrap">
+              <span className="font-serif font-black text-sm tracking-tighter text-white whitespace-nowrap leading-none mb-0.5">
                 City of Truth
               </span>
-              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-accent-400">Ministries</span>
+              <span className="text-[7px] font-black uppercase tracking-[0.2em] text-accent-400 leading-none">Ministries</span>
             </div>
           </div>
 
-          {/* Desktop Nav */}
-          <nav className="hidden lg:flex items-center gap-px">
+          {/* Desktop Nav - Visible from lg up */}
+          <nav className="hidden lg:flex items-center gap-0.5">
             {navItems.map((item) => {
               const isActive = currentView === item.view;
               return (
                 <button
                   key={item.label}
                   onClick={() => setView(item.view)}
-                  className={`px-2 py-1 text-[8.5px] font-bold tracking-widest transition-all relative group whitespace-nowrap ${isActive ? 'text-white' : 'text-white/40 hover:text-white'}`}
+                  className={`px-2 py-1 text-[8px] font-bold tracking-[0.1em] transition-all relative group whitespace-nowrap ${isActive ? 'text-white' : 'text-white/30 hover:text-white'}`}
                 >
                   <span className="relative z-10">{item.label}</span>
                   {isActive && (
                     <motion.div
                       layoutId="navHeaderIndicator"
-                      className="absolute inset-0 bg-white/10 rounded-md -z-0"
+                      className="absolute inset-0 bg-white/5 rounded-md -z-0"
                     />
                   )}
                 </button>
@@ -101,20 +101,19 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
           </nav>
 
           {/* Right Section */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={onLoginClick}
-              className="hidden xl:flex items-center gap-2 px-5 py-2 border border-white/40 text-white font-bold text-[9px] tracking-widest uppercase rounded-full hover:bg-white hover:text-brand-950 transition-all duration-300 whitespace-nowrap"
+              className="hidden 2xl:flex items-center gap-2 px-4 py-1.5 border border-white/20 text-white font-bold text-[8px] tracking-widest uppercase rounded-full hover:bg-white hover:text-brand-950 transition-all duration-300"
             >
-              <LogIn size={12} />
-              {currentUser ? 'DASHBOARD' : 'MEMBER LOGIN'}
+              {currentUser ? 'DASHBOARD' : 'LOGIN'}
             </button>
 
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="p-3 bg-white/5 text-white hover:bg-white/10 rounded-2xl border border-white/10 transition-all"
+              className="p-2 bg-white/5 text-white hover:bg-white/10 rounded-xl border border-white/5 transition-all"
             >
-              <Menu size={22} />
+              <Menu size={18} />
             </button>
           </div>
         </div>
