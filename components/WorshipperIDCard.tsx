@@ -210,9 +210,15 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister }
         const frontNode = document.getElementById('capture-front');
         if (frontNode) {
             try {
-                const dataUrl = await toPng(frontNode, { cacheBust: true, pixelRatio: 2 });
+                // High Definition PNG Export (pixelRatio: 4)
+                const dataUrl = await toPng(frontNode, {
+                    cacheBust: true,
+                    pixelRatio: 4,
+                    quality: 1,
+                    backgroundColor: '#ffffff'
+                });
                 const link = document.createElement('a');
-                link.download = `ENTRUST-FRONT-${uniqueId}.png`;
+                link.download = `ENTRUST-FRONT-HD-${uniqueId}.png`;
                 link.href = dataUrl;
                 link.click();
             } catch (err) {
@@ -229,33 +235,37 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister }
 
         if (frontNode && backNode) {
             try {
-                const frontDataUrl = await toPng(frontNode, { cacheBust: true, pixelRatio: 2 });
-                const backDataUrl = await toPng(backNode, { cacheBust: true, pixelRatio: 2 });
+                // High Resolution Image Capture for PDF
+                const frontDataUrl = await toPng(frontNode, { pixelRatio: 4, quality: 1 });
+                const backDataUrl = await toPng(backNode, { pixelRatio: 4, quality: 1 });
 
                 const pdf = new jsPDF({
                     orientation: 'portrait',
                     unit: 'mm',
-                    format: 'a4'
+                    format: 'a4',
+                    compress: true
                 });
 
                 // Page 1: Front
                 const pdfWidth = pdf.internal.pageSize.getWidth();
                 const pdfHeight = (480 * pdfWidth) / 320;
                 const yPos = (pdf.internal.pageSize.getHeight() - pdfHeight) / 2;
-                pdf.addImage(frontDataUrl, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight);
+
+                // Add image with high quality settings
+                pdf.addImage(frontDataUrl, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight, undefined, 'FAST');
 
                 // Page 2: Back
                 pdf.addPage();
-                pdf.addImage(backDataUrl, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight);
+                pdf.addImage(backDataUrl, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight, undefined, 'FAST');
 
-                pdf.save(`ENTRUST-CARD-FULL-${uniqueId}.pdf`);
+                pdf.save(`ENTRUST-CARD-HD-FULL-${uniqueId}.pdf`);
 
                 if (onRegister) {
                     onRegister({ ...formData, uniqueId, photo });
                 }
             } catch (err) {
                 console.error('PDF generation failed', err);
-                alert("Failed to create PDF. Please try again.");
+                alert("Failed to create HD PDF. Please try again.");
             }
         }
         setIsProcessing(false);
