@@ -1,4 +1,4 @@
-import { createGoogleGenAI } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
 export const getSpiritualEncouragement = async (topic: string): Promise<string> => {
   try {
@@ -9,7 +9,7 @@ export const getSpiritualEncouragement = async (topic: string): Promise<string> 
       return "The Lord is my shepherd; I shall not want. (Psalm 23:1)";
     }
 
-    const ai = createGoogleGenAI({ apiKey });
+    const ai = new GoogleGenAI({ apiKey });
 
     const response = await ai.models.generateContent({
       model: "gemini-1.5-flash",

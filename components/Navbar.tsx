@@ -151,15 +151,26 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                 ))}
               </motion.div>
 
-              <footer className="p-6 bg-black/20 border-t border-white/5 flex flex-col items-center">
-                <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em] mb-4">Support & Social</p>
-                <div className="flex gap-4">
-                  {[Youtube, Facebook, Instagram].map((Icon, i) => (
-                    <a key={i} href="#" className="text-white/20 hover:text-accent-400 transition-colors">
-                      <Icon size={18} />
+              <footer className="p-8 bg-black/40 border-t border-white/5 flex flex-col items-center">
+                <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.3em] mb-6">Divine Fellowship</p>
+                <div className="flex gap-6">
+                  {[
+                    { Icon: Youtube, href: "https://youtube.com/@cotministries?si=A6179oNRuuJ9snjM" },
+                    { Icon: Facebook, href: "https://facebook.com/cityoftruthministries" },
+                    { Icon: Instagram, href: "https://instagram.com/cityoftruthministries" }
+                  ].map(({ Icon, href }, i) => (
+                    <a
+                      key={i}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-white/40 hover:text-accent-400 transition-all transform hover:scale-110 active:scale-95"
+                    >
+                      <Icon size={20} />
                     </a>
                   ))}
                 </div>
+                <p className="mt-8 text-[7px] font-bold text-white/10 uppercase tracking-widest">© 2024 COT Ministries</p>
               </footer>
             </motion.div>
           </>
