@@ -19,6 +19,8 @@ const navItems: NavItem[] = [
   { label: 'MINISTRIES', view: ViewState.MINISTRIES },
   { label: 'HEBREW', view: ViewState.HEBREW },
   { label: 'MENORAH', view: ViewState.MENORAH },
+  { label: 'BARUCH HASHEM', view: ViewState.BARUCH_HASHEM },
+  { label: 'AI ASSISTANCE', view: ViewState.AI },
   { label: 'ENTRUST CARD', view: ViewState.ID_CARD },
   { label: 'CONTACT', view: ViewState.CONTACT },
 ];
@@ -33,6 +35,8 @@ const getIcon = (view: ViewState) => {
     case ViewState.ID_CARD: return <CreditCard size={18} />;
     case ViewState.ABOUT_VALPARAI: return <MapPin size={18} />;
     case ViewState.MENORAH: return <Flame size={18} />;
+    case ViewState.BARUCH_HASHEM: return <Globe size={18} />;
+    case ViewState.AI: return <Sparkles size={18} />;
     default: return <Church size={18} />;
   }
 };
@@ -65,16 +69,16 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
         </div>
 
         {/* MENU LINKS STYLING */}
-        <ul className="hidden xl:flex items-center gap-[10px] list-none">
+        <ul className="hidden xl:flex items-center gap-[4px] list-none overflow-x-auto max-w-[60%] no-scrollbar">
           {navItems.map((item) => {
             const isActive = currentView === item.view;
             return (
               <li key={item.label}>
                 <button
                   onClick={() => setView(item.view)}
-                  className={`text-[0.75rem] font-bold uppercase tracking-[0.5px] px-[18px] py-2.5 rounded-[20px] transition-all duration-300 no-underline whitespace-nowrap ${isActive
-                      ? 'bg-[#EEF0FF] text-[#5D5FEF]'
-                      : 'text-[#555] hover:text-[#5D5FEF]'
+                  className={`text-[0.65rem] font-bold uppercase tracking-[0.5px] px-[12px] py-2 rounded-[20px] transition-all duration-300 no-underline whitespace-nowrap ${isActive
+                    ? 'bg-[#EEF0FF] text-[#5D5FEF]'
+                    : 'text-[#555] hover:text-[#5D5FEF]'
                     }`}
                 >
                   {item.label}
@@ -142,8 +146,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                     key={item.label}
                     onClick={() => { setView(item.view); setMobileMenuOpen(false); }}
                     className={`w-full flex items-center gap-5 p-4 rounded-xl transition-all ${currentView === item.view
-                        ? 'bg-[#EEF0FF] text-[#5D5FEF]'
-                        : 'bg-transparent text-[#555] hover:bg-gray-50'
+                      ? 'bg-[#EEF0FF] text-[#5D5FEF]'
+                      : 'bg-transparent text-[#555] hover:bg-gray-50'
                       }`}
                   >
                     <span className={currentView === item.view ? 'text-[#5D5FEF]' : 'text-gray-400'}>

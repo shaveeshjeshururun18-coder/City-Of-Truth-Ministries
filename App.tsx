@@ -323,7 +323,7 @@ const App: React.FC = () => {
           {currentView === ViewState.HOME && (
             <motion.div
               key="home"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
             >
               <section className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden py-20">
                 <div className="absolute inset-0 z-0">
@@ -555,7 +555,7 @@ const App: React.FC = () => {
           )}
 
           {currentView === ViewState.ABOUT && (
-            <motion.div key="about" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-24 md:pt-48 pb-32">
+            <motion.div key="about" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="pt-24 md:pt-48 pb-32">
               <div className="container mx-auto px-6 text-center">
                 <h1 className="text-4xl sm:text-6xl md:text-8xl font-serif font-bold text-brand-950 mb-8 tracking-tighter">Divine <span className="text-accent-600">Legacy</span></h1>
                 <p className="text-2xl text-slate-500 max-w-3xl mx-auto font-light leading-relaxed mb-16">Since 2010, City of Truth Ministries has been a lighthouse in the hills of Valparai, dedicated to teaching the Word of God with uncompromising truth and love.</p>
@@ -578,7 +578,7 @@ const App: React.FC = () => {
           )}
 
           {currentView === ViewState.MINISTRIES && (
-            <motion.div key="ministries" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-32 pb-20 bg-slate-50 min-h-screen">
+            <motion.div key="ministries" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="pt-32 pb-20 bg-slate-50 min-h-screen">
               <div className="container mx-auto px-6">
                 <div className="max-w-4xl mx-auto text-center mb-20">
                   <motion.span initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-accent-600 font-black tracking-[0.3em] uppercase text-[10px] mb-4 block">Our Divine Calling</motion.span>
@@ -612,31 +612,56 @@ const App: React.FC = () => {
             </motion.div>
           )}
 
-          {currentView === ViewState.ID_CARD && <WorshipperIDCard onRegister={handleRegister} />}
-          {currentView === ViewState.ABOUT_VALPARAI && <ValparaiPage />}
-
-          {currentView === ViewState.MENORAH && <GoldenMenorah />}
-          {currentView === ViewState.HEBREW && <HebrewPage />}
-          {currentView === ViewState.BARUCH_HASHEM && <BaruchHashemPage />}
-          {currentView === ViewState.AI && <AIPage />}
+          {currentView === ViewState.ID_CARD && (
+            <motion.div key="id-card" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <WorshipperIDCard onRegister={handleRegister} />
+            </motion.div>
+          )}
+          {currentView === ViewState.ABOUT_VALPARAI && (
+            <motion.div key="valparai" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <ValparaiPage />
+            </motion.div>
+          )}
+          {currentView === ViewState.MENORAH && (
+            <motion.div key="menorah" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <GoldenMenorah />
+            </motion.div>
+          )}
+          {currentView === ViewState.HEBREW && (
+            <motion.div key="hebrew" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <HebrewPage />
+            </motion.div>
+          )}
+          {currentView === ViewState.BARUCH_HASHEM && (
+            <motion.div key="baruch" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <BaruchHashemPage />
+            </motion.div>
+          )}
+          {currentView === ViewState.AI && (
+            <motion.div key="ai" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <AIPage />
+            </motion.div>
+          )}
 
           {currentView === ViewState.USER_DASHBOARD && currentUser && (
-            <UserDashboard
-              user={currentUser}
-              onEdit={() => { }}
-              onUpdate={async (updatedUser) => {
-                await api.updateUser(updatedUser);
-                setCurrentUser(updatedUser);
-                setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
-                alert("Profile Updated Successfully!");
-              }}
-            />
+            <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <UserDashboard
+                user={currentUser}
+                onEdit={() => { }}
+                onUpdate={async (updatedUser) => {
+                  await api.updateUser(updatedUser);
+                  setCurrentUser(updatedUser);
+                  setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
+                  alert("Profile Updated Successfully!");
+                }}
+              />
+            </motion.div>
           )}
 
 
 
           {currentView === ViewState.CONTACT && (
-            <motion.div key="contact" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-24 md:pt-32 pb-20 bg-slate-50 min-h-screen">
+            <motion.div key="contact" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="pt-24 md:pt-32 pb-20 bg-slate-50 min-h-screen">
               <div className="container mx-auto px-6 max-w-7xl">
                 {/* Header */}
                 <header className="text-center mb-16 max-w-2xl mx-auto">
