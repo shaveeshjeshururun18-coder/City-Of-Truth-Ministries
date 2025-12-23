@@ -13,36 +13,41 @@ interface NavbarProps {
 }
 
 const navItems: NavItem[] = [
-  { label: 'HOME', view: ViewState.HOME },
-  { label: 'ABOUT', view: ViewState.ABOUT },
-  { label: 'VALPARAI', view: ViewState.ABOUT_VALPARAI },
-  { label: 'MINISTRIES', view: ViewState.MINISTRIES },
-  { label: 'HEBREW', view: ViewState.HEBREW },
-  { label: 'MENORAH', view: ViewState.MENORAH },
-  { label: 'BARUCH HASHEM', view: ViewState.BARUCH_HASHEM },
-  { label: 'AI ASSISTANCE', view: ViewState.AI },
-  { label: 'ENTRUST CARD', view: ViewState.ID_CARD },
-  { label: 'CONTACT', view: ViewState.CONTACT },
+  { label: 'Home', view: ViewState.HOME },
+  { label: 'About', view: ViewState.ABOUT },
+  { label: 'Valparai', view: ViewState.ABOUT_VALPARAI },
+  { label: 'Ministries', view: ViewState.MINISTRIES },
+  { label: 'Hebrew', view: ViewState.HEBREW },
+  { label: 'Menorah', view: ViewState.MENORAH },
+  { label: 'Baruch Hashem', view: ViewState.BARUCH_HASHEM },
+  { label: 'AI Assistance', view: ViewState.AI },
+  { label: 'Entrust Card', view: ViewState.ID_CARD },
+  { label: 'Contact', view: ViewState.CONTACT },
 ];
 
 const getIcon = (view: ViewState) => {
   switch (view) {
-    case ViewState.HOME: return <Home size={20} />;
-    case ViewState.ABOUT: return <Info size={20} />;
-    case ViewState.MINISTRIES: return <Heart size={20} />;
-    case ViewState.HEBREW: return <Languages size={20} />;
-    case ViewState.CONTACT: return <Phone size={20} />;
-    case ViewState.ID_CARD: return <CreditCard size={20} />;
-    case ViewState.ABOUT_VALPARAI: return <MapPin size={20} />;
-    case ViewState.MENORAH: return <Flame size={20} />;
-    case ViewState.AI: return <Sparkles size={20} />;
-    default: return <Church size={20} />;
+    case ViewState.HOME: return <Home size={18} />;
+    case ViewState.ABOUT: return <Info size={18} />;
+    case ViewState.MINISTRIES: return <Heart size={18} />;
+    case ViewState.HEBREW: return <Languages size={18} />;
+    case ViewState.CONTACT: return <Phone size={18} />;
+    case ViewState.ID_CARD: return <CreditCard size={18} />;
+    case ViewState.ABOUT_VALPARAI: return <MapPin size={18} />;
+    case ViewState.MENORAH: return <Flame size={18} />;
+    case ViewState.BARUCH_HASHEM: return <Globe size={18} />;
+    case ViewState.AI: return <Sparkles size={18} />;
+    default: return <Church size={18} />;
   }
 };
 
 export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginClick, currentUser }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Dynamic theme based on view and scroll state
+  const isDarkBackground = currentView === ViewState.HOME || currentView === ViewState.HEBREW || currentView === ViewState.MENORAH || currentView === ViewState.BARUCH_HASHEM;
+  const useDarkText = isScrolled || !isDarkBackground;
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -54,75 +59,62 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
     closed: { opacity: 0 },
     open: {
       opacity: 1,
-      transition: { staggerChildren: 0.05, delayChildren: 0.1 }
+      transition: { staggerChildren: 0.1, delayChildren: 0.2 }
     }
   };
 
   const menuItem = {
-    closed: { x: 30, opacity: 0 },
+    closed: { x: 40, opacity: 0 },
     open: {
       x: 0,
       opacity: 1,
-      transition: { type: "spring", stiffness: 300, damping: 25 }
+      transition: { type: "spring", stiffness: 400, damping: 30 }
     }
   };
 
   return (
     <>
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-700 ${isScrolled ? 'py-4 bg-white/80 backdrop-blur-xl border-b border-black/5 shadow-sm' : 'py-8 bg-transparent'}`}>
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-700 ease-in-out ${isScrolled ? 'bg-white/80 backdrop-blur-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] py-4 border-b border-black/5' : 'bg-transparent py-8'}`}>
         <div className="container mx-auto px-6 flex items-center justify-between">
-
-          <div
-            className="flex items-center gap-3 cursor-pointer group shrink-0"
-            onClick={() => setView(ViewState.HOME)}
-          >
-            <div className="relative">
-              <img src="/brand-logo.png" alt="COT Logo" className="w-12 h-12 object-contain group-hover:scale-110 transition-transform relative z-10" />
-              <div className="absolute inset-0 bg-accent-400/20 blur-xl rounded-full scale-0 group-hover:scale-150 transition-transform duration-500"></div>
+          <div className="flex items-center gap-4 cursor-pointer group" onClick={() => setView(ViewState.HOME)}>
+            <div className={`p-2.5 rounded-2xl transition-all duration-500 border ${useDarkText ? 'bg-brand-600 text-white border-brand-500 shadow-xl shadow-brand-600/20' : 'bg-white/10 text-white border-white/20 backdrop-blur-md'}`}>
+              <Church size={26} className="group-hover:scale-110 group-hover:rotate-6 transition-transform" />
             </div>
             <div className="flex flex-col">
-              <span className={`font-serif font-black text-2xl tracking-tighter whitespace-nowrap leading-none mb-1 transition-colors ${isScrolled ? 'text-brand-950' : 'text-white'}`}>
-                City of Truth
-              </span>
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-accent-500 leading-none">Ministries</span>
+              <h1 className={`font-serif font-black text-2xl leading-none tracking-tighter ${useDarkText ? 'text-brand-950' : 'text-white'}`}>City of Truth</h1>
+              <p className={`text-[10px] font-black uppercase tracking-[0.3em] mt-1.5 ${useDarkText ? 'text-brand-600' : 'text-accent-400'}`}>Ministries</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
-            <nav className="hidden lg:flex items-center gap-1">
-              {navItems.slice(0, 6).map((item) => {
-                const isActive = currentView === item.view;
-                return (
-                  <button
-                    key={item.label}
-                    onClick={() => setView(item.view)}
-                    className={`px-4 py-2 text-[10px] font-black tracking-[0.2em] transition-all relative group whitespace-nowrap uppercase ${isActive ? (isScrolled ? 'text-brand-600' : 'text-white') : (isScrolled ? 'text-brand-950/40 hover:text-brand-950' : 'text-white/40 hover:text-white')}`}
-                  >
-                    <span className="relative z-10">{item.label}</span>
-                    {isActive && (
-                      <motion.div
-                        layoutId="navHeaderIndicator"
-                        className={`absolute bottom-0 left-4 right-4 h-0.5 rounded-full -z-0 ${isScrolled ? 'bg-brand-600' : 'bg-white'}`}
-                      />
-                    )}
-                  </button>
-                );
-              })}
-            </nav>
+          <nav className="hidden xl:flex items-center gap-1.5">
+            {navItems.slice(0, 8).map((item) => {
+              const isActive = currentView === item.view;
+              return (
+                <button
+                  key={item.label}
+                  onClick={() => setView(item.view)}
+                  className={`px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] rounded-xl transition-all relative group overflow-hidden ${useDarkText ? (isActive ? 'text-white bg-brand-950 shadow-lg' : 'text-slate-500 hover:text-brand-950 hover:bg-slate-100/50') : (isActive ? 'text-white bg-white/20' : 'text-white/60 hover:text-white hover:bg-white/10')}`}
+                >
+                  <span className="relative z-10">{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
 
-            <button
+          <div className="flex items-center gap-4">
+            <Button
+              variant={useDarkText ? "primary" : "outline"}
               onClick={onLoginClick}
-              className={`hidden md:flex items-center gap-3 px-6 py-3 border font-black text-[10px] tracking-widest uppercase rounded-full transition-all duration-500 active:scale-95 whitespace-nowrap ${isScrolled ? 'border-brand-950/20 text-brand-950 hover:bg-brand-950 hover:text-white' : 'border-white/40 text-white hover:bg-white hover:text-brand-950'}`}
+              className={`hidden md:flex !px-8 !py-3 !text-[10px] !font-black !uppercase !tracking-[0.2em] !rounded-full transition-all duration-500 hover:scale-105 active:scale-95 shadow-xl hover:shadow-brand-600/20 ${!useDarkText ? '!border-white/40 !text-white hover:!bg-white hover:!text-brand-950' : ''}`}
             >
-              <LogIn size={14} />
-              {currentUser ? 'DASHBOARD' : 'LOGIN'}
-            </button>
+              <LogIn size={14} className="mr-2" />
+              {currentUser ? 'DASHBOARD' : 'MEMBER LOGIN'}
+            </Button>
 
             <button
+              className={`p-4 rounded-[1.25rem] transition-all hover:scale-105 active:scale-90 border hover:rotate-2 shadow-sm ${useDarkText ? 'bg-white border-slate-200 text-brand-950 shadow-md' : 'bg-white/10 text-white border-white/20 backdrop-blur-md'}`}
               onClick={() => setMobileMenuOpen(true)}
-              className={`p-4 rounded-[1.25rem] transition-all hover:scale-105 active:scale-90 flex items-center gap-2 group border ${isScrolled ? 'bg-brand-50 border-brand-100 text-brand-950' : 'bg-white/10 border-white/20 text-white hover:bg-white/20'}`}
             >
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] hidden sm:block">Explore</span>
               <Menu size={24} />
             </button>
           </div>
@@ -132,83 +124,78 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
       <AnimatePresence>
         {mobileMenuOpen && (
           <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileMenuOpen(false)} className="fixed inset-0 z-[100] bg-brand-950/20 backdrop-blur-md" />
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setMobileMenuOpen(false)}
-              className="fixed inset-0 z-[100] bg-brand-950/40 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed top-0 right-0 bottom-0 z-[110] w-[85%] md:w-[400px] bg-white/90 backdrop-blur-2xl shadow-[-20px_0_50px_rgba(0,0,0,0.1)] flex flex-col border-l border-white/20"
+              initial={{ x: '100%', opacity: 0.5 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: '100%', opacity: 0.5 }}
+              transition={{ type: "spring", damping: 35, stiffness: 400 }}
+              className="fixed top-0 right-0 bottom-0 z-[110] w-[90%] max-w-sm bg-white/95 backdrop-blur-3xl shadow-[-30px_0_80px_rgba(0,0,0,0.1)] flex flex-col border-l border-white/50"
             >
-              <header className="p-8 flex items-center justify-between border-b border-slate-100">
-                <div className="flex flex-col">
-                  <h2 className="font-serif font-black text-xl text-brand-950 leading-tight">Navigation</h2>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-brand-400">Divine Journey</span>
+              <div className="p-8 flex items-center justify-between border-b border-slate-100">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-brand-600 rounded-2xl text-white shadow-2xl rotate-3"><Church size={24} /></div>
+                  <div className="flex flex-col">
+                    <h2 className="font-serif font-black text-2xl text-brand-950 leading-none">Holy Navigation</h2>
+                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-accent-600 mt-2">Divine Selection</span>
+                  </div>
                 </div>
-                <button
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="p-3 bg-slate-100 text-brand-950 rounded-2xl hover:bg-brand-950 hover:text-white transition-all transform hover:rotate-90"
-                >
-                  <X size={20} />
-                </button>
-              </header>
+                <button onClick={() => setMobileMenuOpen(false)} className="p-3 bg-slate-100 hover:bg-brand-950 hover:text-white rounded-2xl transition-all transform hover:rotate-90 text-brand-950"><X size={24} /></button>
+              </div>
 
               <motion.div
                 variants={menuItemsContainer}
                 initial="closed"
                 animate="open"
-                className="flex-1 overflow-y-auto py-10 px-6 space-y-2 custom-scrollbar"
+                className="flex-1 overflow-y-auto py-10 px-6 space-y-3 custom-scrollbar"
               >
                 {navItems.map((item) => (
                   <motion.button
                     key={item.label}
                     variants={menuItem}
-                    whileHover={{ x: 10 }}
+                    whileHover={{
+                      x: 12,
+                      scale: 1.02,
+                      backgroundColor: "rgba(241, 245, 249, 0.9)"
+                    }}
                     onClick={() => { setView(item.view); setMobileMenuOpen(false); }}
-                    className={`w-full group text-left flex items-center gap-5 p-4 rounded-2xl transition-all ${currentView === item.view ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/20' : 'hover:bg-brand-50 text-slate-600 hover:text-brand-950'}`}
+                    className={`w-full flex items-center gap-6 p-5 rounded-[2rem] transition-all group ${currentView === item.view ? 'bg-brand-600 text-white border-brand-500 shadow-2xl' : 'bg-transparent text-slate-600 border border-transparent'}`}
                   >
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${currentView === item.view ? 'bg-brand-950 text-accent-400' : 'bg-slate-100 text-slate-400 group-hover:bg-white group-hover:text-brand-600 group-hover:shadow-sm'}`}>
-                      {React.cloneElement(getIcon(item.view) as React.ReactElement, { size: 22 })}
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 ${currentView === item.view ? 'bg-white/20 text-white rotate-12' : 'bg-slate-100 text-slate-400 group-hover:bg-white group-hover:text-brand-600 group-hover:rotate-6 group-hover:shadow-lg'}`}>
+                      {getIcon(item.view)}
                     </div>
-                    <div>
-                      <span className="block font-serif font-bold text-lg tracking-tight leading-none mb-1 group-hover:tracking-wide transition-all">
-                        {item.label}
-                      </span>
-                      <span className={`block text-[8px] font-black uppercase tracking-widest ${currentView === item.view ? 'text-white/60' : 'text-slate-400'}`}>Explore Section</span>
+                    <div className="flex flex-col text-left">
+                      <span className="font-serif font-black text-xl tracking-tight uppercase leading-none mb-1.5 group-hover:tracking-wider transition-all">{item.label}</span>
+                      <span className={`text-[9px] font-black uppercase tracking-widest ${currentView === item.view ? 'text-white/60' : 'text-slate-400'}`}>Holy Section Entry</span>
                     </div>
-                    <ChevronRight size={16} className={`ml-auto transition-transform ${currentView === item.view ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0'}`} />
+                    {currentView === item.view ? <Sparkles size={18} className="ml-auto text-accent-300 animate-pulse" /> : <ChevronRight size={18} className="ml-auto opacity-0 group-hover:opacity-40 translate-x-4 group-hover:translate-x-0 transition-all duration-500" />}
                   </motion.button>
                 ))}
               </motion.div>
 
-              <footer className="p-10 bg-slate-50 border-t border-slate-100">
-                <div className="flex flex-col items-center">
-                  <div className="flex gap-8 mb-8">
-                    {[
-                      { Icon: Youtube, href: "https://youtube.com/@cotministries?si=A6179oNRuuJ9snjM" },
-                      { Icon: Facebook, href: "https://facebook.com/cityoftruthministries" },
-                      { Icon: Instagram, href: "https://instagram.com/cityoftruthministries" }
-                    ].map(({ Icon, href }, i) => (
-                      <a
-                        key={i}
-                        href={href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-12 h-12 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center justify-center text-slate-400 hover:text-brand-600 hover:scale-110 active:scale-95 transition-all"
-                      >
-                        <Icon size={20} />
-                      </a>
-                    ))}
+              <div className="p-10 bg-slate-50/50 backdrop-blur-md border-t border-slate-100 mt-auto">
+                <div className="flex items-center gap-5 mb-8 group cursor-default">
+                  <div className="bg-white p-4 rounded-2xl shadow-xl border border-white group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500"><Phone size={20} className="text-brand-600" /></div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Divine Prayer Line</p>
+                    <p className="text-xl font-black text-brand-950 tracking-tighter">+91 80562 5478</p>
                   </div>
-                  <p className="text-[10px] font-black text-brand-950/20 uppercase tracking-[0.4em] text-center italic">"Walking in Truth & Grace"</p>
                 </div>
-              </footer>
+                <div className="flex gap-10 justify-center">
+                  {[
+                    { Icon: Youtube, href: "https://youtube.com/@cotministries" },
+                    { Icon: Facebook, href: "https://facebook.com/cityoftruthministries" },
+                    { Icon: Instagram, href: "https://instagram.com/cityoftruthministries" }
+                  ].map(({ Icon, href }, i) => (
+                    <a key={i} href={href} target="_blank" rel="noopener noreferrer">
+                      <Icon size={26} className="text-slate-300 hover:text-brand-600 hover:scale-125 hover:rotate-12 transition-all duration-500 cursor-pointer" />
+                    </a>
+                  ))}
+                </div>
+                <div className="mt-8 text-center">
+                  <p className="text-[9px] font-black text-brand-950/20 uppercase tracking-[0.5em] italic">"The Sanctuary of Eternal Light"</p>
+                </div>
+              </div>
             </motion.div>
           </>
         )}
