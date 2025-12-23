@@ -32,7 +32,7 @@ const getIcon = (view: ViewState) => {
     case ViewState.MINISTRIES: return <Heart size={18} />;
     case ViewState.HEBREW: return <Languages size={18} />;
     case ViewState.CONTACT: return <Phone size={18} />;
-    case ViewState.ID_CARD: return <CreditCard size={18} />;
+    case ViewState.ID_CARD: return <img src="/logo.png" alt="Card" className="w-[18px] h-[18px] object-contain" />;
     case ViewState.ABOUT_VALPARAI: return <MapPin size={18} />;
     case ViewState.MENORAH: return <Flame size={18} />;
     case ViewState.BARUCH_HASHEM: return <Globe size={18} />;
@@ -59,8 +59,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
           className="flex items-center gap-[10px] cursor-pointer"
           onClick={() => setView(ViewState.HOME)}
         >
-          <div className="bg-[#5D5FEF] text-white w-10 h-10 rounded-lg flex items-center justify-center text-xl">
-            <Church size={20} />
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center">
+            <img src="/logo.png" alt="COT Logo" className="w-full h-full object-contain" />
           </div>
           <div className="flex flex-col justify-center">
             <span className="text-[#1a1a2e] font-bold text-[1.1rem] leading-[1.1] tracking-[-0.5px]">City of Truth</span>
@@ -69,7 +69,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
         </div>
 
         {/* MENU LINKS STYLING */}
-        <ul className="hidden xl:flex items-center gap-[4px] list-none overflow-x-auto max-w-[60%] no-scrollbar">
+        <ul className="hidden xl:flex items-center gap-[6px] list-none">
           {navItems.map((item) => {
             const isActive = currentView === item.view;
             return (
@@ -124,8 +124,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             >
               <div className="p-8 flex items-center justify-between border-b border-gray-100">
                 <div className="flex items-center gap-4">
-                  <div className="bg-[#5D5FEF] text-white w-10 h-10 rounded-lg flex items-center justify-center">
-                    <Church size={22} />
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center">
+                    <img src="/logo.png" alt="COT Logo" className="w-full h-full object-contain" />
                   </div>
                   <div className="flex flex-col">
                     <h2 className="font-bold text-lg text-[#1a1a2e] leading-none">Navigation</h2>
@@ -140,12 +140,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto py-8 px-6 space-y-2">
+              <div className="flex-1 overflow-y-auto py-4 px-6 space-y-1">
                 {navItems.map((item) => (
                   <button
                     key={item.label}
                     onClick={() => { setView(item.view); setMobileMenuOpen(false); }}
-                    className={`w-full flex items-center gap-5 p-4 rounded-xl transition-all ${currentView === item.view
+                    className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all ${currentView === item.view
                       ? 'bg-[#EEF0FF] text-[#5D5FEF]'
                       : 'bg-transparent text-[#555] hover:bg-gray-50'
                       }`}
@@ -158,17 +158,17 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                 ))}
               </div>
 
-              <div className="p-10 bg-gray-50 border-t border-gray-100 mt-auto">
-                <div className="flex items-center gap-5 mb-8 group cursor-default">
-                  <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 transition-transform hover:scale-110"><Phone size={18} className="text-[#5D5FEF]" /></div>
+              <div className="p-6 bg-gray-50 border-t border-gray-100 mt-auto">
+                <div className="flex items-center gap-4 mb-6 group cursor-default">
+                  <div className="bg-white p-2.5 rounded-xl shadow-sm border border-gray-100 transition-transform hover:scale-110"><Phone size={16} className="text-[#5D5FEF]" /></div>
                   <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Prayer Line</p>
-                    <p className="text-lg font-bold text-[#1a1a2e]">+91 80562 5478</p>
+                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Prayer Line</p>
+                    <p className="text-base font-bold text-[#1a1a2e]">+91 80562 5478</p>
                   </div>
                 </div>
-                <div className="flex gap-8 justify-center">
+                <div className="flex gap-6 justify-center">
                   {[Youtube, Facebook, Instagram].map((Icon, i) => (
-                    <Icon key={i} size={22} className="text-gray-400 hover:text-[#5D5FEF] cursor-pointer transition-all hover:scale-125" />
+                    <Icon key={i} size={20} className="text-gray-400 hover:text-[#5D5FEF] cursor-pointer transition-all hover:scale-125" />
                   ))}
                 </div>
               </div>
