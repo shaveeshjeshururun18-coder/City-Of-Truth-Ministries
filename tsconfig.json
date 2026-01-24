@@ -25,5 +25,15 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "include": [
+    "**/*",
+    "App.tsx",
+    "components/**/*",
+    "services/**/*",
+    "types.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
