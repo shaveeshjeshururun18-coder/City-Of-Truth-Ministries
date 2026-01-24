@@ -1,0 +1,340 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Check, ZoomIn, Move } from 'lucide-react';
+import { Button } from './Button';
+
+interface ImageCropperProps {
+    imageSrc: string;
+    onCropComplete: (croppedImg: string) => void;
+    onCancel: () => void;
+}
+
+export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComplete, onCancel }) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [scale, setScale] = useState(1);
+    const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
+    const [isDraggingImage, setIsDraggingImage] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+    // Crop area state (relative to container)
+    const [cropArea, setCropArea] = useState({ x: 40, y: 40, width: 220, height: 220 });
+    const [isDraggingCrop, setIsDraggingCrop] = useState(false);
+    const [isResizing, setIsResizing] = useState(false);
+    const [resizeHandle, setResizeHandle] = useState<string>('');
+    const [cropDragStart, setCropDragStart] = useState({ x: 0, y: 0 });
+
+    const imgRef = useRef<HTMLImageElement>(new Image());
+
+    // Load image
+    useEffect(() => {
+        const img = imgRef.current;
+        img.src = imageSrc;
+        img.onload = () => {
+            if (canvasRef.current) {
+                const canvas = canvasRef.current;
+                const scaleX = canvas.width / img.width;
+                const scaleY = canvas.height / img.height;
+                const newScale = Math.max(scaleX, scaleY);
+                setScale(newScale);
+
+                setImagePosition({
+                    x: (canvas.width - img.width * newScale) / 2,
+                    y: (canvas.height - img.height * newScale) / 2
+                });
+            }
+            draw();
+        };
+    }, [imageSrc]);
+
+    const draw = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const img = imgRef.current;
+        if (img.complete && img.naturalWidth > 0) {
+            ctx.save();
+            ctx.translate(imagePosition.x, imagePosition.y);
+            ctx.scale(scale, scale);
+            ctx.drawImage(img, 0, 0);
+            ctx.restore();
+        }
+    };
+
+    useEffect(() => {
+        draw();
+    }, [scale, imagePosition, imageSrc]);
+
+    // Image dragging
+    const handleImageMouseDown = (e: React.MouseEvent) => {
+        const rect = canvasRef.current?.getBoundingClientRect();
+        if (!rect) return;
+
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // Check if clicking inside crop area
+        if (x >= cropArea.x && x <= cropArea.x + cropArea.width &&
+            y >= cropArea.y && y <= cropArea.y + cropArea.height) {
+            return; // Don't drag image if clicking in crop area
+        }
+
+        setIsDraggingImage(true);
+        setDragStart({ x: e.clientX - imagePosition.x, y: e.clientY - imagePosition.y });
+    };
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (isDraggingImage) {
+                setImagePosition({
+                    x: e.clientX - dragStart.x,
+                    y: e.clientY - dragStart.y
+                });
+            }
+            if (isDraggingCrop) {
+                const dx = e.clientX - cropDragStart.x;
+                const dy = e.clientY - cropDragStart.y;
+
+                setCropArea(prev => ({
+                    ...prev,
+                    x: Math.max(0, Math.min(300 - prev.width, prev.x + dx)),
+                    y: Math.max(0, Math.min(300 - prev.height, prev.y + dy))
+                }));
+                setCropDragStart({ x: e.clientX, y: e.clientY });
+            }
+            if (isResizing) {
+                handleResize(e);
+            }
+        };
+
+        const handleMouseUp = () => {
+            setIsDraggingImage(false);
+            setIsDraggingCrop(false);
+            setIsResizing(false);
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isDraggingImage, isDraggingCrop, isResizing, dragStart, cropDragStart, cropArea]);
+
+    // Crop area dragging
+    const handleCropMouseDown = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsDraggingCrop(true);
+        setCropDragStart({ x: e.clientX, y: e.clientY });
+    };
+
+    // Resize handling
+    const handleResizeStart = (e: React.MouseEvent, handle: string) => {
+        e.stopPropagation();
+        setIsResizing(true);
+        setResizeHandle(handle);
+        setCropDragStart({ x: e.clientX, y: e.clientY });
+    };
+
+    const handleResize = (e: MouseEvent) => {
+        const dx = e.clientX - cropDragStart.x;
+        const dy = e.clientY - cropDragStart.y;
+
+        setCropArea(prev => {
+            let newArea = { ...prev };
+
+            switch (resizeHandle) {
+                case 'nw':
+                    newArea.x += dx;
+                    newArea.y += dy;
+                    newArea.width -= dx;
+                    newArea.height -= dy;
+                    break;
+                case 'ne':
+                    newArea.y += dy;
+                    newArea.width += dx;
+                    newArea.height -= dy;
+                    break;
+                case 'sw':
+                    newArea.x += dx;
+                    newArea.width -= dx;
+                    newArea.height += dy;
+                    break;
+                case 'se':
+                    newArea.width += dx;
+                    newArea.height += dy;
+                    break;
+            }
+
+            // Constraints
+            newArea.width = Math.max(100, Math.min(300 - newArea.x, newArea.width));
+            newArea.height = Math.max(100, Math.min(300 - newArea.y, newArea.height));
+            newArea.x = Math.max(0, Math.min(300 - newArea.width, newArea.x));
+            newArea.y = Math.max(0, Math.min(300 - newArea.height, newArea.y));
+
+            return newArea;
+        });
+
+        setCropDragStart({ x: e.clientX, y: e.clientY });
+    };
+
+    const handleCrop = () => {
+        const canvas = canvasRef.current;
+        if (canvas) {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = cropArea.width;
+            tempCanvas.height = cropArea.height;
+            const tempCtx = tempCanvas.getContext('2d');
+
+            if (tempCtx) {
+                tempCtx.drawImage(
+                    canvas,
+                    cropArea.x, cropArea.y, cropArea.width, cropArea.height,
+                    0, 0, cropArea.width, cropArea.height
+                );
+                const dataUrl = tempCanvas.toDataURL('image/jpeg', 0.95);
+                onCropComplete(dataUrl);
+            }
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl shadow-2xl overflow-hidden w-full max-w-md flex flex-col">
+                <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <h3 className="font-serif font-bold text-gray-800 flex items-center gap-2">
+                        <Move size={16} /> Adjust Photo
+                    </h3>
+                    <button onClick={onCancel} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                        <X size={20} className="text-gray-500" />
+                    </button>
+                </div>
+
+                <div className="p-6 flex flex-col items-center gap-4 bg-slate-100 select-none">
+                    <div
+                        ref={containerRef}
+                        className="relative rounded-lg overflow-hidden shadow-inner border-2 border-white ring-4 ring-gray-200/50"
+                        onMouseDown={handleImageMouseDown}
+                    >
+                        <canvas
+                            ref={canvasRef}
+                            width={300}
+                            height={300}
+                            className="bg-white block cursor-move"
+                        />
+
+                        {/* Darkened overlay */}
+                        <div className="absolute inset-0 pointer-events-none">
+                            <svg width="300" height="300" style={{ position: 'absolute', top: 0, left: 0 }}>
+                                <defs>
+                                    <mask id="cropMask">
+                                        <rect width="300" height="300" fill="white" />
+                                        <rect
+                                            x={cropArea.x}
+                                            y={cropArea.y}
+                                            width={cropArea.width}
+                                            height={cropArea.height}
+                                            fill="black"
+                                        />
+                                    </mask>
+                                </defs>
+                                <rect width="300" height="300" fill="black" opacity="0.5" mask="url(#cropMask)" />
+                            </svg>
+                        </div>
+
+                        {/* Draggable crop area with grid */}
+                        <div
+                            style={{
+                                position: 'absolute',
+                                left: cropArea.x,
+                                top: cropArea.y,
+                                width: cropArea.width,
+                                height: cropArea.height,
+                                cursor: 'move'
+                            }}
+                            onMouseDown={handleCropMouseDown}
+                            className="border-2 border-white shadow-lg"
+                        >
+                            {/* Grid lines */}
+                            <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-0 pointer-events-none">
+                                <div className="border-r border-b border-white/40"></div>
+                                <div className="border-r border-b border-white/40"></div>
+                                <div className="border-b border-white/40"></div>
+                                <div className="border-r border-b border-white/40"></div>
+                                <div className="border-r border-b border-white/40"></div>
+                                <div className="border-b border-white/40"></div>
+                                <div className="border-r border-white/40"></div>
+                                <div className="border-r border-white/40"></div>
+                                <div></div>
+                            </div>
+
+                            {/* Resize handles */}
+                            <div
+                                className="absolute -top-2 -left-2 w-6 h-6 bg-brand-500 border-2 border-white rounded-full cursor-nw-resize shadow-lg"
+                                onMouseDown={(e) => handleResizeStart(e, 'nw')}
+                            />
+                            <div
+                                className="absolute -top-2 -right-2 w-6 h-6 bg-brand-500 border-2 border-white rounded-full cursor-ne-resize shadow-lg"
+                                onMouseDown={(e) => handleResizeStart(e, 'ne')}
+                            />
+                            <div
+                                className="absolute -bottom-2 -left-2 w-6 h-6 bg-brand-500 border-2 border-white rounded-full cursor-sw-resize shadow-lg"
+                                onMouseDown={(e) => handleResizeStart(e, 'sw')}
+                            />
+                            <div
+                                className="absolute -bottom-2 -right-2 w-6 h-6 bg-brand-500 border-2 border-white rounded-full cursor-se-resize shadow-lg"
+                                onMouseDown={(e) => handleResizeStart(e, 'se')}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Controls */}
+                    <div className="w-full space-y-2 px-4">
+                        <div className="flex justify-between text-xs font-bold text-gray-400 uppercase tracking-wider">
+                            <span>Zoom</span>
+                            <span>{(scale * 100).toFixed(0)}%</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setScale(prev => Math.max(0.1, prev - 0.1))}
+                                className="w-8 h-8 flex items-center justify-center bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
+                            >
+                                <span className="text-xl font-bold">-</span>
+                            </button>
+                            <input
+                                type="range"
+                                min="0.1"
+                                max="3"
+                                step="0.01"
+                                value={scale}
+                                onChange={(e) => setScale(parseFloat(e.target.value))}
+                                className="flex-1 accent-brand-600 h-1.5 bg-gray-300 rounded-full appearance-none cursor-pointer"
+                            />
+                            <button
+                                onClick={() => setScale(prev => Math.min(3, prev + 0.1))}
+                                className="w-8 h-8 flex items-center justify-center bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
+                            >
+                                <span className="text-xl font-bold">+</span>
+                            </button>
+                        </div>
+                        <p className="text-[10px] text-center text-gray-400 mt-2">Drag to move • Drag corners to resize • Zoom slider</p>
+                    </div>
+                </div>
+
+                <div className="p-4 bg-white border-t border-gray-100 flex gap-3">
+                    <Button onClick={onCancel} variant="outline" className="flex-1">
+                        Cancel
+                    </Button>
+                    <Button onClick={handleCrop} variant="primary" className="flex-1">
+                        <Check size={18} className="mr-2" /> Save Photo
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+};

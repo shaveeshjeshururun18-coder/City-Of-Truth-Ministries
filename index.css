@@ -1,0 +1,62 @@
+/* Main Design System Tokens */
+:root {
+  --brand-50: #edf2ff;
+  --brand-100: #dbe4ff;
+  --brand-200: #bac8ff;
+  --brand-300: #91a7ff;
+  --brand-400: #667fff;
+  --brand-500: #3b5bdb;
+  --brand-600: #2f48ad;
+  --brand-700: #253a8a;
+  --brand-800: #1f2f6d;
+  --brand-900: #1b2a56;
+  --brand-950: #0b1121;
+
+  --accent-50: #fffbeb;
+  --accent-100: #fef3c7;
+  --accent-200: #fde68a;
+  --accent-300: #fcd34d;
+  --accent-400: #fbbf24;
+  --accent-500: #f59e0b;
+  --accent-600: #d97706;
+  --accent-700: #b45309;
+  --accent-800: #92400e;
+  --accent-900: #78350f;
+  --accent-950: #451a03;
+}
+
+/* Base Styles */
+body {
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--brand-50);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--brand-400);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-500);
+}
+
+/* Animations */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

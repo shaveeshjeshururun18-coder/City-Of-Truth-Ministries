@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  
+  <!-- Home Page -->
+  <url>
+    <loc>https://city-of-truth-ministries.vercel.app/</loc>
+    <lastmod>2026-01-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://city-of-truth-ministries.vercel.app/" />
+    <xhtml:link rel="alternate" hreflang="ta" href="https://city-of-truth-ministries.vercel.app/" />
+  </url>
+  
+  <!-- About Page -->
+  <url>
+    <loc>https://city-of-truth-ministries.vercel.app/about</loc>
+    <lastmod>2026-01-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- Worship Page -->
+  <url>
+    <loc>https://city-of-truth-ministries.vercel.app/worship</loc>
+    <lastmod>2026-01-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <!-- Hebrew Studies Page -->
+  <url>
+    <loc>https://city-of-truth-ministries.vercel.app/hebrew</loc>
+    <lastmod>2026-01-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- AI Assistant Page -->
+  <url>
+    <loc>https://city-of-truth-ministries.vercel.app/ai</loc>
+    <lastmod>2026-01-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <!-- Valparai Page -->
+  <url>
+    <loc>https://city-of-truth-ministries.vercel.app/valparai</loc>
+    <lastmod>2026-01-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- User Dashboard -->
+  <url>
+    <loc>https://city-of-truth-ministries.vercel.app/dashboard</loc>
+    <lastmod>2026-01-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+</urlset>

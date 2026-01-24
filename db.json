@@ -1,0 +1,38 @@
+{
+    "users": [
+        {
+            "id": "COT-8859",
+            "name": "S. Shaveesh Jeshurun",
+            "email": "shaveesh@example.com",
+            "password": "user",
+            "phone": "9876543210",
+            "role": "Member",
+            "status": "Active",
+            "dob": "1995-08-20",
+            "location": "Valparai",
+            "bloodGroup": "O+ve",
+            "emergency": "9876543210",
+            "memberSince": "2015",
+            "gender": "Male",
+            "joinedDate": "2015-05-10",
+            "photo": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?fit=crop&w=200&h=200"
+        },
+        {
+            "id": "COT-0001",
+            "name": "Admin User",
+            "email": "admin@cityoftruth.org",
+            "password": "admin123",
+            "phone": "9999999999",
+            "role": "Admin",
+            "status": "Active",
+            "dob": "1990-01-01",
+            "location": "Valparai",
+            "bloodGroup": "A+",
+            "emergency": "9999999999",
+            "memberSince": "2010",
+            "gender": "Male",
+            "joinedDate": "2010-01-01",
+            "photo": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?fit=crop&w=200&h=200"
+        }
+    ]
+}
