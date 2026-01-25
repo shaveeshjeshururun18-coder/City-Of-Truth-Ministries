@@ -402,9 +402,9 @@ const App: React.FC = () => {
         EMAILJS_SERVICE_ID,
         EMAILJS_TEMPLATE_ID,
         {
-          to_email: 'faithfulfellowship8@gmail.com',
-          subject: `New Registration Alert: ${savedUser.name}`,
-          message: `NEW USER REGISTERED!\n\nName: ${savedUser.name}\nID: ${savedUser.id}\nPhone: ${savedUser.phone}\nLocation: ${savedUser.location}\n\nView Dashboard: http://localhost:8888/admin`,
+          email: 'faithfulfellowship8@gmail.com',
+          subject: `✨ New Member Alert: ${savedUser.name}`,
+          message: `A new member has joined the ministry!\n\n👤 Name: ${savedUser.name}\n🆔 Member ID: ${savedUser.id}\n📞 Phone: ${savedUser.phone}\n📍 Location: ${savedUser.location}\n\nTo verify and approve this member, please visit the Admin Dashboard: https://city-of-truth-ministries.vercel.app/admin`,
           from_name: 'City of Truth System'
         },
         EMAILJS_PUBLIC_KEY
@@ -417,9 +417,9 @@ const App: React.FC = () => {
           EMAILJS_SERVICE_ID,
           EMAILJS_TEMPLATE_ID,
           {
-            to_email: savedUser.email,
-            subject: 'Welcome to City of Truth Ministries!',
-            message: `Dear ${savedUser.name},\n\nWelcome to the family of City of Truth Ministries!\n\nYour Member ID is: ${savedUser.id}\n\nYou can now login to your dashboard using your phone number.\n\nBlessings,\nCity of Truth Team`,
+            email: savedUser.email,
+            subject: 'Welcome to City of Truth Ministries! ✨',
+            message: `Dear ${savedUser.name},\n\nWe are so blessed to have you join our ministry family! Your account has been received and is currently in verification.\n\n🆔 Your Member ID: ${savedUser.id}\n\nYou can now log in to your dashboard using your phone number to check your status.\n\nBlessings,\nCity of Truth Team`,
             from_name: 'City of Truth Ministries'
           },
           EMAILJS_PUBLIC_KEY

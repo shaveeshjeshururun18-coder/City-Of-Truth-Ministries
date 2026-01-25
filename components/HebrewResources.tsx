@@ -327,7 +327,7 @@ export const HebrewResources: React.FC = () => {
     const [tab, setTab] = useState<'numbers' | 'calendar' | 'festivals' | 'reference'>('numbers');
 
     return (
-        <div className="min-h-screen pt-24 pb-20 container mx-auto px-6 font-sans bg-[#fdfcf0]">
+        <div className="min-h-screen pt-20 md:pt-28 pb-20 container mx-auto px-6 font-sans bg-[#fdfcf0]">
             <div className="max-w-6xl mx-auto space-y-12">
                 <div className="text-center space-y-4 mb-4 md:mb-12">
                     <h1 className="text-4xl md:text-8xl font-serif font-bold text-brand-950 px-2">
@@ -338,26 +338,36 @@ export const HebrewResources: React.FC = () => {
                     </p>
                 </div>
 
-                <div className="sticky top-[60px] md:top-[80px] z-30 py-2 md:py-4 border-y border-slate-100/50 bg-[#fdfcf0]/60 backdrop-blur-md shadow-sm">
-                    <div className="flex flex-nowrap overflow-x-auto no-scrollbar gap-2 md:gap-4 pb-2 px-4 snap-x snap-mandatory touch-pan-x justify-start md:justify-center">
+                <div className="sticky top-[60px] md:top-[75px] z-30 py-2 bg-transparent">
+                    <div className="grid grid-cols-2 md:flex md:flex-nowrap md:overflow-x-auto md:no-scrollbar gap-x-3 gap-y-2 md:gap-4 px-4 justify-center">
                         {[
                             { id: 'festivals', label: 'Festivals', icon: <Flame size={16} /> },
                             { id: 'calendar', label: 'Hebrew Calendar', icon: <CalendarIcon size={16} /> },
                             { id: 'numbers', label: 'Numbers', icon: <Hash size={16} /> },
                             { id: 'reference', label: 'Month/Year', icon: <BookOpen size={16} /> }
-                        ].map((t) => (
-                            <button
-                                key={t.id}
-                                onClick={() => setTab(t.id as any)}
-                                className={`flex items-center gap-2 md:gap-3 px-4 md:px-6 py-2.5 md:py-3 rounded-xl md:rounded-full font-bold text-[10px] md:text-xs uppercase tracking-widest whitespace-nowrap transition-all snap-center shrink-0 ${tab === t.id
-                                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/20 ring-2 ring-brand-500 ring-offset-2'
-                                    : 'bg-white text-slate-400 hover:text-brand-600 border border-slate-100 shadow-sm'
-                                    }`}
-                            >
-                                {t.icon}
-                                {t.label}
-                            </button>
-                        ))}
+                        ].map((t) => {
+                            const isActive = tab === t.id;
+                            return (
+                                <button
+                                    key={t.id}
+                                    onClick={() => setTab(t.id as any)}
+                                    className={`relative flex items-center justify-center gap-2 md:gap-3 px-3 md:px-6 py-2.5 md:py-3 rounded-xl md:rounded-full font-bold text-[9px] md:text-xs uppercase tracking-widest transition-all duration-300 ${isActive
+                                        ? 'bg-brand-600 text-white shadow-lg'
+                                        : 'bg-white text-slate-400 hover:text-brand-600 border border-slate-200 shadow-sm'
+                                        }`}
+                                >
+                                    {t.icon}
+                                    <span>{t.label}</span>
+                                    {isActive && (
+                                        <motion.div
+                                            layoutId="active-pill"
+                                            className="absolute inset-0 bg-brand-600 -z-10 rounded-xl md:rounded-full"
+                                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                        />
+                                    )}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 

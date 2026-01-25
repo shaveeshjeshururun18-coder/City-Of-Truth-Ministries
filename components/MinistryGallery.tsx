@@ -20,7 +20,7 @@ export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items }) => {
         <div className="relative w-full py-8 group">
             {/* Scroll Container */}
             <div
-                className="flex overflow-x-auto gap-6 px-6 pb-12 pt-4 snap-x snap-mandatory no-scrollbar overscroll-x-contain"
+                className="grid grid-cols-2 gap-3 md:flex md:overflow-x-auto md:gap-6 px-4 md:px-6 pb-8 md:pb-12 pt-4 no-scrollbar"
                 style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
                 {items.map((item, index) => (
@@ -29,12 +29,12 @@ export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items }) => {
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ delay: (index % 5) * 0.1, duration: 0.5 }}
-                        className="relative flex-shrink-0 snap-center first:pl-2 last:pr-2"
+                        className="relative"
                         onMouseEnter={() => setHoveredId(item.id)}
                         onMouseLeave={() => setHoveredId(null)}
                     >
-                        <div className={`relative overflow-hidden rounded-[2.5rem] shadow-sm transition-all duration-700 bg-white border border-slate-100/50 ${hoveredId === item.id ? 'scale-[1.02] shadow-2xl ring-1 ring-accent-400/30' : 'scale-100'
-                            } size-72 md:size-80`}>
+                        <div className={`relative overflow-hidden rounded-2xl md:rounded-[2.5rem] shadow-sm transition-all duration-700 bg-white border border-slate-100/50 ${hoveredId === item.id ? 'scale-[1.02] shadow-2xl ring-1 ring-accent-400/30' : 'scale-100'
+                            } aspect-square w-full md:size-80`}>
 
                             {item.type === 'image' ? (
                                 <img
@@ -65,13 +65,13 @@ export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items }) => {
                                 {item.type === 'video' ? <Play size={16} fill="currentColor" /> : <ImageIcon size={16} />}
                             </div>
 
-                            <div className={`absolute bottom-0 left-0 right-0 p-6 transition-all duration-500 ${hoveredId === item.id ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-90'
+                            <div className={`absolute bottom-0 left-0 right-0 p-3 md:p-6 transition-all duration-500 ${hoveredId === item.id ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-90'
                                 }`}>
-                                <div className="flex items-center gap-2 text-accent-400 mb-2">
+                                <div className="flex items-center gap-2 text-accent-400 mb-1 md:mb-2">
                                     <div className="w-4 h-[1px] bg-accent-400" />
-                                    <span className="text-[10px] font-black tracking-[0.2em] uppercase">{item.type}</span>
+                                    <span className="text-[8px] md:text-[10px] font-black tracking-[0.2em] uppercase">{item.type}</span>
                                 </div>
-                                <div className="text-lg font-serif font-bold text-white mb-2 leading-tight">
+                                <div className="text-sm md:text-lg font-serif font-bold text-white mb-1 md:mb-2 leading-tight">
                                     {item.date || 'Ministry Moment'}
                                 </div>
                             </div>

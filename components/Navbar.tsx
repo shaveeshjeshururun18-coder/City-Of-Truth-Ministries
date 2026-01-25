@@ -151,7 +151,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
               className="fixed top-0 right-0 bottom-0 z-[110] w-[85%] max-w-sm bg-white shadow-2xl flex flex-col montserrat"
             >
-              <div className="p-8 flex items-center justify-between border-b border-gray-100">
+              <div className="p-4 flex items-center justify-between border-b border-gray-100">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center">
                     <img src="/logo.png" alt="COT Logo" className="w-full h-full object-contain" />
@@ -187,17 +187,17 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                 ))}
               </div>
 
-              <div className="p-6 bg-gray-50 border-t border-gray-100 mt-auto">
-                <div className="flex items-center gap-4 mb-6 group cursor-default">
-                  <div className="bg-white p-2.5 rounded-xl shadow-sm border border-gray-100 transition-transform hover:scale-110"><Phone size={16} className="text-[#5D5FEF]" /></div>
+              <div className="p-3 bg-gray-50 border-t border-gray-100 mt-auto">
+                <div className="flex items-center gap-3 mb-3 group cursor-default">
+                  <div className="bg-white p-1.5 rounded-lg shadow-sm border border-gray-100 transition-transform hover:scale-110"><Phone size={12} className="text-[#5D5FEF]" /></div>
                   <div>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Prayer Line</p>
-                    <p className="text-base font-bold text-[#1a1a2e]">+91 80562 5478</p>
+                    <p className="text-[7px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-0.5">Prayer Line</p>
+                    <p className="text-xs font-bold text-[#1a1a2e]">+91 80562 5478</p>
                   </div>
                 </div>
-                <div className="flex gap-6 justify-center">
+                <div className="flex gap-4 justify-center">
                   {[Youtube, Facebook, Instagram].map((Icon, i) => (
-                    <Icon key={i} size={20} className="text-gray-400 hover:text-[#5D5FEF] cursor-pointer transition-all hover:scale-125" />
+                    <Icon key={i} size={16} className="text-gray-400 hover:text-[#5D5FEF] cursor-pointer transition-all hover:scale-125" />
                   ))}
                 </div>
               </div>

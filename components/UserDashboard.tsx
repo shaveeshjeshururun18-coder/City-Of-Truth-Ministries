@@ -231,10 +231,29 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                     <QrCode className="text-brand-600" size={20} />
                                     My QR Code
                                 </h3>
-                                <div className="flex flex-col items-center">
-                                    <div className="bg-white p-4 rounded-xl border-2 border-dashed border-slate-200 mb-4">
-                                        <img
-                                            src={`https://quickchart.io/qr?text=${encodeURIComponent(JSON.stringify({
+                                {user.status === 'Active' ? (
+                                    <div className="flex flex-col items-center">
+                                        <div className="bg-white p-4 rounded-xl border-2 border-dashed border-slate-200 mb-4">
+                                            <img
+                                                src={`https://quickchart.io/qr?text=${encodeURIComponent(JSON.stringify({
+                                                    id: user.id,
+                                                    name: user.name,
+                                                    email: user.email,
+                                                    phone: user.phone,
+                                                    location: user.location,
+                                                    emergency: user.emergency || 'N/A',
+                                                    role: user.role,
+                                                    status: user.status
+                                                }))}&dark=4c51f7&size=200`}
+                                                alt="My QR Code"
+                                                className="w-40 h-40"
+                                            />
+                                        </div>
+                                        <p className="text-xs text-slate-500 text-center">
+                                            This QR code contains all your registration details
+                                        </p>
+                                        <button
+                                            onClick={() => window.open(`https://quickchart.io/qr?text=${encodeURIComponent(JSON.stringify({
                                                 id: user.id,
                                                 name: user.name,
                                                 email: user.email,
@@ -243,30 +262,23 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                                 emergency: user.emergency || 'N/A',
                                                 role: user.role,
                                                 status: user.status
-                                            }))}&dark=4c51f7&size=200`}
-                                            alt="My QR Code"
-                                            className="w-40 h-40"
-                                        />
+                                            }))}&dark=4c51f7&size=400`, '_blank')}
+                                            className="mt-3 px-4 py-2 bg-brand-50 text-brand-600 rounded-lg text-xs font-bold hover:bg-brand-100 transition-colors"
+                                        >
+                                            Download QR Code
+                                        </button>
                                     </div>
-                                    <p className="text-xs text-slate-500 text-center">
-                                        This QR code contains all your registration details
-                                    </p>
-                                    <button
-                                        onClick={() => window.open(`https://quickchart.io/qr?text=${encodeURIComponent(JSON.stringify({
-                                            id: user.id,
-                                            name: user.name,
-                                            email: user.email,
-                                            phone: user.phone,
-                                            location: user.location,
-                                            emergency: user.emergency || 'N/A',
-                                            role: user.role,
-                                            status: user.status
-                                        }))}&dark=4c51f7&size=400`, '_blank')}
-                                        className="mt-3 px-4 py-2 bg-brand-50 text-brand-600 rounded-lg text-xs font-bold hover:bg-brand-100 transition-colors"
-                                    >
-                                        Download QR Code
-                                    </button>
-                                </div>
+                                ) : (
+                                    <div className="flex flex-col items-center py-8 text-center bg-slate-50 rounded-2xl border border-slate-100 px-4">
+                                        <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4">
+                                            <AlertCircle size={24} />
+                                        </div>
+                                        <h4 className="font-bold text-slate-800 text-sm mb-1">QR Code Pending</h4>
+                                        <p className="text-xs text-slate-500">
+                                            Your personalized QR code will be generated once your account is verified and approved.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         )}
 
