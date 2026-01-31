@@ -7,6 +7,10 @@ export enum ViewState {
   CONTACT = 'CONTACT',
   ABOUT_VALPARAI = 'ABOUT_VALPARAI',
   HEBREW = 'HEBREW',
+  HEBREW_CALENDAR = 'HEBREW_CALENDAR',
+  HEBREW_NUMBERS = 'HEBREW_NUMBERS',
+  HEBREW_FESTIVALS = 'HEBREW_FESTIVALS',
+  HEBREW_REFERENCE = 'HEBREW_REFERENCE',
   BARUCH_HASHEM = 'BARUCH_HASHEM',
   DEVELOPER = 'DEVELOPER',
   AI = 'AI',
@@ -19,6 +23,7 @@ export enum ViewState {
 export interface NavItem {
   label: string;
   view: ViewState;
+  submenu?: NavItem[];
 }
 
 export type UserStatus = 'Pending Verification' | 'Active' | 'Rejected';
@@ -54,4 +59,16 @@ export interface Testimonial {
   content: string;
   date: string;
   status: 'Pending' | 'Approved' | 'Rejected';
+  rating: number; // 1-5 stars
+  userPhoto?: string;
+  location?: string;
+  role?: string;
+}
+export interface Ministry {
+  id: string;
+  name?: string;
+  description?: string;
+  image: string;
+  date: string;
+  order?: number;
 }

@@ -129,7 +129,7 @@ const getFirstDayOfWeek = (year: number, monthIdx: number): number => {
 // --- View Components ---
 
 const HebrewCalendarView: React.FC = () => {
-    const [year, setYear] = useState(5785);
+    const [year, setYear] = useState(5786);
     const [currentMonthIdx, setCurrentMonthIdx] = useState(6); // Tishrei
     const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
@@ -156,24 +156,42 @@ const HebrewCalendarView: React.FC = () => {
         <div className="space-y-6 md:space-y-12 max-w-4xl mx-auto px-2 md:px-0">
             <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-12 shadow-[0_20px_60px_rgba(0,0,0,0.05)] border border-slate-100 font-serif">
                 <div className="flex flex-col xl:flex-row items-center justify-between gap-6 md:gap-8 mb-8 md:mb-12">
-                    <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4 bg-slate-50 p-2 rounded-2xl w-full xl:w-auto">
-                        <select
-                            value={currentMonthIdx}
-                            onChange={(e) => { setCurrentMonthIdx(Number(e.target.value)); setSelectedDay(null); }}
-                            className="bg-transparent font-bold text-brand-950 outline-none px-2 md:px-4 py-2 cursor-pointer text-sm md:text-base"
-                        >
-                            {monthsList.map((mName, i) => <option key={i} value={i}>{mName}</option>)}
-                        </select>
-                        <div className="w-px h-6 bg-slate-200 hidden sm:block"></div>
-                        <HebrewYearDropdown
-                            selectedYear={year}
-                            onYearChange={(y) => { setYear(y); setSelectedDay(null); }}
-                        />
-                        <div className="w-px h-6 bg-slate-200 hidden sm:block"></div>
+                    <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4 bg-slate-50 p-2 md:p-3 rounded-2xl w-full xl:w-auto">
+                        {/* Jump to Date Selector */}
+                        <div className="flex items-center gap-1 md:gap-2">
+                            <span className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest ml-2">Jump to:</span>
+                            <select
+                                value={selectedDay || 1}
+                                onChange={(e) => setSelectedDay(Number(e.target.value))}
+                                className="bg-white border border-slate-200 rounded-lg font-bold text-brand-950 outline-none px-2 py-1.5 cursor-pointer text-xs md:text-sm shadow-sm"
+                            >
+                                {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => (
+                                    <option key={d} value={d}>Day {d}</option>
+                                ))}
+                            </select>
+                            <select
+                                value={currentMonthIdx}
+                                onChange={(e) => { setCurrentMonthIdx(Number(e.target.value)); setSelectedDay(1); }}
+                                className="bg-white border border-slate-200 rounded-lg font-bold text-brand-950 outline-none px-2 py-1.5 cursor-pointer text-xs md:text-sm shadow-sm"
+                            >
+                                {monthsList.map((mName, i) => <option key={i} value={i}>{mName}</option>)}
+                            </select>
+                            <select
+                                value={year}
+                                onChange={(e) => { setYear(Number(e.target.value)); setSelectedDay(1); }}
+                                className="bg-white border border-slate-200 rounded-lg font-bold text-brand-950 outline-none px-2 py-1.5 cursor-pointer text-xs md:text-sm shadow-sm"
+                            >
+                                {Array.from({ length: 21 }, (_, i) => 5780 + i).map(y => (
+                                    <option key={y} value={y}>{y}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="w-px h-6 bg-slate-200 hidden xl:block"></div>
+
                         <select className="bg-transparent font-bold text-brand-950 outline-none px-2 md:px-4 py-2 cursor-pointer text-sm md:text-base">
-                            <option value="standard">Standard</option>
-                            <option value="biblical">Biblical Ora</option>
-                            <option value="civil">Civil</option>
+                            <option value="standard">Standard View</option>
+                            <option value="biblical">Biblical View</option>
                         </select>
                     </div>
 
@@ -211,8 +229,8 @@ const HebrewCalendarView: React.FC = () => {
                                 : 'bg-white border-slate-50 hover:border-brand-100 hover:bg-brand-50/50 text-slate-400 font-bold'
                                 }`}
                         >
-                            <span className={`text-[8px] md:text-[10px] mb-0.5 md:mb-1 ${selectedDay === day ? 'text-white/80' : 'text-slate-300'}`}>{day}</span>
-                            <span className={`text-sm md:text-lg ${selectedDay === day ? 'text-white' : 'text-brand-950'}`}>{toHebrew(day)}</span>
+                            <span className={`text-[10px] md:text-sm mb-0.5 md:mb-1 ${selectedDay === day ? 'text-white/80' : 'text-slate-400'}`}>{toHebrew(day)}</span>
+                            <span className={`text-base md:text-xl font-bold ${selectedDay === day ? 'text-white' : 'text-brand-950'}`}>{day}</span>
                             {selectedDay === day && <motion.div layoutId="flare" className="absolute bottom-1 w-1 h-1 bg-white rounded-full shadow-[0_0_10px_white]" />}
                         </motion.button>
                     ))}
@@ -272,12 +290,12 @@ const FestivalsView: React.FC = () => (
 );
 
 const ReferenceView: React.FC = () => {
-    const leap = isLeapYear(5785); // Reference year
+    const leap = isLeapYear(5786); // Reference year
     const months = useMemo(() => {
         const list = [];
         const total = leap ? 13 : 12;
         for (let i = 0; i < total; i++) {
-            list.push(getHebrewMonthName(5785, i));
+            list.push(getHebrewMonthName(5786, i));
         }
         return list;
     }, [leap]);
@@ -323,8 +341,18 @@ const ReferenceView: React.FC = () => {
     );
 };
 
-export const HebrewResources: React.FC = () => {
-    const [tab, setTab] = useState<'numbers' | 'calendar' | 'festivals' | 'reference'>('numbers');
+interface HebrewResourcesProps {
+    initialTab?: 'numbers' | 'calendar' | 'festivals' | 'reference';
+}
+
+export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab }) => {
+    const [tab, setTab] = useState<'numbers' | 'calendar' | 'festivals' | 'reference'>(initialTab || 'numbers');
+
+    useEffect(() => {
+        if (initialTab) {
+            setTab(initialTab);
+        }
+    }, [initialTab]);
 
     return (
         <div className="min-h-screen pt-20 md:pt-28 pb-20 container mx-auto px-6 font-sans bg-[#fdfcf0]">

@@ -1,17 +1,18 @@
 import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import {
-    Users, UserCheck, UserX, Clock, Search, Edit2, Trash2, X, Save,
+    Users, UserCheck, UserX, Clock, Search, Edit2, Trash2, X, User as UserIcon, ShieldAlert,
     ChevronLeft, ChevronRight, Filter, Mail, Phone, MapPin, Droplet,
-    Calendar, Award, Shield, AlertCircle, CheckCircle, QrCode, Download
+    Calendar, Award, Shield, AlertCircle, CheckCircle, QrCode, Download,
+    Save, GripVertical, Globe, Plus, ImagePlus, Camera, Image as ImageIcon, MessageSquare, Check, XCircle
 } from 'lucide-react';
-import { User, UserRole, UserStatus, Testimonial } from '../types';
+import { User, UserRole, UserStatus, Testimonial, Ministry } from '../types';
 import { Button } from './Button';
 import { api } from '../services/api';
-import { MessageSquare, Check, XCircle } from 'lucide-react';
-import { EntrustCard3D } from './WorshipperIDCard';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
+import { ImageCropper } from './ImageCropper';
+import { EntrustCard3D } from './WorshipperIDCard';
 
 interface AdminDashboardProps {
     users: User[];
@@ -40,13 +41,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
     const [downloadingCardUserId, setDownloadingCardUserId] = useState<string | null>(null);
 
-    // Testimonials State
-    const [activeTab, setActiveTab] = useState<'users' | 'testimonials'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries'>('users');
     const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+    const [ministries, setMinistries] = useState<Ministry[]>([]);
+    const [editingMinistry, setEditingMinistry] = useState<Partial<Ministry> | null>(null);
+    const [hasOrderChanges, setHasOrderChanges] = useState(false);
+    const [isCropping, setIsCropping] = useState(false);
+    const [cropImage, setCropImage] = useState<string | null>(null);
+    const [croppingType, setCroppingType] = useState<'user' | 'ministry' | null>(null);
 
     React.useEffect(() => {
         if (activeTab === 'testimonials') {
             api.getTestimonials().then(setTestimonials);
+        } else if (activeTab === 'ministries') {
+            api.getMinistries().then(setMinistries);
         }
     }, [activeTab]);
 
@@ -67,6 +75,70 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             setTestimonials(prev => prev.filter(t => t.id !== id));
         } catch (error) {
             console.error('Failed to delete testimonial', error);
+        }
+    };
+
+    const detectDate = (filename: string): string => {
+        const match = filename.match(/(\d{4})[-_]?(\d{2})[-_]?(\d{2})/);
+        if (match) {
+            return `${match[1]}-${match[2]}-${match[3]}`;
+        }
+        return new Date().toISOString().split('T')[0];
+    };
+
+
+    const handleSaveMinistry = async () => {
+        if (!editingMinistry?.image) {
+            alert("Image is required.");
+            return;
+        }
+        setIsLoading(true);
+        try {
+            const ministryData = {
+                ...editingMinistry,
+                date: editingMinistry.date || new Date().toISOString().split('T')[0],
+                name: editingMinistry.name || '',
+                description: editingMinistry.description || ''
+            };
+
+            if (editingMinistry.id) {
+                await api.updateMinistry(ministryData as Ministry);
+                setMinistries(prev => prev.map(m => m.id === editingMinistry.id ? (ministryData as Ministry) : m));
+            } else {
+                const newMin = await api.createMinistry(ministryData as Omit<Ministry, 'id'>);
+                setMinistries(prev => [...prev, newMin]);
+            }
+            setEditingMinistry(null);
+        } catch (error) {
+            console.error('Failed to save ministry', error);
+            alert("Failed to save ministry.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleDeleteMinistry = async (id: string) => {
+        if (!window.confirm("Delete this ministry?")) return;
+        try {
+            await api.deleteMinistry(id);
+            setMinistries(prev => prev.filter(m => m.id !== id));
+            setHasOrderChanges(false); // Reset on delete
+        } catch (error) {
+            console.error('Failed to delete ministry', error);
+        }
+    };
+
+    const handleSaveOrder = async () => {
+        setIsLoading(true);
+        try {
+            await api.updateMinistriesOrder(ministries);
+            setHasOrderChanges(false);
+            alert("Order saved successfully!");
+        } catch (error) {
+            console.error('Failed to save order', error);
+            alert("Failed to save order.");
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -192,6 +264,52 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         setDownloadingCardUserId(null);
     };
 
+    const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = () => {
+                setCropImage(reader.result as string);
+                setCroppingType('user');
+                setIsCropping(true);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleMinistryImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = () => {
+                setCropImage(reader.result as string);
+                setCroppingType('ministry');
+                setIsCropping(true);
+
+                // Pre-detect date from filename
+                if (!editingMinistry?.id) {
+                    setEditingMinistry(prev => ({
+                        ...prev,
+                        date: detectDate(file.name),
+                        name: file.name.split('.')[0]
+                    }));
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleCropComplete = (croppedImageUrl: string) => {
+        if (croppingType === 'user' && editingUser) {
+            setEditingUser({ ...editingUser, photo: croppedImageUrl });
+        } else if (croppingType === 'ministry') {
+            setEditingMinistry(prev => ({ ...prev, image: croppedImageUrl }));
+        }
+        setIsCropping(false);
+        setCropImage(null);
+        setCroppingType(null);
+    };
+
     const getStatusColor = (status: UserStatus) => {
         switch (status) {
             case 'Active': return 'bg-green-100 text-green-700 border-green-200';
@@ -274,6 +392,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         >
                             <div className="flex items-center gap-2">
                                 <MessageSquare size={16} /> Testimonials
+                            </div>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('ministries')}
+                            className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === 'ministries'
+                                ? 'bg-brand-600 text-white'
+                                : 'bg-white text-slate-600 hover:bg-slate-50'
+                                }`}
+                        >
+                            <div className="flex items-center gap-2">
+                                <Globe size={16} /> Ministries
                             </div>
                         </button>
                     </div>
@@ -719,6 +848,103 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </div>
                     </div>
                 )}
+
+                {/* Ministries View */}
+                {activeTab === 'ministries' && (
+                    <div className="space-y-8">
+                        <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-6">
+                                <h2 className="text-2xl font-black text-brand-950 tracking-tight">Ministry Gallery</h2>
+                                {hasOrderChanges && (
+                                    <motion.button
+                                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        onClick={handleSaveOrder}
+                                        disabled={isLoading}
+                                        className="flex items-center gap-2 px-6 py-2.5 bg-accent-500 text-brand-950 rounded-full font-black text-xs uppercase tracking-widest hover:bg-accent-600 transition-all shadow-xl shadow-accent-500/20 active:scale-95"
+                                    >
+                                        <Save size={16} /> Save Order
+                                    </motion.button>
+                                )}
+                                <label className="flex items-center gap-2 px-8 py-4 bg-brand-950 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-brand-900 transition-all cursor-pointer shadow-xl shadow-brand-950/20 active:scale-95 group">
+                                    <ImagePlus size={20} className="group-hover:scale-110 transition-transform" /> Upload Photo
+                                    <input
+                                        type="file"
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={handleMinistryImageUpload}
+                                    />
+                                </label>
+                            </div>
+                        </div>
+
+                        <Reorder.Group
+                            axis="y"
+                            values={ministries}
+                            onReorder={(newOrder) => {
+                                setMinistries(newOrder);
+                                setHasOrderChanges(true);
+                            }}
+                            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-8"
+                        >
+                            {ministries.map((m) => (
+                                <Reorder.Item
+                                    key={m.id}
+                                    value={m}
+                                    dragListener={true}
+                                    dragControls={undefined}
+                                    className="group relative aspect-square rounded-2xl md:rounded-[2.5rem] overflow-hidden bg-white border border-slate-100 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-2xl transition-all duration-700"
+                                >
+                                    <img src={m.image} alt={m.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+
+                                    {/* Sync Overlay with MinistryGallery.tsx */}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-brand-950/90 via-brand-950/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-500" />
+
+                                    <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0 duration-300 z-20">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setEditingMinistry(m); }}
+                                            className="w-10 h-10 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white hover:text-brand-950 transition-all shadow-lg"
+                                            title="Edit & Crop"
+                                        >
+                                            <Camera size={16} />
+                                        </button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleDeleteMinistry(m.id); }}
+                                            className="w-10 h-10 bg-red-400/10 backdrop-blur-xl border border-red-400/20 rounded-full flex items-center justify-center text-red-100 hover:bg-red-500 hover:text-white transition-all shadow-lg"
+                                            title="Delete"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+
+                                    <div className="absolute bottom-4 md:bottom-8 left-4 md:left-8 right-4 md:right-8 pointer-events-none group-hover:translate-y-[-4px] transition-transform duration-500">
+                                        <div className="flex items-center gap-2 text-accent-400 mb-1 md:mb-2">
+                                            <div className="w-4 h-[1px] bg-accent-400" />
+                                            <span className="text-[8px] md:text-[10px] font-black tracking-[0.2em] uppercase">Ministry Moment</span>
+                                        </div>
+                                        <h3 className="text-white font-serif font-bold text-sm md:text-lg leading-tight drop-shadow-xl">
+                                            {m.date ? new Date(m.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Nov 25, 2026'}
+                                        </h3>
+                                    </div>
+
+                                    {/* Reorder Grip - Top Left */}
+                                    <div className="absolute top-4 left-4 w-10 h-10 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center text-white/60 opacity-0 group-hover:opacity-100 transition-all border border-white/20 hover:bg-white hover:text-brand-950 shadow-lg cursor-grab active:cursor-grabbing z-20">
+                                        <GripVertical size={18} />
+                                    </div>
+
+                                    <div className="absolute inset-0 border-2 border-transparent group-active:border-accent-500/50 rounded-2xl md:rounded-[2.5rem] transition-colors" />
+                                </Reorder.Item>
+                            ))}
+                        </Reorder.Group>
+
+                        {ministries.length === 0 && (
+                            <div className="text-center py-32 bg-slate-50 rounded-[3.5rem] border-2 border-dashed border-slate-200">
+                                <ImageIcon size={48} className="mx-auto text-slate-300 mb-4" />
+                                <p className="text-slate-400 font-medium">No ministry photos yet. Upload your first moment!</p>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Edit Modal */}
@@ -742,16 +968,51 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </div>
 
                             <div className="space-y-4">
-                                {/* Photo Preview */}
-                                <div className="flex justify-center mb-6">
-                                    <div className="w-24 h-24 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border-4 border-white shadow-lg">
-                                        {editingUser.photo ? (
-                                            <img src={editingUser.photo} alt={editingUser.name} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <span className="text-2xl font-bold text-slate-400">{editingUser.name.charAt(0)}</span>
-                                        )}
+                                {isCropping && cropImage ? (
+                                    <div className="mb-6">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-sm font-bold text-brand-950">Crop Profile Photo</span>
+                                            <button
+                                                onClick={() => setIsCropping(false)}
+                                                className="text-xs font-bold text-red-500 hover:text-red-600"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                                            <ImageCropper
+                                                imageSrc={cropImage}
+                                                onCropComplete={handleCropComplete}
+                                                onCancel={() => {
+                                                    setIsCropping(false);
+                                                    setCropImage(null);
+                                                }}
+                                            />
+                                        </div>
                                     </div>
-                                </div>
+                                ) : (
+                                    <div className="flex flex-col items-center mb-6">
+                                        <div className="relative group">
+                                            <div className="w-28 h-28 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border-4 border-white shadow-lg transition-transform group-hover:scale-105">
+                                                {editingUser.photo ? (
+                                                    <img src={editingUser.photo} alt={editingUser.name} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <span className="text-3xl font-bold text-slate-400">{editingUser.name.charAt(0)}</span>
+                                                )}
+                                            </div>
+                                            <label className="absolute bottom-0 right-0 w-10 h-10 bg-brand-600 text-white rounded-full border-4 border-white flex items-center justify-center cursor-pointer hover:bg-brand-700 transition-colors shadow-lg">
+                                                <Camera size={18} />
+                                                <input
+                                                    type="file"
+                                                    className="hidden"
+                                                    accept="image/*"
+                                                    onChange={handlePhotoSelect}
+                                                />
+                                            </label>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest">Click camera to change photo</p>
+                                    </div>
+                                )}
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
@@ -1133,6 +1394,94 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     className="w-full px-6 py-3 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 transition-colors"
                                 >
                                     Close
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Ministry Edit Modal */}
+            <AnimatePresence>
+                {editingMinistry && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-[2.5rem] p-8 max-w-xl w-full"
+                        >
+                            <div className="flex items-center justify-between mb-8">
+                                <h3 className="text-2xl font-bold text-brand-950">
+                                    {editingMinistry.id ? 'Edit Moment' : 'Add New Moment'}
+                                </h3>
+                                <button
+                                    onClick={() => setEditingMinistry(null)}
+                                    className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                                >
+                                    <X size={24} className="text-slate-400" />
+                                </button>
+                            </div>
+
+                            <div className="space-y-6">
+                                {/* Image Preview or Upload */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Moment Photo</label>
+                                    <div className="relative aspect-square bg-slate-100 rounded-[2rem] overflow-hidden group border-2 border-slate-100 shadow-inner">
+                                        {editingMinistry.image ? (
+                                            <>
+                                                <img src={editingMinistry.image} className="w-full h-full object-cover" />
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-3">
+                                                    <label className="w-12 h-12 bg-brand-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-brand-700 transition-colors shadow-lg">
+                                                        <Camera size={24} />
+                                                        <input type="file" className="hidden" accept="image/*" onChange={handleMinistryImageUpload} />
+                                                    </label>
+                                                    <span className="text-xs font-bold uppercase tracking-widest">Change / Crop</span>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <label className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:bg-slate-200 transition-all border-2 border-dashed border-slate-300 rounded-[2rem]">
+                                                <ImagePlus size={48} className="mb-2" />
+                                                <span className="font-bold">Select Photo</span>
+                                                <input type="file" className="hidden" accept="image/*" onChange={handleMinistryImageUpload} />
+                                            </label>
+                                        )}
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 italic text-center">Tip: Square photos look best in the gallery.</p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Moment Date</label>
+                                    <div className="relative">
+                                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                        <input
+                                            type="date"
+                                            value={editingMinistry.date || ''}
+                                            onChange={(e) => setEditingMinistry({ ...editingMinistry, date: e.target.value })}
+                                            className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-brand-500 focus:bg-white transition-all text-brand-950 font-medium"
+                                        />
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 italic">Dates are automatically detected from the filename if possible.</p>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4 mt-10">
+                                <button
+                                    onClick={() => setEditingMinistry(null)}
+                                    className="flex-1 py-4 bg-slate-100 text-slate-700 rounded-2xl font-bold hover:bg-slate-200 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSaveMinistry}
+                                    disabled={isLoading || !editingMinistry.image}
+                                    className="flex-1 py-4 bg-brand-600 text-white rounded-2xl font-bold hover:bg-brand-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20 disabled:opacity-50"
+                                >
+                                    {isLoading ? (
+                                        <span className="animate-pulse">Saving...</span>
+                                    ) : (
+                                        <><Save size={18} /> Save Moment</>
+                                    )}
                                 </button>
                             </div>
                         </motion.div>

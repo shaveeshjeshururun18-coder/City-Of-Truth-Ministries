@@ -60,6 +60,7 @@ import { GoldenMenorah } from './components/GoldenMenorah';
 import { GoldenMenorahPage } from './components/GoldenMenorahPage';
 import { AIPage } from './components/AIPage';
 // import { GlobalAIWidget } from './components/GlobalAIWidget';
+import { MinistryHighlights, HebrewSanctuaryIntro, ValparaiPresence, TestimonialHighlights, EntrustCardPreview } from './components/HomeSections';
 import { HebrewAlphabetPage } from './components/HebrewAlphabetPage';
 import { MinistriesPage } from './components/MinistriesPage';
 import { BaruchHashemPage } from './components/BaruchHashemPage';
@@ -305,8 +306,13 @@ const App: React.FC = () => {
     }
   });
 
+  // Scroll to top on view change
   useEffect(() => {
-    // Load users from backend on mount
+    window.scrollTo(0, 0);
+  }, [currentView]);
+
+  // Load users from backend on mount
+  useEffect(() => {
     api.getUsers().then(setUsers);
   }, []);
 
@@ -345,15 +351,36 @@ const App: React.FC = () => {
   };
 
   const handleLogin = (identifier: string) => {
-    // Phone-only login (10 digits)
-    const user = users.find(u => u.phone === identifier);
+    if (!identifier) {
+      alert("Please enter your Member ID, Email, Phone, or Name.");
+      return;
+    }
+
+    const searchId = identifier.trim().toLowerCase();
+
+    // Multi-identifier login: Phone, Email, ID, or Name
+    const user = users.find(u => {
+      const uPhone = (u.phone || '').trim();
+      const uEmail = (u.email || '').trim().toLowerCase();
+      const uId = (u.id || '').trim().toLowerCase();
+      const uName = (u.name || '').trim().toLowerCase();
+      const uEmergency = (u.emergency || '').trim();
+
+      return (
+        uPhone === identifier ||
+        uEmergency === identifier ||
+        uId === searchId ||
+        uEmail === searchId ||
+        uName === searchId
+      );
+    });
 
     if (user) {
       setCurrentUser(user);
       setIsAuthOpen(false);
       setCurrentView(ViewState.USER_DASHBOARD);
     } else {
-      alert("Account not found. Please check your phone number.");
+      alert("Account not found. Please check your Member ID, Email, Phone, or Name.");
     }
   };
 
@@ -551,8 +578,8 @@ const App: React.FC = () => {
                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] h-[90%] bg-accent-500/20 blur-[100px] rounded-full -z-10"></div>
                       <h2 className="text-lg md:text-3xl text-brand-100 font-serif italic tracking-wide mb-3 drop-shadow-md">City of Truth Ministries</h2>
                       <h1 className="font-bold tracking-tight leading-none py-2 md:py-4">
-                        <span className="block text-4xl sm:text-7xl md:text-9xl text-transparent bg-clip-text bg-gradient-to-b from-brand-50 via-brand-100 to-brand-200 drop-shadow-2xl pb-2 md:pb-4">சத்திய நகரம்</span>
-                        <span className="block text-xl sm:text-4xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-br from-white via-accent-100 to-brand-300 mt-1 md:mt-2 tracking-tighter">ஊழியங்கள்</span>
+                        <span className="block text-5xl sm:text-8xl md:text-9xl text-transparent bg-clip-text bg-gradient-to-b from-brand-50 via-brand-100 to-brand-200 drop-shadow-2xl pb-2 md:pb-4">சத்திய நகரம்</span>
+                        <span className="block text-2xl sm:text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-br from-white via-accent-100 to-brand-300 mt-1 md:mt-2 tracking-tighter">ஊழியங்கள்</span>
                       </h1>
                     </div>
 
@@ -619,19 +646,49 @@ const App: React.FC = () => {
               </section>
 
               <GoldenMenorah onPreviewClick={() => setCurrentView(ViewState.GOLDEN_MENORAH)} />
+
+              <MinistryHighlights setView={setCurrentView} />
+              <HebrewSanctuaryIntro setView={setCurrentView} />
+              <ValparaiPresence setView={setCurrentView} />
+              <TestimonialHighlights setView={setCurrentView} />
+              <EntrustCardPreview setView={setCurrentView} />
             </motion.div>
           )}
 
           {currentView === ViewState.ABOUT && (
-            <motion.div key="hebrew-hub" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} >
+            <div key="hebrew-hub">
               <HebrewResources />
-            </motion.div>
+            </div>
+          )}
+
+          {currentView === ViewState.HEBREW_CALENDAR && (
+            <div key="hebrew-calendar">
+              <HebrewResources initialTab="calendar" />
+            </div>
+          )}
+
+          {currentView === ViewState.HEBREW_NUMBERS && (
+            <div key="hebrew-numbers">
+              <HebrewResources initialTab="numbers" />
+            </div>
+          )}
+
+          {currentView === ViewState.HEBREW_FESTIVALS && (
+            <div key="hebrew-festivals">
+              <HebrewResources initialTab="festivals" />
+            </div>
+          )}
+
+          {currentView === ViewState.HEBREW_REFERENCE && (
+            <div key="hebrew-reference">
+              <HebrewResources initialTab="reference" />
+            </div>
           )}
 
           {currentView === ViewState.HEBREW && (
-            <motion.div key="alphabet" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+            <div key="alphabet">
               <HebrewAlphabetPage />
-            </motion.div>
+            </div>
           )}
 
           {currentView === ViewState.ABOUT_VALPARAI && (
@@ -647,8 +704,8 @@ const App: React.FC = () => {
           )}
 
           {currentView === ViewState.MINISTRIES && (
-            <motion.div key="ministries" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <MinistriesPage />
+            <motion.div key="ministries" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }}>
+              <MinistriesPage currentUser={currentUser} setView={setCurrentView} />
             </motion.div>
           )}
 

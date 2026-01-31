@@ -7,7 +7,7 @@ const toHebrew = (num: number): string => {
     if (num <= 0) return '';
 
     // Gematria values
-    const units = ['', 'א', 'b', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט'];
+    const units = ['', 'א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט'];
     const tens = ['', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ'];
     const hundreds = ['', 'ק', 'ר', 'ש', 'ת'];
 

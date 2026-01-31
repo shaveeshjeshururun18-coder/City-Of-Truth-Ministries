@@ -71,11 +71,20 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
 
     // Image dragging
     const handleImageMouseDown = (e: React.MouseEvent) => {
+        handleDragStart(e.clientX, e.clientY);
+    };
+
+    const handleImageTouchStart = (e: React.TouchEvent) => {
+        const touch = e.touches[0];
+        handleDragStart(touch.clientX, touch.clientY);
+    };
+
+    const handleDragStart = (clientX: number, clientY: number) => {
         const rect = canvasRef.current?.getBoundingClientRect();
         if (!rect) return;
 
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
 
         // Check if clicking inside crop area
         if (x >= cropArea.x && x <= cropArea.x + cropArea.width &&
@@ -84,45 +93,58 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
         }
 
         setIsDraggingImage(true);
-        setDragStart({ x: e.clientX - imagePosition.x, y: e.clientY - imagePosition.y });
+        setDragStart({ x: clientX - imagePosition.x, y: clientY - imagePosition.y });
     };
 
     useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
+        const handleMove = (clientX: number, clientY: number) => {
             if (isDraggingImage) {
                 setImagePosition({
-                    x: e.clientX - dragStart.x,
-                    y: e.clientY - dragStart.y
+                    x: clientX - dragStart.x,
+                    y: clientY - dragStart.y
                 });
             }
             if (isDraggingCrop) {
-                const dx = e.clientX - cropDragStart.x;
-                const dy = e.clientY - cropDragStart.y;
+                const dx = clientX - cropDragStart.x;
+                const dy = clientY - cropDragStart.y;
 
                 setCropArea(prev => ({
                     ...prev,
                     x: Math.max(0, Math.min(300 - prev.width, prev.x + dx)),
                     y: Math.max(0, Math.min(300 - prev.height, prev.y + dy))
                 }));
-                setCropDragStart({ x: e.clientX, y: e.clientY });
+                setCropDragStart({ x: clientX, y: clientY });
             }
             if (isResizing) {
-                handleResize(e);
+                handleResizeAction(clientX, clientY);
             }
         };
 
-        const handleMouseUp = () => {
+        const handleMouseMove = (e: MouseEvent) => handleMove(e.clientX, e.clientY);
+        const handleTouchMove = (e: TouchEvent) => {
+            if (isDraggingImage || isDraggingCrop || isResizing) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                handleMove(touch.clientX, touch.clientY);
+            }
+        };
+
+        const handleEnd = () => {
             setIsDraggingImage(false);
             setIsDraggingCrop(false);
             setIsResizing(false);
         };
 
         window.addEventListener('mousemove', handleMouseMove);
-        window.addEventListener('mouseup', handleMouseUp);
+        window.addEventListener('touchmove', handleTouchMove, { passive: false });
+        window.addEventListener('mouseup', handleEnd);
+        window.addEventListener('touchend', handleEnd);
 
         return () => {
             window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
+            window.removeEventListener('touchmove', handleTouchMove);
+            window.removeEventListener('mouseup', handleEnd);
+            window.removeEventListener('touchend', handleEnd);
         };
     }, [isDraggingImage, isDraggingCrop, isResizing, dragStart, cropDragStart, cropArea]);
 
@@ -133,6 +155,13 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
         setCropDragStart({ x: e.clientX, y: e.clientY });
     };
 
+    const handleCropTouchStart = (e: React.TouchEvent) => {
+        e.stopPropagation();
+        setIsDraggingCrop(true);
+        const touch = e.touches[0];
+        setCropDragStart({ x: touch.clientX, y: touch.clientY });
+    };
+
     // Resize handling
     const handleResizeStart = (e: React.MouseEvent, handle: string) => {
         e.stopPropagation();
@@ -141,9 +170,17 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
         setCropDragStart({ x: e.clientX, y: e.clientY });
     };
 
-    const handleResize = (e: MouseEvent) => {
-        const dx = e.clientX - cropDragStart.x;
-        const dy = e.clientY - cropDragStart.y;
+    const handleResizeTouchStart = (e: React.TouchEvent, handle: string) => {
+        e.stopPropagation();
+        setIsResizing(true);
+        setResizeHandle(handle);
+        const touch = e.touches[0];
+        setCropDragStart({ x: touch.clientX, y: touch.clientY });
+    };
+
+    const handleResizeAction = (clientX: number, clientY: number) => {
+        const dx = clientX - cropDragStart.x;
+        const dy = clientY - cropDragStart.y;
 
         setCropArea(prev => {
             let newArea = { ...prev };
@@ -180,7 +217,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
             return newArea;
         });
 
-        setCropDragStart({ x: e.clientX, y: e.clientY });
+        setCropDragStart({ x: clientX, y: clientY });
     };
 
     const handleCrop = () => {
@@ -220,6 +257,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
                         ref={containerRef}
                         className="relative rounded-lg overflow-hidden shadow-inner border-2 border-white ring-4 ring-gray-200/50"
                         onMouseDown={handleImageMouseDown}
+                        onTouchStart={handleImageTouchStart}
                     >
                         <canvas
                             ref={canvasRef}
@@ -258,6 +296,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
                                 cursor: 'move'
                             }}
                             onMouseDown={handleCropMouseDown}
+                            onTouchStart={handleCropTouchStart}
                             className="border-2 border-white shadow-lg"
                         >
                             {/* Grid lines */}
@@ -277,18 +316,22 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
                             <div
                                 className="absolute -top-2 -left-2 w-6 h-6 bg-brand-500 border-2 border-white rounded-full cursor-nw-resize shadow-lg"
                                 onMouseDown={(e) => handleResizeStart(e, 'nw')}
+                                onTouchStart={(e) => handleResizeTouchStart(e, 'nw')}
                             />
                             <div
                                 className="absolute -top-2 -right-2 w-6 h-6 bg-brand-500 border-2 border-white rounded-full cursor-ne-resize shadow-lg"
                                 onMouseDown={(e) => handleResizeStart(e, 'ne')}
+                                onTouchStart={(e) => handleResizeTouchStart(e, 'ne')}
                             />
                             <div
                                 className="absolute -bottom-2 -left-2 w-6 h-6 bg-brand-500 border-2 border-white rounded-full cursor-sw-resize shadow-lg"
                                 onMouseDown={(e) => handleResizeStart(e, 'sw')}
+                                onTouchStart={(e) => handleResizeTouchStart(e, 'sw')}
                             />
                             <div
                                 className="absolute -bottom-2 -right-2 w-6 h-6 bg-brand-500 border-2 border-white rounded-full cursor-se-resize shadow-lg"
                                 onMouseDown={(e) => handleResizeStart(e, 'se')}
+                                onTouchStart={(e) => handleResizeTouchStart(e, 'se')}
                             />
                         </div>
                     </div>

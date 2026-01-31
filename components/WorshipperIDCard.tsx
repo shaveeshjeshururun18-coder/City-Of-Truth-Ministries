@@ -4,7 +4,7 @@ import { Church, RefreshCw, User, X, Phone, Mail, MapPin, UploadCloud, CheckCirc
 import { Button } from './Button';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
-import menorahBack from '/entrust-card-back.png';
+import menorahBack from '/entrust-card-flag.png';
 import { ImageCropper } from './ImageCropper';
 
 interface EntrustCardProps {

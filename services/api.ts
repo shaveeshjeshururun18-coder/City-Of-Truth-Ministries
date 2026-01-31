@@ -174,5 +174,72 @@ export const api = {
             console.error('Error deleting testimonial:', error);
             throw error;
         }
+    },
+
+    // --- Ministries ---
+
+    // Fetch all ministries
+    getMinistries: async (): Promise<any[]> => {
+        try {
+            const ministriesCollection = collection(db, 'ministries');
+            const snapshot = await getDocs(ministriesCollection);
+            return snapshot.docs.map(doc => ({
+                ...doc.data(),
+                id: doc.id
+            })).sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
+        } catch (error) {
+            console.error('Error fetching ministries:', error);
+            return [];
+        }
+    },
+
+    // Create a new ministry
+    createMinistry: async (ministry: any): Promise<any> => {
+        try {
+            const ministriesCollection = collection(db, 'ministries');
+            const docRef = await addDoc(ministriesCollection, ministry);
+            return { ...ministry, id: docRef.id };
+        } catch (error) {
+            console.error('Error creating ministry:', error);
+            throw error;
+        }
+    },
+
+    // Update an existing ministry
+    updateMinistry: async (ministry: any): Promise<any> => {
+        try {
+            const ministryDoc = doc(db, 'ministries', ministry.id);
+            const { id, ...data } = ministry;
+            await updateDoc(ministryDoc, data);
+            return ministry;
+        } catch (error) {
+            console.error('Error updating ministry:', error);
+            throw error;
+        }
+    },
+
+    // Delete a ministry
+    deleteMinistry: async (ministryId: string): Promise<void> => {
+        try {
+            const ministryDoc = doc(db, 'ministries', ministryId);
+            await deleteDoc(ministryDoc);
+        } catch (error) {
+            console.error('Error deleting ministry:', error);
+            throw error;
+        }
+    },
+
+    // Update bulk order of ministries
+    updateMinistriesOrder: async (ministries: any[]): Promise<void> => {
+        try {
+            const batchPromises = ministries.map((m, index) => {
+                const ministryDoc = doc(db, 'ministries', m.id);
+                return updateDoc(ministryDoc, { order: index });
+            });
+            await Promise.all(batchPromises);
+        } catch (error) {
+            console.error('Error updating ministries order:', error);
+            throw error;
+        }
     }
 };

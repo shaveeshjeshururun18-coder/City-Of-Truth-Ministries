@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Send, MessageSquare } from 'lucide-react';
+import { X, Send, MessageSquare, Star, AlertCircle } from 'lucide-react';
 import { Button } from './Button';
 import { User } from '../types';
 import { api } from '../services/api';
@@ -13,13 +13,18 @@ interface TestimonialModalProps {
 
 export const TestimonialModal: React.FC<TestimonialModalProps> = ({ isOpen, onClose, user }) => {
     const [content, setContent] = useState('');
+    const [rating, setRating] = useState(5);
+    const [hoveredRating, setHoveredRating] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
 
     if (!isOpen) return null;
 
+    // Check if user is approved
+    const isApproved = user.status === 'Active';
+
     const handleSubmit = async () => {
-        if (!content.trim()) return;
+        if (!content.trim() || !isApproved) return;
 
         setIsSubmitting(true);
         try {
@@ -28,13 +33,18 @@ export const TestimonialModal: React.FC<TestimonialModalProps> = ({ isOpen, onCl
                 userName: user.name || 'Anonymous',
                 content,
                 date: new Date().toISOString(),
-                status: 'Pending'
+                status: 'Pending',
+                rating: rating,
+                userPhoto: user.photo,
+                location: user.location,
+                role: user.role
             });
             setSubmitted(true);
             setTimeout(() => {
                 onClose();
                 setSubmitted(false);
                 setContent('');
+                setRating(5);
             }, 2000);
         } catch (error) {
             console.error('Failed to submit testimonial:', error);
@@ -79,11 +89,55 @@ export const TestimonialModal: React.FC<TestimonialModalProps> = ({ isOpen, onCl
                 </div>
 
                 <div className="p-8 space-y-4">
-                    {!submitted ? (
+                    {!isApproved ? (
+                        <div className="text-center py-8">
+                            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-600">
+                                <AlertCircle size={32} />
+                            </div>
+                            <h3 className="text-xl font-bold text-brand-950">Account Pending Approval</h3>
+                            <p className="text-slate-600 mt-2">
+                                Only approved members can submit testimonials. Please wait for your account to be approved by an administrator.
+                            </p>
+                            <Button onClick={onClose} variant="outline" className="mt-6">
+                                Close
+                            </Button>
+                        </div>
+                    ) : !submitted ? (
                         <>
                             <p className="text-slate-600 text-sm text-center">
                                 Has God done something amazing in your life? Share your testimony to encourage others!
                             </p>
+
+                            {/* Rating Stars */}
+                            <div className="flex flex-col items-center gap-2 py-2">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                    Rate Your Experience
+                                </label>
+                                <div className="flex gap-2">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <button
+                                            key={star}
+                                            type="button"
+                                            onClick={() => setRating(star)}
+                                            onMouseEnter={() => setHoveredRating(star)}
+                                            onMouseLeave={() => setHoveredRating(0)}
+                                            className="transition-transform hover:scale-110"
+                                        >
+                                            <Star
+                                                size={32}
+                                                className={`transition-colors ${star <= (hoveredRating || rating)
+                                                        ? 'fill-amber-400 text-amber-400'
+                                                        : 'fill-slate-200 text-slate-300'
+                                                    }`}
+                                            />
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="text-xs text-slate-500">
+                                    {rating === 5 ? 'Excellent!' : rating === 4 ? 'Great!' : rating === 3 ? 'Good' : rating === 2 ? 'Fair' : 'Poor'}
+                                </p>
+                            </div>
+
                             <textarea
                                 className="w-full h-32 p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors resize-none"
                                 placeholder="Write your testimony here..."

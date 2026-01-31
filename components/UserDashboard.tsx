@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
-import { Download, Edit2, AlertCircle, CheckCircle, Save, X, FileText, QrCode, LogOut, UploadCloud } from 'lucide-react';
+import { Download, Edit2, AlertCircle, CheckCircle, Save, X, FileText, QrCode, LogOut, UploadCloud, Camera } from 'lucide-react';
 import { Button } from './Button';
 import { motion } from 'framer-motion';
 import { TestimonialModal } from './TestimonialModal';
@@ -39,6 +39,12 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const handleCropComplete = (croppedImg: string) => {
         setFormData(prev => ({ ...prev, photo: croppedImg }));
         setCroppingImage(null);
+    };
+
+    const handleCropCurrent = () => {
+        if (user.photo) {
+            setCroppingImage(user.photo);
+        }
     };
 
     const handleDownloadPDF = async () => {
@@ -158,9 +164,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 </div>
 
                 <div className="grid lg:grid-cols-2 gap-16 items-start max-w-5xl mx-auto">
-
                     {/* Left Col: The Card */}
-                    <div className="flex flex-col items-center">
+                    <div className={`flex flex-col items-center ${isEditing ? 'order-2 lg:order-1' : ''}`}>
                         <div className="relative">
                             <EntrustCard3D
                                 name={user.name}
@@ -174,8 +179,18 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 className={user.status === 'Pending Verification' ? 'opacity-80 blur-[1px]' : ''}
                             />
 
-                            {user.status === 'Pending Verification' && (
-                                <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                            {isEditing && (
+                                <div className="absolute top-[35px] left-[15px] sm:top-[40px] sm:left-[21px] w-[82px] sm:w-[93px] h-[95px] sm:h-[105px] z-30 group/photo">
+                                    <label className="absolute inset-0 bg-brand-950/40 opacity-0 group-hover/photo:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer rounded-xl border-2 border-dashed border-white/50 backdrop-blur-[2px]">
+                                        <Camera size={24} className="mb-1" />
+                                        <span className="text-[7px] font-black uppercase tracking-tighter text-center px-1">Change / Crop Photo</span>
+                                        <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} />
+                                    </label>
+                                </div>
+                            )}
+
+                            {user.status === 'Pending Verification' && !isEditing && (
+                                <div className="absolute inset-0 bg-brand-900/40 backdrop-blur-[2px] opacity-100 flex items-center justify-center z-20 pointer-events-none rounded-[1.5rem] md:rounded-[2.5rem]">
                                     <div className="bg-amber-100 text-amber-800 px-6 py-3 rounded-xl border border-amber-200 shadow-xl font-bold uppercase tracking-widest text-sm flex items-center gap-3 transform -rotate-12">
                                         <AlertCircle size={20} /> Pending Verification
                                     </div>
@@ -194,11 +209,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         <FileText size={16} /> {isProcessing ? "Generating..." : "Download Card"}
                                     </Button>
                                     <Button
-                                        onClick={startEditing}
+                                        onClick={() => setIsEditing(true)}
                                         variant="secondary"
-                                        className="flex-1 py-3 text-xs uppercase tracking-widest shadow-sm"
+                                        className="flex-1 py-3 text-xs uppercase tracking-widest shadow-sm group"
                                     >
-                                        <Edit2 size={16} /> Edit Photo
+                                        <Edit2 size={16} className="group-hover:rotate-12 transition-transform" /> Edit Profile
                                     </Button>
                                 </>
                             ) : (
@@ -298,7 +313,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     </div>
 
                     {/* Right Col: Status or Edit Form */}
-                    <div className="space-y-8">
+                    <div className={`space-y-8 ${isEditing ? 'order-1 lg:order-2' : ''}`}>
                         {isEditing ? (
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
@@ -322,26 +337,33 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                     </div>
 
                                     <div className="space-y-1">
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Update Photo</label>
-                                        <div className="flex items-center gap-4">
-                                            <div className="relative group flex-1">
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    onChange={handlePhotoUpload}
-                                                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                        <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Profile Photo</label>
+                                        <div className="relative group aspect-square w-32 mx-auto">
+                                            <div className="w-full h-full rounded-[2rem] bg-slate-50 border-2 border-slate-100 overflow-hidden shadow-inner group-hover:border-brand-200 transition-colors">
+                                                <img
+                                                    src={formData.photo || user.photo}
+                                                    alt="Profile"
+                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                                                 />
-                                                <div className="w-full bg-slate-50 border border-slate-200 border-dashed rounded-lg px-4 py-3 text-sm text-slate-500 flex items-center gap-2 group-hover:bg-slate-100 transition-colors">
-                                                    <UploadCloud size={16} /> Click to Upload New Photo
+                                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer rounded-[2rem] gap-2">
+                                                    <label className="flex flex-col items-center justify-center cursor-pointer hover:text-accent-400 transition-colors">
+                                                        <UploadCloud size={24} />
+                                                        <span className="text-[8px] font-bold uppercase tracking-widest">Update</span>
+                                                        <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} />
+                                                    </label>
+                                                    <div className="w-8 h-[1px] bg-white/20" />
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleCropCurrent}
+                                                        className="flex flex-col items-center justify-center hover:text-accent-400 transition-colors"
+                                                    >
+                                                        <Camera size={24} />
+                                                        <span className="text-[8px] font-bold uppercase tracking-widest">Crop Current</span>
+                                                    </button>
                                                 </div>
                                             </div>
-                                            {formData.photo && (
-                                                <div className="w-10 h-10 rounded-full border border-slate-200 overflow-hidden shrink-0">
-                                                    <img src={formData.photo} alt="New" className="w-full h-full object-cover" />
-                                                </div>
-                                            )}
                                         </div>
-                                        <p className="text-[10px] text-slate-400">Upload and crop a new profile picture.</p>
+                                        <p className="text-[10px] text-slate-400 text-center mt-2 italic">Tip: Upload a new photo or crop the current one.</p>
                                     </div>
 
                                     {/* HIDDEN INPUTS TO PRESERVE LAYOUT BUT DISABLED */}
@@ -387,20 +409,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                     </div>
                                 </div>
 
-                                {/* Ministry Updates - Now appears first in right column */}
-                                <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
-                                    <h3 className="font-bold text-lg mb-4">Ministry Updates</h3>
-                                    <div className="space-y-4">
-                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                            <p className="text-xs font-bold text-brand-500 uppercase mb-1">Upcoming Event</p>
-                                            <p className="text-sm font-semibold text-slate-800">Worship Night this Friday at 6 PM.</p>
-                                        </div>
-                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                            <p className="text-xs font-bold text-brand-500 uppercase mb-1">Announcement</p>
-                                            <p className="text-sm font-semibold text-slate-800">New volunteer schedules are out. Please check your email.</p>
-                                        </div>
-                                    </div>
-                                </div>
                             </>
                         )}
 

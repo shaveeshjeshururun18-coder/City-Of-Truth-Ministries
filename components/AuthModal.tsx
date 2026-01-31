@@ -169,23 +169,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-gray-700 ml-1">Phone Number (10 digits)</label>
+                  <label className="text-sm font-semibold text-gray-700 ml-1">Member ID / Email / Username / Phone</label>
                   <div className="relative group">
-                    <Phone className="absolute left-3 top-3.5 text-gray-400 group-focus-within:text-brand-500 transition-colors" size={18} />
+                    <User className="absolute left-3 top-3.5 text-gray-400 group-focus-within:text-brand-500 transition-colors" size={18} />
                     <input
-                      type="tel"
-                      placeholder="Enter phone number"
-                      maxLength={10}
-                      pattern="[0-9]{10}"
+                      type="text"
+                      placeholder="Enter your ID, email or phone"
                       className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all"
                       value={formData.identifier}
                       onChange={e => {
-                        const value = e.target.value.replace(/\D/g, '').slice(0, 10);
-                        setFormData({ ...formData, identifier: value });
+                        setFormData({ ...formData, identifier: e.target.value });
                       }}
                     />
                   </div>
-                  <p className="text-xs text-slate-500 ml-1">Enter your 10-digit registered mobile number</p>
+                  <p className="text-xs text-slate-500 ml-1">Log in using any of your registered identifiers</p>
                 </div>
 
                 <div className="flex items-center justify-between text-sm">
