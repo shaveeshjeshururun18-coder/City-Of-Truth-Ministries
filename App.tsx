@@ -60,7 +60,7 @@ import { GoldenMenorah } from './components/GoldenMenorah';
 import { GoldenMenorahPage } from './components/GoldenMenorahPage';
 import { AIPage } from './components/AIPage';
 // import { GlobalAIWidget } from './components/GlobalAIWidget';
-import { MinistryHighlights, HebrewSanctuaryIntro, ValparaiPresence, TestimonialHighlights, EntrustCardPreview } from './components/HomeSections';
+import { MinistryHighlights, HebrewSanctuaryIntro, ValparaiPresence, TestimonialHighlights, EntrustCardPreview, LeaderMessageSection } from './components/HomeSections';
 import { HebrewAlphabetPage } from './components/HebrewAlphabetPage';
 import { MinistriesPage } from './components/MinistriesPage';
 import { BaruchHashemPage } from './components/BaruchHashemPage';
@@ -250,8 +250,8 @@ const TestimonialSection: React.FC<TestimonialSectionProps> = ({ currentUser }) 
           <div className="space-y-6">
             {[
               { name: "S.Shaveesh Jeshurun", role: "Member", text: "This ministry has completely transformed my spiritual life. The community in Valparai is so welcoming and the teachings are profound.", rating: 5 },
-              { name: "Priya", role: "Visitor", text: "A beautiful place to worship amidst the hills. The presence of God is tangible here from the first prayer.", rating: 5 },
-              { name: "Prasad.R", role: "Volunteer", text: "Wonderful service and amazing youth programs. Blessed to be part of this family and grow in His truth.", rating: 5 }
+              { name: "Sri Priya", role: "Visitor", text: "A beautiful place to worship amidst the hills. The presence of God is tangible here from the first prayer.", rating: 5 },
+              { name: "Prasad R", role: "Volunteer", text: "Wonderful service and amazing youth programs. Blessed to be part of this family and grow in His truth.", rating: 5 }
             ].map((t, i) => (
               <motion.div
                 key={i}
@@ -310,6 +310,35 @@ const App: React.FC = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [currentView]);
+
+  // Re-fetch current user data when entering dashboard to ensure status is up-to-date
+  useEffect(() => {
+    if (currentView === ViewState.USER_DASHBOARD && currentUser) {
+      const fetchLatestUser = async () => {
+        try {
+          const freshData = await api.getUsers();
+          const me = freshData.find(u => u.id === currentUser.id);
+          if (me && me.status !== currentUser.status) {
+            setCurrentUser(me); // Auto-update local state if status changed
+          }
+        } catch (e) {
+          console.error("Failed to refresh user status", e);
+        }
+      };
+      fetchLatestUser();
+    }
+  }, [currentView, currentUser?.id]);
+
+  // Ensure currentUser stays in sync with users list (e.g. after Admin updates)
+  useEffect(() => {
+    if (currentUser) {
+      const updatedMe = users.find(u => u.id === currentUser.id);
+      // Only update if there are actual changes to avoid loops
+      if (updatedMe && JSON.stringify(updatedMe) !== JSON.stringify(currentUser)) {
+        setCurrentUser(updatedMe);
+      }
+    }
+  }, [users, currentUser]);
 
   // Load users from backend on mount
   useEffect(() => {
@@ -387,8 +416,8 @@ const App: React.FC = () => {
   const handleRegister = async (data: any) => {
     // Check if user already exists
     const existingUser = users.find(u =>
-      u.phone === data.emergency ||
-      u.email === data.email ||
+      (data.emergency && u.phone === data.emergency) ||
+      (data.email && u.email === data.email) ||
       u.id === data.uniqueId
     );
 
@@ -648,6 +677,7 @@ const App: React.FC = () => {
               <GoldenMenorah onPreviewClick={() => setCurrentView(ViewState.GOLDEN_MENORAH)} />
 
               <MinistryHighlights setView={setCurrentView} />
+              <LeaderMessageSection setView={setCurrentView} />
               <HebrewSanctuaryIntro setView={setCurrentView} />
               <ValparaiPresence setView={setCurrentView} />
               <TestimonialHighlights setView={setCurrentView} />
@@ -663,7 +693,7 @@ const App: React.FC = () => {
 
           {currentView === ViewState.HEBREW_CALENDAR && (
             <div key="hebrew-calendar">
-              <HebrewResources initialTab="calendar" />
+              <HebrewResources initialTab="calendar" currentUser={currentUser || undefined} />
             </div>
           )}
 

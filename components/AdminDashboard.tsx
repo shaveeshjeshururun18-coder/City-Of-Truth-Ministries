@@ -1340,13 +1340,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     </div>
                                 </div>
 
-                                <div className="space-y-2 md:col-span-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Emergency Contact</label>
-                                    <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
-                                        <AlertCircle size={16} className="text-slate-400" />
-                                        <span className="text-sm text-slate-700">{viewingDetailsUser.emergency || 'N/A'}</span>
-                                    </div>
-                                </div>
+
                             </div>
 
                             {/* QR Code Section in Details */}

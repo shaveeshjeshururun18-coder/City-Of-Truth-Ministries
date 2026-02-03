@@ -5,10 +5,8 @@ const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 // Initialize OpenRouter SDK
 const openRouter = new OpenRouter({
     apiKey: OPENROUTER_API_KEY,
-    defaultHeaders: {
-        'HTTP-Referer': 'https://cityoftruth.com',
-        'X-Title': 'City of Truth Ministries AI',
-    },
+    httpReferer: 'https://cityoftruth.com',
+    xTitle: 'City of Truth Ministries AI',
 });
 
 export const SYSTEM_PROMPT = `You are the COT AI Assistant for City of Truth Ministries (சத்திய நகரம் ஊழியங்கள்), a Christian ministry based in Valparai, Tamil Nadu, India.
@@ -39,7 +37,18 @@ export async function generateSpatulaAIResponse(userPrompt: string): Promise<str
             stream: false,
         });
 
-        return completion.choices[0].message.content || 'I apologize, but I could not generate a response.';
+        const content = completion.choices[0].message.content;
+        if (typeof content === 'string') {
+            return content || 'I apologize, but I could not generate a response.';
+        } else if (Array.isArray(content)) {
+            // Handle array of content parts
+            return content.map(part => {
+                if ('text' in part) return part.text;
+                return '';
+            }).join('') || 'I apologize, but I could not generate a response.';
+        }
+
+        return 'I apologize, but I could not generate a response.';
     } catch (error) {
         console.error('OpenRouter API Error:', error);
         throw new Error('Failed to connect to AI service. Please try again.');

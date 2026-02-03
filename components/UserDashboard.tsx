@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import { User } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
-import { Download, Edit2, AlertCircle, CheckCircle, Save, X, FileText, QrCode, LogOut, UploadCloud, Camera } from 'lucide-react';
+import { Download, Edit2, AlertCircle, CheckCircle, Save, X, FileText, QrCode, LogOut, UploadCloud, Camera, Calendar, Sparkles } from 'lucide-react';
 import { Button } from './Button';
 import { motion } from 'framer-motion';
 import { TestimonialModal } from './TestimonialModal';
 import { MessageSquare } from 'lucide-react';
-import { toPng } from 'html-to-image';
+import { toPng, toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { ImageCropper } from './ImageCropper';
+import { PrintableHebrewCalendar } from './PrintableHebrewCalendar';
+import { PrintableReferenceGuide } from './PrintableReferenceGuide';
+import { getCalendarData5786, HebrewMonth } from './CalendarLogic';
+import { CalendarCustomizationModal, CalendarOptions } from './CalendarCustomizationModal';
 
 interface UserDashboardProps {
     user: User;
@@ -23,6 +27,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [formData, setFormData] = useState<Partial<User>>({});
     const [isProcessing, setIsProcessing] = useState(false);
     const [croppingImage, setCroppingImage] = useState<string | null>(null);
+
+    // Calendar States
+    const [isGeneratingCalendar, setIsGeneratingCalendar] = useState(false);
+    const [generationProgress, setGenerationProgress] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+    const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
+    const [calendarRenderMode, setCalendarRenderMode] = useState<{ mode: 'cover' | 'month', monthData?: any } | null>(null);
 
     const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -81,6 +92,126 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             alert("Card generation elements not found. Please refresh.");
         }
         setIsProcessing(false);
+    };
+
+    const handleDownloadCalendar = async (options: CalendarOptions) => {
+        setIsGeneratingCalendar(true);
+        setGenerationProgress(0);
+        setIsCalendarModalOpen(false); // Close modal
+
+        try {
+            const pdf = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: 'a4',
+                compress: true
+            });
+
+            // Clean existing pages? jsPDF starts with one page.
+            // We will edit the first page then add more.
+
+            const captureAndAddPage = async (isFirstPage: boolean) => {
+                const node = document.getElementById('printable-calendar-dashboard');
+                if (!node) throw new Error('Calendar element not found');
+
+                // Wait for render
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                const dataUrl = await toJpeg(node, {
+                    width: 1122, // A4 at 96dpi approx is 1123. Ensure matches CSS
+                    height: 793,
+                    pixelRatio: 3.0, // Pro Max Quality
+                    quality: 1.0,
+                    backgroundColor: '#ffffff',
+                    cacheBust: true
+                });
+
+                const imgProps = pdf.getImageProperties(dataUrl);
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+                if (!isFirstPage) {
+                    pdf.addPage('a4', 'landscape');
+                }
+                pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+            };
+
+            const calendarData = getCalendarData5786();
+            // Note: If you have dynamic year logic, replace getCalendarData5786() with appropriate fetch.
+            // Currently UserDashboard seems to rely on 5786 static data from `CalendarLogic`.
+
+            let isFirstPage = true;
+            let totalSteps = 0;
+            if (options.scope === 'full') totalSteps = 1 + calendarData.length;
+            else totalSteps = 1;
+            setTotalPages(totalSteps);
+
+            // 1. Cover Page (Only for full)
+            if (options.scope === 'full') {
+                setCalendarRenderMode({ mode: 'cover' });
+                await new Promise(resolve => setTimeout(resolve, 100)); // Wait for react render
+                await captureAndAddPage(true);
+                isFirstPage = false;
+                setGenerationProgress(1);
+
+                // 2. Loop Months
+                let p = 1;
+                for (const month of calendarData) {
+                    setCalendarRenderMode({ mode: 'month', monthData: month });
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    await captureAndAddPage(false);
+                    p++;
+                    setGenerationProgress(p);
+                }
+            } else if (options.scope === 'single' && options.monthIndex !== undefined) {
+                const month = calendarData[options.monthIndex];
+                if (month) {
+                    setCalendarRenderMode({ mode: 'month', monthData: month });
+                    setGenerationProgress(1); // Just one month
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    await captureAndAddPage(isFirstPage);
+                    pdf.save(`COT-Hebrew-Menorah-Calendar-5786-${month.name}.pdf`);
+                }
+            }
+
+            // Reference Guide (Only for Full scope)
+            if (options.scope === 'full') {
+                try {
+                    const refNode = document.getElementById('printable-reference-guide-dashboard');
+                    if (refNode) {
+                        const refDataUrl = await toJpeg(refNode, {
+                            pixelRatio: 3.0, // Pro Max Quality
+                            quality: 1.0,
+                            backgroundColor: '#ffffff',
+                            cacheBust: true,
+                            width: 800,
+                        });
+
+                        pdf.addPage('a4', 'portrait');
+                        const portraitPageWidth = pdf.internal.pageSize.getWidth();
+                        const imgProps = pdf.getImageProperties(refDataUrl);
+                        const pdfImgWidth = portraitPageWidth;
+                        const pdfImgHeight = (imgProps.height * pdfImgWidth) / imgProps.width;
+
+                        pdf.addImage(refDataUrl, 'JPEG', 0, 0, pdfImgWidth, pdfImgHeight, undefined, 'FAST');
+                    }
+                } catch (err) {
+                    console.error("Error adding reference guide:", err);
+                    // Continue to save even if reference fails
+                }
+            }
+
+            if (options.scope === 'full') {
+                pdf.save(`COT-Hebrew-Menorah-Calendar-5786.pdf`);
+            }
+
+        } catch (e: any) {
+            console.error(e);
+            alert(`Failed to generate PDF: ${e.message || "Unknown error"}. Try generating fewer months or using a PC.`);
+        } finally {
+            setCalendarRenderMode(null);
+            setIsGeneratingCalendar(false);
+        }
     };
 
     const startEditing = () => {
@@ -198,7 +329,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             )}
                         </div>
 
-                        <div className="mt-8 flex gap-4 w-full max-w-[320px]">
+                        <div className="mt-8 flex flex-col sm:flex-row flex-wrap gap-4 w-full max-w-full justify-center">
                             {!isEditing ? (
                                 <>
                                     <Button
@@ -223,6 +354,35 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             )}
                         </div>
 
+
+
+                        {/* Calendar Download Card - Only for Active Users */}
+                        {user.status === 'Active' && !isEditing && (
+                            <div className="mt-8 bg-gradient-to-r from-amber-700 to-amber-900 p-6 rounded-3xl border border-amber-600 shadow-xl w-full max-w-[380px] text-center relative overflow-hidden group hover:shadow-2xl hover:scale-[1.02] transition-all duration-300">
+                                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-400 rounded-full blur-3xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
+
+                                <div className="relative z-10">
+                                    <div className="flex justify-center mb-3">
+                                        <div className="w-12 h-12 bg-amber-500/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-amber-400/30">
+                                            <Calendar size={24} className="text-amber-100" />
+                                        </div>
+                                    </div>
+                                    <h3 className="font-bold text-xl text-white mb-2 font-serif text-shadow-sm">Jewish Calendar 5786</h3>
+                                    <p className="text-amber-100 text-xs mb-5 font-light leading-relaxed">
+                                        Download the official City of Truth Ministries Jewish Calendar. <br /> Pro Max Quality Edition.
+                                    </p>
+                                    <a
+                                        href="/assets/COT-Hebrew-Menorah-Calendar-5786 (7).pdf"
+                                        download="COT-Hebrew-Menorah-Calendar-5786.pdf"
+                                        className="inline-flex items-center justify-center gap-2 bg-gradient-to-b from-white to-amber-100 text-amber-950 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg hover:bg-white transition-colors w-full"
+                                    >
+                                        <Download size={16} /> Download PDF
+                                    </a>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Download App Section */}
                         <div className="mt-8 bg-brand-900 p-6 rounded-3xl border border-brand-800 shadow-xl w-full max-w-[380px] text-center relative overflow-hidden group hover:shadow-2xl transition-all">
                             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10"></div>
@@ -240,76 +400,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 </a>
                             </div>
                         </div>
-                        {!isEditing && (
-                            <div className="mt-8 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm w-full max-w-[380px]">
-                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                                    <QrCode className="text-brand-600" size={20} />
-                                    My QR Code
-                                </h3>
-                                {user.status === 'Active' ? (
-                                    <div className="flex flex-col items-center">
-                                        <div className="bg-white p-4 rounded-xl border-2 border-dashed border-slate-200 mb-4">
-                                            <img
-                                                src={`https://quickchart.io/qr?text=${encodeURIComponent(JSON.stringify({
-                                                    id: user.id,
-                                                    name: user.name,
-                                                    email: user.email,
-                                                    phone: user.phone,
-                                                    location: user.location,
-                                                    emergency: user.emergency || 'N/A',
-                                                    role: user.role,
-                                                    status: user.status
-                                                }))}&dark=4c51f7&size=200`}
-                                                alt="My QR Code"
-                                                className="w-40 h-40"
-                                            />
-                                        </div>
-                                        <p className="text-xs text-slate-500 text-center">
-                                            This QR code contains all your registration details
-                                        </p>
-                                        <button
-                                            onClick={() => window.open(`https://quickchart.io/qr?text=${encodeURIComponent(JSON.stringify({
-                                                id: user.id,
-                                                name: user.name,
-                                                email: user.email,
-                                                phone: user.phone,
-                                                location: user.location,
-                                                emergency: user.emergency || 'N/A',
-                                                role: user.role,
-                                                status: user.status
-                                            }))}&dark=4c51f7&size=400`, '_blank')}
-                                            className="mt-3 px-4 py-2 bg-brand-50 text-brand-600 rounded-lg text-xs font-bold hover:bg-brand-100 transition-colors"
-                                        >
-                                            Download QR Code
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col items-center py-8 text-center bg-slate-50 rounded-2xl border border-slate-100 px-4">
-                                        <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4">
-                                            <AlertCircle size={24} />
-                                        </div>
-                                        <h4 className="font-bold text-slate-800 text-sm mb-1">QR Code Pending</h4>
-                                        <p className="text-xs text-slate-500">
-                                            Your personalized QR code will be generated once your account is verified and approved.
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        )}
 
-                        {/* Logout Button */}
-                        {!isEditing && (
-                            <div className="mt-8 w-full max-w-[380px]">
-                                <Button
-                                    onClick={onLogout}
-                                    variant="outline"
-                                    fullWidth
-                                    className="border-red-100 text-red-600 hover:bg-red-50 hover:border-red-200 py-4 shadow-sm"
-                                >
-                                    <LogOut size={18} className="mr-2" /> Logout
-                                </Button>
-                            </div>
-                        )}
                     </div>
 
                     {/* Right Col: Status or Edit Form */}
@@ -431,6 +522,78 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 </div>
                             </div>
                         )}
+
+                        {/* QR Code Section (Moved to Right) */}
+                        {!isEditing && (
+                            <div className="mt-8 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm w-full">
+                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                                    <QrCode className="text-brand-600" size={20} />
+                                    My QR Code
+                                </h3>
+                                {user.status === 'Active' ? (
+                                    <div className="flex flex-col items-center">
+                                        <div className="bg-white p-4 rounded-xl border-2 border-dashed border-slate-200 mb-4">
+                                            <img
+                                                src={`https://quickchart.io/qr?text=${encodeURIComponent(JSON.stringify({
+                                                    id: user.id,
+                                                    name: user.name,
+                                                    email: user.email,
+                                                    phone: user.phone,
+                                                    location: user.location,
+                                                    emergency: user.emergency || 'N/A',
+                                                    role: user.role,
+                                                    status: user.status
+                                                }))}&dark=4c51f7&size=200`}
+                                                alt="My QR Code"
+                                                className="w-40 h-40"
+                                            />
+                                        </div>
+                                        <p className="text-xs text-slate-500 text-center">
+                                            This QR code contains all your registration details
+                                        </p>
+                                        <button
+                                            onClick={() => window.open(`https://quickchart.io/qr?text=${encodeURIComponent(JSON.stringify({
+                                                id: user.id,
+                                                name: user.name,
+                                                email: user.email,
+                                                phone: user.phone,
+                                                location: user.location,
+                                                emergency: user.emergency || 'N/A',
+                                                role: user.role,
+                                                status: user.status
+                                            }))}&dark=4c51f7&size=400`, '_blank')}
+                                            className="mt-3 px-4 py-2 bg-brand-50 text-brand-600 rounded-lg text-xs font-bold hover:bg-brand-100 transition-colors"
+                                        >
+                                            Download QR Code
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center py-8 text-center bg-slate-50 rounded-2xl border border-slate-100 px-4">
+                                        <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4">
+                                            <AlertCircle size={24} />
+                                        </div>
+                                        <h4 className="font-bold text-slate-800 text-sm mb-1">QR Code Pending</h4>
+                                        <p className="text-xs text-slate-500">
+                                            Your personalized QR code will be generated once your account is verified and approved.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Logout Button (Moved to Right) */}
+                        {!isEditing && (
+                            <div className="w-full">
+                                <Button
+                                    onClick={onLogout}
+                                    variant="outline"
+                                    fullWidth
+                                    className="border-red-100 text-red-600 hover:bg-red-50 hover:border-red-200 py-4 shadow-sm"
+                                >
+                                    <LogOut size={18} className="mr-2" /> Logout
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -440,6 +603,33 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 onClose={() => setShowTestimonialModal(false)}
                 user={user}
             />
-        </div>
+
+            <CalendarCustomizationModal
+                isOpen={isCalendarModalOpen}
+                onClose={() => setIsCalendarModalOpen(false)}
+                onDownload={handleDownloadCalendar}
+            />
+
+            {/* Hidden Calendar Render for Capture */}
+            <div className="fixed left-[-10000px] top-0 pointer-events-none -z-50 opacity-100">
+                <div id="printable-calendar-dashboard" className="w-[1122px] min-h-[793px] bg-white">
+                    {calendarRenderMode && (
+                        <PrintableHebrewCalendar
+                            mode={calendarRenderMode.mode}
+                            year={5786}
+                            monthData={calendarRenderMode.monthData}
+                            currentUser={user}
+                        />
+                    )}
+                </div>
+            </div>
+
+            {/* Hidden Reference Guide for Dashboard Capture */}
+            <div className="fixed left-[-10000px] top-0 overflow-visible z-50 opacity-100 pointer-events-none">
+                <div id="printable-reference-guide-dashboard" className="bg-white">
+                    <PrintableReferenceGuide year={5786} />
+                </div>
+            </div>
+        </div >
     );
 };

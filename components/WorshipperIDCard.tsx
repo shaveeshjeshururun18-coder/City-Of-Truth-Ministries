@@ -56,7 +56,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                         <p className="text-[6px] text-accent-200 font-medium mt-0.5">சத்திய நகரம் ஊழியங்கள் வால்பாறை</p>
                     </div>
                 </div>
-                <div className="bg-accent-50 px-2 py-0.5 rounded">
+                <div className="bg-accent-50 px-4 py-1 rounded-full whitespace-nowrap min-w-0">
                     <p className="text-accent-700 font-bold text-[7px] uppercase tracking-wider">வழிப்பாட்டாளர் அடையாள அட்டை</p>
                 </div>
             </div>

@@ -153,8 +153,8 @@ export const HebrewConverter: React.FC = () => {
                                 layout
                                 className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow flex flex-col items-center gap-2 text-center"
                             >
-                                <span className="text-3xl text-brand-950 font-serif">{item.hebrew}</span>
-                                <span className="text-sm font-bold text-slate-400 font-mono">{item.num}</span>
+                                <span className="text-xl text-slate-400 font-serif mb-1">{item.hebrew}</span>
+                                <span className="text-4xl font-bold text-brand-950 font-mono">{item.num}</span>
                             </motion.div>
                         ))}
                     </div>

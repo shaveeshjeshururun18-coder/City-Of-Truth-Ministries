@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Star, ArrowRight, BookOpen, MapPin, Globe, Sparkles, MessageSquare, QrCode } from 'lucide-react';
 import { ViewState } from '../types';
+import { MessageFromLeader } from './MessageFromLeader';
 
 interface SectionProps {
     setView: (view: ViewState) => void;
@@ -178,9 +179,9 @@ export const TestimonialHighlights: React.FC<SectionProps> = ({ setView }) => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {[
-                        { name: 'David Raj', text: 'The Hebrew Hub has opened my eyes to the depth of the Scriptures. Truly a blessing.', role: 'Member' },
-                        { name: 'Sarah Emmanuel', text: 'Valparai sanctuary is the most peaceful place for worship. I feel closer to God there.', role: 'Worshipper' },
-                        { name: 'Moses Kumar', text: 'The youth ministry has given me a family and a purpose. Thank you COT!', role: 'Youth Leader' }
+                        { name: 'S.Shaveesh Jeshurun', text: 'The Hebrew Hub has opened my eyes to the depth of the Scriptures. Truly a blessing.', role: 'Member' },
+                        { name: 'Sri Priya', text: 'Valparai sanctuary is the most peaceful place for worship. I feel closer to God there.', role: 'Worshipper' },
+                        { name: 'Prasad R', text: 'The youth ministry has given me a family and a purpose. Thank you COT!', role: 'Youth Leader' }
                     ].map((t, i) => (
                         <motion.div
                             key={i}
@@ -276,6 +277,23 @@ export const EntrustCardPreview: React.FC<SectionProps> = ({ setView }) => {
                         </motion.div>
                     </div>
                 </div>
+            </div>
+        </section>
+    );
+};
+export const LeaderMessageSection: React.FC<SectionProps> = ({ setView }) => {
+    return (
+        <section className="py-24 bg-brand-50 relative overflow-hidden">
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 pointer-events-none"></div>
+            <div className="container mx-auto px-6 relative z-10">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    className="flex flex-col items-center"
+                >
+                    <MessageFromLeader />
+                </motion.div>
             </div>
         </section>
     );
