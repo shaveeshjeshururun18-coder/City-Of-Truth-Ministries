@@ -12,14 +12,14 @@ interface MessageFromLeaderProps {
 export const MessageFromLeader: React.FC<MessageFromLeaderProps> = ({
     title = "A MESSAGE from OUR LEADER",
     greeting = "Shalom,",
-    body = "We at City of Truth Ministries valus every soul. My team and I are dedicated to serving you and upholding the truth. If you need prayer or guidance, know that we are here for you. Your spiritual growth is our greatest joy.",
+    body = "We at City of Truth Ministries values every soul. My team and I are dedicated to serving you and upholding the truth. If you need prayer or guidance, know that we are here for you. Your spiritual growth is our greatest joy.",
     signature = "Pastor, City of Truth Ministries",
     className = ""
 }) => {
     return (
-        <div className={`relative w-full max-w-2xl mx-auto p-8 my-8 ${className}`}>
+        <div className={`relative w-full max-w-2xl mx-auto px-4 py-8 md:p-8 my-8 ${className}`}>
             {/* Envelope Icon Decoration (recreating the vibe from the image) */}
-            <div className="absolute -top-6 right-8 text-orange-500 transform rotate-12 drop-shadow-lg">
+            <div className="absolute -top-6 right-4 md:right-8 text-orange-500 transform rotate-12 drop-shadow-lg">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-16 h-16">
                     <path d="M1.5 8.67v8.58a3 3 0 003 3h15a3 3 0 003-3V8.67l-8.928 5.493a3 3 0 01-3.144 0L1.5 8.67z" />
                     <path d="M22.5 6.908V6.75a3 3 0 00-3-3h-15a3 3 0 00-3 3v.158l9.714 5.978a1.5 1.5 0 001.572 0L22.5 6.908z" />
@@ -31,7 +31,7 @@ export const MessageFromLeader: React.FC<MessageFromLeaderProps> = ({
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6 }}
-                className="bg-white/95 backdrop-blur-sm text-gray-800 rounded-xl shadow-2xl p-8 relative overflow-hidden border border-amber-100"
+                className="bg-white/95 backdrop-blur-sm text-gray-800 rounded-xl shadow-2xl p-6 md:p-8 relative overflow-hidden border border-amber-100"
             >
                 {/* Ornamental Corners */}
                 <div className="absolute top-0 left-0 w-16 h-16 pointer-events-none">
@@ -68,7 +68,7 @@ export const MessageFromLeader: React.FC<MessageFromLeaderProps> = ({
                 </div>
 
                 {/* Content */}
-                <div className="flex flex-col items-center text-center px-6 py-4">
+                <div className="flex flex-col items-center text-center px-2 md:px-6 py-4">
                     <h2 className="text-2xl font-serif font-bold mb-6 tracking-wide text-gray-900 border-b border-gray-200 pb-4 w-full">
                         {title}
                     </h2>
