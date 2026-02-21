@@ -27,8 +27,23 @@ export const api = {
                 ...doc.data(),
                 id: doc.id
             } as User));
-        } catch (error) {
-            console.error('Error fetching users:', error);
+        } catch (error: any) {
+            console.error('Firestore Error (Users):', error);
+
+            // Check for permission error (likely expired rules)
+            if (error.code === 'permission-denied') {
+                console.warn('⚠️ Firestore Permission Denied. Falling back to local db.json...');
+                try {
+                    const response = await fetch('http://localhost:4000/users');
+                    if (response.ok) return await response.json();
+
+                    // Offline fallback if json-server isn't running
+                    const localData = await import('../db.json');
+                    return (localData.users || []) as User[];
+                } catch (e) {
+                    console.error('Fallback to db.json failed:', e);
+                }
+            }
             return [];
         }
     },
@@ -87,15 +102,27 @@ export const api = {
             const q = query(usersCollection, where('phone', '==', phone));
             const snapshot = await getDocs(q);
 
-            if (snapshot.empty) return null;
+            if (snapshot.empty) {
+                // Try fallback if empty but phone matches
+                return null;
+            }
 
             const doc = snapshot.docs[0];
             return {
                 ...doc.data(),
                 id: doc.id
             } as User;
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error finding user:', error);
+            if (error.code === 'permission-denied') {
+                try {
+                    const localData = await import('../db.json');
+                    const user = (localData.users as User[]).find((u: User) => u.phone === phone || u.emergency === phone);
+                    return user || null;
+                } catch (e) {
+                    console.error('Fallback failed:', e);
+                }
+            }
             return null;
         }
     },
@@ -112,8 +139,17 @@ export const api = {
                 ...snapshot.data(),
                 id: snapshot.id
             } as User;
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error getting user:', error);
+            if (error.code === 'permission-denied') {
+                try {
+                    const localData = await import('../db.json');
+                    const user = (localData.users as User[]).find((u: User) => u.id === userId);
+                    return user || null;
+                } catch (e) {
+                    console.error('Fallback failed:', e);
+                }
+            }
             return null;
         }
     },
@@ -130,8 +166,18 @@ export const api = {
                 ...doc.data(),
                 id: doc.id
             } as Testimonial));
-        } catch (error) {
-            console.error('Error fetching testimonials:', error);
+        } catch (error: any) {
+            console.error('Firestore Error (Testimonials):', error);
+            if (error.code === 'permission-denied') {
+                try {
+                    // Try local import first for speed and reliability
+                    const localData = await import('../db.json');
+                    if (localData.testimonials) return localData.testimonials as Testimonial[];
+
+                    const response = await fetch('http://localhost:4000/testimonials');
+                    if (response.ok) return await response.json();
+                } catch (e) { }
+            }
             return [];
         }
     },
@@ -187,8 +233,17 @@ export const api = {
                 ...doc.data(),
                 id: doc.id
             })).sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
-        } catch (error) {
-            console.error('Error fetching ministries:', error);
+        } catch (error: any) {
+            console.error('Firestore Error (Ministries):', error);
+            if (error.code === 'permission-denied') {
+                try {
+                    const localData = await import('../db.json');
+                    if (localData.ministries) return localData.ministries as any[];
+
+                    const response = await fetch('http://localhost:4000/ministries');
+                    if (response.ok) return await response.json();
+                } catch (e) { }
+            }
             return [];
         }
     },

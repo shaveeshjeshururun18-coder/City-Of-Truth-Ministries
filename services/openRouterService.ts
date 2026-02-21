@@ -84,3 +84,38 @@ export async function streamSpatulaAIResponse(
         throw new Error('Failed to stream AI response. Please try again.');
     }
 }
+/**
+ * Analyze a Hebrew word and return structured data (meanings, syllables, spiritual significance)
+ */
+export async function analyzeHebrewWord(word: string): Promise<any> {
+    const prompt = `Analyze the Hebrew word "${word}". Provide the following details in JSON format only:
+    {
+        "pronunciation": "English phonetic spelling",
+        "pronunciationTa": "Tamil phonetic spelling",
+        "breakdownHe": "Hebrew syllable breakdown (dash-separated)",
+        "breakdownEn": "English syllable breakdown (dash-separated)",
+        "meaningEn": "Short English meaning",
+        "meaningTa": "Short Tamil meaning (தமிழ்)",
+        "root": "The three-letter Hebrew root (Shoresh) of the word",
+        "description": "One sentence summary of spiritual or biblical significance"
+    }
+    Ensure the Tamil is accurate and culturally relevant for a Christian ministry context.`;
+
+    try {
+        const completion = await openRouter.chat.send({
+            model: DEFAULT_MODEL,
+            messages: [
+                { role: 'system', content: 'You are an expert in Biblical Hebrew and Tamil translations. Respond only with valid JSON.' },
+                { role: 'user', content: prompt }
+            ],
+            stream: false,
+            responseFormat: { type: 'json_object' }
+        });
+
+        const content = completion.choices[0].message.content;
+        return JSON.parse(typeof content === 'string' ? content : JSON.stringify(content));
+    } catch (error) {
+        console.error('Hebrew Analysis Error:', error);
+        throw new Error('Failed to analyze word. Please check your AI configuration.');
+    }
+}

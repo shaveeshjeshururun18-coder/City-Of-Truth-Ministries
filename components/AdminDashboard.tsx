@@ -13,6 +13,7 @@ import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { ImageCropper } from './ImageCropper';
 import { EntrustCard3D } from './WorshipperIDCard';
+import { AdminIDCard } from './AdminIDCard';
 
 interface AdminDashboardProps {
     users: User[];
@@ -41,7 +42,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
     const [downloadingCardUserId, setDownloadingCardUserId] = useState<string | null>(null);
 
-    const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards'>('users');
     const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
     const [ministries, setMinistries] = useState<Ministry[]>([]);
     const [editingMinistry, setEditingMinistry] = useState<Partial<Ministry> | null>(null);
@@ -403,6 +404,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         >
                             <div className="flex items-center gap-2">
                                 <Globe size={16} /> Ministries
+                            </div>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('id-cards')}
+                            className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === 'id-cards'
+                                ? 'bg-brand-600 text-white'
+                                : 'bg-white text-slate-600 hover:bg-slate-50'
+                                }`}
+                        >
+                            <div className="flex items-center gap-2">
+                                <QrCode size={16} /> ID Cards
                             </div>
                         </button>
                     </div>
@@ -787,7 +799,102 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                 )}
 
-                {/* Testimonials View */}
+                {/* ID Cards Section */}
+                {activeTab === 'id-cards' && (
+                    <div className="space-y-8">
+                        {/* Search and Filters (Reusing the same logic) */}
+                        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                                <div className="flex-1 w-full relative">
+                                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search member ID card..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors"
+                                    />
+                                </div>
+                                <div className="flex gap-2 w-full md:w-auto">
+                                    <select
+                                        value={filterStatus}
+                                        onChange={(e) => setFilterStatus(e.target.value as UserStatus | 'All')}
+                                        className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 text-sm font-bold"
+                                    >
+                                        <option value="All">All Status</option>
+                                        <option value="Active">Active</option>
+                                        <option value="Pending Verification">Pending</option>
+                                    </select>
+                                    <div className="px-4 py-3 bg-brand-50 text-brand-700 rounded-xl flex items-center gap-2 font-black text-xs uppercase tracking-widest whitespace-nowrap">
+                                        <Users size={14} /> {filteredUsers.length} Cards
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* ID Cards Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            <AnimatePresence mode='popLayout'>
+                                {filteredUsers.map((user, index) => (
+                                    <motion.div
+                                        key={user.id}
+                                        layout
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.9 }}
+                                        transition={{ delay: index * 0.05, duration: 0.3 }}
+                                        className="relative group flex justify-center"
+                                        onClick={() => setViewingDetailsUser(user)}
+                                    >
+                                        <div className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]">
+                                            <AdminIDCard
+                                                user={{
+                                                    id: user.id,
+                                                    name: user.name,
+                                                    role: user.role,
+                                                    photo: user.photo,
+                                                    location: user.location,
+                                                    phone: user.phone,
+                                                    memberSince: user.memberSince
+                                                }}
+                                            />
+                                        </div>
+
+                                        {/* Quick Actions Hover Overlay */}
+                                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-2 z-20">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDownloadUserCard(user);
+                                                }}
+                                                className="w-8 h-8 bg-white/90 backdrop-blur shadow-lg rounded-full flex items-center justify-center text-purple-600 hover:bg-purple-600 hover:text-white transition-all transform hover:scale-110"
+                                            >
+                                                <Download size={14} />
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setEditingUser(user);
+                                                }}
+                                                className="w-8 h-8 bg-white/90 backdrop-blur shadow-lg rounded-full flex items-center justify-center text-blue-600 hover:bg-blue-600 hover:text-white transition-all transform hover:scale-110"
+                                            >
+                                                <Edit2 size={14} />
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                        </div>
+
+                        {filteredUsers.length === 0 && (
+                            <div className="text-center py-24 bg-white rounded-[3rem] border border-slate-100 shadow-inner">
+                                <QrCode size={64} className="mx-auto text-slate-200 mb-6 animate-pulse" />
+                                <h3 className="text-xl font-serif font-bold text-slate-400">No member IDs found matching filters</h3>
+                                <p className="text-slate-400 text-sm mt-2 font-light">Try adjusting your search or filters to see more results.</p>
+                            </div>
+                        )}
+                    </div>
+                )}
                 {activeTab === 'testimonials' && (
                     <div className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

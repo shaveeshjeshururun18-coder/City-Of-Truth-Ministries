@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart } from 'lucide-react';
+import { Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HebrewYearDropdown } from './HebrewYearDropdown';
 import { HebrewConverter } from './HebrewConverter';
+import { HebrewWordHub } from './HebrewWordHub';
 import { InteractiveMenorah } from './InteractiveMenorah';
 import { PrintableHebrewCalendar } from './PrintableHebrewCalendar';
 import { PrintableReferenceGuide, HEBREW_MONTHS_DATA, KEY_DETAILS } from './PrintableReferenceGuide';
@@ -502,7 +503,15 @@ const ReferenceView: React.FC = () => {
                         <div key={i} className="bg-white p-6 rounded-3xl border border-slate-100 flex items-center gap-6 group hover:border-brand-200 transition-all hover:shadow-lg">
                             <div className="text-4xl font-serif text-slate-200 group-hover:text-brand-100 transition-colors">{(i + 1).toString().padStart(2, '0')}</div>
                             <div className="flex-1">
-                                <h4 className="text-lg font-bold text-brand-950">{m.name}</h4>
+                                <div className="flex justify-between items-start">
+                                    <h4 className="text-lg font-bold text-brand-950">{m.name}</h4>
+                                    <button
+                                        onClick={() => audioService.playHebrew(m.name)}
+                                        className="p-1.5 bg-brand-50 rounded-full text-brand-600 opacity-0 group-hover:opacity-100 transition-all hover:bg-brand-100"
+                                    >
+                                        <Volume2 size={14} />
+                                    </button>
+                                </div>
                                 <p className="text-xs text-accent-600 font-bold mb-1 uppercase tracking-widest">{m.gregorian}</p>
                                 {m.holidays && <p className="text-xs text-amber-700 font-bold">{m.holidays}</p>}
                                 <p className="text-[10px] text-slate-400 italic">{m.notes}</p>
@@ -534,9 +543,14 @@ const ReferenceView: React.FC = () => {
                 </h3>
                 <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {HEBREW_DAYS.map((day, i) => (
-                        <div key={i} className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all group">
-                            <div className="w-12 h-12 bg-brand-50 rounded-2xl flex items-center justify-center text-brand-600 mb-6 group-hover:bg-brand-600 group-hover:text-white transition-colors">
-                                {i + 1}
+                        <div key={i} className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all group cursor-pointer" onClick={() => audioService.playHebrew(day.hebrew)}>
+                            <div className="flex justify-between items-start mb-6">
+                                <div className="w-12 h-12 bg-brand-50 rounded-2xl flex items-center justify-center text-brand-600 group-hover:bg-brand-600 group-hover:text-white transition-colors">
+                                    {i + 1}
+                                </div>
+                                <div className="p-2 bg-accent-50 rounded-full text-accent-600 opacity-0 group-hover:opacity-100 transition-all">
+                                    <Volume2 size={18} />
+                                </div>
                             </div>
                             <h4 className="text-xl font-bold text-brand-950 mb-1">{day.name}</h4>
                             <p className="text-sm text-slate-400 font-medium mb-4 uppercase tracking-widest">{day.english}</p>
@@ -555,7 +569,7 @@ interface HebrewResourcesProps {
 }
 
 export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, currentUser }) => {
-    const [tab, setTab] = useState<'numbers' | 'calendar' | 'festivals' | 'reference'>(initialTab || 'numbers');
+    const [tab, setTab] = useState<'numbers' | 'calendar' | 'festivals' | 'reference' | 'words'>(initialTab || 'numbers');
 
     useEffect(() => {
         if (initialTab) {
@@ -580,6 +594,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                         {[
                             { id: 'festivals', label: 'Festivals', icon: <Flame size={16} /> },
                             { id: 'calendar', label: 'Hebrew Calendar', icon: <CalendarIcon size={16} /> },
+                            { id: 'words', label: 'Hebrew Word', icon: <Type size={16} /> },
                             { id: 'numbers', label: 'Numbers', icon: <Hash size={16} /> },
                             { id: 'reference', label: 'Month/Year', icon: <BookOpen size={16} /> }
                         ].map((t) => {
@@ -619,6 +634,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                         >
                             {tab === 'festivals' && <FestivalsView />}
                             {tab === 'calendar' && <HebrewCalendarView currentUser={currentUser} />}
+                            {tab === 'words' && <HebrewWordHub />}
                             {tab === 'numbers' && <HebrewConverter />}
                             {tab === 'reference' && <ReferenceView />}
                         </motion.div>

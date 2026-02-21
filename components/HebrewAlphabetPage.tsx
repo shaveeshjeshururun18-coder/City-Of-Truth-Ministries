@@ -1,6 +1,7 @@
 import React from 'react';
-import { Scroll, Sparkles } from 'lucide-react';
+import { Scroll, Sparkles, Volume2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { audioService } from '../services/audioService';
 
 const HEBREW_LETTERS = [
     { letter: "א", name: "ALEPH", number: 1 },
@@ -49,16 +50,24 @@ export const HebrewAlphabetPage: React.FC = () => {
                 {/* Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6 max-w-6xl mx-auto">
                     {HEBREW_LETTERS.map((item, index) => (
-                        <div
+                        <motion.div
                             key={index}
-                            className="bg-white/5 border border-white/10 rounded-3xl p-6 md:p-8 flex flex-col items-center justify-center transition-all hover:border-amber-500/50 hover:bg-white/10 group cursor-default shadow-xl"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            whileHover={{ scale: 1.05, y: -5 }}
+                            onClick={() => audioService.playHebrew(item.letter)}
+                            className="bg-white/5 border border-white/10 rounded-3xl p-6 md:p-8 flex flex-col items-center justify-center transition-all hover:border-amber-500/50 hover:bg-white/10 group cursor-pointer shadow-xl relative overflow-hidden"
                         >
-                            <span className="text-6xl md:text-7xl text-white mb-4 font-serif group-hover:scale-110 transition-transform">{item.letter}</span>
+                            <div className="absolute top-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Volume2 size={12} className="text-amber-500/50" />
+                            </div>
+                            <span className="text-6xl md:text-7xl text-white mb-4 font-serif group-hover:scale-110 transition-transform duration-500">{item.letter}</span>
                             <div className="text-center space-y-1">
                                 <strong className="block text-amber-500 text-sm md:text-lg tracking-[0.2em] uppercase">{item.name}</strong>
                                 <span className="text-xs md:text-sm text-slate-500 font-bold font-mono tracking-widest">{item.number}</span>
                             </div>
-                        </div>
+                        </motion.div>
                     ))}
                 </div>
 

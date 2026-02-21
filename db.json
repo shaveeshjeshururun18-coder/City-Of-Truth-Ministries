@@ -34,5 +34,67 @@
             "joinedDate": "2010-01-01",
             "photo": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?fit=crop&w=200&h=200"
         }
+    ],
+    "testimonials": [
+        {
+            "id": "t1",
+            "userId": "COT-8859",
+            "userName": "S. Shaveesh Jeshurun",
+            "location": "Valparai",
+            "content": "The Hebrew Hub has opened my eyes to the depth of the Scriptures. Truly a blessing to our community.",
+            "role": "Member",
+            "rating": 5,
+            "date": "2023-12-01T10:00:00Z",
+            "status": "Approved",
+            "userPhoto": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?fit=crop&w=200&h=200"
+        },
+        {
+            "id": "t2",
+            "userId": "unknown",
+            "userName": "Sri Priya",
+            "location": "Pollachi",
+            "content": "The Valparai sanctuary is the most peaceful place for worship. I feel closer to God there.",
+            "role": "Worshipper",
+            "rating": 5,
+            "date": "2023-12-15T14:30:00Z",
+            "status": "Approved"
+        },
+        {
+            "id": "t3",
+            "userId": "unknown",
+            "userName": "Prasad R",
+            "location": "Valparai",
+            "content": "The youth ministry has given me a family and a purpose. Thank you COT!",
+            "role": "Youth Leader",
+            "rating": 5,
+            "date": "2024-01-05T09:15:00Z",
+            "status": "Approved"
+        }
+    ],
+    "ministries": [
+        {
+            "id": "m1",
+            "name": "Spiritual Gathering",
+            "image": "https://images.unsplash.com/photo-1543722518-971c6dd64070?q=80&w=2070",
+            "date": "2024-01-10",
+            "order": 1,
+            "description": "Deepening our connection with the Divine through prayer and fellowship."
+        },
+        {
+            "id": "m2",
+            "name": "Youth Outreach",
+            "image": "https://images.unsplash.com/photo-1511632765486-a01980e01a18?q=80&w=2670",
+            "date": "2024-01-15",
+            "order": 2,
+            "description": "Empowering the next generation to walk in the light of Truth."
+        },
+        {
+            "id": "m3",
+            "name": "Community Service",
+            "image": "https://images.unsplash.com/photo-1510590337019-5ef2d39aa786?q=80&w=2670",
+            "date": "2024-01-20",
+            "order": 3,
+            "description": "Transforming lives and building stronger communities together."
+        }
     ]
 }
