@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { User } from '../types';
+import { User, SubProfile } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
-import { Download, Edit2, AlertCircle, CheckCircle, Save, X, FileText, QrCode, LogOut, UploadCloud, Camera, Calendar, Sparkles } from 'lucide-react';
+import { Download, Edit2, AlertCircle, CheckCircle, Save, X, FileText, QrCode, LogOut, UploadCloud, Camera, Calendar, Sparkles, Users, UserPlus, Trash2, ShieldCheck } from 'lucide-react';
 import { Button } from './Button';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { TestimonialModal } from './TestimonialModal';
 import { MessageSquare } from 'lucide-react';
 import { toPng, toJpeg } from 'html-to-image';
@@ -27,609 +27,381 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [formData, setFormData] = useState<Partial<User>>({});
     const [isProcessing, setIsProcessing] = useState(false);
     const [croppingImage, setCroppingImage] = useState<string | null>(null);
-
-    // Calendar States
+    const [showFamilyModal, setShowFamilyModal] = useState(false);
+    const [subProfileForm, setSubProfileForm] = useState<Partial<SubProfile>>({});
+    const [activeProfileId, setActiveProfileId] = useState<string>(user.id);
     const [isGeneratingCalendar, setIsGeneratingCalendar] = useState(false);
     const [generationProgress, setGenerationProgress] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
     const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
     const [calendarRenderMode, setCalendarRenderMode] = useState<{ mode: 'cover' | 'month', monthData?: any } | null>(null);
 
+    const getDisplayProfile = () => {
+        if (activeProfileId === user.id) return user;
+        const sub = user.linkedProfiles?.find(p => p.id === activeProfileId);
+        if (sub) return { ...user, id: sub.id, name: sub.name, photo: sub.photo, bloodGroup: sub.bloodGroup, dob: sub.dob };
+        return user;
+    };
+    const displayProfile = getDisplayProfile();
+
     const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             const reader = new FileReader();
-            reader.onloadend = () => {
-                setCroppingImage(reader.result as string);
-                e.target.value = ''; // Reset input
-            };
+            reader.onloadend = () => { setCroppingImage(reader.result as string); e.target.value = ''; };
             reader.readAsDataURL(file);
         }
     };
 
-    const handleCropComplete = (croppedImg: string) => {
-        setFormData(prev => ({ ...prev, photo: croppedImg }));
-        setCroppingImage(null);
-    };
-
-    const handleCropCurrent = () => {
-        if (user.photo) {
-            setCroppingImage(user.photo);
-        }
-    };
+    const handleCropComplete = (croppedImg: string) => { setFormData(prev => ({ ...prev, photo: croppedImg })); setCroppingImage(null); };
+    const handleCropCurrent = () => { if (displayProfile.photo) setCroppingImage(displayProfile.photo); };
 
     const handleDownloadPDF = async () => {
         setIsProcessing(true);
         const frontNode = document.getElementById('capture-front');
         const backNode = document.getElementById('capture-back');
-
         if (frontNode && backNode) {
             try {
                 const frontDataUrl = await toPng(frontNode, { pixelRatio: 4, quality: 1, backgroundColor: '#ffffff' });
                 const backDataUrl = await toPng(backNode, { pixelRatio: 4, quality: 1, backgroundColor: '#ffffff' });
-
-                const pdf = new jsPDF({
-                    orientation: 'landscape',
-                    unit: 'mm',
-                    format: 'a4',
-                    compress: true
-                });
-
+                const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
                 const pdfWidth = pdf.internal.pageSize.getWidth();
                 const pdfHeight = (215 * pdfWidth) / 340;
                 const yPos = (pdf.internal.pageSize.getHeight() - pdfHeight) / 2;
-
                 pdf.addImage(frontDataUrl, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight, undefined, 'FAST');
                 pdf.addPage();
                 pdf.addImage(backDataUrl, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight, undefined, 'FAST');
-
                 pdf.save(`ENTRUST-CARD-${user.id}.pdf`);
-            } catch (err) {
-                console.error('PDF generation failed', err);
-                alert("Failed to generate PDF. Please try again.");
-            }
-        } else {
-            alert("Card generation elements not found. Please refresh.");
-        }
+            } catch (err) { console.error('PDF generation failed', err); alert('Failed to generate PDF. Please try again.'); }
+        } else { alert('Card generation elements not found. Please refresh.'); }
         setIsProcessing(false);
     };
 
     const handleDownloadCalendar = async (options: CalendarOptions) => {
-        setIsGeneratingCalendar(true);
-        setGenerationProgress(0);
-        setIsCalendarModalOpen(false); // Close modal
-
+        setIsGeneratingCalendar(true); setGenerationProgress(0); setIsCalendarModalOpen(false);
         try {
-            const pdf = new jsPDF({
-                orientation: 'landscape',
-                unit: 'mm',
-                format: 'a4',
-                compress: true
-            });
-
-            // Clean existing pages? jsPDF starts with one page.
-            // We will edit the first page then add more.
-
+            const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
             const captureAndAddPage = async (isFirstPage: boolean) => {
                 const node = document.getElementById('printable-calendar-dashboard');
                 if (!node) throw new Error('Calendar element not found');
-
-                // Wait for render
                 await new Promise(resolve => setTimeout(resolve, 300));
-
-                const dataUrl = await toJpeg(node, {
-                    width: 1122, // A4 at 96dpi approx is 1123. Ensure matches CSS
-                    height: 793,
-                    pixelRatio: 3.0, // Pro Max Quality
-                    quality: 1.0,
-                    backgroundColor: '#ffffff',
-                    cacheBust: true
-                });
-
+                const dataUrl = await toJpeg(node, { width: 1122, height: 793, pixelRatio: 3.0, quality: 1.0, backgroundColor: '#ffffff', cacheBust: true });
                 const imgProps = pdf.getImageProperties(dataUrl);
                 const pdfWidth = pdf.internal.pageSize.getWidth();
                 const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-                if (!isFirstPage) {
-                    pdf.addPage('a4', 'landscape');
-                }
+                if (!isFirstPage) pdf.addPage('a4', 'landscape');
                 pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
             };
-
             const calendarData = getCalendarData5786();
-            // Note: If you have dynamic year logic, replace getCalendarData5786() with appropriate fetch.
-            // Currently UserDashboard seems to rely on 5786 static data from `CalendarLogic`.
-
             let isFirstPage = true;
-            let totalSteps = 0;
-            if (options.scope === 'full') totalSteps = 1 + calendarData.length;
-            else totalSteps = 1;
+            let totalSteps = options.scope === 'full' ? 1 + calendarData.length : 1;
             setTotalPages(totalSteps);
-
-            // 1. Cover Page (Only for full)
             if (options.scope === 'full') {
                 setCalendarRenderMode({ mode: 'cover' });
-                await new Promise(resolve => setTimeout(resolve, 100)); // Wait for react render
-                await captureAndAddPage(true);
-                isFirstPage = false;
-                setGenerationProgress(1);
-
-                // 2. Loop Months
+                await new Promise(resolve => setTimeout(resolve, 100));
+                await captureAndAddPage(true); isFirstPage = false; setGenerationProgress(1);
                 let p = 1;
                 for (const month of calendarData) {
                     setCalendarRenderMode({ mode: 'month', monthData: month });
                     await new Promise(resolve => setTimeout(resolve, 100));
-                    await captureAndAddPage(false);
-                    p++;
-                    setGenerationProgress(p);
+                    await captureAndAddPage(false); p++; setGenerationProgress(p);
                 }
             } else if (options.scope === 'single' && options.monthIndex !== undefined) {
                 const month = calendarData[options.monthIndex];
                 if (month) {
                     setCalendarRenderMode({ mode: 'month', monthData: month });
-                    setGenerationProgress(1); // Just one month
+                    setGenerationProgress(1);
                     await new Promise(resolve => setTimeout(resolve, 50));
                     await captureAndAddPage(isFirstPage);
                     pdf.save(`COT-Hebrew-Menorah-Calendar-5786-${month.name}.pdf`);
                 }
             }
-
-            // Reference Guide (Only for Full scope)
             if (options.scope === 'full') {
                 try {
                     const refNode = document.getElementById('printable-reference-guide-dashboard');
                     if (refNode) {
-                        const refDataUrl = await toJpeg(refNode, {
-                            pixelRatio: 3.0, // Pro Max Quality
-                            quality: 1.0,
-                            backgroundColor: '#ffffff',
-                            cacheBust: true,
-                            width: 800,
-                        });
-
+                        const refDataUrl = await toJpeg(refNode, { pixelRatio: 3.0, quality: 1.0, backgroundColor: '#ffffff', cacheBust: true, width: 800 });
                         pdf.addPage('a4', 'portrait');
-                        const portraitPageWidth = pdf.internal.pageSize.getWidth();
-                        const imgProps = pdf.getImageProperties(refDataUrl);
-                        const pdfImgWidth = portraitPageWidth;
-                        const pdfImgHeight = (imgProps.height * pdfImgWidth) / imgProps.width;
-
-                        pdf.addImage(refDataUrl, 'JPEG', 0, 0, pdfImgWidth, pdfImgHeight, undefined, 'FAST');
+                        const pW = pdf.internal.pageSize.getWidth();
+                        const rp = pdf.getImageProperties(refDataUrl);
+                        pdf.addImage(refDataUrl, 'JPEG', 0, 0, pW, (rp.height * pW) / rp.width, undefined, 'FAST');
                     }
-                } catch (err) {
-                    console.error("Error adding reference guide:", err);
-                    // Continue to save even if reference fails
-                }
+                } catch (err) { console.error('Error adding reference guide:', err); }
+                pdf.save('COT-Hebrew-Menorah-Calendar-5786.pdf');
             }
-
-            if (options.scope === 'full') {
-                pdf.save(`COT-Hebrew-Menorah-Calendar-5786.pdf`);
-            }
-
         } catch (e: any) {
             console.error(e);
-            alert(`Failed to generate PDF: ${e.message || "Unknown error"}. Try generating fewer months or using a PC.`);
-        } finally {
-            setCalendarRenderMode(null);
-            setIsGeneratingCalendar(false);
-        }
+            alert(`Failed to generate PDF: ${e.message || 'Unknown error'}. Try generating fewer months or using a PC.`);
+        } finally { setCalendarRenderMode(null); setIsGeneratingCalendar(false); }
     };
 
-    const startEditing = () => {
-        setFormData({
-            phone: user.phone,
-            email: user.email,
-            location: user.location,
-            emergency: user.emergency,
-            photo: user.photo
-        });
-        setIsEditing(true);
-    };
-
-    const cancelEditing = () => {
-        setIsEditing(false);
-        setFormData({});
-    };
-
+    const startEditing = () => { setFormData({ phone: user.phone, email: user.email, location: user.location, emergency: user.emergency, photo: user.photo }); setIsEditing(true); };
+    const cancelEditing = () => { setIsEditing(false); setFormData({}); };
     const saveChanges = (e: React.FormEvent) => {
         e.preventDefault();
-        // Validate phone numbers
-        if (formData.phone && formData.phone.length !== 10) {
-            alert("Phone number must be exactly 10 digits.");
-            return;
-        }
-        if (formData.emergency && formData.emergency.length !== 10) {
-            alert("Phone number must be exactly 10 digits.");
-            return;
-        }
-        onUpdate({ ...user, ...formData } as User);
-        setIsEditing(false);
+        if (formData.phone && formData.phone.length !== 10) { alert('Phone number must be exactly 10 digits.'); return; }
+        if (formData.emergency && formData.emergency.length !== 10) { alert('Phone number must be exactly 10 digits.'); return; }
+        onUpdate({ ...user, ...formData } as User); setIsEditing(false);
+    };
+
+    const handleAddSubProfile = (e: React.FormEvent) => {
+        e.preventDefault();
+        const newId = `${user.id}-${(user.linkedProfiles?.length || 0) + 1}`;
+        const newProfile: SubProfile = { id: newId, name: subProfileForm.name || '', role: subProfileForm.role || 'Family Member', dob: subProfileForm.dob, bloodGroup: subProfileForm.bloodGroup };
+        const updatedProfiles = [...(user.linkedProfiles || []), newProfile];
+        onUpdate({ ...user, linkedProfiles: updatedProfiles } as User);
+        setShowFamilyModal(false); setSubProfileForm({});
+    };
+
+    const handleDeleteSubProfile = (profileId: string) => {
+        if (!confirm('Are you sure you want to remove this family member?')) return;
+        const updatedProfiles = user.linkedProfiles?.filter(p => p.id !== profileId) || [];
+        onUpdate({ ...user, linkedProfiles: updatedProfiles } as User);
+        if (activeProfileId === profileId) setActiveProfileId(user.id);
     };
 
     return (
-        <div className="min-h-screen pt-32 pb-20 bg-slate-50 relative">
+        <div className="min-h-screen pt-32 pb-20 bg-slate-950 text-white relative flex flex-col items-center overflow-x-hidden p-4 sm:p-6">
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none z-0"></div>
+            <div className="absolute -top-40 -left-40 w-96 h-96 bg-brand-600 rounded-full blur-[150px] opacity-30 pointer-events-none z-0"></div>
+            <div className="absolute top-40 -right-40 w-96 h-96 bg-accent-600 rounded-full blur-[150px] opacity-20 pointer-events-none z-0"></div>
 
-            {/* Image Cropper Modal */}
             {croppingImage && (
-                <ImageCropper
-                    imageSrc={croppingImage}
-                    onCropComplete={handleCropComplete}
-                    onCancel={() => setCroppingImage(null)}
-                />
+                <div className="z-[100] relative">
+                    <ImageCropper imageSrc={croppingImage} onCropComplete={handleCropComplete} onCancel={() => setCroppingImage(null)} />
+                </div>
             )}
-            {/* HIDDEN CAPTURE AREA */}
-            <div className="fixed left-[-9999px] top-0 pointer-events-none">
+            <TestimonialModal isOpen={showTestimonialModal} onClose={() => setShowTestimonialModal(false)} user={user} />
+            <CalendarCustomizationModal isOpen={isCalendarModalOpen} onClose={() => setIsCalendarModalOpen(false)} onDownload={handleDownloadCalendar} />
+
+            <div className="fixed left-[-9999px] top-0 pointer-events-none z-0">
                 <div id="capture-front" className="bg-white">
-                    <EntrustCard3D
-                        name={user.name}
-                        email={user.email}
-                        location={user.location}
-                        emergency={user.emergency}
-                        uniqueId={user.id}
-                        memberSince={user.memberSince}
-                        photo={user.photo}
-                        status={user.status}
-                        isStatic={true}
-                        isBackSide={false}
-                    />
+                    <EntrustCard3D name={displayProfile.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={displayProfile.id} memberSince={user.memberSince} photo={displayProfile.photo} status={user.status} isStatic={true} isBackSide={false} />
                 </div>
                 <div id="capture-back" className="bg-white">
-                    <EntrustCard3D
-                        name={user.name}
-                        email={user.email}
-                        location={user.location}
-                        emergency={user.emergency}
-                        uniqueId={user.id}
-                        memberSince={user.memberSince}
-                        photo={user.photo}
-                        status={user.status}
-                        isStatic={true}
-                        isBackSide={true}
-                    />
+                    <EntrustCard3D name={displayProfile.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={displayProfile.id} memberSince={user.memberSince} photo={displayProfile.photo} status={user.status} isStatic={true} isBackSide={true} />
                 </div>
             </div>
 
-            <div className="container mx-auto px-6">
-                <div className="mb-8 md:mb-12 text-center">
-                    <h1 className="text-3xl md:text-4xl font-serif font-bold text-brand-950 uppercase tracking-tight">My Dashboard</h1>
-                    <p className="text-slate-500 mt-2 text-sm md:text-base">Welcome back, {user.name}</p>
+            <div className="fixed left-[-10000px] top-0 pointer-events-none opacity-100 z-0">
+                <div id="printable-calendar-dashboard" className="w-[1122px] min-h-[793px] bg-white">
+                    {calendarRenderMode && <PrintableHebrewCalendar mode={calendarRenderMode.mode} year={5786} monthData={calendarRenderMode.monthData} currentUser={user} />}
+                </div>
+                <div id="printable-reference-guide-dashboard" className="bg-white"><PrintableReferenceGuide year={5786} /></div>
+            </div>
+
+            <AnimatePresence>
+                {showFamilyModal && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-slate-900 border border-slate-700/50 p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-md relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-500 to-accent-500"></div>
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-bold font-serif text-white">Add Member Details</h3>
+                                <button onClick={() => setShowFamilyModal(false)} className="text-slate-400 hover:text-white transition-colors"><X size={20} /></button>
+                            </div>
+                            <form onSubmit={handleAddSubProfile} className="space-y-4">
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Full Name</label>
+                                    <input required type="text" value={subProfileForm.name || ''} onChange={(e) => setSubProfileForm({ ...subProfileForm, name: e.target.value })} className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all font-medium text-sm" placeholder="John Doe" />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Relation</label>
+                                        <select required value={subProfileForm.role || 'Family Member'} onChange={(e) => setSubProfileForm({ ...subProfileForm, role: e.target.value })} className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all text-sm appearance-none">
+                                            <option value="Spouse">Spouse</option>
+                                            <option value="Son">Son</option>
+                                            <option value="Daughter">Daughter</option>
+                                            <option value="Parent">Parent</option>
+                                            <option value="Family Member">Other</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Blood Group</label>
+                                        <select value={subProfileForm.bloodGroup || ''} onChange={(e) => setSubProfileForm({ ...subProfileForm, bloodGroup: e.target.value })} className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all text-sm appearance-none">
+                                            <option value="">Select...</option>
+                                            <option value="A+">A+</option><option value="A-">A-</option>
+                                            <option value="B+">B+</option><option value="B-">B-</option>
+                                            <option value="O+">O+</option><option value="O-">O-</option>
+                                            <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Date of Birth</label>
+                                    <input type="date" value={subProfileForm.dob || ''} onChange={(e) => setSubProfileForm({ ...subProfileForm, dob: e.target.value })} className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all text-sm" />
+                                </div>
+                                <div className="pt-4">
+                                    <Button type="submit" variant="primary" fullWidth className="py-3 shadow-lg shadow-brand-500/20"><UserPlus size={18} className="mr-2" /> Add Member</Button>
+                                    <p className="text-[10px] text-center text-slate-500 mt-3">You can set a photo for this member by switching to their profile after creation.</p>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            <div className="container mx-auto max-w-6xl relative z-10 w-full px-2 sm:px-6">
+                <div className="flex flex-col md:flex-row justify-between items-center bg-slate-900/40 border border-slate-800/60 p-6 sm:p-8 rounded-[2rem] sm:rounded-[3rem] backdrop-blur-xl mb-10 shadow-2xl">
+                    <div className="flex items-center gap-6 mb-6 md:mb-0">
+                        <div className="w-20 h-20 rounded-[1.5rem] bg-gradient-to-br from-brand-500 to-accent-600 p-1 hidden sm:block shadow-[0_0_30px_rgba(79,70,229,0.3)]">
+                            <img src={user.photo || `https://ui-avatars.com/api/?name=${user.name}&background=1e1b4b&color=fff`} alt="Profile" className="w-full h-full object-cover rounded-[1.2rem]" />
+                        </div>
+                        <div>
+                            <h1 className="text-3xl sm:text-4xl font-serif font-bold text-white tracking-tight mb-1">{user.name} <span className="text-brand-400 text-2xl">Dashboard</span></h1>
+                            <div className="flex items-center gap-3">
+                                <span className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-1 bg-black/40 border rounded-full backdrop-blur-sm ${user.status === 'Active' ? 'border-green-500/50 text-green-400' : 'border-amber-500/50 text-amber-400'}`}>
+                                    {user.status === 'Active' ? <CheckCircle size={12} /> : <AlertCircle size={12} />} {user.status}
+                                </span>
+                                <span className="text-xs text-slate-400 font-mono tracking-wider">{user.id}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <Button onClick={onLogout} variant="outline" className="border-red-500/20 text-red-400 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-300 transition-colors w-full sm:w-auto px-6 py-2.5">
+                        <LogOut size={16} className="mr-2" /> Secure Logout
+                    </Button>
                 </div>
 
-                <div className="grid lg:grid-cols-2 gap-16 items-start max-w-5xl mx-auto">
-                    {/* Left Col: The Card */}
-                    <div className={`flex flex-col items-center ${isEditing ? 'order-2 lg:order-1' : ''}`}>
-                        <div className="relative">
-                            <EntrustCard3D
-                                name={user.name}
-                                email={isEditing ? (formData.email || user.email) : user.email}
-                                location={isEditing ? (formData.location || user.location) : user.location}
-                                emergency={isEditing ? (formData.emergency || user.emergency) : user.emergency}
-                                uniqueId={user.id}
-                                memberSince={user.memberSince}
-                                photo={isEditing ? (formData.photo || user.photo) : user.photo}
-                                status={user.status}
-                                className={user.status === 'Pending Verification' ? 'opacity-80 blur-[1px]' : ''}
-                            />
+                <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-2 mb-10 flex gap-2 overflow-x-auto snap-x no-scrollbar backdrop-blur-xl shadow-xl w-[calc(100vw-32px)] sm:w-auto -mx-4 sm:mx-0 sm:px-2 px-4 shadow-black/40">
+                    <button onClick={() => setActiveProfileId(user.id)} className={`flex items-center gap-2 px-4 sm:px-6 py-3 sm:py-3.5 rounded-xl font-bold text-[11px] sm:text-xs tracking-widest uppercase whitespace-nowrap snap-center transition-all ${activeProfileId === user.id ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' : 'text-slate-400 hover:bg-slate-800'}`}>
+                        <Users size={16} /> My Primary Card
+                    </button>
+                    {user.linkedProfiles?.map(pf => (
+                        <button key={pf.id} onClick={() => setActiveProfileId(pf.id)} className={`flex justify-between items-center gap-2 px-4 sm:px-6 py-3 sm:py-3.5 rounded-xl font-bold text-[11px] sm:text-xs tracking-widest uppercase whitespace-nowrap snap-center transition-all ${activeProfileId === pf.id ? 'bg-accent-600 text-white shadow-lg shadow-accent-500/20' : 'text-slate-400 hover:bg-slate-800'}`}>
+                            <span className="flex items-center gap-2"><Users size={16} /> {pf.name}</span>
+                        </button>
+                    ))}
+                    <button onClick={() => setShowFamilyModal(true)} className="flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-xs tracking-widest uppercase bg-transparent text-slate-500 border border-slate-700 hover:bg-slate-800 hover:text-white transition-all whitespace-nowrap snap-center ml-auto">
+                        <UserPlus size={16} /> Family Member
+                    </button>
+                </div>
 
-                            {isEditing && (
-                                <div className="absolute top-[35px] left-[15px] sm:top-[40px] sm:left-[21px] w-[82px] sm:w-[93px] h-[95px] sm:h-[105px] z-30 group/photo">
-                                    <label className="absolute inset-0 bg-brand-950/40 opacity-0 group-hover/photo:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer rounded-xl border-2 border-dashed border-white/50 backdrop-blur-[2px]">
-                                        <Camera size={24} className="mb-1" />
-                                        <span className="text-[7px] font-black uppercase tracking-tighter text-center px-1">Change / Crop Photo</span>
-                                        <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} />
-                                    </label>
-                                </div>
-                            )}
-
-                            {user.status === 'Pending Verification' && !isEditing && (
-                                <div className="absolute inset-0 bg-brand-900/40 backdrop-blur-[2px] opacity-100 flex items-center justify-center z-20 pointer-events-none rounded-[1.5rem] md:rounded-[2.5rem]">
-                                    <div className="bg-amber-100 text-amber-800 px-6 py-3 rounded-xl border border-amber-200 shadow-xl font-bold uppercase tracking-widest text-sm flex items-center gap-3 transform -rotate-12">
-                                        <AlertCircle size={20} /> Pending Verification
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="mt-8 flex flex-col sm:flex-row flex-wrap gap-4 w-full max-w-full justify-center">
-                            {!isEditing ? (
-                                <>
-                                    <Button
-                                        onClick={handleDownloadPDF}
-                                        disabled={user.status !== 'Active' || isProcessing}
-                                        className="flex-1 py-3 text-xs uppercase tracking-widest shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        <FileText size={16} /> {isProcessing ? "Generating..." : "Download Card"}
-                                    </Button>
-                                    <Button
-                                        onClick={() => setIsEditing(true)}
-                                        variant="secondary"
-                                        className="flex-1 py-3 text-xs uppercase tracking-widest shadow-sm group"
-                                    >
-                                        <Edit2 size={16} className="group-hover:rotate-12 transition-transform" /> Edit Profile
-                                    </Button>
-                                </>
-                            ) : (
-                                <div className="p-4 bg-blue-50 text-blue-800 text-sm rounded-xl text-center w-full border border-blue-100">
-                                    Only your photo can be updated after approval.
-                                </div>
-                            )}
-                        </div>
-
-
-
-                        {/* Calendar Download Card - Only for Active Users */}
-                        {user.status === 'Active' && !isEditing && (
-                            <div className="mt-8 bg-gradient-to-r from-amber-700 to-amber-900 p-6 rounded-3xl border border-amber-600 shadow-xl w-full max-w-[380px] text-center relative overflow-hidden group hover:shadow-2xl hover:scale-[1.02] transition-all duration-300">
-                                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-400 rounded-full blur-3xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
-
-                                <div className="relative z-10">
-                                    <div className="flex justify-center mb-3">
-                                        <div className="w-12 h-12 bg-amber-500/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-amber-400/30">
-                                            <Calendar size={24} className="text-amber-100" />
-                                        </div>
-                                    </div>
-                                    <h3 className="font-bold text-xl text-white mb-2 font-serif text-shadow-sm">Jewish Calendar 5786</h3>
-                                    <p className="text-amber-100 text-xs mb-5 font-light leading-relaxed">
-                                        Download the official City of Truth Ministries Jewish Calendar. <br /> Pro Max Quality Edition.
-                                    </p>
-                                    <a
-                                        href="/assets/COT-Hebrew-Menorah-Calendar-5786 (7).pdf"
-                                        download="COT-Hebrew-Menorah-Calendar-5786.pdf"
-                                        className="inline-flex items-center justify-center gap-2 bg-gradient-to-b from-white to-amber-100 text-amber-950 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg hover:bg-white transition-colors w-full"
-                                    >
-                                        <Download size={16} /> Download PDF
-                                    </a>
-                                </div>
+                <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 w-full">
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="lg:col-span-7 flex flex-col items-center">
+                        <div className="relative group w-full max-w-[380px]">
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-[420px] bg-gradient-to-r from-brand-500/10 to-accent-500/10 rounded-[3rem] blur-2xl z-0"></div>
+                            <div className="relative z-10 w-full flex justify-center">
+                                <EntrustCard3D name={displayProfile.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={displayProfile.id} memberSince={user.memberSince} photo={displayProfile.photo} status={user.status} className={`${user.status === 'Pending Verification' ? 'opacity-90 grayscale-[0.2]' : ''}`} />
                             </div>
-                        )}
-
-                        {/* Download App Section */}
-                        <div className="mt-8 bg-brand-900 p-6 rounded-3xl border border-brand-800 shadow-xl w-full max-w-[380px] text-center relative overflow-hidden group hover:shadow-2xl transition-all">
-                            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10"></div>
-                            <div className="absolute -top-10 -right-10 w-24 h-24 bg-accent-500 rounded-full blur-2xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
-
-                            <div className="relative z-10">
-                                <h3 className="font-bold text-lg text-white mb-2 font-serif">Get the Mobile App</h3>
-                                <p className="text-brand-100 text-xs mb-4">Access your ID card offline and get instant ministry updates on your Android device.</p>
-                                <a
-                                    href="/COT Ministries.apk"
-                                    download="COT Ministries.apk"
-                                    className="inline-flex items-center justify-center gap-2 bg-white text-brand-950 px-6 py-3 rounded-xl font-bold text-sm shadow-lg hover:bg-accent-50 transition-colors w-full"
-                                >
-                                    <Download size={18} className="text-brand-600" /> Download Our App
-                                </a>
+                            <div className="absolute top-10 left-6 sm:top-[44px] sm:left-[30px] w-20 sm:w-24 h-28 sm:h-[118px] z-30 group-hover:block transition-all duration-300">
+                                <label className="absolute inset-0 bg-brand-950/80 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer rounded-lg border border-dashed border-white/50 backdrop-blur-md">
+                                    <Camera size={20} className="mb-1 text-accent-400" />
+                                    <span className="text-[7px] font-black uppercase tracking-widest text-center px-1">Upload<br/>Photo</span>
+                                    <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} />
+                                </label>
                             </div>
-                        </div>
-
-                    </div>
-
-                    {/* Right Col: Status or Edit Form */}
-                    <div className={`space-y-8 ${isEditing ? 'order-1 lg:order-2' : ''}`}>
-                        {isEditing ? (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="bg-white p-8 rounded-3xl border border-brand-100 shadow-lg"
-                            >
-                                <div className="flex items-center justify-between mb-6">
-                                    <h3 className="font-bold text-lg text-brand-950 flex items-center gap-2">
-                                        <Edit2 size={18} className="text-brand-500" /> Edit Details
-                                    </h3>
-                                    <button onClick={cancelEditing} className="text-slate-400 hover:text-slate-600 transition-colors">
-                                        <X size={20} />
-                                    </button>
-                                </div>
-
-                                <form onSubmit={saveChanges} className="space-y-4">
-                                    {/* Editing Restricted Message */}
-                                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-800 mb-4">
-                                        <AlertCircle size={14} className="inline mr-1 -mt-0.5" />
-                                        <strong>Note:</strong> To maintain ID integrity, only your photo can be updated. For other changes, please contact admin.
-                                    </div>
-
-                                    <div className="space-y-1">
-                                        <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Profile Photo</label>
-                                        <div className="relative group aspect-square w-32 mx-auto">
-                                            <div className="w-full h-full rounded-[2rem] bg-slate-50 border-2 border-slate-100 overflow-hidden shadow-inner group-hover:border-brand-200 transition-colors">
-                                                <img
-                                                    src={formData.photo || user.photo}
-                                                    alt="Profile"
-                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                                                />
-                                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer rounded-[2rem] gap-2">
-                                                    <label className="flex flex-col items-center justify-center cursor-pointer hover:text-accent-400 transition-colors">
-                                                        <UploadCloud size={24} />
-                                                        <span className="text-[8px] font-bold uppercase tracking-widest">Update</span>
-                                                        <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} />
-                                                    </label>
-                                                    <div className="w-8 h-[1px] bg-white/20" />
-                                                    <button
-                                                        type="button"
-                                                        onClick={handleCropCurrent}
-                                                        className="flex flex-col items-center justify-center hover:text-accent-400 transition-colors"
-                                                    >
-                                                        <Camera size={24} />
-                                                        <span className="text-[8px] font-bold uppercase tracking-widest">Crop Current</span>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <p className="text-[10px] text-slate-400 text-center mt-2 italic">Tip: Upload a new photo or crop the current one.</p>
-                                    </div>
-
-                                    {/* HIDDEN INPUTS TO PRESERVE LAYOUT BUT DISABLED */}
-                                    <div className="opacity-50 pointer-events-none filter blur-[1px] select-none">
-                                        <div className="space-y-1 mt-4">
-                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Email Address (Locked)</label>
-                                            <input type="text" value={user.email} disabled className="w-full bg-slate-100 border border-slate-200 rounded-lg px-4 py-2.5" />
-                                        </div>
-                                        <div className="space-y-1 mt-2">
-                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Phone (Locked)</label>
-                                            <input type="text" value={user.phone} disabled className="w-full bg-slate-100 border border-slate-200 rounded-lg px-4 py-2.5" />
-                                        </div>
-                                    </div>
-
-                                    <div className="pt-4 flex gap-3">
-                                        <Button type="button" onClick={cancelEditing} variant="outline" className="flex-1 py-3 text-xs border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700">Cancel</Button>
-                                        <Button type="submit" variant="primary" className="flex-1 py-3 text-xs shadow-lg shadow-brand-500/20">
-                                            <Save size={16} /> Save New Photo
-                                        </Button>
-                                    </div>
-                                </form>
-                            </motion.div>
-                        ) : (
-                            <>
-                                <div className={`p-8 rounded-3xl border ${user.status === 'Active' ? 'bg-white border-brand-100 shadow-lg' : 'bg-amber-50 border-amber-100'}`}>
-                                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                                        {user.status === 'Active' ? <CheckCircle className="text-green-500" /> : <AlertCircle className="text-amber-500" />}
-                                        Account Status
-                                    </h3>
-                                    <div className="space-y-4">
-                                        <div className="flex justify-between items-center py-3 border-b border-slate-100 last:border-0">
-                                            <span className="text-sm text-slate-500 font-medium">Verification</span>
-                                            <span className={`text-sm font-bold px-3 py-1 rounded-full ${user.status === 'Active' ? 'bg-green-100 text-green-700' :
-                                                user.status === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
-                                                }`}>
-                                                {user.status}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between items-center py-3 border-b border-slate-100 last:border-0">
-                                            <span className="text-sm text-slate-500 font-medium">Member ID</span>
-                                            <span className="text-sm font-bold text-brand-900 font-mono">{user.id}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                            </>
-                        )}
-
-                        {!isEditing && (
-                            <div className="bg-gradient-to-br from-brand-600 to-brand-800 p-8 rounded-3xl text-white shadow-lg relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl transform translate-x-10 -translate-y-10"></div>
-                                <div className="relative z-10">
-                                    <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
-                                        <MessageSquare size={20} /> Share Your Testimony
-                                    </h3>
-                                    <p className="text-brand-100 text-sm mb-4">
-                                        Encourage others by sharing what God has done in your life.
-                                    </p>
-                                    <Button
-                                        onClick={() => setShowTestimonialModal(true)}
-                                        className="bg-white text-brand-900 hover:bg-brand-50 border-0 w-full"
-                                    >
-                                        Write Testimony
+                            <div className="mt-8 grid grid-cols-2 gap-4 w-full px-2">
+                                <Button onClick={handleDownloadPDF} disabled={user.status !== 'Active' || isProcessing} className="col-span-1 rounded-2xl py-3.5 sm:py-4 px-2 sm:px-6 hover:shadow-[0_0_20px_rgba(79,70,229,0.4)] text-[10px] sm:text-[11px] font-black uppercase tracking-widest sm:tracking-[0.2em] transition-all bg-brand-600/90 hover:bg-brand-600 border border-brand-500 backdrop-blur-md">
+                                    <FileText size={16} className="-ml-1 mr-1.5 sm:ml-0 sm:mr-2" /> {isProcessing ? 'Wait...' : 'Print ID'}
+                                </Button>
+                                {activeProfileId === user.id ? (
+                                    <Button onClick={startEditing} variant="outline" className="col-span-1 rounded-2xl py-3.5 sm:py-4 px-2 sm:px-6 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 text-[10px] sm:text-[11px] font-black uppercase tracking-widest sm:tracking-[0.2em] backdrop-blur-md">
+                                        <Edit2 size={16} className="-ml-1 mr-1.5 sm:ml-0 sm:mr-2" /> Edit Info
                                     </Button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* QR Code Section (Moved to Right) */}
-                        {!isEditing && (
-                            <div className="mt-8 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm w-full">
-                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                                    <QrCode className="text-brand-600" size={20} />
-                                    My QR Code
-                                </h3>
-                                {user.status === 'Active' ? (
-                                    <div className="flex flex-col items-center">
-                                        <div className="bg-white p-4 rounded-xl border-2 border-dashed border-slate-200 mb-4">
-                                            <img
-                                                src={`https://quickchart.io/qr?text=${encodeURIComponent(JSON.stringify({
-                                                    id: user.id,
-                                                    name: user.name,
-                                                    email: user.email,
-                                                    phone: user.phone,
-                                                    location: user.location,
-                                                    emergency: user.emergency || 'N/A',
-                                                    role: user.role,
-                                                    status: user.status
-                                                }))}&dark=4c51f7&size=200`}
-                                                alt="My QR Code"
-                                                className="w-40 h-40"
-                                            />
-                                        </div>
-                                        <p className="text-xs text-slate-500 text-center">
-                                            This QR code contains all your registration details
-                                        </p>
-                                        <button
-                                            onClick={() => window.open(`https://quickchart.io/qr?text=${encodeURIComponent(JSON.stringify({
-                                                id: user.id,
-                                                name: user.name,
-                                                email: user.email,
-                                                phone: user.phone,
-                                                location: user.location,
-                                                emergency: user.emergency || 'N/A',
-                                                role: user.role,
-                                                status: user.status
-                                            }))}&dark=4c51f7&size=400`, '_blank')}
-                                            className="mt-3 px-4 py-2 bg-brand-50 text-brand-600 rounded-lg text-xs font-bold hover:bg-brand-100 transition-colors"
-                                        >
-                                            Download QR Code
-                                        </button>
-                                    </div>
                                 ) : (
-                                    <div className="flex flex-col items-center py-8 text-center bg-slate-50 rounded-2xl border border-slate-100 px-4">
-                                        <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4">
-                                            <AlertCircle size={24} />
-                                        </div>
-                                        <h4 className="font-bold text-slate-800 text-sm mb-1">QR Code Pending</h4>
-                                        <p className="text-xs text-slate-500">
-                                            Your personalized QR code will be generated once your account is verified and approved.
-                                        </p>
-                                    </div>
+                                    <Button onClick={() => handleDeleteSubProfile(displayProfile.id)} variant="outline" className="col-span-1 border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/60 rounded-2xl py-3.5 sm:py-4 px-2 sm:px-6 text-[10px] sm:text-[11px] font-black uppercase tracking-widest sm:tracking-[0.2em]">
+                                        <Trash2 size={16} className="-ml-1 mr-1.5 sm:ml-0 sm:mr-2" /> Remove
+                                    </Button>
                                 )}
                             </div>
-                        )}
-
-                        {/* Logout Button (Moved to Right) */}
-                        {!isEditing && (
-                            <div className="w-full">
-                                <Button
-                                    onClick={onLogout}
-                                    variant="outline"
-                                    fullWidth
-                                    className="border-red-100 text-red-600 hover:bg-red-50 hover:border-red-200 py-4 shadow-sm"
-                                >
-                                    <LogOut size={18} className="mr-2" /> Logout
-                                </Button>
+                            {user.status === 'Pending Verification' && (
+                                <div className="mt-6 flex items-center justify-center gap-2 text-xs sm:text-sm text-amber-500 font-medium">
+                                    <AlertCircle size={16} /> Downloads unlock after verification.
+                                </div>
+                            )}
+                        </div>
+                        {user.status === 'Active' && activeProfileId === user.id && (
+                            <div className="mt-12 w-full max-w-[380px]">
+                                <div className="bg-gradient-to-br from-[#1E293B] to-[#0F172A] border border-slate-700 shadow-2xl rounded-3xl p-6 relative overflow-hidden group hover:border-amber-500/30 transition-all duration-500">
+                                    <div className="absolute right-0 top-0 w-32 h-32 bg-amber-500/10 blur-[50px] rounded-full"></div>
+                                    <div className="relative z-10">
+                                        <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center mb-4 border border-amber-500/30 backdrop-blur-sm"><Calendar className="text-amber-400" size={20} /></div>
+                                        <h4 className="font-serif font-bold text-xl mb-1 text-amber-100">Jewish Calendar 5786</h4>
+                                        <p className="text-slate-400 text-xs mb-5 line-clamp-2">Get your high-resolution official calendar copy right here.</p>
+                                        <Button onClick={() => setIsCalendarModalOpen(true)} className="w-full bg-gradient-to-r from-amber-600 to-amber-800 text-amber-50 shadow-xl border-amber-500/50 hover:from-amber-500 hover:to-amber-700 py-3 rounded-xl uppercase tracking-widest text-xs font-bold">
+                                            <Download size={16} className="mr-2" /> Download Document
+                                        </Button>
+                                    </div>
+                                </div>
                             </div>
                         )}
-                    </div>
+                    </motion.div>
+
+                    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.2 }} className="lg:col-span-5 space-y-6 lg:space-y-8 w-full max-w-[400px] lg:max-w-none mx-auto lg:mx-0">
+                        {isEditing ? (
+                            <div className="bg-slate-900 border border-slate-700/60 p-6 rounded-3xl shadow-2xl relative overflow-hidden">
+                                <h3 className="text-lg font-serif font-bold mb-4 flex items-center gap-2"><Edit2 size={18} className="text-brand-400" /> Essential Details</h3>
+                                <div className="space-y-4">
+                                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-xs text-amber-200">
+                                        <AlertCircle size={14} className="inline mr-1 -mt-0.5" /> For ID security, contact admin to change locked fields.
+                                    </div>
+                                    <form onSubmit={saveChanges} className="space-y-4 mt-2">
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Email</label>
+                                            <input type="text" value={user.email} disabled className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-slate-400 cursor-not-allowed text-sm font-medium mt-1" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Phone / WA</label>
+                                            <input type="text" value={user.phone} disabled className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-slate-400 cursor-not-allowed text-sm font-medium mt-1" />
+                                        </div>
+                                        <div className="flex gap-4 pt-4">
+                                            <Button type="button" onClick={cancelEditing} variant="outline" className="flex-1 py-3 border-slate-700 text-slate-300 hover:bg-slate-800 text-xs tracking-widest">Close</Button>
+                                            <Button disabled type="submit" variant="primary" className="flex-1 py-3 text-xs tracking-widest bg-brand-600/50 cursor-not-allowed">Saved</Button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="bg-slate-900/80 border border-slate-800 p-6 sm:p-8 rounded-3xl shadow-2xl backdrop-blur-xl relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-l from-transparent via-brand-500 to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                                    <h3 className="text-lg font-serif font-bold text-white mb-2 flex flex-col justify-center items-center">
+                                        <QrCode className="text-accent-400 mb-2" size={24} /> Official ID Scanner
+                                    </h3>
+                                    <p className="text-center text-xs text-slate-400 mb-5">Scan this to check validity &amp; auto-download ID card anytime.</p>
+                                    {user.status === 'Active' ? (
+                                        <div className="w-full flex justify-center transform transition-transform group-hover:scale-105 duration-500 p-2">
+                                            <div className="bg-white p-3 sm:p-4 rounded-3xl shadow-[0_0_40px_rgba(79,70,229,0.2)]">
+                                                <img src={`https://quickchart.io/qr?text=${encodeURIComponent(`${window.location.origin}/card/${displayProfile.id}`)}&dark=0f172a&margin=2&size=300&centerImageUrl=${encodeURIComponent('https://city-of-truth-ministries.vercel.app/brand-logo.png')}`} alt="Official QR" className="w-40 sm:w-48 h-40 sm:h-48" crossOrigin="anonymous" />
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 sm:p-8 text-center flex flex-col items-center">
+                                            <ShieldCheck className="text-slate-500 mb-3" size={32} />
+                                            <p className="text-sm font-bold text-slate-300">Pending Verification</p>
+                                            <p className="text-xs text-slate-500 mt-1">QR generates upon approval</p>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="bg-[#0f172a] border border-[#1e293b] p-6 sm:p-8 rounded-3xl shadow-2xl relative overflow-hidden hover:border-[#334155] transition-all">
+                                    <div className="absolute -left-10 -bottom-10 w-32 h-32 bg-accent-600/20 blur-2xl rounded-full"></div>
+                                    <h3 className="text-lg font-serif font-bold text-white mb-4">Ministry Actions</h3>
+                                    <div className="space-y-3">
+                                        <button onClick={() => setShowTestimonialModal(true)} className="w-full flex items-center justify-between p-4 sm:p-5 bg-slate-800/50 hover:bg-slate-800 rounded-2xl border border-slate-700/50 transition-colors group">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center group-hover:bg-brand-500 group-hover:text-white transition-colors"><MessageSquare size={18} /></div>
+                                                <div className="text-left">
+                                                    <p className="font-bold text-white text-sm">Write Testimony</p>
+                                                    <p className="text-[10px] sm:text-xs text-slate-400">Share your miracle</p>
+                                                </div>
+                                            </div>
+                                            <Sparkles className="text-slate-500 group-hover:text-accent-400" size={16} />
+                                        </button>
+                                        <a href="/COT Ministries.apk" download className="w-full flex items-center justify-between p-4 sm:p-5 bg-slate-800/50 hover:bg-slate-800 rounded-2xl border border-slate-700/50 transition-colors group">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-xl bg-accent-500/20 text-accent-400 flex items-center justify-center group-hover:bg-accent-500 group-hover:text-white transition-colors"><Download size={18} /></div>
+                                                <div className="text-left">
+                                                    <p className="font-bold text-white text-sm">Android App</p>
+                                                    <p className="text-[10px] sm:text-xs text-slate-400">Read news offline</p>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </motion.div>
                 </div>
             </div>
-
-            <TestimonialModal
-                isOpen={showTestimonialModal}
-                onClose={() => setShowTestimonialModal(false)}
-                user={user}
-            />
-
-            <CalendarCustomizationModal
-                isOpen={isCalendarModalOpen}
-                onClose={() => setIsCalendarModalOpen(false)}
-                onDownload={handleDownloadCalendar}
-            />
-
-            {/* Hidden Calendar Render for Capture */}
-            <div className="fixed left-[-10000px] top-0 pointer-events-none -z-50 opacity-100">
-                <div id="printable-calendar-dashboard" className="w-[1122px] min-h-[793px] bg-white">
-                    {calendarRenderMode && (
-                        <PrintableHebrewCalendar
-                            mode={calendarRenderMode.mode}
-                            year={5786}
-                            monthData={calendarRenderMode.monthData}
-                            currentUser={user}
-                        />
-                    )}
-                </div>
-            </div>
-
-            {/* Hidden Reference Guide for Dashboard Capture */}
-            <div className="fixed left-[-10000px] top-0 overflow-visible z-50 opacity-100 pointer-events-none">
-                <div id="printable-reference-guide-dashboard" className="bg-white">
-                    <PrintableReferenceGuide year={5786} />
-                </div>
-            </div>
-        </div >
+        </div>
     );
 };
