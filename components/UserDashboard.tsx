@@ -72,8 +72,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         const backNode = document.getElementById('capture-back');
         if (frontNode && backNode) {
             try {
-                await new Promise(r => setTimeout(r, 400));
-                const opts = { pixelRatio: 4, quality: 1, backgroundColor: '#ffffff', cacheBust: true };
+                await new Promise(r => setTimeout(r, 600));
+                // Explicit dimensions ensure off-screen nodes render correctly in all browsers
+                const opts = { pixelRatio: 3, quality: 1, backgroundColor: '#ffffff', cacheBust: true, width: 680, height: 430 };
                 const frontDataUrl = await toPng(frontNode, opts);
                 const backDataUrl = await toPng(backNode, opts);
                 const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
@@ -86,10 +87,26 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 pdf.save(`ENTRUST-CARD-${displayProfile.id}.pdf`);
             } catch (err: any) {
                 console.error('PDF generation failed', err);
-                alert(`Failed to generate PDF: ${err?.message || 'Unknown error'}. Please try again.`);
+                // Fallback: try jpeg instead of png
+                try {
+                    const { toJpeg: toJpeg2 } = await import('html-to-image');
+                    const opts2 = { pixelRatio: 2, quality: 0.95, backgroundColor: '#ffffff', cacheBust: true, width: 680, height: 430 };
+                    const frontDataUrl2 = await toJpeg2(frontNode!, opts2);
+                    const backDataUrl2 = await toJpeg2(backNode!, opts2);
+                    const pdf2 = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
+                    const pdfWidth2 = pdf2.internal.pageSize.getWidth();
+                    const pdfHeight2 = (215 * pdfWidth2) / 340;
+                    const yPos2 = (pdf2.internal.pageSize.getHeight() - pdfHeight2) / 2;
+                    pdf2.addImage(frontDataUrl2, 'JPEG', 0, yPos2 > 0 ? yPos2 : 0, pdfWidth2, pdfHeight2, undefined, 'FAST');
+                    pdf2.addPage();
+                    pdf2.addImage(backDataUrl2, 'JPEG', 0, yPos2 > 0 ? yPos2 : 0, pdfWidth2, pdfHeight2, undefined, 'FAST');
+                    pdf2.save(`ENTRUST-CARD-${displayProfile.id}.pdf`);
+                } catch (err2) {
+                    alert('PDF generation failed. Please try again or contact admin.');
+                }
             }
         } else {
-            alert('Card elements not ready. Please refresh and try again.');
+            alert('Card elements not ready. Please scroll down and try again.');
         }
         setIsProcessing(false);
     };
@@ -254,9 +271,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             {/* ══════════════════════════════════════
                 MAIN CONTENT
             ══════════════════════════════════════ */}
-            <div className="w-full max-w-md lg:max-w-5xl mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
+            <div className={`w-full max-w-md lg:max-w-5xl mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10`}>
                 {/* ── LEFT COLUMN (Profile, Family, Actions, Logout on Desktop) ── */}
-                <div className="lg:col-span-4 flex flex-col gap-5">
+                <div className={`${user.linkedProfiles && user.linkedProfiles.length > 0 ? 'lg:col-span-4' : 'lg:col-span-5'} flex flex-col gap-5`}>
 
                 <div className="flex items-center gap-3 mb-5 px-1">
                     {/* Primary profile + family avatars */}
@@ -363,7 +380,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 </div>
 
                 {/* ── RIGHT COLUMN (Wallet Card & Content on Desktop) ── */}
-                <div className="lg:col-span-8 flex flex-col gap-5">
+                <div className={`${user.linkedProfiles && user.linkedProfiles.length > 0 ? 'lg:col-span-8' : 'lg:col-span-7'} flex flex-col gap-5`}>
 
                 {/* ════════════════════════════════════
                     mAadhaar-Style Wallet Card
@@ -402,8 +419,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             </div>
 
                             {/* Real EntrustCard3D Preview (DESKTOP ONLY) */}
-                            <div className="hidden md:block w-full cursor-pointer hover:scale-[1.02] transition-transform duration-300" onClick={() => setShowCardPreview(true)}>
-                                <div className="w-full flex justify-center scale-90 lg:scale-[0.85] origin-center -my-6 lg:-my-12">
+                            <div className="hidden md:block w-full cursor-pointer hover:scale-[1.01] transition-transform duration-300" onClick={() => setShowCardPreview(true)}>
+                                <div className="w-full flex justify-center origin-center">
                                     <EntrustCard3D
                                         name={displayProfile.name}
                                         email={user.email}
@@ -417,7 +434,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         isBackSide={cardFlipped}
                                     />
                                 </div>
-                                <p className="text-center text-slate-500 text-xs font-bold uppercase tracking-widest mt-2">✨ Click card to Expand / Download ✨</p>
+                                <p className="text-center text-slate-500 text-xs font-bold uppercase tracking-widest mt-3">✨ Click card to Expand / Download ✨</p>
                             </div>
                         </div>
 
@@ -443,6 +460,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 </div>
                             )}
                         </div>
+                    </div>
+
+                    {/* Edit Photo button below card + QR */}
+                    <div className="flex justify-center pb-2">
+                        <label className="flex items-center gap-2 cursor-pointer bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 text-slate-500 hover:text-brand-600 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all shadow-sm">
+                            <Camera size={13} /> Edit Photo
+                            <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                        </label>
                     </div>
 
                     {/* Action buttons row (mAadhaar style) */}
@@ -505,30 +530,37 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         </span>
                     </button>
 
-                    {/* Jewish Calendar — amber */}
+                    {/* Jewish Calendar — amber (full width row) */}
                     {user.status === 'Active' && activeProfileId === user.id && (
                         <button onClick={() => setIsCalendarModalOpen(true)}
-                            className="bg-gradient-to-br from-[#8B4500] to-[#D97706] text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
-                            <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Calendar size={18} /></div>
-                            <p className="font-bold text-sm leading-tight mb-1">Jewish Calendar</p>
-                            <p className="text-white/70 text-[10px]">5786 Official Edition</p>
-                            <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
-                                <Download size={11} /> Download PDF
+                            className="col-span-2 bg-gradient-to-br from-[#8B4500] via-[#C07000] to-[#D97706] text-white rounded-[22px] p-5 text-left shadow-xl hover:brightness-110 transition-all relative overflow-hidden group">
+                            <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Calendar size={22} /></div>
+                            <p className="font-bold text-base leading-tight mb-1">Jewish Calendar 5786</p>
+                            <p className="text-white/80 text-[11px] mb-0.5">Download the official City of Truth Ministries Jewish Calendar.</p>
+                            <p className="text-white/60 text-[10px] mb-3">Pro Max Quality Edition.</p>
+                            <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-[#fff8e8] text-[#7B3F00] rounded-xl px-4 py-2">
+                                <Download size={12} /> DOWNLOAD PDF
                             </span>
+                            <div className="absolute right-4 bottom-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                <Calendar size={64} />
+                            </div>
                         </button>
                     )}
 
-                    {/* Mobile App — navy */}
+                    {/* Mobile App — navy (full width row) */}
                     <a href="/COT Ministries.apk" download
-                        className={`bg-gradient-to-br from-[#1a237e] to-[#3949ab] text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group block ${user.status !== 'Active' || activeProfileId !== user.id ? 'col-span-1' : ''}`}>
-                        <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3">
-                            <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] fill-white"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.38.07 2.33.76 3.13.8 1.18-.25 2.31-.94 3.56-.84 1.5.12 2.63.72 3.37 1.8-3.09 1.85-2.56 5.93.28 7.05-.55 1.5-1.27 2.98-2.34 4.07zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" /></svg>
+                        className="col-span-2 bg-gradient-to-br from-[#1a237e] to-[#3949ab] text-white rounded-[22px] p-5 text-left shadow-xl hover:brightness-110 transition-all relative overflow-hidden group block">
+                        <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3">
+                            <svg viewBox="0 0 24 24" className="w-[22px] h-[22px] fill-white"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.38.07 2.33.76 3.13.8 1.18-.25 2.31-.94 3.56-.84 1.5.12 2.63.72 3.37 1.8-3.09 1.85-2.56 5.93.28 7.05-.55 1.5-1.27 2.98-2.34 4.07zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" /></svg>
                         </div>
-                        <p className="font-bold text-sm leading-tight mb-1">Mobile App</p>
-                        <p className="text-white/70 text-[10px]">Android APK download</p>
-                        <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
-                            <Download size={11} /> Download App
+                        <p className="font-bold text-base leading-tight mb-1">Get the Mobile App</p>
+                        <p className="text-white/80 text-[11px] mb-3">Access your ID card offline and get instant ministry updates on your Android device.</p>
+                        <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/20 rounded-xl px-4 py-2">
+                            <Download size={12} /> Download Our App
                         </span>
+                        <div className="absolute right-4 bottom-4 opacity-10 group-hover:opacity-20 transition-opacity text-[64px] font-bold">
+                            📱
+                        </div>
                     </a>
                 </div>
 
