@@ -329,6 +329,39 @@ export const api = {
             console.error('Error updating home layout:', error);
             throw error;
         }
+    },
+
+    // --- Navigation Layout Configuration ---
+
+    // Fetch the navigation menu item order from Firestore
+    getNavigationLayout: async (): Promise<any[] | null> => {
+        try {
+            const layoutDoc = doc(db, 'config', 'navigation_layout');
+            const snapshot = await getDoc(layoutDoc);
+            
+            if (snapshot.exists()) {
+                const data = snapshot.data();
+                return data.items as any[];
+            }
+            return null;
+        } catch (error) {
+            console.error('Error fetching navigation layout:', error);
+            return null;
+        }
+    },
+
+    // Save the navigation menu item order to Firestore
+    updateNavigationLayout: async (items: any[]): Promise<void> => {
+        try {
+            const layoutDoc = doc(db, 'config', 'navigation_layout');
+            await setDoc(layoutDoc, { 
+                items,
+                updatedAt: new Date().toISOString()
+            }, { merge: true });
+        } catch (error) {
+            console.error('Error updating navigation layout:', error);
+            throw error;
+        }
     }
 };
 

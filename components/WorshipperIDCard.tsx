@@ -501,7 +501,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                     }}
                                     variant="primary"
                                     fullWidth
-                                    className="py-6 text-base bg-gradient-to-r from-brand-600 to-brand-800 shadow-xl shadow-brand-600/40 font-black tracking-widest hover:shadow-2xl transition-all"
+                                    className="py-6 text-base bg-gradient-to-r from-[#1D4ED8] to-[#2563EB] hover:from-[#1E40AF] hover:to-[#1D4ED8] shadow-xl shadow-blue-600/40 font-black tracking-widest hover:shadow-2xl transition-all border-0"
                                     disabled={isProcessing}
                                 >
                                     <CheckCircle size={22} /> COMPLETE REGISTRATION

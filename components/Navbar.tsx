@@ -11,29 +11,8 @@ interface NavbarProps {
   onLoginClick: () => void;
   onLogoutClick?: () => void;
   currentUser?: UserType | null;
+  navItems: NavItem[];
 }
-
-const navItems: NavItem[] = [
-  { label: 'HOME', view: ViewState.HOME },
-  {
-    label: 'HEBREW',
-    view: ViewState.ABOUT,
-    submenu: [
-      { label: 'Biblical Calendar', view: ViewState.HEBREW_CALENDAR },
-      { label: 'Hebrew Numbers', view: ViewState.HEBREW_NUMBERS },
-      { label: 'Festivals & Holy Days', view: ViewState.HEBREW_FESTIVALS },
-      { label: 'Month/Year Reference', view: ViewState.HEBREW_REFERENCE },
-    ]
-  },
-  { label: 'ALPHABETS', view: ViewState.HEBREW },
-  { label: 'VALPARAI', view: ViewState.ABOUT_VALPARAI },
-  { label: 'MINISTRIES', view: ViewState.MINISTRIES },
-  { label: 'MENORAH', view: ViewState.GOLDEN_MENORAH },
-  { label: 'BARUCH HASHEM', view: ViewState.BARUCH_HASHEM },
-  { label: 'AI ASSISTANCE', view: ViewState.AI },
-  { label: 'ENTRUST CARD', view: ViewState.ID_CARD },
-  { label: 'CONTACT', view: ViewState.CONTACT },
-];
 
 const getIcon = (view: ViewState) => {
   switch (view) {
@@ -56,7 +35,7 @@ const getIcon = (view: ViewState) => {
   }
 };
 
-export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginClick, onLogoutClick, currentUser }) => {
+export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginClick, onLogoutClick, currentUser, navItems }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeMobileSubmenu, setActiveMobileSubmenu] = useState<string | null>(null);
   const [desktopHoverMenu, setDesktopHoverMenu] = useState<string | null>(null);
@@ -97,14 +76,73 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
         </div>
 
 
+        {/* MENU LINKS STYLING (Restored for Desktop) */}
+        <ul className="hidden xl:flex items-center gap-[6px] list-none">
+          {navItems.map((item) => {
+            const isActive = currentView === item.view || item.submenu?.some(s => s.view === currentView);
+            const hasSubmenu = item.submenu && item.submenu.length > 0;
+
+            return (
+              <li
+                key={item.label}
+                className="relative group"
+                onMouseEnter={() => hasSubmenu && setDesktopHoverMenu(item.label)}
+                onMouseLeave={() => hasSubmenu && setDesktopHoverMenu(null)}
+              >
+                <button
+                  onClick={() => {
+                    if (item.label === 'HEBREW') setView(ViewState.ABOUT); // Parent link
+                    else if (!hasSubmenu) setView(item.view);
+                  }}
+                  className={`text-[0.65rem] font-bold uppercase tracking-[0.5px] px-[12px] py-2 rounded-[20px] transition-all duration-300 no-underline whitespace-nowrap flex items-center gap-1 ${isActive
+                    ? 'bg-brand-50 text-brand-600 shadow-sm border border-brand-100'
+                    : (isScrolled || (currentView !== ViewState.HOME && currentView !== ViewState.ABOUT) ? 'text-slate-600 hover:text-brand-600' : (currentView === ViewState.ABOUT ? 'text-brand-950 hover:text-brand-600' : 'text-white/80 hover:text-white'))
+                    }`}
+                >
+                  {item.label}
+                  {hasSubmenu && <ChevronDown size={12} className={`transition-transform duration-300 ${desktopHoverMenu === item.label ? 'rotate-180' : ''}`} />}
+                </button>
+
+                {/* Desktop Submenu */}
+                {hasSubmenu && (
+                  <AnimatePresence>
+                    {desktopHoverMenu === item.label && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="absolute top-full left-0 mt-2 w-48 bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-100 py-3 z-50 overflow-hidden"
+                      >
+                        {item.submenu?.map((sub) => (
+                          <button
+                            key={sub.label}
+                            onClick={() => {
+                              setView(sub.view);
+                              setDesktopHoverMenu(null);
+                            }}
+                            className="w-full text-left px-5 py-2.5 text-[9px] font-black text-slate-500 hover:bg-brand-50 hover:text-brand-600 transition-all uppercase tracking-widest flex items-center gap-2 group"
+                          >
+                            <div className="w-1 h-1 rounded-full bg-slate-200 group-hover:bg-brand-400" />
+                            {sub.label}
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                )}
+              </li>
+            );
+          })}
+        </ul>
 
         {/* RIGHT SIDE ACTIONS */}
+
         <div className="flex items-center gap-[15px]">
           {/* Show Register button only if NOT logged in */}
           {!currentUser && (
             <button
               onClick={() => setView(ViewState.ID_CARD)}
-              className="hidden lg:flex items-center bg-[#4C51F7] text-white text-[0.75rem] font-bold px-6 py-3 rounded-[25px] uppercase transition-all duration-300 hover:bg-[#3b3ed6] hover:scale-105 no-underline whitespace-nowrap shadow-lg shadow-indigo-500/20"
+              className="hidden lg:flex items-center bg-gradient-to-r from-[#1D4ED8] to-[#2563EB] text-white text-[0.75rem] font-bold px-6 py-3 rounded-[25px] uppercase transition-all duration-300 hover:from-[#1E40AF] hover:to-[#1D4ED8] hover:scale-105 no-underline whitespace-nowrap shadow-lg shadow-blue-600/30"
             >
               REGISTER
             </button>
@@ -143,96 +181,101 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
               className="fixed inset-0 z-[100] bg-brand-950/80 backdrop-blur-xl"
             />
             <motion.div
-              initial={{ x: '100%', opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: '100%', opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed top-0 right-0 bottom-0 z-[110] w-full md:w-[450px] bg-white shadow-[-20px_0_50px_rgba(0,0,0,0.2)] flex flex-col montserrat overflow-hidden"
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed top-0 right-0 bottom-0 z-[110] w-[85%] max-w-sm bg-white shadow-2xl flex flex-col montserrat"
             >
-              <div className="absolute top-0 right-0 w-64 h-64 bg-brand-50 rounded-full -mr-32 -mt-32 opacity-50" />
+
+
               
               <div className="p-8 flex flex-col relative z-20">
                 <div className="flex justify-between items-center w-full mb-10">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-brand-950 shadow-xl flex items-center justify-center border border-brand-900 border-b-4 translate-y-[-2px]">
-                      <img src="/logo.png" alt="COT Logo" className="w-8 h-8 object-contain" />
+                    <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center border border-brand-100">
+                      <img src="/logo.png" alt="COT Logo" className="w-6 h-6 object-contain" />
                     </div>
                     <div className="text-left">
-                      <h2 className="font-black text-xl text-brand-950 leading-none tracking-tight">City of Truth</h2>
-                      <span className="text-[10px] text-brand-600 font-black uppercase tracking-[3px] mt-1.5 block">Ministries Global</span>
+                      <h2 className="font-bold text-sm text-[#1a1a2e] leading-none">City of Truth</h2>
+                      <span className="text-[9px] text-[#5D5FEF] font-bold uppercase tracking-widest mt-1">Ministries</span>
                     </div>
                   </div>
                   <button
                     onClick={() => setMobileMenuOpen(false)}
-                    className="w-12 h-12 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-all text-slate-400 hover:text-brand-600 flex items-center justify-center border border-slate-100 shadow-sm"
+                    className="p-2 hover:bg-white rounded-full transition-all text-[#333] shadow-sm border border-gray-100"
                   >
-                    <X size={24} />
+                    <X size={20} />
                   </button>
+
+
                 </div>
 
-                {/* Profile + Family Switcher Section */}
-                <div className="w-full space-y-4">
+                {/* Profile + Family Switcher Section in Mobile Menu */}
+                <div className="w-full space-y-3">
+                    {/* Primary profile card */}
                     <div
                         onClick={() => { setView(ViewState.USER_DASHBOARD); setMobileMenuOpen(false); }}
-                        className="w-full bg-brand-950 p-5 rounded-[2rem] border border-brand-900 shadow-2xl cursor-pointer hover:bg-brand-900 transition-all relative overflow-hidden group"
+                        className="w-full bg-white p-3 rounded-xl border border-brand-100 shadow-sm cursor-pointer hover:bg-slate-50 transition-all"
                     >
-                        <div className="absolute inset-0 bg-gradient-to-br from-brand-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <div className="flex items-center gap-5 relative z-10">
+                        <div className="flex items-center gap-3">
                             <div className="relative shrink-0">
-                                <div className="w-14 h-14 rounded-2xl border-2 border-brand-800 shadow-inner flex items-center justify-center bg-brand-900 overflow-hidden">
+                                <div className="w-11 h-11 rounded-full border-2 border-brand-100 shadow-inner flex items-center justify-center bg-slate-50 overflow-hidden">
                                     {currentUser && currentUser.photo ? (
                                         <img src={currentUser.photo} alt="Profile" className="w-full h-full object-cover" />
                                     ) : (
-                                        <CircleUser size={28} className="text-brand-700" />
+                                        <CircleUser size={22} className="text-brand-300" />
                                     )}
                                 </div>
-                                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-2 border-brand-950 flex items-center justify-center">
-                                    <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-brand-600 rounded-full border-2 border-white flex items-center justify-center text-white">
+                                    <Zap size={6} />
                                 </div>
                             </div>
                             <div className="flex-1 min-w-0">
-                                <h3 className="font-black text-white text-base truncate">
-                                    {currentUser ? currentUser.name : 'Join Fellowship'}
+                                <h3 className="font-bold text-brand-950 text-[12px] truncate">
+                                    {currentUser ? currentUser.name : 'Guest Community'}
                                 </h3>
-                                <p className="text-[9px] font-black text-brand-400 uppercase tracking-widest truncate mt-0.5">
-                                    {currentUser ? (currentUser.id || 'Member') : 'Explore Community'}
+                                <p className="text-[8px] font-bold text-brand-500 uppercase tracking-widest truncate">
+                                    {currentUser ? (currentUser.id || 'Member') : 'Join Our Family'}
                                 </p>
                             </div>
-                            <ChevronRight size={20} className="text-brand-700 group-hover:text-brand-400 transition-colors" />
+                            <div className="px-2 py-1 bg-brand-50 text-brand-700 rounded-full text-[7px] font-bold uppercase tracking-widest border border-brand-100 whitespace-nowrap">
+                                {currentUser ? 'Dashboard' : 'Register'}
+                            </div>
                         </div>
                     </div>
 
+                    {/* Family Members quick switcher */}
                     {currentUser && currentUser.linkedProfiles && currentUser.linkedProfiles.length > 0 && (
-                        <div className="bg-slate-50 rounded-[2rem] border border-slate-100 p-5">
-                            <p className="text-[9px] font-black uppercase tracking-[2px] text-slate-400 mb-4 ml-1">Family Circle</p>
-                            <div className="flex flex-wrap gap-3">
+                        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-3">
+                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-2.5">Family Members</p>
+                            <div className="flex flex-wrap gap-2">
                                 {currentUser.linkedProfiles.map((pf: any) => (
                                     <button
                                         key={pf.id}
                                         onClick={() => { setView(ViewState.USER_DASHBOARD); setMobileMenuOpen(false); }}
-                                        className="flex flex-col items-center gap-2 group"
+                                        className="flex flex-col items-center gap-1 group"
+                                        title={pf.name}
                                     >
-                                        <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-white shadow-sm group-hover:border-brand-500 transition-all bg-white relative">
+                                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-200 group-hover:border-brand-400 transition-all bg-slate-100">
                                             <img
                                                 src={pf.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(pf.name)}&background=5b47d0&color=fff&bold=true&size=80`}
                                                 alt={pf.name}
                                                 className="w-full h-full object-cover"
                                             />
-                                            <div className="absolute inset-0 bg-brand-500/0 group-hover:bg-brand-500/10 transition-colors" />
                                         </div>
+                                        <span className="text-[8px] font-bold text-slate-500 max-w-[40px] truncate">{pf.name.split(' ')[0]}</span>
                                     </button>
                                 ))}
-                                <button className="w-12 h-12 rounded-2xl border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 hover:border-brand-300 hover:text-brand-500 transition-all bg-white">
-                                    <Plus size={20} />
-                                </button>
                             </div>
                         </div>
                     )}
                 </div>
-              </div>
 
-              <div className="flex-1 overflow-y-auto py-4 px-8 space-y-2 relative z-20">
-                <p className="text-[10px] font-black uppercase tracking-[3px] text-slate-300 mb-6 ml-2">Navigation Menu</p>
+              </div>{/* end header section */}
+
+
+              <div className="flex-1 overflow-y-auto py-4 px-6 space-y-1">
                 {navItems.map((item) => {
                   const hasSubmenu = item.submenu && item.submenu.length > 0;
                   const isSubmenuOpen = activeMobileSubmenu === item.label;
@@ -249,23 +292,21 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                             setMobileMenuOpen(false);
                           }
                         }}
-                        className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all group ${isMobileActive
-                          ? 'bg-brand-50 text-brand-600 shadow-sm border border-brand-100'
-                          : 'bg-transparent text-slate-600 hover:bg-slate-50'
+                        className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${isMobileActive
+                          ? 'bg-[#EEF0FF] text-[#5D5FEF]'
+                          : 'bg-transparent text-[#555] hover:bg-gray-50'
                           }`}
                       >
-                        <div className="flex items-center gap-5">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isMobileActive ? 'bg-brand-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 group-hover:text-brand-500 group-hover:bg-white'}`}>
+                        <div className="flex items-center gap-4">
+                          <span className={isMobileActive ? 'text-[#5D5FEF]' : 'text-gray-400'}>
                             {getIcon(item.view)}
-                          </div>
-                          <span className={`font-black tracking-tight uppercase text-xs transition-colors ${isMobileActive ? 'text-brand-950' : 'text-slate-600 group-hover:text-brand-950'}`}>
-                            {item.label}
                           </span>
+                          <span className="font-bold tracking-wide uppercase text-xs">{item.label}</span>
                         </div>
                         {hasSubmenu && (
                           <ChevronDown
-                            size={16}
-                            className={`transition-transform duration-300 ${isSubmenuOpen ? 'rotate-180 text-brand-600' : 'text-slate-300'}`}
+                            size={14}
+                            className={`transition-transform duration-300 ${isSubmenuOpen ? 'rotate-180' : ''}`}
                           />
                         )}
                       </button>
@@ -277,7 +318,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                               initial={{ height: 0, opacity: 0 }}
                               animate={{ height: 'auto', opacity: 1 }}
                               exit={{ height: 0, opacity: 0 }}
-                              className="overflow-hidden pl-16 space-y-1"
+                              className="overflow-hidden pl-12 space-y-1"
                             >
                               {item.submenu?.map((sub) => (
                                 <button
@@ -286,9 +327,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                                     setView(sub.view);
                                     setMobileMenuOpen(false);
                                   }}
-                                  className="w-full text-left p-3 text-[10px] font-black text-slate-500 hover:text-brand-600 transition-colors uppercase tracking-widest flex items-center gap-3 group"
+                                  className="w-full text-left p-2 text-[10px] font-bold text-gray-500 hover:text-brand-600 transition-colors uppercase tracking-wider"
                                 >
-                                  <div className="w-1.5 h-1.5 rounded-full bg-slate-200 group-hover:bg-brand-400" />
                                   {sub.label}
                                 </button>
                               ))}
@@ -301,39 +341,37 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                 })}
               </div>
 
-              <div className="p-8 bg-slate-50 border-t border-slate-100 mt-auto relative z-20">
-                <div className="flex items-center gap-4 mb-6 p-4 bg-white rounded-2xl border border-slate-200/50 shadow-sm">
-                  <div className="w-11 h-11 bg-brand-50 rounded-xl flex items-center justify-center text-brand-600 shrink-0 shadow-inner">
-                    <Phone size={20} />
-                  </div>
+              <div className="p-3 bg-gray-50 border-t border-gray-100 mt-auto">
+                <div className="flex items-center gap-3 mb-3 group cursor-default">
+                  <div className="bg-white p-1.5 rounded-lg shadow-sm border border-gray-100 transition-transform hover:scale-110"><Phone size={12} className="text-[#5D5FEF]" /></div>
                   <div>
-                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">Emergency Prayer Line</p>
-                    <p className="text-sm font-black text-brand-950 tracking-tight">+91 80562 5478</p>
+                    <p className="text-[7px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-0.5">Prayer Line</p>
+                    <p className="text-xs font-bold text-[#1a1a2e]">+91 80562 5478</p>
                   </div>
                 </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex gap-3">
-                    {[Youtube, Facebook, Instagram].map((Icon, i) => (
-                      <button key={i} className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-brand-600 hover:border-brand-200 hover:scale-110 transition-all shadow-sm">
-                        <Icon size={18} />
-                      </button>
-                    ))}
-                  </div>
-                  
-                  {currentUser && onLogoutClick && (
-                    <button
-                        onClick={() => {
-                        onLogoutClick();
-                        setMobileMenuOpen(false);
-                        }}
-                        className="flex items-center gap-2 text-rose-500 font-black text-[10px] uppercase tracking-widest hover:text-rose-600 transition-colors px-4 py-2 hover:bg-rose-50 rounded-xl"
-                    >
-                        <LogOut size={16} /> Logout
-                    </button>
-                  )}
+                <div className="flex gap-4 justify-center">
+                  {[Youtube, Facebook, Instagram].map((Icon, i) => (
+                    <Icon key={i} size={16} className="text-gray-400 hover:text-[#5D5FEF] cursor-pointer transition-all hover:scale-125" />
+                  ))}
                 </div>
               </div>
+
+              {/* Logout Button in Mobile Menu */}
+              {currentUser && onLogoutClick && (
+                <div className="px-6 pb-6">
+                  <button
+                    onClick={() => {
+                      onLogoutClick();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 p-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-red-100 transition-colors"
+                  >
+                    <LogOut size={16} /> Logout
+                  </button>
+                </div>
+              )}
+
+
             </motion.div>
           </>
         )}

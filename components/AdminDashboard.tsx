@@ -22,6 +22,8 @@ interface AdminDashboardProps {
     onBack: () => void;
     homeSectionsOrder: string[];
     onUpdateHomeSectionsOrder: (newOrder: string[]) => Promise<void>;
+    navItems?: any[];
+    onUpdateNavItems?: (newItems: any[]) => Promise<void>;
 }
 
 const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any; color: string }> = {
@@ -45,7 +47,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     onDeleteUser,
     onBack,
     homeSectionsOrder,
-    onUpdateHomeSectionsOrder
+    onUpdateHomeSectionsOrder,
+    navItems = [],
+    onUpdateNavItems,
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState<UserStatus | 'All'>('All');
@@ -61,7 +65,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
     const [downloadingCardUserId, setDownloadingCardUserId] = useState<string | null>(null);
 
-    const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor'>('users');
     const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
     const [ministries, setMinistries] = useState<Ministry[]>([]);
     const [editingMinistry, setEditingMinistry] = useState<Partial<Ministry> | null>(null);
@@ -445,6 +449,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         >
                             <div className="flex items-center gap-2">
                                 <GripVertical size={16} /> Home Layout
+                            </div>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('menu-editor')}
+                            className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === 'menu-editor'
+                                ? 'bg-brand-600 text-white'
+                                : 'bg-white text-slate-600 hover:bg-slate-50'
+                                }`}
+                        >
+                            <div className="flex items-center gap-2">
+                                <Filter size={16} /> Menu Editor
                             </div>
                         </button>
                     </div>
@@ -1178,6 +1193,93 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         </div>
                                     </div>
                                     <p className="text-sm text-brand-100/60 leading-relaxed font-medium">Any changes you make here are synchronized in real-time across all visitor devices worldwide. Precision engineering for a seamless experience.</p>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+
+                {activeTab === 'menu-editor' && (
+                    <div className="max-w-3xl mx-auto">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl border-b-8 border-b-brand-600"
+                        >
+                            <div className="flex items-center justify-between mb-10">
+                                <div>
+                                    <h2 className="text-3xl font-serif font-black text-brand-950">Navigation Menu Editor</h2>
+                                    <p className="text-slate-500 mt-2 text-sm font-medium">Drag the cards below to reorder the top navigation links for all visitors.</p>
+                                </div>
+                                <div className="w-14 h-14 bg-brand-50 text-brand-600 rounded-[1.25rem] flex items-center justify-center shadow-inner border border-brand-100">
+                                    <Filter size={26} />
+                                </div>
+                            </div>
+
+                            {navItems && navItems.length > 0 ? (
+                                <Reorder.Group
+                                    axis="y"
+                                    values={navItems}
+                                    onReorder={(newOrder) => onUpdateNavItems && onUpdateNavItems(newOrder)}
+                                    className="space-y-4"
+                                >
+                                    {navItems.map((item) => (
+                                        <Reorder.Item
+                                            key={item.label}
+                                            value={item}
+                                            whileDrag={{ scale: 1.02, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)" }}
+                                            className="bg-white p-5 rounded-[2rem] border border-slate-100 flex items-center gap-6 group hover:border-brand-300 hover:shadow-lg transition-all cursor-grab active:cursor-grabbing relative overflow-hidden"
+                                        >
+                                            <div className="absolute top-0 right-0 w-24 h-24 bg-brand-50/30 rounded-full -mr-12 -mt-12 transition-all group-hover:scale-150 pointer-events-none" />
+
+                                            <div className="flex items-center gap-5 flex-1 relative z-10">
+                                                <div className="text-slate-300 group-hover:text-brand-500 transition-colors shrink-0">
+                                                    <GripVertical size={24} />
+                                                </div>
+
+                                                <div className="w-12 h-12 bg-brand-600 rounded-2xl flex items-center justify-center text-white shadow-lg text-lg font-black shrink-0">
+                                                    {item.label.charAt(0)}
+                                                </div>
+
+                                                <div className="min-w-0">
+                                                    <h3 className="font-black text-brand-950 text-lg leading-tight uppercase tracking-tight">
+                                                        {item.label}
+                                                    </h3>
+                                                    {item.submenu && item.submenu.length > 0 && (
+                                                        <p className="text-slate-400 text-xs font-bold truncate pr-4 mt-0.5">
+                                                            {item.submenu.length} sub-links
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="text-slate-300 text-xs font-bold uppercase tracking-widest shrink-0 pr-4">
+                                                {item.submenu && item.submenu.length > 0 ? 'Has submenu' : 'Direct link'}
+                                            </div>
+                                        </Reorder.Item>
+                                    ))}
+                                </Reorder.Group>
+                            ) : (
+                                <div className="text-center py-16 text-slate-400">
+                                    <Filter size={40} className="mx-auto mb-4 opacity-30" />
+                                    <p className="font-medium">No navigation items found.</p>
+                                </div>
+                            )}
+
+                            <div className="mt-12 p-8 bg-brand-950 rounded-[2.5rem] border border-brand-800 shadow-2xl flex items-start gap-6 relative overflow-hidden">
+                                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none" />
+                                <div className="w-14 h-14 bg-brand-500/20 backdrop-blur-xl border border-brand-500/30 rounded-2xl flex items-center justify-center text-brand-400 shadow-xl shrink-0">
+                                    <Globe size={28} />
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h4 className="font-black text-white text-xl">Cloud Global Sync</h4>
+                                        <div className="flex items-center gap-2 bg-brand-500/10 px-3 py-1 rounded-full border border-brand-500/20">
+                                            <div className="w-1.5 h-1.5 bg-brand-400 rounded-full animate-pulse" />
+                                            <span className="text-[10px] font-black text-brand-400 uppercase tracking-widest">Live Cloud Connection</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-brand-100/60 leading-relaxed font-medium">Reordering menu links syncs instantly to Firestore. All visitors see the new menu order on their next page load.</p>
                                 </div>
                             </div>
                         </motion.div>

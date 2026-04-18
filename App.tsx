@@ -50,7 +50,7 @@ import {
   CreditCard,
   Globe
 } from 'lucide-react';
-import { ViewState, User, UserRole, UserStatus } from './types';
+import { ViewState, User, UserRole, UserStatus, NavItem } from './types';
 import { Navbar } from './components/Navbar';
 import { Button } from './components/Button';
 import { AuthModal } from './components/AuthModal';
@@ -301,6 +301,29 @@ const App: React.FC = () => {
   const [showLeaderMessage, setShowLeaderMessage] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [heroEmail, setHeroEmail] = useState('');
+
+  const [navigationItems, setNavigationItems] = useState<NavItem[]>([
+    { label: 'HOME', view: ViewState.HOME },
+    {
+      label: 'HEBREW',
+      view: ViewState.ABOUT,
+      submenu: [
+        { label: 'Biblical Calendar', view: ViewState.HEBREW_CALENDAR },
+        { label: 'Hebrew Numbers', view: ViewState.HEBREW_NUMBERS },
+        { label: 'Festivals & Holy Days', view: ViewState.HEBREW_FESTIVALS },
+        { label: 'Month/Year Reference', view: ViewState.HEBREW_REFERENCE },
+      ]
+    },
+    { label: 'ALPHABETS', view: ViewState.HEBREW },
+    { label: 'VALPARAI', view: ViewState.ABOUT_VALPARAI },
+    { label: 'MINISTRIES', view: ViewState.MINISTRIES },
+    { label: 'MENORAH', view: ViewState.GOLDEN_MENORAH },
+    { label: 'BARUCH HASHEM', view: ViewState.BARUCH_HASHEM },
+    { label: 'AI ASSISTANCE', view: ViewState.AI },
+    { label: 'ENTRUST CARD', view: ViewState.ID_CARD },
+    { label: 'CONTACT', view: ViewState.CONTACT },
+  ]);
+
   const [homeSectionsOrder, setHomeSectionsOrder] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('cot_home_sections_order');
@@ -324,6 +347,21 @@ const App: React.FC = () => {
       }
     };
     fetchLayout();
+  }, []);
+
+  // Fetch navigation layout from Firestore on mount
+  useEffect(() => {
+    const fetchNavLayout = async () => {
+      try {
+        const remoteNav = await api.getNavigationLayout();
+        if (remoteNav && remoteNav.length > 0) {
+          setNavigationItems(remoteNav);
+        }
+      } catch (error) {
+        console.error('Failed to fetch remote navigation layout:', error);
+      }
+    };
+    fetchNavLayout();
   }, []);
 
 
@@ -620,7 +658,15 @@ const App: React.FC = () => {
             console.error('Failed to save layout to cloud:', error);
           }
         }}
-
+        navItems={navigationItems}
+        onUpdateNavItems={async (newItems) => {
+          setNavigationItems(newItems);
+          try {
+            await api.updateNavigationLayout(newItems);
+          } catch (error) {
+            console.error('Failed to save nav layout to cloud:', error);
+          }
+        }}
       />
     );
   }
@@ -638,6 +684,7 @@ const App: React.FC = () => {
         onLoginClick={() => setIsAuthOpen(true)}
         onLogoutClick={handleLogout}
         currentUser={currentUser}
+        navItems={navigationItems}
       />
 
       <AuthModal
@@ -939,6 +986,15 @@ const App: React.FC = () => {
                 onUpdateHomeSectionsOrder={(newOrder) => {
                   setHomeSectionsOrder(newOrder);
                   localStorage.setItem('home_section_order', JSON.stringify(newOrder));
+                }}
+                navItems={navigationItems}
+                onUpdateNavItems={async (newItems) => {
+                  setNavigationItems(newItems);
+                  try {
+                    await api.updateNavigationLayout(newItems);
+                  } catch (error) {
+                    console.error('Failed to save nav layout to cloud:', error);
+                  }
                 }}
                 onBack={() => setCurrentView(ViewState.HOME)}
               />
