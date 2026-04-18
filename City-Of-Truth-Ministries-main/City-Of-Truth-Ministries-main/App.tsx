@@ -53,15 +53,16 @@ import {
 import { ViewState, User, UserRole, UserStatus, NavItem } from './types';
 import { Navbar } from './components/Navbar';
 import { Button } from './components/Button';
-import { AuthModal } from './components/AuthModal';
+import { AuthPage } from './components/AuthPage';
 // Removed SpiritualAssistant import
 import { WorshipperIDCard, EntrustCard3D } from './components/WorshipperIDCard';
 import { GoldenMenorah } from './components/GoldenMenorah';
 import { GoldenMenorahPage } from './components/GoldenMenorahPage';
 import { AIPage } from './components/AIPage';
 // import { GlobalAIWidget } from './components/GlobalAIWidget';
-import { MinistryHighlights, HebrewSanctuaryIntro, ValparaiPresence, TestimonialHighlights, EntrustCardPreview, LeaderMessageSection } from './components/HomeSections';
+import { MinistryHighlights, HebrewSanctuaryIntro, ValparaiPresence, TestimonialHighlights, EntrustCardPreview, VerifyMembershipSection, UserStatsSection } from './components/HomeSections';
 import { MessageFromLeader } from './components/MessageFromLeader';
+import { PastorPage } from './components/PastorPage';
 import { HebrewAlphabetPage } from './components/HebrewAlphabetPage';
 import { MinistriesPage } from './components/MinistriesPage';
 import { BaruchHashemPage } from './components/BaruchHashemPage';
@@ -294,10 +295,9 @@ const App: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.HOME);
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [authInitialView, setAuthInitialView] = useState<'choice' | 'login' | 'register'>('choice');
   const [users, setUsers] = useState<User[]>([]);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [authInitialView, setAuthInitialView] = useState<'choice' | 'login' | 'register' | 'forgot-id'>('login');
   const [showLeaderMessage, setShowLeaderMessage] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [heroEmail, setHeroEmail] = useState('');
@@ -317,6 +317,7 @@ const App: React.FC = () => {
     { label: 'ALPHABETS', view: ViewState.HEBREW },
     { label: 'VALPARAI', view: ViewState.ABOUT_VALPARAI },
     { label: 'MINISTRIES', view: ViewState.MINISTRIES },
+    { label: 'PASTOR', view: ViewState.PASTOR },
     { label: 'MENORAH', view: ViewState.GOLDEN_MENORAH },
     { label: 'BARUCH HASHEM', view: ViewState.BARUCH_HASHEM },
     { label: 'AI ASSISTANCE', view: ViewState.AI },
@@ -374,6 +375,17 @@ const App: React.FC = () => {
       return null;
     }
   });
+
+  const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
+
+  // Sync activeProfileId with currentUser on login
+  useEffect(() => {
+    if (currentUser && !activeProfileId) {
+      setActiveProfileId(currentUser.id);
+    } else if (!currentUser) {
+      setActiveProfileId(null);
+    }
+  }, [currentUser]);
 
   // Scroll to top on view change
   useEffect(() => {
@@ -479,34 +491,64 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogin = (identifier: string) => {
+  const handleLogin = async (identifier: string) => {
     if (!identifier) {
       alert("Please enter your Member ID, Email, Phone, or Name.");
       return;
     }
 
-    const searchId = identifier.trim().toLowerCase();
+    const raw = identifier.trim();
+    const searchId = raw.toLowerCase();
 
-    // Multi-identifier login: Phone, Email, ID, or Name
-    const user = users.find(u => {
-      const uPhone = (u.phone || '').trim();
-      const uEmail = (u.email || '').trim().toLowerCase();
-      const uId = (u.id || '').trim().toLowerCase();
-      const uName = (u.name || '').trim().toLowerCase();
-      const uEmergency = (u.emergency || '').trim();
+    const findUser = (list: User[]) => {
+      // Multi-identifier login: Phone, Email, ID, or Name
+      const primary = list.find(u => {
+        const uPhone = (u.phone || '').trim();
+        const uEmail = (u.email || '').trim().toLowerCase();
+        const uId = (u.id || '').trim().toLowerCase();
+        const uName = (u.name || '').trim().toLowerCase();
+        const uEmergency = (u.emergency || '').trim();
 
-      return (
-        uPhone === identifier ||
-        uEmergency === identifier ||
-        uId === searchId ||
-        uEmail === searchId ||
-        uName === searchId
-      );
-    });
+        return (
+          uPhone === raw ||
+          uEmergency === raw ||
+          uId === searchId ||
+          uEmail === searchId ||
+          uName === searchId
+        );
+      });
+
+      if (primary) return primary;
+
+      // Allow login by linked profile ID/name
+      for (const u of list) {
+        const sub = u.linkedProfiles?.find(p => {
+          const pId = (p.id || '').trim().toLowerCase();
+          const pName = (p.name || '').trim().toLowerCase();
+          return pId === searchId || pName === searchId;
+        });
+        if (sub) {
+          return { ...u, id: sub.id, name: sub.name, role: sub.role, photo: sub.photo || u.photo } as User;
+        }
+      }
+
+      return null;
+    };
+
+    let user = findUser(users);
+
+    if (!user) {
+      try {
+        const fresh = await api.getUsers();
+        setUsers(fresh);
+        user = findUser(fresh);
+      } catch (e) {
+        console.error('Login lookup failed:', e);
+      }
+    }
 
     if (user) {
       setCurrentUser(user);
-      setIsAuthOpen(false);
       setCurrentView(ViewState.USER_DASHBOARD);
     } else {
       alert("Account not found. Please check your Member ID, Email, Phone, or Name.");
@@ -523,7 +565,7 @@ const App: React.FC = () => {
 
     if (existingUser) {
       alert("User already exists with this phone, email, or ID! Please Login.");
-      setIsAuthOpen(true);
+      setCurrentView(ViewState.AUTH);
       return;
     }
 
@@ -546,7 +588,6 @@ const App: React.FC = () => {
       const savedUser = await api.createUser(newUser);
       setUsers([...users, savedUser]);
       setCurrentUser(savedUser);
-      setIsAuthOpen(false);
 
       // --- EMAILJS INTEGRATION (Using User Provided Keys) ---
       const EMAILJS_SERVICE_ID = 'service_wcxaetv';
@@ -676,36 +717,33 @@ const App: React.FC = () => {
     return <QRVerifyPage userId={verifyUserId} onBack={() => navigate('/')} />;
   }
 
+
+
   return (
     <div className={`min-h-screen transition-colors duration-1000 ease-in-out font-sans ${getThemeClass()}`}>
       <Navbar
         currentView={currentView}
         setView={setCurrentView}
-        onLoginClick={() => setIsAuthOpen(true)}
+        onLoginClick={() => { setAuthInitialView('login'); setCurrentView(ViewState.AUTH); }}
         onLogoutClick={handleLogout}
         currentUser={currentUser}
         navItems={navigationItems}
       />
-
-      <AuthModal
-        isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
-        onLogin={handleLogin}
-        onRegister={handleRegister}
-        onFindID={handleFindID}
-        onNavigateToRegister={() => {
-          setIsAuthOpen(false);
-          setCurrentView(ViewState.ID_CARD);
-        }}
-        onAdminClick={() => {
-          setIsAuthOpen(false);
-          navigate('/admin');
-        }}
-        initialView={authInitialView}
-      />
-
       <main className="relative">
         <AnimatePresence mode="wait">
+          {currentView === ViewState.AUTH && (
+            <motion.div key="auth" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <AuthPage
+                onLogin={handleLogin}
+                onNavigateToRegister={() => setCurrentView(ViewState.ID_CARD)}
+                onAdminClick={() => navigate('/admin')}
+                onBack={() => setCurrentView(ViewState.HOME)}
+                initialView={authInitialView as any || 'choice'}
+                users={users}
+              />
+            </motion.div>
+          )}
+
           {currentView === ViewState.HOME && (
             <motion.div
               key="home"
@@ -733,6 +771,7 @@ const App: React.FC = () => {
                     </div>
 
                     <div className="flex flex-col items-center justify-center mb-10 relative">
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] h-[90%] bg-accent-500/20 blur-[100px] rounded-full -z-10"></div>
                       <h2 className="text-lg md:text-3xl text-brand-100 font-serif italic tracking-wide mb-3 drop-shadow-md">City of Truth Ministries</h2>
                       <h1 className="font-bold tracking-tight leading-none py-2 md:py-4">
                         <span className="block text-4xl sm:text-8xl md:text-9xl text-transparent bg-clip-text bg-gradient-to-b from-brand-50 via-brand-100 to-brand-200 drop-shadow-2xl pb-2 md:pb-4">சத்திய நகரம்</span>
@@ -750,7 +789,7 @@ const App: React.FC = () => {
                                 Register Now
                               </Button>
                               <Button
-                                onClick={() => { setAuthInitialView('login'); setIsAuthOpen(true); }}
+                                onClick={() => { setAuthInitialView('login'); setCurrentView(ViewState.AUTH); }}
                                 className="w-full sm:w-auto px-5 py-2.5 sm:px-10 sm:py-5 text-[9px] sm:text-sm uppercase tracking-[0.2em] font-black text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 hover:border-white/60 hover:scale-105 active:scale-95 rounded-full transition-all duration-300"
                               >
                                 Login
@@ -950,9 +989,15 @@ const App: React.FC = () => {
             </motion.div>
           )}
 
+          {currentView === ViewState.PASTOR && (
+            <motion.div key="pastor" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <PastorPage />
+            </motion.div>
+          )}
+
           {currentView === ViewState.ID_CARD && (
             <motion.div key="id-card" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <WorshipperIDCard onRegister={handleRegister} onLogin={() => { setAuthInitialView('login'); setIsAuthOpen(true); }} />
+              <WorshipperIDCard onRegister={handleRegister} onLogin={() => { setAuthInitialView('login'); setCurrentView(ViewState.AUTH); }} />
             </motion.div>
           )}
 
@@ -965,6 +1010,32 @@ const App: React.FC = () => {
           {currentView === ViewState.AI && (
             <motion.div key="ai" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <AIPage onBack={() => setCurrentView(ViewState.HOME)} />
+            </motion.div>
+          )}
+
+          {currentView === ViewState.USER_DASHBOARD && currentUser && (
+            <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <UserDashboard
+                user={currentUser}
+                onEdit={() => { }}
+                onLogout={handleLogout}
+                onUpdate={async (updatedUser) => {
+                  try {
+                    await api.updateUser(updatedUser);
+                    // Update both lists to keep everything in sync
+                    const freshData = await api.getUsers();
+                    setUsers(freshData);
+                    const me = freshData.find(u => u.id === currentUser.id);
+                    if (me) setCurrentUser(me);
+                  } catch (err) {
+                    console.error('Failed to update user', err);
+                  }
+                }}
+                setShowLeaderMessage={setShowLeaderMessage}
+                setCurrentView={setCurrentView}
+                activeProfileId={activeProfileId || currentUser.id}
+                onProfileSwitch={setActiveProfileId}
+              />
             </motion.div>
           )}
 
@@ -1000,23 +1071,20 @@ const App: React.FC = () => {
             </motion.div>
           )}
 
-          {currentView === ViewState.USER_DASHBOARD && currentUser && (
-            <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <UserDashboard
-                user={currentUser}
-                onEdit={() => { }}
-                onLogout={handleLogout}
-                onUpdate={async (updatedUser) => {
-                  await api.updateUser(updatedUser);
-                  setCurrentUser(updatedUser);
-                  setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
-                  alert("Profile Updated Successfully!");
-                }}
-              />
-            </motion.div>
+
+          {currentView === ViewState.AUTH && (
+            <AuthPage
+              initialView={authInitialView}
+              onLogin={handleLogin}
+              onNavigateToRegister={() => {
+                setAuthInitialView('choice');
+                setCurrentView(ViewState.AUTH);
+              }}
+              onAdminClick={() => navigate('/admin')}
+              onBack={() => setCurrentView(ViewState.HOME)}
+              users={users}
+            />
           )}
-
-
 
           {currentView === ViewState.VERIFY_ID && (
             <motion.div key="verify-id" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
@@ -1050,7 +1118,7 @@ const App: React.FC = () => {
                         whileHover={{ scale: 1.02 }}
                         className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-6"
                       >
-                        <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shrink-0">
+                        <div className="w-14 h-14 bg-brand-50 text-brand-600 rounded-2xl flex items-center justify-center shrink-0">
                           <MapPin size={24} />
                         </div>
                         <div>
@@ -1180,8 +1248,6 @@ const App: React.FC = () => {
         </AnimatePresence>
       </main>
       <footer className="bg-brand-950 text-white pt-32 pb-16 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10"></div>
-        <div className="absolute bottom-0 left-0 w-full h-[500px] bg-gradient-to-t from-black/80 to-transparent"></div>
 
         <div className="container mx-auto px-6 relative z-10">
           <div className="grid md:grid-cols-4 gap-12 mb-20">
@@ -1203,7 +1269,7 @@ const App: React.FC = () => {
                   { Icon: Facebook, href: "https://facebook.com/cityoftruthministries" },
                   { Icon: Instagram, href: "https://instagram.com/cityoftruthministries" }
                 ].map(({ Icon, href }, i) => (
-                  <a key={i} href={href} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white hover:text-brand-950 transition-all border border-white/10">
+                  <a key={i} href={href} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-brand-900 flex items-center justify-center hover:bg-white hover:text-brand-950 transition-all border border-white/10">
                     <Icon size={18} />
                   </a>
                 ))}
@@ -1234,10 +1300,10 @@ const App: React.FC = () => {
 
               <p className="text-sm text-brand-100/60 mb-4">Join our mailing list for weekly inspiration.</p>
               <div className="flex gap-2 mb-2">
-                <input 
-                  type="email" 
-                  placeholder="Your Email" 
-                  className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:bg-white/10 transition-colors w-full" 
+                <input
+                  type="email"
+                  placeholder="Your Email"
+                  className="bg-brand-900 border border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:bg-brand-900/80 transition-colors w-full"
                   onFocus={() => setShowLeaderMessage(true)}
                   onChange={(e) => {
                     if (e.target.value.length > 0) setShowLeaderMessage(true);
@@ -1255,7 +1321,7 @@ const App: React.FC = () => {
             <div className="text-center md:text-left space-y-4">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-100/30">&copy; 2026 City of Truth Ministries • Valparai Sanctuary</p>
 
-              <div className="inline-flex items-center gap-3 bg-white/[0.03] hover:bg-white/[0.08] px-5 py-2.5 rounded-full border border-white/5 transition-colors cursor-default group backdrop-blur-sm">
+              <div className="inline-flex items-center gap-3 bg-brand-900 px-5 py-2.5 rounded-full border border-white/5 transition-colors cursor-default group">
                 <Sparkles size={14} className="text-amber-300/60 group-hover:text-amber-400 group-hover:rotate-12 transition-all" />
                 <span className="text-[10px] text-brand-100/40 uppercase tracking-widest font-medium">Designed by</span>
                 <span className="text-sm font-serif font-bold bg-gradient-to-r from-amber-200 via-yellow-200 to-amber-200 bg-clip-text text-transparent tracking-wide group-hover:from-amber-100 group-hover:via-white group-hover:to-amber-100 transition-all">S.Shaveesh Jeshurun</span>
@@ -1390,7 +1456,7 @@ const App: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
-    </div >
+    </div>
   );
 }
 

@@ -733,6 +733,7 @@ const App: React.FC = () => {
                     </div>
 
                     <div className="flex flex-col items-center justify-center mb-10 relative">
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] h-[90%] bg-accent-500/20 blur-[100px] rounded-full -z-10"></div>
                       <h2 className="text-lg md:text-3xl text-brand-100 font-serif italic tracking-wide mb-3 drop-shadow-md">City of Truth Ministries</h2>
                       <h1 className="font-bold tracking-tight leading-none py-2 md:py-4">
                         <span className="block text-4xl sm:text-8xl md:text-9xl text-transparent bg-clip-text bg-gradient-to-b from-brand-50 via-brand-100 to-brand-200 drop-shadow-2xl pb-2 md:pb-4">சத்திய நகரம்</span>

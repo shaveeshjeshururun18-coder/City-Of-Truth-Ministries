@@ -66,9 +66,25 @@
         scrollbar-width: none;
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-kApRUHYx.js"></script>
+    <script type="module" crossorigin src="/assets/index-C2R7Ji-4.js"></script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"></div>
+    <script>
+      window.addEventListener('error', function(e) {
+        if (!(e instanceof ErrorEvent)) return; // Ignore image load errors
+        var errDiv = document.createElement('div');
+        errDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;padding:20px;background:#ffebee;color:#c62828;z-index:99999;font-family:monospace;white-space:pre-wrap;border-bottom:4px solid #b71c1c;';
+        errDiv.innerHTML = '<strong>RUNTIME CRASH DETECTED:</strong><br/>' + (e.message || e.error) + '<br/>File: ' + e.filename + ':' + e.lineno + '<br/>Stack: ' + (e.error ? e.error.stack : '');
+        document.body.appendChild(errDiv);
+      }, true);
+      // Catch unhandled promise rejections
+      window.addEventListener('unhandledrejection', function(e) {
+        var errDiv = document.createElement('div');
+        errDiv.style.cssText = 'position:fixed;bottom:0;left:0;right:0;padding:20px;background:#fff3e0;color:#e65100;z-index:99999;font-family:monospace;white-space:pre-wrap;border-top:4px solid #e65100;';
+        errDiv.innerHTML = '<strong>UNHANDLED PROMISE:</strong><br/>' + e.reason;
+        document.body.appendChild(errDiv);
+      });
+    </script>
   </body>
 </html>

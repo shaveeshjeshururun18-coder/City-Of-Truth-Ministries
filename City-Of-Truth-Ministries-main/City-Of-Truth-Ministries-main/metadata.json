@@ -1,0 +1,8 @@
+{
+  "name": "City of Truth Ministries",
+  "description": "A modern, spiritually uplifting web platform for City of Truth Ministries, featuring a Bible-based AI spiritual companion, service details, and ministry information.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
