@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Send, BookOpen, Stars } from 'lucide-react';
-import { getSpiritualEncouragementAI } from '../services/openRouterService';
+import { generateSpatulaAIResponse } from '../services/openRouterService';
 import { Button } from './Button';
 
 export const SpiritualAssistant: React.FC = () => {
@@ -16,7 +16,7 @@ export const SpiritualAssistant: React.FC = () => {
 
     setLoading(true);
     setResponse(null);
-    const result = await getSpiritualEncouragementAI(topic);
+    const result = await generateSpatulaAIResponse(topic);
     setResponse(result);
     setLoading(false);
   };

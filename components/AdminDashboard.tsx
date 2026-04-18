@@ -3,7 +3,7 @@ import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import {
     Users, UserCheck, UserX, Clock, Search, Edit2, Trash2, X, User as UserIcon, ShieldAlert,
     ChevronLeft, ChevronRight, Filter, Mail, Phone, MapPin, Droplet,
-    Calendar, Award, Shield, AlertCircle, CheckCircle, QrCode, Download,
+    Calendar, Award, Shield, ShieldCheck, AlertCircle, CheckCircle, QrCode, Download,
     Save, GripVertical, Globe, Plus, ImagePlus, Camera, Image as ImageIcon, MessageSquare, Check, XCircle
 } from 'lucide-react';
 import { User, UserRole, UserStatus, Testimonial, Ministry } from '../types';
@@ -20,13 +20,32 @@ interface AdminDashboardProps {
     onUpdateUser: (user: User) => Promise<void>;
     onDeleteUser: (userId: string) => Promise<void>;
     onBack: () => void;
+    homeSectionsOrder: string[];
+    onUpdateHomeSectionsOrder: (newOrder: string[]) => Promise<void>;
 }
+
+const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any; color: string }> = {
+    hero: { name: 'Hero Welcome', desc: 'Main entrance with video & primary CTA', icon: Globe, color: 'bg-brand-500' },
+    about: { name: 'About Ministry', desc: 'Mission, vision and core values', icon: Users, color: 'bg-blue-500' },
+    menorah: { name: 'Golden Menorah', desc: 'Spiritual significance and flag', icon: Award, color: 'bg-amber-500' },
+    highlights: { name: 'Ministry Moments', desc: 'Global highlights and focus', icon: ImagePlus, color: 'bg-sky-500' },
+    leader: { name: 'Leader Message', desc: 'Direct word from ministry leadership', icon: ShieldCheck, color: 'bg-indigo-500' },
+    hebrew: { name: 'Hebrew Sanctuary', desc: 'Language and spiritual resources', icon: Mail, color: 'bg-rose-500' },
+    valparai: { name: 'Valparai Presence', desc: 'Local impact and community', icon: MapPin, color: 'bg-emerald-500' },
+    testimonials: { name: 'Voices of Faith', desc: 'Member stories and testimonies', icon: MessageSquare, color: 'bg-teal-500' },
+    preview: { name: 'Entrust Preview', desc: 'Quick overview of community card', icon: Phone, color: 'bg-violet-500' },
+    verify: { name: 'Verify ID', desc: 'Security and verification portal', icon: CheckCircle, color: 'bg-slate-500' }
+};
+
+
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     users,
     onUpdateUser,
     onDeleteUser,
-    onBack
+    onBack,
+    homeSectionsOrder,
+    onUpdateHomeSectionsOrder
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState<UserStatus | 'All'>('All');
@@ -42,7 +61,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
     const [downloadingCardUserId, setDownloadingCardUserId] = useState<string | null>(null);
 
-    const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout'>('users');
     const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
     const [ministries, setMinistries] = useState<Ministry[]>([]);
     const [editingMinistry, setEditingMinistry] = useState<Partial<Ministry> | null>(null);
@@ -415,6 +434,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         >
                             <div className="flex items-center gap-2">
                                 <QrCode size={16} /> ID Cards
+                            </div>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('home-layout')}
+                            className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === 'home-layout'
+                                ? 'bg-brand-600 text-white'
+                                : 'bg-white text-slate-600 hover:bg-slate-50'
+                                }`}
+                        >
+                            <div className="flex items-center gap-2">
+                                <GripVertical size={16} /> Home Layout
                             </div>
                         </button>
                     </div>
@@ -1052,6 +1082,109 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         )}
                     </div>
                 )}
+
+                {activeTab === 'home-layout' && (
+                    <div className="max-w-3xl mx-auto">
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl border-b-8 border-b-brand-600"
+                        >
+                            <div className="flex items-center justify-between mb-10">
+                                <div>
+                                    <h2 className="text-3xl font-serif font-black text-brand-950">Visual Layout Editor</h2>
+                                    <p className="text-slate-500 mt-2 text-sm font-medium">Reorder the home page "seamlessly" by dragging the cards below.</p>
+                                </div>
+                                <div className="flex gap-3">
+                                    <button 
+                                        onClick={() => {
+                                            if (window.confirm("Apsolutely sure? This resets the home page for EVERYONE.")) {
+                                                onUpdateHomeSectionsOrder(['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'valparai', 'testimonials', 'preview', 'verify']);
+                                            }
+                                        }}
+                                        className="px-6 py-2.5 text-[10px] font-black uppercase tracking-[2px] text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-2xl transition-all border border-transparent hover:border-brand-100"
+                                    >
+                                        Factory Reset
+                                    </button>
+                                    <div className="w-14 h-14 bg-brand-50 text-brand-600 rounded-[1.25rem] flex items-center justify-center shadow-inner border border-brand-100">
+                                        <GripVertical size={28} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <Reorder.Group
+                                axis="y"
+                                values={homeSectionsOrder}
+                                onReorder={onUpdateHomeSectionsOrder}
+                                className="space-y-4"
+                            >
+                                {homeSectionsOrder.map((sectionId) => {
+                                    const info = HOME_SECTIONS_INFO[sectionId] || { name: sectionId, desc: 'Home component', icon: Globe, color: 'bg-brand-500' };
+                                    const Icon = info.icon;
+                                    
+                                    return (
+                                        <Reorder.Item
+                                            key={sectionId}
+                                            value={sectionId}
+                                            dragListener={true}
+                                            whileDrag={{ scale: 1.02, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)" }}
+                                            className="bg-white p-5 rounded-[2rem] border border-slate-100 flex items-center gap-6 group hover:border-brand-300 hover:shadow-lg transition-all cursor-grab active:cursor-grabbing relative overflow-hidden"
+                                        >
+                                            <div className="absolute top-0 right-0 w-24 h-24 bg-brand-50/30 rounded-full -mr-12 -mt-12 transition-all group-hover:scale-150 pointer-events-none" />
+                                            
+                                            <div className="flex items-center gap-5 flex-1 relative z-10">
+                                                <div className="text-slate-300 group-hover:text-brand-500 transition-colors shrink-0">
+                                                    <GripVertical size={24} />
+                                                </div>
+                                                
+                                                <div className={`w-14 h-14 ${info.color} rounded-2xl flex items-center justify-center text-white shadow-lg`}>
+                                                    <Icon size={24} strokeWidth={2.5} />
+                                                </div>
+
+                                                <div className="min-w-0">
+                                                    <h3 className="font-black text-brand-950 text-lg leading-tight uppercase tracking-tight">
+                                                        {info.name}
+                                                    </h3>
+                                                    <p className="text-slate-400 text-xs font-bold truncate pr-4">
+                                                        {info.desc}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-3 relative z-10">
+                                                <div className="hidden sm:block text-[9px] font-black uppercase tracking-widest text-slate-300 group-hover:text-brand-400 transition-colors bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
+                                                    {sectionId === 'hero' ? 'Top Section' : 'Live Section'}
+                                                </div>
+                                                <div className="w-8 h-8 rounded-full border-2 border-slate-100 flex items-center justify-center text-slate-300 group-hover:border-brand-200 group-hover:text-brand-500 transition-all opacity-0 group-hover:opacity-100">
+                                                    <ChevronRight size={16} />
+                                                </div>
+                                            </div>
+                                        </Reorder.Item>
+                                    );
+                                })}
+                            </Reorder.Group>
+
+                            <div className="mt-12 p-8 bg-brand-950 rounded-[2.5rem] border border-brand-800 shadow-2xl flex items-start gap-6 relative overflow-hidden">
+                                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none" />
+                                <div className="w-14 h-14 bg-brand-500/20 backdrop-blur-xl border border-brand-500/30 rounded-2xl flex items-center justify-center text-brand-400 shadow-xl shrink-0">
+                                    <Globe size={28} className="animate-spin-slow" />
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h4 className="font-black text-white text-xl">Cloud Global Sync</h4>
+                                        <div className="flex items-center gap-2 bg-brand-500/10 px-3 py-1 rounded-full border border-brand-500/20">
+                                            <div className="w-1.5 h-1.5 bg-brand-400 rounded-full animate-pulse" />
+                                            <span className="text-[10px] font-black text-brand-400 uppercase tracking-widest">Live Cloud Connection</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-brand-100/60 leading-relaxed font-medium">Any changes you make here are synchronized in real-time across all visitor devices worldwide. Precision engineering for a seamless experience.</p>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+
+
             </div>
 
             {/* Edit Modal */}
@@ -1100,14 +1233,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 ) : (
                                     <div className="flex flex-col items-center mb-6">
                                         <div className="relative group">
-                                            <div className="w-28 h-28 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border-4 border-white shadow-lg transition-transform group-hover:scale-105">
+                                            <div className="w-28 h-28 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border-4 border-white shadow-lg transition-transform group-hover:scale-105 relative">
                                                 {editingUser.photo ? (
-                                                    <img src={editingUser.photo} alt={editingUser.name} className="w-full h-full object-cover" />
+                                                    <>
+                                                        <img src={editingUser.photo} alt={editingUser.name} className="w-full h-full object-cover" />
+                                                        <div 
+                                                            className="absolute inset-0 bg-brand-950/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer text-white backdrop-blur-sm"
+                                                            onClick={() => {
+                                                                setCropImage(editingUser.photo!);
+                                                                setIsCropping(true);
+                                                            }}
+                                                            title="Recrop Photo"
+                                                        >
+                                                            <ImageIcon size={20} className="mb-1" />
+                                                            <span className="text-[8px] font-black uppercase tracking-widest text-center">Crop</span>
+                                                        </div>
+                                                    </>
                                                 ) : (
                                                     <span className="text-3xl font-bold text-slate-400">{editingUser.name.charAt(0)}</span>
                                                 )}
                                             </div>
-                                            <label className="absolute bottom-0 right-0 w-10 h-10 bg-brand-600 text-white rounded-full border-4 border-white flex items-center justify-center cursor-pointer hover:bg-brand-700 transition-colors shadow-lg">
+                                            <label className="absolute bottom-0 right-0 w-10 h-10 bg-brand-600 text-white rounded-full border-4 border-white flex items-center justify-center cursor-pointer hover:bg-brand-700 transition-colors shadow-lg" title="Change Photo">
                                                 <Camera size={18} />
                                                 <input
                                                     type="file"
@@ -1117,7 +1263,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 />
                                             </label>
                                         </div>
-                                        <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest">Click camera to change photo</p>
+                                        <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest text-center">
+                                            Click camera to change<br/>or click photo to recrop
+                                        </p>
                                     </div>
                                 )}
 

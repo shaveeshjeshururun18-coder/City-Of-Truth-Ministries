@@ -61,6 +61,7 @@ import { GoldenMenorahPage } from './components/GoldenMenorahPage';
 import { AIPage } from './components/AIPage';
 // import { GlobalAIWidget } from './components/GlobalAIWidget';
 import { MinistryHighlights, HebrewSanctuaryIntro, ValparaiPresence, TestimonialHighlights, EntrustCardPreview, LeaderMessageSection } from './components/HomeSections';
+import { MessageFromLeader } from './components/MessageFromLeader';
 import { HebrewAlphabetPage } from './components/HebrewAlphabetPage';
 import { MinistriesPage } from './components/MinistriesPage';
 import { BaruchHashemPage } from './components/BaruchHashemPage';
@@ -69,8 +70,10 @@ import { ValparaiPage } from './components/ValparaiPage';
 import { AdminPasswordModal } from './components/AdminPasswordModal';
 import { AdminDashboard } from './components/AdminDashboard';
 import { HebrewResources } from './components/HebrewResources';
+import { QRVerifyPage } from './components/QRVerifyPage';
 
 import AIChatAssistant from './components/AIChatAssistant';
+import VerifyIDPage from './components/VerifyIDPage';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { BottomNav } from './components/BottomNav';
 
@@ -295,6 +298,34 @@ const App: React.FC = () => {
   const [authInitialView, setAuthInitialView] = useState<'choice' | 'login' | 'register'>('choice');
   const [users, setUsers] = useState<User[]>([]);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [showLeaderMessage, setShowLeaderMessage] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [heroEmail, setHeroEmail] = useState('');
+  const [homeSectionsOrder, setHomeSectionsOrder] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('cot_home_sections_order');
+      return saved ? JSON.parse(saved) : ['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'valparai', 'testimonials', 'preview', 'verify'];
+    } catch (e) {
+      return ['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'valparai', 'testimonials', 'preview', 'verify'];
+    }
+  });
+
+  // Fetch home layout from Firestore on mount
+  useEffect(() => {
+    const fetchLayout = async () => {
+      try {
+        const remoteLayout = await api.getHomeLayout();
+        if (remoteLayout && remoteLayout.length > 0) {
+          setHomeSectionsOrder(remoteLayout);
+          localStorage.setItem('cot_home_sections_order', JSON.stringify(remoteLayout));
+        }
+      } catch (error) {
+        console.error('Failed to fetch remote home layout:', error);
+      }
+    };
+    fetchLayout();
+  }, []);
+
 
   // Load currentUser from localStorage on mount
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
@@ -328,6 +359,33 @@ const App: React.FC = () => {
       fetchLatestUser();
     }
   }, [currentView, currentUser?.id]);
+  // Check for newly approved users (admin turned status to 'Active')
+  useEffect(() => {
+    if (currentUser) {
+      const checkApproval = async () => {
+        try {
+          const freshData = await api.getUsers();
+          const me = freshData.find(u => u.id === currentUser.id);
+          if (me) {
+            const wasJustApproved =
+              me.status === 'Active' &&
+              currentUser.status !== 'Active' &&
+              !localStorage.getItem(`cot_celebrated_${currentUser.id}`);
+            if (wasJustApproved) {
+              setCurrentUser(me);
+              setShowCelebration(true);
+              setCurrentView(ViewState.HOME);
+              localStorage.setItem(`cot_celebrated_${me.id}`, '1');
+            } else if (me.status !== currentUser.status) {
+              setCurrentUser(me);
+            }
+          }
+        } catch (e) { /* silent */ }
+      };
+      const interval = setInterval(checkApproval, 15000);
+      return () => clearInterval(interval);
+    }
+  }, [currentUser?.id, currentUser?.status]);
 
   // Ensure currentUser stays in sync with users list (e.g. after Admin updates)
   useEffect(() => {
@@ -360,6 +418,10 @@ const App: React.FC = () => {
 
   // Check if on admin route
   const isAdminRoute = location.pathname === '/admin';
+  // Check if on verify route
+  const verifyMatch = location.pathname.match(/^\/verify\/(.+)$/);
+  const isVerifyRoute = !!verifyMatch;
+  const verifyUserId = verifyMatch ? verifyMatch[1] : null;
 
   const getThemeClass = () => {
     switch (currentView) {
@@ -548,8 +610,24 @@ const App: React.FC = () => {
         }}
         onDeleteUser={handleDeleteUser}
         onBack={handleBackFromAdmin}
+        homeSectionsOrder={homeSectionsOrder}
+        onUpdateHomeSectionsOrder={async (newOrder) => {
+          setHomeSectionsOrder(newOrder);
+          localStorage.setItem('cot_home_sections_order', JSON.stringify(newOrder));
+          try {
+            await api.updateHomeLayout(newOrder);
+          } catch (error) {
+            console.error('Failed to save layout to cloud:', error);
+          }
+        }}
+
       />
     );
+  }
+
+  // If on verify route (QR code scan)
+  if (isVerifyRoute && verifyUserId) {
+    return <QRVerifyPage userId={verifyUserId} onBack={() => navigate('/')} />;
   }
 
   return (
@@ -586,7 +664,11 @@ const App: React.FC = () => {
               key="home"
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
             >
-              <section className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden py-20">
+              {homeSectionsOrder.map((sectionId) => {
+                switch (sectionId) {
+                  case 'hero':
+                    return (
+                      <section key="hero" className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden py-20">
                 <div className="absolute inset-0 z-0">
                   <img
                     src="https://images.unsplash.com/photo-1438232992991-995b7058bbb3?q=80&w=2673&auto=format&fit=crop"
@@ -607,26 +689,61 @@ const App: React.FC = () => {
                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] h-[90%] bg-accent-500/20 blur-[100px] rounded-full -z-10"></div>
                       <h2 className="text-lg md:text-3xl text-brand-100 font-serif italic tracking-wide mb-3 drop-shadow-md">City of Truth Ministries</h2>
                       <h1 className="font-bold tracking-tight leading-none py-2 md:py-4">
-                        <span className="block text-5xl sm:text-8xl md:text-9xl text-transparent bg-clip-text bg-gradient-to-b from-brand-50 via-brand-100 to-brand-200 drop-shadow-2xl pb-2 md:pb-4">சத்திய நகரம்</span>
+                        <span className="block text-4xl sm:text-8xl md:text-9xl text-transparent bg-clip-text bg-gradient-to-b from-brand-50 via-brand-100 to-brand-200 drop-shadow-2xl pb-2 md:pb-4">சத்திய நகரம்</span>
                         <span className="block text-2xl sm:text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-br from-white via-accent-100 to-brand-300 mt-1 md:mt-2 tracking-tighter">ஊழியங்கள்</span>
                       </h1>
                     </div>
 
                     <p className="text-base md:text-xl text-brand-50/80 max-w-2xl mx-auto mb-12 leading-relaxed font-light font-serif italic px-6">"Then you will know the truth, and the truth will set you free." <br />— John 8:32</p>
 
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-6 w-full px-6 sm:px-0">
-                      <Button
-                        onClick={() => setCurrentView(ViewState.ID_CARD)}
-                        className="w-full sm:w-auto px-12 py-5 text-sm uppercase tracking-[0.2em] font-black text-white bg-gradient-to-r from-brand-600 via-accent-500 to-brand-600 bg-[length:200%_auto] hover:bg-right transition-all duration-500 border-none shadow-[0_0_30px_rgba(79,70,229,0.3)] hover:shadow-[0_0_50px_rgba(79,70,229,0.5)] hover:scale-105 active:scale-95 rounded-full ring-2 ring-white/20"
-                      >
-                        Register Now
-                      </Button>
-                    </div>
-                  </motion.div>
-                </div>
-              </section>
+                            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full px-6 sm:px-0 mt-4 md:mt-0">
+                              <Button
+                                onClick={() => setCurrentView(ViewState.ID_CARD)}
+                                className="w-full sm:w-auto px-5 py-2.5 sm:px-12 sm:py-5 text-[9px] sm:text-sm uppercase tracking-[0.2em] font-black text-white bg-gradient-to-r from-brand-600 via-accent-500 to-brand-600 bg-[length:200%_auto] hover:bg-right transition-all duration-500 border-none shadow-[0_0_30px_rgba(79,70,229,0.3)] hover:shadow-[0_0_50px_rgba(79,70,229,0.5)] hover:scale-105 active:scale-95 rounded-full ring-2 ring-white/20"
+                              >
+                                Register Now
+                              </Button>
+                              <Button
+                                onClick={() => { setAuthInitialView('login'); setIsAuthOpen(true); }}
+                                className="w-full sm:w-auto px-5 py-2.5 sm:px-10 sm:py-5 text-[9px] sm:text-sm uppercase tracking-[0.2em] font-black text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 hover:border-white/60 hover:scale-105 active:scale-95 rounded-full transition-all duration-300"
+                              >
+                                Login
+                              </Button>
+                            </div>
 
-              <section className="py-24 bg-gray-50 overflow-hidden relative">
+                            {/* Email → leader message trigger */}
+                            <div className="mt-8 flex flex-col items-center gap-2">
+                              <div className="flex bg-white/10 backdrop-blur-sm border border-white/20 rounded-full overflow-hidden shadow-lg w-full max-w-sm">
+                                <input
+                                  type="email"
+                                  placeholder="Enter your email..."
+                                  value={heroEmail}
+                                  onChange={e => setHeroEmail(e.target.value)}
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter' && heroEmail.trim()) {
+                                      setShowLeaderMessage(true);
+                                    }
+                                  }}
+                                  className="flex-1 bg-transparent text-white placeholder:text-white/40 text-sm px-5 py-3 outline-none font-light"
+                                />
+                                <button
+                                  disabled={!heroEmail.trim()}
+                                  onClick={() => { if (heroEmail.trim()) setShowLeaderMessage(true); }}
+                                  className="bg-white/20 hover:bg-white/30 text-white font-bold text-xs uppercase tracking-wide px-5 py-3 transition-colors disabled:opacity-40"
+                                >
+                                  A Message
+                                </button>
+                              </div>
+                              <p className="text-white/30 text-[10px]">Enter email to receive a message from our leader</p>
+                            </div>
+
+                          </motion.div>
+                        </div>
+                      </section>
+                    );
+                  case 'about':
+                    return (
+                      <section key="about" className="py-24 bg-gray-50 overflow-hidden relative">
                 <div className="absolute top-0 right-0 w-[40%] h-full bg-white -skew-x-12 translate-x-32 z-0 hidden lg:block"></div>
                 <div className="container mx-auto px-6 relative z-10">
                   <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
@@ -673,15 +790,63 @@ const App: React.FC = () => {
                   </div>
                 </div>
               </section>
-
-              <GoldenMenorah onPreviewClick={() => setCurrentView(ViewState.GOLDEN_MENORAH)} />
-
-              <MinistryHighlights setView={setCurrentView} />
-              <LeaderMessageSection setView={setCurrentView} />
-              <HebrewSanctuaryIntro setView={setCurrentView} />
-              <ValparaiPresence setView={setCurrentView} />
-              <TestimonialHighlights setView={setCurrentView} />
-              <EntrustCardPreview setView={setCurrentView} />
+            );
+          case 'menorah': return <GoldenMenorah key="menorah" onPreviewClick={() => setCurrentView(ViewState.GOLDEN_MENORAH)} />;
+          case 'highlights': return <MinistryHighlights key="highlights" setView={setCurrentView} />;
+          case 'leader': return null; // Leader message is now a fixed overlay triggered by email input
+          case 'hebrew': return <HebrewSanctuaryIntro key="hebrew" setView={setCurrentView} />;
+          case 'valparai': return <ValparaiPresence key="valparai" setView={setCurrentView} />;
+          case 'testimonials': return <TestimonialHighlights key="testimonials" setView={setCurrentView} />;
+          case 'preview': return <EntrustCardPreview key="preview" setView={setCurrentView} />;
+          case 'verify':
+            return (
+              <section key="verify" className="py-24 bg-white relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-500 via-accent-500 to-brand-500" />
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(99,102,241,0.04)_0%,transparent_60%)] pointer-events-none" />
+                <div className="container mx-auto px-6 relative z-10">
+                  <div className="text-center mb-16">
+                    <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+                      <span className="inline-flex items-center gap-2 px-4 py-2 bg-brand-50 text-brand-600 rounded-full text-xs font-black uppercase tracking-widest mb-6 border border-brand-100">
+                        <ShieldCheck size={14} /> Member Verification
+                      </span>
+                      <h2 className="text-4xl md:text-5xl font-serif font-black text-brand-950 mb-4">Verify Your Membership</h2>
+                      <p className="text-slate-500 max-w-xl mx-auto font-medium">Confirm your City of Truth membership status through any of these official methods.</p>
+                    </motion.div>
+                  </div>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+                    {[
+                      { icon: UserIcon, label: 'Login to Account', desc: 'Access your personal dashboard with your Member ID, phone, or email.', color: 'from-brand-500 to-brand-700', light: 'bg-brand-50 text-brand-600', action: () => { setAuthInitialView('login'); setIsAuthOpen(true); }, cta: 'Login Now' },
+                      { icon: UploadCloud, label: 'Upload Entrust PDF', desc: 'Upload your Entrust Card PDF to verify your membership document.', color: 'from-accent-500 to-accent-700', light: 'bg-accent-50 text-accent-600', action: () => setCurrentView(ViewState.USER_DASHBOARD), cta: 'Upload File' },
+                      { icon: CreditCard, label: 'View Entrust Card', desc: 'Register or view your official digital ID card and QR code.', color: 'from-emerald-500 to-emerald-700', light: 'bg-emerald-50 text-emerald-600', action: () => setCurrentView(ViewState.ID_CARD), cta: 'View Card' },
+                      { icon: CheckCircle, label: 'Scan QR Code', desc: 'Scan any member\'s QR code to instantly verify their identity.', color: 'from-amber-500 to-orange-600', light: 'bg-amber-50 text-amber-600', action: () => setCurrentView(ViewState.VERIFY_ID), cta: 'Open Scanner' },
+                    ].map((item, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.1 }}
+                        viewport={{ once: true }}
+                        onClick={item.action}
+                        className="group bg-white border border-slate-100 rounded-3xl p-7 shadow-md hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer relative overflow-hidden"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-5 transition-opacity duration-500 from-brand-500 to-accent-500 rounded-3xl" />
+                        <div className={`w-14 h-14 ${item.light} rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300`}>
+                          <item.icon size={26} />
+                        </div>
+                        <h3 className="font-black text-brand-950 text-lg mb-2 leading-tight">{item.label}</h3>
+                        <p className="text-slate-500 text-sm leading-relaxed mb-5">{item.desc}</p>
+                        <div className={`inline-flex items-center gap-2 text-sm font-bold bg-gradient-to-r ${item.color} bg-clip-text text-transparent group-hover:gap-3 transition-all`}>
+                          {item.cta} <ChevronRight size={14} className={`text-brand-500`} />
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            );
+          default: return null;
+        }
+      })}
             </motion.div>
           )}
 
@@ -757,6 +922,29 @@ const App: React.FC = () => {
             </motion.div>
           )}
 
+          {currentView === ViewState.ADMIN_DASHBOARD && currentUser && (
+            <motion.div key="admin-dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <AdminDashboard
+                users={users}
+                onUpdateUser={async (user) => {
+                  await api.updateUser(user);
+                  setUsers(users.map(u => u.id === user.id ? user : u));
+                  if (currentUser.id === user.id) setCurrentUser(user);
+                }}
+                onDeleteUser={async (userId) => {
+                  await api.deleteUser(userId);
+                  setUsers(users.filter(u => u.id !== userId));
+                }}
+                homeSectionsOrder={homeSectionsOrder}
+                onUpdateHomeSectionsOrder={(newOrder) => {
+                  setHomeSectionsOrder(newOrder);
+                  localStorage.setItem('home_section_order', JSON.stringify(newOrder));
+                }}
+                onBack={() => setCurrentView(ViewState.HOME)}
+              />
+            </motion.div>
+          )}
+
           {currentView === ViewState.USER_DASHBOARD && currentUser && (
             <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <UserDashboard
@@ -774,6 +962,12 @@ const App: React.FC = () => {
           )}
 
 
+
+          {currentView === ViewState.VERIFY_ID && (
+            <motion.div key="verify-id" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <VerifyIDPage />
+            </motion.div>
+          )}
 
           {currentView === ViewState.CONTACT && (
             <motion.div key="contact" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="pt-24 md:pt-32 pb-20 bg-slate-50 min-h-screen">
@@ -985,7 +1179,15 @@ const App: React.FC = () => {
 
               <p className="text-sm text-brand-100/60 mb-4">Join our mailing list for weekly inspiration.</p>
               <div className="flex gap-2 mb-2">
-                <input type="email" placeholder="Your Email" className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:bg-white/10 transition-colors w-full" />
+                <input 
+                  type="email" 
+                  placeholder="Your Email" 
+                  className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:bg-white/10 transition-colors w-full" 
+                  onFocus={() => setShowLeaderMessage(true)}
+                  onChange={(e) => {
+                    if (e.target.value.length > 0) setShowLeaderMessage(true);
+                  }}
+                />
                 <button className="bg-accent-600 hover:bg-accent-500 text-white rounded-lg px-3 py-2 transition-colors">
                   <ArrowRight size={16} />
                 </button>
@@ -1021,6 +1223,118 @@ const App: React.FC = () => {
           </ErrorBoundary>
         )
       }
+
+      {/* Fixed Leader Message Popup */}
+      <AnimatePresence>
+        {showLeaderMessage && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 50 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 50 }}
+            className="fixed bottom-4 right-4 md:bottom-10 md:right-10 z-[100] w-[calc(100%-2rem)] md:w-full max-w-lg"
+          >
+            <div className="bg-white/95 backdrop-blur-3xl rounded-[2.5rem] p-4 shadow-2xl shadow-brand-900/40 border-4 border-white">
+              <MessageFromLeader onClose={() => setShowLeaderMessage(false)} className="!p-0 !m-0 !py-0" />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* ✨ ADMIN APPROVAL FIREWORKS CELEBRATION ✨ */}
+      <AnimatePresence>
+        {showCelebration && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          >
+            {/* Firework particles */}
+            {Array.from({ length: 24 }).map((_, i) => {
+              const angle = (i / 24) * 360;
+              const dist = 120 + Math.random() * 200;
+              const x = Math.cos((angle * Math.PI) / 180) * dist;
+              const y = Math.sin((angle * Math.PI) / 180) * dist;
+              const colors = ['#fbbf24', '#f59e0b', '#34d399', '#60a5fa', '#f472b6', '#a78bfa', '#fff'];
+              const color = colors[i % colors.length];
+              const size = 6 + Math.random() * 10;
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ x: 0, y: 0, opacity: 1, scale: 0 }}
+                  animate={{ x, y, opacity: 0, scale: 1 }}
+                  transition={{ duration: 1.5, delay: Math.random() * 0.5, ease: 'easeOut', repeat: Infinity, repeatDelay: 2 }}
+                  className="absolute rounded-full pointer-events-none"
+                  style={{ width: size, height: size, background: color, top: '50%', left: '50%', marginTop: -size / 2, marginLeft: -size / 2 }}
+                />
+              );
+            })}
+
+            {/* Celebration card */}
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0, y: 40 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: 'spring', bounce: 0.4, delay: 0.1 }}
+              className="relative bg-gradient-to-br from-brand-900 via-brand-800 to-brand-950 rounded-[2.5rem] p-10 md:p-14 max-w-md w-[90%] text-center border border-amber-400/30 shadow-[0_0_80px_rgba(251,191,36,0.3)] mx-4"
+            >
+              {/* Glowing ring */}
+              <motion.div
+                animate={{ scale: [1, 1.06, 1], opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="absolute inset-0 rounded-[2.5rem] border-2 border-amber-400/40 pointer-events-none"
+              />
+              <motion.div
+                animate={{ scale: [1, 1.12, 1], opacity: [0.2, 0.5, 0.2] }}
+                transition={{ duration: 2.5, repeat: Infinity }}
+                className="absolute inset-0 rounded-[2.5rem] border border-amber-300/20 pointer-events-none"
+              />
+
+              {/* Close button */}
+              <button
+                onClick={() => setShowCelebration(false)}
+                className="absolute top-4 right-4 w-8 h-8 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white/60 hover:text-white transition-all"
+                title="Close"
+              >✕</button>
+
+              {/* Content */}
+              <div className="text-5xl mb-4">🎉</div>
+              <motion.h2
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="font-serif text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-amber-400 to-amber-600 mb-3"
+              >
+                Shalom, {currentUser?.name?.split(' ')[0]}!
+              </motion.h2>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="text-amber-100/70 text-base leading-relaxed mb-6"
+              >
+                🙌 You have been <span className="text-amber-300 font-bold">verified & approved</span> by our ministry admin!<br />
+                Welcome to the family of City of Truth Ministries.
+              </motion.p>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.7 }}
+                className="text-white/40 text-sm italic mb-8"
+              >
+                "You are no longer strangers and foreigners, but fellow citizens" — Eph 2:19
+              </motion.p>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowCelebration(false)}
+                className="bg-gradient-to-r from-amber-400 to-amber-600 text-brand-950 font-black py-4 px-10 rounded-full uppercase tracking-wider text-sm shadow-[0_0_30px_rgba(251,191,36,0.4)] hover:shadow-[0_0_50px_rgba(251,191,36,0.6)] transition-all"
+              >
+                Enter the Kingdom 👑
+              </motion.button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div >
   );
 }

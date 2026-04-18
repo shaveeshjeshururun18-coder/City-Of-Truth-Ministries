@@ -1,17 +1,16 @@
 import React, { useState } from 'react';
 import { User, SubProfile } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
-import { Download, Edit2, AlertCircle, CheckCircle, Save, X, FileText, QrCode, LogOut, UploadCloud, Camera, Calendar, Sparkles, Users, UserPlus, Trash2, ShieldCheck } from 'lucide-react';
+import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine } from 'lucide-react';
 import { Button } from './Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TestimonialModal } from './TestimonialModal';
-import { MessageSquare } from 'lucide-react';
 import { toPng, toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { ImageCropper } from './ImageCropper';
 import { PrintableHebrewCalendar } from './PrintableHebrewCalendar';
 import { PrintableReferenceGuide } from './PrintableReferenceGuide';
-import { getCalendarData5786, HebrewMonth } from './CalendarLogic';
+import { getCalendarData5786 } from './CalendarLogic';
 import { CalendarCustomizationModal, CalendarOptions } from './CalendarCustomizationModal';
 
 interface UserDashboardProps {
@@ -34,7 +33,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [generationProgress, setGenerationProgress] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
     const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
-    const [calendarRenderMode, setCalendarRenderMode] = useState<{ mode: 'cover' | 'month', monthData?: any } | null>(null);
+    const [calendarRenderMode, setCalendarRenderMode] = useState<{ mode: 'cover' | 'month'; monthData?: any } | null>(null);
+    const [idRevealed, setIdRevealed] = useState(false);
+    const [showCardPreview, setShowCardPreview] = useState(false);
+    const [cardFlipped, setCardFlipped] = useState(false);
 
     const getDisplayProfile = () => {
         if (activeProfileId === user.id) return user;
@@ -43,6 +45,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         return user;
     };
     const displayProfile = getDisplayProfile();
+
 
     const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -53,8 +56,15 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         }
     };
 
-    const handleCropComplete = (croppedImg: string) => { setFormData(prev => ({ ...prev, photo: croppedImg })); setCroppingImage(null); };
-    const handleCropCurrent = () => { if (displayProfile.photo) setCroppingImage(displayProfile.photo); };
+    const handleCropComplete = (croppedImg: string) => {
+        if (activeProfileId === user.id) {
+            onUpdate({ ...user, photo: croppedImg } as User);
+        } else {
+            const updatedProfiles = user.linkedProfiles?.map(p => p.id === activeProfileId ? { ...p, photo: croppedImg } : p) || [];
+            onUpdate({ ...user, linkedProfiles: updatedProfiles } as User);
+        }
+        setCroppingImage(null);
+    };
 
     const handleDownloadPDF = async () => {
         setIsProcessing(true);
@@ -62,8 +72,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         const backNode = document.getElementById('capture-back');
         if (frontNode && backNode) {
             try {
-                const frontDataUrl = await toPng(frontNode, { pixelRatio: 4, quality: 1, backgroundColor: '#ffffff' });
-                const backDataUrl = await toPng(backNode, { pixelRatio: 4, quality: 1, backgroundColor: '#ffffff' });
+                await new Promise(r => setTimeout(r, 400));
+                const opts = { pixelRatio: 4, quality: 1, backgroundColor: '#ffffff', cacheBust: true };
+                const frontDataUrl = await toPng(frontNode, opts);
+                const backDataUrl = await toPng(backNode, opts);
                 const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
                 const pdfWidth = pdf.internal.pageSize.getWidth();
                 const pdfHeight = (215 * pdfWidth) / 340;
@@ -71,9 +83,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 pdf.addImage(frontDataUrl, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight, undefined, 'FAST');
                 pdf.addPage();
                 pdf.addImage(backDataUrl, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight, undefined, 'FAST');
-                pdf.save(`ENTRUST-CARD-${user.id}.pdf`);
-            } catch (err) { console.error('PDF generation failed', err); alert('Failed to generate PDF. Please try again.'); }
-        } else { alert('Card generation elements not found. Please refresh.'); }
+                pdf.save(`ENTRUST-CARD-${displayProfile.id}.pdf`);
+            } catch (err: any) {
+                console.error('PDF generation failed', err);
+                alert(`Failed to generate PDF: ${err?.message || 'Unknown error'}. Please try again.`);
+            }
+        } else {
+            alert('Card elements not ready. Please refresh and try again.');
+        }
         setIsProcessing(false);
     };
 
@@ -94,7 +111,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             };
             const calendarData = getCalendarData5786();
             let isFirstPage = true;
-            let totalSteps = options.scope === 'full' ? 1 + calendarData.length : 1;
+            const totalSteps = options.scope === 'full' ? 1 + calendarData.length : 1;
             setTotalPages(totalSteps);
             if (options.scope === 'full') {
                 setCalendarRenderMode({ mode: 'cover' });
@@ -131,46 +148,45 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             }
         } catch (e: any) {
             console.error(e);
-            alert(`Failed to generate PDF: ${e.message || 'Unknown error'}. Try generating fewer months or using a PC.`);
+            alert(`Failed to generate PDF: ${e.message || 'Unknown error'}.`);
         } finally { setCalendarRenderMode(null); setIsGeneratingCalendar(false); }
     };
 
     const startEditing = () => { setFormData({ phone: user.phone, email: user.email, location: user.location, emergency: user.emergency, photo: user.photo }); setIsEditing(true); };
     const cancelEditing = () => { setIsEditing(false); setFormData({}); };
-    const saveChanges = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (formData.phone && formData.phone.length !== 10) { alert('Phone number must be exactly 10 digits.'); return; }
-        if (formData.emergency && formData.emergency.length !== 10) { alert('Phone number must be exactly 10 digits.'); return; }
-        onUpdate({ ...user, ...formData } as User); setIsEditing(false);
-    };
+    const saveChanges = (e: React.FormEvent) => { e.preventDefault(); onUpdate({ ...user, ...formData } as User); setIsEditing(false); };
 
     const handleAddSubProfile = (e: React.FormEvent) => {
         e.preventDefault();
         const newId = `${user.id}-${(user.linkedProfiles?.length || 0) + 1}`;
         const newProfile: SubProfile = { id: newId, name: subProfileForm.name || '', role: subProfileForm.role || 'Family Member', dob: subProfileForm.dob, bloodGroup: subProfileForm.bloodGroup };
-        const updatedProfiles = [...(user.linkedProfiles || []), newProfile];
-        onUpdate({ ...user, linkedProfiles: updatedProfiles } as User);
+        onUpdate({ ...user, linkedProfiles: [...(user.linkedProfiles || []), newProfile] } as User);
         setShowFamilyModal(false); setSubProfileForm({});
     };
 
     const handleDeleteSubProfile = (profileId: string) => {
-        if (!confirm('Are you sure you want to remove this family member?')) return;
+        if (!confirm('Remove this family member?')) return;
         const updatedProfiles = user.linkedProfiles?.filter(p => p.id !== profileId) || [];
         onUpdate({ ...user, linkedProfiles: updatedProfiles } as User);
         if (activeProfileId === profileId) setActiveProfileId(user.id);
     };
 
-    return (
-        <div className="min-h-screen pt-32 pb-20 bg-slate-950 text-white relative flex flex-col items-center overflow-x-hidden p-4 sm:p-6">
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none z-0"></div>
-            <div className="absolute -top-40 -left-40 w-96 h-96 bg-brand-600 rounded-full blur-[150px] opacity-30 pointer-events-none z-0"></div>
-            <div className="absolute top-40 -right-40 w-96 h-96 bg-accent-600 rounded-full blur-[150px] opacity-20 pointer-events-none z-0"></div>
+    const handleShare = () => {
+        const url = `${window.location.origin}/verify/${displayProfile.id}`;
+        if (navigator.share) { navigator.share({ title: `${displayProfile.name} — City of Truth Ministries`, text: 'Check my Entrust ID Card', url }); }
+        else { navigator.clipboard.writeText(url); alert('Profile link copied!'); }
+    };
 
-            {croppingImage && (
-                <div className="z-[100] relative">
-                    <ImageCropper imageSrc={croppingImage} onCropComplete={handleCropComplete} onCancel={() => setCroppingImage(null)} />
-                </div>
-            )}
+    const qrUrl = `${window.location.origin}/verify/${displayProfile.id}`;
+    const qrImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(qrUrl)}&bgcolor=ffffff&color=1a237e&margin=5&format=png`;
+
+    /* ─────────────────────────────────────────────── */
+    return (
+        <div className="min-h-screen pt-28 pb-20 bg-[#f0f2f5] text-slate-900 relative flex flex-col items-center overflow-x-hidden px-3 sm:px-5">
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.06] pointer-events-none z-0" />
+
+            {/* Off-screen capture nodes */}
+            {croppingImage && <div className="z-[100] relative"><ImageCropper imageSrc={croppingImage} onCropComplete={handleCropComplete} onCancel={() => setCroppingImage(null)} /></div>}
             <TestimonialModal isOpen={showTestimonialModal} onClose={() => setShowTestimonialModal(false)} user={user} />
             <CalendarCustomizationModal isOpen={isCalendarModalOpen} onClose={() => setIsCalendarModalOpen(false)} onDownload={handleDownloadCalendar} />
 
@@ -182,7 +198,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     <EntrustCard3D name={displayProfile.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={displayProfile.id} memberSince={user.memberSince} photo={displayProfile.photo} status={user.status} isStatic={true} isBackSide={true} />
                 </div>
             </div>
-
             <div className="fixed left-[-10000px] top-0 pointer-events-none opacity-100 z-0">
                 <div id="printable-calendar-dashboard" className="w-[1122px] min-h-[793px] bg-white">
                     {calendarRenderMode && <PrintableHebrewCalendar mode={calendarRenderMode.mode} year={5786} monthData={calendarRenderMode.monthData} currentUser={user} />}
@@ -190,218 +205,431 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 <div id="printable-reference-guide-dashboard" className="bg-white"><PrintableReferenceGuide year={5786} /></div>
             </div>
 
+            {/* Add Family Member Modal */}
             <AnimatePresence>
                 {showFamilyModal && (
                     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-slate-900 border border-slate-700/50 p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-md relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-500 to-accent-500"></div>
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xl font-bold font-serif text-white">Add Member Details</h3>
-                                <button onClick={() => setShowFamilyModal(false)} className="text-slate-400 hover:text-white transition-colors"><X size={20} /></button>
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-3xl shadow-2xl w-full max-w-md relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-500 to-accent-500" />
+                            <div className="p-6 md:p-8">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-xl font-bold font-serif text-brand-950">Add Family Member</h3>
+                                    <button onClick={() => setShowFamilyModal(false)} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
+                                </div>
+                                <form onSubmit={handleAddSubProfile} className="space-y-4">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Full Name</label>
+                                        <input required type="text" value={subProfileForm.name || ''} onChange={e => setSubProfileForm({ ...subProfileForm, name: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm font-medium" placeholder="John Doe" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Relation</label>
+                                            <select required value={subProfileForm.role || 'Family Member'} onChange={e => setSubProfileForm({ ...subProfileForm, role: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm appearance-none">
+                                                <option>Spouse</option><option>Son</option><option>Daughter</option><option>Parent</option><option value="Family Member">Other</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Blood Group</label>
+                                            <select value={subProfileForm.bloodGroup || ''} onChange={e => setSubProfileForm({ ...subProfileForm, bloodGroup: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm appearance-none">
+                                                <option value="">Select…</option>
+                                                <option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>O+</option><option>O-</option><option>AB+</option><option>AB-</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widests block mb-1">Date of Birth</label>
+                                        <input type="date" value={subProfileForm.dob || ''} onChange={e => setSubProfileForm({ ...subProfileForm, dob: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm" />
+                                    </div>
+                                    <div className="pt-2">
+                                        <Button type="submit" variant="primary" fullWidth className="py-3 shadow-lg shadow-brand-500/20"><UserPlus size={16} className="mr-2" /> Add Member</Button>
+                                        <p className="text-[10px] text-center text-slate-400 mt-2">Switch to their profile after creation to set a photo.</p>
+                                    </div>
+                                </form>
                             </div>
-                            <form onSubmit={handleAddSubProfile} className="space-y-4">
-                                <div>
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Full Name</label>
-                                    <input required type="text" value={subProfileForm.name || ''} onChange={(e) => setSubProfileForm({ ...subProfileForm, name: e.target.value })} className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all font-medium text-sm" placeholder="John Doe" />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Relation</label>
-                                        <select required value={subProfileForm.role || 'Family Member'} onChange={(e) => setSubProfileForm({ ...subProfileForm, role: e.target.value })} className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all text-sm appearance-none">
-                                            <option value="Spouse">Spouse</option>
-                                            <option value="Son">Son</option>
-                                            <option value="Daughter">Daughter</option>
-                                            <option value="Parent">Parent</option>
-                                            <option value="Family Member">Other</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Blood Group</label>
-                                        <select value={subProfileForm.bloodGroup || ''} onChange={(e) => setSubProfileForm({ ...subProfileForm, bloodGroup: e.target.value })} className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all text-sm appearance-none">
-                                            <option value="">Select...</option>
-                                            <option value="A+">A+</option><option value="A-">A-</option>
-                                            <option value="B+">B+</option><option value="B-">B-</option>
-                                            <option value="O+">O+</option><option value="O-">O-</option>
-                                            <option value="AB+">AB+</option><option value="AB-">AB-</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Date of Birth</label>
-                                    <input type="date" value={subProfileForm.dob || ''} onChange={(e) => setSubProfileForm({ ...subProfileForm, dob: e.target.value })} className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all text-sm" />
-                                </div>
-                                <div className="pt-4">
-                                    <Button type="submit" variant="primary" fullWidth className="py-3 shadow-lg shadow-brand-500/20"><UserPlus size={18} className="mr-2" /> Add Member</Button>
-                                    <p className="text-[10px] text-center text-slate-500 mt-3">You can set a photo for this member by switching to their profile after creation.</p>
-                                </div>
-                            </form>
                         </motion.div>
                     </div>
                 )}
             </AnimatePresence>
 
-            <div className="container mx-auto max-w-6xl relative z-10 w-full px-2 sm:px-6">
-                <div className="flex flex-col md:flex-row justify-between items-center bg-slate-900/40 border border-slate-800/60 p-6 sm:p-8 rounded-[2rem] sm:rounded-[3rem] backdrop-blur-xl mb-10 shadow-2xl">
-                    <div className="flex items-center gap-6 mb-6 md:mb-0">
-                        <div className="w-20 h-20 rounded-[1.5rem] bg-gradient-to-br from-brand-500 to-accent-600 p-1 hidden sm:block shadow-[0_0_30px_rgba(79,70,229,0.3)]">
-                            <img src={user.photo || `https://ui-avatars.com/api/?name=${user.name}&background=1e1b4b&color=fff`} alt="Profile" className="w-full h-full object-cover rounded-[1.2rem]" />
-                        </div>
-                        <div>
-                            <h1 className="text-3xl sm:text-4xl font-serif font-bold text-white tracking-tight mb-1">{user.name} <span className="text-brand-400 text-2xl">Dashboard</span></h1>
-                            <div className="flex items-center gap-3">
-                                <span className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-1 bg-black/40 border rounded-full backdrop-blur-sm ${user.status === 'Active' ? 'border-green-500/50 text-green-400' : 'border-amber-500/50 text-amber-400'}`}>
-                                    {user.status === 'Active' ? <CheckCircle size={12} /> : <AlertCircle size={12} />} {user.status}
-                                </span>
-                                <span className="text-xs text-slate-400 font-mono tracking-wider">{user.id}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <Button onClick={onLogout} variant="outline" className="border-red-500/20 text-red-400 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-300 transition-colors w-full sm:w-auto px-6 py-2.5">
-                        <LogOut size={16} className="mr-2" /> Secure Logout
-                    </Button>
-                </div>
+            {/* ══════════════════════════════════════
+                MAIN CONTENT
+            ══════════════════════════════════════ */}
+            <div className="w-full max-w-md lg:max-w-5xl mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
+                {/* ── LEFT COLUMN (Profile, Family, Actions, Logout on Desktop) ── */}
+                <div className="lg:col-span-4 flex flex-col gap-5">
 
-                <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-2 mb-10 flex gap-2 overflow-x-auto snap-x no-scrollbar backdrop-blur-xl shadow-xl w-[calc(100vw-32px)] sm:w-auto -mx-4 sm:mx-0 sm:px-2 px-4 shadow-black/40">
-                    <button onClick={() => setActiveProfileId(user.id)} className={`flex items-center gap-2 px-4 sm:px-6 py-3 sm:py-3.5 rounded-xl font-bold text-[11px] sm:text-xs tracking-widest uppercase whitespace-nowrap snap-center transition-all ${activeProfileId === user.id ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' : 'text-slate-400 hover:bg-slate-800'}`}>
-                        <Users size={16} /> My Primary Card
-                    </button>
+                <div className="flex items-center gap-3 mb-5 px-1">
+                    {/* Primary profile + family avatars */}
+                    <div className="relative group shrink-0">
+                        <div className="w-14 h-14 rounded-full overflow-hidden border-[3px] border-white shadow-lg bg-brand-100">
+                            <img src={displayProfile.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayProfile.name)}&background=1e1b4b&color=fff&bold=true&size=128`} alt={displayProfile.name} className="w-full h-full object-cover" />
+                        </div>
+                        <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-all">
+                            <Camera size={14} className="text-white" />
+                            <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                        </label>
+                        {/* Active indicator */}
+                        <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white ${user.status === 'Active' ? 'bg-green-500' : 'bg-amber-400'}`} />
+                    </div>
+
+                    {/* Family member avatars */}
                     {user.linkedProfiles?.map(pf => (
-                        <button key={pf.id} onClick={() => setActiveProfileId(pf.id)} className={`flex justify-between items-center gap-2 px-4 sm:px-6 py-3 sm:py-3.5 rounded-xl font-bold text-[11px] sm:text-xs tracking-widest uppercase whitespace-nowrap snap-center transition-all ${activeProfileId === pf.id ? 'bg-accent-600 text-white shadow-lg shadow-accent-500/20' : 'text-slate-400 hover:bg-slate-800'}`}>
-                            <span className="flex items-center gap-2"><Users size={16} /> {pf.name}</span>
+                        <button key={pf.id} onClick={() => setActiveProfileId(pf.id)} title={pf.name}
+                            className={`relative shrink-0 w-10 h-10 rounded-full overflow-hidden border-2 transition-all ${activeProfileId === pf.id ? 'border-brand-500 shadow-lg scale-110' : 'border-white/70 opacity-70 hover:opacity-100 hover:scale-105'}`}>
+                            <img src={pf.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(pf.name)}&background=5b47d0&color=fff&bold=true&size=80`} alt={pf.name} className="w-full h-full object-cover" />
                         </button>
                     ))}
-                    <button onClick={() => setShowFamilyModal(true)} className="flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-xs tracking-widest uppercase bg-transparent text-slate-500 border border-slate-700 hover:bg-slate-800 hover:text-white transition-all whitespace-nowrap snap-center ml-auto">
-                        <UserPlus size={16} /> Family Member
+
+                    {/* Add Profile button */}
+                    <button onClick={() => setShowFamilyModal(true)} title="Add Family Member"
+                        className="shrink-0 w-10 h-10 rounded-full border-2 border-dashed border-slate-300 bg-white hover:border-brand-400 hover:bg-brand-50 flex items-center justify-center transition-all text-slate-400 hover:text-brand-500">
+                        <PlusCircle size={20} />
                     </button>
+
+                    <div className="flex-1 min-w-0 ml-1">
+                        <h1 className="font-bold text-slate-900 text-base leading-tight truncate">{displayProfile.name}</h1>
+                        <p className="text-[11px] text-slate-500 font-medium">{activeProfileId !== user.id ? 'Family Member' : (user.role || 'Member')}</p>
+                    </div>
+
+                    {/* Edit button */}
+                    {activeProfileId === user.id && (
+                        <button onClick={startEditing} className="shrink-0 text-slate-400 hover:text-brand-600 p-2 rounded-full hover:bg-white transition-all">
+                            <Edit2 size={18} />
+                        </button>
+                    )}
                 </div>
 
-                <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 w-full">
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="lg:col-span-7 flex flex-col items-center">
-                        <div className="relative group w-full max-w-[380px]">
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-[420px] bg-gradient-to-r from-brand-500/10 to-accent-500/10 rounded-[3rem] blur-2xl z-0"></div>
-                            <div className="relative z-10 w-full flex justify-center">
-                                <EntrustCard3D name={displayProfile.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={displayProfile.id} memberSince={user.memberSince} photo={displayProfile.photo} status={user.status} className={`${user.status === 'Pending Verification' ? 'opacity-90 grayscale-[0.2]' : ''}`} />
+                {/* ── PROFILE SWITCHER TABS ── */}
+                {(user.linkedProfiles && user.linkedProfiles.length > 0) && (
+                    <div className="flex gap-2 mb-5 overflow-x-auto no-scrollbar">
+                        <button onClick={() => setActiveProfileId(user.id)} className={`flex items-center gap-1.5 px-4 py-2 rounded-full font-bold text-[11px] uppercase whitespace-nowrap transition-all shadow-sm ${activeProfileId === user.id ? 'bg-brand-700 text-white shadow-brand-400/30 shadow-md' : 'bg-white text-slate-500 border border-slate-200'}`}>
+                            Me
+                        </button>
+                        {user.linkedProfiles.map(pf => (
+                            <button key={pf.id} onClick={() => setActiveProfileId(pf.id)} className={`flex items-center gap-1.5 px-4 py-2 rounded-full font-bold text-[11px] uppercase whitespace-nowrap transition-all shadow-sm ${activeProfileId === pf.id ? 'bg-accent-600 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200'}`}>
+                                {pf.name.split(' ')[0]}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {/* ── FAMILY MEMBERS LIST ── */}
+                {user.linkedProfiles && user.linkedProfiles.length > 0 && (
+                    <div className="bg-white rounded-[24px] shadow-md overflow-hidden">
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2"><Users size={16} className="text-brand-500" /> Family</h3>
+                            <button onClick={() => setShowFamilyModal(true)} className="text-xs font-bold text-brand-600 hover:text-brand-800 flex items-center gap-1">
+                                <PlusCircle size={14} /> Add
+                            </button>
+                        </div>
+                        <div className="divide-y divide-slate-50">
+                            {/* Primary (Me) row */}
+                            <button onClick={() => setActiveProfileId(user.id)} className={`w-full flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 transition-all text-left ${activeProfileId === user.id ? 'bg-brand-50' : ''}`}>
+                                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-brand-100 shrink-0">
+                                    <img src={user.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=1e1b4b&color=fff&bold=true&size=80`} alt={user.name} className="w-full h-full object-cover" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-bold text-slate-900 text-sm truncate">{user.name}</p>
+                                    <p className="text-[10px] text-slate-400 font-mono">{user.id} · Primary</p>
+                                </div>
+                                {activeProfileId === user.id && <CheckCircle size={16} className="text-brand-500 shrink-0" />}
+                            </button>
+                            {/* Sub-profiles */}
+                            {user.linkedProfiles.map(pf => (
+                                <div key={pf.id} className={`flex items-center gap-3 px-5 py-3.5 group ${activeProfileId === pf.id ? 'bg-accent-50' : 'hover:bg-slate-50'} transition-all`}>
+                                    <button onClick={() => setActiveProfileId(pf.id)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-100 shrink-0">
+                                            <img src={pf.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(pf.name)}&background=5b47d0&color=fff&bold=true&size=80`} alt={pf.name} className="w-full h-full object-cover" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-bold text-slate-900 text-sm truncate">{pf.name}</p>
+                                            <p className="text-[10px] text-slate-400 font-mono">{pf.id} · {pf.role || 'Family'}</p>
+                                        </div>
+                                        {activeProfileId === pf.id && <CheckCircle size={16} className="text-accent-500 shrink-0" />}
+                                    </button>
+                                    <button onClick={() => handleDeleteSubProfile(pf.id)} className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-red-300 hover:text-red-500 hover:bg-red-50 transition-all ml-2 shrink-0">
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+                
+                {/* ── LOGOUT ── */}
+                <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 bg-white border border-red-100 text-red-400 hover:bg-red-50 hover:border-red-200 hover:text-red-600 rounded-2xl py-3.5 font-bold text-xs tracking-widest uppercase transition-all shadow-sm">
+                    <LogOut size={15} /> Logout
+                </button>
+                </div>
+
+                {/* ── RIGHT COLUMN (Wallet Card & Content on Desktop) ── */}
+                <div className="lg:col-span-8 flex flex-col gap-5">
+
+                {/* ════════════════════════════════════
+                    mAadhaar-Style Wallet Card
+                ════════════════════════════════════ */}
+                <div className="bg-white rounded-[28px] shadow-xl mb-5 overflow-hidden">
+                    {/* Gold ID Number Header - show full ID, no masking */}
+                    <div className="bg-gradient-to-r from-[#d4a547] via-[#f0c040] to-[#c8922a] px-5 py-3.5 flex items-center justify-between">
+                        <span className="font-black text-[#3d2500] text-xl tracking-[3px] font-mono">
+                            {displayProfile.id.toUpperCase()}
+                        </span>
+                        <span className="text-[#5a3500]/60 text-[10px] font-bold uppercase tracking-widest">Member ID</span>
+                    </div>
+
+                    {/* Desktop Content Row: 3D Preview + QR */}
+                    <div className="flex flex-col xl:flex-row items-center justify-between p-4 md:p-6 lg:p-10 gap-6">
+
+                        {/* Left: Card Preview */}
+                        <div className="w-full xl:w-3/5">
+                            {/* Stacked card visual + tap to reveal (MOBILE ONLY) */}
+                            <div className="md:hidden relative cursor-pointer" onClick={() => setShowCardPreview(true)}>
+                                <div className="absolute inset-x-4 top-2 h-10 bg-gradient-to-r from-brand-200 to-accent-200 rounded-2xl opacity-40 blur-sm" />
+                                <div className="absolute inset-x-2 top-1 h-10 bg-gradient-to-r from-brand-300 to-accent-300 rounded-2xl opacity-30" />
+                                <div className="relative bg-gradient-to-r from-[#1a237e] to-[#3949ab] rounded-2xl h-24 flex items-center justify-center overflow-hidden border border-white/20">
+                                    <div className="absolute left-4 flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/50 bg-white/20 shrink-0">
+                                            <img src={displayProfile.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayProfile.name)}&background=1e1b4b&color=fff&bold=true&size=96`} alt={displayProfile.name} className="w-full h-full object-cover" />
+                                        </div>
+                                        <div>
+                                            <p className="text-white font-bold text-sm leading-tight">{displayProfile.name}</p>
+                                            <p className="text-white/70 text-[10px] font-mono mt-0.5">{displayProfile.id}</p>
+                                        </div>
+                                    </div>
+                                    <div className="absolute right-4 text-white/30"><ScanLine size={32} /></div>
+                                </div>
+                                <p className="text-center text-slate-500 text-xs font-semibold mt-3 mb-1">Tap to preview your Entrust Card ↗</p>
                             </div>
-                            <div className="absolute top-10 left-6 sm:top-[44px] sm:left-[30px] w-20 sm:w-24 h-28 sm:h-[118px] z-30 group-hover:block transition-all duration-300">
-                                <label className="absolute inset-0 bg-brand-950/80 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer rounded-lg border border-dashed border-white/50 backdrop-blur-md">
-                                    <Camera size={20} className="mb-1 text-accent-400" />
-                                    <span className="text-[7px] font-black uppercase tracking-widest text-center px-1">Upload<br/>Photo</span>
-                                    <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} />
-                                </label>
+
+                            {/* Real EntrustCard3D Preview (DESKTOP ONLY) */}
+                            <div className="hidden md:block w-full cursor-pointer hover:scale-[1.02] transition-transform duration-300" onClick={() => setShowCardPreview(true)}>
+                                <div className="w-full flex justify-center scale-90 lg:scale-[0.85] origin-center -my-6 lg:-my-12">
+                                    <EntrustCard3D
+                                        name={displayProfile.name}
+                                        email={user.email}
+                                        location={user.location}
+                                        emergency={user.emergency}
+                                        uniqueId={displayProfile.id}
+                                        memberSince={user.memberSince}
+                                        photo={displayProfile.photo}
+                                        status={user.status}
+                                        isStatic={true}
+                                        isBackSide={cardFlipped}
+                                    />
+                                </div>
+                                <p className="text-center text-slate-500 text-xs font-bold uppercase tracking-widest mt-2">✨ Click card to Expand / Download ✨</p>
                             </div>
-                            <div className="mt-8 grid grid-cols-2 gap-4 w-full px-2">
-                                <Button onClick={handleDownloadPDF} disabled={user.status !== 'Active' || isProcessing} className="col-span-1 rounded-2xl py-3.5 sm:py-4 px-2 sm:px-6 hover:shadow-[0_0_20px_rgba(79,70,229,0.4)] text-[10px] sm:text-[11px] font-black uppercase tracking-widest sm:tracking-[0.2em] transition-all bg-brand-600/90 hover:bg-brand-600 border border-brand-500 backdrop-blur-md">
-                                    <FileText size={16} className="-ml-1 mr-1.5 sm:ml-0 sm:mr-2" /> {isProcessing ? 'Wait...' : 'Print ID'}
-                                </Button>
-                                {activeProfileId === user.id ? (
-                                    <Button onClick={startEditing} variant="outline" className="col-span-1 rounded-2xl py-3.5 sm:py-4 px-2 sm:px-6 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 text-[10px] sm:text-[11px] font-black uppercase tracking-widest sm:tracking-[0.2em] backdrop-blur-md">
-                                        <Edit2 size={16} className="-ml-1 mr-1.5 sm:ml-0 sm:mr-2" /> Edit Info
-                                    </Button>
-                                ) : (
-                                    <Button onClick={() => handleDeleteSubProfile(displayProfile.id)} variant="outline" className="col-span-1 border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/60 rounded-2xl py-3.5 sm:py-4 px-2 sm:px-6 text-[10px] sm:text-[11px] font-black uppercase tracking-widest sm:tracking-[0.2em]">
-                                        <Trash2 size={16} className="-ml-1 mr-1.5 sm:ml-0 sm:mr-2" /> Remove
-                                    </Button>
-                                )}
-                            </div>
-                            {user.status === 'Pending Verification' && (
-                                <div className="mt-6 flex items-center justify-center gap-2 text-xs sm:text-sm text-amber-500 font-medium">
-                                    <AlertCircle size={16} /> Downloads unlock after verification.
+                        </div>
+
+                        {/* Right: QR Code */}
+                        <div className="w-full xl:w-2/5 flex flex-col items-center justify-center border-t xl:border-t-0 xl:border-l border-slate-100 pt-6 xl:pt-0 xl:pl-6">
+                            {user.status === 'Active' ? (
+                                <div className="flex flex-col items-center">
+                                    <div className="relative inline-block bg-white rounded-3xl p-4 border border-slate-100 shadow-lg shadow-brand-900/5">
+                                        <img src={qrImgSrc} alt="QR Code" className="w-48 h-48 block mx-auto" crossOrigin="anonymous" />
+                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                            <div className="bg-white rounded-full w-12 h-12 flex items-center justify-center shadow-md border border-slate-100">
+                                                <img src="/logo.png" alt="COT" className="w-8 h-8 object-contain" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-4">Scan to Verify</p>
+                                </div>
+                            ) : (
+                                <div className="py-8 flex flex-col items-center text-center">
+                                    <ShieldCheck size={48} className="text-slate-200 mb-4" />
+                                    <p className="font-bold text-slate-500">QR Locked</p>
+                                    <p className="text-xs text-slate-400 mt-1">Pending admin verification</p>
                                 </div>
                             )}
                         </div>
-                        {user.status === 'Active' && activeProfileId === user.id && (
-                            <div className="mt-12 w-full max-w-[380px]">
-                                <div className="bg-gradient-to-br from-[#1E293B] to-[#0F172A] border border-slate-700 shadow-2xl rounded-3xl p-6 relative overflow-hidden group hover:border-amber-500/30 transition-all duration-500">
-                                    <div className="absolute right-0 top-0 w-32 h-32 bg-amber-500/10 blur-[50px] rounded-full"></div>
-                                    <div className="relative z-10">
-                                        <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center mb-4 border border-amber-500/30 backdrop-blur-sm"><Calendar className="text-amber-400" size={20} /></div>
-                                        <h4 className="font-serif font-bold text-xl mb-1 text-amber-100">Jewish Calendar 5786</h4>
-                                        <p className="text-slate-400 text-xs mb-5 line-clamp-2">Get your high-resolution official calendar copy right here.</p>
-                                        <Button onClick={() => setIsCalendarModalOpen(true)} className="w-full bg-gradient-to-r from-amber-600 to-amber-800 text-amber-50 shadow-xl border-amber-500/50 hover:from-amber-500 hover:to-amber-700 py-3 rounded-xl uppercase tracking-widest text-xs font-bold">
-                                            <Download size={16} className="mr-2" /> Download Document
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </motion.div>
+                    </div>
 
-                    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.2 }} className="lg:col-span-5 space-y-6 lg:space-y-8 w-full max-w-[400px] lg:max-w-none mx-auto lg:mx-0">
-                        {isEditing ? (
-                            <div className="bg-slate-900 border border-slate-700/60 p-6 rounded-3xl shadow-2xl relative overflow-hidden">
-                                <h3 className="text-lg font-serif font-bold mb-4 flex items-center gap-2"><Edit2 size={18} className="text-brand-400" /> Essential Details</h3>
-                                <div className="space-y-4">
-                                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-xs text-amber-200">
-                                        <AlertCircle size={14} className="inline mr-1 -mt-0.5" /> For ID security, contact admin to change locked fields.
-                                    </div>
-                                    <form onSubmit={saveChanges} className="space-y-4 mt-2">
-                                        <div>
-                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Email</label>
-                                            <input type="text" value={user.email} disabled className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-slate-400 cursor-not-allowed text-sm font-medium mt-1" />
-                                        </div>
-                                        <div>
-                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Phone / WA</label>
-                                            <input type="text" value={user.phone} disabled className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-slate-400 cursor-not-allowed text-sm font-medium mt-1" />
-                                        </div>
-                                        <div className="flex gap-4 pt-4">
-                                            <Button type="button" onClick={cancelEditing} variant="outline" className="flex-1 py-3 border-slate-700 text-slate-300 hover:bg-slate-800 text-xs tracking-widest">Close</Button>
-                                            <Button disabled type="submit" variant="primary" className="flex-1 py-3 text-xs tracking-widest bg-brand-600/50 cursor-not-allowed">Saved</Button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        ) : (
-                            <>
-                                <div className="bg-slate-900/80 border border-slate-800 p-6 sm:p-8 rounded-3xl shadow-2xl backdrop-blur-xl relative overflow-hidden group">
-                                    <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-l from-transparent via-brand-500 to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
-                                    <h3 className="text-lg font-serif font-bold text-white mb-2 flex flex-col justify-center items-center">
-                                        <QrCode className="text-accent-400 mb-2" size={24} /> Official ID Scanner
-                                    </h3>
-                                    <p className="text-center text-xs text-slate-400 mb-5">Scan this to check validity &amp; auto-download ID card anytime.</p>
-                                    {user.status === 'Active' ? (
-                                        <div className="w-full flex justify-center transform transition-transform group-hover:scale-105 duration-500 p-2">
-                                            <div className="bg-white p-3 sm:p-4 rounded-3xl shadow-[0_0_40px_rgba(79,70,229,0.2)]">
-                                                <img src={`https://quickchart.io/qr?text=${encodeURIComponent(`${window.location.origin}/card/${displayProfile.id}`)}&dark=0f172a&margin=2&size=300&centerImageUrl=${encodeURIComponent('https://city-of-truth-ministries.vercel.app/brand-logo.png')}`} alt="Official QR" className="w-40 sm:w-48 h-40 sm:h-48" crossOrigin="anonymous" />
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 sm:p-8 text-center flex flex-col items-center">
-                                            <ShieldCheck className="text-slate-500 mb-3" size={32} />
-                                            <p className="text-sm font-bold text-slate-300">Pending Verification</p>
-                                            <p className="text-xs text-slate-500 mt-1">QR generates upon approval</p>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="bg-[#0f172a] border border-[#1e293b] p-6 sm:p-8 rounded-3xl shadow-2xl relative overflow-hidden hover:border-[#334155] transition-all">
-                                    <div className="absolute -left-10 -bottom-10 w-32 h-32 bg-accent-600/20 blur-2xl rounded-full"></div>
-                                    <h3 className="text-lg font-serif font-bold text-white mb-4">Ministry Actions</h3>
-                                    <div className="space-y-3">
-                                        <button onClick={() => setShowTestimonialModal(true)} className="w-full flex items-center justify-between p-4 sm:p-5 bg-slate-800/50 hover:bg-slate-800 rounded-2xl border border-slate-700/50 transition-colors group">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center group-hover:bg-brand-500 group-hover:text-white transition-colors"><MessageSquare size={18} /></div>
-                                                <div className="text-left">
-                                                    <p className="font-bold text-white text-sm">Write Testimony</p>
-                                                    <p className="text-[10px] sm:text-xs text-slate-400">Share your miracle</p>
-                                                </div>
-                                            </div>
-                                            <Sparkles className="text-slate-500 group-hover:text-accent-400" size={16} />
-                                        </button>
-                                        <a href="/COT Ministries.apk" download className="w-full flex items-center justify-between p-4 sm:p-5 bg-slate-800/50 hover:bg-slate-800 rounded-2xl border border-slate-700/50 transition-colors group">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 rounded-xl bg-accent-500/20 text-accent-400 flex items-center justify-center group-hover:bg-accent-500 group-hover:text-white transition-colors"><Download size={18} /></div>
-                                                <div className="text-left">
-                                                    <p className="font-bold text-white text-sm">Android App</p>
-                                                    <p className="text-[10px] sm:text-xs text-slate-400">Read news offline</p>
-                                                </div>
-                                            </div>
-                                        </a>
-                                    </div>
-                                </div>
-                            </>
-                        )}
-                    </motion.div>
+                    {/* Action buttons row (mAadhaar style) */}
+                    {user.status === 'Active' && (
+                        <div className="grid grid-cols-4 gap-1 px-4 pb-5 pt-3">
+                            {[
+                                { icon: <Share2 size={20} />, label: 'Share', action: handleShare },
+                                { icon: <Download size={20} />, label: 'Download', action: handleDownloadPDF, loading: isProcessing },
+                                { icon: <QrCode size={20} />, label: 'QR Code', action: () => { const a = document.createElement('a'); a.href = qrImgSrc; a.download = `COT-QR-${displayProfile.id}.png`; a.target = '_blank'; a.click(); } },
+                                { 
+                                    icon: <div className="relative"><CheckCircle size={20} className="text-amber-500" /><div className="absolute inset-0 bg-amber-400 blur-sm rounded-full -z-10 animate-pulse" /></div>, 
+                                    label: <span className="bg-gradient-to-r from-amber-500 to-amber-700 bg-clip-text text-transparent font-black shadow-sm">VERIFIED MEMBER</span>, 
+                                    action: () => {}
+                                },
+                            ].map(({ icon, label, action, loading }, i) => (
+                                <button key={i} onClick={action} disabled={loading}
+                                    className="flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-2xl bg-slate-50 hover:bg-brand-50 hover:text-brand-700 text-slate-600 transition-all disabled:opacity-60 border border-transparent hover:border-brand-100">
+                                    {loading ? <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" /> : icon}
+                                    <span className="text-[9px] font-bold uppercase tracking-wide leading-tight text-center">{loading ? 'Wait…' : label}</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                </div>
+
+                {/* ── ACTION CARDS GRID ── */}
+                <div className="grid grid-cols-2 gap-4 mb-5">
+
+                    {/* Entrust ID Card — brown */}
+                    {user.status === 'Active' ? (
+                        <button onClick={handleDownloadPDF} disabled={isProcessing}
+                            className="bg-gradient-to-br from-[#7B3F00] to-[#C0652B] text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all disabled:opacity-70 relative overflow-hidden group">
+                            <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><FileText size={18} /></div>
+                            <p className="font-bold text-sm leading-tight mb-1">Entrust ID Card</p>
+                            <p className="text-white/70 text-[10px] leading-snug">Official COT identity card</p>
+                            <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
+                                <Download size={11} /> {isProcessing ? 'Wait…' : 'Download PDF'}
+                            </span>
+                        </button>
+                    ) : (
+                        <div className="bg-slate-100 rounded-[22px] p-4 border border-slate-200">
+                            <div className="w-9 h-9 bg-slate-200 rounded-xl flex items-center justify-center mb-3"><FileText size={18} className="text-slate-400" /></div>
+                            <p className="font-bold text-sm text-slate-500 mb-1">Entrust ID Card</p>
+                            <p className="text-slate-400 text-[10px]">Pending verification</p>
+                            <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase bg-slate-200 rounded-lg px-2.5 py-1.5 text-slate-400">
+                                <AlertCircle size={11} /> Locked
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Testimony */}
+                    <button onClick={() => setShowTestimonialModal(true)}
+                        className="bg-gradient-to-br from-brand-700 to-brand-900 text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
+                        <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><MessageSquare size={18} /></div>
+                        <p className="font-bold text-sm leading-tight mb-1">Write Testimony</p>
+                        <p className="text-white/70 text-[10px]">Share what God has done</p>
+                        <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
+                            <MessageSquare size={11} /> Write Now
+                        </span>
+                    </button>
+
+                    {/* Jewish Calendar — amber */}
+                    {user.status === 'Active' && activeProfileId === user.id && (
+                        <button onClick={() => setIsCalendarModalOpen(true)}
+                            className="bg-gradient-to-br from-[#8B4500] to-[#D97706] text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
+                            <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Calendar size={18} /></div>
+                            <p className="font-bold text-sm leading-tight mb-1">Jewish Calendar</p>
+                            <p className="text-white/70 text-[10px]">5786 Official Edition</p>
+                            <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
+                                <Download size={11} /> Download PDF
+                            </span>
+                        </button>
+                    )}
+
+                    {/* Mobile App — navy */}
+                    <a href="/COT Ministries.apk" download
+                        className={`bg-gradient-to-br from-[#1a237e] to-[#3949ab] text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group block ${user.status !== 'Active' || activeProfileId !== user.id ? 'col-span-1' : ''}`}>
+                        <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3">
+                            <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] fill-white"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.38.07 2.33.76 3.13.8 1.18-.25 2.31-.94 3.56-.84 1.5.12 2.63.72 3.37 1.8-3.09 1.85-2.56 5.93.28 7.05-.55 1.5-1.27 2.98-2.34 4.07zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" /></svg>
+                        </div>
+                        <p className="font-bold text-sm leading-tight mb-1">Mobile App</p>
+                        <p className="text-white/70 text-[10px]">Android APK download</p>
+                        <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
+                            <Download size={11} /> Download App
+                        </span>
+                    </a>
+                </div>
+
                 </div>
             </div>
+
+            {/* ── CARD PREVIEW MODAL (Screenshot 3 style) ── */}
+            <AnimatePresence>
+                {showCardPreview && (
+                    <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center bg-black/70 backdrop-blur-md p-4">
+                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="w-full max-w-2xl">
+                            {/* Card preview */}
+                            <div className="mb-6 w-full cursor-pointer" onClick={() => setCardFlipped(f => !f)}>
+                                <EntrustCard3D
+                                    name={displayProfile.name}
+                                    email={user.email}
+                                    location={user.location}
+                                    emergency={user.emergency}
+                                    uniqueId={displayProfile.id}
+                                    memberSince={user.memberSince}
+                                    photo={displayProfile.photo}
+                                    status={user.status}
+                                    isStatic={false}
+                                    isBackSide={cardFlipped}
+                                />
+                                <p className="text-center text-white/60 text-xs mt-3">Tap card to flip</p>
+                            </div>
+                            {/* Action buttons */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <button onClick={() => { handleDownloadPDF(); setShowCardPreview(false); }} disabled={isProcessing}
+                                    className="flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-black uppercase tracking-widest text-sm py-4 rounded-2xl transition-all shadow-lg disabled:opacity-60">
+                                    <FileText size={18} /> {isProcessing ? 'Generating…' : 'Download Card'}
+                                </button>
+                                <button onClick={() => { startEditing(); setShowCardPreview(false); }}
+                                    className="flex items-center justify-center gap-2 bg-white text-slate-700 hover:bg-slate-50 font-black uppercase tracking-widest text-sm py-4 rounded-2xl transition-all shadow-lg border border-slate-200">
+                                    <Edit2 size={18} /> Edit Profile
+                                </button>
+                            </div>
+                            <button onClick={() => setShowCardPreview(false)} className="w-full mt-4 text-white/60 hover:text-white text-sm font-semibold transition-colors">
+                                Close
+                            </button>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* ── CALENDAR GENERATION PROGRESS ── */}
+            {isGeneratingCalendar && (
+                <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center">
+                    <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center">
+                        <Calendar size={32} className="text-amber-500 mx-auto mb-4" />
+                        <h3 className="font-bold text-lg mb-2 text-slate-800">Generating Calendar…</h3>
+                        <p className="text-slate-500 text-sm mb-4">Page {generationProgress} of {totalPages}</p>
+                        <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                            <div className="bg-amber-500 h-2 rounded-full transition-all duration-300" style={{ width: `${totalPages > 0 ? (generationProgress / totalPages) * 100 : 0}%` }} />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── EDIT PHOTO MODAL (Photo-only edit) ── */}
+            {isEditing && (
+                <div className="fixed inset-0 z-[70] flex flex-col justify-end sm:justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white rounded-[2rem] p-7 max-w-md w-full mx-auto shadow-2xl">
+                        <div className="flex items-center justify-between mb-5">
+                            <h3 className="text-lg font-serif font-bold flex items-center gap-2 text-brand-950">
+                                <Camera size={18} className="text-brand-500" /> Update Profile Photo
+                            </h3>
+                            <button onClick={cancelEditing} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
+                        </div>
+
+                        {/* Current photo preview */}
+                        <div className="flex flex-col items-center gap-4 mb-6">
+                            <div className="relative group">
+                                <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-slate-100 shadow-lg">
+                                    <img
+                                        src={displayProfile.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayProfile.name)}&background=1e1b4b&color=fff&bold=true&size=256`}
+                                        alt={displayProfile.name}
+                                        className="w-full h-full object-cover"
+                                    />
+                                </div>
+                                <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-all">
+                                    <Camera size={24} className="text-white" />
+                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { handlePhotoUpload(e); cancelEditing(); }} />
+                                </label>
+                            </div>
+                            <p className="text-slate-500 text-sm text-center">Hover/tap your photo to upload a new one</p>
+                        </div>
+
+                        <label className="flex items-center justify-center gap-2 w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-4 rounded-2xl cursor-pointer transition-all shadow-lg">
+                            <Camera size={18} /> Choose New Photo
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => { handlePhotoUpload(e); cancelEditing(); }} />
+                        </label>
+
+                        <p className="text-center text-xs text-slate-400 mt-3">
+                            🔒 Other details (name, ID, email) can only be changed by the admin.
+                        </p>
+                    </motion.div>
+                </div>
+            )}
+
         </div>
     );
 };

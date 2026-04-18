@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { X } from 'lucide-react';
 
 interface MessageFromLeaderProps {
     title?: string;
@@ -7,6 +8,7 @@ interface MessageFromLeaderProps {
     body?: string;
     signature?: string;
     className?: string;
+    onClose?: () => void;
 }
 
 export const MessageFromLeader: React.FC<MessageFromLeaderProps> = ({
@@ -14,10 +16,20 @@ export const MessageFromLeader: React.FC<MessageFromLeaderProps> = ({
     greeting = "Shalom,",
     body = "We at City of Truth Ministries values every soul. My team and I are dedicated to serving you and upholding the truth. If you need prayer or guidance, know that we are here for you. Your spiritual growth is our greatest joy.",
     signature = "Pastor, City of Truth Ministries",
-    className = ""
+    className = "",
+    onClose
 }) => {
     return (
         <div className={`relative w-full max-w-2xl mx-auto px-4 py-8 md:p-8 my-8 ${className}`}>
+            {onClose && (
+                <button
+                    onClick={onClose}
+                    className="absolute top-0 right-0 z-30 p-2 bg-white rounded-full shadow-lg border border-gray-100 text-gray-400 hover:text-gray-900 transition-all hover:scale-110 active:scale-95"
+                    title="Close message"
+                >
+                    <X size={20} />
+                </button>
+            )}
             {/* Envelope Icon Decoration (recreating the vibe from the image) */}
             <div className="absolute -top-6 right-4 md:right-8 text-orange-500 transform rotate-12 drop-shadow-lg">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-16 h-16">

@@ -17,7 +17,8 @@ export enum ViewState {
   MENORAH = 'MENORAH',
   MENORAH_FLAG = 'MENORAH_FLAG',
   USER_DASHBOARD = 'USER_DASHBOARD',
-  ADMIN_DASHBOARD = 'ADMIN_DASHBOARD'
+  ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
+  VERIFY_ID = 'VERIFY_ID'
 }
 
 export interface NavItem {
@@ -42,6 +43,17 @@ export interface User {
   status: UserStatus;
   photo?: string;
   joinedDate: string;
+  linkedProfiles?: SubProfile[];
+  verificationDoc?: { name: string; uploadedAt: string };
+}
+
+export interface SubProfile {
+  id: string;
+  name: string;
+  role: string;
+  photo?: string;
+  dob?: string;
+  bloodGroup?: string;
 }
 
 export interface MemberData {

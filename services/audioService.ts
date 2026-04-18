@@ -142,6 +142,75 @@ class AudioService {
             setTimeout(resolve, 3000); // Failsafe timeout
         });
     }
+
+    public async playTamil(text: string, rate: number = 0.9) {
+        if (typeof window === 'undefined') return;
+
+        // 1. Stop any currently playing audio immediately
+        this.stop();
+
+        // 2. Format the Google TTS URL for Tamil
+        const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=ta&client=tw-ob`;
+
+        // 3. Create audio object
+        const audio = new Audio();
+        audio.src = url;
+        audio.playbackRate = rate;
+        this.currentAudio = audio;
+
+        try {
+            await audio.play();
+            console.log(`[AudioService] Playing (Tamil (Google TTS)): ${text}`);
+
+            // Wait for completion
+            return new Promise<void>((resolve) => {
+                audio.onended = () => {
+                    this.currentAudio = null;
+                    resolve();
+                };
+                audio.onerror = async () => {
+                    this.currentAudio = null;
+                    console.warn('[AudioService] Tamil play failed, using fallback');
+                    await this.playLocalTamilFallback(text, rate);
+                    resolve();
+                };
+            });
+        } catch (error) {
+            console.warn('[AudioService] Tamil play blocked:', error);
+            await this.playLocalTamilFallback(text, rate);
+        }
+    }
+
+    private async playLocalTamilFallback(text: string, rate: number = 0.9) {
+        if (!('speechSynthesis' in window)) {
+            console.error('[AudioService] Speech Synthesis not supported.');
+            return;
+        }
+
+        const utterance = new SpeechSynthesisUtterance(text);
+
+        // Try to find a Tamil voice
+        const tamilVoice = this.voices.find(v => v.lang === 'ta-IN') ||
+            this.voices.find(v => v.lang.startsWith('ta')) ||
+            this.voices[0];
+
+        if (tamilVoice) {
+            utterance.voice = tamilVoice;
+        }
+
+        utterance.lang = 'ta-IN';
+        utterance.rate = rate;
+        utterance.pitch = 1;
+
+        console.log(`[AudioService] Local Fallback (Tamil): ${text}`);
+        window.speechSynthesis.speak(utterance);
+
+        return new Promise<void>((resolve) => {
+            utterance.onend = () => resolve();
+            utterance.onerror = () => resolve();
+            setTimeout(resolve, 3000); // Failsafe timeout
+        });
+    }
 }
 
 export const audioService = new AudioService();

@@ -53,7 +53,7 @@ export const MinistriesPage: React.FC = () => {
                 </motion.div>
 
                 <h1 className="text-4xl sm:text-6xl md:text-8xl lg:text-9xl font-serif font-black text-brand-950 mb-8 tracking-tighter leading-[1] md:leading-[0.9]">
-                    Our <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-600 to-accent-400 italic font-light">Service</span>
+                    Our <span className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-accent-600 to-accent-400 italic font-light pr-4">Service</span>
                 </h1>
 
                 <p className="text-xl md:text-2xl text-slate-500 font-light max-w-2xl mx-auto leading-relaxed mb-12">

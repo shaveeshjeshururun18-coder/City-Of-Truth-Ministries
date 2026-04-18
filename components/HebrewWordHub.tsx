@@ -243,9 +243,18 @@ export const HebrewWordHub: React.FC = () => {
                                                     </button>
                                                 </div>
                                                 {wordDetails.pronunciationTa && (
-                                                    <div className="text-sm font-bold text-slate-400 flex items-center gap-2">
-                                                        <div className="w-4 h-[1px] bg-slate-700" />
-                                                        {wordDetails.pronunciationTa} (தமிழ்)
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <div className="text-sm font-bold text-slate-400 flex items-center gap-2">
+                                                            <div className="w-4 h-[1px] bg-slate-700" />
+                                                            {wordDetails.pronunciationTa} (தமிழ்)
+                                                        </div>
+                                                        <button 
+                                                            onClick={() => audioService.playTamil(wordDetails.pronunciationTa!)} 
+                                                            className="p-1.5 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-accent-500"
+                                                            title="Listen in Tamil"
+                                                        >
+                                                            <Volume2 size={14} />
+                                                        </button>
                                                     </div>
                                                 )}
                                             </div>

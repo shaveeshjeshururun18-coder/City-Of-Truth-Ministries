@@ -281,7 +281,7 @@ export const EntrustCardPreview: React.FC<SectionProps> = ({ setView }) => {
         </section>
     );
 };
-export const LeaderMessageSection: React.FC<SectionProps> = ({ setView }) => {
+export const LeaderMessageSection: React.FC<SectionProps & { onClose?: () => void }> = ({ setView, onClose }) => {
     return (
         <section className="py-24 bg-brand-50 relative overflow-hidden">
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 pointer-events-none"></div>
@@ -292,7 +292,7 @@ export const LeaderMessageSection: React.FC<SectionProps> = ({ setView }) => {
                     viewport={{ once: true }}
                     className="flex flex-col items-center"
                 >
-                    <MessageFromLeader />
+                    <MessageFromLeader onClose={onClose} />
                 </motion.div>
             </div>
         </section>

@@ -39,6 +39,11 @@ export default function AIChatAssistant() {
 
     const handleClearChat = () => {
         setMessages([]);
+        localStorage.removeItem('divine_chat_widget_history');
+    };
+
+    const handleDeleteMessage = (id: string) => {
+        setMessages(prev => prev.filter(m => m.id !== id));
     };
 
     const scrollToBottom = () => {
@@ -249,15 +254,24 @@ export default function AIChatAssistant() {
                                             {message.sender === 'bot' ? <Sparkles size={14} /> : <div className="text-[10px] font-bold">YOU</div>}
                                         </div>
 
-                                        <div className="flex flex-col gap-1">
-                                            <div
-                                                className={`px-4 py-3 rounded-2xl shadow-sm text-sm leading-relaxed
-                                                ${message.sender === 'bot'
-                                                        ? 'bg-white border border-gray-100 text-gray-700 rounded-tl-none'
-                                                        : 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-tr-none'
-                                                    }`}
-                                            >
-                                                {message.text}
+                                        <div className="flex flex-col gap-1 w-full">
+                                            <div className="flex items-start gap-2 group/msg w-full">
+                                                <div
+                                                    className={`px-4 py-3 rounded-2xl shadow-sm text-sm leading-relaxed relative
+                                                    ${message.sender === 'bot'
+                                                            ? 'bg-white border border-gray-100 text-gray-700 rounded-tl-none'
+                                                            : 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-tr-none'
+                                                        }`}
+                                                >
+                                                    {message.text}
+                                                </div>
+                                                <button
+                                                    onClick={() => handleDeleteMessage(message.id)}
+                                                    className="opacity-0 group-hover/msg:opacity-100 p-1.5 hover:bg-red-50 hover:text-red-500 text-slate-300 rounded-full transition-all flex-shrink-0 mt-2"
+                                                    title="Delete message"
+                                                >
+                                                    <Trash2 size={12} />
+                                                </button>
                                             </div>
                                             <span className={`text-[10px] text-gray-400 ${message.sender === 'user' ? 'text-right' : 'text-left'}`}>
                                                 {formatTime(message.timestamp)}

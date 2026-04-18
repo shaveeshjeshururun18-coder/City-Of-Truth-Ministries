@@ -463,19 +463,19 @@ const FestivalsView: React.FC = () => (
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
-                    className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-[0_20px_50px_-10px_rgba(217,119,6,0.2)] hover:border-amber-200 hover:-translate-y-1 transition-all duration-300 group overflow-hidden relative cursor-pointer"
+                    className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-[0_20px_50px_-10px_rgba(79,70,229,0.15)] hover:border-brand-200 hover:-translate-y-1 transition-all duration-300 group overflow-hidden relative cursor-pointer"
                 >
-                    <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-amber-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-brand-50 rounded-bl-full -mr-12 -mt-12 transition-transform duration-500 group-hover:scale-150 group-hover:bg-amber-100/50" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-brand-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-brand-50 rounded-bl-full -mr-12 -mt-12 transition-transform duration-500 group-hover:scale-150 group-hover:bg-brand-100/50" />
 
                     <div className="relative z-10">
                         <div className="flex items-center justify-between mb-6">
-                            <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-amber-600 group-hover:text-white transition-colors duration-300 shadow-inner group-hover:shadow-lg group-hover:scale-110 transform">
+                            <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-transparent group-hover:text-brand-600 transition-colors duration-300 shadow-inner group-hover:shadow-lg group-hover:scale-110 transform">
                                 {f.icon}
                             </div>
-                            <span className="text-[10px] font-bold text-slate-400 group-hover:text-amber-700 uppercase tracking-widest transition-colors">{f.date}</span>
+                            <span className="text-[10px] font-bold text-slate-400 group-hover:text-brand-500 uppercase tracking-widest transition-colors">{f.date}</span>
                         </div>
-                        <h4 className="text-xl font-bold text-brand-950 mb-3 group-hover:text-amber-700 transition-colors">{f.name}</h4>
+                        <h4 className="text-xl font-bold text-brand-950 mb-3 group-hover:text-brand-700 transition-colors">{f.name}</h4>
                         <p className="text-sm text-slate-500 leading-relaxed font-light group-hover:text-slate-600">{f.desc}</p>
                     </div>
                 </motion.div>
@@ -505,12 +505,6 @@ const ReferenceView: React.FC = () => {
                             <div className="flex-1">
                                 <div className="flex justify-between items-start">
                                     <h4 className="text-lg font-bold text-brand-950">{m.name}</h4>
-                                    <button
-                                        onClick={() => audioService.playHebrew(m.name)}
-                                        className="p-1.5 bg-brand-50 rounded-full text-brand-600 opacity-0 group-hover:opacity-100 transition-all hover:bg-brand-100"
-                                    >
-                                        <Volume2 size={14} />
-                                    </button>
                                 </div>
                                 <p className="text-xs text-accent-600 font-bold mb-1 uppercase tracking-widest">{m.gregorian}</p>
                                 {m.holidays && <p className="text-xs text-amber-700 font-bold">{m.holidays}</p>}
@@ -543,13 +537,10 @@ const ReferenceView: React.FC = () => {
                 </h3>
                 <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {HEBREW_DAYS.map((day, i) => (
-                        <div key={i} className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all group cursor-pointer" onClick={() => audioService.playHebrew(day.hebrew)}>
+                        <div key={i} className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all group cursor-default">
                             <div className="flex justify-between items-start mb-6">
-                                <div className="w-12 h-12 bg-brand-50 rounded-2xl flex items-center justify-center text-brand-600 group-hover:bg-brand-600 group-hover:text-white transition-colors">
+                                <div className="w-12 h-12 bg-brand-50 rounded-2xl flex items-center justify-center text-brand-600 group-hover:bg-brand-600 group-hover:text-white transition-colors font-bold">
                                     {i + 1}
-                                </div>
-                                <div className="p-2 bg-accent-50 rounded-full text-accent-600 opacity-0 group-hover:opacity-100 transition-all">
-                                    <Volume2 size={18} />
                                 </div>
                             </div>
                             <h4 className="text-xl font-bold text-brand-950 mb-1">{day.name}</h4>
@@ -563,19 +554,187 @@ const ReferenceView: React.FC = () => {
     );
 };
 
+/* ══════════════════════════════════════════════════════
+   PAGE 1: Number → Hebrew Numeral
+══════════════════════════════════════════════════════ */
+const HebrewConverterNumbers: React.FC = () => {
+    const [input, setInput] = useState<number | ''>('');
+    const [search, setSearch] = useState('');
+
+    const toHebrew = (num: number): string => {
+        if (num <= 0) return '';
+        const units = ['', 'א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט'];
+        const tens = ['', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ'];
+        const hundreds = ['', 'ק', 'ר', 'ש', 'ת'];
+        let result = '';
+        if (num >= 1000) { const t = Math.floor(num / 1000); result += toHebrew(t) + "'"; num %= 1000; }
+        while (num >= 400) { result += 'ת'; num -= 400; }
+        if (num >= 100) { result += hundreds[Math.floor(num / 100)]; num %= 100; }
+        if (num === 15) return result + 'טו';
+        if (num === 16) return result + 'טז';
+        if (num >= 10) { result += tens[Math.floor(num / 10)]; num %= 10; }
+        if (num > 0) { result += units[num]; }
+        if (result.length > 1 && !result.includes("'")) { const last = result.slice(-1); const rest = result.slice(0, -1); return rest + '״' + last; }
+        return result;
+    };
+
+    const hebrewResult = useMemo(() => input ? toHebrew(Number(input)) : '', [input]);
+
+    const referenceNums = useMemo(() => {
+        const arr = Array.from({ length: 400 }, (_, i) => ({ num: i + 1, hebrew: toHebrew(i + 1) }));
+        [500, 600, 700, 800, 900, 1000, 2024, 2025, 2026, 5784, 5785, 5786].forEach(n => arr.push({ num: n, hebrew: toHebrew(n) }));
+        return arr;
+    }, []);
+
+    const filtered = useMemo(() => {
+        if (!search) return referenceNums.slice(0, 50);
+        return referenceNums.filter(i => i.num.toString().includes(search) || i.hebrew.includes(search));
+    }, [search, referenceNums]);
+
+    return (
+        <div className="space-y-12 py-8">
+            <div className="text-center space-y-3">
+                <h2 className="text-4xl md:text-5xl font-serif font-bold text-brand-950">Number → <span className="text-accent-600">Hebrew Numeral</span></h2>
+                <p className="text-slate-500 text-base max-w-xl mx-auto">Convert any number to its sacred Hebrew representation</p>
+            </div>
+            <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100 flex flex-col md:flex-row items-center gap-12">
+                <div className="flex-1 w-full space-y-4">
+                    <label className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><Hash size={16} className="text-brand-500" /> Enter Number</label>
+                    <input type="number" placeholder="e.g. 2026" className="w-full text-4xl md:text-6xl font-mono bg-transparent border-b-2 border-slate-100 py-4 outline-none focus:border-brand-500 transition-colors text-brand-950 placeholder:text-slate-100" value={input} onChange={e => setInput(e.target.valueAsNumber || '')} />
+                </div>
+                <div className="hidden md:block w-px h-32 bg-slate-100" />
+                <div className="flex-1 w-full text-center md:text-right space-y-4">
+                    <label className="text-sm font-bold text-slate-400 uppercase tracking-widest block">Hebrew Numeral</label>
+                    <div className="text-6xl md:text-8xl font-serif text-accent-600 min-h-[1.5em] flex items-center justify-center md:justify-end">{hebrewResult || '—'}</div>
+                </div>
+            </div>
+            <div className="space-y-6">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <h3 className="text-2xl font-serif font-bold text-brand-950">Numeral Reference Guide</h3>
+                    <div className="relative w-full md:w-72">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <input type="text" placeholder="Find number or character…" className="w-full pl-11 pr-5 py-3 bg-white border border-slate-200 rounded-full outline-none focus:border-brand-500 text-sm shadow-sm" value={search} onChange={e => setSearch(e.target.value)} />
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {filtered.map(item => (
+                        <div key={item.num} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center gap-2 text-center hover:bg-brand-50 hover:scale-105 transition-all">
+                            <span className="text-2xl text-slate-400 font-serif">{item.hebrew}</span>
+                            <span className="text-3xl font-bold text-brand-950 font-mono">{item.num}</span>
+                        </div>
+                    ))}
+                    {filtered.length === 0 && <div className="col-span-full text-center py-16 text-slate-400 italic">No results for "{search}"</div>}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+/* ══════════════════════════════════════════════════════
+   PAGE 2: Gematria Value Calculator
+══════════════════════════════════════════════════════ */
+const GEMATRIA_VALUES: { [key: string]: number } = {
+    'א': 1, 'ב': 2, 'ג': 3, 'ד': 4, 'ה': 5, 'ו': 6, 'ז': 7, 'ח': 8, 'ט': 9,
+    'י': 10, 'כ': 20, 'ל': 30, 'מ': 40, 'נ': 50, 'ס': 60, 'ע': 70, 'פ': 80, 'צ': 90,
+    'ק': 100, 'ר': 200, 'ש': 300, 'ת': 400,
+    'ך': 20, 'ם': 40, 'ן': 50, 'ף': 80, 'ץ': 90
+};
+
+const ALPHABET_REF = [
+    { letter: 'א', value: 1, name: 'Aleph' }, { letter: 'ב', value: 2, name: 'Bet' }, { letter: 'ג', value: 3, name: 'Gimel' },
+    { letter: 'ד', value: 4, name: 'Dalet' }, { letter: 'ה', value: 5, name: 'He' }, { letter: 'ו', value: 6, name: 'Vav' },
+    { letter: 'ז', value: 7, name: 'Zayin' }, { letter: 'ח', value: 8, name: 'Chet' }, { letter: 'ט', value: 9, name: 'Tet' },
+    { letter: 'י', value: 10, name: 'Yod' }, { letter: 'כ', value: 20, name: 'Kaf' }, { letter: 'ל', value: 30, name: 'Lamed' },
+    { letter: 'מ', value: 40, name: 'Mem' }, { letter: 'נ', value: 50, name: 'Nun' }, { letter: 'ס', value: 60, name: 'Samekh' },
+    { letter: 'ע', value: 70, name: 'Ayin' }, { letter: 'פ', value: 80, name: 'Pe' }, { letter: 'צ', value: 90, name: 'Tsadi' },
+    { letter: 'ק', value: 100, name: 'Qof' }, { letter: 'ר', value: 200, name: 'Resh' }, { letter: 'ש', value: 300, name: 'Shin' },
+    { letter: 'ת', value: 400, name: 'Tav' },
+].sort((a, b) => a.value - b.value);
+
+const HebrewGematriaCalc: React.FC = () => {
+    const [word, setWord] = useState('');
+    const total = useMemo(() => word.split('').reduce((sum, c) => sum + (GEMATRIA_VALUES[c] || 0), 0), [word]);
+
+    const letterBreakdown = useMemo(() => {
+        return word.split('').filter(c => c.trim()).map(c => ({ char: c, value: GEMATRIA_VALUES[c] || 0 }));
+    }, [word]);
+
+    return (
+        <div className="space-y-12 py-8">
+            <div className="text-center space-y-3">
+                <h2 className="text-4xl md:text-5xl font-serif font-bold text-brand-950">Gematria <span className="text-accent-600">Calculator</span></h2>
+                <p className="text-slate-500 text-base max-w-xl mx-auto">Type any Hebrew word to calculate its sacred numerical value</p>
+            </div>
+
+            {/* Calculator card */}
+            <div className="bg-brand-950 rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden text-white">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+                <div className="flex flex-col md:flex-row items-center gap-12 relative z-10">
+                    <div className="flex-1 w-full space-y-6">
+                        <label className="text-xs font-bold text-brand-400 uppercase tracking-widest flex items-center gap-2">
+                            <Search size={14} className="text-amber-500" /> Type Hebrew Word
+                        </label>
+                        <input type="text" placeholder="…Type any Hebrew word…" dir="rtl" className="w-full text-4xl md:text-6xl font-serif bg-transparent border-b-2 border-white/10 py-4 outline-none focus:border-amber-500 transition-colors text-white placeholder:text-white/10 text-right" value={word} onChange={e => setWord(e.target.value)} />
+                    </div>
+                    <div className="hidden md:block w-px h-32 bg-white/10" />
+                    <div className="flex-1 w-full text-center md:text-left space-y-2">
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block">Calculated Sum</label>
+                        <div className="text-7xl md:text-9xl font-mono text-amber-500 font-black">{total || '0'}</div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Letter breakdown */}
+            {letterBreakdown.length > 0 && (
+                <div className="bg-white rounded-[2rem] p-6 shadow-lg border border-slate-100">
+                    <h3 className="text-base font-bold text-slate-500 uppercase tracking-widest mb-5">Letter Breakdown</h3>
+                    <div className="flex flex-wrap gap-3">
+                        {letterBreakdown.map((item, i) => (
+                            <div key={i} className="flex flex-col items-center gap-1 bg-brand-50 border border-brand-100 rounded-2xl px-4 py-3 min-w-[60px]">
+                                <span className="text-2xl font-serif text-brand-950">{item.char}</span>
+                                <span className="text-sm font-bold text-accent-600 font-mono">{item.value}</span>
+                            </div>
+                        ))}
+                        <div className="flex flex-col items-center justify-center gap-1 bg-amber-500 rounded-2xl px-4 py-3 min-w-[60px] ml-auto">
+                            <span className="text-[9px] font-black uppercase text-white/80 tracking-widest">Total</span>
+                            <span className="text-2xl font-black text-white font-mono">{total}</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Alphabet reference */}
+            <div className="space-y-6">
+                <h3 className="text-xl font-serif font-bold text-brand-950 text-center">Alphabet Values Reference</h3>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-11 gap-3">
+                    {ALPHABET_REF.map(item => (
+                        <button key={item.letter} onClick={() => setWord(w => w + item.letter)} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center gap-1 text-center hover:bg-brand-50 hover:scale-105 hover:border-brand-200 transition-all cursor-pointer" title={`Add ${item.name}`}>
+                            <span className="text-3xl font-serif text-brand-950">{item.letter}</span>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">{item.name}</span>
+                            <span className="text-sm font-bold text-accent-600 font-mono">{item.value}</span>
+                        </button>
+                    ))}
+                </div>
+                <p className="text-center text-xs text-slate-400">👆 Click a letter to add it to your word</p>
+            </div>
+        </div>
+    );
+};
+
 interface HebrewResourcesProps {
     initialTab?: 'numbers' | 'calendar' | 'festivals' | 'reference';
     currentUser?: User;
 }
 
 export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, currentUser }) => {
-    const [tab, setTab] = useState<'numbers' | 'calendar' | 'festivals' | 'reference' | 'words'>(initialTab || 'numbers');
+    const [tab, setTab] = useState<'numbers' | 'calendar' | 'festivals' | 'reference' | 'words' | 'gematria'>(initialTab || 'numbers');
 
     useEffect(() => {
         if (initialTab) {
             setTab(initialTab);
         }
     }, [initialTab]);
+
 
     return (
         <div className="min-h-screen pt-20 md:pt-28 pb-20 container mx-auto px-6 font-sans bg-[#fdfcf0]">
@@ -596,13 +755,14 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                             { id: 'calendar', label: 'Hebrew Calendar', icon: <CalendarIcon size={16} /> },
                             { id: 'words', label: 'Hebrew Word', icon: <Type size={16} /> },
                             { id: 'numbers', label: 'Numbers', icon: <Hash size={16} /> },
+                            { id: 'gematria', label: 'Gematria Value', icon: <Calculator size={16} /> },
                             { id: 'reference', label: 'Month/Year', icon: <BookOpen size={16} /> }
                         ].map((t) => {
                             const isActive = tab === t.id;
                             return (
                                 <button
                                     key={t.id}
-                                    onClick={() => setTab(t.id as any)}
+                                    onClick={() => { setTab(t.id as any); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                                     className={`relative flex items-center justify-center gap-2 md:gap-3 px-3 md:px-6 py-2.5 md:py-3 rounded-xl md:rounded-full font-bold text-[9px] md:text-xs uppercase tracking-widest transition-all duration-300 ${isActive
                                         ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/30'
                                         : 'bg-white text-slate-400 hover:text-amber-600 hover:border-amber-200 border border-slate-200 shadow-sm'
@@ -635,7 +795,8 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                             {tab === 'festivals' && <FestivalsView />}
                             {tab === 'calendar' && <HebrewCalendarView currentUser={currentUser} />}
                             {tab === 'words' && <HebrewWordHub />}
-                            {tab === 'numbers' && <HebrewConverter />}
+                            {tab === 'numbers' && <HebrewConverterNumbers />}
+                            {tab === 'gematria' && <HebrewGematriaCalc />}
                             {tab === 'reference' && <ReferenceView />}
                         </motion.div>
                     </AnimatePresence>

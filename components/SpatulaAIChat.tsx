@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Send, Loader2 } from 'lucide-react';
-import { generateSpatulaAIResponse, streamSpatulaAIResponse, AVAILABLE_MODELS } from '../services/openRouterService';
+import { generateSpatulaAIResponse, streamSpatulaAIResponse } from '../services/openRouterService';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -41,15 +41,11 @@ export const SpatulaAIChat: React.FC = () => {
               newMessages[newMessages.length - 1].content = assistantMessage;
               return newMessages;
             });
-          },
-          AVAILABLE_MODELS.GEMINI_FLASH_FREE
+          }
         );
       } else {
         // Regular response
-        const response = await generateSpatulaAIResponse(
-          input,
-          AVAILABLE_MODELS.GPT_4O
-        );
+        const response = await generateSpatulaAIResponse(input);
         setMessages((prev) => [...prev, { role: 'assistant', content: response }]);
       }
     } catch (error) {

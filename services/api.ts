@@ -296,5 +296,39 @@ export const api = {
             console.error('Error updating ministries order:', error);
             throw error;
         }
+    },
+
+    // --- Home Layout Configuration ---
+
+    // Fetch the home page section order from Firestore
+    getHomeLayout: async (): Promise<string[] | null> => {
+        try {
+            const layoutDoc = doc(db, 'config', 'home_layout');
+            const snapshot = await getDoc(layoutDoc);
+            
+            if (snapshot.exists()) {
+                const data = snapshot.data();
+                return data.sections as string[];
+            }
+            return null;
+        } catch (error) {
+            console.error('Error fetching home layout:', error);
+            return null;
+        }
+    },
+
+    // Save the home page section order to Firestore
+    updateHomeLayout: async (sections: string[]): Promise<void> => {
+        try {
+            const layoutDoc = doc(db, 'config', 'home_layout');
+            await setDoc(layoutDoc, { 
+                sections,
+                updatedAt: new Date().toISOString()
+            }, { merge: true });
+        } catch (error) {
+            console.error('Error updating home layout:', error);
+            throw error;
+        }
     }
 };
+

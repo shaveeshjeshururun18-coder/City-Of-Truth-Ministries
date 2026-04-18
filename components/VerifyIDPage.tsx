@@ -3,7 +3,7 @@ import { Camera, CheckCircle, XCircle, Search, ScanLine, X, Loader2 } from 'luci
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
 import { User } from '../types';
-import Navbar from './Navbar';
+import { Navbar } from './Navbar';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 
