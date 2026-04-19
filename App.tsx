@@ -81,6 +81,7 @@ import { BottomNav } from './components/BottomNav';
 import { api } from './services/api';
 
 const youtubeLink = "https://youtube.com/@cotministries?si=A6179oNRuuJ9snjM";
+const MAX_STORED_CONTACT_MESSAGES = 200;
 
 const RevealText: React.FC<{ text: string; className?: string; delay?: number }> = ({ text, className = "", delay = 0 }) => {
   return (
@@ -381,7 +382,7 @@ const App: React.FC = () => {
       id: `MSG-${Date.now()}`,
       createdAt: new Date().toISOString(),
     };
-    setContactMessages(prev => [next, ...prev].slice(0, 200));
+    setContactMessages(prev => [next, ...prev].slice(0, MAX_STORED_CONTACT_MESSAGES));
   };
 
   const handleHeroSendMessage = () => {
@@ -1262,7 +1263,7 @@ const App: React.FC = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Send Message</label>
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Send Message (Email)</label>
                         <div className="relative">
                           <Mail size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
                           <input type="email" placeholder="john@example.com" className="w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all text-sm font-bold text-brand-950" value={contactForm.email} onChange={e => setContactForm(prev => ({ ...prev, email: e.target.value }))} />
