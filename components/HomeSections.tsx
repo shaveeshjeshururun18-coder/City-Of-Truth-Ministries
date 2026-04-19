@@ -210,11 +210,13 @@ export const TestimonialHighlights: React.FC<SectionProps> = ({ setView }) => {
 };
 
 export const MemberInitialsSection: React.FC<{ users: User[] }> = ({ users }) => {
+    const DEFAULT_INITIALS = 'CT';
     const visibleUsers = users.slice(0, 8);
     const fallbackUsers = ['Shaveesh Jeshurun', 'Sri Priya', 'Prasad Raj', 'Grace Mary'];
     const namesToRender = visibleUsers.length > 0 ? visibleUsers.map((u) => u.name) : fallbackUsers;
 
     const getInitials = (name: string) => {
+        if (!name.trim()) return DEFAULT_INITIALS;
         const initials = name
             .trim()
             .split(/\s+/)
@@ -222,7 +224,7 @@ export const MemberInitialsSection: React.FC<{ users: User[] }> = ({ users }) =>
             .slice(0, 2)
             .map((part) => part[0]?.toUpperCase() || '')
             .join('');
-        return initials.padEnd(2, name[0]?.toUpperCase() || 'C').slice(0, 2);
+        return initials.padEnd(2, DEFAULT_INITIALS[0]).slice(0, 2);
     };
 
     return (

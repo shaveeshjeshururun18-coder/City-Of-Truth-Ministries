@@ -1123,7 +1123,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <div className="flex gap-3">
                                     <button 
                                         onClick={() => {
-                                            if (window.confirm("Apsolutely sure? This resets the home page for EVERYONE.")) {
+                                            if (window.confirm("Absolutely sure? This resets the home page for EVERYONE.")) {
                                                 onUpdateHomeSectionsOrder(['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'valparai', 'testimonials', 'members', 'preview', 'verify']);
                                             }
                                         }}
