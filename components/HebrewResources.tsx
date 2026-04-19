@@ -726,16 +726,19 @@ interface HebrewResourcesProps {
     currentUser?: User;
 }
 
+type HebrewResourceTab = 'numbers' | 'calendar' | 'festivals' | 'reference' | 'words' | 'gematria';
+
+const HEBREW_RESOURCE_TABS: ReadonlyArray<{ id: HebrewResourceTab; label: string; icon: React.ReactNode }> = [
+    { id: 'festivals', label: 'Festivals', icon: <Flame size={16} /> },
+    { id: 'calendar', label: 'Hebrew Calendar', icon: <CalendarIcon size={16} /> },
+    { id: 'words', label: 'Hebrew Word', icon: <Type size={16} /> },
+    { id: 'numbers', label: 'Numbers', icon: <Hash size={16} /> },
+    { id: 'gematria', label: 'Gematria Value', icon: <Calculator size={16} /> },
+    { id: 'reference', label: 'Month/Year', icon: <BookOpen size={16} /> }
+];
+
 export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, currentUser }) => {
-    const [tab, setTab] = useState<'numbers' | 'calendar' | 'festivals' | 'reference' | 'words' | 'gematria'>(initialTab || 'numbers');
-    const tabs = [
-        { id: 'festivals', label: 'Festivals', icon: <Flame size={16} /> },
-        { id: 'calendar', label: 'Hebrew Calendar', icon: <CalendarIcon size={16} /> },
-        { id: 'words', label: 'Hebrew Word', icon: <Type size={16} /> },
-        { id: 'numbers', label: 'Numbers', icon: <Hash size={16} /> },
-        { id: 'gematria', label: 'Gematria Value', icon: <Calculator size={16} /> },
-        { id: 'reference', label: 'Month/Year', icon: <BookOpen size={16} /> }
-    ] as const;
+    const [tab, setTab] = useState<HebrewResourceTab>(initialTab || 'numbers');
 
     useEffect(() => {
         if (initialTab) {
@@ -749,12 +752,12 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
             <div className="max-w-7xl mx-auto md:flex md:items-start md:gap-8">
                 <aside className="hidden md:block md:w-64 md:shrink-0 md:sticky md:top-[110px]">
                     <div className="flex flex-col gap-3">
-                        {tabs.map((t) => {
+                        {HEBREW_RESOURCE_TABS.map((t) => {
                             const isActive = tab === t.id;
                             return (
                                 <button
                                     key={t.id}
-                                    onClick={() => { setTab(t.id as any); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                    onClick={() => { setTab(t.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                                     className={`relative w-full flex items-center justify-start gap-3 px-4 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all duration-300 ${isActive
                                         ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/30'
                                         : 'bg-white text-slate-400 hover:text-amber-600 hover:border-amber-200 border border-slate-200 shadow-sm'
@@ -787,12 +790,12 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
 
                 <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-[#fdfcf0]/95 backdrop-blur-md">
                     <div className="grid grid-cols-3 gap-2 p-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
-                        {tabs.map((t) => {
+                        {HEBREW_RESOURCE_TABS.map((t) => {
                             const isActive = tab === t.id;
                             return (
                                 <button
                                     key={t.id}
-                                    onClick={() => { setTab(t.id as any); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                    onClick={() => { setTab(t.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                                     className={`relative flex items-center justify-center gap-2 px-2 py-2.5 rounded-xl font-bold text-[9px] uppercase tracking-widest transition-all duration-300 ${isActive
                                         ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/30'
                                         : 'bg-white text-slate-400 hover:text-amber-600 hover:border-amber-200 border border-slate-200 shadow-sm'
