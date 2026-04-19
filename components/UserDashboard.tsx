@@ -473,11 +473,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         className="relative inline-block bg-white rounded-3xl p-4 border border-slate-100 shadow-lg shadow-brand-900/5"
                                     >
                                         <img src={qrImgSrc} alt="QR Code" className="w-48 h-48 block mx-auto" crossOrigin="anonymous" />
-                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                            <div className="bg-white rounded-full w-12 h-12 flex items-center justify-center shadow-md border border-slate-100">
-                                                <img src="/logo.png" alt="COT" className="w-8 h-8 object-contain" />
-                                            </div>
-                                        </div>
                                     </button>
                                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-4">Tap QR to open scanner</p>
                                 </div>

@@ -43,7 +43,8 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
     }, [isBackSide, isStatic]);
 
     const fullDetails = `CITY OF TRUTH MINISTRIES\nID: ${uniqueId}\nName: ${name}\nLocation: ${location}\nPhone: ${emergency}\nMember Since: ${memberSince}`.trim();
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`https://city-of-truth-ministries.vercel.app/verify/${uniqueId}`)}&bgcolor=ffffff&color=2c298c&margin=2`;
+    const verifyBaseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://city-of-truth-ministries.vercel.app';
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`${verifyBaseUrl}/verify/${uniqueId}`)}&bgcolor=ffffff&color=2c298c&margin=2`;
 
     const FrontFace = () => (
         <div className="absolute inset-0 bg-white rounded-xl overflow-hidden border border-gray-200 shadow-2xl flex flex-col" style={{ backfaceVisibility: 'hidden' }}>
@@ -107,11 +108,6 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                 <div className="absolute bottom-2 right-2 bg-white p-1 border border-slate-100 rounded-lg shadow-sm">
                     <div className="relative inline-block w-14 h-14">
                         <img src={qrCodeUrl} alt="QR" className="w-full h-full block" />
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="bg-white rounded-full flex items-center justify-center p-0.5 shadow-sm" style={{ width: '16px', height: '16px' }}>
-                                <img src="/logo.png" alt="COT" className="w-full h-full object-contain rounded-full" />
-                            </div>
-                        </div>
                     </div>
                 </div>
 
