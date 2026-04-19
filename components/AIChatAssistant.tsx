@@ -160,10 +160,10 @@ export default function AIChatAssistant() {
                         whileHover={{ scale: 1.1, cursor: 'grab' }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => setIsOpen(true)}
-                        className="pointer-events-auto fixed bottom-6 right-6 z-50 w-12 h-12 md:w-16 md:h-16 rounded-full shadow-2xl flex items-center justify-center bg-gradient-to-tr from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 border border-white/20 backdrop-blur-md group"
+                        className="pointer-events-auto fixed bottom-5 right-5 z-50 w-10 h-10 md:w-16 md:h-16 rounded-full shadow-2xl flex items-center justify-center bg-gradient-to-tr from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 border border-white/20 backdrop-blur-md group"
                     >
                         <div className="relative">
-                            <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-white fill-white/20" />
+                            <Sparkles className="w-5 h-5 md:w-8 md:h-8 text-white fill-white/20" />
                             <span className="absolute -top-1 -right-1 flex h-3 w-3">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
