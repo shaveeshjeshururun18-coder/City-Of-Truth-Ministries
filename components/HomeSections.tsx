@@ -448,7 +448,7 @@ export const CommunityMembersSection: React.FC<SectionProps & { users: User[] }>
                     </motion.p>
                 </div>
 
-                <div className="flex flex-wrap justify-center gap-6 max-w-4xl mx-auto">
+                <div className="flex flex-wrap justify-center gap-6 max-w-5xl mx-auto">
                     {displayUsers.map((user, i) => (
                         <motion.div
                             key={user.id}
@@ -456,17 +456,17 @@ export const CommunityMembersSection: React.FC<SectionProps & { users: User[] }>
                             whileInView={{ opacity: 1, scale: 1, y: 0 }}
                             transition={{ delay: i * 0.07 }}
                             viewport={{ once: true }}
-                            className="flex flex-col items-center gap-2 group cursor-default"
+                            className="flex flex-col items-center gap-2.5 group cursor-default bg-white/70 border border-orange-100 rounded-3xl px-4 py-4 shadow-md shadow-orange-100/70 hover:shadow-lg hover:shadow-orange-200/70 transition-all duration-300 min-w-[140px] max-w-[170px]"
                         >
                             <div
-                                className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length]} flex items-center justify-center shadow-lg shadow-orange-300/40 group-hover:scale-110 group-hover:shadow-orange-400/50 transition-all duration-300`}
+                                className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length]} flex items-center justify-center shadow-lg shadow-orange-300/40 group-hover:scale-110 group-hover:shadow-orange-400/50 transition-all duration-300 ring-2 ring-orange-100`}
                             >
                                 <span className="text-white text-xl font-black tracking-wide select-none">
                                     {getInitials(user.name)}
                                 </span>
                             </div>
-                            <span className="text-[11px] font-bold text-orange-800 text-center leading-tight max-w-[80px] uppercase tracking-wide">
-                                {user.name.trim().split(/\s+/)[0] || user.name}
+                            <span className="text-xs font-bold text-orange-800 text-center leading-tight w-full tracking-wide break-words">
+                                {user.name}
                             </span>
                         </motion.div>
                     ))}

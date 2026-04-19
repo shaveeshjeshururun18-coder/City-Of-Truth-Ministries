@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X } from 'lucide-react';
-import { Scanner } from '@yudiel/react-qr-scanner';
 import { Button } from './Button';
-import { ViewState } from '../types';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
@@ -33,14 +31,70 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     const [notFound, setNotFound] = useState(false);
     const [showScanner, setShowScanner] = useState(false);
     const [scanningFile, setScanningFile] = useState(false);
+    const scannerRef = useRef<any>(null);
 
-    const extractQrData = (text: string) => {
-        let qrData = text.trim();
-        if (qrData.includes('/verify/')) {
-            qrData = qrData.split('/verify/')[1]?.split('?')[0]?.trim() || qrData;
-        }
-        return qrData;
+    const extractIdentifier = (value: string) => {
+        const trimmed = (value || '').trim();
+        if (trimmed.includes('/verify/')) return trimmed.split('/verify/')[1]?.split('?')[0]?.trim() || trimmed;
+        if (trimmed.includes('/card/')) return trimmed.split('/card/')[1]?.split('?')[0]?.trim() || trimmed;
+        try {
+            const parsed = JSON.parse(trimmed);
+            if (parsed?.id && typeof parsed.id === 'string') return parsed.id.trim();
+        } catch (_e) {}
+        return trimmed;
     };
+
+    const stopScanner = () => {
+        if (scannerRef.current) {
+            scannerRef.current.stop().then(() => {
+                scannerRef.current = null;
+            }).catch(() => {
+                scannerRef.current = null;
+            });
+        }
+    };
+
+    const startLiveScanner = () => {
+        const h5 = new (window as any).Html5Qrcode('qr-auth-page-reader');
+        scannerRef.current = h5;
+        h5.start(
+            { facingMode: 'environment' },
+            { fps: 10, qrbox: { width: 260, height: 260 } },
+            (decodedText: string) => {
+                const qrData = extractIdentifier(decodedText);
+                setIdentifier(qrData);
+                setShowScanner(false);
+                handleSearch(qrData);
+            },
+            () => {}
+        ).catch(() => {
+            setShowScanner(false);
+        });
+    };
+
+    useEffect(() => {
+        if (!showScanner) {
+            stopScanner();
+            return;
+        }
+        if (!(window as any).Html5Qrcode) {
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/html5-qrcode';
+            script.async = true;
+            script.onload = () => startLiveScanner();
+            document.body.appendChild(script);
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            startLiveScanner();
+        }, 200);
+
+        return () => {
+            clearTimeout(timer);
+            stopScanner();
+        };
+    }, [showScanner]);
 
     const handleFileQRScan = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -55,7 +109,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
             const scanImageFile = async (imageFile: File) => {
                 const text = await h5.scanFile(imageFile, true);
-                return extractQrData(text);
+                return extractIdentifier(text);
             };
 
             const scanPdfFile = async (pdfFile: File) => {
@@ -310,19 +364,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                         <button onClick={() => setShowScanner(false)} className="text-white/40 hover:text-white transition-colors">Close ×</button>
                                     </div>
                                     <div className="p-4 relative">
-                                        <Scanner
-                                            onScan={(result) => {
-                                                if (result && result.length > 0) {
-                                                    let qrData = result[0].rawValue;
-                                                    if (qrData.includes('/verify/')) {
-                                                        qrData = qrData.split('/verify/')[1]?.split('?')[0]?.trim() || qrData;
-                                                    }
-                                                    setIdentifier(qrData);
-                                                    setShowScanner(false);
-                                                    handleSearch(qrData);
-                                                }
-                                            }}
-                                        />
+                                        <div id="qr-auth-page-reader" className="w-full min-h-[320px] rounded-2xl overflow-hidden" />
                                         <div className="absolute inset-0 border-[60px] border-slate-950/40 pointer-events-none" />
                                         <div className="absolute inset-[60px] border-2 border-brand-500/40 rounded-3xl pointer-events-none animate-pulse" />
                                     </div>
@@ -449,3 +491,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         </div>
     );
 };
+
+declare global {
+    interface Window { Html5Qrcode: any; }
+}

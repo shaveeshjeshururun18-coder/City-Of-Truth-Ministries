@@ -53,7 +53,6 @@ import {
 import { ViewState, User, UserRole, UserStatus, NavItem } from './types';
 import { Navbar } from './components/Navbar';
 import { Button } from './components/Button';
-import { AuthModal } from './components/AuthModal';
 import { AuthPage } from './components/AuthPage';
 // Removed SpiritualAssistant import
 import { WorshipperIDCard, EntrustCard3D } from './components/WorshipperIDCard';
@@ -296,8 +295,8 @@ const App: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.HOME);
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [authInitialView, setAuthInitialView] = useState<'choice' | 'login' | 'register'>('choice');
+  const [authInitialView, setAuthInitialView] = useState<'choice' | 'login' | 'register' | 'forgot-id'>('choice');
+  const [selectedDashboardProfileId, setSelectedDashboardProfileId] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [showLeaderMessage, setShowLeaderMessage] = useState(false);
@@ -493,32 +492,43 @@ const App: React.FC = () => {
     const searchId = identifier.trim().toLowerCase();
 
     // Multi-identifier login: Phone, Email, ID, or Name
-    const matchingUsers = users.filter(u => {
+    const matches = users.map(u => {
       const uPhone = (u.phone || '').trim();
       const uEmail = (u.email || '').trim().toLowerCase();
       const uId = (u.id || '').trim().toLowerCase();
       const uName = (u.name || '').trim().toLowerCase();
       const uEmergency = (u.emergency || '').trim();
+      const linked = (u.linkedProfiles || []).find(sp => {
+        const spId = (sp.id || '').trim().toLowerCase();
+        const spName = (sp.name || '').trim().toLowerCase();
+        return spId === searchId || spName === searchId;
+      });
 
-      return (
+      if (linked) {
+        return { user: u, profileId: linked.id };
+      }
+
+      const isMatch = (
         uPhone === identifier ||
         uEmergency === identifier ||
         uId === searchId ||
         uEmail === searchId ||
         uName === searchId
       );
-    });
+      return isMatch ? { user: u, profileId: u.id } : null;
+    }).filter(Boolean) as Array<{ user: User; profileId: string }>;
 
-    const user = matchingUsers[0];
+    const match = matches[0];
+    const user = match?.user;
 
     if (user) {
       const matchedById = (user.id || '').trim().toLowerCase() === searchId;
-      if (!matchedById && matchingUsers.length > 1) {
+      if (!matchedById && matches.length > 1) {
         alert("Multiple accounts match this detail. Please login with your unique Member ID (COT-XXXX).");
         return;
       }
       setCurrentUser(user);
-      setIsAuthOpen(false);
+      setSelectedDashboardProfileId(match?.profileId || user.id);
       setCurrentView(ViewState.USER_DASHBOARD);
       navigate('/');
     } else {
@@ -557,7 +567,7 @@ const App: React.FC = () => {
       const savedUser = await api.createUser(newUser);
       setUsers([...users, savedUser]);
       setCurrentUser(savedUser);
-      setIsAuthOpen(false);
+      setSelectedDashboardProfileId(savedUser.id);
 
       // --- EMAILJS INTEGRATION (Using User Provided Keys) ---
       const EMAILJS_SERVICE_ID = 'service_wcxaetv';
@@ -632,6 +642,7 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     setCurrentUser(null);
+    setSelectedDashboardProfileId(null);
     setCurrentView(ViewState.HOME);
     alert("You have been logged out successfully.");
   };
@@ -728,25 +739,21 @@ const App: React.FC = () => {
         navItems={navigationItems}
       />
 
-      <AuthModal
-        isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
-        onLogin={handleLogin}
-        onRegister={handleRegister}
-        onFindID={handleFindID}
-        onNavigateToRegister={() => {
-          setIsAuthOpen(false);
-          setCurrentView(ViewState.ID_CARD);
-        }}
-        onAdminClick={() => {
-          setIsAuthOpen(false);
-          navigate('/admin');
-        }}
-        initialView={authInitialView}
-      />
-
       <main className="relative">
         <AnimatePresence mode="wait">
+          {currentView === ViewState.AUTH && (
+            <motion.div key="auth" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <AuthPage
+                onLogin={handleLogin}
+                onNavigateToRegister={() => setCurrentView(ViewState.ID_CARD)}
+                onAdminClick={() => navigate('/admin')}
+                onBack={() => setCurrentView(ViewState.HOME)}
+                users={users}
+                initialView={authInitialView}
+              />
+            </motion.div>
+          )}
+
           {currentView === ViewState.HOME && (
             <motion.div
               key="home"
@@ -902,10 +909,10 @@ const App: React.FC = () => {
                       <p className="text-slate-500 max-w-xl mx-auto font-medium">Confirm your City of Truth membership status through any of these official methods.</p>
                     </motion.div>
                   </div>
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-                    {[
-                      { icon: UserIcon, label: 'Login to Account', desc: 'Access your personal dashboard with your Member ID, phone, or email.', color: 'from-brand-500 to-brand-700', light: 'bg-brand-50 text-brand-600', action: () => navigate('/auth?view=login'), cta: 'Login Now' },
-                      { icon: UploadCloud, label: 'Upload Entrust PDF', desc: 'Upload your Entrust Card PDF to verify your membership document.', color: 'from-accent-500 to-accent-700', light: 'bg-accent-50 text-accent-600', action: () => setCurrentView(ViewState.USER_DASHBOARD), cta: 'Upload File' },
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+                      {[
+                        { icon: UserIcon, label: 'Login to Account', desc: 'Access your personal dashboard with your Member ID, phone, or email.', color: 'from-brand-500 to-brand-700', light: 'bg-brand-50 text-brand-600', action: () => navigate('/auth?view=login'), cta: 'Login Now' },
+                        { icon: UploadCloud, label: 'Upload Entrust PDF', desc: 'Upload your Entrust Card PDF to verify your membership document.', color: 'from-accent-500 to-accent-700', light: 'bg-accent-50 text-accent-600', action: () => currentUser ? setCurrentView(ViewState.USER_DASHBOARD) : navigate('/auth?view=login'), cta: 'Upload File' },
                       { icon: CreditCard, label: 'View Entrust Card', desc: 'Register or view your official digital ID card and QR code.', color: 'from-emerald-500 to-emerald-700', light: 'bg-emerald-50 text-emerald-600', action: () => setCurrentView(ViewState.ID_CARD), cta: 'View Card' },
                       { icon: CheckCircle, label: 'Scan QR Code', desc: 'Scan any member\'s QR code to instantly verify their identity.', color: 'from-amber-500 to-orange-600', light: 'bg-amber-50 text-amber-600', action: () => navigate('/verify-id'), cta: 'Open Scanner' },
                     ].map((item, i) => (
@@ -1047,8 +1054,10 @@ const App: React.FC = () => {
             <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <UserDashboard
                 user={currentUser}
+                initialProfileId={selectedDashboardProfileId || undefined}
                 onEdit={() => { }}
                 onLogout={handleLogout}
+                onOpenScanner={() => setCurrentView(ViewState.VERIFY_ID)}
                 onUpdate={async (updatedUser) => {
                   await api.updateUser(updatedUser);
                   setCurrentUser(updatedUser);
