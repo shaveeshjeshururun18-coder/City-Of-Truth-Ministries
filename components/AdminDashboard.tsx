@@ -888,24 +888,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         </button>
                                     </div>
                                 )}
-                                <div className="flex gap-2 pt-4 border-t border-slate-100">
+                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-4 border-t border-slate-100">
                                     <button
                                         onClick={() => setViewingDetailsUser(user)}
-                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-50 text-green-600 rounded-xl font-medium text-sm hover:bg-green-100 transition-colors"
+                                        className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-green-50 text-green-600 rounded-xl font-medium text-sm hover:bg-green-100 transition-colors"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
                                         View
                                     </button>
                                     <button
                                         onClick={() => setViewingQrUser(user)}
-                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-medium text-sm hover:bg-indigo-100 transition-colors"
+                                        className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-medium text-sm hover:bg-indigo-100 transition-colors"
                                     >
                                         <QrCode size={16} />
                                         QR
                                     </button>
                                     <button
                                         onClick={() => handleDownloadUserCard(user)}
-                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-purple-50 text-purple-600 rounded-xl font-medium text-sm hover:bg-purple-100 transition-colors"
+                                        className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-purple-50 text-purple-600 rounded-xl font-medium text-sm hover:bg-purple-100 transition-colors"
                                         disabled={downloadingCardUserId === user.id}
                                     >
                                         {downloadingCardUserId === user.id ? (
@@ -916,14 +916,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     </button>
                                     <button
                                         onClick={() => setEditingUser(user)}
-                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-medium text-sm hover:bg-blue-100 transition-colors"
+                                        className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-xl font-medium text-sm hover:bg-blue-100 transition-colors"
                                     >
                                         <Edit2 size={16} />
                                         Edit
                                     </button>
                                     <button
                                         onClick={() => setDeletingUser(user)}
-                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl font-medium text-sm hover:bg-red-100 transition-colors"
+                                        className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-xl font-medium text-sm hover:bg-red-100 transition-colors"
                                     >
                                         <Trash2 size={16} />
                                         Delete
