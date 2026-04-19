@@ -46,6 +46,12 @@ export interface User {
   joinedDate: string;
   linkedProfiles?: SubProfile[];
   verificationDoc?: { name: string; uploadedAt: string };
+  communityProfile?: {
+    denomination?: string;
+    churchName?: string;
+    role?: string;
+    bio?: string;
+  };
 }
 
 export interface SubProfile {
