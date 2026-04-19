@@ -335,6 +335,17 @@ const App: React.FC = () => {
     }
   });
 
+  useEffect(() => {
+    if (homeSectionsOrder.includes('members')) return;
+    const insertAt = homeSectionsOrder.indexOf('testimonials');
+    const nextOrder =
+      insertAt >= 0
+        ? [...homeSectionsOrder.slice(0, insertAt + 1), 'members', ...homeSectionsOrder.slice(insertAt + 1)]
+        : [...homeSectionsOrder, 'members'];
+    setHomeSectionsOrder(nextOrder);
+    localStorage.setItem('cot_home_sections_order', JSON.stringify(nextOrder));
+  }, [homeSectionsOrder]);
+
   // Fetch home layout from Firestore on mount
   useEffect(() => {
     const fetchLayout = async () => {
@@ -462,6 +473,8 @@ const App: React.FC = () => {
   const verifyMatch = location.pathname.match(/^\/verify\/(.+)$/);
   const isVerifyRoute = !!verifyMatch;
   const verifyUserId = verifyMatch ? verifyMatch[1] : null;
+  const isAuthRoute = location.pathname === '/auth';
+  const isVerifyScannerRoute = location.pathname === '/verify-id';
 
   const getThemeClass = () => {
     switch (currentView) {
@@ -490,9 +503,7 @@ const App: React.FC = () => {
     const searchId = identifier.trim().toLowerCase();
 
     // Multi-identifier login: Phone, Email, ID, or Name
-    let matchedProfileId: string | null = null;
-
-    const user = users.find(u => {
+    const matches = users.map(u => {
       const uPhone = (u.phone || '').trim();
       const uEmail = (u.email || '').trim().toLowerCase();
       const uId = (u.id || '').trim().toLowerCase();
@@ -505,8 +516,7 @@ const App: React.FC = () => {
       });
 
       if (linked) {
-        matchedProfileId = linked.id;
-        return true;
+        return { user: u, profileId: linked.id };
       }
 
       const isMatch = (
@@ -516,14 +526,22 @@ const App: React.FC = () => {
         uEmail === searchId ||
         uName === searchId
       );
-      if (isMatch) matchedProfileId = u.id;
-      return isMatch;
-    });
+      return isMatch ? { user: u, profileId: u.id } : null;
+    }).filter(Boolean) as Array<{ user: User; profileId: string }>;
+
+    const match = matches[0];
+    const user = match?.user;
 
     if (user) {
+      const matchedById = (user.id || '').trim().toLowerCase() === searchId;
+      if (!matchedById && matches.length > 1) {
+        alert("Multiple accounts match this detail. Please login with your unique Member ID (COT-XXXX).");
+        return;
+      }
       setCurrentUser(user);
-      setSelectedDashboardProfileId(matchedProfileId || user.id);
+      setSelectedDashboardProfileId(match?.profileId || user.id);
       setCurrentView(ViewState.USER_DASHBOARD);
+      navigate('/');
     } else {
       alert("Account not found. Please check your Member ID, Email, Phone, or Name.");
     }
@@ -532,15 +550,12 @@ const App: React.FC = () => {
   const handleRegister = async (data: any) => {
     // Check if user already exists
     const existingUser = users.find(u =>
-      (data.emergency && u.phone === data.emergency) ||
-      (data.email && u.email === data.email) ||
       u.id === data.uniqueId
     );
 
     if (existingUser) {
-      alert("User already exists with this phone, email, or ID! Please Login.");
-      setAuthInitialView('login');
-      setCurrentView(ViewState.AUTH);
+      alert("User already exists with this Member ID! Please login.");
+      navigate('/auth?view=login');
       return;
     }
 
@@ -698,12 +713,38 @@ const App: React.FC = () => {
     return <QRVerifyPage userId={verifyUserId} onBack={() => navigate('/')} />;
   }
 
+  if (isAuthRoute) {
+    const params = new URLSearchParams(location.search);
+    const routeInitial = params.get('view');
+    const initialView = routeInitial === 'login' || routeInitial === 'register' || routeInitial === 'forgot-id' || routeInitial === 'choice'
+      ? routeInitial
+      : 'login';
+
+    return (
+      <AuthPage
+        onLogin={handleLogin}
+        onNavigateToRegister={() => {
+          navigate('/');
+          setCurrentView(ViewState.ID_CARD);
+        }}
+        onAdminClick={() => navigate('/admin')}
+        onBack={() => navigate('/')}
+        users={users}
+        initialView={initialView}
+      />
+    );
+  }
+
+  if (isVerifyScannerRoute) {
+    return <VerifyIDPage />;
+  }
+
   return (
     <div className={`min-h-screen transition-colors duration-1000 ease-in-out font-sans ${getThemeClass()}`}>
       <Navbar
         currentView={currentView}
         setView={setCurrentView}
-        onLoginClick={() => { setAuthInitialView('login'); setCurrentView(ViewState.AUTH); }}
+        onLoginClick={() => navigate('/auth?view=login')}
         onLogoutClick={handleLogout}
         currentUser={currentUser}
         navItems={navigationItems}
@@ -768,7 +809,7 @@ const App: React.FC = () => {
                                 Register Now
                               </Button>
                               <Button
-                                onClick={() => { setAuthInitialView('login'); setCurrentView(ViewState.AUTH); }}
+                                onClick={() => navigate('/auth?view=login')}
                                 className="w-full sm:w-auto px-5 py-3 sm:px-10 sm:py-5 text-[11px] sm:text-sm uppercase tracking-[0.2em] font-black text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 hover:border-white/60 hover:scale-105 active:scale-95 rounded-full transition-all duration-300"
                               >
                                 Login
@@ -879,12 +920,12 @@ const App: React.FC = () => {
                       <p className="text-slate-500 max-w-xl mx-auto font-medium">Confirm your City of Truth membership status through any of these official methods.</p>
                     </motion.div>
                   </div>
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-                    {[
-                      { icon: UserIcon, label: 'Login to Account', desc: 'Access your personal dashboard with your Member ID, phone, or email.', color: 'from-brand-500 to-brand-700', light: 'bg-brand-50 text-brand-600', action: () => { setAuthInitialView('login'); setCurrentView(ViewState.AUTH); }, cta: 'Login Now' },
-                      { icon: UploadCloud, label: 'Upload Entrust PDF', desc: 'Upload your Entrust Card PDF to verify your membership document.', color: 'from-accent-500 to-accent-700', light: 'bg-accent-50 text-accent-600', action: () => currentUser ? setCurrentView(ViewState.USER_DASHBOARD) : (() => { setAuthInitialView('login'); setCurrentView(ViewState.AUTH); })(), cta: 'Upload File' },
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+                      {[
+                        { icon: UserIcon, label: 'Login to Account', desc: 'Access your personal dashboard with your Member ID, phone, or email.', color: 'from-brand-500 to-brand-700', light: 'bg-brand-50 text-brand-600', action: () => navigate('/auth?view=login'), cta: 'Login Now' },
+                        { icon: UploadCloud, label: 'Upload Entrust PDF', desc: 'Upload your Entrust Card PDF to verify your membership document.', color: 'from-accent-500 to-accent-700', light: 'bg-accent-50 text-accent-600', action: () => currentUser ? setCurrentView(ViewState.USER_DASHBOARD) : navigate('/auth?view=login'), cta: 'Upload File' },
                       { icon: CreditCard, label: 'View Entrust Card', desc: 'Register or view your official digital ID card and QR code.', color: 'from-emerald-500 to-emerald-700', light: 'bg-emerald-50 text-emerald-600', action: () => setCurrentView(ViewState.ID_CARD), cta: 'View Card' },
-                      { icon: CheckCircle, label: 'Scan QR Code', desc: 'Scan any member\'s QR code to instantly verify their identity.', color: 'from-amber-500 to-orange-600', light: 'bg-amber-50 text-amber-600', action: () => setCurrentView(ViewState.VERIFY_ID), cta: 'Open Scanner' },
+                      { icon: CheckCircle, label: 'Scan QR Code', desc: 'Scan any member\'s QR code to instantly verify their identity.', color: 'from-amber-500 to-orange-600', light: 'bg-amber-50 text-amber-600', action: () => navigate('/verify-id'), cta: 'Open Scanner' },
                     ].map((item, i) => (
                       <motion.div
                         key={i}
@@ -972,7 +1013,7 @@ const App: React.FC = () => {
 
           {currentView === ViewState.ID_CARD && (
             <motion.div key="id-card" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <WorshipperIDCard onRegister={handleRegister} onLogin={() => { setAuthInitialView('login'); setCurrentView(ViewState.AUTH); }} />
+              <WorshipperIDCard onRegister={handleRegister} onLogin={() => navigate('/auth?view=login')} />
             </motion.div>
           )}
 
