@@ -299,7 +299,7 @@ export const LeaderMessageSection: React.FC<SectionProps & { onClose?: () => voi
     );
 };
 
-export const DonationsHighlight: React.FC<SectionProps> = ({ setView }) => {
+export const DonationsHighlight: React.FC<SectionProps & { onDonate?: () => void }> = ({ setView, onDonate }) => {
     const donationBoxes = [
         { name: 'General Fund', label: 'GF' },
         { name: 'Building Fund', label: 'BF' },
@@ -365,7 +365,7 @@ export const DonationsHighlight: React.FC<SectionProps> = ({ setView }) => {
                         viewport={{ once: true }}
                     >
                         <button
-                            onClick={() => setView(ViewState.ID_CARD)}
+                            onClick={() => onDonate ? onDonate() : setView(ViewState.ID_CARD)}
                             className="group flex items-center gap-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white px-7 py-3.5 rounded-full font-bold text-sm hover:scale-105 transition-transform shadow-lg shadow-orange-400/30"
                         >
                             <Heart size={16} className="fill-white/40" />

@@ -71,6 +71,7 @@ import { AdminPasswordModal } from './components/AdminPasswordModal';
 import { AdminDashboard } from './components/AdminDashboard';
 import { HebrewResources } from './components/HebrewResources';
 import { QRVerifyPage } from './components/QRVerifyPage';
+import { DonationModal } from './components/DonationModal';
 
 import AIChatAssistant from './components/AIChatAssistant';
 import VerifyIDPage from './components/VerifyIDPage';
@@ -299,6 +300,7 @@ const App: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [showLeaderMessage, setShowLeaderMessage] = useState(false);
+  const [showDonationModal, setShowDonationModal] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [heroEmail, setHeroEmail] = useState('');
 
@@ -844,7 +846,7 @@ const App: React.FC = () => {
           case 'valparai': return <ValparaiPresence key="valparai" setView={setCurrentView} />;
           case 'testimonials': return <TestimonialHighlights key="testimonials" setView={setCurrentView} />;
           case 'preview': return <EntrustCardPreview key="preview" setView={setCurrentView} />;
-          case 'donations': return <DonationsHighlight key="donations" setView={setCurrentView} />;
+          case 'donations': return <DonationsHighlight key="donations" setView={setCurrentView} onDonate={() => setShowDonationModal(true)} />;
           case 'verify':
             return (
               <section key="verify" className="py-24 bg-white relative overflow-hidden">
@@ -1295,6 +1297,9 @@ const App: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Donation Modal */}
+      <DonationModal isOpen={showDonationModal} onClose={() => setShowDonationModal(false)} />
       {/* ✨ ADMIN APPROVAL FIREWORKS CELEBRATION ✨ */}
       <AnimatePresence>
         {showCelebration && (
