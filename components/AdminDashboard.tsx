@@ -4,7 +4,8 @@ import {
     Users, UserCheck, UserX, Clock, Search, Edit2, Trash2, X, User as UserIcon, ShieldAlert,
     ChevronLeft, ChevronRight, Filter, Mail, Phone, MapPin, Droplet,
     Calendar, Award, Shield, ShieldCheck, AlertCircle, CheckCircle, QrCode, Download,
-    Save, GripVertical, Globe, Plus, ImagePlus, Camera, Image as ImageIcon, MessageSquare, Check, XCircle
+    Save, GripVertical, Globe, Plus, ImagePlus, Camera, Image as ImageIcon, MessageSquare, Check, XCircle,
+    PanelLeft, PanelTop
 } from 'lucide-react';
 import { User, UserRole, UserStatus, Testimonial, Ministry } from '../types';
 import { Button } from './Button';
@@ -41,6 +42,15 @@ const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any
 
 
 
+const TAB_ITEMS: { id: 'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor'; label: string; icon: React.ElementType }[] = [
+    { id: 'users', label: 'Users', icon: Users },
+    { id: 'testimonials', label: 'Testimonials', icon: MessageSquare },
+    { id: 'ministries', label: 'Ministries', icon: Globe },
+    { id: 'id-cards', label: 'ID Cards', icon: QrCode },
+    { id: 'home-layout', label: 'Home Layout', icon: GripVertical },
+    { id: 'menu-editor', label: 'Menu Editor', icon: Filter },
+];
+
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     users,
     onUpdateUser,
@@ -66,6 +76,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [downloadingCardUserId, setDownloadingCardUserId] = useState<string | null>(null);
 
     const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor'>('users');
+    const [menuMode, setMenuMode] = useState<'horizontal' | 'vertical'>(() => {
+        return (localStorage.getItem('adminMenuMode') as 'horizontal' | 'vertical') || 'horizontal';
+    });
+
+    const toggleMenuMode = () => {
+        const next = menuMode === 'horizontal' ? 'vertical' : 'horizontal';
+        setMenuMode(next);
+        localStorage.setItem('adminMenuMode', next);
+    };
     const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
     const [ministries, setMinistries] = useState<Ministry[]>([]);
     const [editingMinistry, setEditingMinistry] = useState<Partial<Ministry> | null>(null);
@@ -393,77 +412,65 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <h1 className="text-3xl md:text-4xl font-serif font-bold text-brand-950">Admin Dashboard</h1>
                             <p className="text-slate-500 mt-1">Manage users and testimonials</p>
                         </div>
+                        <button
+                            onClick={toggleMenuMode}
+                            title={menuMode === 'horizontal' ? 'Switch to Sidebar Menu' : 'Switch to Top Menu'}
+                            className="ml-auto flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-brand-50 hover:border-brand-200 hover:text-brand-700 transition-all text-sm font-bold"
+                        >
+                            {menuMode === 'horizontal' ? (
+                                <><PanelLeft size={16} /> Sidebar</>
+                            ) : (
+                                <><PanelTop size={16} /> Top Menu</>
+                            )}
+                        </button>
                     </div>
 
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => setActiveTab('users')}
-                            className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === 'users'
-                                ? 'bg-brand-600 text-white'
-                                : 'bg-white text-slate-600 hover:bg-slate-50'
-                                }`}
-                        >
-                            <div className="flex items-center gap-2">
-                                <Users size={16} /> Users
-                            </div>
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('testimonials')}
-                            className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === 'testimonials'
-                                ? 'bg-brand-600 text-white'
-                                : 'bg-white text-slate-600 hover:bg-slate-50'
-                                }`}
-                        >
-                            <div className="flex items-center gap-2">
-                                <MessageSquare size={16} /> Testimonials
-                            </div>
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('ministries')}
-                            className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === 'ministries'
-                                ? 'bg-brand-600 text-white'
-                                : 'bg-white text-slate-600 hover:bg-slate-50'
-                                }`}
-                        >
-                            <div className="flex items-center gap-2">
-                                <Globe size={16} /> Ministries
-                            </div>
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('id-cards')}
-                            className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === 'id-cards'
-                                ? 'bg-brand-600 text-white'
-                                : 'bg-white text-slate-600 hover:bg-slate-50'
-                                }`}
-                        >
-                            <div className="flex items-center gap-2">
-                                <QrCode size={16} /> ID Cards
-                            </div>
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('home-layout')}
-                            className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === 'home-layout'
-                                ? 'bg-brand-600 text-white'
-                                : 'bg-white text-slate-600 hover:bg-slate-50'
-                                }`}
-                        >
-                            <div className="flex items-center gap-2">
-                                <GripVertical size={16} /> Home Layout
-                            </div>
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('menu-editor')}
-                            className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === 'menu-editor'
-                                ? 'bg-brand-600 text-white'
-                                : 'bg-white text-slate-600 hover:bg-slate-50'
-                                }`}
-                        >
-                            <div className="flex items-center gap-2">
-                                <Filter size={16} /> Menu Editor
-                            </div>
-                        </button>
-                    </div>
+                    {menuMode === 'horizontal' && (
+                        <div className="flex gap-2 flex-wrap">
+                            {TAB_ITEMS.map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === tab.id
+                                        ? 'bg-brand-600 text-white'
+                                        : 'bg-white text-slate-600 hover:bg-slate-50'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <tab.icon size={16} /> {tab.label}
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
+
+                {/* Content Layout — flex when vertical sidebar mode */}
+                <div className={menuMode === 'vertical' ? 'flex gap-6 items-start' : ''}>
+                    {/* Vertical Sidebar */}
+                    {menuMode === 'vertical' && (
+                        <aside className="w-56 shrink-0 sticky top-28">
+                            <nav className="bg-white rounded-3xl border border-slate-100 shadow-sm p-3 space-y-1">
+                                {TAB_ITEMS.map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-colors ${
+                                            activeTab === tab.id
+                                                ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20'
+                                                : 'text-slate-600 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        <tab.icon size={18} />
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </nav>
+                        </aside>
+                    )}
+
+                    {/* Main Content */}
+                    <div className={menuMode === 'vertical' ? 'flex-1 min-w-0' : ''}>
 
                 {/* Statistics Cards */}
                 {activeTab === 'users' && (
@@ -1286,6 +1293,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                 )}
 
+                    </div>{/* /Main Content */}
+                </div>{/* /Content Layout */}
 
             </div>
 
