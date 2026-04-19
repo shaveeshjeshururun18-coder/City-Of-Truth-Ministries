@@ -16,8 +16,19 @@ import { ImageCropper } from './ImageCropper';
 import { EntrustCard3D } from './WorshipperIDCard';
 import { AdminIDCard } from './AdminIDCard';
 
+interface ContactMessage {
+    id: string;
+    name: string;
+    email: string;
+    subject: string;
+    message: string;
+    createdAt: string;
+    source: 'hero-widget' | 'contact-form';
+}
+
 interface AdminDashboardProps {
     users: User[];
+    contactMessages?: ContactMessage[];
     onUpdateUser: (user: User) => Promise<void>;
     onDeleteUser: (userId: string) => Promise<void>;
     onCreateUser?: (user: User) => Promise<void>;
@@ -78,6 +89,7 @@ const EMPTY_NEW_USER = {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     users,
+    contactMessages = [],
     onUpdateUser,
     onDeleteUser,
     onCreateUser,
@@ -579,6 +591,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <div className="text-xs md:text-sm text-slate-500 font-medium">{stat.label}</div>
                             </motion.div>
                         ))}
+                    </div>
+                )}
+
+                {activeTab === 'users' && contactMessages.length > 0 && (
+                    <div className="bg-white p-4 md:p-6 rounded-3xl border border-slate-100 shadow-sm mb-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-bold text-brand-950 text-sm md:text-base flex items-center gap-2">
+                                <MessageSquare size={16} />
+                                Contact Messages
+                            </h3>
+                            <span className="text-xs font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full">
+                                {contactMessages.length} Total
+                            </span>
+                        </div>
+                        <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                            {contactMessages.slice(0, 20).map((msg) => (
+                                <div key={msg.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                                    <div className="flex items-center justify-between gap-2 mb-1">
+                                        <p className="text-sm font-bold text-brand-950 truncate">{msg.name || 'Visitor'}</p>
+                                        <p className="text-[10px] text-slate-500 shrink-0">
+                                            {new Date(msg.createdAt).toLocaleString()}
+                                        </p>
+                                    </div>
+                                    {!!msg.email && <p className="text-xs text-slate-600 mb-1 break-all">{msg.email}</p>}
+                                    <p className="text-xs font-semibold text-brand-700 mb-1">{msg.subject}</p>
+                                    <p className="text-xs text-slate-700 whitespace-pre-wrap break-words">{msg.message}</p>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 )}
 

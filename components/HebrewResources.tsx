@@ -441,14 +441,14 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
 
 const FestivalsView: React.FC = () => (
     <div className="space-y-16">
-        <div className="relative h-[450px] flex items-center justify-center p-8 bg-brand-950 rounded-[3rem] overflow-hidden group">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent"></div>
+        <div className="relative h-[450px] flex items-center justify-center p-8 bg-white rounded-[3rem] overflow-hidden group border border-amber-100 shadow-[0_20px_50px_rgba(245,158,11,0.12)]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-200/60 via-transparent to-transparent"></div>
             <div className="relative z-10 w-full max-w-md h-full flex flex-col items-center justify-center">
                 <div className="w-full h-full scale-90 origin-center">
                     <InteractiveMenorah />
                 </div>
             </div>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-amber-500/20 rounded-full blur-[100px] animate-pulse pointer-events-none" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-amber-300/30 rounded-full blur-[80px] animate-pulse pointer-events-none" />
         </div>
 
         <div className="text-center -mt-8 mb-12 relative z-20">
@@ -667,18 +667,18 @@ const HebrewGematriaCalc: React.FC = () => {
             </div>
 
             {/* Calculator card */}
-            <div className="bg-brand-950 rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden text-white">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+            <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden text-brand-950 border border-amber-100">
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-50/80 to-transparent pointer-events-none" />
                 <div className="flex flex-col md:flex-row items-center gap-12 relative z-10">
                     <div className="flex-1 w-full space-y-6">
-                        <label className="text-xs font-bold text-brand-400 uppercase tracking-widest flex items-center gap-2">
+                        <label className="text-xs font-bold text-amber-700 uppercase tracking-widest flex items-center gap-2">
                             <Search size={14} className="text-amber-500" /> Type Hebrew Word
                         </label>
-                        <input type="text" placeholder="…Type any Hebrew word…" dir="rtl" className="w-full text-4xl md:text-6xl font-serif bg-transparent border-b-2 border-white/10 py-4 outline-none focus:border-amber-500 transition-colors text-white placeholder:text-white/10 text-right" value={word} onChange={e => setWord(e.target.value)} />
+                        <input type="text" placeholder="…Type any Hebrew word…" dir="rtl" className="w-full text-4xl md:text-6xl font-serif bg-transparent border-b-2 border-slate-200 py-4 outline-none focus:border-amber-500 transition-colors text-brand-950 placeholder:text-slate-300 text-right" value={word} onChange={e => setWord(e.target.value)} />
                     </div>
-                    <div className="hidden md:block w-px h-32 bg-white/10" />
+                    <div className="hidden md:block w-px h-32 bg-slate-200" />
                     <div className="flex-1 w-full text-center md:text-left space-y-2">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block">Calculated Sum</label>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block">Calculated Sum</label>
                         <div className="text-7xl md:text-9xl font-mono text-amber-500 font-black">{total || '0'}</div>
                     </div>
                 </div>
@@ -748,7 +748,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
 
 
     return (
-        <div className="min-h-screen pt-20 md:pt-28 pb-[calc(8.5rem+env(safe-area-inset-bottom))] md:pb-20 container mx-auto px-6 font-sans bg-[#fdfcf0]">
+        <div className="min-h-screen pt-20 md:pt-28 pb-12 md:pb-20 container mx-auto px-6 font-sans bg-[#fffdf6]">
             <div className="max-w-7xl mx-auto md:flex md:items-start md:gap-8">
                 <aside className="hidden md:block md:w-64 md:shrink-0 md:sticky md:top-[110px]">
                     <div className="flex flex-col gap-3">
@@ -788,15 +788,15 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                     </p>
                 </div>
 
-                <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-[#fdfcf0]/95 backdrop-blur-md">
-                    <div className="flex gap-2 overflow-x-auto no-scrollbar p-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
+                <div className="md:hidden mb-8">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                         {HEBREW_RESOURCE_TABS.map((t) => {
                             const isActive = tab === t.id;
                             return (
                                 <button
                                     key={t.id}
                                     onClick={() => { setTab(t.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                                    className={`relative shrink-0 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl font-bold text-[9px] uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${isActive
+                                    className={`relative w-full flex items-center justify-center gap-2 px-3 py-3 rounded-xl font-bold text-[9px] uppercase tracking-widest transition-all duration-300 ${isActive
                                         ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/30'
                                         : 'bg-white text-slate-400 hover:text-amber-600 hover:border-amber-200 border border-slate-200 shadow-sm'
                                         }`}
