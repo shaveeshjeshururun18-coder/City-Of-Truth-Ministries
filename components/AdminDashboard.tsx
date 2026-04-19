@@ -36,6 +36,7 @@ const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any
     valparai: { name: 'Valparai Presence', desc: 'Local impact and community', icon: MapPin, color: 'bg-emerald-500' },
     testimonials: { name: 'Voices of Faith', desc: 'Member stories and testimonies', icon: MessageSquare, color: 'bg-teal-500' },
     preview: { name: 'Entrust Preview', desc: 'Quick overview of community card', icon: Phone, color: 'bg-violet-500' },
+    donations: { name: 'Donations', desc: 'Support boxes and giving section', icon: CheckCircle, color: 'bg-orange-500' },
     verify: { name: 'Verify ID', desc: 'Security and verification portal', icon: CheckCircle, color: 'bg-slate-500' }
 };
 
