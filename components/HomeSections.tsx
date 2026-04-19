@@ -380,11 +380,13 @@ export const DonationsHighlight: React.FC<SectionProps & { onDonate?: () => void
 };
 
 function getInitials(name: string): string {
-    const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2) {
+    const trimmed = name.trim();
+    if (!trimmed) return '??';
+    const parts = trimmed.split(/\s+/);
+    if (parts.length >= 2 && parts[0] && parts[parts.length - 1]) {
         return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
-    return name.slice(0, 2).toUpperCase();
+    return trimmed.slice(0, 2).toUpperCase();
 }
 
 const AVATAR_GRADIENTS = [
@@ -464,7 +466,7 @@ export const CommunityMembersSection: React.FC<SectionProps & { users: User[] }>
                                 </span>
                             </div>
                             <span className="text-[11px] font-bold text-orange-800 text-center leading-tight max-w-[80px] uppercase tracking-wide">
-                                {user.name.split(' ')[0]}
+                                {user.name.trim().split(/\s+/)[0] || user.name}
                             </span>
                         </motion.div>
                     ))}
