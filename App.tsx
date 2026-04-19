@@ -335,6 +335,17 @@ const App: React.FC = () => {
     }
   });
 
+  useEffect(() => {
+    if (homeSectionsOrder.includes('members')) return;
+    const insertAt = homeSectionsOrder.indexOf('testimonials');
+    const nextOrder =
+      insertAt >= 0
+        ? [...homeSectionsOrder.slice(0, insertAt + 1), 'members', ...homeSectionsOrder.slice(insertAt + 1)]
+        : [...homeSectionsOrder, 'members'];
+    setHomeSectionsOrder(nextOrder);
+    localStorage.setItem('cot_home_sections_order', JSON.stringify(nextOrder));
+  }, [homeSectionsOrder]);
+
   // Fetch home layout from Firestore on mount
   useEffect(() => {
     const fetchLayout = async () => {

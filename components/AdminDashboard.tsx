@@ -37,6 +37,7 @@ const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any
     hebrew: { name: 'Hebrew Sanctuary', desc: 'Language and spiritual resources', icon: Mail, color: 'bg-rose-500' },
     valparai: { name: 'Valparai Presence', desc: 'Local impact and community', icon: MapPin, color: 'bg-emerald-500' },
     testimonials: { name: 'Voices of Faith', desc: 'Member stories and testimonies', icon: MessageSquare, color: 'bg-teal-500' },
+    members: { name: 'Member Initials', desc: 'Names with two-letter identity logos', icon: Users, color: 'bg-orange-500' },
     preview: { name: 'Entrust Preview', desc: 'Quick overview of community card', icon: Phone, color: 'bg-violet-500' },
     donations: { name: 'Donations', desc: 'Support boxes and giving section', icon: CheckCircle, color: 'bg-orange-500' },
     verify: { name: 'Verify ID', desc: 'Security and verification portal', icon: CheckCircle, color: 'bg-slate-500' }
@@ -1210,8 +1211,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <div className="flex gap-3">
                                     <button 
                                         onClick={() => {
-                                            if (window.confirm("Apsolutely sure? This resets the home page for EVERYONE.")) {
-                                                onUpdateHomeSectionsOrder(['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'valparai', 'testimonials', 'preview', 'verify']);
+                                            if (window.confirm("Absolutely sure? This resets the home page for EVERYONE.")) {
+                                                onUpdateHomeSectionsOrder(['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'valparai', 'testimonials', 'members', 'preview', 'verify']);
                                             }
                                         }}
                                         className="px-6 py-2.5 text-[10px] font-black uppercase tracking-[2px] text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-2xl transition-all border border-transparent hover:border-brand-100"
