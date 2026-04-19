@@ -4,6 +4,10 @@ import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCi
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { Button } from './Button';
 import { ViewState } from '../types';
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+
+GlobalWorkerOptions.workerSrc = pdfWorker;
 
 interface AuthPageProps {
     onLogin: (identifier: string) => void;
@@ -30,6 +34,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     const [showScanner, setShowScanner] = useState(false);
     const [scanningFile, setScanningFile] = useState(false);
 
+    const extractQrData = (text: string) => {
+        let qrData = text.trim();
+        if (qrData.includes('/verify/')) {
+            qrData = qrData.split('/verify/')[1]?.split('?')[0]?.trim() || qrData;
+        }
+        return qrData;
+    };
+
     const handleFileQRScan = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -39,12 +51,39 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             const hiddenDiv = document.getElementById('qr-auth-page-hidden-reader');
             if (!hiddenDiv) return;
             const h5 = new (window as any).Html5Qrcode('qr-auth-page-hidden-reader');
-            h5.scanFile(file, true)
-                .then((text: string) => {
-                    let qrData = text.trim();
-                    if (qrData.includes('/verify/')) {
-                        qrData = qrData.split('/verify/')[1]?.split('?')[0]?.trim() || qrData;
+            const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+            const scanImageFile = async (imageFile: File) => {
+                const text = await h5.scanFile(imageFile, true);
+                return extractQrData(text);
+            };
+
+            const scanPdfFile = async (pdfFile: File) => {
+                const arrayBuffer = await pdfFile.arrayBuffer();
+                const pdf = await getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+                for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                    const page = await pdf.getPage(pageNum);
+                    const viewport = page.getViewport({ scale: 2 });
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    if (!context) continue;
+                    canvas.width = Math.ceil(viewport.width);
+                    canvas.height = Math.ceil(viewport.height);
+                    await page.render({ canvasContext: context, viewport }).promise;
+                    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+                    if (!blob) continue;
+                    try {
+                        const pageImage = new File([blob], `page-${pageNum}.png`, { type: 'image/png' });
+                        return await scanImageFile(pageImage);
+                    } catch (_err) {
+                        continue;
                     }
+                }
+                throw new Error('No valid QR code found in the uploaded PDF pages.');
+            };
+
+            (isPdf ? scanPdfFile(file) : scanImageFile(file))
+                .then((qrData: string) => {
                     setIdentifier(qrData);
                     setScanningFile(false);
 
@@ -63,9 +102,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                         handleSearch(qrData);
                     }
                 })
-                .catch(() => {
+                .catch((err: any) => {
                     setScanningFile(false);
-                    alert('No QR code found in this image. Try a clearer photo of an Entrust Card.');
+                    alert(err?.message || 'No QR code found in this file. Try a clearer Entrust Card image or PDF.');
                 });
             e.target.value = '';
         };
@@ -258,7 +297,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                         </div>
                                         <h4 className="font-black text-xl mb-2 tracking-tight">Upload File</h4>
                                         <p className="text-[10px] text-brand-300 font-black uppercase tracking-widest">Verify via Document</p>
-                                        <input type="file" accept="image/*" className="hidden" onChange={handleFileQRScan} disabled={scanningFile} />
+                                        <input type="file" accept="image/*,application/pdf,.pdf" className="hidden" onChange={handleFileQRScan} disabled={scanningFile} />
                                     </label>
                                 </div>
                             </div>
