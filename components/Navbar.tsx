@@ -222,10 +222,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                 <div className="w-full space-y-3">
                     {/* Primary profile card */}
                     <div
-                        onClick={() => { 
-                            if (currentUser) { setView(ViewState.USER_DASHBOARD); } 
-                            else { setView(ViewState.ID_CARD); }
-                            setMobileMenuOpen(false); 
+                        onClick={() => {
+                            if (currentUser) {
+                                setView(ViewState.USER_DASHBOARD);
+                            } else {
+                                onLoginClick();
+                            }
+                            setMobileMenuOpen(false);
                         }}
                         className={`w-full p-3 rounded-xl border cursor-pointer transition-all ${
                             currentUser 
@@ -248,14 +251,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                             </div>
                             <div className="flex-1 min-w-0">
                                 <h3 className={`font-bold text-[12px] truncate ${currentUser ? 'text-brand-950' : 'text-white'}`}>
-                                    {currentUser ? currentUser.name : 'Join Our Community'}
+                                    {currentUser ? currentUser.name : 'Member Login'}
                                 </h3>
                                 <p className={`text-[8px] font-bold uppercase tracking-widest truncate ${currentUser ? 'text-brand-500' : 'text-blue-200'}`}>
-                                    {currentUser ? (currentUser.id || 'Member') : 'Tap to Register Free'}
+                                    {currentUser ? (currentUser.id || 'Member') : 'Tap to open default login'}
                                 </p>
                             </div>
                             <div className={`px-2 py-1 rounded-full text-[7px] font-bold uppercase tracking-widest border whitespace-nowrap ${currentUser ? 'bg-brand-50 text-brand-700 border-brand-100' : 'bg-white text-blue-700 border-white/50'}`}>
-                                {currentUser ? 'Dashboard' : 'Register'}
+                                {currentUser ? 'Dashboard' : 'Login'}
                             </div>
                         </div>
                     </div>

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
 import { User } from '../types';
 import { Navbar } from './Navbar';
+import { useLocation } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
@@ -12,6 +13,9 @@ import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 GlobalWorkerOptions.workerSrc = pdfWorker;
 
 const VerifyIDPage = () => {
+    const location = useLocation();
+    const params = new URLSearchParams(location.search);
+    const preselectScanner = params.get('mode') === 'scanner';
     const [scannedId, setScannedId] = useState<string | null>(null);
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(false);
@@ -115,6 +119,12 @@ const VerifyIDPage = () => {
         } else { setIsScanning(false); }
     };
 
+    useEffect(() => {
+        if (preselectScanner && scannerInitialized && !isScanning && !loading && !user && !error) {
+            startScanner();
+        }
+    }, [preselectScanner, scannerInitialized, isScanning, loading, user, error]);
+
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || !window.Html5Qrcode) return;
@@ -204,25 +214,25 @@ const VerifyIDPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 pb-20">
-            <Navbar />
+        <div className={`min-h-screen ${preselectScanner ? 'bg-slate-950 pb-0' : 'bg-slate-50 pb-20'}`}>
+            {!preselectScanner && <Navbar />}
             <div id="qr-reader-hidden" style={{ display: 'none' }}></div>
-            <div className="max-w-5xl mx-auto pt-24 px-4">
-                <div className="text-center mb-10">
-                    <h1 className="text-4xl font-black text-brand-950 mb-3 tracking-tight">Verify ID</h1>
-                    <p className="text-slate-500 font-medium">Scan a Worshipper's QR Code or upload their ID to verify.</p>
+            <div className={`${preselectScanner ? 'w-full pt-0 px-0' : 'max-w-5xl mx-auto pt-24 px-4'}`}>
+                <div className={`text-center ${preselectScanner ? 'pt-8 pb-4 px-4' : 'mb-10'}`}>
+                    <h1 className={`text-4xl font-black ${preselectScanner ? 'text-white' : 'text-brand-950'} mb-3 tracking-tight`}>Verify ID</h1>
+                    <p className={`${preselectScanner ? 'text-white/70' : 'text-slate-500'} font-medium`}>Scan a Worshipper's QR Code or upload their ID to verify.</p>
                 </div>
-                <div className="bg-white rounded-3xl p-6 md:p-10 shadow-xl shadow-brand-900/5 border border-slate-100 mb-8 overflow-hidden relative">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-brand-50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-                    <div className="grid md:grid-cols-2 gap-10 relative z-10">
-                        <div className="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 min-h-[300px]">
+                <div className={`${preselectScanner ? 'rounded-none p-0 m-0 bg-slate-950 border-0 shadow-none overflow-hidden' : 'bg-white rounded-3xl p-6 md:p-10 shadow-xl shadow-brand-900/5 border border-slate-100 mb-8 overflow-hidden relative'}`}>
+                    {!preselectScanner && <div className="absolute top-0 right-0 w-64 h-64 bg-brand-50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2 pointer-events-none" />}
+                    <div className={`grid ${preselectScanner ? 'grid-cols-1 gap-0' : 'md:grid-cols-2 gap-10'} relative z-10`}>
+                        <div className={`flex flex-col items-center justify-center ${preselectScanner ? 'p-4 min-h-[100svh]' : 'p-6 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 min-h-[300px]'}`}>
                             {!isScanning ? (
                                 <div className="text-center">
-                                    <div className="w-24 h-24 bg-brand-100 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner border border-brand-50">
+                                    <div className={`w-24 h-24 ${preselectScanner ? 'bg-white/10 border-white/20' : 'bg-brand-100 border-brand-50'} rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner border`}>
                                         <ScanLine className="text-brand-600 w-12 h-12" />
                                     </div>
-                                    <h3 className="font-bold text-xl text-slate-800 mb-2">Scan with Camera</h3>
-                                    <p className="text-slate-500 mb-6 max-w-xs mx-auto text-sm">Use your device camera to quickly scan a digital or printed ID card.</p>
+                                    <h3 className={`font-bold text-xl ${preselectScanner ? 'text-white' : 'text-slate-800'} mb-2`}>Scan with Camera</h3>
+                                    <p className={`${preselectScanner ? 'text-white/70' : 'text-slate-500'} mb-6 max-w-xs mx-auto text-sm`}>Use your device camera to quickly scan a digital or printed ID card.</p>
                                     <button onClick={startScanner} disabled={!scannerInitialized} className="px-8 py-4 bg-brand-600 text-white font-bold rounded-2xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-500/20 disabled:opacity-50 flex items-center gap-2 mx-auto">
                                         <Camera size={20} /> Start Scanner
                                     </button>
@@ -230,18 +240,19 @@ const VerifyIDPage = () => {
                             ) : (
                                 <div className="w-full h-full flex flex-col">
                                     <div className="flex justify-between items-center mb-4">
-                                        <span className="font-bold text-brand-600 flex items-center gap-2 px-4 py-2 bg-brand-50 rounded-full">
+                                        <span className={`font-bold text-brand-600 flex items-center gap-2 px-4 py-2 ${preselectScanner ? 'bg-white/10' : 'bg-brand-50'} rounded-full`}>
                                             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> Scanning Active
                                         </span>
-                                        <button onClick={stopScanner} className="p-3 bg-slate-200 text-slate-600 hover:bg-slate-300 rounded-full transition-colors"><X size={20} /></button>
+                                        <button onClick={stopScanner} className={`p-3 ${preselectScanner ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'} rounded-full transition-colors`}><X size={20} /></button>
                                     </div>
-                                    <div className="flex-1 bg-black rounded-2xl overflow-hidden relative shadow-inner">
+                                    <div className={`flex-1 bg-black ${preselectScanner ? 'rounded-3xl min-h-[75svh]' : 'rounded-2xl'} overflow-hidden relative shadow-inner`}>
                                         <div id="qr-reader" className="absolute inset-0 w-full h-full"></div>
                                         <div className="absolute inset-0 pointer-events-none border-[12px] border-black/50" />
                                     </div>
                                 </div>
                             )}
                         </div>
+                        {!preselectScanner && (
                         <div className="flex flex-col justify-center space-y-8">
                             <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
                                 <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -273,6 +284,7 @@ const VerifyIDPage = () => {
                                 </div>
                             </form>
                         </div>
+                        )}
                     </div>
                 </div>
                 <AnimatePresence mode="wait">

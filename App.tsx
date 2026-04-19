@@ -925,7 +925,7 @@ const App: React.FC = () => {
                         { icon: UserIcon, label: 'Login to Account', desc: 'Access your personal dashboard with your Member ID, phone, or email.', color: 'from-brand-500 to-brand-700', light: 'bg-brand-50 text-brand-600', action: () => navigate('/auth?view=login'), cta: 'Login Now' },
                         { icon: UploadCloud, label: 'Upload Entrust PDF', desc: 'Upload your Entrust Card PDF to verify your membership document.', color: 'from-accent-500 to-accent-700', light: 'bg-accent-50 text-accent-600', action: () => currentUser ? setCurrentView(ViewState.USER_DASHBOARD) : navigate('/auth?view=login'), cta: 'Upload File' },
                       { icon: CreditCard, label: 'View Entrust Card', desc: 'Register or view your official digital ID card and QR code.', color: 'from-emerald-500 to-emerald-700', light: 'bg-emerald-50 text-emerald-600', action: () => setCurrentView(ViewState.ID_CARD), cta: 'View Card' },
-                      { icon: CheckCircle, label: 'Scan QR Code', desc: 'Scan any member\'s QR code to instantly verify their identity.', color: 'from-amber-500 to-orange-600', light: 'bg-amber-50 text-amber-600', action: () => navigate('/verify-id'), cta: 'Open Scanner' },
+                      { icon: CheckCircle, label: 'Scan QR Code', desc: 'Scan any member\'s QR code to instantly verify their identity.', color: 'from-amber-500 to-orange-600', light: 'bg-amber-50 text-amber-600', action: () => navigate('/verify-id?mode=scanner'), cta: 'Open Scanner' },
                     ].map((item, i) => (
                       <motion.div
                         key={i}
@@ -1068,7 +1068,7 @@ const App: React.FC = () => {
                 initialProfileId={selectedDashboardProfileId || undefined}
                 onEdit={() => { }}
                 onLogout={handleLogout}
-                onOpenScanner={() => setCurrentView(ViewState.VERIFY_ID)}
+                onOpenScanner={() => navigate('/verify-id?mode=scanner&from=dashboard')}
                 onUpdate={async (updatedUser) => {
                   await api.updateUser(updatedUser);
                   setCurrentUser(updatedUser);
