@@ -151,6 +151,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     );
 
                     if (found) {
+                        setIdentifier(found.id || qrData);
                         setPreviewUser(found);
                     } else {
                         handleSearch(qrData);
@@ -193,6 +194,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
         setTimeout(() => {
             if (found) {
+                setIdentifier(found.id || queryTerm.trim());
                 setPreviewUser(found);
                 setNotFound(false);
             } else {
@@ -204,7 +206,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
     const handleProceed = () => {
         if (previewUser) {
-            onLogin(identifier || previewUser.id);
+            onLogin(previewUser.id);
         }
     };
 
@@ -222,10 +224,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 {/* Back Button */}
                 <button
                     onClick={onBack}
-                    className="absolute top-8 left-6 md:left-12 flex items-center gap-2 text-white/90 hover:text-white transition-all bg-white/10 hover:bg-white/20 px-5 py-2.5 rounded-full border border-white/20 group active:scale-95 shadow-lg"
+                    className="absolute z-20 top-5 left-4 md:top-8 md:left-12 flex items-center gap-2 text-white/90 hover:text-white transition-all bg-white/10 hover:bg-white/20 px-4 md:px-5 py-2 md:py-2.5 rounded-full border border-white/20 group active:scale-95 shadow-lg"
                 >
                     <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.3em]">Back to Menu</span>
+                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.25em] md:tracking-[0.3em]">Back to Menu</span>
                 </button>
 
                 <motion.div
@@ -289,22 +291,22 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             initial={{ y: 20, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            className="max-w-3xl mx-auto space-y-12"
+                            className="max-w-3xl mx-auto space-y-8 md:space-y-12"
                         >
-                            <div className="bg-white/80 p-10 md:p-16 rounded-[4rem] border border-brand-50 shadow-[0_30px_100_rgba(59,130,246,0.05)] text-center relative overflow-hidden">
+                            <div className="bg-white/80 p-5 sm:p-8 md:p-16 rounded-[2rem] md:rounded-[4rem] border border-brand-50 shadow-[0_30px_100_rgba(59,130,246,0.05)] text-center relative overflow-hidden">
                                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-400 to-brand-600 opacity-50" />
 
-                                <h3 className="text-4xl font-serif font-black text-brand-900 mb-3 tracking-tight">Identity Verification</h3>
-                                <p className="text-brand-400/60 mb-12 text-lg font-light italic">Securely access your Ministry Dashboard</p>
+                                <h3 className="text-2xl sm:text-3xl md:text-4xl font-serif font-black text-brand-900 mb-2 md:mb-3 tracking-tight">Identity Verification</h3>
+                                <p className="text-brand-400/60 mb-6 md:mb-12 text-sm sm:text-base md:text-lg font-light italic">Securely access your Ministry Dashboard</p>
 
-                                <div className="relative mb-12">
-                                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-brand-300">
-                                        <UserIcon size={28} />
+                                <div className="relative mb-6 md:mb-12">
+                                    <div className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-brand-300">
+                                        <UserIcon size={20} className="md:w-7 md:h-7" />
                                     </div>
                                     <input
                                         type="text"
                                         placeholder="Enter Member ID, Phone, or Email"
-                                        className="w-full pl-16 pr-44 py-7 text-xl bg-brand-50/50 text-brand-950 border-2 border-brand-100 rounded-3xl outline-none focus:bg-white focus:ring-8 focus:ring-brand-500/5 focus:border-brand-400/30 transition-all shadow-inner font-bold placeholder:text-brand-200"
+                                        className="w-full pl-12 md:pl-16 pr-28 sm:pr-36 md:pr-44 py-4 md:py-7 text-base md:text-xl bg-brand-50/50 text-brand-950 border-2 border-brand-100 rounded-2xl md:rounded-3xl outline-none focus:bg-white focus:ring-8 focus:ring-brand-500/5 focus:border-brand-400/30 transition-all shadow-inner font-bold placeholder:text-brand-200"
                                         value={identifier}
                                         onChange={e => {
                                             let val = e.target.value;
@@ -326,30 +328,30 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                     <button
                                         onClick={() => handleSearch()}
                                         disabled={!identifier.trim() || searching}
-                                        className="absolute right-3 top-3 bottom-3 px-12 bg-brand-600 hover:bg-brand-700 text-white rounded-[1.5rem] font-black text-lg transition-all disabled:opacity-50 flex items-center justify-center shadow-lg hover:shadow-brand-500/40 active:scale-[0.98]"
+                                        className="absolute right-2 md:right-3 top-2 md:top-3 bottom-2 md:bottom-3 px-4 sm:px-8 md:px-12 bg-brand-600 hover:bg-brand-700 text-white rounded-xl md:rounded-[1.5rem] font-black text-sm md:text-lg transition-all disabled:opacity-50 flex items-center justify-center shadow-lg hover:shadow-brand-500/40 active:scale-[0.98]"
                                     >
                                         {searching ? <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin" /> : <span>Verify</span>}
                                     </button>
                                 </div>
 
                                 {/* Smart Auth Grid */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-12">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mt-6 md:mt-12">
                                     <button
                                         onClick={() => setShowScanner(!showScanner)}
-                                        className={`group flex flex-col items-center justify-center p-8 border-2 rounded-[2.5rem] transition-all duration-500 ${showScanner ? 'bg-red-50 border-red-200 text-red-600 shadow-xl scale-[1.02]' : 'bg-white border-brand-50 hover:border-brand-200 hover:shadow-2xl shadow-sm'}`}
+                                        className={`group flex flex-col items-center justify-center p-5 md:p-8 border-2 rounded-[1.5rem] md:rounded-[2.5rem] transition-all duration-500 ${showScanner ? 'bg-red-50 border-red-200 text-red-600 shadow-xl scale-[1.02]' : 'bg-white border-brand-50 hover:border-brand-200 hover:shadow-2xl shadow-sm'}`}
                                     >
-                                        <div className={`w-20 h-20 mb-6 rounded-3xl flex items-center justify-center transition-all duration-500 ${showScanner ? 'bg-red-100 text-red-600 rotate-90' : 'bg-brand-50 text-brand-400 group-hover:bg-brand-600 group-hover:text-white group-hover:rotate-6'}`}>
-                                            {showScanner ? <X size={36} /> : <QrCode size={36} />}
+                                        <div className={`w-14 h-14 md:w-20 md:h-20 mb-4 md:mb-6 rounded-2xl md:rounded-3xl flex items-center justify-center transition-all duration-500 ${showScanner ? 'bg-red-100 text-red-600 rotate-90' : 'bg-brand-50 text-brand-400 group-hover:bg-brand-600 group-hover:text-white group-hover:rotate-6'}`}>
+                                            {showScanner ? <X size={28} className="md:w-9 md:h-9" /> : <QrCode size={28} className="md:w-9 md:h-9" />}
                                         </div>
-                                        <h4 className="font-black text-xl mb-2 tracking-tight">{showScanner ? 'Close Scanner' : 'Use QR Scanner'}</h4>
+                                        <h4 className="font-black text-lg md:text-xl mb-1 md:mb-2 tracking-tight">{showScanner ? 'Close Scanner' : 'Use QR Scanner'}</h4>
                                         <p className="text-[10px] text-brand-300 font-black uppercase tracking-widest">Verify via Digital ID</p>
                                     </button>
 
-                                    <label className="group flex flex-col items-center justify-center p-8 bg-white border-2 border-brand-50 hover:border-brand-200 rounded-[2.5rem] shadow-sm hover:shadow-2xl transition-all duration-500 cursor-pointer">
-                                        <div className="w-20 h-20 mb-6 rounded-3xl bg-brand-50 text-brand-400 group-hover:bg-brand-600 group-hover:text-white group-hover:-translate-y-1 transition-all duration-500 flex items-center justify-center">
-                                            {scanningFile ? <div className="w-10 h-10 border-4 border-brand-400 border-t-transparent rounded-full animate-spin" /> : <UploadCloud size={36} />}
+                                    <label className="group flex flex-col items-center justify-center p-5 md:p-8 bg-white border-2 border-brand-50 hover:border-brand-200 rounded-[1.5rem] md:rounded-[2.5rem] shadow-sm hover:shadow-2xl transition-all duration-500 cursor-pointer">
+                                        <div className="w-14 h-14 md:w-20 md:h-20 mb-4 md:mb-6 rounded-2xl md:rounded-3xl bg-brand-50 text-brand-400 group-hover:bg-brand-600 group-hover:text-white group-hover:-translate-y-1 transition-all duration-500 flex items-center justify-center">
+                                            {scanningFile ? <div className="w-8 h-8 md:w-10 md:h-10 border-4 border-brand-400 border-t-transparent rounded-full animate-spin" /> : <UploadCloud size={28} className="md:w-9 md:h-9" />}
                                         </div>
-                                        <h4 className="font-black text-xl mb-2 tracking-tight">Upload File</h4>
+                                        <h4 className="font-black text-lg md:text-xl mb-1 md:mb-2 tracking-tight">Upload File</h4>
                                         <p className="text-[10px] text-brand-300 font-black uppercase tracking-widest">Verify via Document</p>
                                         <input type="file" accept="image/*,application/pdf,.pdf" className="hidden" onChange={handleFileQRScan} disabled={scanningFile} />
                                     </label>
@@ -358,15 +360,17 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
                             {/* QR Scanner Panel */}
                             {showScanner && (
-                                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="overflow-hidden rounded-[3rem] border-4 border-brand-500/20 bg-slate-950 shadow-2xl">
-                                    <div className="p-4 bg-slate-900 text-white text-xs text-center font-black uppercase tracking-[0.3em] flex justify-between items-center px-8 border-b border-white/5">
-                                        <span className="flex items-center gap-2 font-serif italic"><span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> Live Scanner</span>
-                                        <button onClick={() => setShowScanner(false)} className="text-white/40 hover:text-white transition-colors">Close ×</button>
-                                    </div>
-                                    <div className="p-4 relative">
-                                        <div id="qr-auth-page-reader" className="w-full min-h-[320px] rounded-2xl overflow-hidden" />
-                                        <div className="absolute inset-0 border-[60px] border-slate-950/40 pointer-events-none" />
-                                        <div className="absolute inset-[60px] border-2 border-brand-500/40 rounded-3xl pointer-events-none animate-pulse" />
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[120] bg-slate-950">
+                                    <div className="h-full flex flex-col">
+                                        <div className="p-4 bg-slate-900 text-white text-xs text-center font-black uppercase tracking-[0.2em] flex justify-between items-center px-4 md:px-8 border-b border-white/5">
+                                            <span className="flex items-center gap-2 font-serif italic"><span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> Live Scanner</span>
+                                            <button onClick={() => setShowScanner(false)} className="text-white/60 hover:text-white transition-colors">Close ×</button>
+                                        </div>
+                                        <div className="flex-1 p-2 sm:p-4 relative">
+                                            <div id="qr-auth-page-reader" className="w-full h-full min-h-[70vh] rounded-2xl overflow-hidden bg-black" />
+                                            <div className="absolute inset-2 sm:inset-4 border-[40px] sm:border-[60px] border-slate-950/40 pointer-events-none rounded-2xl" />
+                                            <div className="absolute inset-[48px] sm:inset-[72px] border-2 border-brand-500/40 rounded-3xl pointer-events-none animate-pulse" />
+                                        </div>
                                     </div>
                                 </motion.div>
                             )}
@@ -375,45 +379,55 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             <AnimatePresence>
                                 {previewUser && (
                                     <motion.div
-                                        initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.9 }}
-                                        className="bg-gradient-to-br from-brand-50 via-white to-brand-100 border-4 border-brand-100 rounded-[4rem] p-10 md:p-14 shadow-2xl relative overflow-hidden group"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        className="fixed inset-0 z-[115] bg-black/60 backdrop-blur-sm p-4 md:p-8 overflow-y-auto"
                                     >
-                                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-brand-400/10 to-transparent opacity-50" />
-                                        <div className="flex flex-col md:flex-row items-center gap-10 relative z-10">
-                                            <div className="relative">
-                                                <div className="w-32 h-32 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl bg-brand-100 transition-transform duration-700 group-hover:scale-110 group-hover:rotate-3">
-                                                    {previewUser.photo ? (
-                                                        <img src={previewUser.photo} alt={previewUser.name} className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-5xl font-black text-brand-700">
-                                                            {previewUser.name?.charAt(0)}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="absolute -bottom-3 -right-3 bg-brand-500 text-white p-2 rounded-2xl shadow-lg border-4 border-white">
-                                                    <CheckCircle size={24} />
-                                                </div>
-                                            </div>
-                                            <div className="flex-1 text-center md:text-left">
-                                                <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mb-6">
-                                                    <span className="bg-brand-600 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-brand-600/20">Verified Member</span>
-                                                    <span className="bg-white/80 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-brand-400 border border-brand-100 font-bold">{previewUser.role || 'Member'}</span>
-                                                </div>
-                                                <h4 className="text-4xl font-serif font-black text-brand-950 mb-3 tracking-tighter">{previewUser.name}</h4>
-                                                <div className="flex flex-wrap justify-center md:justify-start gap-4 text-brand-500 font-medium">
-                                                    <div className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-xl border border-brand-50 shadow-sm"><IdCard size={16} className="text-brand-500" /> {previewUser.id}</div>
-                                                    {previewUser.location && <div className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-xl border border-brand-50 shadow-sm"><MapPin size={16} className="text-brand-500" /> {previewUser.location}</div>}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <button
-                                            onClick={handleProceed}
-                                            className="mt-12 w-full bg-gradient-to-r from-brand-600 to-brand-800 hover:from-brand-700 hover:to-brand-900 text-white font-black uppercase tracking-[0.3em] text-sm py-7 rounded-[2rem] transition-all shadow-2xl shadow-brand-500/40 hover:shadow-brand-500/60 active:scale-[0.98] flex items-center justify-center gap-4 group"
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 40, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                                            className="max-w-3xl mx-auto bg-gradient-to-br from-brand-50 via-white to-brand-100 border-4 border-brand-100 rounded-[2rem] md:rounded-[4rem] p-5 sm:p-8 md:p-14 shadow-2xl relative overflow-hidden group"
                                         >
-                                            Initialize Dashboard Access <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform duration-500" />
-                                        </button>
+                                            <button onClick={() => setPreviewUser(null)} className="absolute top-4 right-4 md:top-6 md:right-6 w-9 h-9 rounded-full bg-white border border-brand-100 text-brand-500 hover:text-brand-700 shadow-sm flex items-center justify-center">
+                                                <X size={18} />
+                                            </button>
+                                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-brand-400/10 to-transparent opacity-50" />
+                                            <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10 relative z-10">
+                                                <div className="relative">
+                                                    <div className="w-24 h-24 md:w-32 md:h-32 rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl bg-brand-100 transition-transform duration-700 group-hover:scale-110 group-hover:rotate-3">
+                                                        {previewUser.photo ? (
+                                                            <img src={previewUser.photo} alt={previewUser.name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center text-4xl md:text-5xl font-black text-brand-700">
+                                                                {previewUser.name?.charAt(0)}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="absolute -bottom-3 -right-3 bg-brand-500 text-white p-2 rounded-2xl shadow-lg border-4 border-white">
+                                                        <CheckCircle size={20} className="md:w-6 md:h-6" />
+                                                    </div>
+                                                </div>
+                                                <div className="flex-1 text-center md:text-left">
+                                                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-4 md:mb-6">
+                                                        <span className="bg-brand-600 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-brand-600/20">Verified Member</span>
+                                                        <span className="bg-white/80 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-brand-400 border border-brand-100 font-bold">{previewUser.role || 'Member'}</span>
+                                                    </div>
+                                                    <h4 className="text-2xl md:text-4xl font-serif font-black text-brand-950 mb-3 tracking-tighter">{previewUser.name}</h4>
+                                                    <div className="flex flex-wrap justify-center md:justify-start gap-3 md:gap-4 text-brand-500 font-medium text-sm md:text-base">
+                                                        <div className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-xl border border-brand-50 shadow-sm"><IdCard size={16} className="text-brand-500" /> {previewUser.id}</div>
+                                                        {previewUser.location && <div className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-xl border border-brand-50 shadow-sm"><MapPin size={16} className="text-brand-500" /> {previewUser.location}</div>}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={handleProceed}
+                                                className="mt-8 md:mt-12 w-full bg-gradient-to-r from-brand-600 to-brand-800 hover:from-brand-700 hover:to-brand-900 text-white font-black uppercase tracking-[0.2em] md:tracking-[0.3em] text-xs sm:text-sm py-4 md:py-7 rounded-[1.2rem] md:rounded-[2rem] transition-all shadow-2xl shadow-brand-500/40 hover:shadow-brand-500/60 active:scale-[0.98] flex items-center justify-center gap-3 md:gap-4 group"
+                                            >
+                                                Proceed to Dashboard <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform duration-500" />
+                                            </button>
+                                        </motion.div>
                                     </motion.div>
                                 )}
                             </AnimatePresence>

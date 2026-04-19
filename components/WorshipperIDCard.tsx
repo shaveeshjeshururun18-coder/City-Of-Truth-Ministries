@@ -37,6 +37,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
     isStatic = false
 }) => {
     const [isFlipped, setIsFlipped] = useState(isBackSide);
+    const [showQrFullScreen, setShowQrFullScreen] = useState(false);
 
     useEffect(() => {
         if (isStatic) setIsFlipped(isBackSide);
@@ -104,7 +105,15 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                 </div>
 
                 {/* QR Code Absolute Positioned */}
-                <div className="absolute bottom-2 right-2 bg-white p-1 border border-slate-100 rounded-lg shadow-sm">
+                <button
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setShowQrFullScreen(true);
+                    }}
+                    className="absolute bottom-2 right-2 bg-white p-1 border border-slate-100 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+                    aria-label="Open QR code"
+                >
                     <div className="relative inline-block w-14 h-14">
                         <img src={qrCodeUrl} alt="QR" className="w-full h-full block" />
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -113,7 +122,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                             </div>
                         </div>
                     </div>
-                </div>
+                </button>
 
                 {/* Verified Member Badge */}
                 {status === 'Active' && (
@@ -159,35 +168,89 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
 
     if (isStatic) {
         return (
-            <div className={`relative w-[340px] h-[215px] bg-slate-100 rounded-xl`}>
-                {isBackSide ? <BackFace /> : <FrontFace />}
-            </div>
+            <>
+                <div className={`relative w-[340px] h-[215px] bg-slate-100 rounded-xl`}>
+                    {isBackSide ? <BackFace /> : <FrontFace />}
+                </div>
+                <AnimatePresence>
+                    {showQrFullScreen && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-[140] bg-black/90 backdrop-blur-sm p-4 flex items-center justify-center"
+                            onClick={() => setShowQrFullScreen(false)}
+                        >
+                            <motion.div
+                                initial={{ y: 20, scale: 0.95 }}
+                                animate={{ y: 0, scale: 1 }}
+                                exit={{ y: 20, scale: 0.95 }}
+                                className="bg-white rounded-3xl p-4 sm:p-6 w-full max-w-md text-center"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <p className="text-sm font-black text-brand-950 mb-4 uppercase tracking-widest">Scan Entrust QR</p>
+                                <img src={qrCodeUrl} alt="Entrust QR Code" className="w-full max-w-[320px] mx-auto rounded-2xl border border-slate-200" />
+                                <Button onClick={() => setShowQrFullScreen(false)} className="mt-5 w-full">
+                                    Close
+                                </Button>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </>
         );
     }
 
     return (
-        <div
-            className={`relative w-[340px] sm:w-[380px] h-[215px] sm:h-[240px] cursor-pointer mx-auto ${className}`}
-            onClick={() => setIsFlipped(!isFlipped)}
-            style={{ perspective: "1500px" }}
-        >
-            <motion.div
-                className="w-full h-full relative"
-                style={{ transformStyle: "preserve-3d" }}
-                animate={{ rotateY: isFlipped ? 180 : 0 }}
-                transition={{ duration: 0.8, ease: "easeInOut" }}
+        <>
+            <div
+                className={`relative w-[340px] sm:w-[380px] h-[215px] sm:h-[240px] cursor-pointer mx-auto ${className}`}
+                onClick={() => setIsFlipped(!isFlipped)}
+                style={{ perspective: "1500px" }}
             >
-                <div className="w-full h-full">
-                    {/* Scale standard 340x215 card to fill 380x240 container if on sm+ screens */}
-                    <div className="w-full h-full origin-top-left sm:scale-[1.117]">
-                        <div style={{ width: '340px', height: '215px' }}>
-                            <FrontFace />
-                            <BackFace />
+                <motion.div
+                    className="w-full h-full relative"
+                    style={{ transformStyle: "preserve-3d" }}
+                    animate={{ rotateY: isFlipped ? 180 : 0 }}
+                    transition={{ duration: 0.8, ease: "easeInOut" }}
+                >
+                    <div className="w-full h-full">
+                        {/* Scale standard 340x215 card to fill 380x240 container if on sm+ screens */}
+                        <div className="w-full h-full origin-top-left sm:scale-[1.117]">
+                            <div style={{ width: '340px', height: '215px' }}>
+                                <FrontFace />
+                                <BackFace />
+                            </div>
                         </div>
                     </div>
-                </div>
-            </motion.div>
-        </div>
+                </motion.div>
+            </div>
+            <AnimatePresence>
+                {showQrFullScreen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[140] bg-black/90 backdrop-blur-sm p-4 flex items-center justify-center"
+                        onClick={() => setShowQrFullScreen(false)}
+                    >
+                        <motion.div
+                            initial={{ y: 20, scale: 0.95 }}
+                            animate={{ y: 0, scale: 1 }}
+                            exit={{ y: 20, scale: 0.95 }}
+                            className="bg-white rounded-3xl p-4 sm:p-6 w-full max-w-md text-center"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <p className="text-sm font-black text-brand-950 mb-4 uppercase tracking-widest">Scan Entrust QR</p>
+                            <img src={qrCodeUrl} alt="Entrust QR Code" className="w-full max-w-[320px] mx-auto rounded-2xl border border-slate-200" />
+                            <Button onClick={() => setShowQrFullScreen(false)} className="mt-5 w-full">
+                                Close
+                            </Button>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </>
     );
 };
 
@@ -396,26 +459,39 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                 </div>
 
                 <div className="max-w-xl mx-auto">
+                    <motion.div
+                        initial={{ opacity: 0, y: 24 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.45 }}
+                        className="mb-6 md:mb-10 bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-100 shadow-lg p-4 md:p-6"
+                    >
+                        <div className="text-center mb-3 md:mb-4">
+                            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.25em] text-brand-500">Live Preview</p>
+                            <p className="text-xs text-slate-500 mt-1">Preview appears on top. Enter details below.</p>
+                        </div>
+                        <EntrustCard3D {...formData} uniqueId={uniqueId} photo={photo} className="mb-0" />
+                    </motion.div>
+
                     {/* Form Left */}
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="bg-white p-6 md:p-12 rounded-[2rem] md:rounded-[3.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden"
+                        className="bg-white p-4 sm:p-5 md:p-10 rounded-[1.5rem] md:rounded-[3rem] shadow-2xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden"
                     >
                         {/* ... form content ... */}
-                        <h3 className="text-2xl font-bold text-brand-950 mb-10 flex items-center gap-4 font-serif relative z-10 underline decoration-accent-500 underline-offset-8">
+                        <h3 className="text-xl md:text-2xl font-bold text-brand-950 mb-5 md:mb-8 flex items-center gap-3 font-serif relative z-10 underline decoration-accent-500 underline-offset-8">
                             Personal Information
                         </h3>
 
-                        <div className="space-y-8 relative z-10">
+                        <div className="space-y-5 md:space-y-8 relative z-10">
                             {/* Photo Upload */}
                             <div className="space-y-3">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Member Photo</label>
                                 <div className="relative group">
                                     <input type="file" onChange={handlePhotoUpload} className="absolute inset-0 opacity-0 cursor-pointer z-20" accept="image/*" />
-                                    <div className="border-2 border-dashed border-slate-200 rounded-3xl p-6 transition-all group-hover:border-accent-400 group-hover:bg-accent-50/20 bg-slate-50/50 flex items-center gap-6">
-                                        <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center text-slate-400 shadow-sm border border-slate-100 overflow-hidden shrink-0">
-                                            {photo ? <img src={photo} className="w-full h-full object-cover" /> : <UploadCloud size={30} />}
+                                    <div className="border-2 border-dashed border-slate-200 rounded-2xl md:rounded-3xl p-4 md:p-6 transition-all group-hover:border-accent-400 group-hover:bg-accent-50/20 bg-slate-50/50 flex items-center gap-4 md:gap-6">
+                                        <div className="w-14 h-14 md:w-20 md:h-20 bg-white rounded-xl md:rounded-2xl flex items-center justify-center text-slate-400 shadow-sm border border-slate-100 overflow-hidden shrink-0">
+                                            {photo ? <img src={photo} className="w-full h-full object-cover" /> : <UploadCloud size={24} className="md:w-[30px] md:h-[30px]" />}
                                         </div>
                                         <div className="flex-1">
                                             <p className="text-sm font-bold text-slate-700">{photo ? "Photo Selected" : "Click to select photo"}</p>
@@ -425,21 +501,21 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Full Name</label>
-                                    <input name="name" value={formData.name} onChange={handleInputChange} type="text" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none transition-all text-sm font-bold text-brand-950 focus:ring-2 focus:ring-accent-500/20" />
+                                    <input name="name" value={formData.name} onChange={handleInputChange} type="text" className="w-full px-4 md:px-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl outline-none transition-all text-sm font-bold text-brand-950 focus:ring-2 focus:ring-accent-500/20" />
                                 </div>
 
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">WhatsApp Number</label>
-                                    <input name="emergency" value={formData.emergency} onChange={handleInputChange} type="tel" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none transition-all text-sm font-bold text-brand-950 focus:ring-2 focus:ring-accent-500/20" />
+                                    <input name="emergency" value={formData.emergency} onChange={handleInputChange} type="tel" className="w-full px-4 md:px-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl outline-none transition-all text-sm font-bold text-brand-950 focus:ring-2 focus:ring-accent-500/20" />
                                 </div>
                                 {/* Password field removed as requested. Password will be auto-set to Phone Number */}
                                 {/* Email field is now optional */}
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Email Address</label>
-                                    <input name="email" value={formData.email} onChange={handleInputChange} type="email" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none transition-all text-sm font-bold text-brand-950 focus:ring-2 focus:ring-accent-500/20" placeholder="Enter your email" />
+                                    <input name="email" value={formData.email} onChange={handleInputChange} type="email" className="w-full px-4 md:px-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl outline-none transition-all text-sm font-bold text-brand-950 focus:ring-2 focus:ring-accent-500/20" placeholder="Enter your email" />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Tamil Nadu District</label>
@@ -447,7 +523,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                         name="location"
                                         value={formData.location}
                                         onChange={handleInputChange}
-                                        className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none transition-all text-sm font-bold text-brand-950 focus:ring-2 focus:ring-accent-500/20"
+                                        className="w-full px-4 md:px-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl outline-none transition-all text-sm font-bold text-brand-950 focus:ring-2 focus:ring-accent-500/20"
                                     >
                                         <option value="" disabled>Select District</option>
                                         {[
@@ -467,16 +543,13 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                         </div>
                     </motion.div>
 
-                    {/* Preview Right */}
+                    {/* Action Buttons */}
                     <motion.div
                         initial={{ opacity: 0, x: 30 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="flex flex-col items-center lg:sticky lg:top-40"
+                        className="flex flex-col items-center mt-5 md:mt-8"
                     >
                         <div className="w-full max-w-[380px]">
-                            {/* Preview Removed as requested */}
-                            {/* <EntrustCard3D {...formData} uniqueId={uniqueId} photo={photo} className="mb-10" /> */}
-
                             <div className="space-y-4">
                                 {/* Primary Registration Button */}
                                 <Button
@@ -501,7 +574,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                     }}
                                     variant="primary"
                                     fullWidth
-                                    className="py-6 text-base bg-gradient-to-r from-[#1D4ED8] to-[#2563EB] hover:from-[#1E40AF] hover:to-[#1D4ED8] shadow-xl shadow-blue-600/40 font-black tracking-widest hover:shadow-2xl transition-all border-0"
+                                    className="py-4 md:py-6 text-sm md:text-base bg-gradient-to-r from-[#1D4ED8] to-[#2563EB] hover:from-[#1E40AF] hover:to-[#1D4ED8] shadow-xl shadow-blue-600/40 font-black tracking-widest hover:shadow-2xl transition-all border-0"
                                     disabled={isProcessing}
                                 >
                                     <CheckCircle size={22} /> COMPLETE REGISTRATION
