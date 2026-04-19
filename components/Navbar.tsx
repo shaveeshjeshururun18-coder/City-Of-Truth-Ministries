@@ -142,9 +142,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
           {!currentUser && (
             <button
               onClick={() => setView(ViewState.ID_CARD)}
-              className="hidden lg:flex items-center relative bg-gradient-to-r from-[#16A34A] to-[#15803D] text-white text-[0.75rem] font-bold px-6 py-3 rounded-[25px] uppercase transition-all duration-300 hover:from-[#22C55E] hover:to-[#16A34A] hover:scale-105 no-underline whitespace-nowrap shadow-lg shadow-green-500/40 overflow-hidden group"
+              className="hidden lg:flex items-center relative bg-gradient-to-r from-[#1D4ED8] to-[#2563EB] text-white text-[0.75rem] font-bold px-6 py-3 rounded-[25px] uppercase transition-all duration-300 hover:from-[#2563EB] hover:to-[#3B82F6] hover:scale-105 no-underline whitespace-nowrap shadow-lg shadow-blue-500/40 overflow-hidden group"
             >
-              <span className="absolute inset-0 rounded-[25px] ring-2 ring-green-400/60 animate-ping opacity-30 group-hover:opacity-50" />
+              <span className="absolute inset-0 rounded-[25px] ring-2 ring-blue-400/60 animate-ping opacity-30 group-hover:opacity-50" />
               <span className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12" />
               <span className="relative z-10">REGISTER</span>
             </button>
@@ -152,13 +152,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
           <button
             onClick={() => currentUser ? setView(ViewState.USER_DASHBOARD) : setView(ViewState.ID_CARD)}
-            className="bg-white border border-[#ddd] w-12 h-12 rounded-full cursor-pointer text-[#333] text-base flex items-center justify-center transition-all duration-300 hover:shadow-lg hover:border-brand-500 group"
+            className={`${currentUser ? 'bg-white border border-[#ddd] w-12 h-12 rounded-full' : 'bg-gradient-to-r from-blue-600 to-blue-700 border-0 px-4 h-10 rounded-full shadow-lg shadow-blue-500/30'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 hover:shadow-lg group`}
             title={currentUser ? "My Account" : "Register"}
           >
             {currentUser && currentUser.photo ? (
               <img src={currentUser.photo} alt="Profile" className="w-full h-full object-cover rounded-full" />
+            ) : currentUser ? (
+              <CircleUser size={22} className="group-hover:text-brand-500 text-[#333]" />
             ) : (
-              <CircleUser size={22} className="group-hover:text-brand-500" />
+              <>
+                <CircleUser size={16} className="text-white shrink-0" />
+                <span className="text-white text-[11px] font-black uppercase tracking-wide">Register</span>
+              </>
             )}
           </button>
 
@@ -217,31 +222,39 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                 <div className="w-full space-y-3">
                     {/* Primary profile card */}
                     <div
-                        onClick={() => { setView(ViewState.USER_DASHBOARD); setMobileMenuOpen(false); }}
-                        className="w-full bg-white p-3 rounded-xl border border-brand-100 shadow-sm cursor-pointer hover:bg-slate-50 transition-all"
+                        onClick={() => { 
+                            if (currentUser) { setView(ViewState.USER_DASHBOARD); } 
+                            else { setView(ViewState.ID_CARD); }
+                            setMobileMenuOpen(false); 
+                        }}
+                        className={`w-full p-3 rounded-xl border cursor-pointer transition-all ${
+                            currentUser 
+                                ? 'bg-white border-brand-100 shadow-sm hover:bg-slate-50'
+                                : 'bg-gradient-to-r from-blue-600 to-blue-700 border-blue-500 shadow-md shadow-blue-500/30 hover:from-blue-700 hover:to-blue-800'
+                        }`}
                     >
                         <div className="flex items-center gap-3">
                             <div className="relative shrink-0">
-                                <div className="w-11 h-11 rounded-full border-2 border-brand-100 shadow-inner flex items-center justify-center bg-slate-50 overflow-hidden">
+                                <div className={`w-11 h-11 rounded-full border-2 shadow-inner flex items-center justify-center overflow-hidden ${currentUser ? 'border-brand-100 bg-slate-50' : 'border-blue-400 bg-blue-500'}`}>
                                     {currentUser && currentUser.photo ? (
                                         <img src={currentUser.photo} alt="Profile" className="w-full h-full object-cover" />
                                     ) : (
-                                        <CircleUser size={22} className="text-brand-300" />
+                                        <CircleUser size={22} className={currentUser ? "text-brand-300" : "text-white"} />
                                     )}
                                 </div>
-                                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-brand-600 rounded-full border-2 border-white flex items-center justify-center text-white">
-                                    <Zap size={6} />
+                                <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center ${currentUser ? 'bg-brand-600' : 'bg-white'}`}>
+                                    <Zap size={6} className={currentUser ? 'text-white' : 'text-blue-600'} />
                                 </div>
                             </div>
                             <div className="flex-1 min-w-0">
-                                <h3 className="font-bold text-brand-950 text-[12px] truncate">
-                                    {currentUser ? currentUser.name : 'Guest Community'}
+                                <h3 className={`font-bold text-[12px] truncate ${currentUser ? 'text-brand-950' : 'text-white'}`}>
+                                    {currentUser ? currentUser.name : 'Join Our Community'}
                                 </h3>
-                                <p className="text-[8px] font-bold text-brand-500 uppercase tracking-widest truncate">
-                                    {currentUser ? (currentUser.id || 'Member') : 'Join Our Family'}
+                                <p className={`text-[8px] font-bold uppercase tracking-widest truncate ${currentUser ? 'text-brand-500' : 'text-blue-200'}`}>
+                                    {currentUser ? (currentUser.id || 'Member') : 'Tap to Register Free'}
                                 </p>
                             </div>
-                            <div className="px-2 py-1 bg-brand-50 text-brand-700 rounded-full text-[7px] font-bold uppercase tracking-widest border border-brand-100 whitespace-nowrap">
+                            <div className={`px-2 py-1 rounded-full text-[7px] font-bold uppercase tracking-widest border whitespace-nowrap ${currentUser ? 'bg-brand-50 text-brand-700 border-brand-100' : 'bg-white text-blue-700 border-white/50'}`}>
                                 {currentUser ? 'Dashboard' : 'Register'}
                             </div>
                         </div>

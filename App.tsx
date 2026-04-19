@@ -53,14 +53,14 @@ import {
 import { ViewState, User, UserRole, UserStatus, NavItem } from './types';
 import { Navbar } from './components/Navbar';
 import { Button } from './components/Button';
-import { AuthModal } from './components/AuthModal';
+import { AuthPage } from './components/AuthPage';
 // Removed SpiritualAssistant import
 import { WorshipperIDCard, EntrustCard3D } from './components/WorshipperIDCard';
 import { GoldenMenorah } from './components/GoldenMenorah';
 import { GoldenMenorahPage } from './components/GoldenMenorahPage';
 import { AIPage } from './components/AIPage';
 // import { GlobalAIWidget } from './components/GlobalAIWidget';
-import { MinistryHighlights, HebrewSanctuaryIntro, ValparaiPresence, TestimonialHighlights, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, MemberInitialsSection } from './components/HomeSections';
+import { MinistryHighlights, HebrewSanctuaryIntro, ValparaiPresence, TestimonialHighlights, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, CommunityMembersSection } from './components/HomeSections';
 import { MessageFromLeader } from './components/MessageFromLeader';
 import { HebrewAlphabetPage } from './components/HebrewAlphabetPage';
 import { MinistriesPage } from './components/MinistriesPage';
@@ -295,8 +295,8 @@ const App: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.HOME);
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [authInitialView, setAuthInitialView] = useState<'choice' | 'login' | 'register'>('choice');
+  const [authInitialView, setAuthInitialView] = useState<'choice' | 'login' | 'register' | 'forgot-id'>('choice');
+  const [selectedDashboardProfileId, setSelectedDashboardProfileId] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [showLeaderMessage, setShowLeaderMessage] = useState(false);
@@ -473,6 +473,8 @@ const App: React.FC = () => {
   const verifyMatch = location.pathname.match(/^\/verify\/(.+)$/);
   const isVerifyRoute = !!verifyMatch;
   const verifyUserId = verifyMatch ? verifyMatch[1] : null;
+  const isAuthRoute = location.pathname === '/auth';
+  const isVerifyScannerRoute = location.pathname === '/verify-id';
 
   const getThemeClass = () => {
     switch (currentView) {
@@ -501,26 +503,45 @@ const App: React.FC = () => {
     const searchId = identifier.trim().toLowerCase();
 
     // Multi-identifier login: Phone, Email, ID, or Name
-    const user = users.find(u => {
+    const matches = users.map(u => {
       const uPhone = (u.phone || '').trim();
       const uEmail = (u.email || '').trim().toLowerCase();
       const uId = (u.id || '').trim().toLowerCase();
       const uName = (u.name || '').trim().toLowerCase();
       const uEmergency = (u.emergency || '').trim();
+      const linked = (u.linkedProfiles || []).find(sp => {
+        const spId = (sp.id || '').trim().toLowerCase();
+        const spName = (sp.name || '').trim().toLowerCase();
+        return spId === searchId || spName === searchId;
+      });
 
-      return (
+      if (linked) {
+        return { user: u, profileId: linked.id };
+      }
+
+      const isMatch = (
         uPhone === identifier ||
         uEmergency === identifier ||
         uId === searchId ||
         uEmail === searchId ||
         uName === searchId
       );
-    });
+      return isMatch ? { user: u, profileId: u.id } : null;
+    }).filter(Boolean) as Array<{ user: User; profileId: string }>;
+
+    const match = matches[0];
+    const user = match?.user;
 
     if (user) {
+      const matchedById = (user.id || '').trim().toLowerCase() === searchId;
+      if (!matchedById && matches.length > 1) {
+        alert("Multiple accounts match this detail. Please login with your unique Member ID (COT-XXXX).");
+        return;
+      }
       setCurrentUser(user);
-      setIsAuthOpen(false);
+      setSelectedDashboardProfileId(match?.profileId || user.id);
       setCurrentView(ViewState.USER_DASHBOARD);
+      navigate('/');
     } else {
       alert("Account not found. Please check your Member ID, Email, Phone, or Name.");
     }
@@ -529,14 +550,12 @@ const App: React.FC = () => {
   const handleRegister = async (data: any) => {
     // Check if user already exists
     const existingUser = users.find(u =>
-      (data.emergency && u.phone === data.emergency) ||
-      (data.email && u.email === data.email) ||
       u.id === data.uniqueId
     );
 
     if (existingUser) {
-      alert("User already exists with this phone, email, or ID! Please Login.");
-      setIsAuthOpen(true);
+      alert("User already exists with this Member ID! Please login.");
+      navigate('/auth?view=login');
       return;
     }
 
@@ -559,7 +578,7 @@ const App: React.FC = () => {
       const savedUser = await api.createUser(newUser);
       setUsers([...users, savedUser]);
       setCurrentUser(savedUser);
-      setIsAuthOpen(false);
+      setSelectedDashboardProfileId(savedUser.id);
 
       // --- EMAILJS INTEGRATION (Using User Provided Keys) ---
       const EMAILJS_SERVICE_ID = 'service_wcxaetv';
@@ -634,6 +653,7 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     setCurrentUser(null);
+    setSelectedDashboardProfileId(null);
     setCurrentView(ViewState.HOME);
     alert("You have been logged out successfully.");
   };
@@ -658,6 +678,10 @@ const App: React.FC = () => {
         onUpdateUser={async (user) => {
           await api.updateUser(user);
           setUsers(users.map(u => u.id === user.id ? user : u));
+        }}
+        onCreateUser={async (user) => {
+          const created = await api.createUser(user);
+          setUsers(prev => [...prev, created]);
         }}
         onDeleteUser={handleDeleteUser}
         onBack={handleBackFromAdmin}
@@ -689,36 +713,58 @@ const App: React.FC = () => {
     return <QRVerifyPage userId={verifyUserId} onBack={() => navigate('/')} />;
   }
 
+  if (isAuthRoute) {
+    const params = new URLSearchParams(location.search);
+    const routeInitial = params.get('view');
+    const initialView = routeInitial === 'login' || routeInitial === 'register' || routeInitial === 'forgot-id' || routeInitial === 'choice'
+      ? routeInitial
+      : 'login';
+
+    return (
+      <AuthPage
+        onLogin={handleLogin}
+        onNavigateToRegister={() => {
+          navigate('/');
+          setCurrentView(ViewState.ID_CARD);
+        }}
+        onAdminClick={() => navigate('/admin')}
+        onBack={() => navigate('/')}
+        users={users}
+        initialView={initialView}
+      />
+    );
+  }
+
+  if (isVerifyScannerRoute) {
+    return <VerifyIDPage />;
+  }
+
   return (
     <div className={`min-h-screen transition-colors duration-1000 ease-in-out font-sans ${getThemeClass()}`}>
       <Navbar
         currentView={currentView}
         setView={setCurrentView}
-        onLoginClick={() => setIsAuthOpen(true)}
+        onLoginClick={() => navigate('/auth?view=login')}
         onLogoutClick={handleLogout}
         currentUser={currentUser}
         navItems={navigationItems}
       />
 
-      <AuthModal
-        isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
-        onLogin={handleLogin}
-        onRegister={handleRegister}
-        onFindID={handleFindID}
-        onNavigateToRegister={() => {
-          setIsAuthOpen(false);
-          setCurrentView(ViewState.ID_CARD);
-        }}
-        onAdminClick={() => {
-          setIsAuthOpen(false);
-          navigate('/admin');
-        }}
-        initialView={authInitialView}
-      />
-
       <main className="relative">
         <AnimatePresence mode="wait">
+          {currentView === ViewState.AUTH && (
+            <motion.div key="auth" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <AuthPage
+                onLogin={handleLogin}
+                onNavigateToRegister={() => setCurrentView(ViewState.ID_CARD)}
+                onAdminClick={() => navigate('/admin')}
+                onBack={() => setCurrentView(ViewState.HOME)}
+                users={users}
+                initialView={authInitialView}
+              />
+            </motion.div>
+          )}
+
           {currentView === ViewState.HOME && (
             <motion.div
               key="home"
@@ -755,23 +801,23 @@ const App: React.FC = () => {
 
                     <p className="text-base md:text-xl text-brand-50/80 max-w-2xl mx-auto mb-12 leading-relaxed font-light font-serif italic px-6">"Then you will know the truth, and the truth will set you free." <br />— John 8:32</p>
 
-                            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full px-6 sm:px-0 mt-4 md:mt-0">
+                            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full px-4 sm:px-0 mt-4 md:mt-0">
                               <Button
                                 onClick={() => setCurrentView(ViewState.ID_CARD)}
-                                className="w-full sm:w-auto px-5 py-2.5 sm:px-12 sm:py-5 text-[9px] sm:text-sm uppercase tracking-[0.2em] font-black text-white bg-gradient-to-r from-brand-600 via-accent-500 to-brand-600 bg-[length:200%_auto] hover:bg-right transition-all duration-500 border-none shadow-[0_0_30px_rgba(79,70,229,0.3)] hover:shadow-[0_0_50px_rgba(79,70,229,0.5)] hover:scale-105 active:scale-95 rounded-full ring-2 ring-white/20"
+                                className="w-full sm:w-auto px-6 py-3.5 sm:px-12 sm:py-5 text-xs sm:text-sm uppercase tracking-[0.2em] font-black text-white bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 bg-[length:200%_auto] hover:bg-right transition-all duration-500 border-none shadow-[0_0_30px_rgba(37,99,235,0.4)] hover:shadow-[0_0_50px_rgba(37,99,235,0.6)] hover:scale-105 active:scale-95 rounded-full ring-2 ring-white/20"
                               >
                                 Register Now
                               </Button>
                               <Button
-                                onClick={() => { setAuthInitialView('login'); setIsAuthOpen(true); }}
-                                className="w-full sm:w-auto px-5 py-2.5 sm:px-10 sm:py-5 text-[9px] sm:text-sm uppercase tracking-[0.2em] font-black text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 hover:border-white/60 hover:scale-105 active:scale-95 rounded-full transition-all duration-300"
+                                onClick={() => navigate('/auth?view=login')}
+                                className="w-full sm:w-auto px-6 py-3.5 sm:px-10 sm:py-5 text-xs sm:text-sm uppercase tracking-[0.2em] font-black text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 hover:border-white/60 hover:scale-105 active:scale-95 rounded-full transition-all duration-300"
                               >
                                 Login
                               </Button>
                             </div>
 
                             {/* Email → leader message trigger */}
-                            <div className="mt-8 flex flex-col items-center gap-2">
+                            <div className="mt-6 flex flex-col items-center gap-2 px-4 sm:px-0">
                               <div className="flex bg-white/10 backdrop-blur-sm border border-white/20 rounded-full overflow-hidden shadow-lg w-full max-w-sm">
                                 <input
                                   type="email"
@@ -783,12 +829,12 @@ const App: React.FC = () => {
                                       setShowLeaderMessage(true);
                                     }
                                   }}
-                                  className="flex-1 bg-transparent text-white placeholder:text-white/40 text-sm px-5 py-3 outline-none font-light"
+                                  className="flex-1 bg-transparent text-white placeholder:text-white/40 text-xs sm:text-sm px-4 py-3 outline-none font-light min-w-0"
                                 />
                                 <button
                                   disabled={!heroEmail.trim()}
                                   onClick={() => { if (heroEmail.trim()) setShowLeaderMessage(true); }}
-                                  className="bg-white/20 hover:bg-white/30 text-white font-bold text-xs uppercase tracking-wide px-5 py-3 transition-colors disabled:opacity-40"
+                                  className="bg-white/20 hover:bg-white/30 text-white font-bold text-[10px] sm:text-xs uppercase tracking-wide px-4 py-3 transition-colors disabled:opacity-40 whitespace-nowrap shrink-0"
                                 >
                                   A Message
                                 </button>
@@ -856,7 +902,7 @@ const App: React.FC = () => {
           case 'hebrew': return <HebrewSanctuaryIntro key="hebrew" setView={setCurrentView} />;
           case 'valparai': return <ValparaiPresence key="valparai" setView={setCurrentView} />;
           case 'testimonials': return <TestimonialHighlights key="testimonials" setView={setCurrentView} />;
-          case 'members': return <MemberInitialsSection key="members" users={users} />;
+          case 'members': return <CommunityMembersSection key="members" setView={setCurrentView} users={users} />;
           case 'preview': return <EntrustCardPreview key="preview" setView={setCurrentView} />;
           case 'donations': return <DonationsHighlight key="donations" setView={setCurrentView} onDonate={() => setShowDonationModal(true)} />;
           case 'verify':
@@ -874,12 +920,12 @@ const App: React.FC = () => {
                       <p className="text-slate-500 max-w-xl mx-auto font-medium">Confirm your City of Truth membership status through any of these official methods.</p>
                     </motion.div>
                   </div>
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-                    {[
-                      { icon: UserIcon, label: 'Login to Account', desc: 'Access your personal dashboard with your Member ID, phone, or email.', color: 'from-brand-500 to-brand-700', light: 'bg-brand-50 text-brand-600', action: () => { setAuthInitialView('login'); setIsAuthOpen(true); }, cta: 'Login Now' },
-                      { icon: UploadCloud, label: 'Upload Entrust PDF', desc: 'Upload your Entrust Card PDF to verify your membership document.', color: 'from-accent-500 to-accent-700', light: 'bg-accent-50 text-accent-600', action: () => setCurrentView(ViewState.USER_DASHBOARD), cta: 'Upload File' },
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+                      {[
+                        { icon: UserIcon, label: 'Login to Account', desc: 'Access your personal dashboard with your Member ID, phone, or email.', color: 'from-brand-500 to-brand-700', light: 'bg-brand-50 text-brand-600', action: () => navigate('/auth?view=login'), cta: 'Login Now' },
+                        { icon: UploadCloud, label: 'Upload Entrust PDF', desc: 'Upload your Entrust Card PDF to verify your membership document.', color: 'from-accent-500 to-accent-700', light: 'bg-accent-50 text-accent-600', action: () => currentUser ? setCurrentView(ViewState.USER_DASHBOARD) : navigate('/auth?view=login'), cta: 'Upload File' },
                       { icon: CreditCard, label: 'View Entrust Card', desc: 'Register or view your official digital ID card and QR code.', color: 'from-emerald-500 to-emerald-700', light: 'bg-emerald-50 text-emerald-600', action: () => setCurrentView(ViewState.ID_CARD), cta: 'View Card' },
-                      { icon: CheckCircle, label: 'Scan QR Code', desc: 'Scan any member\'s QR code to instantly verify their identity.', color: 'from-amber-500 to-orange-600', light: 'bg-amber-50 text-amber-600', action: () => setCurrentView(ViewState.VERIFY_ID), cta: 'Open Scanner' },
+                      { icon: CheckCircle, label: 'Scan QR Code', desc: 'Scan any member\'s QR code to instantly verify their identity.', color: 'from-amber-500 to-orange-600', light: 'bg-amber-50 text-amber-600', action: () => navigate('/verify-id'), cta: 'Open Scanner' },
                     ].map((item, i) => (
                       <motion.div
                         key={i}
@@ -967,7 +1013,7 @@ const App: React.FC = () => {
 
           {currentView === ViewState.ID_CARD && (
             <motion.div key="id-card" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <WorshipperIDCard onRegister={handleRegister} onLogin={() => { setAuthInitialView('login'); setIsAuthOpen(true); }} />
+              <WorshipperIDCard onRegister={handleRegister} onLogin={() => navigate('/auth?view=login')} />
             </motion.div>
           )}
 
@@ -1019,8 +1065,10 @@ const App: React.FC = () => {
             <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <UserDashboard
                 user={currentUser}
+                initialProfileId={selectedDashboardProfileId || undefined}
                 onEdit={() => { }}
                 onLogout={handleLogout}
+                onOpenScanner={() => setCurrentView(ViewState.VERIFY_ID)}
                 onUpdate={async (updatedUser) => {
                   await api.updateUser(updatedUser);
                   setCurrentUser(updatedUser);
@@ -1111,7 +1159,7 @@ const App: React.FC = () => {
                           <Mail size={24} />
                         </div>
                         <div className="flex-1">
-                          <strong className="block text-base">Send an Email</strong>
+                          <strong className="block text-base">Send Message</strong>
                           <span className="text-xs opacity-80 font-medium">Replies within 24 hours</span>
                         </div>
                         <ArrowRight size={20} className="opacity-0 group-hover:opacity-100 transition-all -translate-x-4 group-hover:translate-x-0" />

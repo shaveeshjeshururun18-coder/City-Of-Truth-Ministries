@@ -10,6 +10,7 @@ interface State {
 }
 
 export class ErrorBoundary extends Component<Props, State> {
+    declare props: Readonly<Props>;
     public state: State = {
         hasError: false,
         error: null
@@ -37,7 +38,7 @@ export class ErrorBoundary extends Component<Props, State> {
             );
         }
 
-        const { children } = this.props as any;
+        const { children } = this.props;
         return children;
     }
 }

@@ -6,6 +6,10 @@ import { User } from '../types';
 import { Navbar } from './Navbar';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+
+GlobalWorkerOptions.workerSrc = pdfWorker;
 
 const VerifyIDPage = () => {
     const [scannedId, setScannedId] = useState<string | null>(null);
@@ -15,6 +19,23 @@ const VerifyIDPage = () => {
     const [isScanning, setIsScanning] = useState(false);
     const [scannerInitialized, setScannerInitialized] = useState(false);
     const scannerRef = useRef<any>(null);
+
+    const extractMemberId = (payload: string): string | null => {
+        if (!payload) return null;
+        const trimmed = payload.trim();
+        if (trimmed.includes('/verify/')) {
+            return trimmed.split('/verify/')[1]?.split('?')[0]?.trim() || null;
+        }
+        if (trimmed.includes('/card/')) {
+            return trimmed.split('/card/')[1]?.split('?')[0]?.trim() || null;
+        }
+        try {
+            const parsed = JSON.parse(trimmed);
+            if (parsed?.id && typeof parsed.id === 'string') return parsed.id.trim();
+        } catch (_e) {}
+        if (/^COT-[A-Z0-9-]+$/i.test(trimmed)) return trimmed.toUpperCase();
+        return null;
+    };
 
     useEffect(() => {
         const loadScript = () => {
@@ -74,7 +95,7 @@ const VerifyIDPage = () => {
                 { facingMode: 'environment' },
                 { fps: 10, qrbox: { width: 250, height: 250 } },
                 (decodedText: string) => {
-                    const extractedId = decodedText.split('/card/').pop()?.trim();
+                    const extractedId = extractMemberId(decodedText);
                     if (extractedId) {
                         html5Qrcode.stop().then(() => { setIsScanning(false); setScannedId(extractedId); verifyID(extractedId); });
                     }
@@ -98,14 +119,83 @@ const VerifyIDPage = () => {
         const file = e.target.files?.[0];
         if (!file || !window.Html5Qrcode) return;
         setLoading(true); setError(null); setUser(null); setScannedId(null);
+        const isImage = file.type.startsWith('image/');
+
+        if (!isImage) {
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const bytes = new Uint8Array(reader.result as ArrayBuffer);
+                    let raw = '';
+                    for (let i = 0; i < bytes.length; i++) raw += String.fromCharCode(bytes[i]);
+                    const verifyMatch = raw.match(/\/verify\/([A-Za-z0-9-]+)/);
+                    const cotMatch = raw.match(/\bCOT-[A-Za-z0-9-]+\b/i);
+                    const candidate = verifyMatch?.[1] || cotMatch?.[0] || '';
+                    const extractedId = extractMemberId(candidate);
+                    if (extractedId) {
+                        setScannedId(extractedId);
+                        verifyID(extractedId);
+                    } else {
+                        setError('No readable member QR data found in this file. Please upload an image/screenshot of the QR code.');
+                        setLoading(false);
+                    }
+                } catch (_err) {
+                    setError('Unable to read this file. Please upload a QR image or screenshot.');
+                    setLoading(false);
+                }
+            };
+            reader.onerror = () => {
+                setError('Unable to read this file. Please try another file.');
+                setLoading(false);
+            };
+            reader.readAsArrayBuffer(file);
+            return;
+        }
+
         const html5QrCode = new window.Html5Qrcode('qr-reader-hidden');
-        html5QrCode.scanFile(file, true)
-            .then((decodedText: string) => {
-                const extractedId = decodedText.split('/card/').pop()?.trim();
-                if (extractedId) { setScannedId(extractedId); verifyID(extractedId); }
-                else { setError('Invalid QR Code payload.'); setLoading(false); }
+        const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+        const scanImageFile = async (imageFile: File) => {
+            const decodedText: string = await html5QrCode.scanFile(imageFile, true);
+            const extractedId = extractMemberId(decodedText);
+            if (!extractedId) throw new Error('Invalid QR Code payload.');
+            return extractedId;
+        };
+
+        const scanPdfFile = async (pdfFile: File) => {
+            const arrayBuffer = await pdfFile.arrayBuffer();
+            const pdf = await getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                const page = await pdf.getPage(pageNum);
+                const viewport = page.getViewport({ scale: 2 });
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                if (!context) continue;
+                canvas.width = Math.ceil(viewport.width);
+                canvas.height = Math.ceil(viewport.height);
+                await page.render({ canvasContext: context, viewport }).promise;
+                const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+                if (!blob) continue;
+                const pageImage = new File([blob], `page-${pageNum}.png`, { type: 'image/png' });
+                try {
+                    return await scanImageFile(pageImage);
+                } catch (_err) {
+                    continue;
+                }
+            }
+            throw new Error('No valid QR code found in the uploaded PDF pages.');
+        };
+
+        (isPdf ? scanPdfFile(file) : scanImageFile(file))
+            .then((extractedId: string) => {
+                setScannedId(extractedId);
+                verifyID(extractedId);
             })
-            .catch((_err: any) => { setError('No valid QR code found in the image.'); setLoading(false); });
+            .catch((err: any) => {
+                setError(err?.message || 'No valid QR code found in the uploaded file.');
+                setLoading(false);
+            })
+            .finally(() => { e.target.value = ''; });
     };
 
     const handleManualCheck = (e: React.FormEvent) => {
@@ -163,9 +253,9 @@ const VerifyIDPage = () => {
                                     </div>
                                     <div className="flex-1">
                                         <span className="block text-slate-800 font-bold mb-1">Select Screenshot or Photo</span>
-                                        <span className="block text-xs text-slate-400">Upload an image containing a valid Worshipper QR code.</span>
+                                        <span className="block text-xs text-slate-400">Upload an image or PDF containing a valid Worshipper QR code.</span>
                                     </div>
-                                    <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
+                                    <input type="file" className="hidden" accept="image/*,application/pdf,.pdf" onChange={handleFileUpload} />
                                 </label>
                             </div>
                             <div className="flex items-center gap-4">

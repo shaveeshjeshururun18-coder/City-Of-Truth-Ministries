@@ -20,6 +20,7 @@ interface AdminDashboardProps {
     users: User[];
     onUpdateUser: (user: User) => Promise<void>;
     onDeleteUser: (userId: string) => Promise<void>;
+    onCreateUser?: (user: User) => Promise<void>;
     onBack: () => void;
     homeSectionsOrder: string[];
     onUpdateHomeSectionsOrder: (newOrder: string[]) => Promise<void>;
@@ -53,10 +54,33 @@ const TAB_ITEMS: { id: 'users' | 'testimonials' | 'ministries' | 'id-cards' | 'h
     { id: 'menu-editor', label: 'Menu Editor', icon: Filter },
 ];
 
+const TAMIL_NADU_DISTRICTS = [
+    'Ariyalur', 'Chengalpattu', 'Chennai', 'Coimbatore', 'Cuddalore',
+    'Dharmapuri', 'Dindigul', 'Erode', 'Kallakurichi', 'Kancheepuram',
+    'Kanyakumari', 'Karur', 'Krishnagiri', 'Madurai', 'Mayiladuthurai',
+    'Nagapattinam', 'Namakkal', 'Nilgiris', 'Perambalur', 'Pudukkottai',
+    'Ramanathapuram', 'Ranipet', 'Salem', 'Sivaganga', 'Tenkasi',
+    'Thanjavur', 'Theni', 'Thoothukudi', 'Tiruchirappalli', 'Tirunelveli',
+    'Tirupathur', 'Tiruppur', 'Tiruvallur', 'Tiruvannamalai', 'Tiruvarur',
+    'Vellore', 'Villupuram', 'Virudhunagar'
+];
+
+const EMPTY_NEW_USER = {
+    name: '',
+    phone: '',
+    email: '',
+    location: 'Valparai',
+    role: 'Member' as UserRole,
+    photo: '',
+    emergency: '',
+    memberSince: new Date().getFullYear().toString(),
+};
+
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     users,
     onUpdateUser,
     onDeleteUser,
+    onCreateUser,
     onBack,
     homeSectionsOrder,
     onUpdateHomeSectionsOrder,
@@ -71,6 +95,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [viewingQrUser, setViewingQrUser] = useState<User | null>(null);
     const [viewingDetailsUser, setViewingDetailsUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+
+    // Add New User state
+    const [showAddUser, setShowAddUser] = useState(false);
+    const [newUserData, setNewUserData] = useState({ ...EMPTY_NEW_USER });
+    const [newUserCropImage, setNewUserCropImage] = useState<string | null>(null);
+    const [isNewUserCropping, setIsNewUserCropping] = useState(false);
 
     // Bulk delete state
     const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
@@ -231,6 +261,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
     };
 
+    const handleAddNewUser = async () => {
+        if (!newUserData.name.trim()) { alert('Name is required.'); return; }
+        if (!newUserData.phone.trim()) { alert('Phone number is required.'); return; }
+        if (!newUserData.location) { alert('Please select a district.'); return; }
+
+        setIsLoading(true);
+        try {
+            const newId = `COT-${Math.floor(1000 + Math.random() * 9000)}`;
+            const user: User = {
+                id: newId,
+                name: newUserData.name.trim(),
+                phone: newUserData.phone.trim(),
+                email: newUserData.email.trim(),
+                location: newUserData.location,
+                emergency: newUserData.phone.trim(),
+                role: newUserData.role,
+                status: 'Active',
+                photo: newUserData.photo || '',
+                memberSince: newUserData.memberSince,
+                joinedDate: new Date().toISOString().split('T')[0],
+            };
+            if (onCreateUser) {
+                await onCreateUser(user);
+            } else {
+                await api.createUser(user);
+            }
+            setShowAddUser(false);
+            setNewUserData({ ...EMPTY_NEW_USER });
+            alert(`User added successfully! ID: ${newId}`);
+        } catch (error) {
+            alert('Failed to add user. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleNewUserPhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = () => {
+                setNewUserCropImage(reader.result as string);
+                setIsNewUserCropping(true);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleDelete = async () => {
         if (!deletingUser) return;
         setIsLoading(true);
@@ -366,7 +444,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 pt-24 pb-20">
+        <div className="min-h-screen bg-slate-50 pt-20 pb-24">
             {/* HIDDEN CARD RENDER AREA FOR PDF GENERATION */}
             <div className="fixed left-[-9999px] top-0 pointer-events-none">
                 {users.map(user => (
@@ -401,46 +479,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 ))}
             </div>
 
-            <div className="container mx-auto px-6">
+            <div className="container mx-auto px-3 md:px-6">
                 {/* Header */}
-                <div className="mb-8">
-                    <div className="flex items-center gap-4 mb-4">
+                <div className="mb-6 md:mb-8">
+                    <div className="flex items-center gap-3 mb-4">
                         <button
                             onClick={onBack}
-                            className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors"
+                            className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors shrink-0"
                         >
-                            <ChevronLeft size={20} />
+                            <ChevronLeft size={18} />
                         </button>
-                        <div>
-                            <h1 className="text-3xl md:text-4xl font-serif font-bold text-brand-950">Admin Dashboard</h1>
-                            <p className="text-slate-500 mt-1">Manage users and testimonials</p>
+                        <div className="flex-1 min-w-0">
+                            <h1 className="text-xl md:text-3xl lg:text-4xl font-serif font-bold text-brand-950 truncate">Admin Dashboard</h1>
+                            <p className="text-slate-500 mt-0.5 text-xs md:text-sm">Manage users and testimonials</p>
                         </div>
                         <button
                             onClick={toggleMenuMode}
                             title={menuMode === 'horizontal' ? 'Switch to Sidebar Menu' : 'Switch to Top Menu'}
-                            className="ml-auto flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-brand-50 hover:border-brand-200 hover:text-brand-700 transition-all text-sm font-bold"
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-brand-50 hover:border-brand-200 hover:text-brand-700 transition-all text-xs font-bold shrink-0"
                         >
                             {menuMode === 'horizontal' ? (
-                                <><PanelLeft size={16} /> Sidebar</>
+                                <><PanelLeft size={14} /> <span className="hidden sm:inline">Sidebar</span></>
                             ) : (
-                                <><PanelTop size={16} /> Top Menu</>
+                                <><PanelTop size={14} /> <span className="hidden sm:inline">Top Menu</span></>
                             )}
                         </button>
                     </div>
 
                     {menuMode === 'horizontal' && (
-                        <div className="flex gap-2 flex-wrap">
+                        <div className="flex gap-1.5 flex-nowrap overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
                             {TAB_ITEMS.map(tab => (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === tab.id
+                                    className={`px-3 py-2 rounded-lg font-bold text-xs transition-colors whitespace-nowrap shrink-0 ${activeTab === tab.id
                                         ? 'bg-brand-600 text-white'
-                                        : 'bg-white text-slate-600 hover:bg-slate-50'
+                                        : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-100'
                                         }`}
                                 >
-                                    <div className="flex items-center gap-2">
-                                        <tab.icon size={16} /> {tab.label}
+                                    <div className="flex items-center gap-1.5">
+                                        <tab.icon size={14} /> {tab.label}
                                     </div>
                                 </button>
                             ))}
@@ -477,7 +555,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 {/* Statistics Cards */}
                 {activeTab === 'users' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
                         {[
                             { label: 'Total Users', value: stats.total, icon: Users, color: 'from-blue-500 to-blue-600', bg: 'bg-blue-50', text: 'text-blue-600' },
                             { label: 'Active Users', value: stats.active, icon: UserCheck, color: 'from-green-500 to-green-600', bg: 'bg-green-50', text: 'text-green-600' },
@@ -489,16 +567,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: i * 0.1 }}
-                                className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow"
+                                className="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow"
                             >
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className={`w-12 h-12 ${stat.bg} rounded-2xl flex items-center justify-center`}>
-                                        <stat.icon size={24} className={stat.text} />
+                                <div className="flex items-center justify-between mb-2 md:mb-4">
+                                    <div className={`w-9 h-9 md:w-12 md:h-12 ${stat.bg} rounded-xl md:rounded-2xl flex items-center justify-center`}>
+                                        <stat.icon size={18} className={stat.text} />
                                     </div>
                                     <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${stat.color}`}></div>
                                 </div>
-                                <div className="text-3xl font-bold text-brand-950 mb-1">{stat.value}</div>
-                                <div className="text-sm text-slate-500 font-medium">{stat.label}</div>
+                                <div className="text-2xl md:text-3xl font-bold text-brand-950 mb-0.5 md:mb-1">{stat.value}</div>
+                                <div className="text-xs md:text-sm text-slate-500 font-medium">{stat.label}</div>
                             </motion.div>
                         ))}
                     </div>
@@ -506,18 +584,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 {activeTab === 'users' && (
                     <>
-                        {/* Search and Filters */}
-                        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm mb-6">
-                            <div className="flex flex-col md:flex-row gap-4">
+                        {/* Add New User + Search and Filters */}
+                        <div className="bg-white p-4 md:p-6 rounded-3xl border border-slate-100 shadow-sm mb-6">
+                            {/* Add New User button */}
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="font-bold text-brand-950 text-sm md:text-base">Manage Members</h3>
+                                <button
+                                    onClick={() => { setNewUserData({ ...EMPTY_NEW_USER }); setShowAddUser(true); }}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-colors shadow-md shadow-blue-500/20"
+                                >
+                                    <Plus size={16} /> Add User
+                                </button>
+                            </div>
+                            <div className="flex flex-col sm:flex-row gap-3">
                                 {/* Search */}
                                 <div className="flex-1 relative">
-                                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                     <input
                                         type="text"
-                                        placeholder="Search by name, email, phone, or ID..."
+                                        placeholder="Search name, email, phone, ID..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors"
+                                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors text-sm"
                                     />
                                 </div>
 
@@ -525,7 +613,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <select
                                     value={filterStatus}
                                     onChange={(e) => setFilterStatus(e.target.value as UserStatus | 'All')}
-                                    className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors"
+                                    className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors text-sm"
                                 >
                                     <option value="All">All Status</option>
                                     <option value="Active">Active</option>
@@ -537,7 +625,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <select
                                     value={filterRole}
                                     onChange={(e) => setFilterRole(e.target.value as UserRole | 'All')}
-                                    className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors"
+                                    className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors text-sm"
                                 >
                                     <option value="All">All Roles</option>
                                     <option value="Member">Member</option>
@@ -549,8 +637,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </div>
 
                             {/* Results count and bulk actions */}
-                            <div className="mt-4 flex items-center justify-between">
-                                <div className="text-sm text-slate-500">
+                            <div className="mt-3 flex items-center justify-between">
+                                <div className="text-xs text-slate-500">
                                     Showing {filteredUsers.length} of {users.length} users
                                     {selectedUsers.size > 0 && (
                                         <span className="ml-2 text-brand-600 font-bold">
@@ -561,10 +649,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 {selectedUsers.size > 0 && (
                                     <button
                                         onClick={() => setShowBulkDeleteConfirm(true)}
-                                        className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-colors"
+                                        className="flex items-center gap-2 px-3 py-1.5 bg-red-600 text-white rounded-xl font-bold text-xs hover:bg-red-700 transition-colors"
                                     >
-                                        <Trash2 size={16} />
-                                        Delete Selected ({selectedUsers.size})
+                                        <Trash2 size={14} />
+                                        Delete ({selectedUsers.size})
                                     </button>
                                 )}
                             </div>
@@ -801,24 +889,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         </button>
                                     </div>
                                 )}
-                                <div className="flex gap-2 pt-4 border-t border-slate-100">
+                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-4 border-t border-slate-100">
                                     <button
                                         onClick={() => setViewingDetailsUser(user)}
-                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-50 text-green-600 rounded-xl font-medium text-sm hover:bg-green-100 transition-colors"
+                                        className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-green-50 text-green-600 rounded-xl font-medium text-sm hover:bg-green-100 transition-colors"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
                                         View
                                     </button>
                                     <button
                                         onClick={() => setViewingQrUser(user)}
-                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-medium text-sm hover:bg-indigo-100 transition-colors"
+                                        className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-medium text-sm hover:bg-indigo-100 transition-colors"
                                     >
                                         <QrCode size={16} />
                                         QR
                                     </button>
                                     <button
                                         onClick={() => handleDownloadUserCard(user)}
-                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-purple-50 text-purple-600 rounded-xl font-medium text-sm hover:bg-purple-100 transition-colors"
+                                        className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-purple-50 text-purple-600 rounded-xl font-medium text-sm hover:bg-purple-100 transition-colors"
                                         disabled={downloadingCardUserId === user.id}
                                     >
                                         {downloadingCardUserId === user.id ? (
@@ -829,14 +917,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     </button>
                                     <button
                                         onClick={() => setEditingUser(user)}
-                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-medium text-sm hover:bg-blue-100 transition-colors"
+                                        className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-xl font-medium text-sm hover:bg-blue-100 transition-colors"
                                     >
                                         <Edit2 size={16} />
                                         Edit
                                     </button>
                                     <button
                                         onClick={() => setDeletingUser(user)}
-                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl font-medium text-sm hover:bg-red-100 transition-colors"
+                                        className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-xl font-medium text-sm hover:bg-red-100 transition-colors"
                                     >
                                         <Trash2 size={16} />
                                         Delete
@@ -888,7 +976,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </div>
 
                         {/* ID Cards Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-8">
                             <AnimatePresence mode='popLayout'>
                                 {filteredUsers.map((user, index) => (
                                     <motion.div
@@ -898,10 +986,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         animate={{ opacity: 1, scale: 1 }}
                                         exit={{ opacity: 0, scale: 0.9 }}
                                         transition={{ delay: index * 0.05, duration: 0.3 }}
-                                        className="relative group flex justify-center"
+                                        className="relative group w-full"
                                         onClick={() => setViewingDetailsUser(user)}
                                     >
-                                        <div className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]">
+                                        <div className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98] w-full">
                                             <AdminIDCard
                                                 user={{
                                                     id: user.id,
@@ -1846,6 +1934,148 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <><Save size={18} /> Save Moment</>
                                     )}
                                 </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Add New User Modal */}
+            <AnimatePresence>
+                {showAddUser && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto"
+                        >
+                            <div className="flex items-center justify-between mb-6">
+                                <div>
+                                    <h3 className="text-xl md:text-2xl font-bold text-brand-950">Add New User</h3>
+                                    <p className="text-xs text-slate-400 mt-1">Directly adds user as Active — no approval needed</p>
+                                </div>
+                                <button onClick={() => setShowAddUser(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                                    <X size={22} className="text-slate-400" />
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                {/* Photo upload */}
+                                {isNewUserCropping && newUserCropImage ? (
+                                    <div className="mb-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-sm font-bold text-brand-950">Crop Profile Photo</span>
+                                            <button onClick={() => setIsNewUserCropping(false)} className="text-xs font-bold text-red-500">Cancel</button>
+                                        </div>
+                                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                                            <ImageCropper
+                                                imageSrc={newUserCropImage}
+                                                onCropComplete={(url) => {
+                                                    setNewUserData(d => ({ ...d, photo: url }));
+                                                    setIsNewUserCropping(false);
+                                                    setNewUserCropImage(null);
+                                                }}
+                                                onCancel={() => { setIsNewUserCropping(false); setNewUserCropImage(null); }}
+                                            />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center mb-4">
+                                        <div className="relative group">
+                                            <div className="w-24 h-24 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border-4 border-white shadow-lg">
+                                                {newUserData.photo ? (
+                                                    <img src={newUserData.photo} alt="New user" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <UserIcon size={36} className="text-slate-300" />
+                                                )}
+                                            </div>
+                                            <label className="absolute bottom-0 right-0 w-9 h-9 bg-blue-600 text-white rounded-full border-4 border-white flex items-center justify-center cursor-pointer hover:bg-blue-700 transition-colors shadow-lg" title="Add Photo">
+                                                <Camera size={16} />
+                                                <input type="file" className="hidden" accept="image/*" onChange={handleNewUserPhotoSelect} />
+                                            </label>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest">Click camera to add photo</p>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="space-y-1.5 sm:col-span-2">
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Full Name *</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. Shaveesh Jeshurun"
+                                            value={newUserData.name}
+                                            onChange={(e) => setNewUserData(d => ({ ...d, name: e.target.value }))}
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Phone Number *</label>
+                                        <input
+                                            type="tel"
+                                            placeholder="e.g. 9876543210"
+                                            value={newUserData.phone}
+                                            onChange={(e) => setNewUserData(d => ({ ...d, phone: e.target.value }))}
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Email</label>
+                                        <input
+                                            type="email"
+                                            placeholder="email@example.com"
+                                            value={newUserData.email}
+                                            onChange={(e) => setNewUserData(d => ({ ...d, email: e.target.value }))}
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Tamil Nadu District *</label>
+                                        <select
+                                            value={newUserData.location}
+                                            onChange={(e) => setNewUserData(d => ({ ...d, location: e.target.value }))}
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
+                                        >
+                                            {TAMIL_NADU_DISTRICTS.map(d => (
+                                                <option key={d} value={d}>{d}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Role</label>
+                                        <select
+                                            value={newUserData.role}
+                                            onChange={(e) => setNewUserData(d => ({ ...d, role: e.target.value as UserRole }))}
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
+                                        >
+                                            <option value="Member">Member</option>
+                                            <option value="Admin">Admin</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-3 px-4 py-3 bg-green-50 border border-green-200 rounded-xl text-xs text-green-700 font-bold mt-2">
+                                    <CheckCircle size={16} className="text-green-600 shrink-0" />
+                                    User will be set as <span className="text-green-900">Active</span> immediately — no approval needed
+                                </div>
+
+                                <div className="flex gap-3 pt-2">
+                                    <button
+                                        onClick={() => setShowAddUser(false)}
+                                        className="flex-1 px-4 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors text-sm"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleAddNewUser}
+                                        disabled={isLoading}
+                                        className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-sm shadow-lg shadow-blue-500/20"
+                                    >
+                                        <Plus size={18} />
+                                        {isLoading ? 'Adding...' : 'Add User'}
+                                    </button>
+                                </div>
                             </div>
                         </motion.div>
                     </div>
