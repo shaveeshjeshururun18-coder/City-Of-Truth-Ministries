@@ -764,7 +764,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                                     <span>{t.label}</span>
                                     {isActive && (
                                         <motion.div
-                                            layoutId="active-pill"
+                                            layoutId="active-pill-desktop"
                                             className="absolute inset-0 bg-gradient-to-r from-amber-500 to-amber-600 -z-10 rounded-2xl"
                                             transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                                         />
@@ -802,7 +802,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                                     <span>{t.label}</span>
                                     {isActive && (
                                         <motion.div
-                                            layoutId="active-pill"
+                                            layoutId="active-pill-mobile"
                                             className="absolute inset-0 bg-gradient-to-r from-amber-500 to-amber-600 -z-10 rounded-xl"
                                             transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                                         />
