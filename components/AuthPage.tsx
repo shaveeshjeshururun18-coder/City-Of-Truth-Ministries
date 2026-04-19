@@ -32,6 +32,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     const [showScanner, setShowScanner] = useState(false);
     const [scanningFile, setScanningFile] = useState(false);
     const scannerRef = useRef<any>(null);
+    const closePreviewRef = useRef<HTMLButtonElement | null>(null);
 
     const extractIdentifier = (value: string) => {
         const trimmed = (value || '').trim();
@@ -95,6 +96,23 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             stopScanner();
         };
     }, [showScanner]);
+
+    useEffect(() => {
+        if (!previewUser) return;
+        const previousFocused = document.activeElement as HTMLElement | null;
+        const previousBodyOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        closePreviewRef.current?.focus();
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setPreviewUser(null);
+        };
+        document.addEventListener('keydown', onKeyDown);
+        return () => {
+            document.removeEventListener('keydown', onKeyDown);
+            document.body.style.overflow = previousBodyOverflow;
+            previousFocused?.focus();
+        };
+    }, [previewUser]);
 
     const handleFileQRScan = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -244,7 +262,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             </div>
 
             {/* Main Content Area */}
-            <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-8 md:py-20 relative z-10">
+            <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-10 md:py-20 relative z-10">
                 <AnimatePresence mode="wait">
                     {/* Choice Selection View */}
                     {view === 'choice' && (
@@ -378,6 +396,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                         initial={{ opacity: 0, y: 30, scale: 0.95 }}
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         exit={{ opacity: 0, scale: 0.9 }}
+                                        role="dialog"
+                                        aria-modal="true"
+                                        aria-label="Member preview dialog"
                                         className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm p-4 flex items-center justify-center"
                                     >
                                         <div className="bg-gradient-to-br from-brand-50 via-white to-brand-100 border-4 border-brand-100 rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-10 md:p-12 shadow-2xl relative overflow-hidden group w-full max-w-3xl">
@@ -417,6 +438,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                             </button>
                                             <button
                                                 onClick={() => setPreviewUser(null)}
+                                                aria-label="Close member preview dialog"
+                                                ref={closePreviewRef}
                                                 className="mt-3 w-full text-brand-500 hover:text-brand-700 text-sm font-bold"
                                             >
                                                 Close Preview

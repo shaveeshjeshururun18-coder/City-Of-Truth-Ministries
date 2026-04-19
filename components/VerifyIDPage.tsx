@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Camera, CheckCircle, XCircle, Search, ScanLine, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
@@ -24,7 +24,7 @@ const VerifyIDPage = () => {
     const [scannerInitialized, setScannerInitialized] = useState(false);
     const scannerRef = useRef<any>(null);
 
-    const extractMemberId = (payload: string): string | null => {
+    const extractMemberId = useCallback((payload: string): string | null => {
         if (!payload) return null;
         const trimmed = payload.trim();
         if (trimmed.includes('/verify/')) {
@@ -39,7 +39,7 @@ const VerifyIDPage = () => {
         } catch (_e) {}
         if (/^COT-[A-Z0-9-]+$/i.test(trimmed)) return trimmed.toUpperCase();
         return null;
-    };
+    }, []);
 
     useEffect(() => {
         const loadScript = () => {
@@ -61,7 +61,7 @@ const VerifyIDPage = () => {
         };
     }, []);
 
-    const verifyID = async (idToVerify: string) => {
+    const verifyID = useCallback(async (idToVerify: string) => {
         setLoading(true); setError(null); setUser(null);
         try {
             const userRef = doc(db, 'users', idToVerify);
@@ -87,9 +87,9 @@ const VerifyIDPage = () => {
             console.error('Verification Error:', err);
             setError('Failed to verify ID. Database error.');
         } finally { setLoading(false); }
-    };
+    }, []);
 
-    const startScanner = () => {
+    const startScanner = useCallback(() => {
         if (!window.Html5Qrcode || !scannerInitialized) return;
         setIsScanning(true); setError(null); setScannedId(null); setUser(null);
         setTimeout(() => {
@@ -111,7 +111,7 @@ const VerifyIDPage = () => {
                 setIsScanning(false);
             });
         }, 300);
-    };
+    }, [extractMemberId, scannerInitialized, verifyID]);
 
     const stopScanner = () => {
         if (scannerRef.current) {
@@ -123,7 +123,7 @@ const VerifyIDPage = () => {
         if (preselectScanner && scannerInitialized && !isScanning && !loading && !user && !error) {
             startScanner();
         }
-    }, [preselectScanner, scannerInitialized, isScanning, loading, user, error]);
+    }, [preselectScanner, scannerInitialized, isScanning, loading, user, error, startScanner]);
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -225,7 +225,7 @@ const VerifyIDPage = () => {
                 <div className={`${preselectScanner ? 'rounded-none p-0 m-0 bg-slate-950 border-0 shadow-none overflow-hidden' : 'bg-white rounded-3xl p-6 md:p-10 shadow-xl shadow-brand-900/5 border border-slate-100 mb-8 overflow-hidden relative'}`}>
                     {!preselectScanner && <div className="absolute top-0 right-0 w-64 h-64 bg-brand-50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2 pointer-events-none" />}
                     <div className={`grid ${preselectScanner ? 'grid-cols-1 gap-0' : 'md:grid-cols-2 gap-10'} relative z-10`}>
-                        <div className={`flex flex-col items-center justify-center ${preselectScanner ? 'p-4 min-h-[100svh]' : 'p-6 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 min-h-[300px]'}`}>
+                        <div className={`flex flex-col items-center justify-center ${preselectScanner ? 'p-4 min-h-[100vh] min-h-[100svh]' : 'p-6 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 min-h-[300px]'}`}>
                             {!isScanning ? (
                                 <div className="text-center">
                                     <div className={`w-24 h-24 ${preselectScanner ? 'bg-white/10 border-white/20' : 'bg-brand-100 border-brand-50'} rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner border`}>
@@ -245,7 +245,7 @@ const VerifyIDPage = () => {
                                         </span>
                                         <button onClick={stopScanner} className={`p-3 ${preselectScanner ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'} rounded-full transition-colors`}><X size={20} /></button>
                                     </div>
-                                    <div className={`flex-1 bg-black ${preselectScanner ? 'rounded-3xl min-h-[75svh]' : 'rounded-2xl'} overflow-hidden relative shadow-inner`}>
+                                    <div className={`flex-1 bg-black ${preselectScanner ? 'rounded-3xl min-h-[75vh] min-h-[75svh]' : 'rounded-2xl'} overflow-hidden relative shadow-inner`}>
                                         <div id="qr-reader" className="absolute inset-0 w-full h-full"></div>
                                         <div className="absolute inset-0 pointer-events-none border-[12px] border-black/50" />
                                     </div>
