@@ -396,7 +396,7 @@ const App: React.FC = () => {
       source: 'hero-widget'
     });
     setHeroEmail('');
-    alert('Message sent successfully. Admin will see it in the dashboard.');
+    alert('Message sent successfully. Admin will receive it in the dashboard.');
   };
 
   const handleContactFormSubmit = (e: React.FormEvent) => {
@@ -1263,7 +1263,7 @@ const App: React.FC = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Send Message (Email)</label>
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Email Address</label>
                         <div className="relative">
                           <Mail size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
                           <input type="email" placeholder="john@example.com" className="w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all text-sm font-bold text-brand-950" value={contactForm.email} onChange={e => setContactForm(prev => ({ ...prev, email: e.target.value }))} />
