@@ -62,9 +62,10 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack }) =>
                 return;
             }
             try {
-                const opts = { pixelRatio: 3, quality: 1, backgroundColor: '#ffffff', cacheBust: true, width: 680, height: 430 };
-                const frontDataUrl = await toPng(frontNode, opts);
-                const backDataUrl = await toPng(backNode, opts);
+                const baseCaptureOpts = { backgroundColor: '#ffffff', cacheBust: true, width: 680, height: 430 };
+                const pngOpts = { ...baseCaptureOpts, pixelRatio: 3, quality: 1 };
+                const frontDataUrl = await toPng(frontNode, pngOpts);
+                const backDataUrl = await toPng(backNode, pngOpts);
                 const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
                 const pdfWidth = pdf.internal.pageSize.getWidth();
                 const pdfHeight = (215 * pdfWidth) / 340;
@@ -74,9 +75,10 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack }) =>
                 pdf.addImage(backDataUrl, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight, undefined, 'FAST');
                 pdf.save(`ENTRUST-CARD-${user?.id}.pdf`);
                 setDownloaded(true);
-            } catch {
+            } catch (pngError) {
+                console.error('PNG capture failed, retrying with JPEG', pngError);
                 const { toJpeg } = await import('html-to-image');
-                const fallbackOpts = { pixelRatio: 2, quality: 0.95, backgroundColor: '#ffffff', cacheBust: true, width: 680, height: 430 };
+                const fallbackOpts = { backgroundColor: '#ffffff', cacheBust: true, width: 680, height: 430, pixelRatio: 2, quality: 0.95 };
                 const frontJpeg = await toJpeg(frontNode, fallbackOpts);
                 const backJpeg = await toJpeg(backNode, fallbackOpts);
                 const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
