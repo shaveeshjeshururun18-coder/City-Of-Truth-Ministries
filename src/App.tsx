@@ -1,2 +1,1 @@
-// Rendering MemberInitialsSection instead of CommunityMembersSection
-<MemberInitialsSection />
+export { default } from '../App';
