@@ -60,7 +60,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
         .montserrat { font-family: 'Montserrat', sans-serif; }
       `}} />
 
-      <nav className={`${currentView === ViewState.ABOUT ? 'absolute shadow-none' : 'fixed'} top-0 left-0 right-0 z-50 flex justify-between items-center transition-all duration-500 px-6 md:px-10 py-[15px] montserrat ${isScrolled ? 'bg-white shadow-lg border-b border-gray-100' : (currentView !== ViewState.HOME && currentView !== ViewState.ABOUT ? 'bg-white shadow-sm border-b border-gray-50' : 'bg-transparent shadow-none')}`}>
+      <nav className={`${currentView === ViewState.ABOUT ? 'absolute shadow-none' : 'fixed'} top-0 left-0 right-0 z-50 flex justify-between items-center transition-all duration-500 px-6 md:px-10 py-[15px] montserrat bg-white shadow-sm border-b border-gray-100`}>
         {/* LOGO STYLING */}
         <div
           className="flex items-center gap-[10px] cursor-pointer"
@@ -70,8 +70,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             <img src="/logo.png" alt="COT Logo" className="w-full h-full object-contain" />
           </div>
           <div className="flex flex-col justify-center">
-            <span className={`font-bold text-[1.1rem] leading-[1.1] tracking-[-0.5px] ${isScrolled || currentView !== ViewState.HOME ? 'text-[#1a1a2e]' : 'text-white'}`}>City of Truth</span>
-            <span className={`text-[0.65rem] font-bold tracking-[1px] uppercase ${isScrolled || currentView !== ViewState.HOME ? 'text-[#5D5FEF]' : 'text-accent-400'}`}>MINISTRIES</span>
+              <span className="font-bold text-[1.1rem] leading-[1.1] tracking-[-0.5px] text-[#1a1a2e]">City of Truth</span>
+              <span className="text-[0.65rem] font-bold tracking-[1px] uppercase text-[#5D5FEF]">MINISTRIES</span>
           </div>
         </div>
 
@@ -96,7 +96,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                   }}
                   className={`text-[0.65rem] font-bold uppercase tracking-[0.5px] px-[12px] py-2 rounded-[20px] transition-all duration-300 no-underline whitespace-nowrap flex items-center gap-1 ${isActive
                     ? 'bg-brand-50 text-brand-600 shadow-sm border border-brand-100'
-                    : (isScrolled || (currentView !== ViewState.HOME && currentView !== ViewState.ABOUT) ? 'text-slate-600 hover:text-brand-600' : (currentView === ViewState.ABOUT ? 'text-brand-950 hover:text-brand-600' : 'text-white/80 hover:text-white'))
+                    : 'text-slate-600 hover:text-brand-600'
                     }`}
                 >
                   {item.label}
@@ -111,7 +111,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
-                        className="absolute top-full left-0 mt-2 w-48 bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-100 py-3 z-50 overflow-hidden"
+                        className="absolute top-full left-0 mt-2 w-48 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-100 py-3 z-50 overflow-hidden"
                       >
                         {item.submenu?.map((sub) => (
                           <button
@@ -169,7 +169,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className={`w-12 h-12 rounded-full cursor-pointer flex items-center justify-center transition-all duration-300 shadow-xl border-2 ${isScrolled || (currentView !== ViewState.HOME && currentView !== ViewState.ABOUT) ? 'bg-brand-950 border-brand-900 text-white hover:bg-brand-900' : 'bg-white border-white text-brand-950 hover:scale-110'}`}
+            className="w-12 h-12 rounded-full cursor-pointer flex items-center justify-center transition-all duration-300 shadow-xl border-2 bg-brand-950 border-brand-900 text-white hover:bg-brand-900"
           >
             <Menu size={20} strokeWidth={2.5} />
           </button>

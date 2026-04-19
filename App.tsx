@@ -155,6 +155,16 @@ interface TestimonialSectionProps {
   currentUser?: User;
 }
 
+interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  createdAt: string;
+  source: 'hero-widget' | 'contact-form';
+}
+
 const TestimonialSection: React.FC<TestimonialSectionProps> = ({ currentUser }) => {
   const [formData, setFormData] = useState({ name: currentUser?.displayName || '', location: currentUser?.location || '', text: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -303,6 +313,21 @@ const App: React.FC = () => {
   const [showDonationModal, setShowDonationModal] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [heroEmail, setHeroEmail] = useState('');
+  const [contactMessages, setContactMessages] = useState<ContactMessage[]>(() => {
+    try {
+      const saved = localStorage.getItem('cot_contact_messages');
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+  const [contactForm, setContactForm] = useState({
+    name: '',
+    email: '',
+    subject: 'Prayer Request',
+    message: ''
+  });
 
   const [navigationItems, setNavigationItems] = useState<NavItem[]>([
     { label: 'HOME', view: ViewState.HOME },
@@ -345,6 +370,50 @@ const App: React.FC = () => {
     setHomeSectionsOrder(nextOrder);
     localStorage.setItem('cot_home_sections_order', JSON.stringify(nextOrder));
   }, [homeSectionsOrder]);
+
+  useEffect(() => {
+    localStorage.setItem('cot_contact_messages', JSON.stringify(contactMessages));
+  }, [contactMessages]);
+
+  const saveContactMessage = (payload: Omit<ContactMessage, 'id' | 'createdAt'>) => {
+    const next: ContactMessage = {
+      ...payload,
+      id: `MSG-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
+    setContactMessages(prev => [next, ...prev].slice(0, 200));
+  };
+
+  const handleHeroSendMessage = () => {
+    const message = heroEmail.trim();
+    if (!message) return;
+    saveContactMessage({
+      name: 'Website Visitor',
+      email: '',
+      subject: 'Hero Quick Message',
+      message,
+      source: 'hero-widget'
+    });
+    setHeroEmail('');
+    alert('Message sent successfully. Admin will see it in the dashboard.');
+  };
+
+  const handleContactFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contactForm.name.trim() || !contactForm.email.trim() || !contactForm.message.trim()) {
+      alert('Please fill in your name, email, and message.');
+      return;
+    }
+    saveContactMessage({
+      name: contactForm.name.trim(),
+      email: contactForm.email.trim(),
+      subject: contactForm.subject.trim() || 'General Inquiry',
+      message: contactForm.message.trim(),
+      source: 'contact-form'
+    });
+    setContactForm({ name: '', email: '', subject: 'Prayer Request', message: '' });
+    alert('Message sent successfully. Admin will receive it in the dashboard.');
+  };
 
   // Fetch home layout from Firestore on mount
   useEffect(() => {
@@ -675,6 +744,7 @@ const App: React.FC = () => {
     return (
       <AdminDashboard
         users={users}
+        contactMessages={contactMessages}
         onUpdateUser={async (user) => {
           await api.updateUser(user);
           setUsers(users.map(u => u.id === user.id ? user : u));
@@ -792,10 +862,10 @@ const App: React.FC = () => {
                     </div>
 
                     <div className="flex flex-col items-center justify-center mb-10 relative">
-                      <h2 className="text-lg md:text-3xl text-brand-100 font-serif italic tracking-wide mb-3 drop-shadow-md">City of Truth Ministries</h2>
+                      <h2 className="text-2xl md:text-3xl text-brand-100 font-serif font-black italic tracking-wide mb-3 drop-shadow-md">City of Truth Ministries</h2>
                       <h1 className="font-bold tracking-tight leading-none py-2 md:py-4">
-                        <span className="block text-4xl sm:text-8xl md:text-9xl text-transparent bg-clip-text bg-gradient-to-b from-brand-50 via-brand-100 to-brand-200 drop-shadow-2xl pb-2 md:pb-4">சத்திய நகரம்</span>
-                        <span className="block text-2xl sm:text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-br from-white via-accent-100 to-brand-300 mt-1 md:mt-2 tracking-tighter">ஊழியங்கள்</span>
+                        <span className="block text-5xl sm:text-8xl md:text-9xl font-black text-transparent bg-clip-text bg-gradient-to-b from-brand-50 via-brand-100 to-brand-200 drop-shadow-2xl pb-2 md:pb-4">சத்திய நகரம்</span>
+                        <span className="block text-3xl sm:text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-accent-100 to-brand-300 mt-1 md:mt-2 tracking-tighter">ஊழியங்கள்</span>
                       </h1>
                     </div>
 
@@ -804,13 +874,13 @@ const App: React.FC = () => {
                             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full px-4 sm:px-0 mt-4 md:mt-0">
                               <Button
                                 onClick={() => setCurrentView(ViewState.ID_CARD)}
-                                className="w-full sm:w-auto px-6 py-3.5 sm:px-12 sm:py-5 text-xs sm:text-sm uppercase tracking-[0.2em] font-black text-white bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 bg-[length:200%_auto] hover:bg-right transition-all duration-500 border-none shadow-[0_0_30px_rgba(37,99,235,0.4)] hover:shadow-[0_0_50px_rgba(37,99,235,0.6)] hover:scale-105 active:scale-95 rounded-full ring-2 ring-white/20"
+                                className="w-full max-w-[230px] sm:max-w-none sm:w-auto px-5 py-2.5 sm:px-12 sm:py-5 text-[11px] sm:text-sm uppercase tracking-[0.2em] font-black text-white bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 bg-[length:200%_auto] hover:bg-right transition-all duration-500 border-none shadow-[0_0_30px_rgba(37,99,235,0.4)] hover:shadow-[0_0_50px_rgba(37,99,235,0.6)] hover:scale-105 active:scale-95 rounded-full ring-2 ring-white/20"
                               >
                                 Register Now
                               </Button>
                               <Button
                                 onClick={() => navigate('/auth?view=login')}
-                                className="w-full sm:w-auto px-6 py-3.5 sm:px-10 sm:py-5 text-xs sm:text-sm uppercase tracking-[0.2em] font-black text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 hover:border-white/60 hover:scale-105 active:scale-95 rounded-full transition-all duration-300"
+                                className="w-full max-w-[230px] sm:max-w-none sm:w-auto px-5 py-2.5 sm:px-10 sm:py-5 text-[11px] sm:text-sm uppercase tracking-[0.2em] font-black text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 hover:border-white/60 hover:scale-105 active:scale-95 rounded-full transition-all duration-300"
                               >
                                 Login
                               </Button>
@@ -818,28 +888,28 @@ const App: React.FC = () => {
 
                             {/* Email → leader message trigger */}
                             <div className="mt-6 flex flex-col items-center gap-2 px-4 sm:px-0">
-                              <div className="flex bg-white/10 backdrop-blur-sm border border-white/20 rounded-full overflow-hidden shadow-lg w-full max-w-sm">
+                              <div className="flex bg-white/10 backdrop-blur-sm border border-white/20 rounded-full overflow-hidden shadow-lg w-full max-w-[260px] sm:max-w-sm">
                                 <input
-                                  type="email"
-                                  placeholder="Enter your email..."
+                                  type="text"
+                                  placeholder="Type your message..."
                                   value={heroEmail}
                                   onChange={e => setHeroEmail(e.target.value)}
                                   onKeyDown={e => {
                                     if (e.key === 'Enter' && heroEmail.trim()) {
-                                      setShowLeaderMessage(true);
+                                      handleHeroSendMessage();
                                     }
                                   }}
-                                  className="flex-1 bg-transparent text-white placeholder:text-white/40 text-xs sm:text-sm px-4 py-3 outline-none font-light min-w-0"
+                                  className="flex-1 bg-transparent text-white placeholder:text-white/40 text-[11px] sm:text-sm px-3 sm:px-4 py-2 sm:py-3 outline-none font-light min-w-0"
                                 />
                                 <button
                                   disabled={!heroEmail.trim()}
-                                  onClick={() => { if (heroEmail.trim()) setShowLeaderMessage(true); }}
-                                  className="bg-white/20 hover:bg-white/30 text-white font-bold text-[10px] sm:text-xs uppercase tracking-wide px-4 py-3 transition-colors disabled:opacity-40 whitespace-nowrap shrink-0"
+                                  onClick={handleHeroSendMessage}
+                                  className="bg-white/20 hover:bg-white/30 text-white font-bold text-[10px] sm:text-xs uppercase tracking-wide px-3 sm:px-4 py-2 sm:py-3 transition-colors disabled:opacity-40 whitespace-nowrap shrink-0"
                                 >
-                                  A Message
+                                  Send Message
                                 </button>
                               </div>
-                              <p className="text-white/30 text-[10px]">Enter email to receive a message from our leader</p>
+                              <p className="text-white/30 text-[10px]">Your message will be saved to the Admin Dashboard.</p>
                             </div>
 
                           </motion.div>
@@ -1033,6 +1103,7 @@ const App: React.FC = () => {
             <motion.div key="admin-dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <AdminDashboard
                 users={users}
+                contactMessages={contactMessages}
                 onUpdateUser={async (user) => {
                   await api.updateUser(user);
                   setUsers(users.map(u => u.id === user.id ? user : u));
@@ -1181,20 +1252,20 @@ const App: React.FC = () => {
                   {/* Right Column: Form */}
                   <div className="bg-white p-10 md:p-12 rounded-[3.5rem] shadow-2xl shadow-slate-200/50 border border-slate-50 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-40 h-40 bg-brand-50 rounded-full blur-3xl opacity-50 -mr-20 -mt-20"></div>
-                    <form className="space-y-8 relative z-10 text-left" onSubmit={e => e.preventDefault()}>
+                    <form className="space-y-6 md:space-y-8 relative z-10 text-left" onSubmit={handleContactFormSubmit}>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Your Name</label>
                         <div className="relative">
                           <UserIcon size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
-                          <input type="text" placeholder="John Doe" className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all text-sm font-bold text-brand-950" />
+                          <input type="text" placeholder="John Doe" className="w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all text-sm font-bold text-brand-950" value={contactForm.name} onChange={e => setContactForm(prev => ({ ...prev, name: e.target.value }))} />
                         </div>
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Email Address</label>
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Send Message</label>
                         <div className="relative">
                           <Mail size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
-                          <input type="email" placeholder="john@example.com" className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all text-sm font-bold text-brand-950" />
+                          <input type="email" placeholder="john@example.com" className="w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all text-sm font-bold text-brand-950" value={contactForm.email} onChange={e => setContactForm(prev => ({ ...prev, email: e.target.value }))} />
                         </div>
                       </div>
 
@@ -1202,7 +1273,7 @@ const App: React.FC = () => {
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Subject</label>
                         <div className="relative">
                           <Briefcase size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
-                          <select className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all text-sm font-bold text-brand-950 appearance-none">
+                          <select className="w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all text-sm font-bold text-brand-950 appearance-none" value={contactForm.subject} onChange={e => setContactForm(prev => ({ ...prev, subject: e.target.value }))}>
                             <option>Prayer Request</option>
                             <option>General Inquiry</option>
                             <option>Event Info</option>
@@ -1213,10 +1284,10 @@ const App: React.FC = () => {
 
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Message</label>
-                        <textarea placeholder="How can we help you today?" className="w-full p-6 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all text-sm font-bold text-brand-950 h-32 resize-none"></textarea>
+                        <textarea placeholder="How can we help you today?" className="w-full p-4 md:p-6 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all text-sm font-bold text-brand-950 h-28 md:h-32 resize-none" value={contactForm.message} onChange={e => setContactForm(prev => ({ ...prev, message: e.target.value }))}></textarea>
                       </div>
 
-                      <Button variant="primary" fullWidth className="py-6 text-sm font-black uppercase tracking-[0.2em] rounded-2xl bg-brand-950 shadow-2xl shadow-brand-950/30">
+                      <Button type="submit" variant="primary" fullWidth className="py-4 md:py-6 text-xs sm:text-sm font-black uppercase tracking-[0.2em] rounded-2xl bg-brand-950 shadow-2xl shadow-brand-950/30">
                         Send Message <Send size={18} />
                       </Button>
                     </form>
