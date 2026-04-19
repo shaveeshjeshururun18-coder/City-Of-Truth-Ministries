@@ -523,7 +523,7 @@ export const CommunityMembersSection: React.FC<SectionProps & { users: User[] }>
                                     {getInitials(user.name)}
                                 </span>
                             </div>
-                            <span className="text-[11px] font-bold text-orange-800 text-center leading-tight w-full tracking-wide break-words sm:text-xs">
+                            <span className="text-xs font-bold text-orange-800 text-center leading-tight w-full tracking-wide break-words">
                                 {user.name}
                             </span>
                         </motion.div>
