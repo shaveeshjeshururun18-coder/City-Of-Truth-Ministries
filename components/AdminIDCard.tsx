@@ -21,7 +21,7 @@ export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user }) => {
     return (
         <motion.div
             whileHover={{ y: -6, scale: 1.02 }}
-            className="group relative w-full max-w-[380px] bg-gradient-to-br from-sky-50 via-blue-50 to-sky-100 rounded-3xl shadow-xl border border-sky-200 overflow-hidden"
+            className="group relative w-full bg-gradient-to-br from-sky-50 via-blue-50 to-sky-100 rounded-3xl shadow-xl border border-sky-200 overflow-hidden"
         >
             {/* Top Header Bar */}
             <div className="bg-gradient-to-r from-sky-500 to-blue-600 px-5 py-3 flex items-center justify-between">
