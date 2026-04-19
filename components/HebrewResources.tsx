@@ -748,7 +748,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
 
 
     return (
-        <div className="min-h-screen pt-20 md:pt-28 pb-36 md:pb-20 container mx-auto px-6 font-sans bg-[#fdfcf0]">
+        <div className="min-h-screen pt-20 md:pt-28 pb-[calc(8.5rem+env(safe-area-inset-bottom))] md:pb-20 container mx-auto px-6 font-sans bg-[#fdfcf0]">
             <div className="max-w-7xl mx-auto md:flex md:items-start md:gap-8">
                 <aside className="hidden md:block md:w-64 md:shrink-0 md:sticky md:top-[110px]">
                     <div className="flex flex-col gap-3">
@@ -789,14 +789,14 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                 </div>
 
                 <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-[#fdfcf0]/95 backdrop-blur-md">
-                    <div className="grid grid-cols-3 gap-2 p-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar p-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
                         {HEBREW_RESOURCE_TABS.map((t) => {
                             const isActive = tab === t.id;
                             return (
                                 <button
                                     key={t.id}
                                     onClick={() => { setTab(t.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                                    className={`relative flex items-center justify-center gap-2 px-2 py-2.5 rounded-xl font-bold text-[9px] uppercase tracking-widest transition-all duration-300 ${isActive
+                                    className={`relative shrink-0 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl font-bold text-[9px] uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${isActive
                                         ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/30'
                                         : 'bg-white text-slate-400 hover:text-amber-600 hover:border-amber-200 border border-slate-200 shadow-sm'
                                         }`}
