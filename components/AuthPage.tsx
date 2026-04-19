@@ -204,7 +204,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
     const handleProceed = () => {
         if (previewUser) {
-            onLogin(previewUser.id);
+            const loginId = previewUser.id || identifier.trim();
+            if (!loginId) return;
+            onLogin(loginId);
         }
     };
 
@@ -365,7 +367,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                             <button onClick={() => setShowScanner(false)} className="text-white/60 hover:text-white transition-colors">Close ×</button>
                                         </div>
                                         <div className="flex-1 p-2 sm:p-4 relative">
-                                            <div id="qr-auth-page-reader" className="w-full h-full min-h-[70vh] rounded-2xl overflow-hidden bg-black" />
+                                            <div id="qr-auth-page-reader" role="region" aria-label="QR code scanner" className="w-full h-full min-h-[70vh] rounded-2xl overflow-hidden bg-black" />
                                             <div className="absolute inset-2 sm:inset-4 border-[40px] sm:border-[60px] border-slate-950/40 pointer-events-none rounded-2xl" />
                                             <div className="absolute inset-[48px] sm:inset-[72px] border-2 border-brand-500/40 rounded-3xl pointer-events-none animate-pulse" />
                                         </div>

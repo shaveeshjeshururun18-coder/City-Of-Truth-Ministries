@@ -492,7 +492,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                     <input type="file" onChange={handlePhotoUpload} className="absolute inset-0 opacity-0 cursor-pointer z-20" accept="image/*" />
                                     <div className="border-2 border-dashed border-slate-200 rounded-2xl md:rounded-3xl p-4 md:p-6 transition-all group-hover:border-accent-400 group-hover:bg-accent-50/20 bg-slate-50/50 flex items-center gap-4 md:gap-6">
                                         <div className="w-14 h-14 md:w-20 md:h-20 bg-white rounded-xl md:rounded-2xl flex items-center justify-center text-slate-400 shadow-sm border border-slate-100 overflow-hidden shrink-0">
-                                            {photo ? <img src={photo} className="w-full h-full object-cover" /> : <UploadCloud size={24} className="md:w-[30px] md:h-[30px]" />}
+                                            {photo ? <img src={photo} alt="Member photo" className="w-full h-full object-cover" /> : <UploadCloud size={24} className="md:w-[30px] md:h-[30px]" />}
                                         </div>
                                         <div className="flex-1">
                                             <p className="text-sm font-bold text-slate-700">{photo ? "Photo Selected" : "Click to select photo"}</p>
