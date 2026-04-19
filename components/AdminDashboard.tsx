@@ -77,7 +77,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor'>('users');
     const [menuMode, setMenuMode] = useState<'horizontal' | 'vertical'>(() => {
-        return (localStorage.getItem('adminMenuMode') as 'horizontal' | 'vertical') || 'horizontal';
+        const stored = localStorage.getItem('adminMenuMode');
+        return stored === 'vertical' ? 'vertical' : 'horizontal';
     });
 
     const toggleMenuMode = () => {
