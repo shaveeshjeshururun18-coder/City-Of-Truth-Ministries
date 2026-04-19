@@ -648,6 +648,10 @@ const App: React.FC = () => {
           await api.updateUser(user);
           setUsers(users.map(u => u.id === user.id ? user : u));
         }}
+        onCreateUser={async (user) => {
+          const created = await api.createUser(user);
+          setUsers(prev => [...prev, created]);
+        }}
         onDeleteUser={handleDeleteUser}
         onBack={handleBackFromAdmin}
         homeSectionsOrder={homeSectionsOrder}
@@ -744,23 +748,23 @@ const App: React.FC = () => {
 
                     <p className="text-base md:text-xl text-brand-50/80 max-w-2xl mx-auto mb-12 leading-relaxed font-light font-serif italic px-6">"Then you will know the truth, and the truth will set you free." <br />— John 8:32</p>
 
-                            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full px-6 sm:px-0 mt-4 md:mt-0">
+                            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full px-4 sm:px-0 mt-4 md:mt-0">
                               <Button
                                 onClick={() => setCurrentView(ViewState.ID_CARD)}
-                                className="w-full sm:w-auto px-5 py-2.5 sm:px-12 sm:py-5 text-[9px] sm:text-sm uppercase tracking-[0.2em] font-black text-white bg-gradient-to-r from-brand-600 via-accent-500 to-brand-600 bg-[length:200%_auto] hover:bg-right transition-all duration-500 border-none shadow-[0_0_30px_rgba(79,70,229,0.3)] hover:shadow-[0_0_50px_rgba(79,70,229,0.5)] hover:scale-105 active:scale-95 rounded-full ring-2 ring-white/20"
+                                className="w-full sm:w-auto px-6 py-3.5 sm:px-12 sm:py-5 text-xs sm:text-sm uppercase tracking-[0.2em] font-black text-white bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 bg-[length:200%_auto] hover:bg-right transition-all duration-500 border-none shadow-[0_0_30px_rgba(37,99,235,0.4)] hover:shadow-[0_0_50px_rgba(37,99,235,0.6)] hover:scale-105 active:scale-95 rounded-full ring-2 ring-white/20"
                               >
                                 Register Now
                               </Button>
                               <Button
                                 onClick={() => { setAuthInitialView('login'); setIsAuthOpen(true); }}
-                                className="w-full sm:w-auto px-5 py-2.5 sm:px-10 sm:py-5 text-[9px] sm:text-sm uppercase tracking-[0.2em] font-black text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 hover:border-white/60 hover:scale-105 active:scale-95 rounded-full transition-all duration-300"
+                                className="w-full sm:w-auto px-6 py-3.5 sm:px-10 sm:py-5 text-xs sm:text-sm uppercase tracking-[0.2em] font-black text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 hover:border-white/60 hover:scale-105 active:scale-95 rounded-full transition-all duration-300"
                               >
                                 Login
                               </Button>
                             </div>
 
                             {/* Email → leader message trigger */}
-                            <div className="mt-8 flex flex-col items-center gap-2">
+                            <div className="mt-6 flex flex-col items-center gap-2 px-4 sm:px-0">
                               <div className="flex bg-white/10 backdrop-blur-sm border border-white/20 rounded-full overflow-hidden shadow-lg w-full max-w-sm">
                                 <input
                                   type="email"
@@ -772,12 +776,12 @@ const App: React.FC = () => {
                                       setShowLeaderMessage(true);
                                     }
                                   }}
-                                  className="flex-1 bg-transparent text-white placeholder:text-white/40 text-sm px-5 py-3 outline-none font-light"
+                                  className="flex-1 bg-transparent text-white placeholder:text-white/40 text-xs sm:text-sm px-4 py-3 outline-none font-light min-w-0"
                                 />
                                 <button
                                   disabled={!heroEmail.trim()}
                                   onClick={() => { if (heroEmail.trim()) setShowLeaderMessage(true); }}
-                                  className="bg-white/20 hover:bg-white/30 text-white font-bold text-xs uppercase tracking-wide px-5 py-3 transition-colors disabled:opacity-40"
+                                  className="bg-white/20 hover:bg-white/30 text-white font-bold text-[10px] sm:text-xs uppercase tracking-wide px-4 py-3 transition-colors disabled:opacity-40 whitespace-nowrap shrink-0"
                                 >
                                   A Message
                                 </button>
@@ -1099,7 +1103,7 @@ const App: React.FC = () => {
                           <Mail size={24} />
                         </div>
                         <div className="flex-1">
-                          <strong className="block text-base">Send an Email</strong>
+                          <strong className="block text-base">Send Message</strong>
                           <span className="text-xs opacity-80 font-medium">Replies within 24 hours</span>
                         </div>
                         <ArrowRight size={20} className="opacity-0 group-hover:opacity-100 transition-all -translate-x-4 group-hover:translate-x-0" />
