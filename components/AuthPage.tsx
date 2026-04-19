@@ -151,7 +151,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     );
 
                     if (found) {
-                        setIdentifier(found.id || qrData);
                         setPreviewUser(found);
                     } else {
                         handleSearch(qrData);
@@ -194,7 +193,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
         setTimeout(() => {
             if (found) {
-                setIdentifier(found.id || queryTerm.trim());
                 setPreviewUser(found);
                 setNotFound(false);
             } else {

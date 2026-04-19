@@ -38,6 +38,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
 }) => {
     const [isFlipped, setIsFlipped] = useState(isBackSide);
     const [showQrFullScreen, setShowQrFullScreen] = useState(false);
+    const qrModalTitle = 'Scan Entrust QR';
 
     useEffect(() => {
         if (isStatic) setIsFlipped(isBackSide);
@@ -188,7 +189,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                                 className="bg-white rounded-3xl p-4 sm:p-6 w-full max-w-md text-center"
                                 onClick={(e) => e.stopPropagation()}
                             >
-                                <p className="text-sm font-black text-brand-950 mb-4 uppercase tracking-widest">Scan Entrust QR</p>
+                                <p className="text-sm font-black text-brand-950 mb-4 uppercase tracking-widest">{qrModalTitle}</p>
                                 <img src={qrCodeUrl} alt="Entrust QR Code" className="w-full max-w-[320px] mx-auto rounded-2xl border border-slate-200" />
                                 <Button onClick={() => setShowQrFullScreen(false)} className="mt-5 w-full">
                                     Close
@@ -241,7 +242,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                             className="bg-white rounded-3xl p-4 sm:p-6 w-full max-w-md text-center"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <p className="text-sm font-black text-brand-950 mb-4 uppercase tracking-widest">Scan Entrust QR</p>
+                            <p className="text-sm font-black text-brand-950 mb-4 uppercase tracking-widest">{qrModalTitle}</p>
                             <img src={qrCodeUrl} alt="Entrust QR Code" className="w-full max-w-[320px] mx-auto rounded-2xl border border-slate-200" />
                             <Button onClick={() => setShowQrFullScreen(false)} className="mt-5 w-full">
                                 Close
