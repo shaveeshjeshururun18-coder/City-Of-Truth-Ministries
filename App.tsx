@@ -53,7 +53,7 @@ import {
 import { ViewState, User, UserRole, UserStatus, NavItem } from './types';
 import { Navbar } from './components/Navbar';
 import { Button } from './components/Button';
-import { AuthModal } from './components/AuthModal';
+import { AuthPage } from './components/AuthPage';
 // Removed SpiritualAssistant import
 import { WorshipperIDCard, EntrustCard3D } from './components/WorshipperIDCard';
 import { GoldenMenorah } from './components/GoldenMenorah';
@@ -295,8 +295,8 @@ const App: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.HOME);
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [authInitialView, setAuthInitialView] = useState<'choice' | 'login' | 'register'>('choice');
+  const [authInitialView, setAuthInitialView] = useState<'choice' | 'login' | 'register' | 'forgot-id'>('choice');
+  const [selectedDashboardProfileId, setSelectedDashboardProfileId] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [showLeaderMessage, setShowLeaderMessage] = useState(false);
@@ -490,25 +490,39 @@ const App: React.FC = () => {
     const searchId = identifier.trim().toLowerCase();
 
     // Multi-identifier login: Phone, Email, ID, or Name
+    let matchedProfileId: string | null = null;
+
     const user = users.find(u => {
       const uPhone = (u.phone || '').trim();
       const uEmail = (u.email || '').trim().toLowerCase();
       const uId = (u.id || '').trim().toLowerCase();
       const uName = (u.name || '').trim().toLowerCase();
       const uEmergency = (u.emergency || '').trim();
+      const linked = (u.linkedProfiles || []).find(sp => {
+        const spId = (sp.id || '').trim().toLowerCase();
+        const spName = (sp.name || '').trim().toLowerCase();
+        return spId === searchId || spName === searchId;
+      });
 
-      return (
+      if (linked) {
+        matchedProfileId = linked.id;
+        return true;
+      }
+
+      const isMatch = (
         uPhone === identifier ||
         uEmergency === identifier ||
         uId === searchId ||
         uEmail === searchId ||
         uName === searchId
       );
+      if (isMatch) matchedProfileId = u.id;
+      return isMatch;
     });
 
     if (user) {
       setCurrentUser(user);
-      setIsAuthOpen(false);
+      setSelectedDashboardProfileId(matchedProfileId || user.id);
       setCurrentView(ViewState.USER_DASHBOARD);
     } else {
       alert("Account not found. Please check your Member ID, Email, Phone, or Name.");
@@ -525,7 +539,8 @@ const App: React.FC = () => {
 
     if (existingUser) {
       alert("User already exists with this phone, email, or ID! Please Login.");
-      setIsAuthOpen(true);
+      setAuthInitialView('login');
+      setCurrentView(ViewState.AUTH);
       return;
     }
 
@@ -548,7 +563,7 @@ const App: React.FC = () => {
       const savedUser = await api.createUser(newUser);
       setUsers([...users, savedUser]);
       setCurrentUser(savedUser);
-      setIsAuthOpen(false);
+      setSelectedDashboardProfileId(savedUser.id);
 
       // --- EMAILJS INTEGRATION (Using User Provided Keys) ---
       const EMAILJS_SERVICE_ID = 'service_wcxaetv';
@@ -623,6 +638,7 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     setCurrentUser(null);
+    setSelectedDashboardProfileId(null);
     setCurrentView(ViewState.HOME);
     alert("You have been logged out successfully.");
   };
@@ -687,31 +703,27 @@ const App: React.FC = () => {
       <Navbar
         currentView={currentView}
         setView={setCurrentView}
-        onLoginClick={() => setIsAuthOpen(true)}
+        onLoginClick={() => { setAuthInitialView('login'); setCurrentView(ViewState.AUTH); }}
         onLogoutClick={handleLogout}
         currentUser={currentUser}
         navItems={navigationItems}
       />
 
-      <AuthModal
-        isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
-        onLogin={handleLogin}
-        onRegister={handleRegister}
-        onFindID={handleFindID}
-        onNavigateToRegister={() => {
-          setIsAuthOpen(false);
-          setCurrentView(ViewState.ID_CARD);
-        }}
-        onAdminClick={() => {
-          setIsAuthOpen(false);
-          navigate('/admin');
-        }}
-        initialView={authInitialView}
-      />
-
       <main className="relative">
         <AnimatePresence mode="wait">
+          {currentView === ViewState.AUTH && (
+            <motion.div key="auth" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <AuthPage
+                onLogin={handleLogin}
+                onNavigateToRegister={() => setCurrentView(ViewState.ID_CARD)}
+                onAdminClick={() => navigate('/admin')}
+                onBack={() => setCurrentView(ViewState.HOME)}
+                users={users}
+                initialView={authInitialView}
+              />
+            </motion.div>
+          )}
+
           {currentView === ViewState.HOME && (
             <motion.div
               key="home"
@@ -756,7 +768,7 @@ const App: React.FC = () => {
                                 Register Now
                               </Button>
                               <Button
-                                onClick={() => { setAuthInitialView('login'); setIsAuthOpen(true); }}
+                                onClick={() => { setAuthInitialView('login'); setCurrentView(ViewState.AUTH); }}
                                 className="w-full sm:w-auto px-6 py-3.5 sm:px-10 sm:py-5 text-xs sm:text-sm uppercase tracking-[0.2em] font-black text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 hover:border-white/60 hover:scale-105 active:scale-95 rounded-full transition-all duration-300"
                               >
                                 Login
@@ -869,8 +881,8 @@ const App: React.FC = () => {
                   </div>
                   <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
                     {[
-                      { icon: UserIcon, label: 'Login to Account', desc: 'Access your personal dashboard with your Member ID, phone, or email.', color: 'from-brand-500 to-brand-700', light: 'bg-brand-50 text-brand-600', action: () => { setAuthInitialView('login'); setIsAuthOpen(true); }, cta: 'Login Now' },
-                      { icon: UploadCloud, label: 'Upload Entrust PDF', desc: 'Upload your Entrust Card PDF to verify your membership document.', color: 'from-accent-500 to-accent-700', light: 'bg-accent-50 text-accent-600', action: () => setCurrentView(ViewState.USER_DASHBOARD), cta: 'Upload File' },
+                      { icon: UserIcon, label: 'Login to Account', desc: 'Access your personal dashboard with your Member ID, phone, or email.', color: 'from-brand-500 to-brand-700', light: 'bg-brand-50 text-brand-600', action: () => { setAuthInitialView('login'); setCurrentView(ViewState.AUTH); }, cta: 'Login Now' },
+                      { icon: UploadCloud, label: 'Upload Entrust PDF', desc: 'Upload your Entrust Card PDF to verify your membership document.', color: 'from-accent-500 to-accent-700', light: 'bg-accent-50 text-accent-600', action: () => currentUser ? setCurrentView(ViewState.USER_DASHBOARD) : (() => { setAuthInitialView('login'); setCurrentView(ViewState.AUTH); })(), cta: 'Upload File' },
                       { icon: CreditCard, label: 'View Entrust Card', desc: 'Register or view your official digital ID card and QR code.', color: 'from-emerald-500 to-emerald-700', light: 'bg-emerald-50 text-emerald-600', action: () => setCurrentView(ViewState.ID_CARD), cta: 'View Card' },
                       { icon: CheckCircle, label: 'Scan QR Code', desc: 'Scan any member\'s QR code to instantly verify their identity.', color: 'from-amber-500 to-orange-600', light: 'bg-amber-50 text-amber-600', action: () => setCurrentView(ViewState.VERIFY_ID), cta: 'Open Scanner' },
                     ].map((item, i) => (
@@ -960,7 +972,7 @@ const App: React.FC = () => {
 
           {currentView === ViewState.ID_CARD && (
             <motion.div key="id-card" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <WorshipperIDCard onRegister={handleRegister} onLogin={() => { setAuthInitialView('login'); setIsAuthOpen(true); }} />
+              <WorshipperIDCard onRegister={handleRegister} onLogin={() => { setAuthInitialView('login'); setCurrentView(ViewState.AUTH); }} />
             </motion.div>
           )}
 
@@ -1012,8 +1024,10 @@ const App: React.FC = () => {
             <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <UserDashboard
                 user={currentUser}
+                initialProfileId={selectedDashboardProfileId || undefined}
                 onEdit={() => { }}
                 onLogout={handleLogout}
+                onOpenScanner={() => setCurrentView(ViewState.VERIFY_ID)}
                 onUpdate={async (updatedUser) => {
                   await api.updateUser(updatedUser);
                   setCurrentUser(updatedUser);

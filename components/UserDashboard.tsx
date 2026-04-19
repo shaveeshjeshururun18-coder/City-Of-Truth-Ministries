@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { User, SubProfile } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
-import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine } from 'lucide-react';
+import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud } from 'lucide-react';
 import { Button } from './Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TestimonialModal } from './TestimonialModal';
@@ -18,9 +18,11 @@ interface UserDashboardProps {
     onEdit: () => void;
     onUpdate: (updatedUser: User) => void;
     onLogout: () => void;
+    onOpenScanner?: () => void;
+    initialProfileId?: string;
 }
 
-export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout }) => {
+export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, onOpenScanner, initialProfileId }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [showTestimonialModal, setShowTestimonialModal] = useState(false);
     const [formData, setFormData] = useState<Partial<User>>({});
@@ -28,7 +30,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [croppingImage, setCroppingImage] = useState<string | null>(null);
     const [showFamilyModal, setShowFamilyModal] = useState(false);
     const [subProfileForm, setSubProfileForm] = useState<Partial<SubProfile>>({});
-    const [activeProfileId, setActiveProfileId] = useState<string>(user.id);
+    const [activeProfileId, setActiveProfileId] = useState<string>(initialProfileId || user.id);
     const [isGeneratingCalendar, setIsGeneratingCalendar] = useState(false);
     const [generationProgress, setGenerationProgress] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
@@ -37,6 +39,16 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [idRevealed, setIdRevealed] = useState(false);
     const [showCardPreview, setShowCardPreview] = useState(false);
     const [cardFlipped, setCardFlipped] = useState(false);
+
+    useEffect(() => {
+        if (!initialProfileId) {
+            setActiveProfileId(user.id);
+            return;
+        }
+        const isPrimary = initialProfileId === user.id;
+        const isLinked = !!user.linkedProfiles?.some(p => p.id === initialProfileId);
+        setActiveProfileId((isPrimary || isLinked) ? initialProfileId : user.id);
+    }, [initialProfileId, user.id, user.linkedProfiles]);
 
     const getDisplayProfile = () => {
         if (activeProfileId === user.id) return user;
@@ -192,6 +204,19 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         const url = `${window.location.origin}/verify/${displayProfile.id}`;
         if (navigator.share) { navigator.share({ title: `${displayProfile.name} — City of Truth Ministries`, text: 'Check my Entrust ID Card', url }); }
         else { navigator.clipboard.writeText(url); alert('Profile link copied!'); }
+    };
+
+    const handleVerificationDocUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        onUpdate({
+            ...user,
+            verificationDoc: {
+                name: file.name,
+                uploadedAt: new Date().toISOString()
+            }
+        } as User);
+        e.target.value = '';
     };
 
     const qrUrl = `${window.location.origin}/verify/${displayProfile.id}`;
@@ -442,15 +467,19 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         <div className="w-full xl:w-2/5 flex flex-col items-center justify-center border-t xl:border-t-0 xl:border-l border-slate-100 pt-6 xl:pt-0 xl:pl-6">
                             {user.status === 'Active' ? (
                                 <div className="flex flex-col items-center">
-                                    <div className="relative inline-block bg-white rounded-3xl p-4 border border-slate-100 shadow-lg shadow-brand-900/5">
+                                    <button
+                                        type="button"
+                                        onClick={() => onOpenScanner?.()}
+                                        className="relative inline-block bg-white rounded-3xl p-4 border border-slate-100 shadow-lg shadow-brand-900/5"
+                                    >
                                         <img src={qrImgSrc} alt="QR Code" className="w-48 h-48 block mx-auto" crossOrigin="anonymous" />
                                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                             <div className="bg-white rounded-full w-12 h-12 flex items-center justify-center shadow-md border border-slate-100">
                                                 <img src="/logo.png" alt="COT" className="w-8 h-8 object-contain" />
                                             </div>
                                         </div>
-                                    </div>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-4">Scan to Verify</p>
+                                    </button>
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-4">Tap QR to open scanner</p>
                                 </div>
                             ) : (
                                 <div className="py-8 flex flex-col items-center text-center">
@@ -476,7 +505,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             {[
                                 { icon: <Share2 size={20} />, label: 'Share', action: handleShare },
                                 { icon: <Download size={20} />, label: 'Download', action: handleDownloadPDF, loading: isProcessing },
-                                { icon: <QrCode size={20} />, label: 'QR Code', action: () => { const a = document.createElement('a'); a.href = qrImgSrc; a.download = `COT-QR-${displayProfile.id}.png`; a.target = '_blank'; a.click(); } },
+                                { icon: <QrCode size={20} />, label: 'Open Scanner', action: () => onOpenScanner?.() },
                                 { 
                                     icon: <div className="relative"><CheckCircle size={20} className="text-amber-500" /><div className="absolute inset-0 bg-amber-400 blur-sm rounded-full -z-10 animate-pulse" /></div>, 
                                     label: <span className="bg-gradient-to-r from-amber-500 to-amber-700 bg-clip-text text-transparent font-black shadow-sm">VERIFIED MEMBER</span>, 
@@ -562,6 +591,21 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             📱
                         </div>
                     </a>
+
+                    <label className="col-span-2 bg-white rounded-[22px] p-5 text-left shadow-md border border-slate-200 hover:border-brand-300 hover:shadow-lg transition-all cursor-pointer block">
+                        <div className="w-11 h-11 bg-brand-50 text-brand-600 rounded-xl flex items-center justify-center mb-3"><UploadCloud size={22} /></div>
+                        <p className="font-bold text-base leading-tight mb-1 text-slate-900">Upload Entrust File</p>
+                        <p className="text-slate-500 text-[11px] mb-3">Upload Entrust Card, QR screenshot, PDF, or any verification file format.</p>
+                        <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-brand-600 text-white rounded-xl px-4 py-2">
+                            <UploadCloud size={12} /> Upload File
+                        </span>
+                        {user.verificationDoc?.name && (
+                            <p className="mt-3 text-[10px] text-emerald-600 font-bold truncate">
+                                Last uploaded: {user.verificationDoc.name}
+                            </p>
+                        )}
+                        <input type="file" className="hidden" onChange={handleVerificationDocUpload} />
+                    </label>
                 </div>
 
                 </div>

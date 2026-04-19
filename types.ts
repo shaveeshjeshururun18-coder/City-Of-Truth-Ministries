@@ -1,5 +1,6 @@
 export enum ViewState {
   HOME = 'HOME',
+  AUTH = 'AUTH',
   ABOUT = 'ABOUT',
   MINISTRIES = 'MINISTRIES', GOLDEN_MENORAH = 'GOLDEN_MENORAH',
   ID_CARD = 'ID_CARD',
