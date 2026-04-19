@@ -169,9 +169,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className="w-12 h-12 rounded-full cursor-pointer flex items-center justify-center transition-all duration-300 shadow-xl border-2 bg-brand-950 border-brand-900 text-white hover:bg-brand-900"
+            className="w-12 h-12 rounded-full cursor-pointer flex items-center justify-center transition-all duration-300 shadow-xl border-2 bg-white border-white/70 text-brand-950 hover:bg-slate-100"
           >
-            <Menu size={20} strokeWidth={2.5} />
+            <Menu size={20} strokeWidth={2.5} className="text-brand-950" />
           </button>
         </div>
       </nav>

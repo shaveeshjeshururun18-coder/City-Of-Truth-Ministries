@@ -217,10 +217,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
             {/* Header / Hero Area — Royal Navy Variant */}
             <div className="h-64 md:h-80 bg-gradient-to-br from-brand-900 to-brand-950 relative flex flex-col items-center justify-center overflow-hidden flex-shrink-0 px-6">
-                <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/30 to-transparent" />
-                <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-white/10 rounded-full scale-150" />
-                <div className="absolute -top-20 -left-20 w-64 h-64 bg-brand-400/20 rounded-full scale-150" />
-
                 {/* Back Button */}
                 <button
                     onClick={onBack}
