@@ -6,6 +6,10 @@ import { User } from '../types';
 import { Navbar } from './Navbar';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+
+GlobalWorkerOptions.workerSrc = pdfWorker;
 
 const VerifyIDPage = () => {
     const [scannedId, setScannedId] = useState<string | null>(null);
@@ -149,13 +153,49 @@ const VerifyIDPage = () => {
         }
 
         const html5QrCode = new window.Html5Qrcode('qr-reader-hidden');
-        html5QrCode.scanFile(file, true)
-            .then((decodedText: string) => {
-                const extractedId = extractMemberId(decodedText);
-                if (extractedId) { setScannedId(extractedId); verifyID(extractedId); }
-                else { setError('Invalid QR Code payload.'); setLoading(false); }
+        const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+        const scanImageFile = async (imageFile: File) => {
+            const decodedText: string = await html5QrCode.scanFile(imageFile, true);
+            const extractedId = extractMemberId(decodedText);
+            if (!extractedId) throw new Error('Invalid QR Code payload.');
+            return extractedId;
+        };
+
+        const scanPdfFile = async (pdfFile: File) => {
+            const arrayBuffer = await pdfFile.arrayBuffer();
+            const pdf = await getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                const page = await pdf.getPage(pageNum);
+                const viewport = page.getViewport({ scale: 2 });
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                if (!context) continue;
+                canvas.width = Math.ceil(viewport.width);
+                canvas.height = Math.ceil(viewport.height);
+                await page.render({ canvasContext: context, viewport }).promise;
+                const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+                if (!blob) continue;
+                const pageImage = new File([blob], `page-${pageNum}.png`, { type: 'image/png' });
+                try {
+                    return await scanImageFile(pageImage);
+                } catch (_err) {
+                    continue;
+                }
+            }
+            throw new Error('No valid QR code found in the uploaded PDF pages.');
+        };
+
+        (isPdf ? scanPdfFile(file) : scanImageFile(file))
+            .then((extractedId: string) => {
+                setScannedId(extractedId);
+                verifyID(extractedId);
             })
-            .catch((_err: any) => { setError('No valid QR code found in the image.'); setLoading(false); });
+            .catch((err: any) => {
+                setError(err?.message || 'No valid QR code found in the uploaded file.');
+                setLoading(false);
+            })
+            .finally(() => { e.target.value = ''; });
     };
 
     const handleManualCheck = (e: React.FormEvent) => {
@@ -213,7 +253,7 @@ const VerifyIDPage = () => {
                                     </div>
                                     <div className="flex-1">
                                         <span className="block text-slate-800 font-bold mb-1">Select Screenshot or Photo</span>
-                                        <span className="block text-xs text-slate-400">Upload an image containing a valid Worshipper QR code.</span>
+                                        <span className="block text-xs text-slate-400">Upload an image or PDF containing a valid Worshipper QR code.</span>
                                     </div>
                                     <input type="file" className="hidden" accept="image/*,application/pdf,.pdf" onChange={handleFileUpload} />
                                 </label>
