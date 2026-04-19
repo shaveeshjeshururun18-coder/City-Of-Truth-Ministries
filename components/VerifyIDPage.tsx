@@ -16,6 +16,23 @@ const VerifyIDPage = () => {
     const [scannerInitialized, setScannerInitialized] = useState(false);
     const scannerRef = useRef<any>(null);
 
+    const extractMemberId = (payload: string): string | null => {
+        if (!payload) return null;
+        const trimmed = payload.trim();
+        if (trimmed.includes('/verify/')) {
+            return trimmed.split('/verify/')[1]?.split('?')[0]?.trim() || null;
+        }
+        if (trimmed.includes('/card/')) {
+            return trimmed.split('/card/')[1]?.split('?')[0]?.trim() || null;
+        }
+        try {
+            const parsed = JSON.parse(trimmed);
+            if (parsed?.id && typeof parsed.id === 'string') return parsed.id.trim();
+        } catch (_e) {}
+        if (/^COT-[A-Z0-9-]+$/i.test(trimmed)) return trimmed.toUpperCase();
+        return null;
+    };
+
     useEffect(() => {
         const loadScript = () => {
             if (!window.Html5Qrcode) {
@@ -74,7 +91,7 @@ const VerifyIDPage = () => {
                 { facingMode: 'environment' },
                 { fps: 10, qrbox: { width: 250, height: 250 } },
                 (decodedText: string) => {
-                    const extractedId = decodedText.split('/card/').pop()?.trim();
+                    const extractedId = extractMemberId(decodedText);
                     if (extractedId) {
                         html5Qrcode.stop().then(() => { setIsScanning(false); setScannedId(extractedId); verifyID(extractedId); });
                     }
@@ -98,10 +115,43 @@ const VerifyIDPage = () => {
         const file = e.target.files?.[0];
         if (!file || !window.Html5Qrcode) return;
         setLoading(true); setError(null); setUser(null); setScannedId(null);
+        const isImage = file.type.startsWith('image/');
+
+        if (!isImage) {
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const bytes = new Uint8Array(reader.result as ArrayBuffer);
+                    let raw = '';
+                    for (let i = 0; i < bytes.length; i++) raw += String.fromCharCode(bytes[i]);
+                    const verifyMatch = raw.match(/\/verify\/([A-Za-z0-9-]+)/);
+                    const cotMatch = raw.match(/\bCOT-[A-Za-z0-9-]+\b/i);
+                    const candidate = verifyMatch?.[1] || cotMatch?.[0] || '';
+                    const extractedId = extractMemberId(candidate);
+                    if (extractedId) {
+                        setScannedId(extractedId);
+                        verifyID(extractedId);
+                    } else {
+                        setError('No readable member QR data found in this file. Please upload an image/screenshot of the QR code.');
+                        setLoading(false);
+                    }
+                } catch (_err) {
+                    setError('Unable to read this file. Please upload a QR image or screenshot.');
+                    setLoading(false);
+                }
+            };
+            reader.onerror = () => {
+                setError('Unable to read this file. Please try another file.');
+                setLoading(false);
+            };
+            reader.readAsArrayBuffer(file);
+            return;
+        }
+
         const html5QrCode = new window.Html5Qrcode('qr-reader-hidden');
         html5QrCode.scanFile(file, true)
             .then((decodedText: string) => {
-                const extractedId = decodedText.split('/card/').pop()?.trim();
+                const extractedId = extractMemberId(decodedText);
                 if (extractedId) { setScannedId(extractedId); verifyID(extractedId); }
                 else { setError('Invalid QR Code payload.'); setLoading(false); }
             })
@@ -165,7 +215,7 @@ const VerifyIDPage = () => {
                                         <span className="block text-slate-800 font-bold mb-1">Select Screenshot or Photo</span>
                                         <span className="block text-xs text-slate-400">Upload an image containing a valid Worshipper QR code.</span>
                                     </div>
-                                    <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
+                                    <input type="file" className="hidden" accept="image/*,application/pdf,.pdf" onChange={handleFileUpload} />
                                 </label>
                             </div>
                             <div className="flex items-center gap-4">
