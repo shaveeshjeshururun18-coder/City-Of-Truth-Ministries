@@ -722,7 +722,7 @@ const HebrewGematriaCalc: React.FC = () => {
 };
 
 interface HebrewResourcesProps {
-    initialTab?: 'numbers' | 'calendar' | 'festivals' | 'reference';
+    initialTab?: 'numbers' | 'calendar' | 'festivals' | 'reference' | 'words' | 'gematria';
     currentUser?: User;
 }
 

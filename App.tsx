@@ -166,6 +166,22 @@ interface ContactMessage {
   source: 'hero-widget' | 'contact-form';
 }
 
+const HEBREW_RESOURCE_SUBMENU: NavItem[] = [
+  { label: 'Festivals & Holy Days', view: ViewState.HEBREW_FESTIVALS },
+  { label: 'Biblical Calendar', view: ViewState.HEBREW_CALENDAR },
+  { label: 'Hebrew Word', view: ViewState.HEBREW_WORDS },
+  { label: 'Hebrew Numbers', view: ViewState.HEBREW_NUMBERS },
+  { label: 'Gematria Value', view: ViewState.HEBREW_GEMATRIA },
+  { label: 'Month/Year Reference', view: ViewState.HEBREW_REFERENCE },
+];
+
+const withHebrewResourceSubmenu = (items: NavItem[]): NavItem[] =>
+  items.map(item =>
+    item.view === ViewState.ABOUT || item.label === 'HEBREW'
+      ? { ...item, submenu: HEBREW_RESOURCE_SUBMENU }
+      : item
+  );
+
 const TestimonialSection: React.FC<TestimonialSectionProps> = ({ currentUser }) => {
   const [formData, setFormData] = useState({ name: currentUser?.displayName || '', location: currentUser?.location || '', text: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -330,17 +346,12 @@ const App: React.FC = () => {
     message: ''
   });
 
-  const [navigationItems, setNavigationItems] = useState<NavItem[]>([
+  const [navigationItems, setNavigationItems] = useState<NavItem[]>(withHebrewResourceSubmenu([
     { label: 'HOME', view: ViewState.HOME },
     {
       label: 'HEBREW',
       view: ViewState.ABOUT,
-      submenu: [
-        { label: 'Biblical Calendar', view: ViewState.HEBREW_CALENDAR },
-        { label: 'Hebrew Numbers', view: ViewState.HEBREW_NUMBERS },
-        { label: 'Festivals & Holy Days', view: ViewState.HEBREW_FESTIVALS },
-        { label: 'Month/Year Reference', view: ViewState.HEBREW_REFERENCE },
-      ]
+      submenu: HEBREW_RESOURCE_SUBMENU
     },
     { label: 'ALPHABETS', view: ViewState.HEBREW },
     { label: 'VALPARAI', view: ViewState.ABOUT_VALPARAI },
@@ -350,7 +361,7 @@ const App: React.FC = () => {
     { label: 'AI ASSISTANCE', view: ViewState.AI },
     { label: 'ENTRUST CARD', view: ViewState.ID_CARD },
     { label: 'CONTACT', view: ViewState.CONTACT },
-  ]);
+  ]));
 
   const [homeSectionsOrder, setHomeSectionsOrder] = useState<string[]>(() => {
     try {
@@ -396,6 +407,7 @@ const App: React.FC = () => {
       source: 'hero-widget'
     });
     setHeroEmail('');
+    setShowLeaderMessage(true);
     alert('Message sent successfully. Admin will receive it in the dashboard.');
   };
 
@@ -438,7 +450,7 @@ const App: React.FC = () => {
       try {
         const remoteNav = await api.getNavigationLayout();
         if (remoteNav && remoteNav.length > 0) {
-          setNavigationItems(remoteNav);
+          setNavigationItems(withHebrewResourceSubmenu(remoteNav));
         }
       } catch (error) {
         console.error('Failed to fetch remote navigation layout:', error);
@@ -553,6 +565,8 @@ const App: React.FC = () => {
       case ViewState.ABOUT_VALPARAI: return "bg-slate-50 text-brand-950";
       case ViewState.MINISTRIES: return "bg-[#f0f9ff] text-sky-950";
       case ViewState.HEBREW: return "bg-black text-amber-500";
+      case ViewState.HEBREW_WORDS: return "bg-[#fdfcf0] text-brand-950";
+      case ViewState.HEBREW_GEMATRIA: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.ID_CARD: return "bg-[#f8fafc] text-slate-950";
       case ViewState.CONTACT: return "bg-[#f5f3ff] text-indigo-950";
       case ViewState.AI: return "bg-slate-950 text-white";
@@ -768,9 +782,10 @@ const App: React.FC = () => {
         }}
         navItems={navigationItems}
         onUpdateNavItems={async (newItems) => {
-          setNavigationItems(newItems);
+          const updatedNav = withHebrewResourceSubmenu(newItems);
+          setNavigationItems(updatedNav);
           try {
-            await api.updateNavigationLayout(newItems);
+            await api.updateNavigationLayout(updatedNav);
           } catch (error) {
             console.error('Failed to save nav layout to cloud:', error);
           }
@@ -1046,6 +1061,18 @@ const App: React.FC = () => {
             </div>
           )}
 
+          {currentView === ViewState.HEBREW_WORDS && (
+            <div key="hebrew-words">
+              <HebrewResources initialTab="words" />
+            </div>
+          )}
+
+          {currentView === ViewState.HEBREW_GEMATRIA && (
+            <div key="hebrew-gematria">
+              <HebrewResources initialTab="gematria" />
+            </div>
+          )}
+
           {currentView === ViewState.HEBREW_FESTIVALS && (
             <div key="hebrew-festivals">
               <HebrewResources initialTab="festivals" />
@@ -1121,9 +1148,10 @@ const App: React.FC = () => {
                 }}
                 navItems={navigationItems}
                 onUpdateNavItems={async (newItems) => {
-                  setNavigationItems(newItems);
+                  const updatedNav = withHebrewResourceSubmenu(newItems);
+                  setNavigationItems(updatedNav);
                   try {
-                    await api.updateNavigationLayout(newItems);
+                    await api.updateNavigationLayout(updatedNav);
                   } catch (error) {
                     console.error('Failed to save nav layout to cloud:', error);
                   }
