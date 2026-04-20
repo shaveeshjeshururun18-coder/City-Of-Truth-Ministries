@@ -795,6 +795,8 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                 >
                     <div className="rounded-[2rem] border border-slate-200 bg-white/95 backdrop-blur-xl shadow-[0_20px_40px_rgba(15,23,42,0.14)] p-2">
                         <div
+                            role="tablist"
+                            aria-orientation="horizontal"
                             tabIndex={0}
                             onKeyDown={(e) => {
                                 if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
@@ -802,13 +804,15 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                                 target.scrollBy({ left: e.key === 'ArrowRight' ? 120 : -120, behavior: 'smooth' });
                                 e.preventDefault();
                             }}
-                            className="flex items-center justify-between gap-1 overflow-x-auto"
+                            className="flex items-center justify-between gap-1 overflow-x-auto [scrollbar-width:thin]"
                         >
                             {HEBREW_RESOURCE_TABS.map((t) => {
                                 const isActive = tab === t.id;
                                 return (
                                     <button
                                         key={t.id}
+                                        role="tab"
+                                        aria-selected={isActive}
                                         onClick={() => { setTab(t.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                                         aria-label={t.label}
                                         className={`shrink-0 flex items-center justify-center gap-2 px-3 py-2 rounded-full font-semibold text-xs transition-all duration-300 ${isActive
