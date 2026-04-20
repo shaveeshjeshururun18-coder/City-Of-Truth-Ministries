@@ -799,7 +799,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                             aria-orientation="horizontal"
                             className="grid grid-cols-3 gap-1"
                         >
-                            {HEBREW_RESOURCE_TABS.map((t) => {
+                            {HEBREW_RESOURCE_TABS.map((t, index) => {
                                 const isActive = tab === t.id;
                                 return (
                                     <button
@@ -807,6 +807,18 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                                         role="tab"
                                         aria-selected={isActive}
                                         onClick={() => { setTab(t.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                        onKeyDown={(e) => {
+                                            if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
+                                            const tabButtons = Array.from(
+                                                e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]') ?? []
+                                            );
+                                            if (tabButtons.length === 0) return;
+                                            const delta = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : -1;
+                                            const nextIndex = (index + delta + tabButtons.length) % tabButtons.length;
+                                            tabButtons[nextIndex]?.focus();
+                                            setTab(HEBREW_RESOURCE_TABS[nextIndex].id);
+                                            e.preventDefault();
+                                        }}
                                         aria-label={t.label}
                                         className={`min-w-0 flex items-center justify-center gap-2 px-3 py-2 rounded-full font-semibold text-xs transition-all duration-300 ${isActive
                                             ? 'bg-amber-100 text-amber-700 shadow-sm'
@@ -814,7 +826,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                                             }`}
                                     >
                                         {t.icon}
-                                        <span className="text-[10px] leading-tight text-center">{t.label}</span>
+                                        <span className="text-xs leading-tight text-center">{t.label}</span>
                                     </button>
                                 );
                             })}
