@@ -155,6 +155,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
               onClick={() => currentUser ? setView(ViewState.USER_DASHBOARD) : setView(ViewState.ID_CARD)}
               className={`${currentUser ? 'bg-white border border-brand-100 w-12 h-12 rounded-2xl shadow-sm hover:shadow-md' : 'bg-gradient-to-r from-blue-600 to-blue-700 border-0 px-4 h-11 rounded-2xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group`}
               title={currentUser ? "My Account" : "Register"}
+              aria-label={currentUser ? "Open my account dashboard" : "Register account"}
             >
               {currentUser && currentUser.photo ? (
                 <img src={currentUser.photo} alt="Profile" className="w-full h-full object-cover rounded-2xl" />
