@@ -169,7 +169,7 @@ interface ContactMessage {
 const HEBREW_RESOURCE_SUBMENU: NavItem[] = [
   { label: 'Festivals & Holy Days', view: ViewState.HEBREW_FESTIVALS },
   { label: 'Biblical Calendar', view: ViewState.HEBREW_CALENDAR },
-  { label: 'Hebrew Word', view: ViewState.HEBREW_WORDS },
+  { label: 'Hebrew Words', view: ViewState.HEBREW_WORDS },
   { label: 'Hebrew Numbers', view: ViewState.HEBREW_NUMBERS },
   { label: 'Gematria Value', view: ViewState.HEBREW_GEMATRIA },
   { label: 'Month/Year Reference', view: ViewState.HEBREW_REFERENCE },
@@ -177,7 +177,7 @@ const HEBREW_RESOURCE_SUBMENU: NavItem[] = [
 
 const withHebrewResourceSubmenu = (items: NavItem[]): NavItem[] =>
   items.map(item =>
-    item.view === ViewState.ABOUT || item.label === 'HEBREW'
+    item.view === ViewState.ABOUT
       ? { ...item, submenu: HEBREW_RESOURCE_SUBMENU }
       : item
   );
