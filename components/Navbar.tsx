@@ -150,7 +150,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             </button>
           )}
 
-          <div className="flex items-center gap-2 p-1.5 rounded-[22px] bg-slate-50 border border-slate-200 shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
+          <div className="flex items-center gap-2 p-1.5 rounded-3xl bg-slate-50 border border-slate-200 shadow-lg">
             <button
               onClick={() => currentUser ? setView(ViewState.USER_DASHBOARD) : setView(ViewState.ID_CARD)}
               className={`${currentUser ? 'bg-white border border-brand-100 w-12 h-12 rounded-2xl shadow-sm hover:shadow-md' : 'bg-gradient-to-r from-blue-600 to-blue-700 border-0 px-4 h-11 rounded-2xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group`}
