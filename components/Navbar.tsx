@@ -137,7 +137,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
         {/* RIGHT SIDE ACTIONS */}
 
-        <div className="flex items-center gap-[15px]">
+        <div className="flex items-center gap-3">
           {/* Show Register button only if NOT logged in */}
           {!currentUser && (
             <button
@@ -150,29 +150,32 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             </button>
           )}
 
-          <button
-            onClick={() => currentUser ? setView(ViewState.USER_DASHBOARD) : setView(ViewState.ID_CARD)}
-            className={`${currentUser ? 'bg-white border border-[#ddd] w-12 h-12 rounded-full' : 'bg-gradient-to-r from-blue-600 to-blue-700 border-0 px-4 h-10 rounded-full shadow-lg shadow-blue-500/30'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 hover:shadow-lg group`}
-            title={currentUser ? "My Account" : "Register"}
-          >
-            {currentUser && currentUser.photo ? (
-              <img src={currentUser.photo} alt="Profile" className="w-full h-full object-cover rounded-full" />
-            ) : currentUser ? (
-              <CircleUser size={22} className="group-hover:text-brand-500 text-[#333]" />
-            ) : (
-              <>
-                <CircleUser size={16} className="text-white shrink-0" />
-                <span className="text-white text-[11px] font-black uppercase tracking-wide">Register</span>
-              </>
-            )}
-          </button>
+          <div className="flex items-center gap-2 p-1.5 rounded-[22px] bg-slate-50 border border-slate-200 shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
+            <button
+              onClick={() => currentUser ? setView(ViewState.USER_DASHBOARD) : setView(ViewState.ID_CARD)}
+              className={`${currentUser ? 'bg-white border border-brand-100 w-12 h-12 rounded-2xl shadow-sm hover:shadow-md' : 'bg-gradient-to-r from-blue-600 to-blue-700 border-0 px-4 h-11 rounded-2xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group`}
+              title={currentUser ? "My Account" : "Register"}
+            >
+              {currentUser && currentUser.photo ? (
+                <img src={currentUser.photo} alt="Profile" className="w-full h-full object-cover rounded-2xl" />
+              ) : currentUser ? (
+                <CircleUser size={22} className="group-hover:text-brand-500 text-[#333]" />
+              ) : (
+                <>
+                  <CircleUser size={16} className="text-white shrink-0" />
+                  <span className="hidden sm:inline text-white text-[11px] font-black uppercase tracking-wide">Register</span>
+                </>
+              )}
+            </button>
 
-          <button
-            onClick={() => setMobileMenuOpen(true)}
-            className="w-12 h-12 rounded-full cursor-pointer flex items-center justify-center transition-all duration-300 shadow-xl border-2 bg-white border-white/70 text-brand-950 hover:bg-slate-100"
-          >
-            <Menu size={20} strokeWidth={2.5} className="text-brand-950" />
-          </button>
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="w-12 h-12 rounded-2xl cursor-pointer flex items-center justify-center transition-all duration-300 border border-brand-100 bg-white text-brand-950 hover:bg-brand-50 hover:border-brand-200 shadow-sm hover:shadow-md"
+              title="Open menu"
+            >
+              <Menu size={20} strokeWidth={2.5} className="text-brand-950" />
+            </button>
+          </div>
         </div>
       </nav>
 
