@@ -788,9 +788,22 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                     </p>
                 </div>
 
-                <div className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-1.5rem)] max-w-2xl">
+                <div
+                    role="navigation"
+                    aria-label="Resource categories"
+                    className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-1.5rem)] max-w-2xl"
+                >
                     <div className="rounded-[2rem] border border-slate-200 bg-white/95 backdrop-blur-xl shadow-[0_20px_40px_rgba(15,23,42,0.14)] p-2">
-                        <div className="flex items-center justify-between gap-1 overflow-x-auto">
+                        <div
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                                if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+                                const target = e.currentTarget;
+                                target.scrollBy({ left: e.key === 'ArrowRight' ? 120 : -120, behavior: 'smooth' });
+                                e.preventDefault();
+                            }}
+                            className="flex items-center justify-between gap-1 overflow-x-auto"
+                        >
                             {HEBREW_RESOURCE_TABS.map((t) => {
                                 const isActive = tab === t.id;
                                 return (
