@@ -748,7 +748,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
 
 
     return (
-        <div className="min-h-screen pt-20 md:pt-28 pb-12 md:pb-20 container mx-auto px-6 font-sans bg-[#fffdf6]">
+        <div className="min-h-screen pt-20 md:pt-28 pb-32 md:pb-20 container mx-auto px-6 font-sans bg-[#fffdf6]">
             <div className="max-w-7xl mx-auto md:flex md:items-start md:gap-8">
                 <aside className="hidden md:block md:w-64 md:shrink-0 md:sticky md:top-[110px]">
                     <div className="flex flex-col gap-3">
@@ -788,31 +788,27 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                     </p>
                 </div>
 
-                <div className="md:hidden mb-8">
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                        {HEBREW_RESOURCE_TABS.map((t) => {
-                            const isActive = tab === t.id;
-                            return (
-                                <button
-                                    key={t.id}
-                                    onClick={() => { setTab(t.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                                    className={`relative w-full flex items-center justify-center gap-2 px-3 py-3 rounded-xl font-bold text-[9px] uppercase tracking-widest transition-all duration-300 ${isActive
-                                        ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/30'
-                                        : 'bg-white text-slate-400 hover:text-amber-600 hover:border-amber-200 border border-slate-200 shadow-sm'
-                                        }`}
-                                >
-                                    {t.icon}
-                                    <span>{t.label}</span>
-                                    {isActive && (
-                                        <motion.div
-                                            layoutId="active-pill-mobile"
-                                            className="absolute inset-0 bg-gradient-to-r from-amber-500 to-amber-600 -z-10 rounded-xl"
-                                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                        />
-                                    )}
-                                </button>
-                            );
-                        })}
+                <div className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-1.5rem)] max-w-2xl">
+                    <div className="rounded-[2rem] border border-slate-200 bg-white/95 backdrop-blur-xl shadow-[0_20px_40px_rgba(15,23,42,0.14)] p-2">
+                        <div className="flex items-center justify-between gap-1 overflow-x-auto scrollbar-hide">
+                            {HEBREW_RESOURCE_TABS.map((t) => {
+                                const isActive = tab === t.id;
+                                return (
+                                    <button
+                                        key={t.id}
+                                        onClick={() => { setTab(t.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                        aria-label={t.label}
+                                        className={`shrink-0 flex items-center justify-center gap-2 px-3 py-2 rounded-full font-semibold text-xs transition-all duration-300 ${isActive
+                                            ? 'bg-amber-100 text-amber-700 shadow-sm'
+                                            : 'text-slate-500 hover:text-amber-600 hover:bg-amber-50'
+                                            }`}
+                                    >
+                                        {t.icon}
+                                        {isActive && <span className="whitespace-nowrap text-[11px]">{t.label}</span>}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
 
