@@ -797,14 +797,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                         <div
                             role="tablist"
                             aria-orientation="horizontal"
-                            tabIndex={0}
-                            onKeyDown={(e) => {
-                                if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-                                const target = e.currentTarget;
-                                target.scrollBy({ left: e.key === 'ArrowRight' ? 120 : -120, behavior: 'smooth' });
-                                e.preventDefault();
-                            }}
-                            className="flex items-center justify-between gap-1 overflow-x-auto [scrollbar-width:thin]"
+                            className="grid grid-cols-3 gap-1"
                         >
                             {HEBREW_RESOURCE_TABS.map((t) => {
                                 const isActive = tab === t.id;
@@ -815,13 +808,13 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                                         aria-selected={isActive}
                                         onClick={() => { setTab(t.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                                         aria-label={t.label}
-                                        className={`shrink-0 flex items-center justify-center gap-2 px-3 py-2 rounded-full font-semibold text-xs transition-all duration-300 ${isActive
+                                        className={`min-w-0 flex items-center justify-center gap-2 px-3 py-2 rounded-full font-semibold text-xs transition-all duration-300 ${isActive
                                             ? 'bg-amber-100 text-amber-700 shadow-sm'
                                             : 'text-slate-500 hover:text-amber-600 hover:bg-amber-50'
                                             }`}
                                     >
                                         {t.icon}
-                                        <span className="whitespace-nowrap text-[11px]">{t.label}</span>
+                                        <span className="text-[10px] leading-tight text-center">{t.label}</span>
                                     </button>
                                 );
                             })}
