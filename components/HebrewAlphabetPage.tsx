@@ -62,22 +62,22 @@ export const HebrewAlphabetPage: React.FC = () => {
                             onClick={() => handlePlay(index, item.tamil)}
                             className={`bg-gradient-to-br from-white/[0.04] to-white/[0.02] border rounded-[2rem] p-6 md:p-8 flex flex-col items-center justify-center transition-all cursor-pointer relative overflow-hidden backdrop-blur-sm group
                                 ${activeIndex === index
-                                    ? 'border-[#F59E0B]/60 bg-gradient-to-br from-[#F59E0B]/10 to-[#D97706]/5 shadow-[0_0_40px_rgba(245,158,11,0.25),inset_0_0_20px_rgba(245,158,11,0.05)]'
-                                    : 'border-white/8 hover:border-[#F59E0B]/40 hover:bg-gradient-to-br hover:from-[#F59E0B]/10 hover:to-[#D97706]/5 hover:shadow-[0_0_30px_rgba(245,158,11,0.15)]'
+                                    ? 'border-white/30 bg-gradient-to-br from-white/10 to-white/5 shadow-[0_0_40px_rgba(255,255,255,0.2),inset_0_0_20px_rgba(255,255,255,0.08)]'
+                                    : 'border-[#F59E0B]/40 bg-gradient-to-br from-[#F59E0B]/10 to-[#D97706]/5 shadow-[0_0_30px_rgba(245,158,11,0.12)] hover:border-white/30 hover:bg-gradient-to-br hover:from-white/10 hover:to-white/5 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]'
                                 }`}
                         >
-                            <div className={`absolute top-4 right-4 p-2 rounded-full transition-all duration-300 ${activeIndex === index ? 'opacity-100 bg-[#F59E0B]/30 scale-110' : 'bg-white/5 opacity-0 group-hover:opacity-100'}`}>
+                            <div className={`absolute top-4 right-4 p-2 rounded-full transition-all duration-300 ${activeIndex === index ? 'opacity-100 bg-white/20 scale-110' : 'bg-[#F59E0B]/20 opacity-0 group-hover:opacity-100 group-hover:bg-white/20'}`}>
                                 <Volume2 size={14} className="text-[#F59E0B]" />
                             </div>
                             <span className={`text-6xl md:text-[5rem] text-transparent bg-clip-text mb-5 font-serif transition-transform duration-500 drop-shadow-lg leading-none
-                                ${activeIndex === index ? 'bg-gradient-to-b from-[#FBBF24] to-[#F59E0B] scale-110' : 'bg-gradient-to-b from-white to-white/70 group-hover:from-[#FBBF24] group-hover:to-[#F59E0B] group-hover:scale-110'}`}>
+                                ${activeIndex === index ? 'bg-gradient-to-b from-white to-white/70 scale-110' : 'bg-gradient-to-b from-[#FBBF24] to-[#F59E0B] group-hover:from-white group-hover:to-white/70 group-hover:scale-110'}`}>
                                 {item.letter}
                             </span>
                             <div className="text-center space-y-1">
-                                <strong className="block text-white/90 text-sm md:text-base tracking-[0.2em] font-bold uppercase group-hover:text-[#F59E0B] transition-colors">{item.name}</strong>
-                                <span className="block text-white/50 text-xs md:text-sm tracking-widest group-hover:text-[#F59E0B]/70 transition-colors">{item.tamil}</span>
-                                <div className="mt-3 inline-block bg-white/5 group-hover:bg-[#F59E0B]/10 px-3 py-1 rounded-full border border-white/8 group-hover:border-[#F59E0B]/25 transition-all">
-                                    <span className="text-xs text-white/40 group-hover:text-[#F59E0B]/60 font-mono tracking-widest transition-colors">VALUE: {item.number}</span>
+                                <strong className="block text-[#F59E0B] text-sm md:text-base tracking-[0.2em] font-bold uppercase group-hover:text-white/90 transition-colors">{item.name}</strong>
+                                <span className="block text-[#F59E0B]/70 text-xs md:text-sm tracking-widest group-hover:text-white/50 transition-colors">{item.tamil}</span>
+                                <div className="mt-3 inline-block bg-[#F59E0B]/10 group-hover:bg-white/10 px-3 py-1 rounded-full border border-[#F59E0B]/30 group-hover:border-white/25 transition-all">
+                                    <span className="text-xs text-[#F59E0B]/80 group-hover:text-white/60 font-mono tracking-widest transition-colors">VALUE: {item.number}</span>
                                 </div>
                             </div>
                             {/* Active pulse ring - goldish orange */}
