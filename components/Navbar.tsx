@@ -164,7 +164,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
               ) : (
                 <>
                   <CircleUser size={16} className="text-white shrink-0" />
-                  <span className="hidden sm:inline text-white text-[11px] font-black uppercase tracking-wide">Register</span>
+                  <span className="text-white text-[11px] font-black uppercase tracking-wide">Register</span>
                 </>
               )}
             </button>
@@ -173,6 +173,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
               onClick={() => setMobileMenuOpen(true)}
               className="w-12 h-12 rounded-2xl cursor-pointer flex items-center justify-center transition-all duration-300 border border-brand-100 bg-white text-brand-950 hover:bg-brand-50 hover:border-brand-200 shadow-sm hover:shadow-md"
               title="Open menu"
+              aria-label="Open navigation menu"
             >
               <Menu size={20} strokeWidth={2.5} className="text-brand-950" />
             </button>
