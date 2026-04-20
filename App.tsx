@@ -177,7 +177,7 @@ const HEBREW_RESOURCE_SUBMENU: NavItem[] = [
 
 const withHebrewResourceSubmenu = (items: NavItem[]): NavItem[] =>
   items.map(item =>
-    item.view === ViewState.ABOUT
+    item.label === 'HEBREW'
       ? { ...item, submenu: HEBREW_RESOURCE_SUBMENU }
       : item
   );
