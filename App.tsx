@@ -170,6 +170,7 @@ const HEBREW_RESOURCE_SUBMENU: NavItem[] = [
   { label: 'Festivals & Holy Days', view: ViewState.HEBREW_FESTIVALS },
   { label: 'Biblical Calendar', view: ViewState.HEBREW_CALENDAR },
   { label: 'Hebrew Words', view: ViewState.HEBREW_WORDS },
+  { label: 'Letters Audio Lab', view: ViewState.HEBREW_LETTERS_AUDIO },
   { label: 'Hebrew Numbers', view: ViewState.HEBREW_NUMBERS },
   { label: 'Gematria Value', view: ViewState.HEBREW_GEMATRIA },
   { label: 'Month/Year Reference', view: ViewState.HEBREW_REFERENCE },
@@ -566,6 +567,7 @@ const App: React.FC = () => {
       case ViewState.MINISTRIES: return "bg-[#f0f9ff] text-sky-950";
       case ViewState.HEBREW: return "bg-black text-amber-500";
       case ViewState.HEBREW_WORDS: return "bg-[#fdfcf0] text-brand-950";
+      case ViewState.HEBREW_LETTERS_AUDIO: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.HEBREW_GEMATRIA: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.ID_CARD: return "bg-[#f8fafc] text-slate-950";
       case ViewState.CONTACT: return "bg-[#f5f3ff] text-indigo-950";
@@ -887,16 +889,16 @@ const App: React.FC = () => {
 
                     <p className="text-base md:text-xl text-brand-50/80 max-w-2xl mx-auto mb-12 leading-relaxed font-light font-serif italic px-6">"Then you will know the truth, and the truth will set you free." <br />— John 8:32</p>
 
-                            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full px-4 sm:px-0 mt-4 md:mt-0">
+                            <div className="grid grid-cols-2 sm:flex items-center justify-center gap-2 sm:gap-3 w-full max-w-[320px] sm:max-w-none mx-auto px-2 sm:px-0 mt-4 md:mt-0">
                               <Button
                                 onClick={() => setCurrentView(ViewState.ID_CARD)}
-                                className="w-full max-w-[230px] sm:max-w-none sm:w-auto px-5 py-2.5 sm:px-12 sm:py-5 text-[11px] sm:text-sm uppercase tracking-[0.2em] font-black text-white bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 bg-[length:200%_auto] hover:bg-right transition-all duration-500 border-none shadow-[0_0_30px_rgba(37,99,235,0.4)] hover:shadow-[0_0_50px_rgba(37,99,235,0.6)] hover:scale-105 active:scale-95 rounded-full ring-2 ring-white/20"
+                                className="w-full sm:max-w-none sm:w-auto px-3 py-2 sm:px-12 sm:py-5 text-[10px] sm:text-sm uppercase tracking-[0.1em] sm:tracking-[0.2em] font-black text-white bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 bg-[length:200%_auto] hover:bg-right transition-all duration-500 border-none shadow-[0_0_30px_rgba(37,99,235,0.4)] hover:shadow-[0_0_50px_rgba(37,99,235,0.6)] hover:scale-105 active:scale-95 rounded-full ring-2 ring-white/20"
                               >
                                 Register Now
                               </Button>
                               <Button
                                 onClick={() => navigate('/auth?view=login')}
-                                className="w-full max-w-[230px] sm:max-w-none sm:w-auto px-5 py-2.5 sm:px-10 sm:py-5 text-[11px] sm:text-sm uppercase tracking-[0.2em] font-black text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 hover:border-white/60 hover:scale-105 active:scale-95 rounded-full transition-all duration-300"
+                                className="w-full sm:max-w-none sm:w-auto px-3 py-2 sm:px-10 sm:py-5 text-[10px] sm:text-sm uppercase tracking-[0.1em] sm:tracking-[0.2em] font-black text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 hover:border-white/60 hover:scale-105 active:scale-95 rounded-full transition-all duration-300"
                               >
                                 Login
                               </Button>
@@ -1064,6 +1066,12 @@ const App: React.FC = () => {
           {currentView === ViewState.HEBREW_WORDS && (
             <div key="hebrew-words">
               <HebrewResources initialTab="words" />
+            </div>
+          )}
+
+          {currentView === ViewState.HEBREW_LETTERS_AUDIO && (
+            <div key="hebrew-letters-audio">
+              <HebrewResources initialTab="lettersaudio" />
             </div>
           )}
 

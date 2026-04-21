@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type } from 'lucide-react';
+import { Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type, Volume2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HebrewYearDropdown } from './HebrewYearDropdown';
 import { HebrewConverter } from './HebrewConverter';
@@ -12,6 +12,7 @@ import { jsPDF } from 'jspdf';
 import { User } from '../types';
 import { Download, Printer } from 'lucide-react';
 import { getCalendarData5786 } from './CalendarLogic';
+import { audioService } from '../services/audioService';
 
 
 const toHebrew = (num: number): string => {
@@ -721,17 +722,149 @@ const HebrewGematriaCalc: React.FC = () => {
     );
 };
 
+const HEBREW_AUDIO_LETTERS = [
+    { letter: 'א', name: 'Aleph', hebrewName: 'אלף' },
+    { letter: 'ב', name: 'Bet', hebrewName: 'בית' },
+    { letter: 'ג', name: 'Gimel', hebrewName: 'גימל' },
+    { letter: 'ד', name: 'Dalet', hebrewName: 'דלת' },
+    { letter: 'ה', name: 'He', hebrewName: 'הא' },
+    { letter: 'ו', name: 'Vav', hebrewName: 'וו' },
+    { letter: 'ז', name: 'Zayin', hebrewName: 'זין' },
+    { letter: 'ח', name: 'Chet', hebrewName: 'חית' },
+    { letter: 'ט', name: 'Tet', hebrewName: 'טית' },
+    { letter: 'י', name: 'Yod', hebrewName: 'יוד' },
+    { letter: 'כ', name: 'Kaf', hebrewName: 'כף' },
+    { letter: 'ל', name: 'Lamed', hebrewName: 'למד' },
+    { letter: 'מ', name: 'Mem', hebrewName: 'מם' },
+    { letter: 'נ', name: 'Nun', hebrewName: 'נון' },
+    { letter: 'ס', name: 'Samekh', hebrewName: 'סמך' },
+    { letter: 'ע', name: 'Ayin', hebrewName: 'עין' },
+    { letter: 'פ', name: 'Pe', hebrewName: 'פה' },
+    { letter: 'צ', name: 'Tsade', hebrewName: 'צדי' },
+    { letter: 'ק', name: 'Qof', hebrewName: 'קוף' },
+    { letter: 'ר', name: 'Resh', hebrewName: 'ריש' },
+    { letter: 'ש', name: 'Shin', hebrewName: 'שין' },
+    { letter: 'ת', name: 'Tav', hebrewName: 'תו' },
+] as const;
+
+const RAINBOW_GRADIENTS = [
+    'from-rose-500 to-red-500',
+    'from-orange-500 to-amber-500',
+    'from-amber-400 to-yellow-500',
+    'from-lime-500 to-green-500',
+    'from-emerald-500 to-teal-500',
+    'from-cyan-500 to-sky-500',
+    'from-blue-500 to-indigo-500',
+    'from-violet-500 to-purple-500',
+];
+
+const HebrewLettersAudioLab: React.FC = () => {
+    const [firstIndex, setFirstIndex] = useState<number | null>(null);
+    const [secondIndex, setSecondIndex] = useState<number | null>(null);
+
+    const first = firstIndex !== null ? HEBREW_AUDIO_LETTERS[firstIndex] : null;
+    const second = secondIndex !== null ? HEBREW_AUDIO_LETTERS[secondIndex] : null;
+    const combinedWord = `${first?.letter || ''}${second?.letter || ''}`;
+
+    const playLetter = async (letterCharacter: string, hebrewName: string) => {
+        try {
+            await audioService.playHebrew(`${letterCharacter} ${hebrewName}`);
+        } catch (error) {
+            console.warn('Letter audio playback failed:', error);
+        }
+    };
+
+    const playCombined = async () => {
+        if (!combinedWord) return;
+        try {
+            await audioService.playHebrew(combinedWord);
+        } catch (error) {
+            console.warn('Combined audio playback failed:', error);
+        }
+    };
+
+    return (
+        <div className="space-y-10 py-8">
+            <div className="text-center space-y-3">
+                <h2 className="text-4xl md:text-5xl font-serif font-bold text-brand-950">Hebrew <span className="text-accent-600">Letters Audio Lab</span></h2>
+                <p className="text-slate-500 text-base max-w-3xl mx-auto">
+                    Tap any of the 22 Hebrew letters to hear Hebrew pronunciation, then pick two letters to build and listen to combinations.
+                </p>
+            </div>
+
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-10 shadow-xl">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {HEBREW_AUDIO_LETTERS.map((item, index) => (
+                        <div key={item.letter} className={`rounded-3xl bg-gradient-to-br ${RAINBOW_GRADIENTS[index % RAINBOW_GRADIENTS.length]} p-[1px]`}>
+                            <div className="bg-white rounded-3xl p-4 h-full flex flex-col items-center text-center gap-2">
+                                <span className="text-4xl font-serif text-brand-950">{item.letter}</span>
+                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">{item.name}</span>
+                                <div className="flex items-center gap-2 pt-1">
+                                    <button
+                                        onClick={() => setFirstIndex(index)}
+                                        className={`px-2 py-1 rounded-full text-[10px] font-bold border ${firstIndex === index ? 'bg-brand-600 text-white border-brand-600' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-brand-300'}`}
+                                    >
+                                        1st
+                                    </button>
+                                    <button
+                                        onClick={() => setSecondIndex(index)}
+                                        className={`px-2 py-1 rounded-full text-[10px] font-bold border ${secondIndex === index ? 'bg-accent-500 text-brand-950 border-accent-500' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-accent-300'}`}
+                                    >
+                                        2nd
+                                    </button>
+                                </div>
+                                <button
+                                    onClick={() => playLetter(item.letter, item.hebrewName)}
+                                    className="mt-1 w-8 h-8 rounded-full bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors flex items-center justify-center"
+                                    title={`Play ${item.hebrewName}`}
+                                    aria-label={`Play ${item.hebrewName}`}
+                                >
+                                    <Volume2 size={14} />
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="bg-gradient-to-r from-fuchsia-500 via-sky-500 to-emerald-500 p-[1px] rounded-[2rem]">
+                <div className="bg-white rounded-[2rem] p-6 md:p-8">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div className="text-center md:text-left">
+                            <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Letter Combination Result</p>
+                            <div className="text-5xl md:text-6xl font-serif text-brand-950" dir="rtl">
+                                {combinedWord || '—'}
+                            </div>
+                            <p className="text-xs text-slate-500 mt-2">
+                                First: {first?.hebrewName || 'Not selected'} • Second: {second?.hebrewName || 'Not selected'}
+                            </p>
+                        </div>
+                        <button
+                            onClick={playCombined}
+                            disabled={!combinedWord}
+                            className="px-6 py-3 rounded-full bg-brand-950 text-white font-bold text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-900 transition-colors"
+                        >
+                            <Volume2 size={16} /> Play Result Audio
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 interface HebrewResourcesProps {
-    initialTab?: 'numbers' | 'calendar' | 'festivals' | 'reference' | 'words' | 'gematria';
+    initialTab?: 'numbers' | 'calendar' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio';
     currentUser?: User;
 }
 
-type HebrewResourceTab = 'numbers' | 'calendar' | 'festivals' | 'reference' | 'words' | 'gematria';
+type HebrewResourceTab = 'numbers' | 'calendar' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio';
 
 const HEBREW_RESOURCE_TABS: ReadonlyArray<{ id: HebrewResourceTab; label: string; icon: React.ReactNode }> = [
     { id: 'festivals', label: 'Festivals', icon: <Flame size={16} /> },
     { id: 'calendar', label: 'Hebrew Calendar', icon: <CalendarIcon size={16} /> },
     { id: 'words', label: 'Hebrew Word', icon: <Type size={16} /> },
+    { id: 'lettersaudio', label: 'Letters Audio', icon: <Volume2 size={16} /> },
     { id: 'numbers', label: 'Numbers', icon: <Hash size={16} /> },
     { id: 'gematria', label: 'Gematria Value', icon: <Calculator size={16} /> },
     { id: 'reference', label: 'Month/Year', icon: <BookOpen size={16} /> }
@@ -846,6 +979,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                             {tab === 'festivals' && <FestivalsView />}
                             {tab === 'calendar' && <HebrewCalendarView currentUser={currentUser} />}
                             {tab === 'words' && <HebrewWordHub />}
+                            {tab === 'lettersaudio' && <HebrewLettersAudioLab />}
                             {tab === 'numbers' && <HebrewConverterNumbers />}
                             {tab === 'gematria' && <HebrewGematriaCalc />}
                             {tab === 'reference' && <ReferenceView />}

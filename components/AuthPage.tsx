@@ -69,6 +69,17 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         return '';
     };
 
+    const extractIdentifierFromFile = async (rawFile: File) => {
+        const filenameMatch = extractIdentifierFromText(rawFile.name.replace(/_/g, ' '));
+        if (filenameMatch) return filenameMatch;
+        try {
+            const fileText = await rawFile.text();
+            const textMatch = extractIdentifierFromText(fileText);
+            if (textMatch) return textMatch;
+        } catch (_e) {}
+        throw new Error('No usable member details found in this file. Upload an Entrust card image/PDF or a file that includes COT ID/phone/email.');
+    };
+
     const stopScanner = () => {
         if (scannerRef.current) {
             scannerRef.current.stop().then(() => {
@@ -166,16 +177,19 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 throw new Error('No valid QR code found in the uploaded PDF pages.');
             };
 
-            const scanTextLikeFile = async (rawFile: File) => {
-                const fileText = await rawFile.text();
-                const extracted = extractIdentifierFromText(fileText);
-                if (!extracted) throw new Error('No usable member details found in this file. Upload an Entrust card image/PDF or a file that includes COT ID/phone/email.');
-                return extracted;
+            const scanTask = async () => {
+                if (isPdf) {
+                    try { return await scanPdfFile(file); } catch (error) { console.warn('PDF QR scan failed, falling back to text extraction.', error); }
+                    return await extractIdentifierFromFile(file);
+                }
+                if (isImage) {
+                    try { return await scanImageFile(file); } catch (error) { console.warn('Image QR scan failed, falling back to text extraction.', error); }
+                    return await extractIdentifierFromFile(file);
+                }
+                return await extractIdentifierFromFile(file);
             };
 
-            const scanTask = isPdf ? scanPdfFile(file) : isImage ? scanImageFile(file) : scanTextLikeFile(file);
-
-            scanTask
+            scanTask()
                 .then((qrData: string) => {
                     setIdentifier(qrData);
                     setScanningFile(false);
@@ -183,7 +197,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 })
                 .catch((err: any) => {
                     setScanningFile(false);
-                    alert(err?.message || 'No QR code found in this file. Try a clearer Entrust Card image/PDF or a file containing member details.');
+                    alert(err?.message || 'No QR code or member details were found in this file. Try a clearer Entrust Card image/PDF or a file containing member details.');
                 });
             e.target.value = '';
         };
@@ -225,6 +239,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             onLogin(loginId);
         }
     };
+    const heroContainerClass = view === 'login' ? 'h-20 md:h-24 justify-center' : 'h-64 md:h-80 justify-center';
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col relative text-brand-900">
@@ -232,7 +247,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.05] pointer-events-none z-0" />
 
             {/* Header / Hero Area — Royal Navy Variant */}
-            <div className="h-64 md:h-80 bg-gradient-to-br from-brand-900 to-brand-950 relative flex flex-col items-center justify-center overflow-hidden flex-shrink-0 px-6">
+            <div className={`${heroContainerClass} bg-gradient-to-br from-brand-900 to-brand-950 relative flex flex-col items-center overflow-hidden flex-shrink-0 px-6`}>
                 {/* Back Button */}
                 <button
                     onClick={onBack}
@@ -242,19 +257,21 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.25em] md:tracking-[0.3em]">Back to Menu</span>
                 </button>
 
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="z-10 text-center"
-                >
-                    <h1 className="text-5xl md:text-7xl font-serif text-white font-black tracking-tight mb-4 drop-shadow-[0_10px_20px_rgba(0,0,0,0.1)]">
-                        {view === 'choice' ? 'Ministry portal' : view === 'login' ? 'Member Login' : view === 'register' ? 'Join Us' : 'Find Identity'}
-                    </h1>
-                    <div className="h-1 w-20 bg-white/30 mx-auto rounded-full mb-6" />
-                    <p className="text-brand-50 text-base md:text-lg font-medium tracking-widest max-w-lg mx-auto opacity-80 uppercase">
-                        {view === 'choice' ? 'Securing your sacred journey' : view === 'login' ? 'Fast, secure member verification' : view === 'forgot-id' ? 'Retrieve your digital credentials' : 'Ministry member onboarding'}
-                    </p>
-                </motion.div>
+                {view !== 'login' && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="z-10 text-center"
+                    >
+                        <h1 className="text-5xl md:text-7xl font-serif text-white font-black tracking-tight mb-4 drop-shadow-[0_10px_20px_rgba(0,0,0,0.1)]">
+                            {view === 'choice' ? 'Ministry portal' : view === 'register' ? 'Join Us' : 'Find Identity'}
+                        </h1>
+                        <div className="h-1 w-20 bg-white/30 mx-auto rounded-full mb-6" />
+                        <p className="text-brand-50 text-base md:text-lg font-medium tracking-widest max-w-lg mx-auto opacity-80 uppercase">
+                            {view === 'choice' ? 'Securing your sacred journey' : view === 'forgot-id' ? 'Retrieve your digital credentials' : 'Ministry member onboarding'}
+                        </p>
+                    </motion.div>
+                )}
             </div>
 
             {/* Main Content Area */}
@@ -305,20 +322,19 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             exit={{ opacity: 0, scale: 0.95 }}
                             className="max-w-3xl mx-auto space-y-8 md:space-y-12"
                         >
-                            <div className="bg-white/80 p-5 sm:p-8 md:p-16 rounded-[2rem] md:rounded-[4rem] border border-brand-50 shadow-[0_30px_100_rgba(59,130,246,0.05)] text-center relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-400 to-brand-600 opacity-50" />
+                            <div className="bg-gradient-to-br from-brand-700 to-brand-900 p-5 sm:p-8 md:p-16 rounded-[2rem] md:rounded-[4rem] border border-brand-600 shadow-[0_30px_100_rgba(59,130,246,0.2)] text-center relative overflow-hidden">
+                                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none" />
+                                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-white/50 to-white/20 opacity-60" />
+                                <p className="text-brand-50/90 mb-6 md:mb-12 text-sm sm:text-base md:text-lg font-light italic relative z-10">Enter any detail to preview name, COT ID, phone, and profile before login.</p>
 
-                                <h3 className="text-2xl sm:text-3xl md:text-4xl font-serif font-black text-brand-900 mb-2 md:mb-3 tracking-tight">Identity Verification</h3>
-                                <p className="text-brand-400/60 mb-6 md:mb-12 text-sm sm:text-base md:text-lg font-light italic">Securely access your Ministry Dashboard</p>
-
-                                <div className="relative mb-6 md:mb-12">
-                                    <div className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-brand-300">
+                                <div className="relative mb-6 md:mb-12 z-10">
+                                    <div className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-white/80">
                                         <UserIcon size={20} className="md:w-7 md:h-7" />
                                     </div>
                                     <input
                                         type="text"
                                         placeholder="Enter any member detail (ID / Phone / Name / Email)"
-                                        className="w-full pl-12 md:pl-16 pr-28 sm:pr-36 md:pr-44 py-4 md:py-7 text-base md:text-xl bg-brand-50/50 text-brand-950 border-2 border-brand-100 rounded-2xl md:rounded-3xl outline-none focus:bg-white focus:ring-8 focus:ring-brand-500/5 focus:border-brand-400/30 transition-all shadow-inner font-bold placeholder:text-brand-200"
+                                        className="w-full pl-12 md:pl-16 pr-28 sm:pr-36 md:pr-44 py-4 md:py-7 text-base md:text-xl bg-white/95 text-brand-950 border-2 border-white/50 rounded-2xl md:rounded-3xl outline-none focus:bg-white focus:ring-8 focus:ring-white/20 focus:border-white transition-all shadow-inner font-bold placeholder:text-brand-300"
                                         value={identifier}
                                         onChange={e => {
                                             let val = e.target.value;
@@ -340,14 +356,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                     <button
                                         onClick={() => handleSearch()}
                                         disabled={!identifier.trim() || searching}
-                                        className="absolute right-2 md:right-3 top-2 md:top-3 bottom-2 md:bottom-3 px-4 sm:px-8 md:px-12 bg-brand-600 hover:bg-brand-700 text-white rounded-xl md:rounded-[1.5rem] font-black text-sm md:text-lg transition-all disabled:opacity-50 flex items-center justify-center shadow-lg hover:shadow-brand-500/40 active:scale-[0.98]"
+                                        className="absolute right-2 md:right-3 top-2 md:top-3 bottom-2 md:bottom-3 px-4 sm:px-8 md:px-12 bg-brand-900 hover:bg-brand-950 text-white rounded-xl md:rounded-[1.5rem] font-black text-sm md:text-lg transition-all disabled:opacity-50 flex items-center justify-center shadow-lg hover:shadow-brand-900/40 active:scale-[0.98]"
                                     >
                                         {searching ? <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin" /> : <span>Verify</span>}
                                     </button>
                                 </div>
 
                                 {/* Smart Auth Grid */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mt-6 md:mt-12">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mt-6 md:mt-12 relative z-10">
                                     <button
                                         onClick={() => setShowScanner(!showScanner)}
                                         className={`group flex flex-col items-center justify-center p-5 md:p-8 border-2 rounded-[1.5rem] md:rounded-[2.5rem] transition-all duration-500 ${showScanner ? 'bg-red-50 border-red-200 text-red-600 shadow-xl scale-[1.02]' : 'bg-white border-brand-50 hover:border-brand-200 hover:shadow-2xl shadow-sm'}`}
@@ -363,9 +379,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                         <div className="w-14 h-14 md:w-20 md:h-20 mb-4 md:mb-6 rounded-2xl md:rounded-3xl bg-brand-50 text-brand-400 group-hover:bg-brand-600 group-hover:text-white group-hover:-translate-y-1 transition-all duration-500 flex items-center justify-center">
                                             {scanningFile ? <div className="w-8 h-8 md:w-10 md:h-10 border-4 border-brand-400 border-t-transparent rounded-full animate-spin" /> : <UploadCloud size={28} className="md:w-9 md:h-9" />}
                                         </div>
-                                        <h4 className="font-black text-lg md:text-xl mb-1 md:mb-2 tracking-tight">Upload File</h4>
-                                        <p className="text-[10px] text-brand-300 font-black uppercase tracking-widest">Verify via Document</p>
-                                        <input type="file" accept="image/*,application/pdf,.pdf" className="hidden" onChange={handleFileQRScan} disabled={scanningFile} />
+                                        <h4 className="font-black text-lg md:text-xl mb-1 md:mb-2 tracking-tight">Upload Entrust Card</h4>
+                                        <p className="text-[10px] text-brand-300 font-black uppercase tracking-widest">Any File Format</p>
+                                        <input type="file" className="hidden" onChange={handleFileQRScan} disabled={scanningFile} />
                                     </label>
                                 </div>
                             </div>
@@ -433,6 +449,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                                         {previewUser.location && <div className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-xl border border-brand-50 shadow-sm"><MapPin size={16} className="text-brand-500" /> {previewUser.location}</div>}
                                                     </div>
                                                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+                                                        <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
+                                                            <p className="text-[10px] uppercase tracking-widest font-black text-brand-300">Status</p>
+                                                            <p className="text-sm font-semibold text-brand-800">{previewUser.status || '—'}</p>
+                                                        </div>
                                                         <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
                                                             <p className="text-[10px] uppercase tracking-widest font-black text-brand-300">Email</p>
                                                             <p className="text-sm font-semibold text-brand-800 break-all">{previewUser.email || '—'}</p>

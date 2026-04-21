@@ -4,37 +4,47 @@ import { motion } from 'framer-motion';
 import { audioService } from '../services/audioService';
 
 const HEBREW_LETTERS = [
-    { letter: "א", name: "ALEPH", tamil: "ஆலெஃப்", number: 1 },
-    { letter: "ב", name: "BET", tamil: "பேத்", number: 2 },
-    { letter: "ג", name: "GIMEL", tamil: "கிமெல்", number: 3 },
-    { letter: "ד", name: "DALET", tamil: "தாலேத்", number: 4 },
-    { letter: "ה", name: "HE", tamil: "ஹே", number: 5 },
-    { letter: "ו", name: "VAV", tamil: "வாவ்", number: 6 },
-    { letter: "ז", name: "ZAYIN", tamil: "சாயின்", number: 7 },
-    { letter: "ח", name: "CHET", tamil: "ஹேத்", number: 8 },
-    { letter: "ט", name: "TET", tamil: "தேத்", number: 9 },
-    { letter: "י", name: "YOD", tamil: "யோத்", number: 10 },
-    { letter: "כ", name: "KAF", tamil: "காஃப்", number: 20 },
-    { letter: "ל", name: "LAMED", tamil: "லாமெத்", number: 30 },
-    { letter: "מ", name: "MEM", tamil: "மேம்", number: 40 },
-    { letter: "נ", name: "NUN", tamil: "நூன்", number: 50 },
-    { letter: "ס", name: "SAMEKH", tamil: "சாமெக்", number: 60 },
-    { letter: "ע", name: "AYIN", tamil: "அயின்", number: 70 },
-    { letter: "פ", name: "PE", tamil: "பே", number: 80 },
-    { letter: "צ", name: "TSADE", tamil: "சாதே", number: 90 },
-    { letter: "ק", name: "QOPH", tamil: "கோஃப்", number: 100 },
-    { letter: "ר", name: "RESH", tamil: "ரேஷ்", number: 200 },
-    { letter: "ש", name: "SHIN", tamil: "ஷின்", number: 300 },
-    { letter: "ת", name: "TAV", tamil: "தாவ்", number: 400 },
+    { letter: "א", name: "ALEPH", hebrewName: "אלף", number: 1 },
+    { letter: "ב", name: "BET", hebrewName: "בית", number: 2 },
+    { letter: "ג", name: "GIMEL", hebrewName: "גימל", number: 3 },
+    { letter: "ד", name: "DALET", hebrewName: "דלת", number: 4 },
+    { letter: "ה", name: "HE", hebrewName: "הא", number: 5 },
+    { letter: "ו", name: "VAV", hebrewName: "וו", number: 6 },
+    { letter: "ז", name: "ZAYIN", hebrewName: "זין", number: 7 },
+    { letter: "ח", name: "CHET", hebrewName: "חית", number: 8 },
+    { letter: "ט", name: "TET", hebrewName: "טית", number: 9 },
+    { letter: "י", name: "YOD", hebrewName: "יוד", number: 10 },
+    { letter: "כ", name: "KAF", hebrewName: "כף", number: 20 },
+    { letter: "ל", name: "LAMED", hebrewName: "למד", number: 30 },
+    { letter: "מ", name: "MEM", hebrewName: "מם", number: 40 },
+    { letter: "נ", name: "NUN", hebrewName: "נון", number: 50 },
+    { letter: "ס", name: "SAMEKH", hebrewName: "סמך", number: 60 },
+    { letter: "ע", name: "AYIN", hebrewName: "עין", number: 70 },
+    { letter: "פ", name: "PE", hebrewName: "פה", number: 80 },
+    { letter: "צ", name: "TSADE", hebrewName: "צדי", number: 90 },
+    { letter: "ק", name: "QOPH", hebrewName: "קוף", number: 100 },
+    { letter: "ר", name: "RESH", hebrewName: "ריש", number: 200 },
+    { letter: "ש", name: "SHIN", hebrewName: "שין", number: 300 },
+    { letter: "ת", name: "TAV", hebrewName: "תו", number: 400 },
 ];
 
 export const HebrewAlphabetPage: React.FC = () => {
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
-    const handlePlay = (index: number, tamil: string) => {
+    const handlePlay = async (index: number, hebrewText: string) => {
         setActiveIndex(index);
-        audioService.playTamil(tamil);
-        setTimeout(() => setActiveIndex(null), 2000);
+        try {
+            await audioService.playHebrew(hebrewText);
+        } catch (error) {
+            console.warn('Hebrew pronunciation playback failed:', error);
+        } finally {
+            setTimeout(() => setActiveIndex(null), 2000);
+        }
+    };
+
+    const handleAudioButtonClick = (event: React.MouseEvent<HTMLButtonElement>, index: number, hebrewText: string) => {
+        event.stopPropagation();
+        handlePlay(index, hebrewText);
     };
 
     return (
@@ -59,23 +69,28 @@ export const HebrewAlphabetPage: React.FC = () => {
                             transition={{ delay: index * 0.03 }}
                             whileHover={{ scale: 1.05, y: -5 }}
                             whileTap={{ scale: 0.95 }}
-                            onClick={() => handlePlay(index, item.tamil)}
+                            onClick={() => handlePlay(index, item.hebrewName)}
                             className={`bg-gradient-to-br from-white/[0.04] to-white/[0.02] border rounded-[2rem] p-6 md:p-8 flex flex-col items-center justify-center transition-all cursor-pointer relative overflow-hidden backdrop-blur-sm group
                                 ${activeIndex === index
                                     ? 'border-white/30 bg-gradient-to-br from-white/10 to-white/5 shadow-[0_0_40px_rgba(255,255,255,0.2),inset_0_0_20px_rgba(255,255,255,0.08)]'
                                     : 'border-[#F59E0B]/40 bg-gradient-to-br from-[#F59E0B]/10 to-[#D97706]/5 shadow-[0_0_30px_rgba(245,158,11,0.12)] hover:border-white/30 hover:bg-gradient-to-br hover:from-white/10 hover:to-white/5 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]'
                                 }`}
                         >
-                            <div className={`absolute top-4 right-4 p-2 rounded-full transition-all duration-300 ${activeIndex === index ? 'opacity-100 bg-white/20 scale-110' : 'bg-[#F59E0B]/20 opacity-0 group-hover:opacity-100 group-hover:bg-white/20'}`}>
+                            <button
+                                onClick={(e) => handleAudioButtonClick(e, index, item.hebrewName)}
+                                className={`absolute top-4 right-4 p-2 rounded-full transition-all duration-300 ${activeIndex === index ? 'opacity-100 bg-white/20 scale-110' : 'bg-[#F59E0B]/20 opacity-100 group-hover:bg-white/20'}`}
+                                title={`Play ${item.name}`}
+                                aria-label={`Play ${item.name} pronunciation`}
+                            >
                                 <Volume2 size={14} className="text-[#F59E0B]" />
-                            </div>
+                            </button>
                             <span className={`text-6xl md:text-[5rem] text-transparent bg-clip-text mb-5 font-serif transition-transform duration-500 drop-shadow-lg leading-none
                                 ${activeIndex === index ? 'bg-gradient-to-b from-white to-white/70 scale-110' : 'bg-gradient-to-b from-[#FBBF24] to-[#F59E0B] group-hover:from-white group-hover:to-white/70 group-hover:scale-110'}`}>
                                 {item.letter}
                             </span>
                             <div className="text-center space-y-1">
                                 <strong className="block text-[#F59E0B] text-sm md:text-base tracking-[0.2em] font-bold uppercase group-hover:text-white/90 transition-colors">{item.name}</strong>
-                                <span className="block text-[#F59E0B]/70 text-xs md:text-sm tracking-widest group-hover:text-white/50 transition-colors">{item.tamil}</span>
+                                <span className="block text-[#F59E0B]/70 text-xs md:text-sm tracking-widest group-hover:text-white/50 transition-colors">{item.hebrewName}</span>
                                 <div className="mt-3 inline-block bg-[#F59E0B]/10 group-hover:bg-white/10 px-3 py-1 rounded-full border border-[#F59E0B]/30 group-hover:border-white/25 transition-all">
                                     <span className="text-xs text-[#F59E0B]/80 group-hover:text-white/60 font-mono tracking-widest transition-colors">VALUE: {item.number}</span>
                                 </div>
@@ -100,7 +115,7 @@ export const HebrewAlphabetPage: React.FC = () => {
                         "For then will I turn to the people a pure language, that they may all call upon the name of the Lord, to serve him with one consent."
                     </p>
                     <div className="text-white/40 text-sm tracking-[0.3em] font-bold uppercase">Zephaniah 3:9</div>
-                    <p className="text-white/30 text-xs">🔊 Click any card to hear the Tamil pronunciation</p>
+                    <p className="text-white/30 text-xs">🔊 Click any card or audio icon to hear Hebrew pronunciation</p>
                 </div>
             </div>
         </div>

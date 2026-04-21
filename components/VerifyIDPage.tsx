@@ -20,6 +20,8 @@ const VerifyIDPage = () => {
     const [scannerInitialized, setScannerInitialized] = useState(false);
     const scannerRef = useRef<any>(null);
 
+    const normalizeCotId = (value: string) => value.toUpperCase().replace(/^COT(?!-)/, 'COT-');
+
     const extractMemberId = (payload: string): string | null => {
         if (!payload) return null;
         const trimmed = payload.trim();
@@ -33,7 +35,16 @@ const VerifyIDPage = () => {
             const parsed = JSON.parse(trimmed);
             if (parsed?.id && typeof parsed.id === 'string') return parsed.id.trim();
         } catch (_e) {}
-        if (/^COT-[A-Z0-9-]+$/i.test(trimmed)) return trimmed.toUpperCase();
+        if (/^COT-[A-Z0-9-]+$/i.test(trimmed)) return normalizeCotId(trimmed);
+        return null;
+    };
+
+    const extractMemberIdFromText = (text: string): string | null => {
+        if (!text) return null;
+        const fromPath = text.match(/\/(verify|card)\/([A-Za-z0-9-]+)/i)?.[2];
+        if (fromPath) return fromPath;
+        const cotMatch = text.match(/\bCOT-?[A-Za-z0-9-]{3,}\b/i)?.[0];
+        if (cotMatch) return normalizeCotId(cotMatch);
         return null;
     };
 
@@ -119,40 +130,8 @@ const VerifyIDPage = () => {
         const file = e.target.files?.[0];
         if (!file || !window.Html5Qrcode) return;
         setLoading(true); setError(null); setUser(null); setScannedId(null);
-        const isImage = file.type.startsWith('image/');
-
-        if (!isImage) {
-            const reader = new FileReader();
-            reader.onload = () => {
-                try {
-                    const bytes = new Uint8Array(reader.result as ArrayBuffer);
-                    let raw = '';
-                    for (let i = 0; i < bytes.length; i++) raw += String.fromCharCode(bytes[i]);
-                    const verifyMatch = raw.match(/\/verify\/([A-Za-z0-9-]+)/);
-                    const cotMatch = raw.match(/\bCOT-[A-Za-z0-9-]+\b/i);
-                    const candidate = verifyMatch?.[1] || cotMatch?.[0] || '';
-                    const extractedId = extractMemberId(candidate);
-                    if (extractedId) {
-                        setScannedId(extractedId);
-                        verifyID(extractedId);
-                    } else {
-                        setError('No readable member QR data found in this file. Please upload an image/screenshot of the QR code.');
-                        setLoading(false);
-                    }
-                } catch (_err) {
-                    setError('Unable to read this file. Please upload a QR image or screenshot.');
-                    setLoading(false);
-                }
-            };
-            reader.onerror = () => {
-                setError('Unable to read this file. Please try another file.');
-                setLoading(false);
-            };
-            reader.readAsArrayBuffer(file);
-            return;
-        }
-
         const html5QrCode = new window.Html5Qrcode('qr-reader-hidden');
+        const isImage = file.type.startsWith('image/');
         const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
 
         const scanImageFile = async (imageFile: File) => {
@@ -186,7 +165,28 @@ const VerifyIDPage = () => {
             throw new Error('No valid QR code found in the uploaded PDF pages.');
         };
 
-        (isPdf ? scanPdfFile(file) : scanImageFile(file))
+        const scanTextLikeFile = async (rawFile: File) => {
+            const filenameCandidate = extractMemberIdFromText(rawFile.name.replace(/_/g, ' '));
+            if (filenameCandidate) return filenameCandidate;
+            const fileText = await rawFile.text();
+            const textCandidate = extractMemberIdFromText(fileText);
+            if (!textCandidate) throw new Error('No readable member data found in this file. Upload an Entrust card with QR or include the COT ID in file content/name.');
+            return textCandidate;
+        };
+
+        const scanTask = async () => {
+            if (isPdf) {
+                try { return await scanPdfFile(file); } catch (error) { console.warn('PDF QR scan failed, falling back to text extraction.', error); }
+                return await scanTextLikeFile(file);
+            }
+            if (isImage) {
+                try { return await scanImageFile(file); } catch (error) { console.warn('Image QR scan failed, falling back to text extraction.', error); }
+                return await scanTextLikeFile(file);
+            }
+            return await scanTextLikeFile(file);
+        };
+
+        scanTask()
             .then((extractedId: string) => {
                 setScannedId(extractedId);
                 verifyID(extractedId);
@@ -253,9 +253,9 @@ const VerifyIDPage = () => {
                                     </div>
                                     <div className="flex-1">
                                         <span className="block text-slate-800 font-bold mb-1">Select Screenshot or Photo</span>
-                                        <span className="block text-xs text-slate-400">Upload an image or PDF containing a valid Worshipper QR code.</span>
+                                        <span className="block text-xs text-slate-400">Upload any file type. QR, PDF, image, or files containing COT ID text are supported.</span>
                                     </div>
-                                    <input type="file" className="hidden" accept="image/*,application/pdf,.pdf" onChange={handleFileUpload} />
+                                    <input type="file" className="hidden" onChange={handleFileUpload} />
                                 </label>
                             </div>
                             <div className="flex items-center gap-4">
