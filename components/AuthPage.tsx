@@ -492,7 +492,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                                     <p className="text-sm font-semibold text-brand-800 break-all">{previewUser.email || '—'}</p>
                                                 </div>
                                                 <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
-                                                    <p className="text-[10px] uppercase tracking-widest font-black text-brand-300 flex items-center gap-1"><Phone size={10} /> Emergency</p>
+                                                    <p className="text-[10px] uppercase tracking-widest font-black text-brand-300 flex items-center gap-1"><Phone size={10} /> Contact</p>
                                                     <p className="text-sm font-semibold text-brand-800">{previewUser.emergency || '—'}</p>
                                                 </div>
                                                 {previewUser.memberSince && (
@@ -604,8 +604,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
                     {/* Help / Forgot ID View */}
                     {view === 'forgot-id' && (
-                        <motion.div key="forgot" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto">
-                            <div className="bg-gradient-to-br from-brand-700 to-brand-900 rounded-[4rem] p-16 text-center text-white shadow-[0_50px_100px_rgba(59,130,246,0.15)] relative overflow-hidden">
+                        <motion.div key="forgot" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto px-2">
+                            <div className="bg-gradient-to-br from-brand-700 to-brand-900 rounded-[2rem] sm:rounded-[4rem] p-8 sm:p-16 text-center text-white shadow-[0_50px_100px_rgba(59,130,246,0.15)] relative overflow-hidden">
                                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10" />
                                 <div className="absolute -top-20 -right-20 w-64 h-64 bg-white/10 rounded-full" />
 
@@ -613,8 +613,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                 <h3 className="text-4xl font-serif font-black mb-6 tracking-tight leading-tight">Need Assistance?</h3>
                                 <p className="text-brand-50 text-lg font-light mb-12 opacity-80 italic">Connect with our Ministry Support for manual account verification.</p>
 
-                                <a href="tel:+918056125478" className="inline-flex items-center gap-4 px-12 py-6 bg-white text-brand-900 rounded-[2rem] font-black text-2xl shadow-2xl hover:scale-105 transition-all group active:scale-95">
-                                    <Phone size={24} className="group-hover:rotate-12 transition-transform" /> +91 80561 25478
+                                <a href="tel:+918056125478" className="inline-flex items-center gap-3 px-6 sm:px-12 py-4 sm:py-6 bg-white text-brand-900 rounded-[2rem] font-black text-lg sm:text-2xl shadow-2xl hover:scale-105 transition-all group active:scale-95 whitespace-nowrap">
+                                    <Phone size={20} className="group-hover:rotate-12 transition-transform shrink-0 sm:w-6 sm:h-6" /> +91 80561 25478
                                 </a>
 
                                 <div className="mt-12 pt-8 border-t border-white/10 text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Sacred Support Office</div>

@@ -70,22 +70,22 @@ export const MinistryHighlights: React.FC<SectionProps> = ({ setView }) => {
 
 export const HebrewSanctuaryIntro: React.FC<SectionProps> = ({ setView }) => {
     return (
-        <section className="py-24 bg-[#fdfcf0]">
+        <section className="py-12 md:py-20 bg-[#fdfcf0]">
             <div className="container mx-auto px-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center">
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         whileInView={{ opacity: 1, scale: 1 }}
-                        className="aspect-square rounded-[3rem] bg-brand-950 relative overflow-hidden shadow-2xl"
+                        className="aspect-[4/3] md:aspect-square rounded-[2rem] bg-brand-950 relative overflow-hidden shadow-2xl"
                     >
                         <div className="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1543722518-971c6dd64070?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center" />
                         <div className="absolute inset-0 flex items-center justify-center">
                             <span className="text-white/20 text-[20vw] font-serif font-black select-none">אב</span>
                         </div>
-                        <div className="absolute inset-x-8 bottom-8 p-10 bg-white/10 backdrop-blur-md rounded-3xl border border-white/20">
-                            <BookOpen size={48} className="text-accent-400 mb-6" />
-                            <h3 className="text-3xl font-serif text-white mb-4">The Language of Truth</h3>
-                            <p className="text-white/70 text-sm leading-relaxed">
+                        <div className="absolute inset-x-6 bottom-6 p-6 md:p-10 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
+                            <BookOpen size={36} className="text-accent-400 mb-4" />
+                            <h3 className="text-xl md:text-3xl font-serif text-white mb-2 md:mb-4">The Language of Truth</h3>
+                            <p className="text-white/70 text-xs md:text-sm leading-relaxed">
                                 Unlock the deeper meanings of the Scriptures through the study of Biblical Hebrew.
                             </p>
                         </div>
@@ -95,28 +95,28 @@ export const HebrewSanctuaryIntro: React.FC<SectionProps> = ({ setView }) => {
                         <motion.div
                             initial={{ opacity: 0, x: 20 }}
                             whileInView={{ opacity: 1, x: 0 }}
-                            className="inline-flex items-center gap-2 bg-brand-950 text-brand-100 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] mb-6"
+                            className="inline-flex items-center gap-2 bg-brand-950 text-brand-100 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] mb-4 md:mb-6"
                         >
                             <BookOpen size={12} />
                             Hebrew Hub
                         </motion.div>
-                        <h2 className="text-4xl md:text-6xl font-serif font-black text-brand-950 leading-[0.9] tracking-tighter mb-8">
+                        <h2 className="text-3xl md:text-5xl lg:text-6xl font-serif font-black text-brand-950 leading-[0.9] tracking-tighter mb-4 md:mb-8">
                             Sacred <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-600 to-accent-400 italic font-light">Scriptures</span> Decoded
                         </h2>
-                        <p className="text-xl text-slate-500 font-light leading-relaxed mb-10 max-w-xl">
+                        <p className="text-base md:text-xl text-slate-500 font-light leading-relaxed mb-6 md:mb-10 max-w-xl">
                             From the Hebrew alphabet to the profound depth of the Biblical calendar, embark on a journey of spiritual discovery.
                         </p>
-                        <div className="flex flex-wrap gap-4">
+                        <div className="flex flex-wrap gap-3 md:gap-4">
                             <button
                                 onClick={() => setView(ViewState.ABOUT)}
-                                className="bg-brand-950 text-white px-8 py-4 rounded-full font-bold text-sm flex items-center gap-3 hover:scale-105 transition-transform shadow-xl shadow-brand-500/20"
+                                className="bg-brand-950 text-white px-6 md:px-8 py-3 md:py-4 rounded-full font-bold text-sm flex items-center gap-3 hover:scale-105 transition-transform shadow-xl shadow-brand-500/20"
                             >
                                 Start Learning
                                 <ArrowRight size={18} />
                             </button>
                             <button
                                 onClick={() => setView(ViewState.HEBREW)}
-                                className="border-2 border-brand-950 text-brand-950 px-8 py-4 rounded-full font-bold text-sm hover:bg-brand-950 hover:text-white transition-all"
+                                className="border-2 border-brand-950 text-brand-950 px-6 md:px-8 py-3 md:py-4 rounded-full font-bold text-sm hover:bg-brand-950 hover:text-white transition-all"
                             >
                                 Alphabet Page
                             </button>
@@ -289,7 +289,7 @@ export const EntrustCardPreview: React.FC<SectionProps> = ({ setView }) => {
                         </p>
                         <button
                             onClick={() => setView(ViewState.ID_CARD)}
-                            className="group relative w-full max-w-sm sm:max-w-xl bg-gradient-to-r from-emerald-600 via-teal-500 to-cyan-600 text-white px-6 sm:px-8 py-4 rounded-2xl border border-emerald-200/45 font-black text-[10px] sm:text-xs uppercase tracking-[0.24em] hover:-translate-y-0.5 transition-all duration-300 shadow-[0_20px_40px_-16px_rgba(16,185,129,0.7)] hover:shadow-[0_26px_50px_-14px_rgba(16,185,129,0.85)] flex items-center justify-between gap-3 sm:gap-4 mx-auto sm:mx-0 overflow-hidden"
+                            className="group relative w-full max-w-sm sm:max-w-xl bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 text-white px-6 sm:px-8 py-4 rounded-2xl border border-blue-300/40 font-black text-[10px] sm:text-xs uppercase tracking-[0.24em] hover:-translate-y-0.5 transition-all duration-300 shadow-[0_20px_40px_-16px_rgba(37,99,235,0.7)] hover:shadow-[0_26px_50px_-14px_rgba(37,99,235,0.85)] flex items-center justify-between gap-3 sm:gap-4 mx-auto sm:mx-0 overflow-hidden"
                         >
                             <span className="absolute inset-0 bg-gradient-to-r from-white/15 via-transparent to-white/10 opacity-80 pointer-events-none" />
                             <span className="flex-1 text-left leading-tight">Claim Your Card Now</span>

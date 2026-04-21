@@ -185,10 +185,10 @@ export default function AIChatAssistant() {
                             opacity: 1,
                             scale: 1,
                             y: 0,
-                            width: isExpanded ? 'calc(100vw - 40px)' : '380px',
-                            height: isExpanded ? 'calc(100vh - 40px)' : '600px',
-                            right: isExpanded ? 20 : 24,
-                            bottom: isExpanded ? 20 : 100
+                            width: isExpanded ? 'calc(100vw - 32px)' : 'min(380px, calc(100vw - 32px))',
+                            height: isExpanded ? 'calc(100vh - 32px)' : 'min(560px, calc(100dvh - 120px))',
+                            right: isExpanded ? 16 : 16,
+                            bottom: isExpanded ? 16 : 80
                         }}
                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
                         className="pointer-events-auto fixed bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl flex flex-col border border-white/40 overflow-hidden"
