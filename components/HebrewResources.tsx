@@ -766,9 +766,9 @@ const HebrewLettersAudioLab: React.FC = () => {
     const second = secondIndex !== null ? HEBREW_AUDIO_LETTERS[secondIndex] : null;
     const combinedWord = `${first?.letter || ''}${second?.letter || ''}`;
 
-    const playLetter = async (letterText: string, hebrewName: string) => {
+    const playLetter = async (letterCharacter: string, hebrewName: string) => {
         try {
-            await audioService.playHebrew(`${letterText} ${hebrewName}`);
+            await audioService.playHebrew(`${letterCharacter} ${hebrewName}`);
         } catch (error) {
             console.warn('Letter audio playback failed:', error);
         }

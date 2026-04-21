@@ -42,6 +42,11 @@ export const HebrewAlphabetPage: React.FC = () => {
         }
     };
 
+    const handleAudioButtonClick = (event: React.MouseEvent<HTMLButtonElement>, index: number, hebrewText: string) => {
+        event.stopPropagation();
+        handlePlay(index, hebrewText);
+    };
+
     return (
         <div className="min-h-screen bg-[#000000] text-[#e5e5e5] pt-32 pb-20 overflow-hidden relative">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/5 via-white/0 to-transparent pointer-events-none"></div>
@@ -72,10 +77,7 @@ export const HebrewAlphabetPage: React.FC = () => {
                                 }`}
                         >
                             <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handlePlay(index, item.hebrewName);
-                                }}
+                                onClick={(e) => handleAudioButtonClick(e, index, item.hebrewName)}
                                 className={`absolute top-4 right-4 p-2 rounded-full transition-all duration-300 ${activeIndex === index ? 'opacity-100 bg-white/20 scale-110' : 'bg-[#F59E0B]/20 opacity-100 group-hover:bg-white/20'}`}
                                 title={`Play ${item.name}`}
                                 aria-label={`Play ${item.name} pronunciation`}
