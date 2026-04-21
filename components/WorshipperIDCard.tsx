@@ -460,18 +460,6 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                 </div>
 
                 <div className="max-w-xl mx-auto">
-                    <motion.div
-                        initial={{ opacity: 0, y: 24 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.45 }}
-                        className="mb-6 md:mb-10 bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-100 shadow-lg p-4 md:p-6"
-                    >
-                        <div className="text-center mb-3 md:mb-4">
-                            <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.25em] text-brand-500">Live Preview</p>
-                            <p className="text-xs text-slate-500 mt-1">Preview appears on top. Enter details below.</p>
-                        </div>
-                        <EntrustCard3D {...formData} uniqueId={uniqueId} photo={photo} className="mb-0" />
-                    </motion.div>
 
                     {/* Form Left */}
                     <motion.div
