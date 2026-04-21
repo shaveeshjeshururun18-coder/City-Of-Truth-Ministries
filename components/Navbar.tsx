@@ -142,7 +142,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
           {!currentUser && (
             <button
               onClick={() => setView(ViewState.ID_CARD)}
-              className="hidden lg:flex items-center relative bg-gradient-to-r from-[#1D4ED8] to-[#2563EB] text-white text-[0.75rem] font-bold px-6 py-3 rounded-[25px] uppercase transition-all duration-300 hover:from-[#2563EB] hover:to-[#3B82F6] hover:scale-105 no-underline whitespace-nowrap shadow-lg shadow-blue-500/40 overflow-hidden group"
+              className="hidden lg:flex items-center relative bg-[#2596be] text-white text-[0.75rem] font-bold px-6 py-3 rounded-[25px] uppercase transition-all duration-300 hover:bg-[#2596be]/90 hover:scale-105 no-underline whitespace-nowrap shadow-lg shadow-[#2596be]/40 overflow-hidden group"
             >
               <span className="absolute inset-0 rounded-[25px] ring-2 ring-blue-400/60 animate-ping opacity-30 group-hover:opacity-50" />
               <span className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12" />
@@ -153,7 +153,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
           <div className="flex items-center gap-2 p-1.5 sm:p-2 rounded-[1.4rem] bg-white/90 backdrop-blur-md border border-brand-100/70 shadow-[0_10px_25px_-12px_rgba(10,15,60,0.35)]">
             <button
               onClick={() => currentUser ? setView(ViewState.USER_DASHBOARD) : setView(ViewState.ID_CARD)}
-              className={`${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-12 h-12 rounded-[1rem] shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-gradient-to-r from-[#3539c8] via-[#3f49dc] to-[#5362ff] border border-[#6776ff]/30 px-4 h-11 rounded-[1rem] shadow-[0_14px_24px_-12px_rgba(57,77,236,0.7)] hover:shadow-[0_18px_28px_-12px_rgba(57,77,236,0.8)]'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group`}
+              className={`${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-12 h-12 rounded-[1rem] shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-[#2596be] border border-[#2596be]/50 px-4 h-11 rounded-[1rem] shadow-[0_14px_24px_-12px_rgba(37,150,190,0.7)] hover:shadow-[0_18px_28px_-12px_rgba(37,150,190,0.8)] hover:bg-[#2596be]/90'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group`}
               title={currentUser ? "My Account" : "Register"}
               aria-label={currentUser ? "Open my account dashboard" : "Register account"}
             >
