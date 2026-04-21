@@ -43,7 +43,7 @@ export const GlobalAIWidget: React.FC = () => {
                                     initial={{ opacity: 0, x: 20, scale: 0.8 }}
                                     animate={{ opacity: 1, x: -140, scale: 1 }}
                                     exit={{ opacity: 0, x: 20, scale: 0.8 }}
-                                    className="absolute top-1/2 -translate-y-1/2 right-0 bg-white/90 backdrop-blur-md text-slate-900 text-xs font-bold px-4 py-2.5 rounded-2xl shadow-xl border border-white/50 whitespace-nowrap z-0 w-max"
+                                    className="absolute top-1/2 -translate-y-1/2 right-0 bg-white/90 backdrop-blur-md text-slate-900 text-[10px] sm:text-xs font-bold px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl shadow-xl border border-white/50 whitespace-nowrap z-0 w-max"
                                 >
                                     <span className="flex items-center gap-2">
                                         Need help? <span className="text-amber-600">Ask AI</span>
@@ -54,13 +54,13 @@ export const GlobalAIWidget: React.FC = () => {
                         </AnimatePresence>
 
                         {/* Button Container - Magnificent Glow */}
-                        <div className="relative w-20 h-20">
+                        <div className="relative w-14 h-14 sm:w-20 sm:h-20">
                             {/* Outer Glow/Ripple */}
                             <div className="absolute inset-0 bg-amber-500/30 rounded-full animate-ping"></div>
                             <div className="absolute inset-0 bg-amber-400/20 rounded-full blur-xl animate-pulse"></div>
 
                             {/* Main Circle */}
-                            <div className="relative w-full h-full rounded-full shadow-2xl shadow-amber-500/40 z-10 bg-slate-950 border-[3px] border-amber-400 overflow-hidden ring-4 ring-black/20">
+                            <div className="relative w-full h-full rounded-full shadow-2xl shadow-amber-500/40 z-10 bg-slate-950 border-2 sm:border-[3px] border-amber-400 overflow-hidden ring-2 sm:ring-4 ring-black/20">
                                 {/* Golden Menorah Image */}
                                 <div className="absolute inset-0 bg-[url('/menorah-flag.png')] bg-cover bg-center transition-transform duration-700 group-hover:scale-110"></div>
 
@@ -69,7 +69,7 @@ export const GlobalAIWidget: React.FC = () => {
 
                                 {/* Sparkle Overlay */}
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <Sparkles className="text-amber-200 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] animate-spin-slow opacity-0 group-hover:opacity-100 transition-opacity duration-700" size={28} />
+                                    <Sparkles className="w-5 h-5 sm:w-7 sm:h-7 text-amber-200 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] animate-spin [animation-duration:3s] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                                 </div>
                             </div>
                         </div>

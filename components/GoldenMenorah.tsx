@@ -49,7 +49,7 @@ export const GoldenMenorah: React.FC<GoldenMenorahProps> = ({ onPreviewClick }) 
             >
               <button
                 onClick={onPreviewClick}
-                className="group relative w-full sm:w-auto px-7 sm:px-8 py-4 sm:py-5 bg-gradient-to-r from-[#5854ef] via-[#6c5fff] to-[#7d6cff] rounded-2xl overflow-hidden shadow-[0_20px_40px_-18px_rgba(92,87,255,0.7)] hover:shadow-[0_28px_48px_-16px_rgba(92,87,255,0.85)] border border-[#a8a8ff]/35 transition-all duration-500"
+                className="group relative w-full sm:w-auto px-7 sm:px-8 py-4 sm:py-5 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 rounded-2xl overflow-hidden shadow-[0_20px_40px_-18px_rgba(249,115,22,0.65)] hover:shadow-[0_28px_48px_-16px_rgba(249,115,22,0.82)] border border-amber-200/40 transition-all duration-500"
               >
                 <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 <div className="relative flex items-center gap-4 font-bold text-white tracking-[0.15em] uppercase text-sm md:text-base">

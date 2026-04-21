@@ -32,6 +32,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     const [showScanner, setShowScanner] = useState(false);
     const [scanningFile, setScanningFile] = useState(false);
     const scannerRef = useRef<any>(null);
+    const searchableKeys = ['id', 'name', 'email', 'phone', 'emergency', 'location', 'role', 'status', 'dob', 'memberSince', 'gender', 'joinedDate', 'bloodGroup'] as const;
+
+    const normalizeValue = (value: unknown) => String(value ?? '').trim().toLowerCase();
 
     const extractIdentifier = (value: string) => {
         const trimmed = (value || '').trim();
@@ -42,6 +45,28 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             if (parsed?.id && typeof parsed.id === 'string') return parsed.id.trim();
         } catch (_e) {}
         return trimmed;
+    };
+
+    const findUserByQuery = (queryTerm: string) => {
+        const query = normalizeValue(queryTerm);
+        if (!query) return null;
+        const exact = users.find((u: any) => searchableKeys.some((key) => normalizeValue(u?.[key]) === query));
+        if (exact) return exact;
+        if (query.length < 2) return null;
+        return users.find((u: any) => searchableKeys.some((key) => normalizeValue(u?.[key]).includes(query))) || null;
+    };
+
+    const extractIdentifierFromText = (text: string) => {
+        if (!text) return '';
+        const idMatch = text.match(/\bCOT-?[A-Z0-9]{3,}\b/i);
+        if (idMatch?.[0]) return idMatch[0].toUpperCase().replace(/^COT(?!-)/, 'COT-');
+        const phoneMatch = text.match(/\b\d{10}\b/);
+        if (phoneMatch?.[0]) return phoneMatch[0];
+        const emailMatch = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+        if (emailMatch?.[0]) return emailMatch[0];
+        const verifyPathMatch = text.match(/\/(verify|card)\/[A-Z0-9-]+/i);
+        if (verifyPathMatch?.[0]) return verifyPathMatch[0].split('/').pop() || '';
+        return '';
     };
 
     const stopScanner = () => {
@@ -103,9 +128,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
         const doScan = () => {
             const hiddenDiv = document.getElementById('qr-auth-page-hidden-reader');
-            if (!hiddenDiv) return;
+            if (!hiddenDiv) {
+                setScanningFile(false);
+                alert('Upload scanner is not ready. Please refresh and try again.');
+                return;
+            }
             const h5 = new (window as any).Html5Qrcode('qr-auth-page-hidden-reader');
             const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+            const isImage = file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp|svg)$/i.test(file.name);
 
             const scanImageFile = async (imageFile: File) => {
                 const text = await h5.scanFile(imageFile, true);
@@ -136,29 +166,24 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 throw new Error('No valid QR code found in the uploaded PDF pages.');
             };
 
-            (isPdf ? scanPdfFile(file) : scanImageFile(file))
+            const scanTextLikeFile = async (rawFile: File) => {
+                const fileText = await rawFile.text();
+                const extracted = extractIdentifierFromText(fileText);
+                if (!extracted) throw new Error('No usable member details found in this file. Upload an Entrust card image/PDF or a file that includes COT ID/phone/email.');
+                return extracted;
+            };
+
+            const scanTask = isPdf ? scanPdfFile(file) : isImage ? scanImageFile(file) : scanTextLikeFile(file);
+
+            scanTask
                 .then((qrData: string) => {
                     setIdentifier(qrData);
                     setScanningFile(false);
-
-                    const q = qrData.toLowerCase();
-                    const found = users.find((u: any) =>
-                        (u.phone || '').trim() === qrData ||
-                        (u.emergency || '').trim() === qrData ||
-                        (u.id || '').toLowerCase() === q ||
-                        (u.email || '').toLowerCase() === q ||
-                        (u.name || '').toLowerCase() === q
-                    );
-
-                    if (found) {
-                        setPreviewUser(found);
-                    } else {
-                        handleSearch(qrData);
-                    }
+                    handleSearch(qrData);
                 })
                 .catch((err: any) => {
                     setScanningFile(false);
-                    alert(err?.message || 'No QR code found in this file. Try a clearer Entrust Card image or PDF.');
+                    alert(err?.message || 'No QR code found in this file. Try a clearer Entrust Card image/PDF or a file containing member details.');
                 });
             e.target.value = '';
         };
@@ -180,16 +205,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         setNotFound(false);
         setPreviewUser(null);
 
-        const q = queryTerm.trim().toLowerCase();
-        const found = users.find(u => {
-            return (
-                (u.phone || '').trim() === queryTerm.trim() ||
-                (u.emergency || '').trim() === queryTerm.trim() ||
-                (u.id || '').toLowerCase() === q ||
-                (u.email || '').toLowerCase() === q ||
-                (u.name || '').toLowerCase() === q
-            );
-        });
+        const found = findUserByQuery(queryTerm);
 
         setTimeout(() => {
             if (found) {
@@ -232,11 +248,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     className="z-10 text-center"
                 >
                     <h1 className="text-5xl md:text-7xl font-serif text-white font-black tracking-tight mb-4 drop-shadow-[0_10px_20px_rgba(0,0,0,0.1)]">
-                        {view === 'choice' ? 'Ministry portal' : view === 'login' ? 'Identity Check' : view === 'register' ? 'Join Us' : 'Find Identity'}
+                        {view === 'choice' ? 'Ministry portal' : view === 'login' ? 'Member Login' : view === 'register' ? 'Join Us' : 'Find Identity'}
                     </h1>
                     <div className="h-1 w-20 bg-white/30 mx-auto rounded-full mb-6" />
                     <p className="text-brand-50 text-base md:text-lg font-medium tracking-widest max-w-lg mx-auto opacity-80 uppercase">
-                        {view === 'choice' ? 'Securing your sacred journey' : view === 'forgot-id' ? 'Retrieve your digital credentials' : 'City of Truth — Member Services'}
+                        {view === 'choice' ? 'Securing your sacred journey' : view === 'login' ? 'Fast, secure member verification' : view === 'forgot-id' ? 'Retrieve your digital credentials' : 'Ministry member onboarding'}
                     </p>
                 </motion.div>
             </div>
@@ -301,7 +317,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                     </div>
                                     <input
                                         type="text"
-                                        placeholder="Enter Member ID, Phone, or Email"
+                                        placeholder="Enter any member detail (ID / Phone / Name / Email)"
                                         className="w-full pl-12 md:pl-16 pr-28 sm:pr-36 md:pr-44 py-4 md:py-7 text-base md:text-xl bg-brand-50/50 text-brand-950 border-2 border-brand-100 rounded-2xl md:rounded-3xl outline-none focus:bg-white focus:ring-8 focus:ring-brand-500/5 focus:border-brand-400/30 transition-all shadow-inner font-bold placeholder:text-brand-200"
                                         value={identifier}
                                         onChange={e => {
@@ -311,7 +327,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                                 if (val.startsWith('COT') && !val.startsWith('COT-') && val.length > 3) {
                                                     val = 'COT-' + val.substring(3).replace(/-/g, '');
                                                 }
-                                                if (val.length > 8) val = val.substring(0, 8);
+                                                if (val.length > 20) val = val.substring(0, 20);
                                             } else if (/^\d/.test(val)) {
                                                 val = val.replace(/\D/g, '').substring(0, 10);
                                             }
@@ -413,7 +429,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                                     <h4 className="text-2xl md:text-4xl font-serif font-black text-brand-950 mb-3 tracking-tighter">{previewUser.name}</h4>
                                                     <div className="flex flex-wrap justify-center md:justify-start gap-3 md:gap-4 text-brand-500 font-medium text-sm md:text-base">
                                                         <div className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-xl border border-brand-50 shadow-sm"><IdCard size={16} className="text-brand-500" /> {previewUser.id}</div>
+                                                        {previewUser.phone && <div className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-xl border border-brand-50 shadow-sm"><Phone size={16} className="text-brand-500" /> {previewUser.phone}</div>}
                                                         {previewUser.location && <div className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-xl border border-brand-50 shadow-sm"><MapPin size={16} className="text-brand-500" /> {previewUser.location}</div>}
+                                                    </div>
+                                                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+                                                        <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
+                                                            <p className="text-[10px] uppercase tracking-widest font-black text-brand-300">Email</p>
+                                                            <p className="text-sm font-semibold text-brand-800 break-all">{previewUser.email || '—'}</p>
+                                                        </div>
+                                                        <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
+                                                            <p className="text-[10px] uppercase tracking-widest font-black text-brand-300">Emergency</p>
+                                                            <p className="text-sm font-semibold text-brand-800">{previewUser.emergency || '—'}</p>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>

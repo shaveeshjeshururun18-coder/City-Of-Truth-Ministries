@@ -289,7 +289,7 @@ export const EntrustCardPreview: React.FC<SectionProps> = ({ setView }) => {
                         </p>
                         <button
                             onClick={() => setView(ViewState.ID_CARD)}
-                            className="group relative w-full max-w-sm sm:max-w-xl bg-gradient-to-r from-[#5854ef] via-[#6c5fff] to-[#7d6cff] text-white px-6 sm:px-8 py-4 rounded-2xl border border-[#a8a8ff]/40 font-black text-[10px] sm:text-xs uppercase tracking-[0.24em] hover:-translate-y-0.5 transition-all duration-300 shadow-[0_20px_40px_-16px_rgba(92,87,255,0.7)] hover:shadow-[0_26px_50px_-14px_rgba(92,87,255,0.85)] flex items-center justify-between gap-3 sm:gap-4 mx-auto sm:mx-0 overflow-hidden"
+                            className="group relative w-full max-w-sm sm:max-w-xl bg-gradient-to-r from-emerald-600 via-teal-500 to-cyan-600 text-white px-6 sm:px-8 py-4 rounded-2xl border border-emerald-200/45 font-black text-[10px] sm:text-xs uppercase tracking-[0.24em] hover:-translate-y-0.5 transition-all duration-300 shadow-[0_20px_40px_-16px_rgba(16,185,129,0.7)] hover:shadow-[0_26px_50px_-14px_rgba(16,185,129,0.85)] flex items-center justify-between gap-3 sm:gap-4 mx-auto sm:mx-0 overflow-hidden"
                         >
                             <span className="absolute inset-0 bg-gradient-to-r from-white/15 via-transparent to-white/10 opacity-80 pointer-events-none" />
                             <span className="flex-1 text-left leading-tight">Claim Your Card Now</span>
