@@ -154,7 +154,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
           {!currentUser && (
             <button
               onClick={() => setView(ViewState.ID_CARD)}
-              className="hidden lg:flex items-center relative bg-gradient-to-r from-[#5D5FEF] to-[#7A6BFF] text-white text-[0.75rem] font-bold px-6 h-12 rounded-2xl uppercase transition-all duration-300 hover:from-[#4F52DF] hover:to-[#6B5BFF] hover:scale-[1.02] no-underline whitespace-nowrap shadow-[0_14px_30px_-14px_rgba(93,95,239,0.75)] overflow-hidden group border border-white/20"
+              className="hidden lg:flex items-center relative bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 text-white text-[0.75rem] font-bold px-6 h-12 rounded-2xl uppercase transition-all duration-300 hover:from-blue-700 hover:via-blue-600 hover:to-blue-800 hover:scale-[1.02] no-underline whitespace-nowrap shadow-[0_14px_30px_-14px_rgba(37,99,235,0.75)] overflow-hidden group border border-blue-200/40"
             >
               <span className="absolute inset-0 rounded-2xl ring-2 ring-white/20 opacity-70 group-hover:opacity-90 transition-opacity" />
               <span className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12" />
@@ -165,7 +165,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
           <div className="flex items-center gap-2 p-1.5 sm:p-2 rounded-2xl bg-white/95 backdrop-blur-md border border-brand-100/70 shadow-[0_14px_30px_-16px_rgba(10,15,60,0.4)]">
             <button
               onClick={() => currentUser ? setView(ViewState.USER_DASHBOARD) : setView(ViewState.ID_CARD)}
-              className={`${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-12 h-12 rounded-2xl shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-gradient-to-r from-[#5D5FEF] to-[#7A6BFF] border border-[#6c6cff]/50 px-4 h-11 rounded-2xl shadow-[0_14px_24px_-12px_rgba(93,95,239,0.7)] hover:shadow-[0_18px_28px_-12px_rgba(93,95,239,0.8)] hover:from-[#4F52DF] hover:to-[#6B5BFF]'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group`}
+              className={`${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-12 h-12 rounded-2xl shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 border border-blue-300/50 px-4 h-11 rounded-2xl shadow-[0_14px_24px_-12px_rgba(37,99,235,0.7)] hover:shadow-[0_18px_28px_-12px_rgba(37,99,235,0.8)] hover:from-blue-700 hover:via-blue-600 hover:to-blue-800'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group`}
               title={currentUser ? "My Account" : "Register"}
               aria-label={currentUser ? "Open my account dashboard" : "Register account"}
             >
@@ -249,12 +249,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                         className={`w-full p-2.5 rounded-xl border cursor-pointer transition-all ${
                             currentUser 
                                 ? 'bg-white border-brand-100 shadow-sm hover:bg-slate-50'
-                                : 'bg-gradient-to-r from-[#5D5FEF] to-[#7A6BFF] border-[#6c6cff] shadow-md shadow-[#5D5FEF]/30 hover:from-[#4F52DF] hover:to-[#6B5BFF]'
+                                : 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 border-blue-300/60 shadow-md shadow-blue-600/30 hover:from-blue-700 hover:via-blue-600 hover:to-blue-800'
                         }`}
                     >
                         <div className="flex items-center gap-2.5">
                             <div className="relative shrink-0">
-                                <div className={`w-10 h-10 rounded-full border-2 shadow-inner flex items-center justify-center overflow-hidden ${currentUser ? 'border-brand-100 bg-slate-50' : 'border-[#8d8dff] bg-[#6b67ff]'}`}>
+                                <div className={`w-10 h-10 rounded-full border-2 shadow-inner flex items-center justify-center overflow-hidden ${currentUser ? 'border-brand-100 bg-slate-50' : 'border-blue-300 bg-blue-600'}`}>
                                     {currentUser && currentUser.photo ? (
                                         <img src={currentUser.photo} alt="Profile" className="w-full h-full object-cover" />
                                     ) : (
@@ -264,18 +264,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                                     )}
                                 </div>
                                 <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center ${currentUser ? 'bg-brand-600' : 'bg-white'}`}>
-                                    <Zap size={6} className={currentUser ? 'text-white' : 'text-[#5D5FEF]'} />
+                                    <Zap size={6} className={currentUser ? 'text-white' : 'text-blue-600'} />
                                 </div>
                             </div>
                             <div className="flex-1 min-w-0">
                                 <h3 className={`font-bold text-[11px] truncate ${currentUser ? 'text-brand-950' : 'text-white'}`}>
                                     {currentUser ? currentUser.name : 'Join Our Community'}
                                 </h3>
-                                <p className={`text-[7px] font-bold uppercase tracking-widest truncate ${currentUser ? 'text-brand-500' : 'text-blue-200'}`}>
+                                <p className={`text-[7px] font-bold uppercase tracking-widest truncate ${currentUser ? 'text-brand-500' : 'text-blue-100'}`}>
                                     {currentUser ? (currentUser.id || 'Member') : 'Tap to Register Free'}
                                 </p>
                             </div>
-                            <div className={`px-2 py-1 rounded-full text-[7px] font-bold uppercase tracking-widest border whitespace-nowrap ${currentUser ? 'bg-brand-50 text-brand-700 border-brand-100' : 'bg-white text-[#5D5FEF] border-white/50'}`}>
+                            <div className={`px-2 py-1 rounded-full text-[7px] font-bold uppercase tracking-widest border whitespace-nowrap ${currentUser ? 'bg-brand-50 text-brand-700 border-brand-100' : 'bg-white text-blue-600 border-white/50'}`}>
                                 {currentUser ? 'Dashboard' : 'Register'}
                             </div>
                         </div>
