@@ -889,16 +889,16 @@ const App: React.FC = () => {
 
                     <p className="text-base md:text-xl text-brand-50/80 max-w-2xl mx-auto mb-12 leading-relaxed font-light font-serif italic px-6">"Then you will know the truth, and the truth will set you free." <br />— John 8:32</p>
 
-                            <div className="grid grid-cols-2 sm:flex items-center justify-center gap-2 sm:gap-3 w-full max-w-[320px] sm:max-w-none mx-auto px-2 sm:px-0 mt-4 md:mt-0">
+                            <div className="flex items-center justify-center gap-2 sm:gap-3 w-full max-w-xs sm:max-w-none mx-auto px-2 sm:px-0 mt-4 md:mt-0">
                               <Button
                                 onClick={() => setCurrentView(ViewState.ID_CARD)}
-                                className="w-full sm:max-w-none sm:w-auto px-3 py-2 sm:px-12 sm:py-5 text-[10px] sm:text-sm uppercase tracking-[0.1em] sm:tracking-[0.2em] font-black text-white bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 bg-[length:200%_auto] hover:bg-right transition-all duration-500 border-none shadow-[0_0_30px_rgba(37,99,235,0.4)] hover:shadow-[0_0_50px_rgba(37,99,235,0.6)] hover:scale-105 active:scale-95 rounded-full ring-2 ring-white/20"
+                                className="flex-1 sm:flex-none sm:w-auto px-4 py-3 sm:px-12 sm:py-5 text-[11px] sm:text-sm uppercase tracking-[0.1em] sm:tracking-[0.2em] font-black text-white bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 bg-[length:200%_auto] hover:bg-right transition-all duration-500 border-none shadow-[0_0_30px_rgba(37,99,235,0.4)] hover:shadow-[0_0_50px_rgba(37,99,235,0.6)] hover:scale-105 active:scale-95 rounded-full ring-2 ring-white/20 whitespace-nowrap"
                               >
                                 Register Now
                               </Button>
                               <Button
                                 onClick={() => navigate('/auth?view=login')}
-                                className="w-full sm:max-w-none sm:w-auto px-3 py-2 sm:px-10 sm:py-5 text-[10px] sm:text-sm uppercase tracking-[0.1em] sm:tracking-[0.2em] font-black text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 hover:border-white/60 hover:scale-105 active:scale-95 rounded-full transition-all duration-300"
+                                className="flex-1 sm:flex-none sm:w-auto px-4 py-3 sm:px-10 sm:py-5 text-[11px] sm:text-sm uppercase tracking-[0.1em] sm:tracking-[0.2em] font-black text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 hover:border-white/60 hover:scale-105 active:scale-95 rounded-full transition-all duration-300 whitespace-nowrap"
                               >
                                 Login
                               </Button>
