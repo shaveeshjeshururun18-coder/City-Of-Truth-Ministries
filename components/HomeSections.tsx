@@ -466,6 +466,7 @@ export const CommunityMembersSection: React.FC<SectionProps & { users: User[] }>
         { id: 'demo-5', name: 'Daniel Mark' } as User,
         { id: 'demo-6', name: 'Ruth Vijay' } as User,
     ];
+    const showMobileGrid = displayUsers.length <= 8;
 
     return (
         <section className="py-20 bg-gradient-to-br from-orange-50 via-amber-50 to-white relative overflow-hidden">
@@ -506,7 +507,13 @@ export const CommunityMembersSection: React.FC<SectionProps & { users: User[] }>
                     </motion.p>
                 </div>
 
-                <div className="flex flex-row flex-nowrap overflow-x-auto gap-3 sm:gap-6 max-w-5xl mx-auto pb-3 px-1">
+                <div
+                    className={`max-w-5xl mx-auto pb-3 px-1 ${
+                        showMobileGrid
+                            ? 'grid grid-cols-4 gap-2 sm:flex sm:flex-row sm:flex-nowrap sm:overflow-x-auto sm:gap-6'
+                            : 'flex flex-row flex-nowrap overflow-x-auto gap-3 sm:gap-6'
+                    }`}
+                >
                     {displayUsers.map((user, i) => (
                         <motion.div
                             key={user.id}
@@ -514,7 +521,9 @@ export const CommunityMembersSection: React.FC<SectionProps & { users: User[] }>
                             whileInView={{ opacity: 1, scale: 1, y: 0 }}
                             transition={{ delay: i * 0.07 }}
                             viewport={{ once: true }}
-                            className="flex flex-col items-center gap-2 sm:gap-2.5 group cursor-default bg-white/70 border border-orange-100 rounded-3xl px-2.5 py-3 sm:px-4 sm:py-4 shadow-md shadow-orange-100/70 hover:shadow-lg hover:shadow-orange-200/70 transition-all duration-300 flex-shrink-0 basis-1/4 min-w-0 sm:basis-auto sm:w-[140px]"
+                            className={`flex flex-col items-center gap-2 sm:gap-2.5 group cursor-default bg-white/70 border border-orange-100 rounded-3xl px-2 py-2.5 sm:px-4 sm:py-4 shadow-md shadow-orange-100/70 hover:shadow-lg hover:shadow-orange-200/70 transition-all duration-300 ${
+                                showMobileGrid ? 'w-full min-w-0' : 'flex-shrink-0 basis-1/4 min-w-0 sm:basis-auto sm:w-[140px]'
+                            }`}
                         >
                             <div
                                 className={`w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br ${AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length]} flex items-center justify-center shadow-lg shadow-orange-300/40 group-hover:scale-110 group-hover:shadow-orange-400/50 transition-all duration-300 ring-2 ring-orange-100`}
