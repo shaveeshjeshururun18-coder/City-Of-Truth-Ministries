@@ -31,10 +31,15 @@ const HEBREW_LETTERS = [
 export const HebrewAlphabetPage: React.FC = () => {
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
-    const handlePlay = (index: number, hebrewText: string) => {
+    const handlePlay = async (index: number, hebrewText: string) => {
         setActiveIndex(index);
-        audioService.playHebrew(hebrewText);
-        setTimeout(() => setActiveIndex(null), 2000);
+        try {
+            await audioService.playHebrew(hebrewText);
+        } catch (error) {
+            console.warn('Hebrew pronunciation playback failed:', error);
+        } finally {
+            setTimeout(() => setActiveIndex(null), 2000);
+        }
     };
 
     return (

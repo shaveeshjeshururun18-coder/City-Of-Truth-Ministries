@@ -767,12 +767,20 @@ const HebrewLettersAudioLab: React.FC = () => {
     const combinedWord = `${first?.letter || ''}${second?.letter || ''}`;
 
     const playLetter = async (letterText: string, hebrewName: string) => {
-        await audioService.playHebrew(`${letterText} ${hebrewName}`);
+        try {
+            await audioService.playHebrew(`${letterText} ${hebrewName}`);
+        } catch (error) {
+            console.warn('Letter audio playback failed:', error);
+        }
     };
 
     const playCombined = async () => {
         if (!combinedWord) return;
-        await audioService.playHebrew(combinedWord);
+        try {
+            await audioService.playHebrew(combinedWord);
+        } catch (error) {
+            console.warn('Combined audio playback failed:', error);
+        }
     };
 
     return (
