@@ -170,6 +170,7 @@ const HEBREW_RESOURCE_SUBMENU: NavItem[] = [
   { label: 'Festivals & Holy Days', view: ViewState.HEBREW_FESTIVALS },
   { label: 'Biblical Calendar', view: ViewState.HEBREW_CALENDAR },
   { label: 'Hebrew Words', view: ViewState.HEBREW_WORDS },
+  { label: 'Letters Audio Lab', view: ViewState.HEBREW_LETTERS_AUDIO },
   { label: 'Hebrew Numbers', view: ViewState.HEBREW_NUMBERS },
   { label: 'Gematria Value', view: ViewState.HEBREW_GEMATRIA },
   { label: 'Month/Year Reference', view: ViewState.HEBREW_REFERENCE },
@@ -566,6 +567,7 @@ const App: React.FC = () => {
       case ViewState.MINISTRIES: return "bg-[#f0f9ff] text-sky-950";
       case ViewState.HEBREW: return "bg-black text-amber-500";
       case ViewState.HEBREW_WORDS: return "bg-[#fdfcf0] text-brand-950";
+      case ViewState.HEBREW_LETTERS_AUDIO: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.HEBREW_GEMATRIA: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.ID_CARD: return "bg-[#f8fafc] text-slate-950";
       case ViewState.CONTACT: return "bg-[#f5f3ff] text-indigo-950";
@@ -1064,6 +1066,12 @@ const App: React.FC = () => {
           {currentView === ViewState.HEBREW_WORDS && (
             <div key="hebrew-words">
               <HebrewResources initialTab="words" />
+            </div>
+          )}
+
+          {currentView === ViewState.HEBREW_LETTERS_AUDIO && (
+            <div key="hebrew-letters-audio">
+              <HebrewResources initialTab="lettersaudio" />
             </div>
           )}
 
