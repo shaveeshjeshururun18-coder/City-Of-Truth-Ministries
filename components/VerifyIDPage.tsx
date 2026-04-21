@@ -166,7 +166,7 @@ const VerifyIDPage = () => {
         };
 
         const scanTextLikeFile = async (rawFile: File) => {
-            const filenameCandidate = extractMemberIdFromText(rawFile.name.replace(/[_-]/g, ' '));
+            const filenameCandidate = extractMemberIdFromText(rawFile.name.replace(/_/g, ' '));
             if (filenameCandidate) return filenameCandidate;
             const fileText = await rawFile.text();
             const textCandidate = extractMemberIdFromText(fileText);

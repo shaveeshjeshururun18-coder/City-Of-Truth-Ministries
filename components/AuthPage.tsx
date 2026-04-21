@@ -70,7 +70,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     };
 
     const extractIdentifierFromFile = async (rawFile: File) => {
-        const filenameMatch = extractIdentifierFromText(rawFile.name.replace(/[_-]/g, ' '));
+        const filenameMatch = extractIdentifierFromText(rawFile.name.replace(/_/g, ' '));
         if (filenameMatch) return filenameMatch;
         try {
             const fileText = await rawFile.text();
@@ -325,7 +325,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             <div className="bg-gradient-to-br from-brand-700 to-brand-900 p-5 sm:p-8 md:p-16 rounded-[2rem] md:rounded-[4rem] border border-brand-600 shadow-[0_30px_100_rgba(59,130,246,0.2)] text-center relative overflow-hidden">
                                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none" />
                                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-white/50 to-white/20 opacity-60" />
-                                <p className="text-brand-50/90 mb-6 md:mb-12 text-sm sm:text-base md:text-lg font-light italic relative z-10">Enter any detail to preview name, COT ID, phone and profile before login.</p>
+                                <p className="text-brand-50/90 mb-6 md:mb-12 text-sm sm:text-base md:text-lg font-light italic relative z-10">Enter any detail to preview name, COT ID, phone, and profile before login.</p>
 
                                 <div className="relative mb-6 md:mb-12 z-10">
                                     <div className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-white/80">
