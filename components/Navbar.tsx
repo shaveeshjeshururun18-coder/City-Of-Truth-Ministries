@@ -35,6 +35,16 @@ const getIcon = (view: ViewState) => {
   }
 };
 
+const getInitials = (name?: string) => {
+  const safeName = (name || '').trim();
+  if (!safeName) return 'CT';
+  const parts = safeName.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+  return safeName.slice(0, 2).toUpperCase();
+};
+
 export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginClick, onLogoutClick, currentUser, navItems }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeMobileSubmenu, setActiveMobileSubmenu] = useState<string | null>(null);
@@ -142,25 +152,27 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
           {!currentUser && (
             <button
               onClick={() => setView(ViewState.ID_CARD)}
-              className="hidden lg:flex items-center relative bg-[#2596be] text-white text-[0.75rem] font-bold px-6 py-3 rounded-[25px] uppercase transition-all duration-300 hover:bg-[#2596be]/90 hover:scale-105 no-underline whitespace-nowrap shadow-lg shadow-[#2596be]/40 overflow-hidden group"
+              className="hidden lg:flex items-center relative bg-gradient-to-r from-[#5D5FEF] to-[#7A6BFF] text-white text-[0.75rem] font-bold px-6 h-12 rounded-2xl uppercase transition-all duration-300 hover:from-[#4F52DF] hover:to-[#6B5BFF] hover:scale-[1.02] no-underline whitespace-nowrap shadow-[0_14px_30px_-14px_rgba(93,95,239,0.75)] overflow-hidden group border border-white/20"
             >
-              <span className="absolute inset-0 rounded-[25px] ring-2 ring-[#2596be]/60 animate-ping opacity-30 group-hover:opacity-50" />
+              <span className="absolute inset-0 rounded-2xl ring-2 ring-white/20 opacity-70 group-hover:opacity-90 transition-opacity" />
               <span className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12" />
               <span className="relative z-10">REGISTER</span>
             </button>
           )}
 
-          <div className="flex items-center gap-2 p-1.5 sm:p-2 rounded-[1.4rem] bg-white/90 backdrop-blur-md border border-brand-100/70 shadow-[0_10px_25px_-12px_rgba(10,15,60,0.35)]">
+          <div className="flex items-center gap-2 p-1.5 sm:p-2 rounded-2xl bg-white/95 backdrop-blur-md border border-brand-100/70 shadow-[0_14px_30px_-16px_rgba(10,15,60,0.4)]">
             <button
               onClick={() => currentUser ? setView(ViewState.USER_DASHBOARD) : setView(ViewState.ID_CARD)}
-              className={`${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-12 h-12 rounded-[1rem] shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-[#2596be] border border-[#2596be]/50 px-4 h-11 rounded-[1rem] shadow-[0_14px_24px_-12px_rgba(37,150,190,0.7)] hover:shadow-[0_18px_28px_-12px_rgba(37,150,190,0.8)] hover:bg-[#2596be]/90'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group`}
+              className={`${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-12 h-12 rounded-2xl shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-gradient-to-r from-[#5D5FEF] to-[#7A6BFF] border border-[#6c6cff]/50 px-4 h-11 rounded-2xl shadow-[0_14px_24px_-12px_rgba(93,95,239,0.7)] hover:shadow-[0_18px_28px_-12px_rgba(93,95,239,0.8)] hover:from-[#4F52DF] hover:to-[#6B5BFF]'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group`}
               title={currentUser ? "My Account" : "Register"}
               aria-label={currentUser ? "Open my account dashboard" : "Register account"}
             >
               {currentUser && currentUser.photo ? (
                 <img src={currentUser.photo} alt="Profile" className="w-full h-full object-cover rounded-2xl" />
               ) : currentUser ? (
-                <CircleUser size={22} className="group-hover:text-brand-500 text-[#333]" />
+                <span className="w-full h-full rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-white text-[13px] font-black tracking-wide flex items-center justify-center">
+                  {getInitials(currentUser.name)}
+                </span>
               ) : (
                 <>
                   <CircleUser size={16} className="text-white shrink-0" />
@@ -171,7 +183,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="w-12 h-12 rounded-[1rem] cursor-pointer flex items-center justify-center transition-all duration-300 border border-[#d8ddff] bg-gradient-to-b from-white to-[#f3f5ff] text-brand-950 hover:border-[#bfc7ff] hover:from-[#f8f9ff] hover:to-[#eef1ff] shadow-[0_10px_20px_-12px_rgba(35,52,110,0.5)] hover:shadow-[0_16px_24px_-12px_rgba(35,52,110,0.6)]"
+              className="w-12 h-12 rounded-2xl cursor-pointer flex items-center justify-center transition-all duration-300 border border-[#d8ddff] bg-gradient-to-br from-white to-[#edf0ff] text-brand-950 hover:border-[#bfc7ff] hover:from-[#f8f9ff] hover:to-[#e9eeff] shadow-[0_10px_20px_-12px_rgba(35,52,110,0.5)] hover:shadow-[0_16px_24px_-12px_rgba(35,52,110,0.6)]"
               title="Open menu"
               aria-label="Open navigation menu"
             >
@@ -235,20 +247,22 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                         className={`w-full p-3 rounded-xl border cursor-pointer transition-all ${
                             currentUser 
                                 ? 'bg-white border-brand-100 shadow-sm hover:bg-slate-50'
-                                : 'bg-gradient-to-r from-blue-600 to-blue-700 border-blue-500 shadow-md shadow-blue-500/30 hover:from-blue-700 hover:to-blue-800'
+                                : 'bg-gradient-to-r from-[#5D5FEF] to-[#7A6BFF] border-[#6c6cff] shadow-md shadow-[#5D5FEF]/30 hover:from-[#4F52DF] hover:to-[#6B5BFF]'
                         }`}
                     >
                         <div className="flex items-center gap-3">
                             <div className="relative shrink-0">
-                                <div className={`w-11 h-11 rounded-full border-2 shadow-inner flex items-center justify-center overflow-hidden ${currentUser ? 'border-brand-100 bg-slate-50' : 'border-blue-400 bg-blue-500'}`}>
+                                <div className={`w-11 h-11 rounded-full border-2 shadow-inner flex items-center justify-center overflow-hidden ${currentUser ? 'border-brand-100 bg-slate-50' : 'border-[#8d8dff] bg-[#6b67ff]'}`}>
                                     {currentUser && currentUser.photo ? (
                                         <img src={currentUser.photo} alt="Profile" className="w-full h-full object-cover" />
                                     ) : (
-                                        <CircleUser size={22} className={currentUser ? "text-brand-300" : "text-white"} />
+                                        <span className={`text-[12px] font-black tracking-wide ${currentUser ? "text-brand-700" : "text-white"}`}>
+                                          {getInitials(currentUser?.name)}
+                                        </span>
                                     )}
                                 </div>
                                 <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center ${currentUser ? 'bg-brand-600' : 'bg-white'}`}>
-                                    <Zap size={6} className={currentUser ? 'text-white' : 'text-blue-600'} />
+                                    <Zap size={6} className={currentUser ? 'text-white' : 'text-[#5D5FEF]'} />
                                 </div>
                             </div>
                             <div className="flex-1 min-w-0">
@@ -259,7 +273,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                                     {currentUser ? (currentUser.id || 'Member') : 'Tap to Register Free'}
                                 </p>
                             </div>
-                            <div className={`px-2 py-1 rounded-full text-[7px] font-bold uppercase tracking-widest border whitespace-nowrap ${currentUser ? 'bg-brand-50 text-brand-700 border-brand-100' : 'bg-white text-blue-700 border-white/50'}`}>
+                            <div className={`px-2 py-1 rounded-full text-[7px] font-bold uppercase tracking-widest border whitespace-nowrap ${currentUser ? 'bg-brand-50 text-brand-700 border-brand-100' : 'bg-white text-[#5D5FEF] border-white/50'}`}>
                                 {currentUser ? 'Dashboard' : 'Register'}
                             </div>
                         </div>
@@ -269,7 +283,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                     {currentUser && currentUser.linkedProfiles && currentUser.linkedProfiles.length > 0 && (
                         <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-2.5">
                             <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-2">Family Members</p>
-                            <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1" role="list" aria-label="Family members list">
+                            <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
                                 {currentUser.linkedProfiles.map((pf: any) => (
                                     <button
                                         key={pf.id}
@@ -277,14 +291,19 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                                         className="shrink-0 flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-full py-1 pr-2 pl-1 group"
                                         title={pf.name}
                                         aria-label={`Switch to ${pf.name}`}
-                                        role="listitem"
                                     >
                                         <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-slate-200 group-hover:border-brand-400 transition-all bg-slate-100">
-                                            <img
-                                                src={pf.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(pf.name)}&background=5b47d0&color=fff&bold=true&size=80`}
-                                                alt={pf.name}
-                                                className="w-full h-full object-cover"
-                                            />
+                                            {pf.photo ? (
+                                              <img
+                                                  src={pf.photo}
+                                                  alt={pf.name}
+                                                  className="w-full h-full object-cover"
+                                              />
+                                            ) : (
+                                              <span className="w-full h-full flex items-center justify-center text-[10px] font-black tracking-wide text-white bg-gradient-to-br from-[#5D5FEF] to-[#7A6BFF]">
+                                                {getInitials(pf.name)}
+                                              </span>
+                                            )}
                                         </div>
                                         <span className="text-[9px] font-bold text-slate-600 max-w-[72px] truncate">{pf.name.split(' ')[0]}</span>
                                     </button>
