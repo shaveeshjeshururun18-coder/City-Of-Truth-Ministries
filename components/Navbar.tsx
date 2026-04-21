@@ -35,12 +35,14 @@ const getIcon = (view: ViewState) => {
   }
 };
 
+const DEFAULT_INITIALS = 'CT';
+
 const getInitials = (name?: string) => {
   const safeName = (name || '').trim();
-  if (!safeName) return 'CT';
+  if (!safeName) return DEFAULT_INITIALS;
   const parts = safeName.split(/\s+/).filter(Boolean);
   if (parts.length >= 2) {
-    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
   }
   return safeName.slice(0, 2).toUpperCase();
 };
@@ -209,16 +211,16 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed top-0 right-0 bottom-0 z-[110] w-[85%] max-w-sm bg-white shadow-2xl flex flex-col montserrat"
+              className="fixed top-0 right-0 bottom-0 z-[110] w-[78%] max-w-[19rem] bg-white shadow-2xl flex flex-col montserrat"
             >
 
 
               
-              <div className="p-8 flex flex-col relative z-20">
-                <div className="flex justify-between items-center w-full mb-10">
+              <div className="p-5 flex flex-col relative z-20">
+                <div className="flex justify-between items-center w-full mb-5">
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center border border-brand-100">
-                      <img src="/logo.png" alt="COT Logo" className="w-6 h-6 object-contain" />
+                    <div className="w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center border border-brand-100">
+                      <img src="/logo.png" alt="COT Logo" className="w-5 h-5 object-contain" />
                     </div>
                     <div className="text-left">
                       <h2 className="font-bold text-sm text-[#1a1a2e] leading-none">City of Truth</h2>
@@ -227,16 +229,16 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                   </div>
                   <button
                     onClick={() => setMobileMenuOpen(false)}
-                    className="p-2 hover:bg-white rounded-full transition-all text-[#333] shadow-sm border border-gray-100"
+                    className="p-1.5 hover:bg-white rounded-full transition-all text-[#333] shadow-sm border border-gray-100"
                   >
-                    <X size={20} />
+                    <X size={18} />
                   </button>
 
 
                 </div>
 
                 {/* Profile + Family Switcher Section in Mobile Menu */}
-                <div className="w-full space-y-3">
+                <div className="w-full space-y-2">
                     {/* Primary profile card */}
                     <div
                         onClick={() => { 
@@ -244,20 +246,20 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                             else { setView(ViewState.ID_CARD); }
                             setMobileMenuOpen(false); 
                         }}
-                        className={`w-full p-3 rounded-xl border cursor-pointer transition-all ${
+                        className={`w-full p-2.5 rounded-xl border cursor-pointer transition-all ${
                             currentUser 
                                 ? 'bg-white border-brand-100 shadow-sm hover:bg-slate-50'
                                 : 'bg-gradient-to-r from-[#5D5FEF] to-[#7A6BFF] border-[#6c6cff] shadow-md shadow-[#5D5FEF]/30 hover:from-[#4F52DF] hover:to-[#6B5BFF]'
                         }`}
                     >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2.5">
                             <div className="relative shrink-0">
-                                <div className={`w-11 h-11 rounded-full border-2 shadow-inner flex items-center justify-center overflow-hidden ${currentUser ? 'border-brand-100 bg-slate-50' : 'border-[#8d8dff] bg-[#6b67ff]'}`}>
+                                <div className={`w-10 h-10 rounded-full border-2 shadow-inner flex items-center justify-center overflow-hidden ${currentUser ? 'border-brand-100 bg-slate-50' : 'border-[#8d8dff] bg-[#6b67ff]'}`}>
                                     {currentUser && currentUser.photo ? (
                                         <img src={currentUser.photo} alt="Profile" className="w-full h-full object-cover" />
                                     ) : (
                                         <span className={`text-[12px] font-black tracking-wide ${currentUser ? "text-brand-700" : "text-white"}`}>
-                                          {getInitials(currentUser?.name)}
+                                          {getInitials(currentUser?.name || DEFAULT_INITIALS)}
                                         </span>
                                     )}
                                 </div>
@@ -266,10 +268,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                                 </div>
                             </div>
                             <div className="flex-1 min-w-0">
-                                <h3 className={`font-bold text-[12px] truncate ${currentUser ? 'text-brand-950' : 'text-white'}`}>
+                                <h3 className={`font-bold text-[11px] truncate ${currentUser ? 'text-brand-950' : 'text-white'}`}>
                                     {currentUser ? currentUser.name : 'Join Our Community'}
                                 </h3>
-                                <p className={`text-[8px] font-bold uppercase tracking-widest truncate ${currentUser ? 'text-brand-500' : 'text-blue-200'}`}>
+                                <p className={`text-[7px] font-bold uppercase tracking-widest truncate ${currentUser ? 'text-brand-500' : 'text-blue-200'}`}>
                                     {currentUser ? (currentUser.id || 'Member') : 'Tap to Register Free'}
                                 </p>
                             </div>
@@ -281,18 +283,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
                     {/* Family Members quick switcher */}
                     {currentUser && currentUser.linkedProfiles && currentUser.linkedProfiles.length > 0 && (
-                        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-2.5">
-                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-2">Family Members</p>
-                            <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
+                        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-2">
+                            <p className="text-[7px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Family Members</p>
+                            <div className="flex flex-nowrap gap-1.5 overflow-x-auto pb-0.5">
                                 {currentUser.linkedProfiles.map((pf: any) => (
                                     <button
                                         key={pf.id}
                                         onClick={() => { setView(ViewState.USER_DASHBOARD); setMobileMenuOpen(false); }}
-                                        className="shrink-0 flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-full py-1 pr-2 pl-1 group"
+                                        className="shrink-0 flex items-center gap-1.5 bg-slate-50 border border-slate-100 rounded-full py-1 pr-1.5 pl-1 group"
                                         title={pf.name}
                                         aria-label={`Switch to ${pf.name}`}
                                     >
-                                        <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-slate-200 group-hover:border-brand-400 transition-all bg-slate-100">
+                                        <div className="w-7 h-7 rounded-full overflow-hidden border-2 border-slate-200 group-hover:border-brand-400 transition-all bg-slate-100">
                                             {pf.photo ? (
                                               <img
                                                   src={pf.photo}
@@ -300,12 +302,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                                                   className="w-full h-full object-cover"
                                               />
                                             ) : (
-                                              <span className="w-full h-full flex items-center justify-center text-[10px] font-black tracking-wide text-white bg-gradient-to-br from-[#5D5FEF] to-[#7A6BFF]">
+                                              <span className="w-full h-full flex items-center justify-center text-[9px] font-black tracking-wide text-white bg-gradient-to-br from-[#5D5FEF] to-[#7A6BFF]">
                                                 {getInitials(pf.name)}
                                               </span>
                                             )}
                                         </div>
-                                        <span className="text-[9px] font-bold text-slate-600 max-w-[72px] truncate">{pf.name.split(' ')[0]}</span>
+                                        <span className="text-[8px] font-bold text-slate-600 max-w-[52px] truncate">{pf.name.split(' ')[0]}</span>
                                     </button>
                                 ))}
                             </div>
@@ -316,7 +318,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
               </div>{/* end header section */}
 
 
-              <div className="flex-1 overflow-y-auto py-4 px-6 space-y-1">
+              <div className="flex-1 overflow-y-auto py-3 px-4 space-y-0.5">
                 {navItems.map((item) => {
                   const hasSubmenu = item.submenu && item.submenu.length > 0;
                   const isSubmenuOpen = activeMobileSubmenu === item.label;
@@ -333,7 +335,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                             setMobileMenuOpen(false);
                           }
                         }}
-                        className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${isMobileActive
+                        className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all ${isMobileActive
                           ? 'bg-[#EEF0FF] text-[#5D5FEF]'
                           : 'bg-transparent text-[#555] hover:bg-gray-50'
                           }`}
@@ -342,7 +344,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                           <span className={isMobileActive ? 'text-[#5D5FEF]' : 'text-gray-400'}>
                             {getIcon(item.view)}
                           </span>
-                          <span className="font-bold tracking-wide uppercase text-xs">{item.label}</span>
+                          <span className="font-bold tracking-wide uppercase text-[11px]">{item.label}</span>
                         </div>
                         {hasSubmenu && (
                           <ChevronDown

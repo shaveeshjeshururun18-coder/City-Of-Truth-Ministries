@@ -289,11 +289,11 @@ export const EntrustCardPreview: React.FC<SectionProps> = ({ setView }) => {
                         </p>
                         <button
                             onClick={() => setView(ViewState.ID_CARD)}
-                            className="group relative w-full max-w-sm sm:max-w-2xl lg:max-w-xl xl:max-w-2xl bg-gradient-to-r from-[#f0b322] via-[#f7d364] to-[#dea12c] text-brand-950 px-6 sm:px-10 py-4 sm:py-5 rounded-full border border-amber-200/60 font-black text-[11px] sm:text-xs uppercase tracking-[0.28em] hover:-translate-y-0.5 transition-all duration-300 shadow-[0_18px_45px_-15px_rgba(246,186,53,0.7)] hover:shadow-[0_24px_55px_-10px_rgba(246,186,53,0.85)] flex items-center justify-center sm:justify-between gap-3 sm:gap-4 mx-auto sm:mx-0 overflow-hidden"
+                            className="group relative w-full max-w-sm sm:max-w-xl bg-gradient-to-r from-[#5854ef] via-[#6c5fff] to-[#7d6cff] text-white px-6 sm:px-8 py-4 rounded-2xl border border-[#a8a8ff]/40 font-black text-[10px] sm:text-xs uppercase tracking-[0.24em] hover:-translate-y-0.5 transition-all duration-300 shadow-[0_20px_40px_-16px_rgba(92,87,255,0.7)] hover:shadow-[0_26px_50px_-14px_rgba(92,87,255,0.85)] flex items-center justify-between gap-3 sm:gap-4 mx-auto sm:mx-0 overflow-hidden"
                         >
-                            <span className="absolute inset-0 bg-gradient-to-r from-white/20 via-transparent to-transparent opacity-70 pointer-events-none" />
-                            <span className="flex-1 text-center sm:text-left">Claim Your Card Now</span>
-                            <span className="shrink-0 w-9 h-9 rounded-full bg-white/35 border border-white/40 backdrop-blur-sm flex items-center justify-center">
+                            <span className="absolute inset-0 bg-gradient-to-r from-white/15 via-transparent to-white/10 opacity-80 pointer-events-none" />
+                            <span className="flex-1 text-left leading-tight">Claim Your Card Now</span>
+                            <span className="shrink-0 w-9 h-9 rounded-xl bg-white/20 border border-white/30 backdrop-blur-sm flex items-center justify-center">
                                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                             </span>
                         </button>
