@@ -72,7 +72,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
         .montserrat { font-family: 'Montserrat', sans-serif; }
       `}} />
 
-      <nav className={`${currentView === ViewState.ABOUT ? 'absolute shadow-none' : 'fixed'} top-0 left-0 right-0 z-50 flex justify-between items-center transition-all duration-500 px-6 md:px-10 py-[15px] montserrat bg-white shadow-sm border-b border-gray-100`}>
+      <nav className={`${currentView === ViewState.ABOUT ? 'absolute shadow-none' : 'fixed'} top-0 left-0 right-0 z-50 flex justify-between items-center transition-all duration-500 px-4 md:px-8 py-2.5 montserrat bg-white shadow-sm border-b border-gray-100`}>
         {/* LOGO STYLING */}
         <div
           className="flex items-center gap-[10px] cursor-pointer"
@@ -149,12 +149,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
         {/* RIGHT SIDE ACTIONS */}
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {/* Show Register button only if NOT logged in */}
           {!currentUser && (
             <button
               onClick={() => setView(ViewState.ID_CARD)}
-              className="hidden lg:flex items-center relative bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 text-white text-[0.75rem] font-bold px-6 h-12 rounded-2xl uppercase transition-all duration-300 hover:from-blue-700 hover:via-blue-600 hover:to-blue-800 hover:scale-[1.02] no-underline whitespace-nowrap shadow-[0_14px_30px_-14px_rgba(37,99,235,0.75)] overflow-hidden group border border-blue-200/40"
+              className="hidden lg:flex items-center relative bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 text-white text-[0.72rem] font-bold px-5 h-11 rounded-xl uppercase transition-all duration-300 hover:from-blue-700 hover:via-blue-600 hover:to-blue-800 hover:scale-[1.02] no-underline whitespace-nowrap shadow-[0_14px_30px_-14px_rgba(37,99,235,0.75)] overflow-hidden group border border-blue-200/40"
             >
               <span className="absolute inset-0 rounded-2xl ring-2 ring-white/20 opacity-70 group-hover:opacity-90 transition-opacity" />
               <span className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12" />
@@ -162,10 +162,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             </button>
           )}
 
-          <div className="flex items-center gap-2 p-1.5 sm:p-2 rounded-2xl bg-white/95 backdrop-blur-md border border-brand-100/70 shadow-[0_14px_30px_-16px_rgba(10,15,60,0.4)]">
+          <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white/95 backdrop-blur-md border border-brand-100/70 shadow-[0_14px_30px_-16px_rgba(10,15,60,0.4)]">
             <button
               onClick={() => currentUser ? setView(ViewState.USER_DASHBOARD) : setView(ViewState.ID_CARD)}
-              className={`${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-12 h-12 rounded-2xl shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 border border-blue-300/50 px-4 h-11 rounded-2xl shadow-[0_14px_24px_-12px_rgba(37,99,235,0.7)] hover:shadow-[0_18px_28px_-12px_rgba(37,99,235,0.8)] hover:from-blue-700 hover:via-blue-600 hover:to-blue-800'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group`}
+              className={`${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-11 h-11 rounded-2xl shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 border border-blue-300/50 px-3.5 h-10 rounded-2xl shadow-[0_14px_24px_-12px_rgba(37,99,235,0.7)] hover:shadow-[0_18px_28px_-12px_rgba(37,99,235,0.8)] hover:from-blue-700 hover:via-blue-600 hover:to-blue-800'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group`}
               title={currentUser ? "My Account" : "Register"}
               aria-label={currentUser ? "Open my account dashboard" : "Register account"}
             >
@@ -185,11 +185,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="w-12 h-12 rounded-2xl cursor-pointer flex items-center justify-center transition-all duration-300 border border-[#d8ddff] bg-gradient-to-br from-white to-[#edf0ff] text-brand-950 hover:border-[#bfc7ff] hover:from-[#f8f9ff] hover:to-[#e9eeff] shadow-[0_10px_20px_-12px_rgba(35,52,110,0.5)] hover:shadow-[0_16px_24px_-12px_rgba(35,52,110,0.6)]"
+              className="w-11 h-11 rounded-2xl cursor-pointer flex items-center justify-center transition-all duration-300 border border-blue-300/50 bg-gradient-to-r from-blue-700 via-blue-600 to-blue-800 text-white hover:from-blue-800 hover:via-blue-700 hover:to-blue-900 shadow-[0_12px_22px_-12px_rgba(37,99,235,0.75)] hover:shadow-[0_16px_26px_-12px_rgba(37,99,235,0.85)]"
               title="Open menu"
               aria-label="Open navigation menu"
             >
-              <Menu size={20} strokeWidth={2.25} className="text-brand-950" />
+              <Menu size={19} strokeWidth={2.25} className="text-white" />
             </button>
           </div>
         </div>
