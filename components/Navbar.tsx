@@ -190,7 +190,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setMobileMenuOpen(false)}
-              className="fixed inset-0 z-[100] bg-brand-950/80 backdrop-blur-xl"
+              className="fixed inset-0 z-[100] bg-black/45 backdrop-blur-sm"
             />
             <motion.div
               initial={{ x: '100%' }}
@@ -267,24 +267,26 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
                     {/* Family Members quick switcher */}
                     {currentUser && currentUser.linkedProfiles && currentUser.linkedProfiles.length > 0 && (
-                        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-3">
-                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-2.5">Family Members</p>
-                            <div className="flex flex-wrap gap-2">
+                        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-2.5">
+                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-2">Family Members</p>
+                            <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1" role="list" aria-label="Family members list">
                                 {currentUser.linkedProfiles.map((pf: any) => (
                                     <button
                                         key={pf.id}
                                         onClick={() => { setView(ViewState.USER_DASHBOARD); setMobileMenuOpen(false); }}
-                                        className="flex flex-col items-center gap-1 group"
+                                        className="shrink-0 flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-full py-1 pr-2 pl-1 group"
                                         title={pf.name}
+                                        aria-label={`Switch to ${pf.name}`}
+                                        role="listitem"
                                     >
-                                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-200 group-hover:border-brand-400 transition-all bg-slate-100">
+                                        <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-slate-200 group-hover:border-brand-400 transition-all bg-slate-100">
                                             <img
                                                 src={pf.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(pf.name)}&background=5b47d0&color=fff&bold=true&size=80`}
                                                 alt={pf.name}
                                                 className="w-full h-full object-cover"
                                             />
                                         </div>
-                                        <span className="text-[8px] font-bold text-slate-500 max-w-[40px] truncate">{pf.name.split(' ')[0]}</span>
+                                        <span className="text-[9px] font-bold text-slate-600 max-w-[72px] truncate">{pf.name.split(' ')[0]}</span>
                                     </button>
                                 ))}
                             </div>
