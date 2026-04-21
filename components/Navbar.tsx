@@ -144,7 +144,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
               onClick={() => setView(ViewState.ID_CARD)}
               className="hidden lg:flex items-center relative bg-[#2596be] text-white text-[0.75rem] font-bold px-6 py-3 rounded-[25px] uppercase transition-all duration-300 hover:bg-[#2596be]/90 hover:scale-105 no-underline whitespace-nowrap shadow-lg shadow-[#2596be]/40 overflow-hidden group"
             >
-              <span className="absolute inset-0 rounded-[25px] ring-2 ring-blue-400/60 animate-ping opacity-30 group-hover:opacity-50" />
+              <span className="absolute inset-0 rounded-[25px] ring-2 ring-[#2596be]/60 animate-ping opacity-30 group-hover:opacity-50" />
               <span className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12" />
               <span className="relative z-10">REGISTER</span>
             </button>
