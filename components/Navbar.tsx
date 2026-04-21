@@ -150,10 +150,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             </button>
           )}
 
-          <div className="flex items-center gap-2 p-1.5 rounded-3xl bg-slate-50 border border-slate-200 shadow-lg">
+          <div className="flex items-center gap-2 p-1.5 sm:p-2 rounded-[1.4rem] bg-white/90 backdrop-blur-md border border-brand-100/70 shadow-[0_10px_25px_-12px_rgba(10,15,60,0.35)]">
             <button
               onClick={() => currentUser ? setView(ViewState.USER_DASHBOARD) : setView(ViewState.ID_CARD)}
-              className={`${currentUser ? 'bg-white border border-brand-100 w-12 h-12 rounded-2xl shadow-sm hover:shadow-md' : 'bg-gradient-to-r from-blue-600 to-blue-700 border-0 px-4 h-11 rounded-2xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group`}
+              className={`${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-12 h-12 rounded-[1rem] shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-gradient-to-r from-[#3539c8] via-[#3f49dc] to-[#5362ff] border border-[#6776ff]/30 px-4 h-11 rounded-[1rem] shadow-[0_14px_24px_-12px_rgba(57,77,236,0.7)] hover:shadow-[0_18px_28px_-12px_rgba(57,77,236,0.8)]'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group`}
               title={currentUser ? "My Account" : "Register"}
               aria-label={currentUser ? "Open my account dashboard" : "Register account"}
             >
@@ -171,11 +171,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="w-12 h-12 rounded-2xl cursor-pointer flex items-center justify-center transition-all duration-300 border border-brand-100 bg-white text-brand-950 hover:bg-brand-50 hover:border-brand-200 shadow-sm hover:shadow-md"
+              className="w-12 h-12 rounded-[1rem] cursor-pointer flex items-center justify-center transition-all duration-300 border border-[#d8ddff] bg-gradient-to-b from-white to-[#f3f5ff] text-brand-950 hover:border-[#bfc7ff] hover:from-[#f8f9ff] hover:to-[#eef1ff] shadow-[0_10px_20px_-12px_rgba(35,52,110,0.5)] hover:shadow-[0_16px_24px_-12px_rgba(35,52,110,0.6)]"
               title="Open menu"
               aria-label="Open navigation menu"
             >
-              <Menu size={20} strokeWidth={2.5} className="text-brand-950" />
+              <Menu size={20} strokeWidth={2.25} className="text-brand-950" />
             </button>
           </div>
         </div>
