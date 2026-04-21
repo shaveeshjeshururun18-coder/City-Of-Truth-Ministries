@@ -281,38 +281,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                         </div>
                     </div>
 
-                    {/* Family Members quick switcher */}
-                    {currentUser && currentUser.linkedProfiles && currentUser.linkedProfiles.length > 0 && (
-                        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-2">
-                            <p className="text-[7px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Family Members</p>
-                            <div className="flex flex-nowrap gap-1.5 overflow-x-auto pb-0.5">
-                                {currentUser.linkedProfiles.map((pf: any) => (
-                                    <button
-                                        key={pf.id}
-                                        onClick={() => { setView(ViewState.USER_DASHBOARD); setMobileMenuOpen(false); }}
-                                        className="shrink-0 flex items-center gap-1.5 bg-slate-50 border border-slate-100 rounded-full py-1 pr-1.5 pl-1 group"
-                                        title={pf.name}
-                                        aria-label={`Switch to ${pf.name}`}
-                                    >
-                                        <div className="w-7 h-7 rounded-full overflow-hidden border-2 border-slate-200 group-hover:border-brand-400 transition-all bg-slate-100">
-                                            {pf.photo ? (
-                                              <img
-                                                  src={pf.photo}
-                                                  alt={pf.name}
-                                                  className="w-full h-full object-cover"
-                                              />
-                                            ) : (
-                                              <span className="w-full h-full flex items-center justify-center text-[9px] font-black tracking-wide text-white bg-gradient-to-br from-[#5D5FEF] to-[#7A6BFF]">
-                                                {getInitials(pf.name)}
-                                              </span>
-                                            )}
-                                        </div>
-                                        <span className="text-[8px] font-bold text-slate-600 max-w-[52px] truncate">{pf.name.split(' ')[0]}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
                 </div>
 
               </div>{/* end header section */}
@@ -385,18 +353,52 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
               </div>
 
               <div className="p-3 bg-gray-50 border-t border-gray-100 mt-auto">
-                <div className="flex items-center gap-3 mb-3 group cursor-default">
-                  <div className="bg-white p-1.5 rounded-lg shadow-sm border border-gray-100 transition-transform hover:scale-110"><Phone size={12} className="text-[#5D5FEF]" /></div>
-                  <div>
-                    <p className="text-[7px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-0.5">Prayer Line</p>
-                    <p className="text-xs font-bold text-[#1a1a2e]">+91 80562 5478</p>
+                {currentUser && currentUser.linkedProfiles && currentUser.linkedProfiles.length > 0 ? (
+                  <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-2.5">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-2">Family Members</p>
+                    <div className="flex flex-nowrap gap-2 overflow-x-auto pb-0.5">
+                      {currentUser.linkedProfiles.map((pf: any) => (
+                        <button
+                          key={pf.id}
+                          onClick={() => { setView(ViewState.USER_DASHBOARD); setMobileMenuOpen(false); }}
+                          className="shrink-0 flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-full py-1.5 pr-2 pl-1.5 group"
+                          title={pf.name}
+                          aria-label={`Switch to ${pf.name}`}
+                        >
+                          <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-slate-200 group-hover:border-brand-400 transition-all bg-slate-100">
+                            {pf.photo ? (
+                              <img
+                                src={pf.photo}
+                                alt={pf.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className="w-full h-full flex items-center justify-center text-[9px] font-black tracking-wide text-white bg-gradient-to-br from-blue-600 via-blue-500 to-blue-700">
+                                {getInitials(pf.name)}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[9px] font-bold text-slate-600 max-w-[68px] truncate">{pf.name.split(' ')[0]}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <div className="flex gap-4 justify-center">
-                  {[Youtube, Facebook, Instagram].map((Icon, i) => (
-                    <Icon key={i} size={16} className="text-gray-400 hover:text-[#5D5FEF] cursor-pointer transition-all hover:scale-125" />
-                  ))}
-                </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-3 mb-3 group cursor-default">
+                      <div className="bg-white p-1.5 rounded-lg shadow-sm border border-gray-100 transition-transform hover:scale-110"><Phone size={12} className="text-[#5D5FEF]" /></div>
+                      <div>
+                        <p className="text-[7px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-0.5">Prayer Line</p>
+                        <p className="text-xs font-bold text-[#1a1a2e]">+91 80562 5478</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-4 justify-center">
+                      {[Youtube, Facebook, Instagram].map((Icon, i) => (
+                        <Icon key={i} size={16} className="text-gray-400 hover:text-[#5D5FEF] cursor-pointer transition-all hover:scale-125" />
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Logout Button in Mobile Menu */}
