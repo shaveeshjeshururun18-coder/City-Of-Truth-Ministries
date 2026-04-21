@@ -69,7 +69,7 @@ export const GlobalAIWidget: React.FC = () => {
 
                                 {/* Sparkle Overlay */}
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <Sparkles className="w-5 h-5 sm:w-7 sm:h-7 text-amber-200 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] animate-spin-slow opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                                    <Sparkles className="w-5 h-5 sm:w-7 sm:h-7 text-amber-200 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] animate-spin [animation-duration:3s] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                                 </div>
                             </div>
                         </div>
