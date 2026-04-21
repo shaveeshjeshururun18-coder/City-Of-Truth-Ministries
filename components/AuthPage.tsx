@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X } from 'lucide-react';
+import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X, Calendar, Droplets, Users, Mail, UserCheck } from 'lucide-react';
 import { Button } from './Button';
+import { EntrustCard3D } from './WorshipperIDCard';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
@@ -27,6 +28,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     const [view, setView] = useState<'choice' | 'login' | 'register' | 'forgot-id'>(initialView);
     const [identifier, setIdentifier] = useState('');
     const [previewUser, setPreviewUser] = useState<any | null>(null);
+    const [previewProfileId, setPreviewProfileId] = useState<string | null>(null);
     const [searching, setSearching] = useState(false);
     const [notFound, setNotFound] = useState(false);
     const [showScanner, setShowScanner] = useState(false);
@@ -47,13 +49,31 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         return trimmed;
     };
 
-    const findUserByQuery = (queryTerm: string) => {
+    const findUserByQuery = (queryTerm: string): { user: any; profileId: string } | null => {
         const query = normalizeValue(queryTerm);
         if (!query) return null;
+        // Exact match on top-level fields
         const exact = users.find((u: any) => searchableKeys.some((key) => normalizeValue(u?.[key]) === query));
-        if (exact) return exact;
+        if (exact) return { user: exact, profileId: exact.id };
+        // Exact match on linked profiles
+        for (const u of users as any[]) {
+            const linked = (u.linkedProfiles || []).find((sp: any) =>
+                normalizeValue(sp.id) === query || normalizeValue(sp.name) === query
+            );
+            if (linked) return { user: u, profileId: linked.id };
+        }
         if (query.length < 2) return null;
-        return users.find((u: any) => searchableKeys.some((key) => normalizeValue(u?.[key]).includes(query))) || null;
+        // Partial match on top-level fields
+        const partial = users.find((u: any) => searchableKeys.some((key) => normalizeValue(u?.[key]).includes(query)));
+        if (partial) return { user: partial, profileId: partial.id };
+        // Partial match on linked profile names
+        for (const u of users as any[]) {
+            const linked = (u.linkedProfiles || []).find((sp: any) =>
+                normalizeValue(sp.name).includes(query)
+            );
+            if (linked) return { user: u, profileId: linked.id };
+        }
+        return null;
     };
 
     const extractIdentifierFromText = (text: string) => {
@@ -218,12 +238,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         setSearching(true);
         setNotFound(false);
         setPreviewUser(null);
+        setPreviewProfileId(null);
 
-        const found = findUserByQuery(queryTerm);
+        const result = findUserByQuery(queryTerm);
 
         setTimeout(() => {
-            if (found) {
-                setPreviewUser(found);
+            if (result) {
+                setPreviewUser(result.user);
+                setPreviewProfileId(result.profileId);
                 setNotFound(false);
             } else {
                 setNotFound(true);
@@ -234,7 +256,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
     const handleProceed = () => {
         if (previewUser) {
-            const loginId = previewUser.id || identifier.trim();
+            const loginId = previewProfileId || previewUser.id || identifier.trim();
             if (!loginId) return;
             onLogin(loginId);
         }
@@ -349,6 +371,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                             }
                                             setIdentifier(val);
                                             setPreviewUser(null);
+                                            setPreviewProfileId(null);
                                             setNotFound(false);
                                         }}
                                         onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
@@ -418,12 +441,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                             exit={{ opacity: 0, y: 20, scale: 0.95 }}
                                             className="max-w-3xl mx-auto bg-gradient-to-br from-brand-50 via-white to-brand-100 border-4 border-brand-100 rounded-[2rem] md:rounded-[4rem] p-5 sm:p-8 md:p-14 shadow-2xl relative overflow-hidden group"
                                         >
-                                            <button onClick={() => setPreviewUser(null)} className="absolute top-4 right-4 md:top-6 md:right-6 w-9 h-9 rounded-full bg-white border border-brand-100 text-brand-500 hover:text-brand-700 shadow-sm flex items-center justify-center">
+                                            <button onClick={() => { setPreviewUser(null); setPreviewProfileId(null); }} className="absolute top-4 right-4 md:top-6 md:right-6 w-9 h-9 rounded-full bg-white border border-brand-100 text-brand-500 hover:text-brand-700 shadow-sm flex items-center justify-center">
                                                 <X size={18} />
                                             </button>
                                             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-brand-400/10 to-transparent opacity-50" />
+
+                                            {/* Identity Header */}
                                             <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10 relative z-10">
-                                                <div className="relative">
+                                                <div className="relative shrink-0">
                                                     <div className="w-24 h-24 md:w-32 md:h-32 rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl bg-brand-100 transition-transform duration-700 group-hover:scale-110 group-hover:rotate-3">
                                                         {previewUser.photo ? (
                                                             <img src={previewUser.photo} alt={previewUser.name} className="w-full h-full object-cover" />
@@ -440,7 +465,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                                 <div className="flex-1 text-center md:text-left">
                                                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-4 md:mb-6">
                                                         <span className="bg-brand-600 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-brand-600/20">Verified Member</span>
-                                                        <span className="bg-white/80 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-brand-400 border border-brand-100 font-bold">{previewUser.role || 'Member'}</span>
+                                                        <span className="bg-white/80 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-brand-400 border border-brand-100">{previewUser.role || 'Member'}</span>
+                                                        {previewProfileId && previewProfileId !== previewUser.id && (
+                                                            <span className="bg-amber-50 text-amber-700 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border border-amber-200 flex items-center gap-1">
+                                                                <UserCheck size={12} /> Linked Profile
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     <h4 className="text-2xl md:text-4xl font-serif font-black text-brand-950 mb-3 tracking-tighter">{previewUser.name}</h4>
                                                     <div className="flex flex-wrap justify-center md:justify-start gap-3 md:gap-4 text-brand-500 font-medium text-sm md:text-base">
@@ -448,25 +478,90 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                                         {previewUser.phone && <div className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-xl border border-brand-50 shadow-sm"><Phone size={16} className="text-brand-500" /> {previewUser.phone}</div>}
                                                         {previewUser.location && <div className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-xl border border-brand-50 shadow-sm"><MapPin size={16} className="text-brand-500" /> {previewUser.location}</div>}
                                                     </div>
-                                                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
-                                                        <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
-                                                            <p className="text-[10px] uppercase tracking-widest font-black text-brand-300">Status</p>
-                                                            <p className="text-sm font-semibold text-brand-800">{previewUser.status || '—'}</p>
-                                                        </div>
-                                                        <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
-                                                            <p className="text-[10px] uppercase tracking-widest font-black text-brand-300">Email</p>
-                                                            <p className="text-sm font-semibold text-brand-800 break-all">{previewUser.email || '—'}</p>
-                                                        </div>
-                                                        <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
-                                                            <p className="text-[10px] uppercase tracking-widest font-black text-brand-300">Emergency</p>
-                                                            <p className="text-sm font-semibold text-brand-800">{previewUser.emergency || '—'}</p>
-                                                        </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Full Details Grid */}
+                                            <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3 relative z-10">
+                                                <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
+                                                    <p className="text-[10px] uppercase tracking-widest font-black text-brand-300">Status</p>
+                                                    <p className="text-sm font-semibold text-brand-800">{previewUser.status || '—'}</p>
+                                                </div>
+                                                <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2 col-span-2 sm:col-span-1">
+                                                    <p className="text-[10px] uppercase tracking-widest font-black text-brand-300 flex items-center gap-1"><Mail size={10} /> Email</p>
+                                                    <p className="text-sm font-semibold text-brand-800 break-all">{previewUser.email || '—'}</p>
+                                                </div>
+                                                <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
+                                                    <p className="text-[10px] uppercase tracking-widest font-black text-brand-300 flex items-center gap-1"><Phone size={10} /> Emergency</p>
+                                                    <p className="text-sm font-semibold text-brand-800">{previewUser.emergency || '—'}</p>
+                                                </div>
+                                                {previewUser.memberSince && (
+                                                    <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
+                                                        <p className="text-[10px] uppercase tracking-widest font-black text-brand-300 flex items-center gap-1"><Calendar size={10} /> Member Since</p>
+                                                        <p className="text-sm font-semibold text-brand-800">{previewUser.memberSince}</p>
+                                                    </div>
+                                                )}
+                                                {previewUser.joinedDate && (
+                                                    <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
+                                                        <p className="text-[10px] uppercase tracking-widest font-black text-brand-300 flex items-center gap-1"><Calendar size={10} /> Joined Date</p>
+                                                        <p className="text-sm font-semibold text-brand-800">{previewUser.joinedDate}</p>
+                                                    </div>
+                                                )}
+                                                {previewUser.dob && (
+                                                    <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
+                                                        <p className="text-[10px] uppercase tracking-widest font-black text-brand-300 flex items-center gap-1"><Calendar size={10} /> Date of Birth</p>
+                                                        <p className="text-sm font-semibold text-brand-800">{previewUser.dob}</p>
+                                                    </div>
+                                                )}
+                                                {previewUser.bloodGroup && (
+                                                    <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
+                                                        <p className="text-[10px] uppercase tracking-widest font-black text-brand-300 flex items-center gap-1"><Droplets size={10} /> Blood Group</p>
+                                                        <p className="text-sm font-semibold text-brand-800">{previewUser.bloodGroup}</p>
+                                                    </div>
+                                                )}
+                                                {previewUser.gender && (
+                                                    <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
+                                                        <p className="text-[10px] uppercase tracking-widest font-black text-brand-300">Gender</p>
+                                                        <p className="text-sm font-semibold text-brand-800">{previewUser.gender}</p>
+                                                    </div>
+                                                )}
+                                                {previewUser.linkedProfiles && previewUser.linkedProfiles.length > 0 && (
+                                                    <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
+                                                        <p className="text-[10px] uppercase tracking-widest font-black text-brand-300 flex items-center gap-1"><Users size={10} /> Family Members</p>
+                                                        <p className="text-sm font-semibold text-brand-800">{previewUser.linkedProfiles.length} linked</p>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Entrust Card Preview */}
+                                            <div className="mt-8 relative z-10">
+                                                <div className="flex items-center gap-2 mb-4">
+                                                    <span className="flex-1 h-px bg-brand-100" />
+                                                    <p className="text-[10px] uppercase tracking-widest font-black text-brand-300 flex items-center gap-1.5"><IdCard size={12} /> Entrust Card Preview</p>
+                                                    <span className="flex-1 h-px bg-brand-100" />
+                                                </div>
+                                                {/* EntrustCard3D renders at 340×215px; scale to 72% and constrain container height */}
+                                                <div className="flex justify-center overflow-hidden">
+                                                    <div style={{ transform: 'scale(0.72)', transformOrigin: 'top center', height: '155px' }}>
+                                                        <EntrustCard3D
+                                                            isStatic={true}
+                                                            name={previewUser.name}
+                                                            email={previewUser.email}
+                                                            location={previewUser.location}
+                                                            emergency={previewUser.phone || previewUser.emergency}
+                                                            memberSince={previewUser.memberSince}
+                                                            uniqueId={previewUser.id}
+                                                            photo={previewUser.photo}
+                                                            gender={previewUser.gender}
+                                                            status={previewUser.status}
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>
+
                                             <button
                                                 onClick={handleProceed}
-                                                className="mt-8 md:mt-12 w-full bg-gradient-to-r from-brand-600 to-brand-800 hover:from-brand-700 hover:to-brand-900 text-white font-black uppercase tracking-[0.2em] md:tracking-[0.3em] text-xs sm:text-sm py-4 md:py-7 rounded-[1.2rem] md:rounded-[2rem] transition-all shadow-2xl shadow-brand-500/40 hover:shadow-brand-500/60 active:scale-[0.98] flex items-center justify-center gap-3 md:gap-4 group"
+                                                className="mt-8 md:mt-10 w-full bg-gradient-to-r from-brand-600 to-brand-800 hover:from-brand-700 hover:to-brand-900 text-white font-black uppercase tracking-[0.2em] md:tracking-[0.3em] text-xs sm:text-sm py-4 md:py-7 rounded-[1.2rem] md:rounded-[2rem] transition-all shadow-2xl shadow-brand-500/40 hover:shadow-brand-500/60 active:scale-[0.98] flex items-center justify-center gap-3 md:gap-4 group relative z-10"
                                             >
                                                 Proceed to Dashboard <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform duration-500" />
                                             </button>
