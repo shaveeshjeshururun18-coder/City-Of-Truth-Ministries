@@ -149,7 +149,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
         {/* RIGHT SIDE ACTIONS */}
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Show Register button only if NOT logged in */}
           {!currentUser && (
             <button
@@ -162,7 +162,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             </button>
           )}
 
-          <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white/95 backdrop-blur-md border border-brand-100/70 shadow-[0_14px_30px_-16px_rgba(10,15,60,0.4)]">
+          <div className="flex items-center gap-1 sm:gap-1.5 p-1 sm:p-1.5 rounded-2xl bg-white/95 backdrop-blur-md border border-brand-100/70 shadow-[0_14px_30px_-16px_rgba(10,15,60,0.4)]">
             <button
               onClick={() => currentUser ? setView(ViewState.USER_DASHBOARD) : setView(ViewState.ID_CARD)}
               className={`${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-11 h-11 rounded-2xl shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 border border-blue-300/50 px-3.5 h-10 rounded-2xl shadow-[0_14px_24px_-12px_rgba(37,99,235,0.7)] hover:shadow-[0_18px_28px_-12px_rgba(37,99,235,0.8)] hover:from-blue-700 hover:via-blue-600 hover:to-blue-800'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group`}
@@ -178,18 +178,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
               ) : (
                 <>
                   <CircleUser size={16} className="text-white shrink-0" />
-                  <span className="text-white text-[11px] font-black uppercase tracking-wide">Register</span>
+                  <span className="text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wide">Register</span>
                 </>
               )}
             </button>
 
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="w-11 h-11 rounded-2xl cursor-pointer flex items-center justify-center transition-all duration-300 border border-blue-300/50 bg-gradient-to-r from-blue-700 via-blue-600 to-blue-800 text-white hover:from-blue-800 hover:via-blue-700 hover:to-blue-900 shadow-[0_12px_22px_-12px_rgba(37,99,235,0.75)] hover:shadow-[0_16px_26px_-12px_rgba(37,99,235,0.85)]"
+              className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl cursor-pointer flex items-center justify-center transition-all duration-300 border border-blue-300/50 bg-gradient-to-r from-blue-700 via-blue-600 to-blue-800 text-white hover:from-blue-800 hover:via-blue-700 hover:to-blue-900 shadow-[0_12px_22px_-12px_rgba(37,99,235,0.75)] hover:shadow-[0_16px_26px_-12px_rgba(37,99,235,0.85)]"
               title="Open menu"
               aria-label="Open navigation menu"
             >
-              <Menu size={19} strokeWidth={2.25} className="text-white" />
+              <Menu size={18} strokeWidth={2.25} className="text-white" />
             </button>
           </div>
         </div>
