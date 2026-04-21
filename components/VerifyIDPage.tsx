@@ -20,6 +20,8 @@ const VerifyIDPage = () => {
     const [scannerInitialized, setScannerInitialized] = useState(false);
     const scannerRef = useRef<any>(null);
 
+    const normalizeCotId = (value: string) => value.toUpperCase().replace(/^COT(?!-)/, 'COT-');
+
     const extractMemberId = (payload: string): string | null => {
         if (!payload) return null;
         const trimmed = payload.trim();
@@ -33,7 +35,7 @@ const VerifyIDPage = () => {
             const parsed = JSON.parse(trimmed);
             if (parsed?.id && typeof parsed.id === 'string') return parsed.id.trim();
         } catch (_e) {}
-        if (/^COT-[A-Z0-9-]+$/i.test(trimmed)) return trimmed.toUpperCase();
+        if (/^COT-[A-Z0-9-]+$/i.test(trimmed)) return normalizeCotId(trimmed);
         return null;
     };
 
@@ -42,7 +44,7 @@ const VerifyIDPage = () => {
         const fromPath = text.match(/\/(verify|card)\/([A-Za-z0-9-]+)/i)?.[2];
         if (fromPath) return fromPath;
         const cotMatch = text.match(/\bCOT-?[A-Za-z0-9-]{3,}\b/i)?.[0];
-        if (cotMatch) return cotMatch.toUpperCase().replace(/^COT(?!-)/, 'COT-');
+        if (cotMatch) return normalizeCotId(cotMatch);
         return null;
     };
 
@@ -174,11 +176,11 @@ const VerifyIDPage = () => {
 
         const scanTask = async () => {
             if (isPdf) {
-                try { return await scanPdfFile(file); } catch (_e) {}
+                try { return await scanPdfFile(file); } catch (error) { console.warn('PDF QR scan failed, falling back to text extraction.', error); }
                 return await scanTextLikeFile(file);
             }
             if (isImage) {
-                try { return await scanImageFile(file); } catch (_e) {}
+                try { return await scanImageFile(file); } catch (error) { console.warn('Image QR scan failed, falling back to text extraction.', error); }
                 return await scanTextLikeFile(file);
             }
             return await scanTextLikeFile(file);

@@ -52,6 +52,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         if (!query) return null;
         const exact = users.find((u: any) => searchableKeys.some((key) => normalizeValue(u?.[key]) === query));
         if (exact) return exact;
+        if (query.length < 2) return null;
         return users.find((u: any) => searchableKeys.some((key) => normalizeValue(u?.[key]).includes(query))) || null;
     };
 
@@ -178,11 +179,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
             const scanTask = async () => {
                 if (isPdf) {
-                    try { return await scanPdfFile(file); } catch (_e) {}
+                    try { return await scanPdfFile(file); } catch (error) { console.warn('PDF QR scan failed, falling back to text extraction.', error); }
                     return await extractIdentifierFromFile(file);
                 }
                 if (isImage) {
-                    try { return await scanImageFile(file); } catch (_e) {}
+                    try { return await scanImageFile(file); } catch (error) { console.warn('Image QR scan failed, falling back to text extraction.', error); }
                     return await extractIdentifierFromFile(file);
                 }
                 return await extractIdentifierFromFile(file);
@@ -238,6 +239,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             onLogin(loginId);
         }
     };
+    const heroContainerClass = view === 'login' ? 'h-20 md:h-24 justify-center' : 'h-64 md:h-80 justify-center';
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col relative text-brand-900">
@@ -245,7 +247,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.05] pointer-events-none z-0" />
 
             {/* Header / Hero Area — Royal Navy Variant */}
-            <div className={`${view === 'login' ? 'h-20 md:h-24 justify-center' : 'h-64 md:h-80 justify-center'} bg-gradient-to-br from-brand-900 to-brand-950 relative flex flex-col items-center overflow-hidden flex-shrink-0 px-6`}>
+            <div className={`${heroContainerClass} bg-gradient-to-br from-brand-900 to-brand-950 relative flex flex-col items-center overflow-hidden flex-shrink-0 px-6`}>
                 {/* Back Button */}
                 <button
                     onClick={onBack}
