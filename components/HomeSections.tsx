@@ -289,10 +289,10 @@ export const EntrustCardPreview: React.FC<SectionProps> = ({ setView }) => {
                         </p>
                         <button
                             onClick={() => setView(ViewState.ID_CARD)}
-                            className="group bg-accent-500 text-brand-950 px-12 py-6 rounded-full font-black text-xs uppercase tracking-[0.2em] hover:bg-white transition-all shadow-[0_20px_40px_-10px_rgba(245,158,11,0.3)] flex items-center gap-4"
+                            className="group w-full max-w-2xl bg-accent-500 text-brand-950 px-7 sm:px-10 py-5 sm:py-6 rounded-full font-black text-[11px] sm:text-xs uppercase tracking-[0.25em] hover:bg-white transition-all shadow-[0_20px_40px_-10px_rgba(245,158,11,0.3)] flex items-center justify-between gap-3"
                         >
-                            Claim Your Card Now
-                            <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform" />
+                            <span className="flex-1 text-center sm:text-left">Claim Your Card Now</span>
+                            <ArrowRight size={22} className="shrink-0 group-hover:translate-x-2 transition-transform" />
                         </button>
                     </div>
 
