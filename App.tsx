@@ -1449,7 +1449,7 @@ const App: React.FC = () => {
             initial={{ opacity: 0, scale: 0.9, y: 50 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 50 }}
-            className="fixed bottom-4 right-4 md:bottom-10 md:right-10 z-[100] w-[calc(100%-2rem)] md:w-full max-w-lg"
+            className="fixed bottom-4 right-4 md:bottom-10 md:right-10 z-[100] w-[calc(100%-2rem)] md:w-full max-w-md md:max-w-lg"
           >
             <div className="bg-white/95 backdrop-blur-3xl rounded-[2.5rem] p-4 shadow-2xl shadow-brand-900/40 border-4 border-white">
               <MessageFromLeader onClose={() => setShowLeaderMessage(false)} className="!p-0 !m-0 !py-0" />

@@ -20,7 +20,7 @@ export const MessageFromLeader: React.FC<MessageFromLeaderProps> = ({
     onClose
 }) => {
     return (
-        <div className={`relative w-full max-w-2xl mx-auto px-4 py-8 md:p-8 my-8 ${className}`}>
+        <div className={`relative w-full max-w-2xl mx-auto px-3 py-4 sm:px-4 sm:py-6 md:p-8 my-4 sm:my-6 md:my-8 ${className}`}>
             {onClose && (
                 <button
                     onClick={onClose}
@@ -43,10 +43,10 @@ export const MessageFromLeader: React.FC<MessageFromLeaderProps> = ({
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6 }}
-                className="bg-white/95 backdrop-blur-sm text-gray-800 rounded-xl shadow-2xl p-6 md:p-8 relative overflow-hidden border border-amber-100"
+                className="bg-white/95 backdrop-blur-sm text-gray-800 rounded-xl shadow-2xl p-4 sm:p-5 md:p-8 relative overflow-hidden border border-amber-100"
             >
                 {/* Ornamental Corners */}
-                <div className="absolute top-0 left-0 w-16 h-16 pointer-events-none">
+                <div className="absolute top-0 left-0 w-12 h-12 md:w-16 md:h-16 pointer-events-none">
                     <svg viewBox="0 0 100 100" className="w-full h-full text-gray-800 fill-current opacity-80">
                         <path d="M10,10 L30,10 C35,10 40,15 40,20 L40,25 C40,22 38,20 35,20 L15,20 L15,40 C15,45 10,50 10,50 Z M10,10 Q20,20 30,30" fill="none" stroke="currentColor" strokeWidth="2" />
                         <path d="M10 10 L 10 30 Q 10 40 20 40 L 30 40" stroke="currentColor" fill="none" strokeWidth="3" />
@@ -54,7 +54,7 @@ export const MessageFromLeader: React.FC<MessageFromLeaderProps> = ({
                         <path d="M15 15 C 25 15 35 25 35 35" stroke="currentColor" fill="none" strokeWidth="1" />
                     </svg>
                 </div>
-                <div className="absolute top-0 right-0 w-16 h-16 pointer-events-none transform rotate-90">
+                <div className="absolute top-0 right-0 w-12 h-12 md:w-16 md:h-16 pointer-events-none transform rotate-90">
                     <svg viewBox="0 0 100 100" className="w-full h-full text-gray-800 fill-current opacity-80">
                         <path d="M10,10 L30,10 C35,10 40,15 40,20 L40,25 C40,22 38,20 35,20 L15,20 L15,40 C15,45 10,50 10,50 Z M10,10 Q20,20 30,30" fill="none" stroke="currentColor" strokeWidth="2" />
                         <path d="M10 10 L 10 30 Q 10 40 20 40 L 30 40" stroke="currentColor" fill="none" strokeWidth="3" />
@@ -62,7 +62,7 @@ export const MessageFromLeader: React.FC<MessageFromLeaderProps> = ({
                         <path d="M15 15 C 25 15 35 25 35 35" stroke="currentColor" fill="none" strokeWidth="1" />
                     </svg>
                 </div>
-                <div className="absolute bottom-0 right-0 w-16 h-16 pointer-events-none transform rotate-180">
+                <div className="absolute bottom-0 right-0 w-12 h-12 md:w-16 md:h-16 pointer-events-none transform rotate-180">
                     <svg viewBox="0 0 100 100" className="w-full h-full text-gray-800 fill-current opacity-80">
                         <path d="M10,10 L30,10 C35,10 40,15 40,20 L40,25 C40,22 38,20 35,20 L15,20 L15,40 C15,45 10,50 10,50 Z M10,10 Q20,20 30,30" fill="none" stroke="currentColor" strokeWidth="2" />
                         <path d="M10 10 L 10 30 Q 10 40 20 40 L 30 40" stroke="currentColor" fill="none" strokeWidth="3" />
@@ -70,7 +70,7 @@ export const MessageFromLeader: React.FC<MessageFromLeaderProps> = ({
                         <path d="M15 15 C 25 15 35 25 35 35" stroke="currentColor" fill="none" strokeWidth="1" />
                     </svg>
                 </div>
-                <div className="absolute bottom-0 left-0 w-16 h-16 pointer-events-none transform -rotate-90">
+                <div className="absolute bottom-0 left-0 w-12 h-12 md:w-16 md:h-16 pointer-events-none transform -rotate-90">
                     <svg viewBox="0 0 100 100" className="w-full h-full text-gray-800 fill-current opacity-80">
                         <path d="M10,10 L30,10 C35,10 40,15 40,20 L40,25 C40,22 38,20 35,20 L15,20 L15,40 C15,45 10,50 10,50 Z M10,10 Q20,20 30,30" fill="none" stroke="currentColor" strokeWidth="2" />
                         <path d="M10 10 L 10 30 Q 10 40 20 40 L 30 40" stroke="currentColor" fill="none" strokeWidth="3" />
@@ -80,19 +80,19 @@ export const MessageFromLeader: React.FC<MessageFromLeaderProps> = ({
                 </div>
 
                 {/* Content */}
-                <div className="flex flex-col items-center text-center px-2 md:px-6 py-4">
-                    <h2 className="text-2xl font-serif font-bold mb-6 tracking-wide text-gray-900 border-b border-gray-200 pb-4 w-full">
+                <div className="flex flex-col items-center text-center px-1 sm:px-2 md:px-6 py-3 sm:py-4">
+                    <h2 className="text-xl sm:text-2xl font-serif font-bold mb-4 sm:mb-6 tracking-wide text-gray-900 border-b border-gray-200 pb-3 sm:pb-4 w-full">
                         {title}
                     </h2>
 
-                    <div className="space-y-4 text-gray-700 leading-relaxed font-sans text-lg">
-                        <p className="font-semibold text-xl text-gray-900 mb-2">{greeting}</p>
+                    <div className="space-y-3 sm:space-y-4 text-gray-700 leading-relaxed font-sans text-base sm:text-lg">
+                        <p className="font-semibold text-lg sm:text-xl text-gray-900 mb-1 sm:mb-2">{greeting}</p>
                         <p>{body}</p>
                     </div>
 
-                    <div className="mt-8 pt-6 border-t border-gray-100 w-full text-left">
+                    <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-100 w-full text-left">
                         <p className="text-gray-500 text-sm">Regards,</p>
-                        <p className="text-gray-900 font-serif font-bold text-lg">{signature}</p>
+                        <p className="text-gray-900 font-serif font-bold text-base sm:text-lg">{signature}</p>
                     </div>
                 </div>
 
