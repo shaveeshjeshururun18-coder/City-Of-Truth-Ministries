@@ -482,21 +482,38 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-4">Tap QR to open scanner</p>
                                 </div>
                             ) : (
-                                <div className="py-8 flex flex-col items-center text-center">
-                                    <ShieldCheck size={48} className="text-slate-200 mb-4" />
-                                    <p className="font-bold text-slate-500">QR Locked</p>
-                                    <p className="text-xs text-slate-400 mt-1">Pending admin verification</p>
+                                <div className="flex flex-col items-center text-center">
+                                    <div className="relative rounded-2xl overflow-hidden border border-slate-200 shadow-md">
+                                        <div className="blur-[3px] pointer-events-none select-none" style={{ transform: 'scale(0.72)', transformOrigin: 'top center', height: '155px', width: '245px' }}>
+                                            <EntrustCard3D
+                                                name={displayProfile.name}
+                                                email={user.email}
+                                                location={user.location}
+                                                emergency={user.emergency}
+                                                uniqueId={displayProfile.id}
+                                                memberSince={user.memberSince}
+                                                photo={displayProfile.photo}
+                                                status={user.status}
+                                                isStatic={true}
+                                                isBackSide={false}
+                                            />
+                                        </div>
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 gap-2">
+                                            <ShieldCheck size={28} className="text-amber-300" />
+                                            <p className="font-black text-white text-xs uppercase tracking-widest">Not Verified</p>
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 mt-2">Pending admin verification</p>
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    {/* Edit Photo button below card + QR */}
+                    {/* Edit Details button below card + QR */}
                     <div className="flex justify-center pb-2">
-                        <label className="flex items-center gap-2 cursor-pointer bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 text-slate-500 hover:text-brand-600 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all shadow-sm">
-                            <Camera size={13} /> Edit Photo
-                            <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-                        </label>
+                        <button onClick={startEditing} className="flex items-center gap-2 cursor-pointer bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 text-slate-500 hover:text-brand-600 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all shadow-sm">
+                            <Edit2 size={13} /> Edit Details
+                        </button>
                     </div>
 
                     {/* Action buttons row (mAadhaar style) */}
@@ -560,7 +577,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     </button>
 
                     {/* Jewish Calendar — amber (full width row) */}
-                    {user.status === 'Active' && activeProfileId === user.id && (
+                    {activeProfileId === user.id && (
                         <button onClick={() => setIsCalendarModalOpen(true)}
                             className="col-span-2 bg-gradient-to-br from-[#8B4500] via-[#C07000] to-[#D97706] text-white rounded-[22px] p-5 text-left shadow-xl hover:brightness-110 transition-all relative overflow-hidden group">
                             <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Calendar size={22} /></div>
@@ -591,21 +608,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             📱
                         </div>
                     </a>
-
-                    <label className="col-span-2 bg-white rounded-[22px] p-5 text-left shadow-md border border-slate-200 hover:border-brand-300 hover:shadow-lg transition-all cursor-pointer block">
-                        <div className="w-11 h-11 bg-brand-50 text-brand-600 rounded-xl flex items-center justify-center mb-3"><UploadCloud size={22} /></div>
-                        <p className="font-bold text-base leading-tight mb-1 text-slate-900">Upload Entrust File</p>
-                        <p className="text-slate-500 text-[11px] mb-3">Upload Entrust Card, QR screenshot, PDF, or any verification file format.</p>
-                        <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-brand-600 text-white rounded-xl px-4 py-2">
-                            <UploadCloud size={12} /> Upload File
-                        </span>
-                        {user.verificationDoc?.name && (
-                            <p className="mt-3 text-[10px] text-emerald-600 font-bold truncate">
-                                Last uploaded: {user.verificationDoc.name}
-                            </p>
-                        )}
-                        <input type="file" className="hidden" onChange={handleVerificationDocUpload} />
-                    </label>
                 </div>
 
                 </div>
@@ -665,21 +667,21 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 </div>
             )}
 
-            {/* ── EDIT PHOTO MODAL (Photo-only edit) ── */}
+            {/* ── EDIT DETAILS MODAL ── */}
             {isEditing && (
                 <div className="fixed inset-0 z-[70] flex flex-col justify-end sm:justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white rounded-[2rem] p-7 max-w-md w-full mx-auto shadow-2xl">
+                    <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white rounded-[2rem] p-7 max-w-md w-full mx-auto shadow-2xl overflow-y-auto max-h-[90vh]">
                         <div className="flex items-center justify-between mb-5">
                             <h3 className="text-lg font-serif font-bold flex items-center gap-2 text-brand-950">
-                                <Camera size={18} className="text-brand-500" /> Update Profile Photo
+                                <Edit2 size={18} className="text-brand-500" /> Edit Details
                             </h3>
                             <button onClick={cancelEditing} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
                         </div>
 
-                        {/* Current photo preview */}
-                        <div className="flex flex-col items-center gap-4 mb-6">
+                        {/* Photo section — no admin approval needed for crop/upload */}
+                        <div className="flex flex-col items-center gap-3 mb-6">
                             <div className="relative group">
-                                <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-slate-100 shadow-lg">
+                                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-slate-100 shadow-lg">
                                     <img
                                         src={displayProfile.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayProfile.name)}&background=1e1b4b&color=fff&bold=true&size=256`}
                                         alt={displayProfile.name}
@@ -687,21 +689,49 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                     />
                                 </div>
                                 <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-all">
-                                    <Camera size={24} className="text-white" />
+                                    <Camera size={20} className="text-white" />
                                     <input type="file" accept="image/*" className="hidden" onChange={(e) => { handlePhotoUpload(e); cancelEditing(); }} />
                                 </label>
                             </div>
-                            <p className="text-slate-500 text-sm text-center">Hover/tap your photo to upload a new one</p>
+                            <p className="text-slate-400 text-xs text-center">Tap photo to update — no approval needed</p>
                         </div>
 
-                        <label className="flex items-center justify-center gap-2 w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-4 rounded-2xl cursor-pointer transition-all shadow-lg">
-                            <Camera size={18} /> Choose New Photo
-                            <input type="file" accept="image/*" className="hidden" onChange={(e) => { handlePhotoUpload(e); cancelEditing(); }} />
-                        </label>
+                        <form onSubmit={(e) => {
+                            e.preventDefault();
+                            // Flag that details edit requires admin approval
+                            onUpdate({ ...user, ...formData, _pendingApproval: true } as User);
+                            setIsEditing(false);
+                            alert("✅ Edit request submitted. Changes will be reflected after admin approval.");
+                        }} className="space-y-4">
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Full Name</label>
+                                <input type="text" value={formData.name ?? user.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Phone / Contact</label>
+                                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl overflow-hidden focus-within:border-brand-500">
+                                    <span className="px-3 py-3 text-sm font-bold text-slate-500 bg-slate-100 border-r border-slate-200 shrink-0">+91</span>
+                                    <input type="tel" value={(formData.emergency ?? user.emergency || '').replace(/^\+91/, '')} onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 10); setFormData(p => ({ ...p, emergency: `+91${v}`, phone: `+91${v}` })); }} className="flex-1 px-3 py-3 bg-transparent outline-none text-sm font-medium text-slate-800" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Email Address</label>
+                                <input type="email" value={formData.email ?? user.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widests block mb-1">Location</label>
+                                <input type="text" value={formData.location ?? user.location} onChange={e => setFormData(p => ({ ...p, location: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                            </div>
 
-                        <p className="text-center text-xs text-slate-400 mt-3">
-                            🔒 Other details (name, ID, email) can only be changed by the admin.
-                        </p>
+                            <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700 font-medium">
+                                ⚠️ Detail changes require admin approval and will be reflected after review.
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <button type="button" onClick={cancelEditing} className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">Cancel</button>
+                                <button type="submit" className="flex-1 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm transition-all shadow-lg shadow-brand-500/20">Submit for Approval</button>
+                            </div>
+                        </form>
                     </motion.div>
                 </div>
             )}

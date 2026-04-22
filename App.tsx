@@ -72,6 +72,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { HebrewResources } from './components/HebrewResources';
 import { QRVerifyPage } from './components/QRVerifyPage';
 import { DonationModal } from './components/DonationModal';
+import { PastorPage } from './components/PastorPage';
 
 import AIChatAssistant from './components/AIChatAssistant';
 import VerifyIDPage from './components/VerifyIDPage';
@@ -356,6 +357,7 @@ const App: React.FC = () => {
     },
     { label: 'ALPHABETS', view: ViewState.HEBREW },
     { label: 'VALPARAI', view: ViewState.ABOUT_VALPARAI },
+    { label: 'PASTOR', view: ViewState.PASTOR },
     { label: 'MINISTRIES', view: ViewState.MINISTRIES },
     { label: 'MENORAH', view: ViewState.GOLDEN_MENORAH },
     { label: 'BARUCH HASHEM', view: ViewState.BARUCH_HASHEM },
@@ -619,11 +621,6 @@ const App: React.FC = () => {
     const user = match?.user;
 
     if (user) {
-      const matchedById = (user.id || '').trim().toLowerCase() === searchId;
-      if (!matchedById && matches.length > 1) {
-        alert("Multiple accounts match this detail. Please login with your unique Member ID (COT-XXXX).");
-        return;
-      }
       setCurrentUser(user);
       setSelectedDashboardProfileId(match?.profileId || user.id);
       setCurrentView(ViewState.USER_DASHBOARD);
@@ -1120,6 +1117,12 @@ const App: React.FC = () => {
           {currentView === ViewState.ID_CARD && (
             <motion.div key="id-card" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <WorshipperIDCard onRegister={handleRegister} onLogin={() => navigate('/auth?view=login')} />
+            </motion.div>
+          )}
+
+          {currentView === ViewState.PASTOR && (
+            <motion.div key="pastor" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <PastorPage />
             </motion.div>
           )}
 
