@@ -22,7 +22,8 @@ export enum ViewState {
   MENORAH_FLAG = 'MENORAH_FLAG',
   USER_DASHBOARD = 'USER_DASHBOARD',
   ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
-  VERIFY_ID = 'VERIFY_ID'
+  VERIFY_ID = 'VERIFY_ID',
+  PASTOR = 'PASTOR'
 }
 
 export interface NavItem {

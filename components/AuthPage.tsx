@@ -533,7 +533,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                                 )}
                                             </div>
 
-                                            {/* Entrust Card Preview */}
+                                            {/* Entrust Card Preview — only for verified (Active) members */}
+                                            {previewUser.status === 'Active' && (
                                             <div className="mt-8 relative z-10">
                                                 <div className="flex items-center gap-2 mb-4">
                                                     <span className="flex-1 h-px bg-brand-100" />
@@ -558,6 +559,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                                     </div>
                                                 </div>
                                             </div>
+                                            )}
 
                                             <button
                                                 onClick={handleProceed}
@@ -605,21 +607,21 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     {/* Help / Forgot ID View */}
                     {view === 'forgot-id' && (
                         <motion.div key="forgot" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto px-2">
-                            <div className="bg-gradient-to-br from-brand-700 to-brand-900 rounded-[2rem] sm:rounded-[4rem] p-8 sm:p-16 text-center text-white shadow-[0_50px_100px_rgba(59,130,246,0.15)] relative overflow-hidden">
+                            <div className="bg-gradient-to-br from-brand-700 to-brand-900 rounded-[2rem] sm:rounded-[4rem] p-6 sm:p-12 text-center text-white shadow-[0_50px_100px_rgba(59,130,246,0.15)] relative overflow-hidden">
                                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10" />
                                 <div className="absolute -top-20 -right-20 w-64 h-64 bg-white/10 rounded-full" />
 
-                                <div className="w-24 h-24 bg-white/10 rounded-[2rem] flex items-center justify-center mx-auto mb-10 border border-white/20 shadow-xl"><Phone size={44} /></div>
-                                <h3 className="text-4xl font-serif font-black mb-6 tracking-tight leading-tight">Need Assistance?</h3>
-                                <p className="text-brand-50 text-lg font-light mb-12 opacity-80 italic">Connect with our Ministry Support for manual account verification.</p>
+                                <div className="w-16 h-16 sm:w-24 sm:h-24 bg-white/10 rounded-[1.5rem] sm:rounded-[2rem] flex items-center justify-center mx-auto mb-6 sm:mb-10 border border-white/20 shadow-xl"><Phone size={32} className="sm:w-11 sm:h-11" /></div>
+                                <h3 className="text-2xl sm:text-4xl font-serif font-black mb-4 sm:mb-6 tracking-tight leading-tight">Need Assistance?</h3>
+                                <p className="text-brand-50 text-sm sm:text-lg font-light mb-8 sm:mb-12 opacity-80 italic">Connect with our Ministry Support for manual account verification.</p>
 
-                                <a href="tel:+918056125478" className="inline-flex items-center gap-3 px-6 sm:px-12 py-4 sm:py-6 bg-white text-brand-900 rounded-[2rem] font-black text-lg sm:text-2xl shadow-2xl hover:scale-105 transition-all group active:scale-95 whitespace-nowrap">
-                                    <Phone size={20} className="group-hover:rotate-12 transition-transform shrink-0 sm:w-6 sm:h-6" /> +91 80561 25478
+                                <a href="tel:+918056125478" className="inline-flex items-center gap-3 px-6 py-4 sm:py-6 bg-white text-brand-900 rounded-[1.5rem] sm:rounded-[2rem] font-black text-lg sm:text-2xl shadow-2xl hover:scale-105 transition-all group active:scale-95">
+                                    <Phone size={20} className="group-hover:rotate-12 transition-transform shrink-0" /> <span className="break-all">+91 80561 25478</span>
                                 </a>
 
-                                <div className="mt-12 pt-8 border-t border-white/10 text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Sacred Support Office</div>
+                                <div className="mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-white/10 text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Sacred Support Office</div>
                             </div>
-                            <button onClick={() => setView('login')} className="block mt-12 mx-auto text-brand-600 hover:text-brand-800 font-black text-xs uppercase tracking-widest transition-all">← Back to Verification</button>
+                            <button onClick={() => setView('login')} className="block mt-8 sm:mt-12 mx-auto text-brand-600 hover:text-brand-800 font-black text-xs uppercase tracking-widest transition-all">← Back to Verification</button>
                         </motion.div>
                     )}
                 </AnimatePresence>

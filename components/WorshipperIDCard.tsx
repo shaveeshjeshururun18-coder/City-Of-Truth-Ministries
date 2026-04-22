@@ -496,9 +496,12 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                     <input name="name" value={formData.name} onChange={handleInputChange} type="text" className="w-full px-4 md:px-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl outline-none transition-all text-sm font-bold text-brand-950 focus:ring-2 focus:ring-accent-500/20" />
                                 </div>
 
-                                <div className="space-y-2">
+                <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">WhatsApp Number</label>
-                                    <input name="emergency" value={formData.emergency} onChange={handleInputChange} type="tel" className="w-full px-4 md:px-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl outline-none transition-all text-sm font-bold text-brand-950 focus:ring-2 focus:ring-accent-500/20" />
+                                    <div className="flex items-center w-full bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-accent-500/20">
+                                        <span className="px-3 py-3 md:py-4 text-sm font-bold text-slate-600 bg-slate-100 border-r border-slate-200 shrink-0">+91</span>
+                                        <input name="emergency" value={formData.emergency} onChange={handleInputChange} type="tel" placeholder="10-digit number" className="flex-1 px-3 md:px-4 py-3 md:py-4 bg-transparent outline-none text-sm font-bold text-brand-950" />
+                                    </div>
                                 </div>
                                 {/* Password field removed as requested. Password will be auto-set to Phone Number */}
                                 {/* Email field is now optional */}
@@ -558,7 +561,13 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                                 return;
                                             }
 
-                                            onRegister({ ...formData, password: finalPassword, uniqueId, photo });
+                                            // Validate email if provided
+                                            if (formData.email && !formData.email.includes('@')) {
+                                                alert("Please enter a valid email address containing '@'.");
+                                                return;
+                                            }
+
+                                            onRegister({ ...formData, emergency: `+91${formData.emergency}`, phone: `+91${formData.emergency}`, password: finalPassword, uniqueId, photo });
                                         }
                                     }}
                                     variant="primary"
