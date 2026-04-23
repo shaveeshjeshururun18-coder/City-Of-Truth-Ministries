@@ -20,7 +20,7 @@ Core Guidelines:
 - For ministry-specific questions, reference our location in Valparai and our focus on truth-centered teaching
 - When unsure, acknowledge limitations humbly and point users to pastoral guidance`;
 
-// Default model: OpenAI GPT-4o Mini (reliable & fast)
+// Default model: OpenAI GPT-4o Mini (reliable, fast, and supports vision/image_url content)
 const DEFAULT_MODEL = 'openai/gpt-4o-mini';
 
 /**

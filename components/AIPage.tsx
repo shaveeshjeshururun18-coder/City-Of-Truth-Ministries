@@ -76,8 +76,9 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
         setMessages(prev => [...prev, userMsg]);
 
         try {
-            // Extract base64 from data URL
-            const base64 = imagePreview.split(',')[1];
+            // Extract base64 from data URL safely
+            const commaIdx = imagePreview.indexOf(',');
+            const base64 = commaIdx >= 0 ? imagePreview.slice(commaIdx + 1) : imagePreview;
             const mimeType = imageFile.type || 'image/jpeg';
             const analysis = await analyzeImageWithAI(base64, mimeType);
             setMessages(prev => [...prev, { role: 'assistant', content: analysis }]);
@@ -173,6 +174,8 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
                                 {commonQuestions.map((q, i) => (
                                     <button
                                         key={i}
+                                        // Always send the English prompt so the AI understands it reliably;
+                                        // the translated label is shown in the UI for the user.
                                         onClick={() => handleAsk(undefined, q.en)}
                                         className="text-left p-4 rounded-xl bg-white border border-slate-200 shadow-sm hover:shadow-md hover:border-brand-200 hover:bg-brand-50/30 transition-all text-sm group"
                                     >
