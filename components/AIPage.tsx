@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Zap, Sparkles, MessageCircle, User, Trash2, ChevronLeft } from 'lucide-react';
-import { streamSpatulaAIResponse, generateSpatulaAIResponse } from '../services/openRouterService';
+import { Send, Zap, Sparkles, MessageCircle, User, Trash2, ChevronLeft, ImagePlus, X } from 'lucide-react';
+import { streamSpatulaAIResponse, generateSpatulaAIResponse, analyzeImageWithAI } from '../services/openRouterService';
+import { useLanguage } from './LanguageContext';
 
 interface ChatMessage {
     role: 'user' | 'assistant';
@@ -25,7 +26,11 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
     });
     const [isLoading, setIsLoading] = useState(false);
     const [useStreaming, setUseStreaming] = useState(true);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [imageFile, setImageFile] = useState<File | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const { t } = useLanguage();
 
     // Persist messages to localStorage
     useEffect(() => {
@@ -47,6 +52,43 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
     const handleClearChat = () => {
         setMessages([]);
         setPrompt("");
+        setImagePreview(null);
+        setImageFile(null);
+    };
+
+    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImageFile(file);
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            setImagePreview(ev.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+        // Reset input so the same file can be re-selected
+        e.target.value = '';
+    };
+
+    const handleImageAnalyze = async () => {
+        if (!imageFile || !imagePreview) return;
+        setIsLoading(true);
+        const userMsg: ChatMessage = { role: 'user', content: t('ai.imageUploaded') };
+        setMessages(prev => [...prev, userMsg]);
+
+        try {
+            // Extract base64 from data URL
+            const base64 = imagePreview.split(',')[1];
+            const mimeType = imageFile.type || 'image/jpeg';
+            const analysis = await analyzeImageWithAI(base64, mimeType);
+            setMessages(prev => [...prev, { role: 'assistant', content: analysis }]);
+        } catch (err) {
+            console.error('Image analysis error:', err);
+            setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I could not analyze the image. Please try again.' }]);
+        } finally {
+            setIsLoading(false);
+            setImagePreview(null);
+            setImageFile(null);
+        }
     };
 
     const handleAsk = async (e?: React.FormEvent, customPrompt?: string) => {
@@ -87,11 +129,11 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
     };
 
     const commonQuestions = [
-        "Meaning of Grace",
-        "Short Prayer for Peace",
-        "John 3:16 Explanation",
-        "Psalm 23 for today",
-        "How to forgive?"
+        { key: 'q.grace', en: "Meaning of Grace" },
+        { key: 'q.prayer', en: "Short Prayer for Peace" },
+        { key: 'q.john', en: "John 3:16 Explanation" },
+        { key: 'q.psalm', en: "Psalm 23 for today" },
+        { key: 'q.forgive', en: "How to forgive?" },
     ];
 
     return (
@@ -107,8 +149,8 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
                         <ChevronLeft size={24} />
                     </button>
                     <div className="flex flex-col">
-                        <span className="font-bold text-slate-900 leading-none">Divine AI Assistant</span>
-                        <span className="text-[10px] text-brand-600 font-bold uppercase tracking-widest mt-1">Satyar Margam Guidance</span>
+                        <span className="font-bold text-slate-900 leading-none">{t('ai.title')}</span>
+                        <span className="text-[10px] text-brand-600 font-bold uppercase tracking-widest mt-1">{t('ai.subtitle')}</span>
                     </div>
                 </header>
             )}
@@ -123,19 +165,19 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
                             <div className="w-16 h-16 bg-white rounded-2xl shadow-lg border border-slate-100 flex items-center justify-center mb-6">
                                 <Sparkles className="text-brand-600" size={32} />
                             </div>
-                            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">Welcome to City of Truth AI</h2>
-                            <p className="text-slate-500 mb-8 max-w-md">Ask any question about our ministry, faith, or the Bible.</p>
+                            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">{t('ai.welcome')}</h2>
+                            <p className="text-slate-500 mb-8 max-w-md">{t('ai.description')}</p>
 
                             {/* Quick Questions Grid */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl px-4">
                                 {commonQuestions.map((q, i) => (
                                     <button
                                         key={i}
-                                        onClick={() => handleAsk(undefined, q)}
+                                        onClick={() => handleAsk(undefined, q.en)}
                                         className="text-left p-4 rounded-xl bg-white border border-slate-200 shadow-sm hover:shadow-md hover:border-brand-200 hover:bg-brand-50/30 transition-all text-sm group"
                                     >
-                                        <div className="font-semibold text-slate-700 group-hover:text-brand-700">{q}</div>
-                                        <div className="text-xs text-slate-400 mt-1">Get spiritual insight</div>
+                                        <div className="font-semibold text-slate-700 group-hover:text-brand-700">{t(q.key)}</div>
+                                        <div className="text-xs text-slate-400 mt-1">{t('ai.insight')}</div>
                                     </button>
                                 ))}
                             </div>
@@ -165,7 +207,7 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
                                     <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                                         {/* Name Label */}
                                         <span className="text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wide">
-                                            {msg.role === 'user' ? 'You' : 'Divine AI'}
+                                            {msg.role === 'user' ? t('ai.you') : t('ai.assistant')}
                                         </span>
 
                                         <div className={`text-[15px] leading-relaxed whitespace-pre-wrap shadow-sm ${msg.role === 'user' ? 'bg-brand-600 text-white rounded-2xl rounded-tr-sm px-5 py-3' : 'bg-white border border-slate-100 text-slate-700 rounded-2xl rounded-tl-sm px-6 py-4'}`}>
@@ -196,15 +238,59 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
 
             {/* Input Area - Fixed Bottom */}
             <div className="shrink-0 p-4 bg-white/80 backdrop-blur-md border-t border-slate-100">
+                {/* Image preview strip */}
+                {imagePreview && (
+                    <div className="max-w-3xl mx-auto mb-3 flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2">
+                        <img src={imagePreview} alt="Selected" className="w-12 h-12 object-cover rounded-xl border border-slate-200 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-slate-700 truncate">{imageFile?.name}</p>
+                            <p className="text-[10px] text-slate-400">{t('ai.analyzeImage')}</p>
+                        </div>
+                        <button
+                            onClick={handleImageAnalyze}
+                            disabled={isLoading}
+                            className="px-3 py-1.5 bg-brand-600 text-white text-xs font-bold rounded-xl hover:bg-brand-700 transition-colors disabled:opacity-50 whitespace-nowrap"
+                        >
+                            {t('ai.analyzeImage')}
+                        </button>
+                        <button
+                            onClick={() => { setImagePreview(null); setImageFile(null); }}
+                            className="p-1 rounded-full hover:bg-slate-200 text-slate-400 transition-colors"
+                            aria-label="Remove image"
+                        >
+                            <X size={14} />
+                        </button>
+                    </div>
+                )}
+
                 <div className="max-w-3xl mx-auto flex gap-3 items-center">
                     {/* Clear Chat Button */}
                     <button
                         onClick={handleClearChat}
                         className="p-3 rounded-full bg-slate-100 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
-                        title="Clear Chat History"
+                        title={t('ai.clearChat')}
                     >
                         <Trash2 size={18} />
                     </button>
+
+                    {/* Image Upload Button */}
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isLoading}
+                        className="p-3 rounded-full bg-slate-100 text-slate-400 hover:bg-brand-50 hover:text-brand-600 transition-colors disabled:opacity-40"
+                        title={t('ai.analyzeImage')}
+                        aria-label={t('ai.analyzeImage')}
+                    >
+                        <ImagePlus size={18} />
+                    </button>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageSelect}
+                        aria-label="Upload image for analysis"
+                    />
 
                     <form
                         onSubmit={handleAsk}
@@ -214,7 +300,7 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
                             type="text"
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
-                            placeholder="Ask a question..."
+                            placeholder={t('ai.placeholder')}
                             className="w-full bg-transparent text-slate-800 px-5 py-4 pr-12 outline-none placeholder:text-slate-400 text-base"
                         />
                         <button
@@ -227,7 +313,7 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
                     </form>
                 </div>
                 <p className="text-center text-[10px] text-slate-400 mt-3 font-medium">
-                    AI can make mistakes. Verify important information.
+                    {t('ai.disclaimer')}
                 </p>
             </div>
 
