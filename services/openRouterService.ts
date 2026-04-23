@@ -20,7 +20,7 @@ Core Guidelines:
 - For ministry-specific questions, reference our location in Valparai and our focus on truth-centered teaching
 - When unsure, acknowledge limitations humbly and point users to pastoral guidance`;
 
-// Default model: OpenAI GPT-4o Mini (reliable & fast)
+// Default model: OpenAI GPT-4o Mini (reliable, fast, and supports vision/image_url content)
 const DEFAULT_MODEL = 'openai/gpt-4o-mini';
 
 /**
@@ -84,6 +84,55 @@ export async function streamSpatulaAIResponse(
         throw new Error('Failed to stream AI response. Please try again.');
     }
 }
+/**
+ * Analyze an image and return a text description / extracted text
+ */
+export async function analyzeImageWithAI(
+    base64Image: string,
+    mimeType: string = 'image/jpeg'
+): Promise<string> {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://cityoftruth.com',
+            'X-Title': 'City of Truth Ministries AI',
+        },
+        body: JSON.stringify({
+            model: DEFAULT_MODEL,
+            messages: [
+                { role: 'system', content: SYSTEM_PROMPT },
+                {
+                    role: 'user',
+                    content: [
+                        {
+                            type: 'image_url',
+                            image_url: { url: `data:${mimeType};base64,${base64Image}` },
+                        },
+                        {
+                            type: 'text',
+                            text: 'Please analyze this image. Extract and share any text you see in it (OCR). Describe what is shown. If the image contains scripture, prayers, or ministry content, provide relevant spiritual context.',
+                        },
+                    ],
+                },
+            ],
+        }),
+    });
+
+    if (!response.ok) {
+        throw new Error(`Image analysis failed: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    if (typeof content === 'string') return content;
+    if (Array.isArray(content)) {
+        return content.map((p: any) => (typeof p === 'string' ? p : p.text ?? '')).join('');
+    }
+    return 'Unable to analyze the image. Please try again.';
+}
+
 /**
  * Analyze a Hebrew word and return structured data (meanings, syllables, spiritual significance)
  */

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ViewState, NavItem } from '../types';
 import { Button } from './Button';
 import { User as UserType } from '../types';
+import { useLanguage, NAV_LABEL_TO_KEY } from './LanguageContext';
 
 interface NavbarProps {
   currentView: ViewState;
@@ -54,6 +55,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
   const [isScrolled, setIsScrolled] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const { language, setLanguage, t } = useLanguage();
+
+  const translateLabel = (label: string) => {
+    const key = NAV_LABEL_TO_KEY[label];
+    return key ? t(key) : label;
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -111,7 +118,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                     : 'text-slate-600 hover:text-brand-600'
                     }`}
                 >
-                  {item.label}
+                  {translateLabel(item.label)}
                   {hasSubmenu && <ChevronDown size={12} className={`transition-transform duration-300 ${desktopHoverMenu === item.label ? 'rotate-180' : ''}`} />}
                 </button>
 
@@ -135,7 +142,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                             className="w-full text-left px-5 py-2.5 text-[9px] font-black text-slate-500 hover:bg-brand-50 hover:text-brand-600 transition-all uppercase tracking-widest flex items-center gap-2 group"
                           >
                             <div className="w-1 h-1 rounded-full bg-slate-200 group-hover:bg-brand-400" />
-                            {sub.label}
+                            {translateLabel(sub.label)}
                           </button>
                         ))}
                       </motion.div>
@@ -150,6 +157,17 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
         {/* RIGHT SIDE ACTIONS */}
 
         <div className="flex items-center gap-1.5 sm:gap-2 ml-1 sm:ml-2">
+          {/* Language Toggle */}
+          <button
+            onClick={() => setLanguage(language === 'en' ? 'ta' : 'en')}
+            className="hidden sm:flex items-center gap-1 px-2.5 h-9 rounded-xl border border-slate-200 bg-white text-slate-600 text-[11px] font-bold transition-all hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50 whitespace-nowrap"
+            title={language === 'en' ? 'Switch to Tamil' : 'Switch to English'}
+            aria-label="Toggle language"
+          >
+            <Languages size={13} className="shrink-0" />
+            <span>{language === 'en' ? 'தமிழ்' : 'EN'}</span>
+          </button>
+
           {/* Show Register button only if NOT logged in */}
           {!currentUser && (
             <button
@@ -312,7 +330,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                           <span className={isMobileActive ? 'text-[#5D5FEF]' : 'text-gray-400'}>
                             {getIcon(item.view)}
                           </span>
-                          <span className="font-bold tracking-wide uppercase text-[11px]">{item.label}</span>
+                          <span className="font-bold tracking-wide uppercase text-[11px]">{translateLabel(item.label)}</span>
                         </div>
                         {hasSubmenu && (
                           <ChevronDown
@@ -340,7 +358,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                                   }}
                                   className="w-full text-left p-2 text-[10px] font-bold text-gray-500 hover:text-brand-600 transition-colors uppercase tracking-wider"
                                 >
-                                  {sub.label}
+                                  {translateLabel(sub.label)}
                                 </button>
                               ))}
                             </motion.div>
@@ -399,6 +417,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                     </div>
                   </>
                 )}
+              </div>
+
+              {/* Language Toggle in Mobile Menu */}
+              <div className="px-4 pb-2">
+                <button
+                  onClick={() => setLanguage(language === 'en' ? 'ta' : 'en')}
+                  className="w-full flex items-center justify-center gap-2 bg-white border border-brand-100 text-brand-700 p-2.5 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-brand-50 transition-colors"
+                  aria-label="Toggle language"
+                >
+                  <Languages size={14} />
+                  {language === 'en' ? 'தமிழில் மாறு (Switch to Tamil)' : 'Switch to English (ஆங்கிலத்திற்கு மாறு)'}
+                </button>
               </div>
 
               {/* Logout Button in Mobile Menu */}
