@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Search, Type, BookOpen, Sparkles, Volume2, Play, Loader2, Info, Fingerprint } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Search, Type, BookOpen, Sparkles, Volume2, Play, Loader2, Info, Fingerprint, History, Trash2, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { analyzeHebrewWord } from '../services/openRouterService';
 import { audioService } from '../services/audioService';
@@ -78,12 +78,33 @@ const calculateGematria = (word: string): number => {
     return word.split('').reduce((total, char) => total + (gematriaValues[char] || 0), 0);
 };
 
+interface HistoryEntry {
+    word: string;
+    pronunciation: string;
+    meaningEn: string;
+    meaningTa: string;
+    gematria: number;
+    timestamp: string; // ISO string
+}
+
+const HISTORY_KEY = 'cot_hebrew_word_history';
+const MAX_HISTORY = 50;
+
 export const HebrewWordHub: React.FC = () => {
     const [wordInput, setWordInput] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [aiResult, setAiResult] = useState<HebrewWordInfo | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [wordHistory, setWordHistory] = useState<HistoryEntry[]>(() => {
+        try {
+            const saved = localStorage.getItem(HISTORY_KEY);
+            return saved ? JSON.parse(saved) : [];
+        } catch {
+            return [];
+        }
+    });
+    const [showHistory, setShowHistory] = useState(false);
 
     const currentGematria = useMemo(() => calculateGematria(wordInput), [wordInput]);
 
@@ -126,6 +147,43 @@ export const HebrewWordHub: React.FC = () => {
 
     const playAudio = (text: string) => {
         audioService.playHebrew(text);
+    };
+
+    // Persist history to localStorage whenever it changes
+    useEffect(() => {
+        try {
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(wordHistory));
+        } catch { /* ignore quota errors */ }
+    }, [wordHistory]);
+
+    // Add to history whenever a word resolves to full details
+    useEffect(() => {
+        if (!wordDetails) return;
+        const entry: HistoryEntry = {
+            word: wordDetails.word,
+            pronunciation: wordDetails.pronunciation,
+            meaningEn: wordDetails.meaningEn,
+            meaningTa: wordDetails.meaningTa,
+            gematria: calculateGematria(wordDetails.word),
+            timestamp: new Date().toISOString(),
+        };
+        setWordHistory(prev => {
+            // Don't add duplicate back-to-back entries for the same word
+            if (prev[0]?.word === entry.word) return prev;
+            return [entry, ...prev].slice(0, MAX_HISTORY);
+        });
+    }, [wordDetails?.word]);
+
+    const clearHistory = () => {
+        setWordHistory([]);
+        localStorage.removeItem(HISTORY_KEY);
+    };
+
+    const loadFromHistory = (entry: HistoryEntry) => {
+        setWordInput(entry.word);
+        setAiResult(null);
+        setShowHistory(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     return (
@@ -359,6 +417,83 @@ export const HebrewWordHub: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* History Panel */}
+            {wordHistory.length > 0 && (
+                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+                    {/* Collapsible Header */}
+                    <button
+                        onClick={() => setShowHistory(v => !v)}
+                        className="w-full flex items-center justify-between px-8 py-5 hover:bg-slate-50 transition-colors"
+                    >
+                        <div className="flex items-center gap-3">
+                            <span className="p-2 bg-brand-50 rounded-xl text-brand-600">
+                                <History size={18} />
+                            </span>
+                            <div className="text-left">
+                                <h3 className="font-bold text-brand-950 text-base">Word History</h3>
+                                <p className="text-xs text-slate-400">{wordHistory.length} word{wordHistory.length !== 1 ? 's' : ''} studied</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={(e) => { e.stopPropagation(); clearHistory(); }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                title="Clear history"
+                            >
+                                <Trash2 size={13} /> Clear
+                            </button>
+                            {showHistory ? <ChevronUp size={18} className="text-slate-400" /> : <ChevronDown size={18} className="text-slate-400" />}
+                        </div>
+                    </button>
+
+                    <AnimatePresence>
+                        {showHistory && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.25 }}
+                                className="overflow-hidden"
+                            >
+                                <div className="px-6 pb-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 max-h-[420px] overflow-y-auto">
+                                    {wordHistory.map((entry, i) => (
+                                        <motion.button
+                                            key={`${entry.word}-${entry.timestamp}`}
+                                            initial={{ opacity: 0, y: 8 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: i * 0.03 }}
+                                            onClick={() => loadFromHistory(entry)}
+                                            className="flex items-center gap-4 bg-slate-50 hover:bg-brand-50 border border-slate-100 hover:border-brand-200 rounded-2xl p-4 text-left transition-all group"
+                                        >
+                                            {/* Hebrew word badge */}
+                                            <div className="shrink-0 w-14 h-14 rounded-xl bg-white border border-slate-100 shadow-sm flex items-center justify-center group-hover:bg-brand-600 transition-colors">
+                                                <span className="text-2xl font-serif text-brand-950 group-hover:text-white transition-colors" dir="rtl">
+                                                    {entry.word}
+                                                </span>
+                                            </div>
+                                            {/* Details */}
+                                            <div className="min-w-0 flex-1">
+                                                <div className="font-bold text-slate-800 text-sm truncate">{entry.pronunciation}</div>
+                                                <div className="text-xs text-slate-500 truncate">{entry.meaningEn}</div>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="text-[10px] font-bold text-accent-600 bg-accent-50 px-2 py-0.5 rounded-full">
+                                                        ג {entry.gematria}
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                                                        <Clock size={9} />
+                                                        {new Date(entry.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </motion.button>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            )}
 
             {/* Dictionary explorer */}
             <div className="space-y-10">
