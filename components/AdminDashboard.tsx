@@ -56,8 +56,9 @@ const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any
 
 
 
-const TAB_ITEMS: { id: 'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor'; label: string; icon: React.ElementType }[] = [
+const TAB_ITEMS: { id: 'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor' | 'messages'; label: string; icon: React.ElementType }[] = [
     { id: 'users', label: 'Users', icon: Users },
+    { id: 'messages', label: 'Messages', icon: MessageSquare },
     { id: 'testimonials', label: 'Testimonials', icon: MessageSquare },
     { id: 'ministries', label: 'Ministries', icon: Globe },
     { id: 'id-cards', label: 'ID Cards', icon: QrCode },
@@ -119,7 +120,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
     const [downloadingCardUserId, setDownloadingCardUserId] = useState<string | null>(null);
 
-    const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor' | 'messages'>('users');
     const [menuMode, setMenuMode] = useState<'horizontal' | 'vertical'>(() => {
         const stored = localStorage.getItem('adminMenuMode');
         return stored === 'vertical' ? 'vertical' : 'horizontal';
@@ -343,6 +344,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             setShowBulkDeleteConfirm(false);
         } catch (error) {
             alert('Failed to delete some users');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleBulkApprove = async () => {
+        if (selectedUsers.size === 0) return;
+        if (!window.confirm(`Approve ${selectedUsers.size} selected user(s)?`)) return;
+        setIsLoading(true);
+        try {
+            const updatePromises = Array.from(selectedUsers).map(userId => {
+                const user = users.find(u => u.id === userId);
+                return user ? onUpdateUser({ ...user, status: 'Active' }) : Promise.resolve();
+            });
+            await Promise.all(updatePromises);
+            setSelectedUsers(new Set());
+        } catch (error) {
+            alert('Failed to approve some users');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleBulkReject = async () => {
+        if (selectedUsers.size === 0) return;
+        if (!window.confirm(`Reject ${selectedUsers.size} selected user(s)?`)) return;
+        setIsLoading(true);
+        try {
+            const updatePromises = Array.from(selectedUsers).map(userId => {
+                const user = users.find(u => u.id === userId);
+                return user ? onUpdateUser({ ...user, status: 'Rejected' }) : Promise.resolve();
+            });
+            await Promise.all(updatePromises);
+            setSelectedUsers(new Set());
+        } catch (error) {
+            alert('Failed to reject some users');
         } finally {
             setIsLoading(false);
         }
@@ -594,35 +631,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                 )}
 
-                {activeTab === 'users' && contactMessages.length > 0 && (
-                    <div className="bg-white p-4 md:p-6 rounded-3xl border border-slate-100 shadow-sm mb-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-bold text-brand-950 text-sm md:text-base flex items-center gap-2">
-                                <MessageSquare size={16} />
-                                Contact Messages
-                            </h3>
-                            <span className="text-xs font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full">
-                                {contactMessages.length} Total
-                            </span>
-                        </div>
-                        <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                            {contactMessages.slice(0, 20).map((msg) => (
-                                <div key={msg.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
-                                    <div className="flex items-center justify-between gap-2 mb-1">
-                                        <p className="text-sm font-bold text-brand-950 truncate">{msg.name || 'Visitor'}</p>
-                                        <p className="text-[10px] text-slate-500 shrink-0">
-                                            {new Date(msg.createdAt).toLocaleString()}
-                                        </p>
-                                    </div>
-                                    {!!msg.email && <p className="text-xs text-slate-600 mb-1 break-all">{msg.email}</p>}
-                                    <p className="text-xs font-semibold text-brand-700 mb-1">{msg.subject}</p>
-                                    <p className="text-xs text-slate-700 whitespace-pre-wrap break-words">{msg.message}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
                 {activeTab === 'users' && (
                     <>
                         {/* Add New User + Search and Filters */}
@@ -688,13 +696,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     )}
                                 </div>
                                 {selectedUsers.size > 0 && (
-                                    <button
-                                        onClick={() => setShowBulkDeleteConfirm(true)}
-                                        className="flex items-center gap-2 px-3 py-1.5 bg-red-600 text-white rounded-xl font-bold text-xs hover:bg-red-700 transition-colors"
-                                    >
-                                        <Trash2 size={14} />
-                                        Delete ({selectedUsers.size})
-                                    </button>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <button
+                                            onClick={handleBulkApprove}
+                                            disabled={isLoading}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-xl font-bold text-xs hover:bg-green-700 transition-colors disabled:opacity-60"
+                                        >
+                                            <CheckCircle size={13} />
+                                            Approve ({selectedUsers.size})
+                                        </button>
+                                        <button
+                                            onClick={handleBulkReject}
+                                            disabled={isLoading}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white rounded-xl font-bold text-xs hover:bg-amber-700 transition-colors disabled:opacity-60"
+                                        >
+                                            <XCircle size={13} />
+                                            Reject ({selectedUsers.size})
+                                        </button>
+                                        <button
+                                            onClick={() => setShowBulkDeleteConfirm(true)}
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-red-600 text-white rounded-xl font-bold text-xs hover:bg-red-700 transition-colors"
+                                        >
+                                            <Trash2 size={14} />
+                                            Delete ({selectedUsers.size})
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -1075,6 +1101,49 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <QrCode size={64} className="mx-auto text-slate-200 mb-6 animate-pulse" />
                                 <h3 className="text-xl font-serif font-bold text-slate-400">No member IDs found matching filters</h3>
                                 <p className="text-slate-400 text-sm mt-2 font-light">Try adjusting your search or filters to see more results.</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+                {activeTab === 'messages' && (
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between mb-2">
+                            <h2 className="text-lg font-bold text-brand-950 flex items-center gap-2">
+                                <MessageSquare size={18} className="text-brand-500" /> Contact Messages
+                            </h2>
+                            <span className="text-xs font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full border border-brand-100">
+                                {contactMessages.length} Total
+                            </span>
+                        </div>
+                        {contactMessages.length === 0 ? (
+                            <div className="bg-white rounded-3xl border border-slate-100 p-12 text-center shadow-sm">
+                                <MessageSquare size={40} className="mx-auto text-slate-200 mb-4" />
+                                <p className="text-slate-400 font-medium">No messages yet.</p>
+                                <p className="text-slate-300 text-sm mt-1">Messages from the landing page and contact form will appear here in real time.</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                {contactMessages.map((msg) => (
+                                    <div key={msg.id} className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm p-5 flex flex-col gap-2">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-xs shrink-0">
+                                                    {(msg.name || 'V').charAt(0).toUpperCase()}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-bold text-brand-950 truncate">{msg.name || 'Website Visitor'}</p>
+                                                    {!!msg.email && <p className="text-[10px] text-slate-500 truncate">{msg.email}</p>}
+                                                </div>
+                                            </div>
+                                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase shrink-0 ${msg.source === 'hero-widget' ? 'bg-sky-100 text-sky-700' : 'bg-brand-50 text-brand-600'}`}>
+                                                {msg.source === 'hero-widget' ? 'Hero' : 'Form'}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs font-semibold text-brand-700 bg-brand-50 px-2 py-1 rounded-lg truncate">{msg.subject}</p>
+                                        <p className="text-sm text-slate-700 whitespace-pre-wrap break-words flex-1">{msg.message}</p>
+                                        <p className="text-[10px] text-slate-400 text-right mt-1">{new Date(msg.createdAt).toLocaleString()}</p>
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </div>

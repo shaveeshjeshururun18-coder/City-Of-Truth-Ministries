@@ -168,21 +168,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             <span>{language === 'en' ? 'தமிழ்' : 'EN'}</span>
           </button>
 
-          {/* Show Register button only if NOT logged in */}
-          {!currentUser && (
-            <button
-              onClick={() => setView(ViewState.ID_CARD)}
-              className="hidden lg:flex items-center relative bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 text-white text-[0.72rem] font-bold px-5 h-11 rounded-xl uppercase transition-all duration-300 hover:from-blue-700 hover:via-blue-600 hover:to-blue-800 hover:scale-[1.02] no-underline whitespace-nowrap shadow-[0_14px_30px_-14px_rgba(37,99,235,0.75)] overflow-hidden group border border-blue-200/40"
-            >
-              <span className="absolute inset-0 rounded-xl ring-2 ring-white/20 opacity-70 group-hover:opacity-90 transition-opacity" />
-              <span className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-12" />
-              <span className="relative z-10">REGISTER</span>
-            </button>
-          )}
-
           <div className="flex items-center gap-2 sm:gap-3 p-1 sm:p-1.5 rounded-2xl bg-white/95 backdrop-blur-md border border-brand-100/70">
             <button
-              onClick={() => currentUser ? setView(ViewState.USER_DASHBOARD) : setView(ViewState.ID_CARD)}
+              onClick={() => currentUser ? setView(ViewState.USER_DASHBOARD) : onLoginClick()}
               className={`${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-11 h-11 rounded-2xl shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 border border-blue-300/50 px-3.5 h-10 rounded-2xl shadow-[0_14px_24px_-12px_rgba(37,99,235,0.7)] hover:shadow-[0_18px_28px_-12px_rgba(37,99,235,0.8)] hover:from-blue-700 hover:via-blue-600 hover:to-blue-800'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group`}
               title={currentUser ? "My Account" : "Register"}
               aria-label={currentUser ? "Open my account dashboard" : "Register account"}
