@@ -828,15 +828,15 @@ const HebrewLettersAudioLab: React.FC = () => {
             </div>
 
             {/* ── WORD BUILDER (always visible at top) ── */}
-            <div className="bg-gradient-to-r from-fuchsia-500 via-sky-500 to-emerald-500 p-[2px] rounded-[2rem] sticky top-20 z-20">
+            <div className="bg-gradient-to-r from-fuchsia-500 via-sky-500 to-emerald-500 p-[2px] rounded-[2rem] sticky top-20 md:top-[7rem] z-20">
                 <div className="bg-white rounded-[2rem] p-4 md:p-6">
                     <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
                         <div className="flex-1 min-w-0">
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Word Builder — {selectedLetters.length} letter{selectedLetters.length !== 1 ? 's' : ''}</p>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Word Builder — {selectedLetters.length} letter{selectedLetters.length !== 1 ? 's' : ''} (unlimited)</p>
                             {selectedLetters.length === 0 ? (
                                 <p className="text-slate-300 text-sm italic">Tap letters below to build a word…</p>
                             ) : (
-                                <div className="flex flex-wrap gap-2" dir="rtl">
+                                <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto pr-1" dir="rtl">
                                     {selectedLetters.map((l, idx) => (
                                         <div
                                             key={l.key}
@@ -861,7 +861,7 @@ const HebrewLettersAudioLab: React.FC = () => {
                                 </div>
                             )}
                             {selectedLetters.length > 0 && (
-                                <div className="text-3xl md:text-4xl font-serif text-brand-950 mt-3" dir="rtl">{combinedWord}</div>
+                                <div className="text-3xl md:text-4xl font-serif text-brand-950 mt-2 max-h-12 overflow-hidden leading-tight" dir="rtl">{combinedWord}</div>
                             )}
                         </div>
                         <div className="flex gap-2 shrink-0 flex-wrap">
