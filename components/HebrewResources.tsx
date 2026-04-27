@@ -759,12 +759,21 @@ const RAINBOW_GRADIENTS = [
 ];
 
 const HebrewLettersAudioLab: React.FC = () => {
-    const [firstIndex, setFirstIndex] = useState<number | null>(null);
-    const [secondIndex, setSecondIndex] = useState<number | null>(null);
+    const [selectedLetters, setSelectedLetters] = useState<{ letter: string; name: string; hebrewName: string; key: number }[]>([]);
+    const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+    const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
+    const nextKey = React.useRef(0);
 
-    const first = firstIndex !== null ? HEBREW_AUDIO_LETTERS[firstIndex] : null;
-    const second = secondIndex !== null ? HEBREW_AUDIO_LETTERS[secondIndex] : null;
-    const combinedWord = `${first?.letter || ''}${second?.letter || ''}`;
+    const combinedWord = selectedLetters.map(l => l.letter).join('');
+
+    const addLetter = (item: (typeof HEBREW_AUDIO_LETTERS)[number]) => {
+        const entry = { ...item, key: nextKey.current++ };
+        setSelectedLetters(prev => [entry, ...prev]);
+    };
+
+    const removeLetter = (idx: number) => {
+        setSelectedLetters(prev => prev.filter((_, i) => i !== idx));
+    };
 
     const playLetter = async (letterCharacter: string, hebrewName: string) => {
         try {
@@ -783,70 +792,128 @@ const HebrewLettersAudioLab: React.FC = () => {
         }
     };
 
+    const handleDragStart = (e: React.DragEvent, idx: number) => {
+        setDraggingIdx(idx);
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragOver = (e: React.DragEvent, idx: number) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        setDragOverIdx(idx);
+    };
+
+    const handleDrop = (e: React.DragEvent, dropIdx: number) => {
+        e.preventDefault();
+        if (draggingIdx === null || draggingIdx === dropIdx) { setDraggingIdx(null); setDragOverIdx(null); return; }
+        setSelectedLetters(prev => {
+            const next = [...prev];
+            const [removed] = next.splice(draggingIdx, 1);
+            next.splice(dropIdx, 0, removed);
+            return next;
+        });
+        setDraggingIdx(null);
+        setDragOverIdx(null);
+    };
+
+    const handleDragEnd = () => { setDraggingIdx(null); setDragOverIdx(null); };
+
     return (
-        <div className="space-y-10 py-8">
+        <div className="space-y-8 py-8">
             <div className="text-center space-y-3">
                 <h2 className="text-4xl md:text-5xl font-serif font-bold text-brand-950">Hebrew <span className="text-accent-600">Letters Audio Lab</span></h2>
                 <p className="text-slate-500 text-base max-w-3xl mx-auto">
-                    Tap any of the 22 Hebrew letters to hear Hebrew pronunciation, then pick two letters to build and listen to combinations.
+                    Tap any letter to add it to your word. Newly added letters appear at the top. Drag to reorder. Tap ✕ to remove.
                 </p>
             </div>
 
+            {/* ── WORD BUILDER (always visible at top) ── */}
+            <div className="bg-gradient-to-r from-fuchsia-500 via-sky-500 to-emerald-500 p-[2px] rounded-[2rem] sticky top-20 z-20">
+                <div className="bg-white rounded-[2rem] p-4 md:p-6">
+                    <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                        <div className="flex-1 min-w-0">
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Word Builder — {selectedLetters.length} letter{selectedLetters.length !== 1 ? 's' : ''}</p>
+                            {selectedLetters.length === 0 ? (
+                                <p className="text-slate-300 text-sm italic">Tap letters below to build a word…</p>
+                            ) : (
+                                <div className="flex flex-wrap gap-2" dir="rtl">
+                                    {selectedLetters.map((l, idx) => (
+                                        <div
+                                            key={l.key}
+                                            draggable
+                                            onDragStart={e => handleDragStart(e, idx)}
+                                            onDragOver={e => handleDragOver(e, idx)}
+                                            onDrop={e => handleDrop(e, idx)}
+                                            onDragEnd={handleDragEnd}
+                                            className={`flex items-center gap-1 px-3 py-1.5 rounded-2xl border-2 cursor-grab active:cursor-grabbing select-none transition-all ${dragOverIdx === idx ? 'border-brand-400 bg-brand-50 scale-105' : 'border-slate-200 bg-slate-50 hover:border-brand-300'} ${draggingIdx === idx ? 'opacity-40' : ''}`}
+                                        >
+                                            <span className="text-2xl font-serif text-brand-950 leading-none">{l.letter}</span>
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase">{l.name}</span>
+                                            <button
+                                                onClick={() => removeLetter(idx)}
+                                                className="ml-1 w-4 h-4 rounded-full bg-slate-200 hover:bg-red-100 hover:text-red-500 text-slate-400 flex items-center justify-center transition-colors text-[10px] font-black shrink-0"
+                                                title={`Remove ${l.name}`}
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {selectedLetters.length > 0 && (
+                                <div className="text-3xl md:text-4xl font-serif text-brand-950 mt-3" dir="rtl">{combinedWord}</div>
+                            )}
+                        </div>
+                        <div className="flex gap-2 shrink-0 flex-wrap">
+                            <button
+                                onClick={playCombined}
+                                disabled={!combinedWord}
+                                className="px-5 py-2.5 rounded-full bg-brand-950 text-white font-bold text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-900 transition-colors"
+                            >
+                                <Volume2 size={15} /> Play Word
+                            </button>
+                            {selectedLetters.length > 0 && (
+                                <button
+                                    onClick={() => setSelectedLetters([])}
+                                    className="px-4 py-2.5 rounded-full border border-slate-200 text-slate-500 font-bold text-sm hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors"
+                                >
+                                    Clear All
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* ── ALPHABET GRID ── */}
             <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-10 shadow-xl">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-6 text-center">Tap a letter to add it to your word</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                     {HEBREW_AUDIO_LETTERS.map((item, index) => (
                         <div key={item.letter} className={`rounded-3xl bg-gradient-to-br ${RAINBOW_GRADIENTS[index % RAINBOW_GRADIENTS.length]} p-[1px]`}>
                             <div className="bg-white rounded-3xl p-4 h-full flex flex-col items-center text-center gap-2">
                                 <span className="text-4xl font-serif text-brand-950">{item.letter}</span>
                                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">{item.name}</span>
-                                <div className="flex items-center gap-2 pt-1">
+                                <div className="flex items-center gap-1 pt-1 w-full justify-center">
                                     <button
-                                        onClick={() => setFirstIndex(index)}
-                                        className={`px-2 py-1 rounded-full text-[10px] font-bold border ${firstIndex === index ? 'bg-brand-600 text-white border-brand-600' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-brand-300'}`}
+                                        onClick={() => addLetter(item)}
+                                        className="flex-1 px-2 py-1.5 rounded-xl text-[10px] font-bold bg-brand-600 text-white hover:bg-brand-700 transition-colors shadow-sm"
+                                        title={`Add ${item.name}`}
                                     >
-                                        1st
+                                        + Add
                                     </button>
                                     <button
-                                        onClick={() => setSecondIndex(index)}
-                                        className={`px-2 py-1 rounded-full text-[10px] font-bold border ${secondIndex === index ? 'bg-accent-500 text-brand-950 border-accent-500' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-accent-300'}`}
+                                        onClick={() => playLetter(item.letter, item.hebrewName)}
+                                        className="w-8 h-8 rounded-full bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors flex items-center justify-center shrink-0"
+                                        title={`Play ${item.hebrewName}`}
+                                        aria-label={`Play ${item.hebrewName}`}
                                     >
-                                        2nd
+                                        <Volume2 size={13} />
                                     </button>
                                 </div>
-                                <button
-                                    onClick={() => playLetter(item.letter, item.hebrewName)}
-                                    className="mt-1 w-8 h-8 rounded-full bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors flex items-center justify-center"
-                                    title={`Play ${item.hebrewName}`}
-                                    aria-label={`Play ${item.hebrewName}`}
-                                >
-                                    <Volume2 size={14} />
-                                </button>
                             </div>
                         </div>
                     ))}
-                </div>
-            </div>
-
-            <div className="bg-gradient-to-r from-fuchsia-500 via-sky-500 to-emerald-500 p-[1px] rounded-[2rem]">
-                <div className="bg-white rounded-[2rem] p-6 md:p-8">
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                        <div className="text-center md:text-left">
-                            <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Letter Combination Result</p>
-                            <div className="text-5xl md:text-6xl font-serif text-brand-950" dir="rtl">
-                                {combinedWord || '—'}
-                            </div>
-                            <p className="text-xs text-slate-500 mt-2">
-                                First: {first?.hebrewName || 'Not selected'} • Second: {second?.hebrewName || 'Not selected'}
-                            </p>
-                        </div>
-                        <button
-                            onClick={playCombined}
-                            disabled={!combinedWord}
-                            className="px-6 py-3 rounded-full bg-brand-950 text-white font-bold text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-900 transition-colors"
-                        >
-                            <Volume2 size={16} /> Play Result Audio
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>
