@@ -172,7 +172,9 @@ export const HebrewWordHub: React.FC = () => {
             if (prev[0]?.word === entry.word) return prev;
             return [entry, ...prev].slice(0, MAX_HISTORY);
         });
-    }, [wordDetails?.word]);
+    // Use the full memoized wordDetails object as the dependency so that a change
+    // to any property of the same word is also captured correctly.
+    }, [wordDetails]);
 
     const clearHistory = () => {
         setWordHistory([]);
@@ -480,9 +482,12 @@ export const HebrewWordHub: React.FC = () => {
                                                     <span className="text-[10px] font-bold text-accent-600 bg-accent-50 px-2 py-0.5 rounded-full">
                                                         ג {entry.gematria}
                                                     </span>
-                                                    <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                                                    <span
+                                                        className="text-[10px] text-slate-400 flex items-center gap-1"
+                                                        title={new Date(entry.timestamp).toLocaleString(undefined, { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                    >
                                                         <Clock size={9} />
-                                                        {new Date(entry.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                        {new Date(entry.timestamp).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                                                     </span>
                                                 </div>
                                             </div>
