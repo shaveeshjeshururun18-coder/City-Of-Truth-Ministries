@@ -287,6 +287,34 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                         </div>
                     </div>
 
+                    {/* "Join Our Community" register banner — shown for both registered and unregistered users */}
+                    {currentUser && (
+                        <div
+                            onClick={() => { setView(ViewState.ID_CARD); setMobileMenuOpen(false); }}
+                            className="w-full p-2.5 rounded-xl border cursor-pointer transition-all bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 border-blue-300/60 shadow-md shadow-blue-600/30 hover:from-blue-700 hover:via-blue-600 hover:to-blue-800"
+                        >
+                            <div className="flex items-center gap-2.5">
+                                <div className="relative shrink-0">
+                                    <div className="w-10 h-10 rounded-full border-2 shadow-inner flex items-center justify-center overflow-hidden border-blue-300 bg-blue-600">
+                                        <span className="text-[12px] font-black tracking-wide text-white">
+                                            {DEFAULT_INITIALS}
+                                        </span>
+                                    </div>
+                                    <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center bg-white">
+                                        <Zap size={6} className="text-blue-600" />
+                                    </div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="font-bold text-[11px] truncate text-white">Join Our Community</h3>
+                                    <p className="text-[7px] font-bold uppercase tracking-widest truncate text-blue-100">Tap to Register Free</p>
+                                </div>
+                                <div className="px-2 py-1 rounded-full text-[7px] font-bold uppercase tracking-widest border whitespace-nowrap bg-white text-blue-600 border-white/50">
+                                    Register
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                 </div>
 
               </div>{/* end header section */}
