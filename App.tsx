@@ -1444,6 +1444,9 @@ const App: React.FC = () => {
         </div>
       </footer>
 
+      {/* Bottom Navigation Bar (mobile) */}
+      <BottomNav currentView={currentView} setView={setCurrentView} />
+
       {/* AI Chat Assistant - Only show on non-AI pages to prevent duplication */}
       {
         currentView !== ViewState.AI && (
