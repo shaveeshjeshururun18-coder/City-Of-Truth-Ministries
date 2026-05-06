@@ -1,8 +1,10 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Type, BookOpen, Sparkles, Volume2, Play, Loader2, Info, Fingerprint, History, Trash2, ChevronDown, ChevronUp, Clock } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { Search, Type, BookOpen, Sparkles, Volume2, Play, Loader2, Info, Fingerprint, History, Trash2, ChevronDown, ChevronUp, Clock, Download, FileImage, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { analyzeHebrewWord } from '../services/openRouterService';
 import { audioService } from '../services/audioService';
+import { toJpeg } from 'html-to-image';
+import { jsPDF } from 'jspdf';
 
 // Gematria letter values
 const gematriaValues: { [key: string]: number } = {
@@ -105,6 +107,8 @@ export const HebrewWordHub: React.FC = () => {
         }
     });
     const [showHistory, setShowHistory] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
+    const exportCardRef = useRef<HTMLDivElement>(null);
 
     const currentGematria = useMemo(() => calculateGematria(wordInput), [wordInput]);
 
@@ -179,6 +183,43 @@ export const HebrewWordHub: React.FC = () => {
     const clearHistory = () => {
         setWordHistory([]);
         localStorage.removeItem(HISTORY_KEY);
+    };
+
+    const deleteHistoryEntry = (timestamp: string) => {
+        setWordHistory(prev => prev.filter(e => e.timestamp !== timestamp));
+    };
+
+    const handleExport = async (format: 'pdf' | 'jpeg') => {
+        if (!wordDetails || !exportCardRef.current) return;
+        setIsExporting(true);
+        try {
+            const dataUrl = await toJpeg(exportCardRef.current, {
+                quality: 0.97,
+                pixelRatio: 3,
+                backgroundColor: '#ffffff',
+            });
+            const filename = `COT-Hebrew-${wordDetails.pronunciation.replace(/\s+/g, '-')}`;
+            if (format === 'jpeg') {
+                const link = document.createElement('a');
+                link.download = `${filename}.jpg`;
+                link.href = dataUrl;
+                link.click();
+            } else {
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                const pdfW = pdf.internal.pageSize.getWidth();
+                const img = new Image();
+                img.src = dataUrl;
+                await new Promise<void>(resolve => { img.onload = () => resolve(); });
+                const pdfH = (img.height * pdfW) / img.width;
+                const pageH = pdf.internal.pageSize.getHeight();
+                pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfW, Math.min(pdfH, pageH));
+                pdf.save(`${filename}.pdf`);
+            }
+        } catch (err) {
+            console.error('Export failed:', err);
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     const loadFromHistory = (entry: HistoryEntry) => {
@@ -371,6 +412,26 @@ export const HebrewWordHub: React.FC = () => {
                                                 {wordDetails.description}
                                             </div>
                                         )}
+
+                                        {/* Export Buttons */}
+                                        <div className="pt-4 border-t border-white/10 flex gap-2 flex-wrap">
+                                            <button
+                                                onClick={() => handleExport('pdf')}
+                                                disabled={isExporting}
+                                                className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 bg-accent-500 hover:bg-accent-400 text-brand-950 rounded-xl font-bold text-xs transition-all active:scale-95 disabled:opacity-50"
+                                            >
+                                                {isExporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                                                Export PDF
+                                            </button>
+                                            <button
+                                                onClick={() => handleExport('jpeg')}
+                                                disabled={isExporting}
+                                                className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold text-xs transition-all active:scale-95 disabled:opacity-50"
+                                            >
+                                                {isExporting ? <Loader2 size={13} className="animate-spin" /> : <FileImage size={13} />}
+                                                Save Image
+                                            </button>
+                                        </div>
                                     </motion.div>
                                 ) : (
                                     <motion.div
@@ -460,38 +521,50 @@ export const HebrewWordHub: React.FC = () => {
                             >
                                 <div className="px-3 sm:px-6 pb-4 sm:pb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 max-h-[420px] overflow-y-auto">
                                     {wordHistory.map((entry, i) => (
-                                        <motion.button
+                                        <motion.div
                                             key={`${entry.word}-${entry.timestamp}`}
                                             initial={{ opacity: 0, y: 8 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: i * 0.03 }}
-                                            onClick={() => loadFromHistory(entry)}
-                                            className="flex items-center gap-3 bg-slate-50 hover:bg-brand-50 border border-slate-100 hover:border-brand-200 rounded-xl sm:rounded-2xl p-3 text-left transition-all group"
+                                            className="relative group/card"
                                         >
-                                            {/* Hebrew word badge */}
-                                            <div className="shrink-0 w-12 h-12 rounded-xl bg-white border border-slate-100 shadow-sm flex items-center justify-center group-hover:bg-brand-600 transition-colors">
-                                                <span className="text-xl font-serif text-brand-950 group-hover:text-white transition-colors" dir="rtl">
-                                                    {entry.word}
-                                                </span>
-                                            </div>
-                                            {/* Details */}
-                                            <div className="min-w-0 flex-1">
-                                                <div className="font-bold text-slate-800 text-sm truncate">{entry.pronunciation}</div>
-                                                <div className="text-xs text-slate-500 truncate">{entry.meaningEn}</div>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <span className="text-[10px] font-bold text-accent-600 bg-accent-50 px-2 py-0.5 rounded-full">
-                                                        ג {entry.gematria}
-                                                    </span>
-                                                    <span
-                                                        className="text-[10px] text-slate-400 flex items-center gap-1"
-                                                        title={new Date(entry.timestamp).toLocaleString(undefined, { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                                    >
-                                                        <Clock size={9} />
-                                                        {new Date(entry.timestamp).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                                            <button
+                                                onClick={() => loadFromHistory(entry)}
+                                                className="flex items-center gap-3 bg-slate-50 hover:bg-brand-50 border border-slate-100 hover:border-brand-200 rounded-xl sm:rounded-2xl p-3 text-left transition-all group w-full"
+                                            >
+                                                {/* Hebrew word badge */}
+                                                <div className="shrink-0 w-12 h-12 rounded-xl bg-white border border-slate-100 shadow-sm flex items-center justify-center group-hover:bg-brand-600 transition-colors">
+                                                    <span className="text-xl font-serif text-brand-950 group-hover:text-white transition-colors" dir="rtl">
+                                                        {entry.word}
                                                     </span>
                                                 </div>
-                                            </div>
-                                        </motion.button>
+                                                {/* Details */}
+                                                <div className="min-w-0 flex-1 pr-6">
+                                                    <div className="font-bold text-slate-800 text-sm truncate">{entry.pronunciation}</div>
+                                                    <div className="text-xs text-slate-500 truncate">{entry.meaningEn}</div>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <span className="text-[10px] font-bold text-accent-600 bg-accent-50 px-2 py-0.5 rounded-full">
+                                                            ג {entry.gematria}
+                                                        </span>
+                                                        <span
+                                                            className="text-[10px] text-slate-400 flex items-center gap-1"
+                                                            title={new Date(entry.timestamp).toLocaleString(undefined, { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                        >
+                                                            <Clock size={9} />
+                                                            {new Date(entry.timestamp).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                            {/* Per-entry delete button */}
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); deleteHistoryEntry(entry.timestamp); }}
+                                                className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-full bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 opacity-0 group-hover/card:opacity-100 transition-all z-10"
+                                                title="Remove this entry"
+                                            >
+                                                <X size={11} />
+                                            </button>
+                                        </motion.div>
                                     ))}
                                 </div>
                             </motion.div>
@@ -559,10 +632,108 @@ export const HebrewWordHub: React.FC = () => {
 
                 {filteredDictionary.length === 0 && (
                     <div className="text-center py-16 text-slate-400 bg-slate-50 rounded-2xl sm:rounded-[2rem] border border-dashed border-slate-200">
-                        No words found matching "{searchQuery}"
+                        No words found matching &ldquo;{searchQuery}&rdquo;
                     </div>
                 )}
             </div>
+
+            {/* Hidden export card — rendered off-screen, captured via html-to-image */}
+            {wordDetails && (
+                <div
+                    ref={exportCardRef}
+                    style={{ position: 'fixed', left: '-9999px', top: 0, width: '800px', pointerEvents: 'none', zIndex: -1 }}
+                >
+                    <div style={{ background: 'linear-gradient(135deg, #0f0c29 0%, #1a1450 50%, #0f0c29 100%)', padding: '48px', fontFamily: 'Georgia, serif', color: '#ffffff', borderRadius: '24px', position: 'relative', overflow: 'hidden' }}>
+                        {/* Subtle grid background */}
+                        <div style={{ position: 'absolute', inset: 0, opacity: 0.04, backgroundImage: 'repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)', backgroundSize: '12px 12px', borderRadius: '24px' }} />
+
+                        {/* Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', paddingBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                <img src="/logo.png" alt="COT Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '12px', background: 'rgba(255,255,255,0.08)', padding: '6px' }} />
+                                <div>
+                                    <div style={{ fontSize: '18px', fontWeight: 900, letterSpacing: '0.06em', color: '#f0c040', textTransform: 'uppercase' }}>City of Truth Ministries</div>
+                                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: '3px' }}>Valparai &bull; India</div>
+                                </div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '3px' }}>Hebrew Word Study</div>
+                                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)' }}>AI Deep Insight</div>
+                            </div>
+                        </div>
+
+                        {/* Hebrew word hero */}
+                        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+                            <div style={{ fontSize: '96px', fontWeight: 900, color: '#f0c040', letterSpacing: '0.08em', lineHeight: 1.1, direction: 'rtl', marginBottom: '8px' }}>{wordDetails.word}</div>
+                            <div style={{ fontSize: '30px', fontWeight: 700, color: '#ffffff', letterSpacing: '0.04em' }}>{wordDetails.pronunciation}</div>
+                            {wordDetails.pronunciationTa && (
+                                <div style={{ fontSize: '16px', color: 'rgba(255,255,255,0.5)', marginTop: '6px' }}>{wordDetails.pronunciationTa} &#40;&#x0BA4;&#x0BAE;&#x0BBF;&#x0BB4;&#x0BCD;&#41;</div>
+                            )}
+                        </div>
+
+                        {/* Gematria badge */}
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px' }}>
+                            <div style={{ background: 'rgba(240,192,64,0.15)', border: '1px solid rgba(240,192,64,0.3)', borderRadius: '40px', padding: '10px 32px', display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                                <span style={{ fontSize: '9px', fontWeight: 900, color: '#f0c040', letterSpacing: '0.3em', textTransform: 'uppercase' }}>Gematria Value</span>
+                                <span style={{ fontSize: '36px', fontWeight: 900, color: '#f0c040' }}>{calculateGematria(wordDetails.word)}</span>
+                            </div>
+                        </div>
+
+                        {/* Root + syllables row */}
+                        <div style={{ display: 'grid', gridTemplateColumns: wordDetails.root ? '1fr 1fr 1fr' : '1fr 1fr', gap: '14px', marginBottom: '24px' }}>
+                            {wordDetails.root && (
+                                <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '14px', padding: '16px', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '8px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '6px' }}>Shoresh (Root)</div>
+                                    <div style={{ fontSize: '26px', color: '#a78bfa', direction: 'rtl', fontWeight: 700 }}>{wordDetails.root}</div>
+                                </div>
+                            )}
+                            <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '14px', padding: '16px', textAlign: 'center' }}>
+                                <div style={{ fontSize: '8px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '6px' }}>Hebrew Syllables</div>
+                                <div style={{ fontSize: '15px', color: '#fde68a', direction: 'rtl', fontWeight: 600 }}>{wordDetails.breakdownHe}</div>
+                            </div>
+                            <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '14px', padding: '16px', textAlign: 'center' }}>
+                                <div style={{ fontSize: '8px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '6px' }}>English Syllables</div>
+                                <div style={{ fontSize: '15px', color: '#93c5fd', fontWeight: 700, fontFamily: 'monospace' }}>{wordDetails.breakdownEn}</div>
+                            </div>
+                        </div>
+
+                        {/* Meaning grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '24px' }}>
+                            <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '14px', padding: '18px' }}>
+                                <div style={{ fontSize: '8px', fontWeight: 900, color: '#f59e0b', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '8px' }}>English Meaning</div>
+                                <div style={{ fontSize: '18px', fontWeight: 600, color: '#f1f5f9', lineHeight: 1.45 }}>{wordDetails.meaningEn}</div>
+                            </div>
+                            <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '14px', padding: '18px' }}>
+                                <div style={{ fontSize: '8px', fontWeight: 900, color: '#60a5fa', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '8px' }}>Tamil Meaning</div>
+                                <div style={{ fontSize: '18px', fontWeight: 600, color: '#f1f5f9', lineHeight: 1.45 }}>{wordDetails.meaningTa}</div>
+                            </div>
+                        </div>
+
+                        {/* Spiritual insight */}
+                        {wordDetails.description && (
+                            <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '12px', padding: '16px 20px', marginBottom: '28px', borderLeft: '3px solid rgba(240,192,64,0.45)' }}>
+                                <div style={{ fontSize: '12px', fontStyle: 'italic', color: 'rgba(255,255,255,0.6)', lineHeight: 1.75 }}>{wordDetails.description}</div>
+                            </div>
+                        )}
+
+                        {/* Footer */}
+                        <div style={{ paddingTop: '18px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+                                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
+                                    <span style={{ fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>City of Truth Ministries</span> &mdash; Valparai, Tamil Nadu, India
+                                </div>
+                                <div style={{ display: 'flex', gap: '18px', fontSize: '11px', color: 'rgba(255,255,255,0.45)' }}>
+                                    <span>&#128222; +91 8056125478</span>
+                                    <span>&#127760; city-of-truth-ministries.vercel.app</span>
+                                </div>
+                            </div>
+                            <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.25)', textAlign: 'center', letterSpacing: '0.05em' }}>
+                                &copy; {new Date().getFullYear()} City of Truth Ministries &middot; All rights reserved &middot; Hebrew Word Study &middot; AI Deep Insight
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
