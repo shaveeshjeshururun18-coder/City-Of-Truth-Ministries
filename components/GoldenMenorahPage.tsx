@@ -8,13 +8,23 @@ interface GoldenMenorahPageProps {
 }
 
 export const GoldenMenorahPage: React.FC<GoldenMenorahPageProps> = () => {
-    const handleDownloadFlag = () => {
-        const link = document.createElement('a');
-        link.href = '/menorah-flag-image.png';
-        link.download = 'Menorah-Flag-ProMax.png';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const handleDownloadFlag = async () => {
+        try {
+            const response = await fetch('/menorah-flag-image.png');
+            if (!response.ok) throw new Error('Flag image not available');
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'Menorah-Flag-HighResolution.png';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Flag download failed:', err);
+            alert('Sorry, the flag image could not be downloaded. Please try again later.');
+        }
     };
 
     return (
@@ -60,7 +70,7 @@ export const GoldenMenorahPage: React.FC<GoldenMenorahPageProps> = () => {
                                     className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-yellow-400 text-black font-bold px-5 py-3 rounded-full shadow-lg hover:from-amber-400 hover:to-yellow-300 active:scale-95 transition-all text-sm"
                                 >
                                     <Download size={16} />
-                                    Download Pro Max Quality Flag
+                                    Download Full Resolution Flag
                                 </button>
                             </div>
                         </div>
