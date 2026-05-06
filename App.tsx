@@ -870,8 +870,8 @@ const App: React.FC = () => {
                     animate={{ scale: 1.08 }}
                     transition={{ duration: 18, ease: "linear", repeat: Infinity, repeatType: "reverse" }}
                   />
-                  <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(10,10,30,0.6) 0%, rgba(10,10,30,0.5) 50%, rgba(10,10,30,0.9) 100%)' }} />
-                  <div className="absolute inset-0 bg-indigo-950/30" />
+                  <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(10,8,20,0.72) 0%, rgba(20,14,5,0.55) 50%, rgba(10,8,20,0.92) 100%)' }} />
+                  <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 70% 45% at 50% 42%, rgba(212,160,0,0.18) 0%, transparent 70%)' }} />
                 </div>
 
                 <div className="relative z-10 text-center px-4 md:px-6 max-w-4xl mx-auto w-full pt-10 md:pt-16">
@@ -880,11 +880,11 @@ const App: React.FC = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.7 }}
-                    className="inline-flex items-center gap-2 mb-8 px-5 py-2 rounded-full border border-blue-400/30 bg-blue-500/10 backdrop-blur-xl"
-                    style={{ boxShadow: '0 0 20px rgba(79,140,255,0.2)' }}
+                    className="inline-flex items-center gap-2 mb-8 px-5 py-2 rounded-full border border-yellow-400/40 bg-yellow-500/10 backdrop-blur-xl"
+                    style={{ boxShadow: '0 0 24px rgba(251,191,36,0.28)' }}
                   >
-                    <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" style={{ boxShadow: '0 0 8px rgba(79,140,255,0.8)' }} />
-                    <span className="text-blue-200 font-semibold tracking-widest uppercase text-[11px]">Registration Open</span>
+                    <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" style={{ boxShadow: '0 0 8px rgba(251,191,36,0.9)' }} />
+                    <span className="text-yellow-200 font-semibold tracking-widest uppercase text-[11px]">✦ Registration Open ✦</span>
                   </motion.div>
 
                   {/* Main title */}
@@ -894,8 +894,8 @@ const App: React.FC = () => {
                     transition={{ duration: 0.9, delay: 0.15 }}
                     className="mb-4"
                   >
-                    <h1 className="font-black tracking-tight leading-none" style={{ textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
-                      <span className="block text-5xl sm:text-8xl md:text-9xl text-transparent bg-clip-text bg-gradient-to-b from-white via-blue-100 to-indigo-200 pb-2 md:pb-4">சத்திய நகரம்</span>
+                    <h1 className="font-black tracking-tight leading-none" style={{ textShadow: '0 4px 32px rgba(212,160,0,0.55), 0 2px 8px rgba(0,0,0,0.6)' }}>
+                      <span className="block text-5xl sm:text-8xl md:text-9xl text-transparent bg-clip-text pb-2 md:pb-4" style={{ backgroundImage: "linear-gradient(180deg, #fffbe6 0%, #fde68a 25%, #f59e0b 55%, #b45309 100%)" }}>சத்திய நகரம்</span>
                     </h1>
                   </motion.div>
 
@@ -906,7 +906,7 @@ const App: React.FC = () => {
                     transition={{ duration: 0.8, delay: 0.3 }}
                     className="mb-2"
                   >
-                    <h2 className="text-xl md:text-2xl text-white/80 font-light tracking-[0.15em] uppercase">City of Truth Ministries</h2>
+                    <h2 className="text-xl md:text-2xl font-semibold tracking-[0.2em] uppercase" style={{ color: "rgba(253,230,138,0.85)", letterSpacing: "0.2em" }}>City of Truth Ministries</h2>
                   </motion.div>
 
                   {/* Support text */}
@@ -916,7 +916,7 @@ const App: React.FC = () => {
                     transition={{ duration: 0.7, delay: 0.4 }}
                     className="mb-10"
                   >
-                    <span className="text-lg md:text-xl text-indigo-200/70 font-light tracking-wider">ஊழியங்கள்</span>
+                    <span className="text-lg md:text-xl font-medium tracking-[0.25em]" style={{ color: "rgba(251,191,36,0.65)" }}>ஊழியங்கள்</span>
                   </motion.div>
 
                   {/* Quote */}
@@ -924,10 +924,10 @@ const App: React.FC = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 1, delay: 0.55 }}
-                    className="text-sm md:text-base text-white/50 max-w-md mx-auto mb-12 leading-relaxed font-light italic px-4"
+                    className="text-sm md:text-base max-w-md mx-auto mb-12 leading-relaxed font-light italic px-4" style={{ color: "rgba(253,230,138,0.5)" }}
                   >
                     "Then you will know the truth, and the truth will set you free."<br />
-                    <span className="not-italic text-white/35 tracking-wider text-xs">— John 8:32</span>
+                    <span className="not-italic tracking-wider text-xs" style={{ color: "rgba(251,191,36,0.4)" }}>— John 8:32</span>
                   </motion.p>
 
                   {/* Buttons */}
