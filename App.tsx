@@ -860,77 +860,101 @@ const App: React.FC = () => {
                   case 'hero':
                     return (
                       <section key="hero" className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden py-20">
-                <div className="absolute inset-0 z-0">
-                  <img
+                {/* Background with slow zoom animation */}
+                <div className="absolute inset-0 z-0 overflow-hidden">
+                  <motion.img
                     src="https://images.unsplash.com/photo-1438232992991-995b7058bbb3?q=80&w=2673&auto=format&fit=crop"
                     alt="Worship Background"
                     className="w-full h-full object-cover"
+                    initial={{ scale: 1 }}
+                    animate={{ scale: 1.08 }}
+                    transition={{ duration: 18, ease: "linear", repeat: Infinity, repeatType: "reverse" }}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-b from-brand-900/95 via-brand-900/60 to-brand-900/95 mix-blend-multiply" />
-                  <div className="absolute inset-0 bg-black/40" />
+                  <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(10,10,30,0.6) 0%, rgba(10,10,30,0.5) 50%, rgba(10,10,30,0.9) 100%)' }} />
+                  <div className="absolute inset-0 bg-indigo-950/30" />
                 </div>
 
-                <div className="relative z-10 text-center px-4 md:px-6 max-w-7xl mx-auto w-full pt-10 md:pt-16">
-                  <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1 }}>
-                    <div className="inline-block mb-6 px-6 py-2.5 rounded-full border border-red-500/50 bg-red-900/40 backdrop-blur-xl shadow-lg animate-pulse">
-                      <span className="text-red-300 font-bold tracking-[0.25em] uppercase text-[10px] md:text-xs">⚠️ Registration Open ⚠️</span>
-                    </div>
+                <div className="relative z-10 text-center px-4 md:px-6 max-w-4xl mx-auto w-full pt-10 md:pt-16">
+                  {/* Registration badge — minimal pill */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.7 }}
+                    className="inline-flex items-center gap-2 mb-8 px-5 py-2 rounded-full border border-blue-400/30 bg-blue-500/10 backdrop-blur-xl"
+                    style={{ boxShadow: '0 0 20px rgba(79,140,255,0.2)' }}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" style={{ boxShadow: '0 0 8px rgba(79,140,255,0.8)' }} />
+                    <span className="text-blue-200 font-semibold tracking-widest uppercase text-[11px]">Registration Open</span>
+                  </motion.div>
 
-                    <div className="flex flex-col items-center justify-center mb-10 relative">
-                      <h2 className="text-2xl md:text-3xl text-brand-100 font-serif font-black italic tracking-wide mb-3 drop-shadow-md">City of Truth Ministries</h2>
-                      <h1 className="font-bold tracking-tight leading-none py-2 md:py-4">
-                        <span className="block text-5xl sm:text-8xl md:text-9xl font-black text-transparent bg-clip-text bg-gradient-to-b from-brand-50 via-brand-100 to-brand-200 drop-shadow-2xl pb-2 md:pb-4">சத்திய நகரம்</span>
-                        <span className="block text-3xl sm:text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-accent-100 to-brand-300 mt-1 md:mt-2 tracking-tighter">ஊழியங்கள்</span>
-                      </h1>
-                    </div>
+                  {/* Main title */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.9, delay: 0.15 }}
+                    className="mb-4"
+                  >
+                    <h1 className="font-black tracking-tight leading-none" style={{ textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
+                      <span className="block text-5xl sm:text-8xl md:text-9xl text-transparent bg-clip-text bg-gradient-to-b from-white via-blue-100 to-indigo-200 pb-2 md:pb-4">சத்திய நகரம்</span>
+                    </h1>
+                  </motion.div>
 
-                    <p className="text-base md:text-xl text-brand-50/80 max-w-2xl mx-auto mb-12 leading-relaxed font-light font-serif italic px-6">"Then you will know the truth, and the truth will set you free." <br />— John 8:32</p>
+                  {/* Subtitle */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, delay: 0.3 }}
+                    className="mb-2"
+                  >
+                    <h2 className="text-xl md:text-2xl text-white/80 font-light tracking-[0.15em] uppercase">City of Truth Ministries</h2>
+                  </motion.div>
 
-                            <div className="flex items-center justify-center gap-2 sm:gap-3 w-full max-w-xs sm:max-w-none mx-auto px-2 sm:px-0 mt-4 md:mt-0">
-                              <Button
-                                onClick={() => setCurrentView(ViewState.ID_CARD)}
-                                className="flex-1 sm:flex-none sm:w-auto px-4 py-3 sm:px-12 sm:py-5 text-[11px] sm:text-sm uppercase tracking-[0.1em] sm:tracking-[0.2em] font-black text-white bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 bg-[length:200%_auto] hover:bg-right transition-all duration-500 border-none shadow-[0_0_30px_rgba(37,99,235,0.4)] hover:shadow-[0_0_50px_rgba(37,99,235,0.6)] hover:scale-105 active:scale-95 rounded-full ring-2 ring-white/20 whitespace-nowrap"
-                              >
-                                Register Now
-                              </Button>
-                              <Button
-                                onClick={() => navigate('/auth?view=login')}
-                                className="flex-1 sm:flex-none sm:w-auto px-4 py-3 sm:px-10 sm:py-5 text-[11px] sm:text-sm uppercase tracking-[0.1em] sm:tracking-[0.2em] font-black text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 hover:border-white/60 hover:scale-105 active:scale-95 rounded-full transition-all duration-300 whitespace-nowrap"
-                              >
-                                Login
-                              </Button>
-                            </div>
+                  {/* Support text */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.7, delay: 0.4 }}
+                    className="mb-10"
+                  >
+                    <span className="text-lg md:text-xl text-indigo-200/70 font-light tracking-wider">ஊழியங்கள்</span>
+                  </motion.div>
 
-                            {/* Email → leader message trigger */}
-                            <div className="mt-6 flex flex-col items-center gap-2 px-4 sm:px-0">
-                              <div className="flex bg-white/10 backdrop-blur-sm border border-white/20 rounded-full overflow-hidden shadow-lg w-full max-w-[260px] sm:max-w-sm">
-                                <input
-                                  type="text"
-                                  placeholder="Type your message..."
-                                  value={heroEmail}
-                                  onChange={e => setHeroEmail(e.target.value)}
-                                  onKeyDown={e => {
-                                    if (e.key === 'Enter' && heroEmail.trim()) {
-                                      handleHeroSendMessage();
-                                    }
-                                  }}
-                                  className="flex-1 bg-transparent text-white placeholder:text-white/40 text-[11px] sm:text-sm px-3 sm:px-4 py-2 sm:py-3 outline-none font-light min-w-0"
-                                />
-                                <button
-                                  disabled={!heroEmail.trim()}
-                                  onClick={handleHeroSendMessage}
-                                  className="bg-white/20 hover:bg-white/30 text-white font-bold text-[10px] sm:text-xs uppercase tracking-wide px-3 sm:px-4 py-2 sm:py-3 transition-colors disabled:opacity-40 whitespace-nowrap shrink-0"
-                                >
-                                  Send Message
-                                </button>
-                              </div>
-                              <p className="text-white/30 text-[10px]">Your message will be saved to the Admin Dashboard.</p>
-                            </div>
+                  {/* Quote */}
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 1, delay: 0.55 }}
+                    className="text-sm md:text-base text-white/50 max-w-md mx-auto mb-12 leading-relaxed font-light italic px-4"
+                  >
+                    "Then you will know the truth, and the truth will set you free."<br />
+                    <span className="not-italic text-white/35 tracking-wider text-xs">— John 8:32</span>
+                  </motion.p>
 
-                          </motion.div>
-                        </div>
-                      </section>
-                    );
+                  {/* Buttons */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.6, delay: 0.7 }}
+                    className="flex items-center justify-center gap-3 w-full max-w-xs sm:max-w-none mx-auto px-2 sm:px-0"
+                  >
+                    <Button
+                      onClick={() => setCurrentView(ViewState.ID_CARD)}
+                      className="flex-1 sm:flex-none sm:w-auto px-6 py-3 sm:px-12 sm:py-5 text-[11px] sm:text-sm uppercase tracking-[0.15em] font-black text-white border-none hover:scale-105 active:scale-95 rounded-full whitespace-nowrap"
+                      style={{ background: 'linear-gradient(135deg, #4F8CFF, #7B5CFF)', boxShadow: '0 8px 25px rgba(79,140,255,0.4)' }}
+                    >
+                      Register Now
+                    </Button>
+                    <Button
+                      onClick={() => navigate('/auth?view=login')}
+                      className="flex-1 sm:flex-none sm:w-auto px-6 py-3 sm:px-10 sm:py-5 text-[11px] sm:text-sm uppercase tracking-[0.15em] font-black text-white hover:bg-white/20 hover:scale-105 active:scale-95 rounded-full transition-all duration-300 whitespace-nowrap"
+                      style={{ background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)' }}
+                    >
+                      Login
+                    </Button>
+                  </motion.div>
+                </div>
+              </section>
+            );
                   case 'about':
                     return (
                       <section key="about" className="py-24 bg-gray-50 overflow-hidden relative">
