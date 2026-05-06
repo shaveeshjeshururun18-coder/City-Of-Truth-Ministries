@@ -79,7 +79,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
         .montserrat { font-family: 'Montserrat', sans-serif; }
       `}} />
 
-      <nav className={`${currentView === ViewState.ABOUT ? 'absolute shadow-none' : 'fixed'} top-0 left-0 right-0 z-50 flex justify-between items-center transition-all duration-500 px-4 md:px-8 py-2.5 montserrat bg-white shadow-sm border-b border-gray-100`}>
+      {/* Hero-transparent or solid-white navbar */}
+      <nav className={`${currentView === ViewState.ABOUT ? 'absolute shadow-none' : 'fixed'} top-0 left-0 right-0 z-50 flex justify-between items-center transition-all duration-500 px-4 md:px-8 montserrat ${
+        currentView === ViewState.HOME && !isScrolled
+          ? 'py-4 bg-transparent backdrop-blur-md border-b border-white/10'
+          : 'py-2.5 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100'
+      }`}>
         {/* LOGO STYLING */}
         <div
           className="flex items-center gap-[10px] cursor-pointer"
@@ -89,8 +94,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             <img src="/logo.png" alt="COT Logo" className="w-full h-full object-contain" />
           </div>
           <div className="flex flex-col justify-center">
-              <span className="font-bold text-[1.1rem] leading-[1.1] tracking-[-0.5px] text-[#1a1a2e]">City of Truth</span>
-              <span className="text-[0.65rem] font-bold tracking-[1px] uppercase text-[#5D5FEF]">MINISTRIES</span>
+              <span className={`font-bold text-[1.1rem] leading-[1.1] tracking-[-0.5px] transition-colors duration-300 ${currentView === ViewState.HOME && !isScrolled ? 'text-white' : 'text-[#1a1a2e]'}`}>City of Truth</span>
+              <span className={`text-[0.65rem] font-bold tracking-[1px] uppercase transition-colors duration-300 ${currentView === ViewState.HOME && !isScrolled ? 'text-blue-300' : 'text-[#5D5FEF]'}`}>MINISTRIES</span>
           </div>
         </div>
 
@@ -160,7 +165,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
           {/* Language Toggle */}
           <button
             onClick={() => setLanguage(language === 'en' ? 'ta' : 'en')}
-            className="hidden sm:flex items-center gap-1 px-2.5 h-9 rounded-xl border border-slate-200 bg-white text-slate-600 text-[11px] font-bold transition-all hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50 whitespace-nowrap"
+            className={`hidden sm:flex items-center gap-1 px-2.5 h-9 rounded-xl text-[11px] font-bold transition-all whitespace-nowrap ${currentView === ViewState.HOME && !isScrolled ? 'border border-white/20 bg-white/10 text-white hover:bg-white/20' : 'border border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50'}`}
             title={language === 'en' ? 'Switch to Tamil' : 'Switch to English'}
             aria-label="Toggle language"
           >
@@ -168,9 +173,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             <span>{language === 'en' ? 'தமிழ்' : 'EN'}</span>
           </button>
 
-          <div className="flex items-center gap-3 sm:gap-3.5 p-1 sm:p-1.5 rounded-2xl bg-white/95 backdrop-blur-md border border-brand-200/80">
+          <div className={`flex items-center gap-3 sm:gap-3.5 p-1 sm:p-1.5 rounded-2xl backdrop-blur-md border transition-all duration-300 ${currentView === ViewState.HOME && !isScrolled ? 'bg-white/10 border-white/20' : 'bg-white/95 border-brand-200/80'}`}>
             <button
-              onClick={() => currentUser ? setView(ViewState.USER_DASHBOARD) : onLoginClick()}
+              onClick={() => currentUser ? setView(ViewState.USER_DASHBOARD) : setView(ViewState.ID_CARD)}
               className={`${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-11 h-11 rounded-2xl shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 border border-blue-300/50 px-3.5 h-10 rounded-2xl shadow-[0_14px_24px_-12px_rgba(37,99,235,0.7)] hover:shadow-[0_18px_28px_-12px_rgba(37,99,235,0.8)] hover:from-blue-700 hover:via-blue-600 hover:to-blue-800'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group`}
               title={currentUser ? "My Account" : "Register"}
               aria-label={currentUser ? "Open my account dashboard" : "Register account"}
