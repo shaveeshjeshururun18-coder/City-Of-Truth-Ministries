@@ -1,5 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type, Volume2 } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type, Volume2, Loader2, Info, Fingerprint } from 'lucide-react';
+import { analyzeHebrewWord } from '../services/openRouterService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HebrewYearDropdown } from './HebrewYearDropdown';
 import { HebrewConverter } from './HebrewConverter';
@@ -762,17 +763,26 @@ const HebrewLettersAudioLab: React.FC = () => {
     const [selectedLetters, setSelectedLetters] = useState<{ letter: string; name: string; hebrewName: string; key: number }[]>([]);
     const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
     const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [aiResult, setAiResult] = useState<any | null>(null);
+    const [aiError, setAiError] = useState<string | null>(null);
     const nextKey = React.useRef(0);
 
     const combinedWord = selectedLetters.map(l => l.letter).join('');
 
     const addLetter = (item: (typeof HEBREW_AUDIO_LETTERS)[number]) => {
         const entry = { ...item, key: nextKey.current++ };
-        setSelectedLetters(prev => [entry, ...prev]);
+        // Append so that in RTL layout the newest letter appears on the left
+        setSelectedLetters(prev => [...prev, entry]);
+        // Reset any previous AI result when the word changes
+        setAiResult(null);
+        setAiError(null);
     };
 
     const removeLetter = (idx: number) => {
         setSelectedLetters(prev => prev.filter((_, i) => i !== idx));
+        setAiResult(null);
+        setAiError(null);
     };
 
     const playLetter = async (letterCharacter: string, hebrewName: string) => {
@@ -789,6 +799,21 @@ const HebrewLettersAudioLab: React.FC = () => {
             await audioService.playHebrew(combinedWord);
         } catch (error) {
             console.warn('Combined audio playback failed:', error);
+        }
+    };
+
+    const handleDeepAnalysis = async () => {
+        if (!combinedWord) return;
+        setIsAnalyzing(true);
+        setAiError(null);
+        try {
+            const result = await analyzeHebrewWord(combinedWord);
+            setAiResult({ ...result, word: combinedWord });
+        } catch (err) {
+            setAiError('Could not connect to the Deep Insight service. Please try again.');
+            console.error(err);
+        } finally {
+            setIsAnalyzing(false);
         }
     };
 
@@ -823,7 +848,7 @@ const HebrewLettersAudioLab: React.FC = () => {
             <div className="text-center space-y-3">
                 <h2 className="text-4xl md:text-5xl font-serif font-bold text-brand-950">Hebrew <span className="text-accent-600">Letters Audio Lab</span></h2>
                 <p className="text-slate-500 text-base max-w-3xl mx-auto">
-                    Tap any letter to add it to your word. Newly added letters appear at the top. Drag to reorder. Tap ✕ to remove.
+                    Tap any letter to add it to your word. New letters appear on the left (Hebrew reads right-to-left). Drag to reorder. Tap ✕ to remove.
                 </p>
             </div>
 
@@ -872,9 +897,19 @@ const HebrewLettersAudioLab: React.FC = () => {
                             >
                                 <Volume2 size={15} /> Play Word
                             </button>
+                            {selectedLetters.length > 0 && !aiResult && (
+                                <button
+                                    onClick={handleDeepAnalysis}
+                                    disabled={isAnalyzing}
+                                    className="px-5 py-2.5 rounded-full bg-accent-500 text-brand-950 font-bold text-sm flex items-center gap-2 disabled:opacity-50 hover:bg-accent-400 transition-colors shadow-lg"
+                                >
+                                    {isAnalyzing ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
+                                    {isAnalyzing ? 'Analyzing…' : 'Deep Insight'}
+                                </button>
+                            )}
                             {selectedLetters.length > 0 && (
                                 <button
-                                    onClick={() => setSelectedLetters([])}
+                                    onClick={() => { setSelectedLetters([]); setAiResult(null); setAiError(null); }}
                                     className="px-4 py-2.5 rounded-full border border-slate-200 text-slate-500 font-bold text-sm hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors"
                                 >
                                     Clear All
@@ -885,7 +920,107 @@ const HebrewLettersAudioLab: React.FC = () => {
                 </div>
             </div>
 
-            {/* ── ALPHABET GRID ── */}
+            {/* ── AI ERROR ── */}
+            {aiError && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 text-red-500 text-xs font-bold bg-red-50 p-4 rounded-2xl border border-red-100">
+                    <Info size={15} /> {aiError}
+                </motion.div>
+            )}
+
+            {/* ── AI ANALYSIS RESULT ── */}
+            <AnimatePresence>
+                {aiResult && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -12 }}
+                        transition={{ duration: 0.35 }}
+                        className="bg-slate-950 text-white rounded-[2rem] p-6 md:p-8 flex flex-col space-y-5 shadow-2xl relative overflow-hidden"
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+                        {/* Header row */}
+                        <div className="flex justify-between items-start gap-3">
+                            <div className="space-y-1 min-w-0">
+                                <div className="text-[10px] font-black text-brand-400 uppercase tracking-[0.2em]">AI Deep Insight</div>
+                                <div className="text-2xl font-black flex items-center gap-2 text-white flex-wrap">
+                                    <span>{aiResult.pronunciation}</span>
+                                    <button onClick={playCombined} className="shrink-0 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-accent-400">
+                                        <Volume2 size={16} />
+                                    </button>
+                                </div>
+                                {aiResult.pronunciationTa && (
+                                    <div className="text-sm font-bold text-slate-400 flex items-center gap-2 mt-1">
+                                        <div className="w-4 h-[1px] bg-slate-700" />
+                                        {aiResult.pronunciationTa} (தமிழ்)
+                                    </div>
+                                )}
+                            </div>
+                            <div className="shrink-0 bg-brand-500/20 p-2.5 rounded-xl border border-white/5">
+                                <Sparkles size={18} className="text-accent-400 animate-pulse" />
+                            </div>
+                        </div>
+
+                        {/* Root (Shoresh) */}
+                        {aiResult.root && (
+                            <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <div className="shrink-0 w-7 h-7 bg-accent-500/20 rounded-lg flex items-center justify-center text-accent-400">
+                                        <Fingerprint size={14} />
+                                    </div>
+                                    <div className="space-y-0.5 min-w-0">
+                                        <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Shoresh (Hebrew Root)</div>
+                                        <div className="text-xs text-brand-400 font-bold">The spiritual foundation</div>
+                                    </div>
+                                </div>
+                                <div className="text-2xl font-serif text-accent-400 tracking-[0.2em] shrink-0" dir="rtl">{aiResult.root}</div>
+                            </div>
+                        )}
+
+                        {/* Syllable breakdown */}
+                        <div className="grid grid-cols-2 gap-3 py-4 border-y border-white/10">
+                            <div className="space-y-1.5">
+                                <div className="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em]">Hebrew Syllables</div>
+                                <div className="text-base font-serif tracking-widest text-white/90 break-words" dir="rtl">{aiResult.breakdownHe}</div>
+                            </div>
+                            <div className="space-y-1.5 border-l border-white/10 pl-3">
+                                <div className="text-[10px] font-black text-brand-400 uppercase tracking-[0.2em]">English Splitting</div>
+                                <div className="text-base font-mono font-bold text-accent-200 tracking-tight break-words">{aiResult.breakdownEn}</div>
+                            </div>
+                        </div>
+
+                        {/* Meanings */}
+                        <div className="space-y-4">
+                            <div className="space-y-1.5">
+                                <div className="text-xs font-bold text-amber-500 uppercase tracking-widest">English Meaning</div>
+                                <div className="text-lg font-serif leading-relaxed text-slate-100 break-words">{aiResult.meaningEn}</div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <div className="text-xs font-bold text-brand-400 uppercase tracking-widest">Tamil Meaning (தமிழ்)</div>
+                                <div className="text-xl font-serif leading-relaxed text-slate-100 break-words">{aiResult.meaningTa}</div>
+                            </div>
+                        </div>
+
+                        {/* Description */}
+                        {aiResult.description && (
+                            <div className="pt-4 border-t border-white/5 italic text-[11px] text-slate-500 font-light leading-relaxed break-words">
+                                {aiResult.description}
+                            </div>
+                        )}
+
+                        {/* Re-analyze button */}
+                        <div className="pt-2">
+                            <button
+                                onClick={handleDeepAnalysis}
+                                disabled={isAnalyzing}
+                                className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-2 disabled:opacity-50 transition-colors"
+                            >
+                                {isAnalyzing ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                                Re-analyze
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
             <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-10 shadow-xl">
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-6 text-center">Tap a letter to add it to your word</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
