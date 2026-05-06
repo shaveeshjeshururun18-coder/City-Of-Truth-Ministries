@@ -48,8 +48,7 @@ export const GoldenMenorahPage: React.FC<GoldenMenorahPageProps> = () => {
                                 <img
                                     src="/menorah-flag-image.png"
                                     alt="Sacred Menorah Flag with YHWH inscriptions"
-                                    className="w-full max-w-full object-contain transform hover:scale-105 transition-transform duration-700"
-                                    style={{ maxHeight: '320px' }}
+                                    className="w-full max-w-full max-h-80 object-contain transform hover:scale-105 transition-transform duration-700"
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
                             </div>
