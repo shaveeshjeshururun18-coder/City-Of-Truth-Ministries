@@ -35,7 +35,6 @@ const VIEW_TO_NAV_ID: Partial<Record<ViewState, string>> = {
     [ViewState.HEBREW_WORDS]:         'words',
     [ViewState.HEBREW_LETTERS_AUDIO]: 'lettersaudio',
     [ViewState.HEBREW_NUMBERS]:       'numbers',
-    [ViewState.ABOUT]:                'numbers',
     [ViewState.HEBREW_GEMATRIA]:      'gematria',
     [ViewState.HEBREW_REFERENCE]:     'reference',
 };

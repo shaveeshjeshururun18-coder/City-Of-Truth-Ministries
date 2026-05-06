@@ -121,7 +121,7 @@ export const DivineAssistant: React.FC = () => {
                         initial={{ scale: 0, opacity: 0, rotate: -45 }}
                         animate={{ scale: 1, opacity: 1, rotate: 0 }}
                         exit={{ scale: 0, opacity: 0, rotate: 45 }}
-                        whileHover={{ scale: 1.1, shadow: "0 20px 40px rgba(91, 71, 208, 0.4)" }}
+                        whileHover={{ scale: 1.1, boxShadow: "0 20px 40px rgba(91, 71, 208, 0.4)" }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => setIsOpen(true)}
                         className="pointer-events-auto fixed bottom-6 right-6 md:bottom-10 md:right-10 w-16 h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-brand-600 via-brand-700 to-indigo-900 shadow-[0_15px_35px_-5px_rgba(37,30,121,0.5)] border border-white/20 flex items-center justify-center group pointer-events-auto"

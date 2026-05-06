@@ -597,7 +597,7 @@ export const HebrewWordHub: React.FC = () => {
                         <motion.button
                             key={i}
                             layout
-                            whileHover={{ y: -5, shadow: '0 20px 40px rgba(0,0,0,0.08)' }}
+                            whileHover={{ y: -5, boxShadow: '0 20px 40px rgba(0,0,0,0.08)' }}
                             onClick={() => {
                                 setWordInput(word.word);
                                 playAudio(word.word);
