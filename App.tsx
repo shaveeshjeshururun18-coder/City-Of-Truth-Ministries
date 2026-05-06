@@ -952,6 +952,43 @@ const App: React.FC = () => {
                       Login
                     </Button>
                   </motion.div>
+
+                  {/* Quick Message Widget */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.7, delay: 0.9 }}
+                    className="mt-10 flex flex-col items-center gap-2 px-4 sm:px-0 w-full"
+                  >
+                    <p className="text-white/40 text-[10px] uppercase tracking-[0.2em] font-semibold mb-1">Send Us a Message</p>
+                    <div
+                      className="flex w-full max-w-sm overflow-hidden rounded-2xl"
+                      style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 4px 24px rgba(0,0,0,0.2)' }}
+                    >
+                      <input
+                        type="text"
+                        placeholder="Type your message or prayer request…"
+                        value={heroEmail}
+                        onChange={e => setHeroEmail(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && heroEmail.trim()) {
+                            handleHeroSendMessage();
+                          }
+                        }}
+                        className="flex-1 bg-transparent text-white placeholder:text-white/35 text-xs sm:text-sm px-4 py-3 outline-none font-light min-w-0"
+                      />
+                      <button
+                        disabled={!heroEmail.trim()}
+                        onClick={handleHeroSendMessage}
+                        className="flex items-center gap-1.5 text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider px-4 py-3 transition-all disabled:opacity-30 shrink-0"
+                        style={{ background: 'rgba(79,140,255,0.25)', borderLeft: '1px solid rgba(255,255,255,0.1)' }}
+                      >
+                        <Send size={13} />
+                        Send
+                      </button>
+                    </div>
+                    <p className="text-white/20 text-[10px] tracking-wide">Your message will reach our Admin directly.</p>
+                  </motion.div>
                 </div>
               </section>
             );
