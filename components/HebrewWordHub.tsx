@@ -198,7 +198,11 @@ export const HebrewWordHub: React.FC = () => {
                 pixelRatio: 3,
                 backgroundColor: '#ffffff',
             });
-            const filename = `COT-Hebrew-${wordDetails.pronunciation.replace(/\s+/g, '-')}`;
+            const safeName = wordDetails.pronunciation
+                .replace(/[^a-zA-Z0-9\-_]/g, '-')
+                .replace(/-+/g, '-')
+                .replace(/^-|-$/g, '');
+            const filename = `COT-Hebrew-${safeName || 'word'}`;
             if (format === 'jpeg') {
                 const link = document.createElement('a');
                 link.download = `${filename}.jpg`;
@@ -209,7 +213,10 @@ export const HebrewWordHub: React.FC = () => {
                 const pdfW = pdf.internal.pageSize.getWidth();
                 const img = new Image();
                 img.src = dataUrl;
-                await new Promise<void>(resolve => { img.onload = () => resolve(); });
+                await new Promise<void>((resolve, reject) => {
+                    img.onload = () => resolve();
+                    img.onerror = () => reject(new Error('Failed to load export image'));
+                });
                 const pdfH = (img.height * pdfW) / img.width;
                 const pageH = pdf.internal.pageSize.getHeight();
                 pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfW, Math.min(pdfH, pageH));
@@ -650,7 +657,7 @@ export const HebrewWordHub: React.FC = () => {
                         {/* Header */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', paddingBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                <img src="/logo.png" alt="COT Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '12px', background: 'rgba(255,255,255,0.08)', padding: '6px' }} />
+                                <img src="/logo.png" alt="COT Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '12px', background: 'rgba(255,255,255,0.08)', padding: '6px' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                                 <div>
                                     <div style={{ fontSize: '18px', fontWeight: 900, letterSpacing: '0.06em', color: '#f0c040', textTransform: 'uppercase' }}>City of Truth Ministries</div>
                                     <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: '3px' }}>Valparai &bull; India</div>
