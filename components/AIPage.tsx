@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Zap, Sparkles, MessageCircle, User, Trash2, ChevronLeft, ImagePlus, X } from 'lucide-react';
+import { Send, Zap, Sparkles, MessageCircle, User, ChevronLeft, ImagePlus, X } from 'lucide-react';
 import { streamSpatulaAIResponse, generateSpatulaAIResponse, analyzeImageWithAI } from '../services/openRouterService';
 import { useLanguage } from './LanguageContext';
 
@@ -49,13 +49,13 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
         scrollToBottom();
     }, [messages, isLoading]);
 
-    const handleClearChat = () => {
-        if (!window.confirm("Are you sure you want to clear the entire chat history? This cannot be undone.")) return;
-        setMessages([]);
-        setPrompt("");
-        setImagePreview(null);
-        setImageFile(null);
-    };
+    // Inject greeting message when chat is empty
+    useEffect(() => {
+        if (messages.length === 0) {
+            setMessages([{ role: 'assistant', content: t('ai.greeting') }]);
+        }
+    }, [messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -268,16 +268,6 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
                 )}
 
                 <div className="max-w-3xl mx-auto flex gap-3 items-center">
-                    {/* Clear Chat Button — hidden in widget mode to prevent accidental erasure */}
-                    {!isWidget && (
-                    <button
-                        onClick={handleClearChat}
-                        className="p-3 rounded-full bg-slate-100 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
-                        title={t('ai.clearChat')}
-                    >
-                        <Trash2 size={18} />
-                    </button>
-                    )}
 
                     {/* Image Upload Button */}
                     <button
