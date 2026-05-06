@@ -988,52 +988,6 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                     </p>
                 </div>
 
-                <div
-                    role="navigation"
-                    aria-label="Resource categories"
-                    className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-1.5rem)] max-w-2xl"
-                >
-                    <div className="rounded-[2rem] border border-slate-200 bg-white/95 backdrop-blur-xl shadow-[0_20px_40px_rgba(15,23,42,0.14)] p-2">
-                        <div
-                            role="tablist"
-                            aria-orientation="horizontal"
-                            className="grid grid-cols-3 gap-1"
-                        >
-                            {HEBREW_RESOURCE_TABS.map((t, index) => {
-                                const isActive = tab === t.id;
-                                return (
-                                    <button
-                                        key={t.id}
-                                        role="tab"
-                                        aria-selected={isActive}
-                                        onClick={() => { setTab(t.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                                        onKeyDown={(e) => {
-                                            if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
-                                            const tabButtons = Array.from(
-                                                e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]') ?? []
-                                            );
-                                            if (tabButtons.length === 0) return;
-                                            const delta = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : -1;
-                                            const nextIndex = (index + delta + tabButtons.length) % tabButtons.length;
-                                            tabButtons[nextIndex]?.focus();
-                                            setTab(HEBREW_RESOURCE_TABS[nextIndex].id);
-                                            e.preventDefault();
-                                        }}
-                                        aria-label={t.label}
-                                        className={`min-w-0 flex items-center justify-center gap-2 px-3 py-2 rounded-full font-semibold text-xs transition-all duration-300 ${isActive
-                                            ? 'bg-amber-100 text-amber-700 shadow-sm'
-                                            : 'text-slate-500 hover:text-amber-600 hover:bg-amber-50'
-                                            }`}
-                                    >
-                                        {t.icon}
-                                        <span className="text-xs leading-tight text-center">{t.label}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </div>
-
                 <div className="relative mb-24 min-h-[500px]">
                     <AnimatePresence mode="wait">
                         <motion.div
