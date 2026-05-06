@@ -50,6 +50,7 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
     }, [messages, isLoading]);
 
     const handleClearChat = () => {
+        if (!window.confirm("Are you sure you want to clear the entire chat history? This cannot be undone.")) return;
         setMessages([]);
         setPrompt("");
         setImagePreview(null);
