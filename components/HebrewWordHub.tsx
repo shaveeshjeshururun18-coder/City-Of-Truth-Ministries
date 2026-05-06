@@ -724,7 +724,7 @@ export const HebrewWordHub: React.FC = () => {
                                 </div>
                                 <div style={{ display: 'flex', gap: '18px', fontSize: '11px', color: 'rgba(255,255,255,0.45)' }}>
                                     <span>&#128222; +91 8056125478</span>
-                                    <span>&#127760; city-of-truth-ministries.vercel.app</span>
+                                    <span>&#127760; https://city-of-truth-ministries.vercel.app</span>
                                 </div>
                             </div>
                             <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.25)', textAlign: 'center', letterSpacing: '0.05em' }}>
