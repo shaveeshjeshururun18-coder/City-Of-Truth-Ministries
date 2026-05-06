@@ -268,7 +268,8 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
                 )}
 
                 <div className="max-w-3xl mx-auto flex gap-3 items-center">
-                    {/* Clear Chat Button */}
+                    {/* Clear Chat Button — hidden in widget mode to prevent accidental erasure */}
+                    {!isWidget && (
                     <button
                         onClick={handleClearChat}
                         className="p-3 rounded-full bg-slate-100 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
@@ -276,6 +277,7 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
                     >
                         <Trash2 size={18} />
                     </button>
+                    )}
 
                     {/* Image Upload Button */}
                     <button
