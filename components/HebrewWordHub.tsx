@@ -92,6 +92,16 @@ interface HistoryEntry {
 const HISTORY_KEY = 'cot_hebrew_word_history';
 const MAX_HISTORY = 50;
 
+const COT_PHONE = '+91 8056125478';
+const COT_WEBSITE = 'https://city-of-truth-ministries.vercel.app';
+const COT_LOCATION = 'Valparai, Tamil Nadu, India';
+
+const sanitizeFilename = (text: string): string =>
+    text
+        .replace(/[^a-zA-Z0-9\-_]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '') || 'word';
+
 export const HebrewWordHub: React.FC = () => {
     const [wordInput, setWordInput] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
@@ -198,11 +208,7 @@ export const HebrewWordHub: React.FC = () => {
                 pixelRatio: 3,
                 backgroundColor: '#ffffff',
             });
-            const safeName = wordDetails.pronunciation
-                .replace(/[^a-zA-Z0-9\-_]/g, '-')
-                .replace(/-+/g, '-')
-                .replace(/^-|-$/g, '');
-            const filename = `COT-Hebrew-${safeName || 'word'}`;
+            const filename = `COT-Hebrew-${sanitizeFilename(wordDetails.pronunciation)}`;
             if (format === 'jpeg') {
                 const link = document.createElement('a');
                 link.download = `${filename}.jpg`;
@@ -727,11 +733,11 @@ export const HebrewWordHub: React.FC = () => {
                         <div style={{ paddingTop: '18px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
                                 <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
-                                    <span style={{ fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>City of Truth Ministries</span> — Valparai, Tamil Nadu, India
+                                    <span style={{ fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>City of Truth Ministries</span> — {COT_LOCATION}
                                 </div>
                                 <div style={{ display: 'flex', gap: '18px', fontSize: '11px', color: 'rgba(255,255,255,0.45)' }}>
-                                    <span>📞 +91 8056125478</span>
-                                    <span>🌐 https://city-of-truth-ministries.vercel.app</span>
+                                    <span>📞 {COT_PHONE}</span>
+                                    <span>🌐 {COT_WEBSITE}</span>
                                 </div>
                             </div>
                             <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.25)', textAlign: 'center', letterSpacing: '0.05em' }}>
