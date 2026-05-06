@@ -895,7 +895,7 @@ const App: React.FC = () => {
                     className="mb-4"
                   >
                     <h1 className="font-black tracking-tight leading-none" style={{ textShadow: '0 4px 32px rgba(212,160,0,0.55), 0 2px 8px rgba(0,0,0,0.6)' }}>
-                      <span className="block text-5xl sm:text-8xl md:text-9xl text-transparent bg-clip-text pb-2 md:pb-4" style={{ backgroundImage: "linear-gradient(180deg, #fffbe6 0%, #fde68a 25%, #f59e0b 55%, #b45309 100%)" }}>சத்திய நகரம்</span>
+                      <span className="gold-shimmer-title block text-5xl sm:text-8xl md:text-9xl text-transparent bg-clip-text pb-2 md:pb-4">சத்திய நகரம்</span>
                     </h1>
                   </motion.div>
 
@@ -939,15 +939,15 @@ const App: React.FC = () => {
                   >
                     <Button
                       onClick={() => setCurrentView(ViewState.ID_CARD)}
-                      className="flex-1 sm:flex-none sm:w-auto px-6 py-3 sm:px-12 sm:py-5 text-[11px] sm:text-sm uppercase tracking-[0.15em] font-black text-white border-none hover:scale-105 active:scale-95 rounded-full whitespace-nowrap"
-                      style={{ background: 'linear-gradient(135deg, #4F8CFF, #7B5CFF)', boxShadow: '0 8px 25px rgba(79,140,255,0.4)' }}
+                      className="flex-1 sm:flex-none sm:w-auto px-6 py-3 sm:px-12 sm:py-5 text-[11px] sm:text-sm uppercase tracking-[0.15em] font-black border-none hover:scale-105 active:scale-95 whitespace-nowrap"
+                      style={{ background: "linear-gradient(135deg, #f59e0b 0%, #fbbf24 40%, #fde68a 65%, #d97706 100%)", color: "#3b1f00", borderRadius: "9999px", boxShadow: "0 0 0 2px rgba(251,191,36,0.4), 0 8px 28px rgba(212,160,0,0.55)", letterSpacing: "0.18em" }}
                     >
                       Register Now
                     </Button>
                     <Button
                       onClick={() => navigate('/auth?view=login')}
-                      className="flex-1 sm:flex-none sm:w-auto px-6 py-3 sm:px-10 sm:py-5 text-[11px] sm:text-sm uppercase tracking-[0.15em] font-black text-white hover:bg-white/20 hover:scale-105 active:scale-95 rounded-full transition-all duration-300 whitespace-nowrap"
-                      style={{ background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)' }}
+                      className="flex-1 sm:flex-none sm:w-auto px-6 py-3 sm:px-10 sm:py-5 text-[11px] sm:text-sm uppercase tracking-[0.15em] font-black hover:scale-105 active:scale-95 rounded-full transition-all duration-300 whitespace-nowrap"
+                      style={{ background: "rgba(251,191,36,0.08)", backdropFilter: "blur(10px)", border: "1px solid rgba(251,191,36,0.3)", color: "rgba(253,230,138,0.9)" }}
                     >
                       Login
                     </Button>
@@ -960,10 +960,10 @@ const App: React.FC = () => {
                     transition={{ duration: 0.7, delay: 0.9 }}
                     className="mt-10 flex flex-col items-center gap-2 px-4 sm:px-0 w-full"
                   >
-                    <p className="text-white/40 text-[10px] uppercase tracking-[0.2em] font-semibold mb-1">Send Us a Message</p>
+                    <p className="text-[10px] uppercase tracking-[0.2em] font-semibold mb-1" style={{ color: "rgba(251,191,36,0.45)" }}>✦ Send Us a Message ✦</p>
                     <div
                       className="flex w-full max-w-sm overflow-hidden rounded-2xl"
-                      style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 4px 24px rgba(0,0,0,0.2)' }}
+                      style={{ background: "rgba(251,191,36,0.05)", backdropFilter: "blur(14px)", border: "1px solid rgba(251,191,36,0.2)", boxShadow: "0 4px 24px rgba(0,0,0,0.25), 0 0 0 1px rgba(251,191,36,0.08)" }}
                     >
                       <input
                         type="text"
@@ -981,13 +981,13 @@ const App: React.FC = () => {
                         disabled={!heroEmail.trim()}
                         onClick={handleHeroSendMessage}
                         className="flex items-center gap-1.5 text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider px-4 py-3 transition-all disabled:opacity-30 shrink-0"
-                        style={{ background: 'rgba(79,140,255,0.25)', borderLeft: '1px solid rgba(255,255,255,0.1)' }}
+                        style={{ background: "rgba(251,191,36,0.22)", borderLeft: "1px solid rgba(251,191,36,0.2)", color: "rgba(253,230,138,0.95)" }}
                       >
                         <Send size={13} />
                         Send
                       </button>
                     </div>
-                    <p className="text-white/20 text-[10px] tracking-wide">Your message will reach our Admin directly.</p>
+                    <p className="text-[10px] tracking-wide" style={{ color: "rgba(251,191,36,0.25)" }}>Your message will reach our Admin directly.</p>
                   </motion.div>
                 </div>
               </section>
