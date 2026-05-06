@@ -870,8 +870,8 @@ const App: React.FC = () => {
                     animate={{ scale: 1.08 }}
                     transition={{ duration: 18, ease: "linear", repeat: Infinity, repeatType: "reverse" }}
                   />
-                  <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(10,10,30,0.6) 0%, rgba(10,10,30,0.5) 50%, rgba(10,10,30,0.9) 100%)' }} />
-                  <div className="absolute inset-0 bg-indigo-950/30" />
+                  <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(10,8,20,0.72) 0%, rgba(20,14,5,0.55) 50%, rgba(10,8,20,0.92) 100%)' }} />
+                  <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 70% 45% at 50% 42%, rgba(212,160,0,0.18) 0%, transparent 70%)' }} />
                 </div>
 
                 <div className="relative z-10 text-center px-4 md:px-6 max-w-4xl mx-auto w-full pt-10 md:pt-16">
@@ -880,11 +880,11 @@ const App: React.FC = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.7 }}
-                    className="inline-flex items-center gap-2 mb-8 px-5 py-2 rounded-full border border-blue-400/30 bg-blue-500/10 backdrop-blur-xl"
-                    style={{ boxShadow: '0 0 20px rgba(79,140,255,0.2)' }}
+                    className="inline-flex items-center gap-2 mb-8 px-5 py-2 rounded-full border border-yellow-400/40 bg-yellow-500/10 backdrop-blur-xl"
+                    style={{ boxShadow: '0 0 24px rgba(251,191,36,0.28)' }}
                   >
-                    <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" style={{ boxShadow: '0 0 8px rgba(79,140,255,0.8)' }} />
-                    <span className="text-blue-200 font-semibold tracking-widest uppercase text-[11px]">Registration Open</span>
+                    <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" style={{ boxShadow: '0 0 8px rgba(251,191,36,0.9)' }} />
+                    <span className="text-yellow-200 font-semibold tracking-widest uppercase text-[11px]">✦ Registration Open ✦</span>
                   </motion.div>
 
                   {/* Main title */}
@@ -894,8 +894,8 @@ const App: React.FC = () => {
                     transition={{ duration: 0.9, delay: 0.15 }}
                     className="mb-4"
                   >
-                    <h1 className="font-black tracking-tight leading-none" style={{ textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
-                      <span className="block text-5xl sm:text-8xl md:text-9xl text-transparent bg-clip-text bg-gradient-to-b from-white via-blue-100 to-indigo-200 pb-2 md:pb-4">சத்திய நகரம்</span>
+                    <h1 className="font-black tracking-tight leading-none" style={{ textShadow: '0 4px 32px rgba(212,160,0,0.55), 0 2px 8px rgba(0,0,0,0.6)' }}>
+                      <span className="gold-shimmer-title block text-5xl sm:text-8xl md:text-9xl text-transparent bg-clip-text pb-2 md:pb-4">சத்திய நகரம்</span>
                     </h1>
                   </motion.div>
 
@@ -906,7 +906,7 @@ const App: React.FC = () => {
                     transition={{ duration: 0.8, delay: 0.3 }}
                     className="mb-2"
                   >
-                    <h2 className="text-xl md:text-2xl text-white/80 font-light tracking-[0.15em] uppercase">City of Truth Ministries</h2>
+                    <h2 className="text-xl md:text-2xl font-semibold tracking-[0.2em] uppercase" style={{ color: "rgba(253,230,138,0.85)", letterSpacing: "0.2em" }}>City of Truth Ministries</h2>
                   </motion.div>
 
                   {/* Support text */}
@@ -916,7 +916,7 @@ const App: React.FC = () => {
                     transition={{ duration: 0.7, delay: 0.4 }}
                     className="mb-10"
                   >
-                    <span className="text-lg md:text-xl text-indigo-200/70 font-light tracking-wider">ஊழியங்கள்</span>
+                    <span className="text-lg md:text-xl font-medium tracking-[0.25em]" style={{ color: "rgba(251,191,36,0.65)" }}>ஊழியங்கள்</span>
                   </motion.div>
 
                   {/* Quote */}
@@ -924,10 +924,10 @@ const App: React.FC = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 1, delay: 0.55 }}
-                    className="text-sm md:text-base text-white/50 max-w-md mx-auto mb-12 leading-relaxed font-light italic px-4"
+                    className="text-sm md:text-base max-w-md mx-auto mb-12 leading-relaxed font-light italic px-4" style={{ color: "rgba(253,230,138,0.5)" }}
                   >
                     "Then you will know the truth, and the truth will set you free."<br />
-                    <span className="not-italic text-white/35 tracking-wider text-xs">— John 8:32</span>
+                    <span className="not-italic tracking-wider text-xs" style={{ color: "rgba(251,191,36,0.4)" }}>— John 8:32</span>
                   </motion.p>
 
                   {/* Buttons */}
@@ -939,15 +939,15 @@ const App: React.FC = () => {
                   >
                     <Button
                       onClick={() => setCurrentView(ViewState.ID_CARD)}
-                      className="flex-1 sm:flex-none sm:w-auto px-6 py-3 sm:px-12 sm:py-5 text-[11px] sm:text-sm uppercase tracking-[0.15em] font-black text-white border-none hover:scale-105 active:scale-95 rounded-full whitespace-nowrap"
-                      style={{ background: 'linear-gradient(135deg, #4F8CFF, #7B5CFF)', boxShadow: '0 8px 25px rgba(79,140,255,0.4)' }}
+                      className="flex-1 sm:flex-none sm:w-auto px-6 py-3 sm:px-12 sm:py-5 text-[11px] sm:text-sm uppercase tracking-[0.15em] font-black border-none hover:scale-105 active:scale-95 whitespace-nowrap"
+                      style={{ background: "linear-gradient(135deg, #f59e0b 0%, #fbbf24 40%, #fde68a 65%, #d97706 100%)", color: "#3b1f00", borderRadius: "9999px", boxShadow: "0 0 0 2px rgba(251,191,36,0.4), 0 8px 28px rgba(212,160,0,0.55)", letterSpacing: "0.18em" }}
                     >
                       Register Now
                     </Button>
                     <Button
                       onClick={() => navigate('/auth?view=login')}
-                      className="flex-1 sm:flex-none sm:w-auto px-6 py-3 sm:px-10 sm:py-5 text-[11px] sm:text-sm uppercase tracking-[0.15em] font-black text-white hover:bg-white/20 hover:scale-105 active:scale-95 rounded-full transition-all duration-300 whitespace-nowrap"
-                      style={{ background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)' }}
+                      className="flex-1 sm:flex-none sm:w-auto px-6 py-3 sm:px-10 sm:py-5 text-[11px] sm:text-sm uppercase tracking-[0.15em] font-black hover:scale-105 active:scale-95 rounded-full transition-all duration-300 whitespace-nowrap"
+                      style={{ background: "rgba(251,191,36,0.08)", backdropFilter: "blur(10px)", border: "1px solid rgba(251,191,36,0.3)", color: "rgba(253,230,138,0.9)" }}
                     >
                       Login
                     </Button>
@@ -960,10 +960,10 @@ const App: React.FC = () => {
                     transition={{ duration: 0.7, delay: 0.9 }}
                     className="mt-10 flex flex-col items-center gap-2 px-4 sm:px-0 w-full"
                   >
-                    <p className="text-white/40 text-[10px] uppercase tracking-[0.2em] font-semibold mb-1">Send Us a Message</p>
+                    <p className="text-[10px] uppercase tracking-[0.2em] font-semibold mb-1" style={{ color: "rgba(251,191,36,0.45)" }}>✦ Send Us a Message ✦</p>
                     <div
                       className="flex w-full max-w-sm overflow-hidden rounded-2xl"
-                      style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 4px 24px rgba(0,0,0,0.2)' }}
+                      style={{ background: "rgba(251,191,36,0.05)", backdropFilter: "blur(14px)", border: "1px solid rgba(251,191,36,0.2)", boxShadow: "0 4px 24px rgba(0,0,0,0.25), 0 0 0 1px rgba(251,191,36,0.08)" }}
                     >
                       <input
                         type="text"
@@ -981,13 +981,13 @@ const App: React.FC = () => {
                         disabled={!heroEmail.trim()}
                         onClick={handleHeroSendMessage}
                         className="flex items-center gap-1.5 text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider px-4 py-3 transition-all disabled:opacity-30 shrink-0"
-                        style={{ background: 'rgba(79,140,255,0.25)', borderLeft: '1px solid rgba(255,255,255,0.1)' }}
+                        style={{ background: "rgba(251,191,36,0.22)", borderLeft: "1px solid rgba(251,191,36,0.2)", color: "rgba(253,230,138,0.95)" }}
                       >
                         <Send size={13} />
                         Send
                       </button>
                     </div>
-                    <p className="text-white/20 text-[10px] tracking-wide">Your message will reach our Admin directly.</p>
+                    <p className="text-[10px] tracking-wide" style={{ color: "rgba(251,191,36,0.25)" }}>Your message will reach our Admin directly.</p>
                   </motion.div>
                 </div>
               </section>
