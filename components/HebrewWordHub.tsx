@@ -632,7 +632,7 @@ export const HebrewWordHub: React.FC = () => {
 
                 {filteredDictionary.length === 0 && (
                     <div className="text-center py-16 text-slate-400 bg-slate-50 rounded-2xl sm:rounded-[2rem] border border-dashed border-slate-200">
-                        No words found matching &ldquo;{searchQuery}&rdquo;
+                        No words found matching "{searchQuery}"
                     </div>
                 )}
             </div>
@@ -667,7 +667,7 @@ export const HebrewWordHub: React.FC = () => {
                             <div style={{ fontSize: '96px', fontWeight: 900, color: '#f0c040', letterSpacing: '0.08em', lineHeight: 1.1, direction: 'rtl', marginBottom: '8px' }}>{wordDetails.word}</div>
                             <div style={{ fontSize: '30px', fontWeight: 700, color: '#ffffff', letterSpacing: '0.04em' }}>{wordDetails.pronunciation}</div>
                             {wordDetails.pronunciationTa && (
-                                <div style={{ fontSize: '16px', color: 'rgba(255,255,255,0.5)', marginTop: '6px' }}>{wordDetails.pronunciationTa} &#40;&#x0BA4;&#x0BAE;&#x0BBF;&#x0BB4;&#x0BCD;&#41;</div>
+                                <div style={{ fontSize: '16px', color: 'rgba(255,255,255,0.5)', marginTop: '6px' }}>{wordDetails.pronunciationTa} (தமிழ்)</div>
                             )}
                         </div>
 
@@ -720,15 +720,15 @@ export const HebrewWordHub: React.FC = () => {
                         <div style={{ paddingTop: '18px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
                                 <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
-                                    <span style={{ fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>City of Truth Ministries</span> &mdash; Valparai, Tamil Nadu, India
+                                    <span style={{ fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>City of Truth Ministries</span> — Valparai, Tamil Nadu, India
                                 </div>
                                 <div style={{ display: 'flex', gap: '18px', fontSize: '11px', color: 'rgba(255,255,255,0.45)' }}>
-                                    <span>&#128222; +91 8056125478</span>
-                                    <span>&#127760; https://city-of-truth-ministries.vercel.app</span>
+                                    <span>📞 +91 8056125478</span>
+                                    <span>🌐 https://city-of-truth-ministries.vercel.app</span>
                                 </div>
                             </div>
                             <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.25)', textAlign: 'center', letterSpacing: '0.05em' }}>
-                                &copy; {new Date().getFullYear()} City of Truth Ministries &middot; All rights reserved &middot; Hebrew Word Study &middot; AI Deep Insight
+                                © {new Date().getFullYear()} City of Truth Ministries · All rights reserved · Hebrew Word Study · AI Deep Insight
                             </div>
                         </div>
                     </div>
