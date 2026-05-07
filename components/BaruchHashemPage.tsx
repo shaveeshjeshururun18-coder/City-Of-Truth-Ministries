@@ -181,7 +181,7 @@ export const BaruchHashemPage: React.FC = () => {
                     <BookOpen size={48} className="text-brand-600 mx-auto mb-6" />
                     <h2 className="text-4xl font-serif font-bold text-slate-900 mb-6">About the Book</h2>
                     <p className="text-slate-600 text-lg leading-relaxed mb-8">
-                        <span className="font-bold text-brand-700">Aathuma Nandri Baligal</span> is a spiritual treasury containing <span className="font-bold">176 specific praises</span> organized into <span className="font-bold">22 parts</span>, corresponding to the Hebrew Aleph-Bet. Each section translates profound Hebrew praises into Tamil, guiding the believer into a deeper experience of worship through the names and attributes of God.
+                        <span className="font-bold text-brand-700">Aathuma Nandri Baligal</span> is a spiritual treasury containing <span className="font-bold">176 specific praises</span> organized into <span className="font-bold">22 parts</span>, corresponding to the Hebrew aleph - tav. Each section translates profound Hebrew praises into Tamil, guiding the believer into a deeper experience of worship through the names and attributes of God.
                     </p>
                     <div className="grid md:grid-cols-3 gap-8 text-left mt-12">
                         {[
@@ -272,7 +272,7 @@ export const BaruchHashemPage: React.FC = () => {
                 <div className="container mx-auto px-6 max-w-7xl">
                     <div className="text-center mb-16">
                         <h2 className="text-4xl font-serif font-bold text-slate-900 mb-4">The 22 Pillars of Praise</h2>
-                        <p className="text-slate-600">Explore the divine attributes categorized by the Hebrew Aleph-Bet.</p>
+                        <p className="text-slate-600">Explore the divine attributes categorized by the Hebrew aleph - tav.</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

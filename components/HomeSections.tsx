@@ -672,7 +672,7 @@ export const HebrewResourcesSection: React.FC<SectionProps> = ({ setView }) => {
             bg: 'bg-amber-50',
             border: 'border-amber-100',
             iconBg: 'bg-gradient-to-br from-amber-400 to-yellow-400',
-            title: 'Aleph-Bet',
+            title: 'aleph - tav',
             titleTa: 'எழுத்துக்கள்',
             desc: 'Tap any of the 22 Hebrew letters to hear pronunciation and build words.',
             view: ViewState.HEBREW,
