@@ -373,7 +373,7 @@ const MenorahFlag: React.FC<MenorahFlagProps> = ({
             }
         };
 
-        let cleanup: (() => void) | void;
+        let cleanup: (() => void) | undefined;
         let mounted = true;
         initFlag().then((disposeFn) => {
             if (!mounted && disposeFn) {

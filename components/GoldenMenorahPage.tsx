@@ -22,7 +22,7 @@ export const GoldenMenorahPage: React.FC<GoldenMenorahPageProps> = () => {
     const handleDownloadFlag = async () => {
         try {
             const response = await fetch('/menorah-flag-image.png');
-            if (!response.ok) throw new Error('Flag image not available');
+            if (!response.ok) throw new Error(`Flag image not available: ${response.status} ${response.statusText}`);
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
