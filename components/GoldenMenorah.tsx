@@ -12,6 +12,12 @@ interface GoldenMenorahProps {
 }
 
 export const GoldenMenorah: React.FC<GoldenMenorahProps> = ({ onPreviewClick }) => {
+  const menorahVideoSrc = '/menorah/menorah-home.mp4';
+  const watermarkTopMaskClass = 'w-28 h-16';
+  const watermarkBottomMaskClass = 'w-32 h-20';
+  const watermarkTopMaskStyle = 'bg-gradient-to-l from-slate-950/95 via-slate-950/75 to-transparent';
+  const watermarkBottomMaskStyle = 'bg-gradient-to-tl from-slate-950/95 via-slate-950/75 to-transparent';
+
   return (
     <section className="min-h-screen bg-brand-950 pt-32 pb-20 relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent pointer-events-none"></div>
@@ -75,17 +81,28 @@ export const GoldenMenorah: React.FC<GoldenMenorahProps> = ({ onPreviewClick }) 
                 className="relative w-full aspect-[4/3] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-amber-500/20 cursor-pointer group"
                 onClick={onPreviewClick}
               >
-                <img
-                  src="/menorah-flag-image.png"
-                  alt="Sacred Menorah Flag"
-                  className="w-full h-full object-contain p-4"
+                <video
+                  src={menorahVideoSrc}
+                  className="w-full h-full object-cover contrast-105 saturate-110"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="auto"
+                  controls
+                  disablePictureInPicture
+                  onContextMenu={(e) => e.preventDefault()}
                 />
+
+                {/* Corner masks to hide embedded generator logos/watermarks if present */}
+                <div className={`pointer-events-none absolute top-0 right-0 ${watermarkTopMaskClass} ${watermarkTopMaskStyle}`} />
+                <div className={`pointer-events-none absolute bottom-0 right-0 ${watermarkBottomMaskClass} ${watermarkBottomMaskStyle}`} />
 
                 {/* Hover Overlay */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-center justify-center">
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <div className="px-6 py-3 bg-amber-500 text-white rounded-full font-bold text-sm uppercase tracking-wider shadow-lg">
-                      View Full Page
+                        Visit Menorah Page
                     </div>
                   </div>
                 </div>

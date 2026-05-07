@@ -51,6 +51,8 @@ const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any
     members: { name: 'Member Initials', desc: 'Names with two-letter identity logos', icon: Users, color: 'bg-orange-500' },
     preview: { name: 'Entrust Preview', desc: 'Quick overview of community card', icon: Phone, color: 'bg-violet-500' },
     donations: { name: 'Donations', desc: 'Support boxes and giving section', icon: CheckCircle, color: 'bg-orange-500' },
+    'pastor-baruch': { name: 'Pastor & Baruch HaShem', desc: 'Meet our pastor and explore sacred Hebrew praise', icon: ShieldCheck, color: 'bg-sky-500' },
+    'hebrew-resources': { name: 'Hebrew Resources', desc: 'All 8 Hebrew tools with content preview cards', icon: Mail, color: 'bg-amber-500' },
     verify: { name: 'Verify ID', desc: 'Security and verification portal', icon: CheckCircle, color: 'bg-slate-500' }
 };
 
@@ -1322,7 +1324,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <button 
                                         onClick={() => {
                                             if (window.confirm("Absolutely sure? This resets the home page for EVERYONE.")) {
-                                                onUpdateHomeSectionsOrder(['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'valparai', 'testimonials', 'members', 'preview', 'verify']);
+                                                onUpdateHomeSectionsOrder(['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'valparai', 'testimonials', 'members', 'preview', 'verify', 'pastor-baruch']);
                                             }
                                         }}
                                         className="px-6 py-2.5 text-[10px] font-black uppercase tracking-[2px] text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-2xl transition-all border border-transparent hover:border-brand-100"
