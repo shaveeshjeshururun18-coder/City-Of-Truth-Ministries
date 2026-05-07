@@ -12,7 +12,7 @@ interface GoldenMenorahProps {
 }
 
 export const GoldenMenorah: React.FC<GoldenMenorahProps> = ({ onPreviewClick }) => {
-  const menorahVideoSrc = '/barch_hasem/New folder/பாகம் 1.mp4';
+  const menorahVideoSrc = '/menorah/menorah-home.mp4';
 
   return (
     <section className="min-h-screen bg-brand-950 pt-32 pb-20 relative overflow-hidden">
