@@ -36,8 +36,6 @@ const MORE_NAV = [
     { id: 'grammar',    label: 'Grammar',    Icon: Type,       view: ViewState.HEBREW_GRAMMAR },
 ] as const;
 
-const ALL_NAV = [...PRIMARY_NAV, ...MORE_NAV];
-
 const VIEW_TO_NAV_ID: Partial<Record<ViewState, string>> = {
     [ViewState.HEBREW_FESTIVALS]:     'festivals',
     [ViewState.HEBREW_CALENDAR]:      'calendar',

@@ -152,7 +152,7 @@ const getFirstDayOfWeek = (year: number, monthIdx: number): number => {
 // --- View Components ---
 
 const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) => {
-    const getApproxCurrentHebrewYear = () => {
+    const estimateCurrentHebrewYear = () => {
         const now = new Date();
         return now.getMonth() >= 8 ? now.getFullYear() + 3761 : now.getFullYear() + 3760;
     };
@@ -161,13 +161,24 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
         const now = new Date();
         const month = now.getMonth(); // 0-11
         const leap = isLeapYear(selectedYear);
-        if (month >= 2 && month <= 7) return month - 2; // Mar-Aug => Nisan-Elul
-        if (month >= 8) return month - 2; // Sep-Dec => Tishrei-Tevet
-        if (month === 0) return 10; // Jan => Shevat
-        return leap ? 12 : 11; // Feb => Adar II (leap) / Adar
+        const monthMap: Record<number, number> = {
+            2: 0,  // Mar -> Nisan
+            3: 1,  // Apr -> Iyar
+            4: 2,  // May -> Sivan
+            5: 3,  // Jun -> Tammuz
+            6: 4,  // Jul -> Av
+            7: 5,  // Aug -> Elul
+            8: 6,  // Sep -> Tishrei
+            9: 7,  // Oct -> Cheshvan
+            10: 8, // Nov -> Kislev
+            11: 9, // Dec -> Tevet
+            0: 10, // Jan -> Shevat
+        };
+        if (month === 1) return leap ? 12 : 11; // Feb -> Adar II (leap) / Adar
+        return monthMap[month] ?? 0;
     };
 
-    const [year, setYear] = useState(getApproxCurrentHebrewYear());
+    const [year, setYear] = useState(estimateCurrentHebrewYear());
     const [currentMonthIdx, setCurrentMonthIdx] = useState(0); // Nisan (Default 0)
     const [selectedDay, setSelectedDay] = useState<number | null>(null);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -189,7 +200,7 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
     }, [currentMonthIdx, calendarData.length]);
 
     useEffect(() => {
-        const currentHebrewYear = getApproxCurrentHebrewYear();
+        const currentHebrewYear = estimateCurrentHebrewYear();
         if (safeYear === currentHebrewYear) {
             setCurrentMonthIdx(Math.min(calendarData.length - 1, getCurrentBiblicalMonthIndex(safeYear)));
         } else {
