@@ -11,11 +11,7 @@ interface Message {
     options?: string[];
 }
 
-interface AIChatAssistantProps {
-    avoidBottomNav?: boolean;
-}
-
-export default function AIChatAssistant({ avoidBottomNav = false }: AIChatAssistantProps) {
+export default function AIChatAssistant() {
     const [isOpen, setIsOpen] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
     const [messages, setMessages] = useState<Message[]>(() => {
@@ -164,7 +160,7 @@ export default function AIChatAssistant({ avoidBottomNav = false }: AIChatAssist
                         whileHover={{ scale: 1.1, cursor: 'grab' }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => setIsOpen(true)}
-                        className={`pointer-events-auto fixed right-6 z-50 w-12 h-12 md:w-16 md:h-16 rounded-full shadow-2xl flex items-center justify-center bg-gradient-to-tr from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 border border-white/20 backdrop-blur-md group ${avoidBottomNav ? 'bottom-24 md:bottom-6' : 'bottom-6'}`}
+                        className="pointer-events-auto fixed bottom-6 right-6 z-50 w-12 h-12 md:w-16 md:h-16 rounded-full shadow-2xl flex items-center justify-center bg-gradient-to-tr from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 border border-white/20 backdrop-blur-md group"
                     >
                         <div className="relative">
                             <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-white fill-white/20" />

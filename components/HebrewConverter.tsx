@@ -154,7 +154,7 @@ export const HebrewConverter: React.FC = () => {
                     Sacred <span className="text-accent-600">Numerals</span>
                 </h2>
                 <p className="text-sm md:text-lg text-slate-500 font-light max-w-2xl mx-auto px-6">
-                    Calculate biblical numbers and explore the mathematical patterns of the Hebrew aleph - tav.
+                    Calculate biblical numbers and explore the mathematical patterns of the Hebrew Aleph-Bet.
                 </p>
             </div>
 

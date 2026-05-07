@@ -4,7 +4,6 @@ interface MenorahFlagProps {
     width?: number;
     height?: number;
     windSpeed?: number;
-    showControlsButton?: boolean;
     className?: string;
 }
 
@@ -12,7 +11,6 @@ const MenorahFlag: React.FC<MenorahFlagProps> = ({
     width = 800,
     height = 600,
     windSpeed: initialWindSpeed = 8,
-    showControlsButton = true,
     className = ''
 }) => {
     const canvasRef = useRef<HTMLDivElement>(null);
@@ -41,7 +39,7 @@ const MenorahFlag: React.FC<MenorahFlagProps> = ({
             });
         };
 
-        const initFlag = async (): Promise<(() => void) | undefined> => {
+        const initFlag = async () => {
             try {
                 await loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
 
@@ -58,7 +56,7 @@ const MenorahFlag: React.FC<MenorahFlagProps> = ({
 
                 // Scene Setup
                 const scene = new THREE.Scene();
-                scene.background = new THREE.Color(0x0b3ea8);
+                scene.background = new THREE.Color(0xf5f5f5);
 
                 const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
                 camera.position.set(0, 0, 35);
@@ -111,22 +109,13 @@ const MenorahFlag: React.FC<MenorahFlagProps> = ({
                 ball.position.set(-14, 9.5, 0);
                 scene.add(ball);
 
-                // Create animated Menorah Flag Texture
-                const textureCanvas = document.createElement('canvas');
-                textureCanvas.width = 1024;
-                textureCanvas.height = 682;
-                const ctx = textureCanvas.getContext('2d')!;
-                const candlePositions = [
-                    { x: 0, y: -80 },
-                    { x: -40, y: -60 },
-                    { x: -80, y: -40 },
-                    { x: -120, y: -20 },
-                    { x: 40, y: -60 },
-                    { x: 80, y: -40 },
-                    { x: 120, y: -20 }
-                ];
+                // Create Menorah Flag Texture
+                const createMenorahTexture = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 1024;
+                    canvas.height = 682;
+                    const ctx = canvas.getContext('2d')!;
 
-                const drawMenorahTexture = (animationTime: number) => {
                     // Blue background stripes
                     const blueColor = '#003399';
                     ctx.fillStyle = blueColor;
@@ -202,43 +191,37 @@ const MenorahFlag: React.FC<MenorahFlagProps> = ({
                     drawBranch(centerX + 120, centerY - 20, 'right');
 
                     // Candle holders and flames
-                    const drawCandle = (x: number, y: number, index: number) => {
+                    const drawCandle = (x: number, y: number) => {
                         // Holder
                         ctx.fillStyle = '#DAA520';
                         ctx.beginPath();
                         ctx.arc(x, y, 6, 0, Math.PI * 2);
                         ctx.fill();
 
-                        // Flame (live burning animation)
-                        const flicker = Math.sin(animationTime * 8 + index * 1.17) * 2.4 + Math.sin(animationTime * 13 + index * 0.83) * 1.1;
-                        const flameHeight = 15 + flicker;
-                        const flameWidth = 5 + Math.sin(animationTime * 10 + index) * 1.2;
-                        const flameTipY = y - 6 - flameHeight;
-
+                        // Flame
                         ctx.fillStyle = '#FF4500';
                         ctx.beginPath();
                         ctx.moveTo(x, y - 6);
-                        ctx.quadraticCurveTo(x - flameWidth, y - 11, x, flameTipY);
-                        ctx.quadraticCurveTo(x + flameWidth, y - 11, x, y - 6);
+                        ctx.quadraticCurveTo(x - 4, y - 12, x, y - 20);
+                        ctx.quadraticCurveTo(x + 4, y - 12, x, y - 6);
                         ctx.fill();
 
                         ctx.fillStyle = '#FFA500';
                         ctx.beginPath();
                         ctx.moveTo(x, y - 8);
-                        ctx.quadraticCurveTo(x - flameWidth * 0.45, y - 12, x, flameTipY + 5);
-                        ctx.quadraticCurveTo(x + flameWidth * 0.45, y - 12, x, y - 8);
-                        ctx.fill();
-
-                        ctx.fillStyle = 'rgba(255, 220, 120, 0.25)';
-                        ctx.beginPath();
-                        ctx.arc(x, y - 14, 8 + Math.abs(flicker) * 0.8, 0, Math.PI * 2);
+                        ctx.quadraticCurveTo(x - 2, y - 12, x, y - 18);
+                        ctx.quadraticCurveTo(x + 2, y - 12, x, y - 8);
                         ctx.fill();
                     };
 
                     // Draw 7 candles
-                    candlePositions.forEach((pos, index) => {
-                        drawCandle(centerX + pos.x, centerY + pos.y, index);
-                    });
+                    drawCandle(centerX, centerY - 80);
+                    drawCandle(centerX - 40, centerY - 60);
+                    drawCandle(centerX - 80, centerY - 40);
+                    drawCandle(centerX - 120, centerY - 20);
+                    drawCandle(centerX + 40, centerY - 60);
+                    drawCandle(centerX + 80, centerY - 40);
+                    drawCandle(centerX + 120, centerY - 20);
 
                     // Olive branches
                     const drawOliveBranch = (startX: number, startY: number, flip: boolean) => {
@@ -270,6 +253,8 @@ const MenorahFlag: React.FC<MenorahFlagProps> = ({
                     drawOliveBranch(centerX - 150, centerY + 60, true);
                     drawOliveBranch(centerX + 150, centerY + 60, false);
 
+                    const texture = new THREE.CanvasTexture(canvas);
+                    return texture;
                 };
 
                 const flagWidth = 24;
@@ -279,9 +264,7 @@ const MenorahFlag: React.FC<MenorahFlagProps> = ({
 
                 const geometry = new THREE.PlaneGeometry(flagWidth, flagHeight, segW, segH);
 
-                drawMenorahTexture(0);
-                const texture = new THREE.CanvasTexture(textureCanvas);
-                texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                const texture = createMenorahTexture();
                 const material = new THREE.MeshStandardMaterial({
                     map: texture,
                     side: THREE.DoubleSide,
@@ -311,12 +294,8 @@ const MenorahFlag: React.FC<MenorahFlagProps> = ({
                 let time = 0;
                 let currentWindSpeed = windSpeed;
 
-                let animationFrameId = 0;
-                let isDisposed = false;
-
                 const animate = () => {
-                    if (isDisposed) return;
-                    animationFrameId = requestAnimationFrame(animate);
+                    requestAnimationFrame(animate);
 
                     time += 0.01 * currentWindSpeed;
 
@@ -345,8 +324,6 @@ const MenorahFlag: React.FC<MenorahFlagProps> = ({
 
                     positionAttribute.needsUpdate = true;
                     geometry.computeVertexNormals();
-                    drawMenorahTexture(time);
-                    texture.needsUpdate = true;
 
                     renderer.render(scene, camera);
                 };
@@ -355,38 +332,19 @@ const MenorahFlag: React.FC<MenorahFlagProps> = ({
 
                 // Cleanup
                 return () => {
-                    isDisposed = true;
-                    if (animationFrameId) {
-                        cancelAnimationFrame(animationFrameId);
-                    }
                     renderer.dispose();
                     geometry.dispose();
                     material.dispose();
-                    texture.dispose();
                     if (container.contains(renderer.domElement)) {
                         container.removeChild(renderer.domElement);
                     }
                 };
             } catch (error) {
                 console.error('Error initializing flag:', error);
-                return undefined;
             }
         };
 
-        let cleanup: (() => void) | undefined;
-        let mounted = true;
-        initFlag().then((disposeFn) => {
-            if (!mounted && disposeFn) {
-                disposeFn();
-                return;
-            }
-            cleanup = disposeFn;
-        });
-
-        return () => {
-            mounted = false;
-            if (cleanup) cleanup();
-        };
+        initFlag();
     }, [width, height, windSpeed]);
 
     return (
@@ -397,16 +355,14 @@ const MenorahFlag: React.FC<MenorahFlagProps> = ({
                 className="rounded-lg shadow-2xl overflow-hidden"
             />
 
-            {showControlsButton && (
-                <button
-                    onClick={() => setShowControls(!showControls)}
-                    className="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-white px-4 py-2 rounded-lg hover:bg-black/80 transition-all"
-                >
-                    ⚙️ Controls
-                </button>
-            )}
+            <button
+                onClick={() => setShowControls(!showControls)}
+                className="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-white px-4 py-2 rounded-lg hover:bg-black/80 transition-all"
+            >
+                ⚙️ Controls
+            </button>
 
-            {showControlsButton && showControls && (
+            {showControls && (
                 <div className="absolute top-16 right-4 bg-black/80 backdrop-blur-md text-white p-6 rounded-lg shadow-2xl border border-white/10 w-64">
                     <h3 className="text-lg font-bold mb-4">Flag Controls</h3>
 

@@ -67,24 +67,11 @@ const getYearStartOffset = (year: number): Date => {
     return startDate;
 }
 
-// Generate data for a selected Hebrew year (approximate)
-export const getCalendarData5786 = (year: number = 5786): any[] => {
-    // Reference point: Nisan 1, 5786 ≈ March 19, 2026
-    const refYear = 5786;
-    const nisanRefDate = new Date(2026, 2, 19);
-    const currentDate = new Date(nisanRefDate);
-
-    if (year >= refYear) {
-        for (let y = refYear; y < year; y++) {
-            currentDate.setDate(currentDate.getDate() + (isHebrewLeapYear(y) ? 384 : 354));
-        }
-    } else {
-        for (let y = year; y < refYear; y++) {
-            currentDate.setDate(currentDate.getDate() - (isHebrewLeapYear(y) ? 384 : 354));
-        }
-    }
-
-    const leap = isHebrewLeapYear(year);
+// Generate data for 5786 (Simulated)
+export const getCalendarData5786 = (): any[] => {
+    // 5786 (Biblical Order) - Starts Nisan 1 (approx March 19, 2026)
+    const year = 5786;
+    const currentDate = new Date(2026, 2, 19);
 
     const monthsInYear = [
         { name: 'Nisan', hebrew: 'נִיסָן' },
@@ -98,10 +85,7 @@ export const getCalendarData5786 = (year: number = 5786): any[] => {
         { name: 'Kislev', hebrew: 'כִּסְלֵו' },
         { name: 'Tevet', hebrew: 'טֵבֵת' },
         { name: 'Shevat', hebrew: 'שְׁבָט' },
-        ...(leap
-            ? [{ name: 'Adar I', hebrew: 'אֲדָר א׳' }, { name: 'Adar II', hebrew: 'אֲדָר ב׳' }]
-            : [{ name: 'Adar', hebrew: 'אֲדָר' }]
-        )
+        { name: 'Adar', hebrew: 'אֲדָר' }
     ];
 
     const getMonthLength = (mName: string) => {
@@ -111,8 +95,6 @@ export const getCalendarData5786 = (year: number = 5786): any[] => {
         if (mName === 'Tevet') return 29;
         if (mName === 'Shevat') return 30;
         if (mName === 'Adar') return 29;
-        if (mName === 'Adar I') return 30;
-        if (mName === 'Adar II') return 29;
         if (mName === 'Nisan') return 30;
         if (mName === 'Iyar') return 29;
         if (mName === 'Sivan') return 30;
@@ -161,7 +143,7 @@ export const getCalendarData5786 = (year: number = 5786): any[] => {
             }
             if (m.name === 'Kislev' && d === 25) festivals.push("Hanukkah");
             if (m.name === 'Shevat' && d === 15) festivals.push("Tu Bishvat");
-            if ((m.name === 'Adar' || m.name === 'Adar II') && d === 14) festivals.push("Purim");
+            if (m.name === 'Adar' && d === 14) festivals.push("Purim");
 
             currentWeek[dayOfWeek] = {
                 day: d,
