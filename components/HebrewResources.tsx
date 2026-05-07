@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type, Volume2, Loader2, Info, Fingerprint } from 'lucide-react';
+import { Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type, Volume2, Loader2, Info, Fingerprint, X } from 'lucide-react';
 import { analyzeHebrewWord } from '../services/openRouterService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HebrewYearDropdown } from './HebrewYearDropdown';
@@ -65,13 +65,13 @@ const BIBLICAL_FESTIVALS = [
 ];
 
 const HEBREW_DAYS = [
-    { name: 'Yom Rishon', english: 'Sunday', hebrew: 'יוֹם רִאשׁוֹן' },
-    { name: 'Yom Sheni', english: 'Monday', hebrew: 'יוֹם שֵׁנִי' },
-    { name: 'Yom Shlishi', english: 'Tuesday', hebrew: 'יוֹם שְׁלִישִׁי' },
-    { name: 'Yom Revi\'i', english: 'Wednesday', hebrew: 'יוֹם רְבִיעִי' },
-    { name: 'Yom Chamishi', english: 'Thursday', hebrew: 'יוֹם חֲמִישִׁי' },
-    { name: 'Yom Shishi', english: 'Friday', hebrew: 'יוֹם שִׁשִׁי' },
-    { name: 'Shabbat', english: 'Saturday', hebrew: 'שַׁבָּת' }
+    { name: 'Yom Rishon', english: 'Sunday', tamil: 'ஞாயிறு', hebrew: 'יוֹם רִאשׁוֹן' },
+    { name: 'Yom Sheni', english: 'Monday', tamil: 'திங்கள்', hebrew: 'יוֹם שֵׁנִי' },
+    { name: 'Yom Shlishi', english: 'Tuesday', tamil: 'செவ்வாய்', hebrew: 'יוֹם שְׁלִישִׁי' },
+    { name: 'Yom Revi\'i', english: 'Wednesday', tamil: 'புதன்', hebrew: 'יוֹם רְבִיעִי' },
+    { name: 'Yom Chamishi', english: 'Thursday', tamil: 'வியாழன்', hebrew: 'יוֹם חֲמִישִׁי' },
+    { name: 'Yom Shishi', english: 'Friday', tamil: 'வெள்ளி', hebrew: 'יוֹם שִׁשִׁי' },
+    { name: 'Shabbat', english: 'Saturday', tamil: 'சனி', hebrew: 'שַׁבָּת' }
 ];
 
 
@@ -152,7 +152,22 @@ const getFirstDayOfWeek = (year: number, monthIdx: number): number => {
 // --- View Components ---
 
 const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) => {
-    const [year, setYear] = useState(5786);
+    const getApproxCurrentHebrewYear = () => {
+        const now = new Date();
+        return now.getMonth() >= 8 ? now.getFullYear() + 3761 : now.getFullYear() + 3760;
+    };
+
+    const getCurrentBiblicalMonthIndex = (selectedYear: number) => {
+        const now = new Date();
+        const month = now.getMonth(); // 0-11
+        const leap = isLeapYear(selectedYear);
+        if (month >= 2 && month <= 7) return month - 2; // Mar-Aug => Nisan-Elul
+        if (month >= 8) return month - 2; // Sep-Dec => Tishrei-Tevet
+        if (month === 0) return 10; // Jan => Shevat
+        return leap ? 12 : 11; // Feb => Adar II (leap) / Adar
+    };
+
+    const [year, setYear] = useState(getApproxCurrentHebrewYear());
     const [currentMonthIdx, setCurrentMonthIdx] = useState(0); // Nisan (Default 0)
     const [selectedDay, setSelectedDay] = useState<number | null>(null);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -162,7 +177,7 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
     const safeYear = (!year || isNaN(year) || year < 1 || year > 9999) ? 5786 : year;
 
     // Import logic helper - use safeYear
-    const calendarData = React.useMemo(() => getCalendarData5786(), [safeYear]);
+    const calendarData = React.useMemo(() => getCalendarData5786(safeYear), [safeYear]);
 
     // Derived state for current view
     const currentMonthData = calendarData[currentMonthIdx];
@@ -171,13 +186,16 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
 
     useEffect(() => {
         if (currentMonthIdx >= calendarData.length) setCurrentMonthIdx(0);
-    }, [year, calendarData.length]);
+    }, [currentMonthIdx, calendarData.length]);
 
-
-
-
-    const monthsList = calendarData.map(m => m.name);
-
+    useEffect(() => {
+        const currentHebrewYear = getApproxCurrentHebrewYear();
+        if (safeYear === currentHebrewYear) {
+            setCurrentMonthIdx(Math.min(calendarData.length - 1, getCurrentBiblicalMonthIndex(safeYear)));
+        } else {
+            setCurrentMonthIdx(0);
+        }
+    }, [safeYear, calendarData.length]);
     // PDF Download - Multi-page
     const handleDownloadFullCalendar = async () => {
         setIsGeneratingPdf(true);
@@ -301,6 +319,9 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                         </div>
                         <div className="bg-white px-3 py-1.5 rounded-lg border border-slate-100 text-xs font-bold text-slate-500 shadow-sm">
                             Year {year}
+                        </div>
+                        <div className="bg-brand-50 px-3 py-1.5 rounded-lg border border-brand-100 text-xs font-bold text-brand-700 shadow-sm">
+                            Today: {calendarData[Math.min(currentMonthIdx, calendarData.length - 1)]?.name || name}
                         </div>
                     </div>
 
@@ -454,7 +475,7 @@ const FestivalsView: React.FC = () => (
         </div>
 
         <div className="text-center -mt-8 mb-12 relative z-20">
-            <h3 className="text-4xl font-serif italic text-brand-950 font-bold tracking-widest drop-shadow-sm">Divine Festivals</h3>
+            <h3 className="text-4xl font-serif italic text-brand-950 font-bold tracking-widest drop-shadow-sm">Divine Festivals <span className="text-xl text-accent-600">திருவிழாக்கள்</span></h3>
             <div className="h-1 w-24 bg-amber-500 mx-auto mt-4 rounded-full" />
         </div>
 
@@ -498,7 +519,7 @@ const ReferenceView: React.FC = () => {
             {/* Hebrew Months Section */}
             <div>
                 <h3 className="text-2xl font-serif font-bold text-brand-950 mb-8 flex items-center gap-3">
-                    <BookOpen className="text-brand-600" /> Hebrew Months (Scriptural Order)
+                    <BookOpen className="text-brand-600" /> Hebrew Months (Scriptural Order) / எபிரேய மாதங்கள்
                 </h3>
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {HEBREW_MONTHS_DATA.map((m, i) => (
@@ -535,7 +556,7 @@ const ReferenceView: React.FC = () => {
             {/* Sacred Days Section */}
             <div>
                 <h3 className="text-2xl font-serif font-bold text-brand-950 mb-8 flex items-center gap-3">
-                    <Clock className="text-brand-600" /> Sacred Days
+                    <Clock className="text-brand-600" /> Sacred Days / புனித நாட்கள்
                 </h3>
                 <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {HEBREW_DAYS.map((day, i) => (
@@ -546,7 +567,8 @@ const ReferenceView: React.FC = () => {
                                 </div>
                             </div>
                             <h4 className="text-xl font-bold text-brand-950 mb-1">{day.name}</h4>
-                            <p className="text-sm text-slate-400 font-medium mb-4 uppercase tracking-widest">{day.english}</p>
+                            <p className="text-sm text-slate-500 font-medium mb-1">{day.english}</p>
+                            <p className="text-xs text-accent-600 font-semibold mb-4">{day.tamil}</p>
                             <div className="text-3xl font-serif text-accent-600 border-t border-slate-50 pt-4 mt-4">{day.hebrew}</div>
                         </div>
                     ))}
@@ -555,6 +577,47 @@ const ReferenceView: React.FC = () => {
         </div>
     );
 };
+
+const GrammarView: React.FC = () => (
+    <div className="space-y-8 py-8">
+        <div className="text-center space-y-3">
+            <h2 className="text-4xl md:text-5xl font-serif font-bold text-brand-950">Hebrew Grammar <span className="text-accent-600">இலக்கணம்</span></h2>
+            <p className="text-slate-500 max-w-3xl mx-auto">
+                Learn the foundations of Biblical Hebrew grammar in English and Tamil: consonants, vowels, roots, prefixes, suffixes, and sentence flow.
+            </p>
+        </div>
+        <div className="grid md:grid-cols-2 gap-6">
+            {[
+                {
+                    title: 'Consonants & Vowels',
+                    titleTa: 'மெய்/உயிர் ஒலிகள்',
+                    desc: 'Hebrew is consonant-driven; vowel points (niqqud) guide pronunciation in study texts.'
+                },
+                {
+                    title: 'Shoresh (Root)',
+                    titleTa: 'வேர் (ஷோரேஷ்)',
+                    desc: 'Most Hebrew words are built from a 3-letter root that carries the core meaning.'
+                },
+                {
+                    title: 'Prefixes & Suffixes',
+                    titleTa: 'முன்சேர்க்கை/பின்சேர்க்கை',
+                    desc: 'Small letter additions change tense, person, and possession (e.g., and, to, in, my).'
+                },
+                {
+                    title: 'Verb Patterns',
+                    titleTa: 'வினை வடிவங்கள்',
+                    desc: 'Verb stems (binyanim) shape voice and intensity (simple, passive, causative, reflexive).'
+                },
+            ].map((item) => (
+                <div key={item.title} className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
+                    <h3 className="text-xl font-bold text-brand-950">{item.title}</h3>
+                    <p className="text-sm font-semibold text-accent-600 mt-1">{item.titleTa}</p>
+                    <p className="text-sm text-slate-600 mt-3 leading-relaxed">{item.desc}</p>
+                </div>
+            ))}
+        </div>
+    </div>
+);
 
 /* ══════════════════════════════════════════════════════
    PAGE 1: Number → Hebrew Numeral
@@ -748,21 +811,11 @@ const HEBREW_AUDIO_LETTERS = [
     { letter: 'ת', name: 'Tav', hebrewName: 'תו' },
 ] as const;
 
-const RAINBOW_GRADIENTS = [
-    'from-rose-500 to-red-500',
-    'from-orange-500 to-amber-500',
-    'from-amber-400 to-yellow-500',
-    'from-lime-500 to-green-500',
-    'from-emerald-500 to-teal-500',
-    'from-cyan-500 to-sky-500',
-    'from-blue-500 to-indigo-500',
-    'from-violet-500 to-purple-500',
-];
-
 const HebrewLettersAudioLab: React.FC = () => {
     const [selectedLetters, setSelectedLetters] = useState<{ letter: string; name: string; hebrewName: string; key: number }[]>([]);
     const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
     const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
+    const [isBuilderOpen, setIsBuilderOpen] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [aiResult, setAiResult] = useState<any | null>(null);
     const [aiError, setAiError] = useState<string | null>(null);
@@ -852,73 +905,119 @@ const HebrewLettersAudioLab: React.FC = () => {
                 </p>
             </div>
 
-            {/* ── WORD BUILDER (always visible at top) ── */}
-            <div className="bg-gradient-to-r from-fuchsia-500 via-sky-500 to-emerald-500 p-[2px] rounded-[2rem] sticky top-20 md:top-[7rem] z-20">
-                <div className="bg-white rounded-[2rem] p-4 md:p-6">
-                    <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                        <div className="flex-1 min-w-0">
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Word Builder — {selectedLetters.length} letter{selectedLetters.length !== 1 ? 's' : ''} (unlimited)</p>
-                            {selectedLetters.length === 0 ? (
-                                <p className="text-slate-300 text-sm italic">Tap letters below to build a word…</p>
-                            ) : (
-                                <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto pr-1" dir="rtl">
-                                    {selectedLetters.map((l, idx) => (
-                                        <div
-                                            key={l.key}
-                                            draggable
-                                            onDragStart={e => handleDragStart(e, idx)}
-                                            onDragOver={e => handleDragOver(e, idx)}
-                                            onDrop={e => handleDrop(e, idx)}
-                                            onDragEnd={handleDragEnd}
-                                            className={`flex items-center gap-1 px-3 py-1.5 rounded-2xl border-2 cursor-grab active:cursor-grabbing select-none transition-all ${dragOverIdx === idx ? 'border-brand-400 bg-brand-50 scale-105' : 'border-slate-200 bg-slate-50 hover:border-brand-300'} ${draggingIdx === idx ? 'opacity-40' : ''}`}
-                                        >
-                                            <span className="text-2xl font-serif text-brand-950 leading-none">{l.letter}</span>
-                                            <span className="text-[9px] font-bold text-slate-400 uppercase">{l.name}</span>
-                                            <button
-                                                onClick={() => removeLetter(idx)}
-                                                className="ml-1 w-4 h-4 rounded-full bg-slate-200 hover:bg-red-100 hover:text-red-500 text-slate-400 flex items-center justify-center transition-colors text-[10px] font-black shrink-0"
-                                                title={`Remove ${l.name}`}
-                                            >
-                                                ✕
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                            {selectedLetters.length > 0 && (
-                                <div className="text-3xl md:text-4xl font-serif text-brand-950 mt-2 max-h-12 overflow-hidden leading-tight" dir="rtl">{combinedWord}</div>
-                            )}
-                        </div>
-                        <div className="flex gap-2 shrink-0 flex-wrap">
-                            <button
-                                onClick={playCombined}
-                                disabled={!combinedWord}
-                                className="px-5 py-2.5 rounded-full bg-brand-950 text-white font-bold text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-900 transition-colors"
-                            >
-                                <Volume2 size={15} /> Play Word
-                            </button>
-                            {selectedLetters.length > 0 && !aiResult && (
-                                <button
-                                    onClick={handleDeepAnalysis}
-                                    disabled={isAnalyzing}
-                                    className="px-5 py-2.5 rounded-full bg-accent-500 text-brand-950 font-bold text-sm flex items-center gap-2 disabled:opacity-50 hover:bg-accent-400 transition-colors shadow-lg"
-                                >
-                                    {isAnalyzing ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
-                                    {isAnalyzing ? 'Analyzing…' : 'Deep Insight'}
-                                </button>
-                            )}
-                            {selectedLetters.length > 0 && (
-                                <button
-                                    onClick={() => { setSelectedLetters([]); setAiResult(null); setAiError(null); }}
-                                    className="px-4 py-2.5 rounded-full border border-slate-200 text-slate-500 font-bold text-sm hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors"
-                                >
-                                    Clear All
-                                </button>
-                            )}
-                        </div>
+            {/* Word Builder Summary + modal sheet */}
+            <div className="bg-white rounded-[1.75rem] border border-slate-100 shadow-sm p-4 md:p-5">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div>
+                        <h3 className="text-xl font-serif font-bold text-brand-950">Word Builder</h3>
+                        <p className="text-sm text-slate-500">{selectedLetters.length} letter{selectedLetters.length !== 1 ? 's' : ''} • Unlimited</p>
                     </div>
+                    <button
+                        onClick={() => setIsBuilderOpen(true)}
+                        className="px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors"
+                    >
+                        Open Builder
+                    </button>
                 </div>
+                {combinedWord && (
+                    <div className="mt-3 text-3xl font-serif text-brand-950" dir="rtl">{combinedWord}</div>
+                )}
             </div>
+
+            <AnimatePresence>
+                {isBuilderOpen && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsBuilderOpen(false)}
+                            className="fixed inset-0 z-40 bg-black/45 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, y: 50 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 50 }}
+                            className="fixed bottom-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:max-w-3xl z-50 bg-white rounded-[2rem] shadow-2xl border border-slate-100 p-5 md:p-6"
+                        >
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <h4 className="text-lg font-bold text-brand-950">Word Builder</h4>
+                                    <p className="text-xs text-slate-500">Add, reorder, listen, and analyze</p>
+                                </div>
+                                <button
+                                    onClick={() => setIsBuilderOpen(false)}
+                                    className="text-slate-400 hover:text-slate-600 transition-colors"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            <div className="min-h-[74px] bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                {selectedLetters.length === 0 ? (
+                                    <p className="text-slate-400 text-sm italic">Tap letters below to build a word…</p>
+                                ) : (
+                                    <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto pr-1" dir="rtl">
+                                        {selectedLetters.map((l, idx) => (
+                                            <div
+                                                key={l.key}
+                                                draggable
+                                                onDragStart={e => handleDragStart(e, idx)}
+                                                onDragOver={e => handleDragOver(e, idx)}
+                                                onDrop={e => handleDrop(e, idx)}
+                                                onDragEnd={handleDragEnd}
+                                                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl border cursor-grab active:cursor-grabbing select-none transition-all ${dragOverIdx === idx ? 'border-brand-300 bg-brand-50' : 'border-slate-200 bg-white'} ${draggingIdx === idx ? 'opacity-40' : ''}`}
+                                            >
+                                                <span className="text-2xl font-serif text-brand-950 leading-none">{l.letter}</span>
+                                                <span className="text-[10px] font-semibold text-slate-500">{l.name}</span>
+                                                <button
+                                                    onClick={() => removeLetter(idx)}
+                                                    className="ml-1 text-slate-400 hover:text-red-500 transition-colors"
+                                                    title={`Remove ${l.name}`}
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {selectedLetters.length > 0 && (
+                                <div className="text-3xl md:text-4xl font-serif text-brand-950 mt-3 leading-tight" dir="rtl">{combinedWord}</div>
+                            )}
+
+                            <div className="mt-5 flex flex-wrap items-center gap-2">
+                                <button
+                                    onClick={playCombined}
+                                    disabled={!combinedWord}
+                                    className="px-5 py-2.5 rounded-xl bg-brand-950 text-white font-semibold text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-900 transition-colors"
+                                >
+                                    <Volume2 size={15} /> Play Word
+                                </button>
+                                {selectedLetters.length > 0 && !aiResult && (
+                                    <button
+                                        onClick={handleDeepAnalysis}
+                                        disabled={isAnalyzing}
+                                        className="px-5 py-2.5 rounded-xl border border-brand-300 text-brand-700 font-semibold text-sm flex items-center gap-2 disabled:opacity-50 hover:bg-brand-50 transition-colors"
+                                    >
+                                        {isAnalyzing ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
+                                        {isAnalyzing ? 'Analyzing…' : 'Deep Insight'}
+                                    </button>
+                                )}
+                                {selectedLetters.length > 0 && (
+                                    <button
+                                        onClick={() => { setSelectedLetters([]); setAiResult(null); setAiError(null); }}
+                                        className="px-2 py-2 text-slate-500 font-semibold text-sm hover:text-red-500 transition-colors"
+                                    >
+                                        Clear
+                                    </button>
+                                )}
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
 
             {/* ── AI ERROR ── */}
             {aiError && (
@@ -1021,31 +1120,29 @@ const HebrewLettersAudioLab: React.FC = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-10 shadow-xl">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-6 text-center">Tap a letter to add it to your word</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    {HEBREW_AUDIO_LETTERS.map((item, index) => (
-                        <div key={item.letter} className={`rounded-3xl bg-gradient-to-br ${RAINBOW_GRADIENTS[index % RAINBOW_GRADIENTS.length]} p-[1px]`}>
-                            <div className="bg-white rounded-3xl p-4 h-full flex flex-col items-center text-center gap-2">
-                                <span className="text-4xl font-serif text-brand-950">{item.letter}</span>
-                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">{item.name}</span>
-                                <div className="flex items-center gap-1 pt-1 w-full justify-center">
-                                    <button
-                                        onClick={() => addLetter(item)}
-                                        className="flex-1 px-2 py-1.5 rounded-xl text-[10px] font-bold bg-brand-600 text-white hover:bg-brand-700 transition-colors shadow-sm"
-                                        title={`Add ${item.name}`}
-                                    >
-                                        + Add
-                                    </button>
-                                    <button
-                                        onClick={() => playLetter(item.letter, item.hebrewName)}
-                                        className="w-8 h-8 rounded-full bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors flex items-center justify-center shrink-0"
-                                        title={`Play ${item.hebrewName}`}
-                                        aria-label={`Play ${item.hebrewName}`}
-                                    >
-                                        <Volume2 size={13} />
-                                    </button>
-                                </div>
+            <div className="bg-white rounded-[2rem] border border-slate-100 p-6 md:p-10 shadow-sm">
+                <p className="text-sm font-semibold text-slate-500 mb-8 text-center">Tap a letter to add it to your word</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5 md:gap-6">
+                    {HEBREW_AUDIO_LETTERS.map((item) => (
+                        <div key={item.letter} className="rounded-3xl border border-slate-100 bg-white p-5 h-full flex flex-col items-center text-center gap-3 shadow-sm hover:shadow-md transition-all">
+                            <span className="text-5xl font-serif text-brand-950">{item.letter}</span>
+                            <span className="text-xs font-semibold tracking-wide text-slate-500">{item.name}</span>
+                            <div className="flex items-center gap-1 pt-1 w-full justify-center">
+                                <button
+                                    onClick={() => addLetter(item)}
+                                    className="flex-1 px-2 py-2 rounded-xl text-xs font-semibold bg-brand-600 text-white hover:bg-brand-700 transition-colors"
+                                    title={`Add ${item.name}`}
+                                >
+                                    Add
+                                </button>
+                                <button
+                                    onClick={() => playLetter(item.letter, item.hebrewName)}
+                                    className="w-9 h-9 rounded-full bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors flex items-center justify-center shrink-0"
+                                    title={`Play ${item.hebrewName}`}
+                                    aria-label={`Play ${item.hebrewName}`}
+                                >
+                                    <Volume2 size={13} />
+                                </button>
                             </div>
                         </div>
                     ))}
@@ -1056,38 +1153,66 @@ const HebrewLettersAudioLab: React.FC = () => {
 };
 
 interface HebrewResourcesProps {
-    initialTab?: 'numbers' | 'calendar' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio';
+    initialTab?: 'numbers' | 'calendar' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio' | 'grammar';
     currentUser?: User;
 }
 
-type HebrewResourceTab = 'numbers' | 'calendar' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio';
+type HebrewResourceTab = 'numbers' | 'calendar' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio' | 'grammar';
+type HebrewResourceSection = 'content' | 'tools';
 
-const HEBREW_RESOURCE_TABS: ReadonlyArray<{ id: HebrewResourceTab; label: string; icon: React.ReactNode }> = [
-    { id: 'festivals', label: 'Festivals', icon: <Flame size={16} /> },
-    { id: 'calendar', label: 'Hebrew Calendar', icon: <CalendarIcon size={16} /> },
-    { id: 'words', label: 'Hebrew Word', icon: <Type size={16} /> },
-    { id: 'lettersaudio', label: 'Letters Audio', icon: <Volume2 size={16} /> },
-    { id: 'numbers', label: 'Numbers', icon: <Hash size={16} /> },
-    { id: 'gematria', label: 'Gematria Value', icon: <Calculator size={16} /> },
-    { id: 'reference', label: 'Month/Year', icon: <BookOpen size={16} /> }
+const HEBREW_RESOURCE_TABS: ReadonlyArray<{ id: HebrewResourceTab; section: HebrewResourceSection; label: string; tamil: string; icon: React.ReactNode }> = [
+    { id: 'festivals', label: 'Festivals & Holy Days', tamil: 'திருவிழாக்கள்', section: 'content', icon: <Flame size={16} /> },
+    { id: 'calendar', label: 'Biblical Calendar', tamil: 'விவிலிய நாட்காட்டி', section: 'content', icon: <CalendarIcon size={16} /> },
+    { id: 'reference', label: 'Months & Days', tamil: 'மாதங்கள் & நாட்கள்', section: 'content', icon: <BookOpen size={16} /> },
+    { id: 'grammar', label: 'Hebrew Grammar', tamil: 'எபிரேய இலக்கணம்', section: 'content', icon: <Type size={16} /> },
+    { id: 'words', label: 'Hebrew Words', tamil: 'வார்த்தைகள்', section: 'tools', icon: <Type size={16} /> },
+    { id: 'lettersaudio', label: 'Letters Audio', tamil: 'ஒலி எழுத்துக்கள்', section: 'tools', icon: <Volume2 size={16} /> },
+    { id: 'numbers', label: 'Hebrew Numbers', tamil: 'எண்கள்', section: 'tools', icon: <Hash size={16} /> },
+    { id: 'gematria', label: 'Gematria Value', tamil: 'கிமாட்ரியா', section: 'tools', icon: <Calculator size={16} /> },
 ];
 
 export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, currentUser }) => {
     const [tab, setTab] = useState<HebrewResourceTab>(initialTab || 'numbers');
+    const [section, setSection] = useState<HebrewResourceSection>(
+        ['festivals', 'calendar', 'reference', 'grammar'].includes(initialTab || '') ? 'content' : 'tools'
+    );
 
     useEffect(() => {
         if (initialTab) {
             setTab(initialTab);
+            setSection(['festivals', 'calendar', 'reference', 'grammar'].includes(initialTab) ? 'content' : 'tools');
         }
     }, [initialTab]);
+
+    const visibleTabs = HEBREW_RESOURCE_TABS.filter((t) => t.section === section);
+
+    useEffect(() => {
+        if (!visibleTabs.some(t => t.id === tab)) {
+            setTab(visibleTabs[0]?.id || 'numbers');
+        }
+    }, [section, tab, visibleTabs]);
 
 
     return (
         <div className="min-h-screen pt-20 md:pt-28 pb-32 md:pb-20 container mx-auto px-6 font-sans bg-[#fffdf6]">
             <div className="max-w-7xl mx-auto md:flex md:items-start md:gap-8">
                 <aside className="hidden md:block md:w-64 md:shrink-0 md:sticky md:top-[110px]">
+                    <div className="mb-4 grid grid-cols-2 gap-2 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
+                        <button
+                            onClick={() => setSection('content')}
+                            className={`px-3 py-2 rounded-xl text-[11px] font-bold transition-colors ${section === 'content' ? 'bg-brand-600 text-white' : 'text-slate-500 hover:bg-slate-50'}`}
+                        >
+                            Content
+                        </button>
+                        <button
+                            onClick={() => setSection('tools')}
+                            className={`px-3 py-2 rounded-xl text-[11px] font-bold transition-colors ${section === 'tools' ? 'bg-brand-600 text-white' : 'text-slate-500 hover:bg-slate-50'}`}
+                        >
+                            Tools
+                        </button>
+                    </div>
                     <div className="flex flex-col gap-3">
-                        {HEBREW_RESOURCE_TABS.map((t) => {
+                        {visibleTabs.map((t) => {
                             const isActive = tab === t.id;
                             return (
                                 <button
@@ -1099,7 +1224,10 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                                         }`}
                                 >
                                     {t.icon}
-                                    <span>{t.label}</span>
+                                    <span className="text-left">
+                                        <span className="block">{t.label}</span>
+                                        <span className={`block text-[9px] ${isActive ? 'text-white/85' : 'text-slate-400'}`}>{t.tamil}</span>
+                                    </span>
                                     {isActive && (
                                         <motion.div
                                             layoutId="active-pill-desktop"
@@ -1116,11 +1244,28 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                 <div className="flex-1 space-y-12">
                     <div className="text-center space-y-4 mb-4 md:mb-12">
                     <h1 className="text-4xl md:text-8xl font-serif font-bold text-brand-950 px-2">
-                        Biblical <span className="text-accent-600">Hub</span>
+                        Hebrew <span className="text-accent-600">{section === 'content' ? 'Content' : 'Tools'}</span>
                     </h1>
                     <p className="text-sm md:text-xl text-slate-500 font-light max-w-3xl mx-auto px-6">
-                        A sanctuary of divine knowledge. Explore the sacred calendar, biblical festivals, and spiritual mathematics.
+                        {section === 'content'
+                            ? 'Festivals, holy days, months, days, Biblical calendar, and grammar — in English + Tamil.'
+                            : 'Interactive learning tools for words, letters audio, numbers, and gematria.'}
                     </p>
+                </div>
+
+                <div className="md:hidden grid grid-cols-2 gap-2 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
+                    <button
+                        onClick={() => setSection('content')}
+                        className={`px-3 py-2 rounded-xl text-xs font-bold transition-colors ${section === 'content' ? 'bg-brand-600 text-white' : 'text-slate-500 hover:bg-slate-50'}`}
+                    >
+                        Hebrew Content / உள்ளடக்கம்
+                    </button>
+                    <button
+                        onClick={() => setSection('tools')}
+                        className={`px-3 py-2 rounded-xl text-xs font-bold transition-colors ${section === 'tools' ? 'bg-brand-600 text-white' : 'text-slate-500 hover:bg-slate-50'}`}
+                    >
+                        Hebrew Tools / கருவிகள்
+                    </button>
                 </div>
 
                 <div className="relative mb-24 min-h-[500px]">
@@ -1139,6 +1284,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                             {tab === 'numbers' && <HebrewConverterNumbers />}
                             {tab === 'gematria' && <HebrewGematriaCalc />}
                             {tab === 'reference' && <ReferenceView />}
+                            {tab === 'grammar' && <GrammarView />}
                         </motion.div>
                     </AnimatePresence>
                 </div>

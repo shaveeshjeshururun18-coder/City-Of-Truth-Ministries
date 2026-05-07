@@ -38,6 +38,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.numbers': 'Hebrew Numbers',
     'nav.gematria': 'Gematria Value',
     'nav.reference': 'Month/Year Reference',
+    'nav.grammar': 'Hebrew Grammar',
     // AI Page
     'ai.title': 'Divine AI Assistant',
     'ai.subtitle': 'Satyar Margam Guidance',
@@ -88,6 +89,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.numbers': 'எபிரேய எண்கள்',
     'nav.gematria': 'கெமாட்ரியா மதிப்பு',
     'nav.reference': 'மாதம்/ஆண்டு குறிப்பு',
+    'nav.grammar': 'எபிரேய இலக்கணம்',
     // AI Page
     'ai.title': 'தெய்வீக AI உதவியாளர்',
     'ai.subtitle': 'சத்திய மார்க்க வழிகாட்டுதல்',
@@ -170,4 +172,5 @@ export const NAV_LABEL_TO_KEY: Record<string, string> = {
   'Hebrew Numbers': 'nav.numbers',
   'Gematria Value': 'nav.gematria',
   'Month/Year Reference': 'nav.reference',
+  'Hebrew Grammar': 'nav.grammar',
 };

@@ -17,6 +17,7 @@ const HEBREW_VIEWS = new Set<ViewState>([
     ViewState.HEBREW_NUMBERS,
     ViewState.HEBREW_GEMATRIA,
     ViewState.HEBREW_REFERENCE,
+    ViewState.HEBREW_GRAMMAR,
 ]);
 
 // 4 primary tabs always visible + "More"
@@ -31,7 +32,8 @@ const PRIMARY_NAV = [
 const MORE_NAV = [
     { id: 'festivals',  label: 'Festivals',  Icon: Flame,      view: ViewState.HEBREW_FESTIVALS },
     { id: 'gematria',   label: 'Gematria',   Icon: Calculator, view: ViewState.HEBREW_GEMATRIA },
-    { id: 'reference',  label: 'Ref. Guide', Icon: BookOpen,   view: ViewState.HEBREW_REFERENCE },
+    { id: 'reference',  label: 'Reference',  Icon: BookOpen,   view: ViewState.HEBREW_REFERENCE },
+    { id: 'grammar',    label: 'Grammar',    Icon: Type,       view: ViewState.HEBREW_GRAMMAR },
 ] as const;
 
 const ALL_NAV = [...PRIMARY_NAV, ...MORE_NAV];
@@ -44,6 +46,7 @@ const VIEW_TO_NAV_ID: Partial<Record<ViewState, string>> = {
     [ViewState.HEBREW_NUMBERS]:       'numbers',
     [ViewState.HEBREW_GEMATRIA]:      'gematria',
     [ViewState.HEBREW_REFERENCE]:     'reference',
+    [ViewState.HEBREW_GRAMMAR]:       'grammar',
 };
 
 export const BottomNav: React.FC<BottomNavProps> = ({ currentView, setView }) => {
@@ -78,7 +81,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentView, setView }) =>
                             animate={{ y: 0 }}
                             exit={{ y: '100%' }}
                             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                            className="fixed bottom-[72px] left-2 right-2 z-[49] bg-white rounded-3xl shadow-2xl border border-slate-100 p-4 md:hidden"
+                            className="fixed bottom-[62px] left-3 right-3 z-[49] bg-white rounded-3xl shadow-2xl border border-slate-100 p-3 md:hidden"
                         >
                             <div className="flex items-center justify-between mb-3 px-1">
                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">More Tools</span>
@@ -86,17 +89,17 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentView, setView }) =>
                                     <X size={16} />
                                 </button>
                             </div>
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-2 gap-2">
                                 {MORE_NAV.map(({ id, label, Icon, view }) => {
                                     const isActive = activeId === id;
                                     return (
                                         <button
                                             key={id}
                                             onClick={() => handleNav(view)}
-                                            className={`flex flex-col items-center gap-2 py-4 rounded-2xl transition-all ${isActive ? 'bg-amber-50 text-amber-600' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
+                                            className={`flex flex-col items-center gap-1.5 py-3 rounded-2xl transition-all ${isActive ? 'bg-amber-50 text-amber-600' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
                                         >
-                                            <Icon size={22} strokeWidth={isActive ? 2.2 : 1.6} />
-                                            <span className="text-[10px] font-bold uppercase tracking-wide">{label}</span>
+                                            <Icon size={19} strokeWidth={isActive ? 2.1 : 1.6} />
+                                            <span className="text-[10px] font-bold tracking-wide">{label}</span>
                                         </button>
                                     );
                                 })}
@@ -109,7 +112,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentView, setView }) =>
             {/* Bottom navigation bar */}
             <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
                 <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-amber-300/40 to-transparent" />
-                <div className="mx-2 mb-2 mt-0 bg-white/97 backdrop-blur-3xl rounded-[1.5rem] shadow-[0_-2px_16px_rgba(0,0,0,0.07),0_6px_24px_rgba(0,0,0,0.1)] border border-slate-100/80 px-2 py-1">
+                <div className="mx-2 mb-1 mt-0 bg-white/97 backdrop-blur-3xl rounded-[1.25rem] shadow-[0_-2px_12px_rgba(0,0,0,0.06),0_4px_18px_rgba(0,0,0,0.08)] border border-slate-100/80 px-1.5 py-1">
                     <div className="flex items-stretch justify-between" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
                         {/* Primary tabs */}
                         {PRIMARY_NAV.map(({ id, label, Icon, view }) => {
@@ -118,7 +121,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentView, setView }) =>
                                 <button
                                     key={id}
                                     onClick={() => handleNav(view)}
-                                    className="relative flex flex-col items-center justify-center gap-[3px] py-2.5 px-1 rounded-2xl flex-1 min-w-0 transition-all duration-200 active:scale-95"
+                                    className="relative flex flex-col items-center justify-center gap-[2px] py-2 px-1 rounded-xl flex-1 min-w-0 transition-all duration-200 active:scale-95"
                                     aria-label={label}
                                     aria-current={isActive ? 'page' : undefined}
                                 >
@@ -137,11 +140,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentView, setView }) =>
                                         />
                                     )}
                                     <Icon
-                                        size={19}
+                                        size={17}
                                         strokeWidth={isActive ? 2.3 : 1.5}
                                         className={`relative z-10 transition-all duration-200 ${isActive ? 'text-amber-600' : 'text-slate-400'}`}
                                     />
-                                    <span className={`relative z-10 text-[8px] font-bold uppercase tracking-wide whitespace-nowrap leading-none transition-all duration-200 ${isActive ? 'text-amber-700' : 'text-slate-400'}`}>
+                                    <span className={`relative z-10 text-[8px] font-semibold tracking-wide whitespace-nowrap leading-none transition-all duration-200 ${isActive ? 'text-amber-700' : 'text-slate-400'}`}>
                                         {label}
                                     </span>
                                 </button>
@@ -151,7 +154,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentView, setView }) =>
                         {/* "More" tab */}
                         <button
                             onClick={() => setMoreOpen(v => !v)}
-                            className="relative flex flex-col items-center justify-center gap-[3px] py-2.5 px-1 rounded-2xl flex-1 min-w-0 transition-all duration-200 active:scale-95"
+                            className="relative flex flex-col items-center justify-center gap-[2px] py-2 px-1 rounded-xl flex-1 min-w-0 transition-all duration-200 active:scale-95"
                             aria-label="More"
                         >
                             {isMoreActive && (
@@ -162,11 +165,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentView, setView }) =>
                                 />
                             )}
                             <MoreHorizontal
-                                size={19}
+                                size={17}
                                 strokeWidth={1.5}
                                 className={`relative z-10 transition-colors duration-200 ${isMoreActive || moreOpen ? 'text-amber-600' : 'text-slate-400'}`}
                             />
-                            <span className={`relative z-10 text-[8px] font-bold uppercase tracking-wide leading-none transition-colors duration-200 ${isMoreActive || moreOpen ? 'text-amber-700' : 'text-slate-400'}`}>
+                            <span className={`relative z-10 text-[8px] font-semibold tracking-wide leading-none transition-colors duration-200 ${isMoreActive || moreOpen ? 'text-amber-700' : 'text-slate-400'}`}>
                                 More
                             </span>
                         </button>

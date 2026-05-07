@@ -170,6 +170,7 @@ interface ContactMessage {
 const HEBREW_RESOURCE_SUBMENU: NavItem[] = [
   { label: 'Festivals & Holy Days', view: ViewState.HEBREW_FESTIVALS },
   { label: 'Biblical Calendar', view: ViewState.HEBREW_CALENDAR },
+  { label: 'Hebrew Grammar', view: ViewState.HEBREW_GRAMMAR },
   { label: 'Hebrew Words', view: ViewState.HEBREW_WORDS },
   { label: 'Letters Audio Lab', view: ViewState.HEBREW_LETTERS_AUDIO },
   { label: 'Hebrew Numbers', view: ViewState.HEBREW_NUMBERS },
@@ -571,6 +572,7 @@ const App: React.FC = () => {
       case ViewState.HEBREW_WORDS: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.HEBREW_LETTERS_AUDIO: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.HEBREW_GEMATRIA: return "bg-[#fdfcf0] text-brand-950";
+      case ViewState.HEBREW_GRAMMAR: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.ID_CARD: return "bg-[#f8fafc] text-slate-950";
       case ViewState.CONTACT: return "bg-[#f5f3ff] text-indigo-950";
       case ViewState.AI: return "bg-slate-950 text-white";
@@ -1141,6 +1143,12 @@ const App: React.FC = () => {
             </div>
           )}
 
+          {currentView === ViewState.HEBREW_GRAMMAR && (
+            <div key="hebrew-grammar">
+              <HebrewResources initialTab="grammar" />
+            </div>
+          )}
+
           {currentView === ViewState.HEBREW_FESTIVALS && (
             <div key="hebrew-festivals">
               <HebrewResources initialTab="festivals" />
@@ -1507,6 +1515,21 @@ const App: React.FC = () => {
         </div>
       </footer>
 
+      {(() => {
+        const navOverlayViews = new Set<ViewState>([
+          ViewState.ABOUT,
+          ViewState.HEBREW_FESTIVALS,
+          ViewState.HEBREW_CALENDAR,
+          ViewState.HEBREW_WORDS,
+          ViewState.HEBREW_LETTERS_AUDIO,
+          ViewState.HEBREW_NUMBERS,
+          ViewState.HEBREW_GEMATRIA,
+          ViewState.HEBREW_REFERENCE,
+          ViewState.HEBREW_GRAMMAR,
+        ]);
+        const isHebrewNavOverlayView = navOverlayViews.has(currentView);
+        return (
+          <>
       {/* Bottom Navigation Bar (mobile) */}
       <BottomNav currentView={currentView} setView={setCurrentView} />
 
@@ -1514,7 +1537,7 @@ const App: React.FC = () => {
       {
         currentView !== ViewState.AI && (
           <ErrorBoundary>
-            <AIChatAssistant />
+            <AIChatAssistant avoidBottomNav={isHebrewNavOverlayView} />
           </ErrorBoundary>
         )
       }
@@ -1526,7 +1549,7 @@ const App: React.FC = () => {
             initial={{ opacity: 0, scale: 0.9, y: 50 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 50 }}
-            className="fixed bottom-4 right-4 md:bottom-10 md:right-10 z-[100] w-[calc(100%-2rem)] md:w-full max-w-md md:max-w-lg"
+            className={`fixed right-4 md:right-10 z-[100] w-[calc(100%-2rem)] md:w-full max-w-md md:max-w-lg ${isHebrewNavOverlayView ? 'bottom-24 md:bottom-10' : 'bottom-4 md:bottom-10'}`}
           >
             <div className="bg-white/95 backdrop-blur-3xl rounded-[2.5rem] p-4 shadow-2xl shadow-brand-900/40 border-4 border-white">
               <MessageFromLeader onClose={() => setShowLeaderMessage(false)} className="!p-0 !m-0 !py-0" />
@@ -1633,6 +1656,9 @@ const App: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+          </>
+        );
+      })()}
     </div >
   );
 }
