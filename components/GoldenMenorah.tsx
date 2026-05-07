@@ -79,15 +79,20 @@ export const GoldenMenorah: React.FC<GoldenMenorahProps> = ({ onPreviewClick }) 
               >
                 <video
                   src={menorahVideoSrc}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover contrast-105 saturate-110"
                   autoPlay
                   muted
                   loop
                   playsInline
                   preload="auto"
                   controls
-                  controlsList="nodownload noplaybackrate"
+                  disablePictureInPicture
+                  onContextMenu={(e) => e.preventDefault()}
                 />
+
+                {/* Corner masks to hide embedded generator logos/watermarks if present */}
+                <div className="pointer-events-none absolute top-0 right-0 w-28 h-16 bg-gradient-to-l from-slate-950/95 via-slate-950/75 to-transparent" />
+                <div className="pointer-events-none absolute bottom-0 right-0 w-32 h-20 bg-gradient-to-tl from-slate-950/95 via-slate-950/75 to-transparent" />
 
                 {/* Hover Overlay */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-center justify-center">
