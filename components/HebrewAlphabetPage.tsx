@@ -254,7 +254,7 @@ export const HebrewAlphabetPage: React.FC = () => {
                 <header className="text-center mb-10 space-y-2">
                     <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
                         <h1 className="font-serif text-4xl md:text-5xl text-transparent bg-clip-text bg-gradient-to-b from-[#FBBF24] to-[#D97706] tracking-wide font-bold">Lashon HaKodesh</h1>
-                        <p className="text-[11px] tracking-[3px] text-[#F59E0B]/40 uppercase font-semibold mt-2">Hebrew Aleph-Bet · ஆலெஃப்-பேத்</p>
+                        <p className="text-[11px] tracking-[3px] text-[#F59E0B]/40 uppercase font-semibold mt-2">Hebrew aleph - tav</p>
                         <p className="text-[10px] text-white/20 mt-1.5">Tap any letter to hear it · letters are added to the Word Builder above</p>
                     </motion.div>
                 </header>
