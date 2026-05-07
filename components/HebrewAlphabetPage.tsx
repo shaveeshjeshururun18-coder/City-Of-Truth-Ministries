@@ -124,9 +124,7 @@ export const HebrewAlphabetPage: React.FC = () => {
 
                         {/* Draggable letter tokens — displayed RTL so leftmost = first Hebrew letter */}
                         <div className="flex-1 min-h-[52px] flex items-center overflow-x-auto no-scrollbar">
-                            {tokens.length === 0 ? (
-                                <span className="text-[#444] text-sm italic px-2">Tap a letter below to start building…</span>
-                            ) : (
+                            {tokens.length > 0 && (
                                 <Reorder.Group
                                     axis="x"
                                     values={tokens}
