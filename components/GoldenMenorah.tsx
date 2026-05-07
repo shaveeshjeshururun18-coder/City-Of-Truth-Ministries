@@ -12,6 +12,8 @@ interface GoldenMenorahProps {
 }
 
 export const GoldenMenorah: React.FC<GoldenMenorahProps> = ({ onPreviewClick }) => {
+  const menorahVideoSrc = '/barch_hasem/New folder/பாகம் 1.mp4';
+
   return (
     <section className="min-h-screen bg-brand-950 pt-32 pb-20 relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent pointer-events-none"></div>
@@ -75,17 +77,23 @@ export const GoldenMenorah: React.FC<GoldenMenorahProps> = ({ onPreviewClick }) 
                 className="relative w-full aspect-[4/3] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-amber-500/20 cursor-pointer group"
                 onClick={onPreviewClick}
               >
-                <img
-                  src="/menorah-flag-image.png"
-                  alt="Sacred Menorah Flag"
-                  className="w-full h-full object-contain p-4"
+                <video
+                  src={menorahVideoSrc}
+                  className="w-full h-full object-cover"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="auto"
+                  controls
+                  controlsList="nodownload noplaybackrate"
                 />
 
                 {/* Hover Overlay */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-center justify-center">
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <div className="px-6 py-3 bg-amber-500 text-white rounded-full font-bold text-sm uppercase tracking-wider shadow-lg">
-                      View Full Page
+                        Visit Menorah Page
                     </div>
                   </div>
                 </div>

@@ -81,7 +81,7 @@ export const HebrewPage: React.FC = () => {
                 {/* Alphabet Section */}
                 <div className="text-center">
                     <h2 className="font-['Cinzel'] text-[#c5a059] text-4xl mb-10">
-                        The Hebrew Alphabet <span className="text-xl text-[#888] font-['Poppins'] font-light">(Aleph-Bet)</span>
+                        The Hebrew Alphabet <span className="text-xl text-[#888] font-['Poppins'] font-light">(ALEPH-BET · ஆலெஃப்-பேத்)</span>
                     </h2>
 
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-5">
