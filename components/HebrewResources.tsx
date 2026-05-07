@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type, Volume2, Loader2, Info, Fingerprint, X } from 'lucide-react';
 import { analyzeHebrewWord } from '../services/openRouterService';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -152,12 +152,12 @@ const getFirstDayOfWeek = (year: number, monthIdx: number): number => {
 // --- View Components ---
 
 const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) => {
-    const estimateCurrentHebrewYear = () => {
+    const estimateCurrentHebrewYear = useCallback(() => {
         const now = new Date();
         return now.getMonth() >= 8 ? now.getFullYear() + 3761 : now.getFullYear() + 3760;
-    };
+    }, []);
 
-    const getCurrentBiblicalMonthIndex = (selectedYear: number) => {
+    const getCurrentBiblicalMonthIndex = useCallback((selectedYear: number) => {
         const now = new Date();
         const month = now.getMonth(); // 0-11
         const leap = isLeapYear(selectedYear);
@@ -176,7 +176,7 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
         };
         if (month === 1) return leap ? 12 : 11; // Feb -> Adar II (leap) / Adar
         return monthMap[month] ?? 0;
-    };
+    }, []);
 
     const [year, setYear] = useState(estimateCurrentHebrewYear());
     const [currentMonthIdx, setCurrentMonthIdx] = useState(0); // Nisan (Default 0)
@@ -206,7 +206,7 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
         } else {
             setCurrentMonthIdx(0);
         }
-    }, [safeYear, calendarData.length]);
+    }, [safeYear, calendarData.length, estimateCurrentHebrewYear, getCurrentBiblicalMonthIndex]);
     // PDF Download - Multi-page
     const handleDownloadFullCalendar = async () => {
         setIsGeneratingPdf(true);
@@ -1195,7 +1195,10 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
         }
     }, [initialTab]);
 
-    const visibleTabs = HEBREW_RESOURCE_TABS.filter((t) => t.section === section);
+    const visibleTabs = useMemo(
+        () => HEBREW_RESOURCE_TABS.filter((t) => t.section === section),
+        [section]
+    );
 
     useEffect(() => {
         if (!visibleTabs.some(t => t.id === tab)) {
