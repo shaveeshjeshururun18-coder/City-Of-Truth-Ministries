@@ -5,28 +5,28 @@ import { audioService } from '../services/audioService';
 import { analyzeHebrewWord } from '../services/openRouterService';
 
 const HEBREW_LETTERS = [
-    { letter: "א", name: "ALEPH", hebrewName: "אלף", number: 1 },
-    { letter: "ב", name: "BET", hebrewName: "בית", number: 2 },
-    { letter: "ג", name: "GIMEL", hebrewName: "גימל", number: 3 },
-    { letter: "ד", name: "DALET", hebrewName: "דלת", number: 4 },
-    { letter: "ה", name: "HE", hebrewName: "הא", number: 5 },
-    { letter: "ו", name: "VAV", hebrewName: "וו", number: 6 },
-    { letter: "ז", name: "ZAYIN", hebrewName: "זין", number: 7 },
-    { letter: "ח", name: "CHET", hebrewName: "חית", number: 8 },
-    { letter: "ט", name: "TET", hebrewName: "טית", number: 9 },
-    { letter: "י", name: "YOD", hebrewName: "יוד", number: 10 },
-    { letter: "כ", name: "KAF", hebrewName: "כף", number: 20 },
-    { letter: "ל", name: "LAMED", hebrewName: "למד", number: 30 },
-    { letter: "מ", name: "MEM", hebrewName: "מם", number: 40 },
-    { letter: "נ", name: "NUN", hebrewName: "נון", number: 50 },
-    { letter: "ס", name: "SAMEKH", hebrewName: "סמך", number: 60 },
-    { letter: "ע", name: "AYIN", hebrewName: "עין", number: 70 },
-    { letter: "פ", name: "PE", hebrewName: "פה", number: 80 },
-    { letter: "צ", name: "TSADE", hebrewName: "צדי", number: 90 },
-    { letter: "ק", name: "QOPH", hebrewName: "קוף", number: 100 },
-    { letter: "ר", name: "RESH", hebrewName: "ריש", number: 200 },
-    { letter: "ש", name: "SHIN", hebrewName: "שין", number: 300 },
-    { letter: "ת", name: "TAV", hebrewName: "תו", number: 400 },
+    { letter: "א", name: "ALEPH", hebrewName: "אלף", tamilName: "ஆலெஃப்", number: 1 },
+    { letter: "ב", name: "BET", hebrewName: "בית", tamilName: "பேத்", number: 2 },
+    { letter: "ג", name: "GIMEL", hebrewName: "גימל", tamilName: "கிமேல்", number: 3 },
+    { letter: "ד", name: "DALET", hebrewName: "דלת", tamilName: "டாலேத்", number: 4 },
+    { letter: "ה", name: "HE", hebrewName: "הא", tamilName: "ஹேய்", number: 5 },
+    { letter: "ו", name: "VAV", hebrewName: "וו", tamilName: "வாவ்", number: 6 },
+    { letter: "ז", name: "ZAYIN", hebrewName: "זין", tamilName: "ஜாயின்", number: 7 },
+    { letter: "ח", name: "CHET", hebrewName: "חית", tamilName: "செத்", number: 8 },
+    { letter: "ט", name: "TET", hebrewName: "טית", tamilName: "டேத்", number: 9 },
+    { letter: "י", name: "YOD", hebrewName: "יוד", tamilName: "யோத்", number: 10 },
+    { letter: "כ", name: "KAF", hebrewName: "כף", tamilName: "காஃப்", number: 20 },
+    { letter: "ל", name: "LAMED", hebrewName: "למד", tamilName: "லாமேத்", number: 30 },
+    { letter: "מ", name: "MEM", hebrewName: "מם", tamilName: "மேம்", number: 40 },
+    { letter: "נ", name: "NUN", hebrewName: "נון", tamilName: "நூன்", number: 50 },
+    { letter: "ס", name: "SAMEKH", hebrewName: "סמך", tamilName: "சாமேக்", number: 60 },
+    { letter: "ע", name: "AYIN", hebrewName: "עין", tamilName: "ஆயின்", number: 70 },
+    { letter: "פ", name: "PE", hebrewName: "פה", tamilName: "பேய்", number: 80 },
+    { letter: "צ", name: "TSADE", hebrewName: "צדי", tamilName: "ஸாதே", number: 90 },
+    { letter: "ק", name: "QOPH", hebrewName: "קוף", tamilName: "கோஃப்", number: 100 },
+    { letter: "ר", name: "RESH", hebrewName: "ריש", tamilName: "ரேஷ்", number: 200 },
+    { letter: "ש", name: "SHIN", hebrewName: "שין", tamilName: "ஷின்", number: 300 },
+    { letter: "ת", name: "TAV", hebrewName: "תו", tamilName: "தாவ்", number: 400 },
 ];
 
 interface LetterToken {
@@ -291,7 +291,7 @@ export const HebrewAlphabetPage: React.FC = () => {
                             </span>
                             <div className="text-center space-y-1">
                                 <strong className="block text-[#F59E0B] text-sm md:text-base tracking-[0.2em] font-bold uppercase group-hover:text-white/90 transition-colors">{item.name}</strong>
-                                <span className="block text-[#F59E0B]/70 text-xs md:text-sm tracking-widest group-hover:text-white/50 transition-colors">{item.hebrewName}</span>
+                                <span className="block text-[#F59E0B]/70 text-xs md:text-sm tracking-widest group-hover:text-white/50 transition-colors">{item.tamilName}</span>
                                 <div className="mt-3 inline-block bg-[#F59E0B]/10 group-hover:bg-white/10 px-3 py-1 rounded-full border border-[#F59E0B]/30 group-hover:border-white/25 transition-all">
                                     <span className="text-xs text-[#F59E0B]/80 group-hover:text-white/60 font-mono tracking-widest transition-colors">VALUE: {item.number}</span>
                                 </div>

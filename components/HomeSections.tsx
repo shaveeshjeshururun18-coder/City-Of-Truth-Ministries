@@ -563,3 +563,102 @@ export const CommunityMembersSection: React.FC<SectionProps & { users: User[] }>
         </section>
     );
 };
+
+export const PastorBaruchSection: React.FC<SectionProps> = ({ setView }) => {
+    return (
+        <section className="py-20 bg-gradient-to-br from-sky-50 via-white to-amber-50 relative overflow-hidden">
+            <div className="absolute -top-20 -right-20 w-72 h-72 bg-sky-200/30 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-amber-200/30 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="container mx-auto px-6 relative z-10">
+                <div className="text-center mb-14">
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="inline-flex items-center gap-2 bg-sky-100 text-sky-700 border border-sky-200 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-4"
+                    >
+                        <Star size={12} /> Our Leadership &amp; Praise
+                    </motion.div>
+                    <motion.h2
+                        initial={{ opacity: 0, y: 16 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        viewport={{ once: true }}
+                        className="text-4xl md:text-5xl font-serif font-black text-sky-950 tracking-tight leading-tight"
+                    >
+                        Pastor &amp;{' '}
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-yellow-400 italic font-light">
+                            בָּרוּךְ הַשֵׁם
+                        </span>
+                    </motion.h2>
+                    <motion.p
+                        initial={{ opacity: 0 }}
+                        whileInView={{ opacity: 1 }}
+                        transition={{ delay: 0.2 }}
+                        viewport={{ once: true }}
+                        className="text-slate-500 mt-3 max-w-md mx-auto text-sm font-light"
+                    >
+                        Meet our shepherd and join in the sacred blessing — Blessed be the Name of the Lord.
+                    </motion.p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    {/* Pastor card */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 24 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        viewport={{ once: true }}
+                        onClick={() => setView(ViewState.PASTOR)}
+                        className="group cursor-pointer bg-white border border-sky-100 rounded-[2rem] p-8 shadow-lg shadow-sky-100/60 hover:shadow-xl hover:shadow-sky-200/60 hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center"
+                    >
+                        <div className="w-20 h-20 rounded-[1.5rem] overflow-hidden bg-sky-100 mb-5 shadow-md ring-4 ring-sky-50 group-hover:ring-sky-200 transition-all">
+                            <img
+                                src="/assets/pastor.jpeg"
+                                alt="Reverend Lazarus M.S."
+                                className="w-full h-full object-cover object-top"
+                                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                            />
+                        </div>
+                        <h3 className="text-xl font-serif font-black text-sky-950 mb-1">Reverend Lazarus M.S.</h3>
+                        <p className="text-sky-500 text-xs font-black uppercase tracking-widest mb-1">Rabbi Masal Ben El Etzar</p>
+                        <p className="text-sky-800 font-bold text-sm mb-4">ரப்பி மசால் பென் எல் எட்சர்</p>
+                        <p className="text-slate-500 text-sm leading-relaxed mb-6">
+                            ஆழ்ந்த வேதஅறிவுடன் அர்ப்பணிப்பாக ஊழியம் செய்யும் தேவ ஊழியக்காரர்.
+                        </p>
+                        <span className="group-hover:bg-sky-600 group-hover:text-white inline-flex items-center gap-2 bg-sky-50 text-sky-700 border border-sky-200 px-5 py-2.5 rounded-full font-bold text-sm transition-all">
+                            Meet the Pastor <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
+                        </span>
+                    </motion.div>
+
+                    {/* Baruch HaShem card */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 24 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        viewport={{ once: true }}
+                        onClick={() => setView(ViewState.BARUCH_HASHEM)}
+                        className="group cursor-pointer bg-gradient-to-br from-brand-950 to-brand-900 border border-amber-500/20 rounded-[2rem] p-8 shadow-lg shadow-amber-900/20 hover:shadow-xl hover:shadow-amber-500/20 hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center relative overflow-hidden"
+                    >
+                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none" />
+                        <div className="relative z-10 flex flex-col items-center">
+                            <div className="w-20 h-20 rounded-[1.5rem] bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mb-5 shadow-lg">
+                                <span className="text-4xl font-serif text-amber-400">ב</span>
+                            </div>
+                            <h3 className="text-xl font-serif font-black text-white mb-1">בָּרוּךְ הַשֵׁם</h3>
+                            <p className="text-amber-400 text-xs font-black uppercase tracking-widest mb-1">Baruch HaShem</p>
+                            <p className="text-amber-200 font-bold text-sm mb-4">பாருக் ஹாஷேம்</p>
+                            <p className="text-white/60 text-sm leading-relaxed mb-6">
+                                "Blessed be the Name" — Explore the sacred Hebrew praise with Tamil insight and spiritual depth.
+                            </p>
+                            <span className="group-hover:bg-amber-500 group-hover:text-brand-950 inline-flex items-center gap-2 bg-amber-500/10 text-amber-400 border border-amber-500/30 px-5 py-2.5 rounded-full font-bold text-sm transition-all">
+                                Explore Baruch HaShem <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
+                            </span>
+                        </div>
+                    </motion.div>
+                </div>
+            </div>
+        </section>
+    );
+};
