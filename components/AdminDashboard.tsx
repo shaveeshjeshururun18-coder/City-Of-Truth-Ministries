@@ -52,6 +52,7 @@ const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any
     preview: { name: 'Entrust Preview', desc: 'Quick overview of community card', icon: Phone, color: 'bg-violet-500' },
     donations: { name: 'Donations', desc: 'Support boxes and giving section', icon: CheckCircle, color: 'bg-orange-500' },
     'pastor-baruch': { name: 'Pastor & Baruch HaShem', desc: 'Meet our pastor and explore sacred Hebrew praise', icon: ShieldCheck, color: 'bg-sky-500' },
+    'hebrew-resources': { name: 'Hebrew Resources', desc: 'All 8 Hebrew tools with content preview cards', icon: Mail, color: 'bg-amber-500' },
     verify: { name: 'Verify ID', desc: 'Security and verification portal', icon: CheckCircle, color: 'bg-slate-500' }
 };
 

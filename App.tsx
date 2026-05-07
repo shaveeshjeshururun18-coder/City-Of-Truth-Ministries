@@ -60,7 +60,7 @@ import { GoldenMenorah } from './components/GoldenMenorah';
 import { GoldenMenorahPage } from './components/GoldenMenorahPage';
 import { AIPage } from './components/AIPage';
 // import { GlobalAIWidget } from './components/GlobalAIWidget';
-import { MinistryHighlights, HebrewSanctuaryIntro, ValparaiPresence, TestimonialHighlights, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, CommunityMembersSection, PastorBaruchSection } from './components/HomeSections';
+import { MinistryHighlights, HebrewSanctuaryIntro, ValparaiPresence, TestimonialHighlights, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, CommunityMembersSection, PastorBaruchSection, HebrewResourcesSection } from './components/HomeSections';
 import { MessageFromLeader } from './components/MessageFromLeader';
 import { HebrewAlphabetPage } from './components/HebrewAlphabetPage';
 import { MinistriesPage } from './components/MinistriesPage';
@@ -369,9 +369,9 @@ const App: React.FC = () => {
   const [homeSectionsOrder, setHomeSectionsOrder] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('cot_home_sections_order');
-      return saved ? JSON.parse(saved) : ['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'pastor-baruch', 'verify'];
+      return saved ? JSON.parse(saved) : ['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew-resources', 'hebrew', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'pastor-baruch', 'verify'];
     } catch (e) {
-      return ['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'pastor-baruch', 'verify'];
+      return ['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew-resources', 'hebrew', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'pastor-baruch', 'verify'];
     }
   });
 
@@ -1052,6 +1052,7 @@ const App: React.FC = () => {
           case 'preview': return <EntrustCardPreview key="preview" setView={setCurrentView} />;
           case 'donations': return <DonationsHighlight key="donations" setView={setCurrentView} onDonate={() => setShowDonationModal(true)} />;
           case 'pastor-baruch': return <PastorBaruchSection key="pastor-baruch" setView={setCurrentView} />;
+          case 'hebrew-resources': return <HebrewResourcesSection key="hebrew-resources" setView={setCurrentView} />;
           case 'verify':
             return (
               <section key="verify" className="py-24 bg-white relative overflow-hidden">

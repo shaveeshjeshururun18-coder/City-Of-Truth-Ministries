@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Star, ArrowRight, BookOpen, MapPin, Globe, Sparkles, MessageSquare, QrCode, Heart, Users } from 'lucide-react';
+import { Star, ArrowRight, BookOpen, MapPin, Globe, Sparkles, MessageSquare, QrCode, Heart, Users, Calendar, Hash, Type, Volume2, Calculator, Flame, Languages } from 'lucide-react';
 import { ViewState, User } from '../types';
 import { MessageFromLeader } from './MessageFromLeader';
 
@@ -658,6 +658,199 @@ export const PastorBaruchSection: React.FC<SectionProps> = ({ setView }) => {
                         </div>
                     </motion.div>
                 </div>
+            </div>
+        </section>
+    );
+};
+
+export const HebrewResourcesSection: React.FC<SectionProps> = ({ setView }) => {
+    const tools = [
+        {
+            id: 'alphabet',
+            icon: <Languages size={22} />,
+            color: 'from-amber-500 to-yellow-400',
+            bg: 'bg-amber-50',
+            border: 'border-amber-100',
+            iconBg: 'bg-gradient-to-br from-amber-400 to-yellow-400',
+            title: 'Aleph-Bet',
+            titleTa: 'எழுத்துக்கள்',
+            desc: 'Tap any of the 22 Hebrew letters to hear pronunciation and build words.',
+            view: ViewState.HEBREW,
+        },
+        {
+            id: 'calendar',
+            icon: <Calendar size={22} />,
+            color: 'from-sky-500 to-blue-400',
+            bg: 'bg-sky-50',
+            border: 'border-sky-100',
+            iconBg: 'bg-gradient-to-br from-sky-500 to-blue-400',
+            title: 'Hebrew Calendar',
+            titleTa: 'எபிரேய நாட்காட்டி',
+            desc: 'Explore Shabbat, appointed times, and the sacred Biblical year cycle.',
+            view: ViewState.HEBREW_CALENDAR,
+        },
+        {
+            id: 'words',
+            icon: <Type size={22} />,
+            color: 'from-violet-500 to-purple-400',
+            bg: 'bg-violet-50',
+            border: 'border-violet-100',
+            iconBg: 'bg-gradient-to-br from-violet-500 to-purple-400',
+            title: 'Hebrew Words',
+            titleTa: 'வார்த்தைகள்',
+            desc: 'Study key Biblical Hebrew words with meaning, root, and Tamil translation.',
+            view: ViewState.HEBREW_WORDS,
+        },
+        {
+            id: 'audio',
+            icon: <Volume2 size={22} />,
+            color: 'from-teal-500 to-emerald-400',
+            bg: 'bg-teal-50',
+            border: 'border-teal-100',
+            iconBg: 'bg-gradient-to-br from-teal-500 to-emerald-400',
+            title: 'Audio Letters',
+            titleTa: 'ஒலி எழுத்துக்கள்',
+            desc: 'Listen to native pronunciation of every Hebrew letter and common phrases.',
+            view: ViewState.HEBREW_LETTERS_AUDIO,
+        },
+        {
+            id: 'numbers',
+            icon: <Hash size={22} />,
+            color: 'from-orange-500 to-amber-400',
+            bg: 'bg-orange-50',
+            border: 'border-orange-100',
+            iconBg: 'bg-gradient-to-br from-orange-500 to-amber-400',
+            title: 'Hebrew Numbers',
+            titleTa: 'எண்கள்',
+            desc: 'Discover how Hebrew letters double as numbers — a foundational concept.',
+            view: ViewState.HEBREW_NUMBERS,
+        },
+        {
+            id: 'gematria',
+            icon: <Calculator size={22} />,
+            color: 'from-rose-500 to-pink-400',
+            bg: 'bg-rose-50',
+            border: 'border-rose-100',
+            iconBg: 'bg-gradient-to-br from-rose-500 to-pink-400',
+            title: 'Gematria',
+            titleTa: 'கிமாட்ரியா',
+            desc: 'Calculate the numeric value of Hebrew words and uncover hidden patterns.',
+            view: ViewState.HEBREW_GEMATRIA,
+        },
+        {
+            id: 'festivals',
+            icon: <Flame size={22} />,
+            color: 'from-indigo-500 to-blue-500',
+            bg: 'bg-indigo-50',
+            border: 'border-indigo-100',
+            iconBg: 'bg-gradient-to-br from-indigo-500 to-blue-500',
+            title: 'Festivals',
+            titleTa: 'பண்டிகைகள்',
+            desc: 'Learn about Passover, Sukkot, Hanukkah and all appointed Biblical feasts.',
+            view: ViewState.HEBREW_FESTIVALS,
+        },
+        {
+            id: 'reference',
+            icon: <BookOpen size={22} />,
+            color: 'from-slate-600 to-slate-500',
+            bg: 'bg-slate-50',
+            border: 'border-slate-100',
+            iconBg: 'bg-gradient-to-br from-slate-600 to-slate-500',
+            title: 'Reference Guide',
+            titleTa: 'குறிப்பு வழிகாட்டி',
+            desc: 'Quick-reference charts for grammar, verb forms, and Biblical Hebrew patterns.',
+            view: ViewState.HEBREW_REFERENCE,
+        },
+    ];
+
+    return (
+        <section className="py-20 bg-gradient-to-b from-[#fdfcf0] to-white relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-300/0 via-amber-400/50 to-amber-300/0" />
+            <div className="absolute -top-24 -right-24 w-72 h-72 bg-amber-100/60 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-sky-100/50 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="container mx-auto px-6 relative z-10">
+                {/* Header */}
+                <div className="text-center mb-12">
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="inline-flex items-center gap-2 bg-amber-50 text-amber-700 border border-amber-200 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-4"
+                    >
+                        <Languages size={12} /> Hebrew Resources
+                    </motion.div>
+                    <motion.h2
+                        initial={{ opacity: 0, y: 14 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.08 }}
+                        viewport={{ once: true }}
+                        className="text-4xl md:text-5xl font-serif font-black text-brand-950 tracking-tight leading-tight"
+                    >
+                        Explore{' '}
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-yellow-400 italic font-light">
+                            Lashon HaKodesh
+                        </span>
+                    </motion.h2>
+                    <motion.p
+                        initial={{ opacity: 0 }}
+                        whileInView={{ opacity: 1 }}
+                        transition={{ delay: 0.15 }}
+                        viewport={{ once: true }}
+                        className="text-slate-500 mt-3 max-w-xl mx-auto text-sm font-light leading-relaxed"
+                    >
+                        Eight interactive tools to guide you deeper into Biblical Hebrew — from letters to gematria, in English and Tamil.
+                    </motion.p>
+                </div>
+
+                {/* Tool grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
+                    {tools.map((tool, i) => (
+                        <motion.div
+                            key={tool.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.055 }}
+                            viewport={{ once: true }}
+                            onClick={() => setView(tool.view)}
+                            className={`group cursor-pointer ${tool.bg} border ${tool.border} rounded-2xl p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col gap-3`}
+                        >
+                            {/* Icon */}
+                            <div className={`w-11 h-11 rounded-xl ${tool.iconBg} text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-200`}>
+                                {tool.icon}
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1">
+                                <h3 className="font-bold text-brand-950 text-base leading-tight">{tool.title}</h3>
+                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">{tool.titleTa}</p>
+                                <p className="text-slate-500 text-[12px] leading-relaxed">{tool.desc}</p>
+                            </div>
+
+                            {/* CTA */}
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 group-hover:text-brand-600 transition-colors">
+                                Explore <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
+
+                {/* Bottom CTA */}
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    viewport={{ once: true }}
+                    className="text-center mt-10"
+                >
+                    <button
+                        onClick={() => setView(ViewState.ABOUT)}
+                        className="group inline-flex items-center gap-3 bg-brand-950 text-white px-8 py-3.5 rounded-full font-bold text-sm hover:scale-105 transition-transform shadow-lg shadow-brand-900/20"
+                    >
+                        Open Full Hebrew Hub
+                        <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                    </button>
+                </motion.div>
             </div>
         </section>
     );
