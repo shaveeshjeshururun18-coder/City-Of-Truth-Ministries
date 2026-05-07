@@ -81,7 +81,7 @@ export const GoldenMenorahPage: React.FC<GoldenMenorahPageProps> = () => {
                         <div className="relative w-full bg-gradient-to-bl from-white/[0.05] to-white/[0.01] backdrop-blur-xl border border-amber-500/30 rounded-[2.5rem] p-6 sm:p-10 shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col justify-center">
                             <div className="absolute top-6 right-6 flex items-center gap-2 text-amber-500/50 font-bold text-xs uppercase tracking-[0.3em]"><Sparkles size={14} /> Sacred Standard</div>
                             <div className="relative overflow-hidden rounded-2xl shadow-inner border border-amber-500/10 w-full mx-auto flex items-center justify-center pt-8">
-                                <div className="w-full max-w-full max-h-80 transform hover:scale-[1.02] transition-transform duration-700 overflow-hidden rounded-xl">
+                                <div className="w-full max-h-80 transform hover:scale-[1.02] transition-transform duration-700 overflow-hidden rounded-xl">
                                     <MenorahFlag width={540} height={320} windSpeed={7.5} showControlsButton={false} className="mx-auto" />
                                 </div>
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>

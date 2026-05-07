@@ -41,7 +41,7 @@ const MenorahFlag: React.FC<MenorahFlagProps> = ({
             });
         };
 
-        const initFlag = async () => {
+        const initFlag = async (): Promise<(() => void) | undefined> => {
             try {
                 await loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
 
@@ -369,6 +369,7 @@ const MenorahFlag: React.FC<MenorahFlagProps> = ({
                 };
             } catch (error) {
                 console.error('Error initializing flag:', error);
+                return undefined;
             }
         };
 
