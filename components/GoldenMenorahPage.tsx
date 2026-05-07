@@ -1,13 +1,24 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Sparkles, Download } from 'lucide-react';
 import { InteractiveMenorah } from './InteractiveMenorah';
+import MenorahFlag from './MenorahFlag';
 
 interface GoldenMenorahPageProps {
     onBack: () => void;
 }
 
 export const GoldenMenorahPage: React.FC<GoldenMenorahPageProps> = () => {
+    const [showIntroFlag, setShowIntroFlag] = React.useState(true);
+
+    React.useEffect(() => {
+        const introTimeout = setTimeout(() => {
+            setShowIntroFlag(false);
+        }, 5000);
+
+        return () => clearTimeout(introTimeout);
+    }, []);
+
     const handleDownloadFlag = async () => {
         try {
             const response = await fetch('/menorah-flag-image.png');
@@ -29,6 +40,21 @@ export const GoldenMenorahPage: React.FC<GoldenMenorahPageProps> = () => {
 
     return (
         <div className="min-h-screen bg-black pt-32 pb-20 relative overflow-hidden">
+            <AnimatePresence>
+                {showIntroFlag && (
+                    <motion.div
+                        initial={{ opacity: 1, scale: 1 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 1.06, filter: 'blur(10px)' }}
+                        transition={{ duration: 1.1, ease: 'easeInOut' }}
+                        className="absolute inset-0 z-30 flex items-center justify-center bg-gradient-to-b from-blue-900 via-blue-700 to-blue-900"
+                    >
+                        <div className="w-[92vw] h-[52vw] max-w-5xl max-h-[560px]">
+                            <MenorahFlag width={1100} height={620} windSpeed={9} showControlsButton={false} className="w-full h-full" />
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-900/20 via-black to-black pointer-events-none"></div>
             <div className="container mx-auto px-4 text-center mb-16 relative z-10">
                 <h1 className="text-4xl md:text-5xl font-bold mb-6 text-white leading-tight" style={{ fontFamily: 'serif' }}>
@@ -55,11 +81,9 @@ export const GoldenMenorahPage: React.FC<GoldenMenorahPageProps> = () => {
                         <div className="relative w-full bg-gradient-to-bl from-white/[0.05] to-white/[0.01] backdrop-blur-xl border border-amber-500/30 rounded-[2.5rem] p-6 sm:p-10 shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col justify-center">
                             <div className="absolute top-6 right-6 flex items-center gap-2 text-amber-500/50 font-bold text-xs uppercase tracking-[0.3em]"><Sparkles size={14} /> Sacred Standard</div>
                             <div className="relative overflow-hidden rounded-2xl shadow-inner border border-amber-500/10 w-full mx-auto flex items-center justify-center pt-8">
-                                <img
-                                    src="/menorah-flag-image.png"
-                                    alt="Sacred Menorah Flag with YHWH inscriptions"
-                                    className="w-full max-w-full max-h-80 object-contain transform hover:scale-105 transition-transform duration-700"
-                                />
+                                <div className="w-full max-w-full max-h-80 transform hover:scale-[1.02] transition-transform duration-700 overflow-hidden rounded-xl">
+                                    <MenorahFlag width={540} height={320} windSpeed={7.5} showControlsButton={false} className="mx-auto" />
+                                </div>
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
                             </div>
                             <div className="mt-6 text-center">
