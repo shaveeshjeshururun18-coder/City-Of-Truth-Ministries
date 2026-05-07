@@ -13,6 +13,8 @@ interface GoldenMenorahProps {
 
 export const GoldenMenorah: React.FC<GoldenMenorahProps> = ({ onPreviewClick }) => {
   const menorahVideoSrc = '/menorah/menorah-home.mp4';
+  const watermarkTopMaskClass = 'w-28 h-16';
+  const watermarkBottomMaskClass = 'w-32 h-20';
 
   return (
     <section className="min-h-screen bg-brand-950 pt-32 pb-20 relative overflow-hidden">
@@ -91,8 +93,8 @@ export const GoldenMenorah: React.FC<GoldenMenorahProps> = ({ onPreviewClick }) 
                 />
 
                 {/* Corner masks to hide embedded generator logos/watermarks if present */}
-                <div className="pointer-events-none absolute top-0 right-0 w-28 h-16 bg-gradient-to-l from-slate-950/95 via-slate-950/75 to-transparent" />
-                <div className="pointer-events-none absolute bottom-0 right-0 w-32 h-20 bg-gradient-to-tl from-slate-950/95 via-slate-950/75 to-transparent" />
+                <div className={`pointer-events-none absolute top-0 right-0 ${watermarkTopMaskClass} bg-gradient-to-l from-slate-950/95 via-slate-950/75 to-transparent`} />
+                <div className={`pointer-events-none absolute bottom-0 right-0 ${watermarkBottomMaskClass} bg-gradient-to-tl from-slate-950/95 via-slate-950/75 to-transparent`} />
 
                 {/* Hover Overlay */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-center justify-center">
