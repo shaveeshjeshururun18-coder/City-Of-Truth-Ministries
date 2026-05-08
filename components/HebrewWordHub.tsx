@@ -203,10 +203,15 @@ export const HebrewWordHub: React.FC = () => {
         if (!wordDetails || !exportCardRef.current) return;
         setIsExporting(true);
         try {
+            if ('fonts' in document) {
+                await (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts?.ready;
+            }
+            await new Promise(resolve => setTimeout(resolve, 120));
             const dataUrl = await toJpeg(exportCardRef.current, {
                 quality: 0.97,
                 pixelRatio: 3,
                 backgroundColor: '#ffffff',
+                cacheBust: true,
             });
             const filename = `COT-Hebrew-${sanitizeFilename(wordDetails.pronunciation)}`;
             if (format === 'jpeg') {
@@ -230,6 +235,7 @@ export const HebrewWordHub: React.FC = () => {
             }
         } catch (err) {
             console.error('Export failed:', err);
+            alert('Export failed. Please try again.');
         } finally {
             setIsExporting(false);
         }
