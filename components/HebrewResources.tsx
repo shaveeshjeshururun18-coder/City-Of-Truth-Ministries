@@ -167,16 +167,30 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
     // Derived state for current view
     const currentMonthData = calendarData[currentMonthIdx];
     const { name, hebrew } = currentMonthData;
-    const daysInMonth = currentMonthData.weeks.flat().filter(d => d.day !== null).length; // Approximate check
+    const monthDays = currentMonthData.weeks.flat().filter(d => d.day !== null);
+    const firstGregorian = monthDays[0]?.gregorianDate;
+    const lastGregorian = monthDays[monthDays.length - 1]?.gregorianDate;
+    const today = new Date();
+    const todayMonthShort = today.toLocaleString('en-US', { month: 'short' });
+    const todayKey = `${todayMonthShort} ${today.getDate()}`;
+    const todayDayName = today.toLocaleDateString('en-US', { weekday: 'long' });
 
     useEffect(() => {
         if (currentMonthIdx >= calendarData.length) setCurrentMonthIdx(0);
     }, [year, calendarData.length]);
 
-
-
-
-    const monthsList = calendarData.map(m => m.name);
+    useEffect(() => {
+        for (let m = 0; m < calendarData.length; m++) {
+            const foundDay = calendarData[m].weeks.flat().find(d => d.day !== null && d.gregorianDate === todayKey);
+            if (foundDay?.day) {
+                setCurrentMonthIdx(m);
+                setSelectedDay(foundDay.day);
+                return;
+            }
+        }
+        setSelectedDay(null);
+        setCurrentMonthIdx(0);
+    }, [calendarData, todayKey]);
 
     // PDF Download - Multi-page
     const handleDownloadFullCalendar = async () => {
@@ -313,9 +327,14 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                             <ChevronLeft size={24} md:size={32} />
                         </button>
 
-                        <div className="text-center min-w-[150px]">
+                        <div className="text-center min-w-[180px]">
                             <div className="text-2xl md:text-4xl xl:text-5xl font-bold text-brand-950 mb-1 leading-tight">{name}</div>
                             <div className="text-accent-600 text-lg md:text-2xl font-serif">{hebrew}</div>
+                            {firstGregorian && lastGregorian && (
+                                <div className="text-[10px] md:text-xs text-slate-500 font-bold uppercase tracking-widest mt-2">
+                                    {firstGregorian} - {lastGregorian}
+                                </div>
+                            )}
                         </div>
 
                         <button
@@ -327,6 +346,14 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                         </button>
 
                     </div>
+                </div>
+
+                <div className="mb-6 rounded-2xl border border-amber-100 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3 text-center">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-amber-700 font-black">Today</p>
+                    <p className="text-sm md:text-base font-bold text-brand-950">
+                        {todayDayName}, {today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                    </p>
+                    <p className="text-xs text-slate-500">Current Hebrew month view: {name} ({hebrew})</p>
                 </div>
 
                 {/* PDF Action */}
@@ -358,19 +385,25 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                             {week.map((dayObj, dIdx) => (
                                 <div key={`${wIdx}-${dIdx}`} className="aspect-square">
                                     {dayObj.day ? (
+                                        (() => {
+                                            const isSelected = selectedDay === dayObj.day;
+                                            const isToday = dayObj.gregorianDate === todayKey;
+                                            return (
                                         <motion.button
                                             whileHover={{ scale: 1.05 }}
                                             whileTap={{ scale: 0.95 }}
                                             onClick={() => setSelectedDay(dayObj.day)}
-                                            className={`w-full h-full flex flex-col items-between justify-between p-1 md:p-2 rounded-xl md:rounded-2xl border transition-all relative overflow-hidden ${selectedDay === dayObj.day
+                                            className={`w-full h-full flex flex-col items-between justify-between p-1 md:p-2 rounded-xl md:rounded-2xl border transition-all relative overflow-hidden ${isSelected
                                                 ? 'bg-brand-600 border-brand-600 text-white shadow-xl ring-2 ring-brand-200'
+                                                : isToday
+                                                    ? 'bg-amber-100 border-amber-400 text-brand-900 shadow-lg ring-2 ring-amber-200'
                                                 : dayObj.isShabbat
                                                     ? 'bg-brand-50 border-brand-100 text-brand-900'
                                                     : 'bg-white border-slate-100 hover:border-brand-200 text-slate-500'
                                                 }`}
                                         >
                                             <div className="w-full flex justify-between items-start">
-                                                <span className={`text-base md:text-xl font-bold ${selectedDay === dayObj.day ? 'text-white' : 'text-brand-950'}`}>{dayObj.day}</span>
+                                                <span className={`text-base md:text-xl font-bold ${isSelected ? 'text-white' : 'text-brand-950'}`}>{dayObj.day}</span>
                                                 {/* Friday/Saturday Symbols */}
                                                 {dIdx === 5 && (
                                                     <img src="/assets/friday-symbol.png" alt="Friday" className="w-4 h-4 md:w-5 md:h-5 object-contain" />
@@ -380,17 +413,23 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                                                 )}
                                             </div>
 
+                                            {isToday && !isSelected && (
+                                                <div className="text-[8px] font-black uppercase tracking-wide text-amber-700">Today</div>
+                                            )}
+
                                             {/* Festival Text Name */}
                                             {dayObj.festivals.length > 0 && (
                                                 <div className="text-[8px] md:text-[10px] font-bold leading-tight text-center w-full mt-1">
                                                     {dayObj.festivals.map(f => (
-                                                        <div key={f} className={`truncate ${selectedDay === dayObj.day ? 'text-white' : 'text-red-600'}`}>
+                                                        <div key={f} className={`truncate ${isSelected ? 'text-white' : 'text-red-600'}`}>
                                                             {f}
                                                         </div>
                                                     ))}
                                                 </div>
                                             )}
                                         </motion.button>
+                                            );
+                                        })()
                                     ) : (
                                         <div className="w-full h-full" />
                                     )}
@@ -419,18 +458,31 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                             {(() => {
                                 // Find the day object
                                 const dayObj = currentMonthData.weeks.flat().find(d => d.day === selectedDay);
+                                const selectedGregorian = dayObj?.gregorianDate;
                                 if (dayObj && dayObj.festivals.length > 0) {
                                     return (
-                                        <div className="flex flex-wrap gap-2 mt-4">
-                                            {dayObj.festivals.map(f => (
-                                                <span key={f} className="px-3 py-1 bg-red-50 text-red-600 rounded-full text-sm font-bold border border-red-100 flex items-center gap-2">
-                                                    <Sparkles size={14} /> {f}
-                                                </span>
-                                            ))}
+                                        <div className="space-y-3 mt-4">
+                                            {selectedGregorian && (
+                                                <div className="text-sm text-slate-500 font-semibold">
+                                                    Gregorian date: {selectedGregorian}
+                                                </div>
+                                            )}
+                                            <div className="flex flex-wrap gap-2">
+                                                {dayObj.festivals.map(f => (
+                                                    <span key={f} className="px-3 py-1 bg-red-50 text-red-600 rounded-full text-sm font-bold border border-red-100 flex items-center gap-2">
+                                                        <Sparkles size={14} /> {f}
+                                                    </span>
+                                                ))}
+                                            </div>
                                         </div>
                                     );
                                 }
-                                return <div className="text-slate-400 italic">No major festivals on this date.</div>;
+                                return (
+                                    <div className="space-y-2">
+                                        {selectedGregorian && <div className="text-sm text-slate-500 font-semibold">Gregorian date: {selectedGregorian}</div>}
+                                        <div className="text-slate-400 italic">No major festivals on this date.</div>
+                                    </div>
+                                );
                             })()}
                         </div>
                     </motion.div>
@@ -551,6 +603,80 @@ const ReferenceView: React.FC = () => {
                         </div>
                     ))}
                 </div>
+            </div>
+        </div>
+    );
+};
+
+const GrammarView: React.FC = () => {
+    const grammarTopics = [
+        {
+            title: 'Hebrew Script & Direction',
+            points: [
+                'Hebrew is written from right to left.',
+                'The alphabet has 22 letters (Aleph to Tav).',
+                'Five letters have final forms at word endings: ך ם ן ף ץ.',
+            ],
+        },
+        {
+            title: 'Vowels (Nikkud)',
+            points: [
+                'Ancient Hebrew consonants are read with vowel marks called nikkud.',
+                'Common marks include kamatz (ָ), patach (ַ), segol (ֶ), hiriq (ִ), and holam (ֹ).',
+                'Modern Hebrew often omits nikkud in daily text, but biblical reading uses them for clarity.',
+            ],
+        },
+        {
+            title: 'Gender and Number',
+            points: [
+                'Nouns are masculine or feminine.',
+                'Words change for singular and plural forms.',
+                'Adjectives must agree with nouns in gender and number.',
+            ],
+        },
+        {
+            title: 'Verb Roots (Shoresh)',
+            points: [
+                'Most Hebrew words come from a 3-letter root.',
+                'Verb patterns (binyanim) shape voice and meaning.',
+                'Tense usage is often described as perfect (completed) and imperfect (ongoing/future).',
+            ],
+        },
+        {
+            title: 'Prefix & Suffix Meaning',
+            points: [
+                'ו can mean “and”, ב means “in”, ל means “to/for”, כ means “as/like”.',
+                'Possessive endings attach to nouns (e.g., -י means “my”).',
+                'Pronoun endings may attach to verbs and prepositions.',
+            ],
+        },
+        {
+            title: 'Biblical Reading Tips',
+            points: [
+                'Read slowly by syllable before speed reading.',
+                'Track roots to understand related words across verses.',
+                'Use both Hebrew and English context together for better learning.',
+            ],
+        },
+    ];
+
+    return (
+        <div className="space-y-8">
+            <div className="text-center max-w-3xl mx-auto">
+                <h3 className="text-3xl md:text-5xl font-serif font-bold text-brand-950 mb-3">Hebrew Grammar</h3>
+                <p className="text-slate-500">A complete foundation for script, vowels, roots, word forms, and biblical reading flow.</p>
+            </div>
+            <div className="grid md:grid-cols-2 gap-6">
+                {grammarTopics.map((topic) => (
+                    <div key={topic.title} className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+                        <h4 className="text-xl font-bold text-brand-950 mb-3">{topic.title}</h4>
+                        <ul className="space-y-2 text-sm text-slate-600 leading-relaxed list-disc pl-5">
+                            {topic.points.map(point => (
+                                <li key={point}>{point}</li>
+                            ))}
+                        </ul>
+                    </div>
+                ))}
             </div>
         </div>
     );
@@ -1056,30 +1182,48 @@ const HebrewLettersAudioLab: React.FC = () => {
 };
 
 interface HebrewResourcesProps {
-    initialTab?: 'numbers' | 'calendar' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio';
+    initialTab?: 'numbers' | 'calendar' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio' | 'grammar';
+    mode?: 'all' | 'content' | 'tools';
     currentUser?: User;
 }
 
-type HebrewResourceTab = 'numbers' | 'calendar' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio';
+type HebrewResourceTab = 'numbers' | 'calendar' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio' | 'grammar';
 
 const HEBREW_RESOURCE_TABS: ReadonlyArray<{ id: HebrewResourceTab; label: string; icon: React.ReactNode }> = [
     { id: 'festivals', label: 'Festivals', icon: <Flame size={16} /> },
     { id: 'calendar', label: 'Hebrew Calendar', icon: <CalendarIcon size={16} /> },
+    { id: 'reference', label: 'Month & Days', icon: <BookOpen size={16} /> },
+    { id: 'grammar', label: 'Grammar', icon: <BookOpen size={16} /> },
     { id: 'words', label: 'Hebrew Word', icon: <Type size={16} /> },
     { id: 'lettersaudio', label: 'Letters Audio', icon: <Volume2 size={16} /> },
     { id: 'numbers', label: 'Numbers', icon: <Hash size={16} /> },
     { id: 'gematria', label: 'Gematria Value', icon: <Calculator size={16} /> },
-    { id: 'reference', label: 'Month/Year', icon: <BookOpen size={16} /> }
 ];
 
-export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, currentUser }) => {
-    const [tab, setTab] = useState<HebrewResourceTab>(initialTab || 'numbers');
+const CONTENT_TAB_IDS: HebrewResourceTab[] = ['festivals', 'calendar', 'reference', 'grammar'];
+const TOOLS_TAB_IDS: HebrewResourceTab[] = ['words', 'lettersaudio', 'numbers', 'gematria'];
+
+export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mode = 'all', currentUser }) => {
+    const availableTabs = HEBREW_RESOURCE_TABS.filter(tabItem => {
+        if (mode === 'content') return CONTENT_TAB_IDS.includes(tabItem.id);
+        if (mode === 'tools') return TOOLS_TAB_IDS.includes(tabItem.id);
+        return true;
+    });
+
+    const defaultTab = initialTab && availableTabs.some(t => t.id === initialTab)
+        ? initialTab
+        : (availableTabs[0]?.id || 'calendar');
+    const [tab, setTab] = useState<HebrewResourceTab>(defaultTab);
 
     useEffect(() => {
-        if (initialTab) {
-            setTab(initialTab);
+        if (initialTab && availableTabs.some(t => t.id === initialTab)) {
+            setTab(initialTab as HebrewResourceTab);
+            return;
         }
-    }, [initialTab]);
+        if (!availableTabs.some(t => t.id === tab) && availableTabs[0]) {
+            setTab(availableTabs[0].id);
+        }
+    }, [availableTabs, initialTab, tab]);
 
 
     return (
@@ -1087,7 +1231,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
             <div className="max-w-7xl mx-auto md:flex md:items-start md:gap-8">
                 <aside className="hidden md:block md:w-64 md:shrink-0 md:sticky md:top-[110px]">
                     <div className="flex flex-col gap-3">
-                        {HEBREW_RESOURCE_TABS.map((t) => {
+                        {availableTabs.map((t) => {
                             const isActive = tab === t.id;
                             return (
                                 <button
@@ -1116,10 +1260,20 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                 <div className="flex-1 space-y-12">
                     <div className="text-center space-y-4 mb-4 md:mb-12">
                     <h1 className="text-4xl md:text-8xl font-serif font-bold text-brand-950 px-2">
-                        Biblical <span className="text-accent-600">Hub</span>
+                        {mode === 'tools' ? (
+                            <>Hebrew <span className="text-accent-600">Tools</span></>
+                        ) : mode === 'content' ? (
+                            <>Hebrew <span className="text-accent-600">Content</span></>
+                        ) : (
+                            <>Biblical <span className="text-accent-600">Hub</span></>
+                        )}
                     </h1>
                     <p className="text-sm md:text-xl text-slate-500 font-light max-w-3xl mx-auto px-6">
-                        A sanctuary of divine knowledge. Explore the sacred calendar, biblical festivals, and spiritual mathematics.
+                        {mode === 'tools'
+                            ? 'Explore Hebrew learning tools: words, letters audio, numbers, and gematria.'
+                            : mode === 'content'
+                                ? 'Explore Hebrew calendar, festivals, month/day reference, and complete grammar foundations.'
+                                : 'A sanctuary of divine knowledge. Explore the sacred calendar, biblical festivals, and spiritual mathematics.'}
                     </p>
                 </div>
 
@@ -1139,6 +1293,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, cu
                             {tab === 'numbers' && <HebrewConverterNumbers />}
                             {tab === 'gematria' && <HebrewGematriaCalc />}
                             {tab === 'reference' && <ReferenceView />}
+                            {tab === 'grammar' && <GrammarView />}
                         </motion.div>
                     </AnimatePresence>
                 </div>
