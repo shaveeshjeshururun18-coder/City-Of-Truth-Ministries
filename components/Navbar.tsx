@@ -82,20 +82,20 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
       {/* Hero-transparent or solid-white navbar */}
       <nav className={`${currentView === ViewState.ABOUT ? 'absolute shadow-none' : 'fixed'} top-0 left-0 right-0 z-50 flex justify-between items-center transition-all duration-500 px-4 md:px-8 montserrat ${
         currentView === ViewState.HOME && !isScrolled
-          ? 'py-2.5 bg-transparent backdrop-blur-md border-b border-white/10'
-          : 'py-1.5 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100'
+          ? 'py-4 bg-transparent backdrop-blur-md border-b border-white/10'
+          : 'py-2.5 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100'
       }`}>
         {/* LOGO STYLING */}
         <div
           className="flex items-center gap-[10px] cursor-pointer"
           onClick={() => setView(ViewState.HOME)}
         >
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center">
             <img src="/logo.png" alt="COT Logo" className="w-full h-full object-contain" />
           </div>
           <div className="flex flex-col justify-center">
-              <span className={`font-bold text-[0.98rem] leading-[1.05] tracking-[-0.4px] transition-colors duration-300 ${currentView === ViewState.HOME && !isScrolled ? 'text-white' : 'text-[#1a1a2e]'}`}>City of Truth</span>
-              <span className={`text-[0.56rem] font-bold tracking-[0.9px] uppercase transition-colors duration-300 ${currentView === ViewState.HOME && !isScrolled ? 'text-blue-300' : 'text-[#5D5FEF]'}`}>MINISTRIES</span>
+              <span className={`font-bold text-[1.1rem] leading-[1.1] tracking-[-0.5px] transition-colors duration-300 ${currentView === ViewState.HOME && !isScrolled ? 'text-white' : 'text-[#1a1a2e]'}`}>City of Truth</span>
+              <span className={`text-[0.65rem] font-bold tracking-[1px] uppercase transition-colors duration-300 ${currentView === ViewState.HOME && !isScrolled ? 'text-blue-300' : 'text-[#5D5FEF]'}`}>MINISTRIES</span>
           </div>
         </div>
 
@@ -173,10 +173,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             <span>{language === 'en' ? 'தமிழ்' : 'EN'}</span>
           </button>
 
-          <div className={`flex items-center gap-2 sm:gap-3 p-1 sm:p-1.5 rounded-2xl backdrop-blur-md border transition-all duration-300 ${currentView === ViewState.HOME && !isScrolled ? 'bg-white/10 border-white/20' : 'bg-white/95 border-brand-200/80'}`}>
+          <div className={`flex items-center gap-3 sm:gap-3.5 p-1 sm:p-1.5 rounded-2xl backdrop-blur-md border transition-all duration-300 ${currentView === ViewState.HOME && !isScrolled ? 'bg-white/10 border-white/20' : 'bg-white/95 border-brand-200/80'}`}>
             <button
               onClick={() => currentUser ? setView(ViewState.USER_DASHBOARD) : setView(ViewState.ID_CARD)}
-              className={`${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-10 h-10 rounded-2xl shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 border border-blue-300/50 px-3 h-9 rounded-2xl shadow-[0_14px_24px_-12px_rgba(37,99,235,0.7)] hover:shadow-[0_18px_28px_-12px_rgba(37,99,235,0.8)] hover:from-blue-700 hover:via-blue-600 hover:to-blue-800'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group`}
+              className={`${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-11 h-11 rounded-2xl shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 border border-blue-300/50 px-3.5 h-10 rounded-2xl shadow-[0_14px_24px_-12px_rgba(37,99,235,0.7)] hover:shadow-[0_18px_28px_-12px_rgba(37,99,235,0.8)] hover:from-blue-700 hover:via-blue-600 hover:to-blue-800'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group`}
               title={currentUser ? "My Account" : "Register"}
               aria-label={currentUser ? "Open my account dashboard" : "Register account"}
             >
@@ -189,14 +189,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
               ) : (
                 <>
                   <CircleUser size={16} className="text-white shrink-0" />
-                  <span className="text-white text-[10px] sm:text-[11px] font-black tracking-wide">Register</span>
+                  <span className="text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wide">Register</span>
                 </>
               )}
             </button>
 
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl cursor-pointer flex items-center justify-center transition-all duration-300 border border-blue-300/50 bg-gradient-to-r from-blue-700 via-blue-600 to-blue-800 text-white hover:from-blue-800 hover:via-blue-700 hover:to-blue-900 shadow-[0_12px_22px_-12px_rgba(37,99,235,0.75)] hover:shadow-[0_16px_26px_-12px_rgba(37,99,235,0.85)]"
+              className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl cursor-pointer flex items-center justify-center transition-all duration-300 border border-blue-300/50 bg-gradient-to-r from-blue-700 via-blue-600 to-blue-800 text-white hover:from-blue-800 hover:via-blue-700 hover:to-blue-900 shadow-[0_12px_22px_-12px_rgba(37,99,235,0.75)] hover:shadow-[0_16px_26px_-12px_rgba(37,99,235,0.85)]"
               title="Open menu"
               aria-label="Open navigation menu"
             >

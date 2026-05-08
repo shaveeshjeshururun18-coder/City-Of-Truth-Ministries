@@ -38,7 +38,6 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.numbers': 'Hebrew Numbers',
     'nav.gematria': 'Gematria Value',
     'nav.reference': 'Month/Year Reference',
-    'nav.grammar': 'Hebrew Grammar',
     // AI Page
     'ai.title': 'Divine AI Assistant',
     'ai.subtitle': 'Satyar Margam Guidance',
@@ -47,7 +46,6 @@ const translations: Record<Language, Record<string, string>> = {
     'ai.placeholder': 'Ask a question...',
     'ai.insight': 'Get spiritual insight',
     'ai.clearChat': 'Clear Chat History',
-    'ai.greeting': 'Hello! 👋 Welcome to City of Truth Ministries AI. I\'m here to guide you with Biblical wisdom, faith questions, and ministry support. How can I help you today? 🙏',
     'ai.you': 'You',
     'ai.assistant': 'Divine AI',
     'ai.analyzeImage': 'Upload & Analyze Image',
@@ -89,7 +87,6 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.numbers': 'எபிரேய எண்கள்',
     'nav.gematria': 'கெமாட்ரியா மதிப்பு',
     'nav.reference': 'மாதம்/ஆண்டு குறிப்பு',
-    'nav.grammar': 'எபிரேய இலக்கணம்',
     // AI Page
     'ai.title': 'தெய்வீக AI உதவியாளர்',
     'ai.subtitle': 'சத்திய மார்க்க வழிகாட்டுதல்',
@@ -98,7 +95,6 @@ const translations: Record<Language, Record<string, string>> = {
     'ai.placeholder': 'கேள்வி கேளுங்கள்...',
     'ai.insight': 'ஆன்மீக வழிகாட்டுதல் பெறுக',
     'ai.clearChat': 'அரட்டை அழி',
-    'ai.greeting': 'வணக்கம்! 👋 சத்திய நகரம் ஊழியத்திற்கு வரவேற்கிறோம். விவிலிய ஞானம், விசுவாச கேள்விகள் மற்றும் ஊழிய ஆதரவிற்கு நான் இங்கே இருக்கிறேன். இன்று நான் எப்படி உதவ முடியும்? 🙏',
     'ai.you': 'நீங்கள்',
     'ai.assistant': 'தெய்வீக AI',
     'ai.analyzeImage': 'படம் பதிவேற்றி பகுப்பாய்க',
@@ -172,5 +168,4 @@ export const NAV_LABEL_TO_KEY: Record<string, string> = {
   'Hebrew Numbers': 'nav.numbers',
   'Gematria Value': 'nav.gematria',
   'Month/Year Reference': 'nav.reference',
-  'Hebrew Grammar': 'nav.grammar',
 };
