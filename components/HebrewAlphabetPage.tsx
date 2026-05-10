@@ -304,7 +304,10 @@ export const HebrewAlphabetPage: React.FC = () => {
                                     Slow Audio
                                 </button>
                                 <button
-                                    onClick={() => audioService.playTamil(selectedLetter.tamilGuide, 0.78)}
+                                    onClick={() => {
+                                        if (!selectedLetter) return;
+                                        audioService.playTamil(selectedLetter.tamilGuide, 0.78);
+                                    }}
                                     className="h-9 px-3 rounded-xl bg-[#22c55e]/10 border border-[#22c55e]/40 text-[#86efac] text-xs font-bold tracking-wide hover:bg-[#22c55e]/20 transition-colors"
                                 >
                                     தமிழ் Teaching Audio
