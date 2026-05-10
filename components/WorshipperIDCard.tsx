@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Church, RefreshCw, User, X, Phone, Mail, MapPin, UploadCloud, CheckCircle, ArrowRight, Download, Sparkles, Youtube, FileText, Lock, Eye, EyeOff } from 'lucide-react';
+import { Church, RefreshCw, User, X, Phone, Mail, MapPin, UploadCloud, CheckCircle, ArrowRight, Download, Sparkles, Youtube, FileText, Lock, Eye, EyeOff, Users, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from './Button';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
@@ -265,8 +265,42 @@ interface WorshipperIDCardProps {
     };
 }
 
+type RegistrationType = 'individual' | 'family';
+
+interface FamilyMemberForm {
+    id: string;
+    name: string;
+    relationship: string;
+    photo?: string;
+    isExpanded: boolean;
+}
+
+const RELATIONSHIP_OPTIONS = [
+    'Spouse',
+    'Son',
+    'Daughter',
+    'Father',
+    'Mother',
+    'Brother',
+    'Sister',
+    'Grandfather',
+    'Grandmother',
+    'Father-in-law',
+    'Mother-in-law',
+    'Son-in-law',
+    'Daughter-in-law',
+    'Grandson',
+    'Granddaughter',
+    'Uncle',
+    'Aunt',
+    'Cousin',
+    'Guardian',
+    'Other'
+];
+
 export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, onLogin, currentUser }) => {
     const [uniqueId, setUniqueId] = useState('');
+    const [registrationType, setRegistrationType] = useState<RegistrationType>('individual');
     const [formData, setFormData] = useState({
         name: currentUser?.displayName || '',
         email: currentUser?.email || '',
@@ -274,6 +308,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
         emergency: '',
         password: ''
     });
+    const [familyMembers, setFamilyMembers] = useState<FamilyMemberForm[]>([]);
     const [photo, setPhoto] = useState<string | undefined>(undefined);
     const [previewPhoto, setPreviewPhoto] = useState('');
     const [showPhotoPreview, setShowPhotoPreview] = useState(false);
@@ -334,6 +369,39 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
     const handleRejectPhoto = () => {
         setShowPhotoPreview(false);
         setPreviewPhoto('');
+    };
+
+    const createFamilyMember = (): FamilyMemberForm => ({
+        id: `FM-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        name: '',
+        relationship: 'Spouse',
+        photo: '',
+        isExpanded: true
+    });
+
+    const addFamilyMember = () => {
+        setFamilyMembers(prev => [...prev.map(member => ({ ...member, isExpanded: false })), createFamilyMember()]);
+    };
+
+    const updateFamilyMember = (id: string, field: keyof Omit<FamilyMemberForm, 'id'>, value: string | boolean) => {
+        setFamilyMembers(prev => prev.map(member => (
+            member.id === id ? { ...member, [field]: value } : member
+        )));
+    };
+
+    const removeFamilyMember = (id: string) => {
+        setFamilyMembers(prev => prev.filter(member => member.id !== id));
+    };
+
+    const handleMemberPhotoUpload = (memberId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files?.[0]) return;
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            updateFamilyMember(memberId, 'photo', typeof reader.result === 'string' ? reader.result : '');
+            e.target.value = '';
+        };
+        reader.readAsDataURL(file);
     };
 
     const handleDownload = async () => {
@@ -467,24 +535,47 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                         animate={{ opacity: 1, scale: 1 }}
                         className="bg-white p-4 sm:p-5 md:p-10 rounded-[1.5rem] md:rounded-[3rem] shadow-2xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden"
                     >
-                        {/* ... form content ... */}
+                        <div className="mb-6">
+                            <p className="text-[11px] font-semibold text-slate-600 mb-3">Registration Type</p>
+                            <div className="grid grid-cols-2 bg-slate-100 p-1 rounded-2xl">
+                                <button
+                                    type="button"
+                                    onClick={() => setRegistrationType('individual')}
+                                    className={`py-2.5 px-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${registrationType === 'individual' ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-600'}`}
+                                >
+                                    <User size={16} /> Individual
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setRegistrationType('family')}
+                                    className={`py-2.5 px-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${registrationType === 'family' ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-600'}`}
+                                >
+                                    <Users size={16} /> Family
+                                </button>
+                            </div>
+                            {registrationType === 'family' && (
+                                <p className="text-xs text-slate-500 mt-2">Register your household together. Add members if available.</p>
+                            )}
+                        </div>
+
                         <h3 className="text-xl md:text-2xl font-bold text-brand-950 mb-5 md:mb-8 flex items-center gap-3 font-serif relative z-10 underline decoration-accent-500 underline-offset-8">
-                            Personal Information
+                            {registrationType === 'family' ? 'Family Head Details' : 'Personal Information'}
                         </h3>
 
                         <div className="space-y-5 md:space-y-8 relative z-10">
-                            {/* Photo Upload */}
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Member Photo</label>
+                                <label className="text-xs font-semibold text-slate-600 ml-1">
+                                    {registrationType === 'family' ? 'Family Head Photo' : 'Member Photo'}
+                                </label>
                                 <div className="relative group">
                                     <input type="file" onChange={handlePhotoUpload} className="absolute inset-0 opacity-0 cursor-pointer z-20" accept="image/*" />
-                                    <div className="border-2 border-dashed border-slate-200 rounded-2xl md:rounded-3xl p-4 md:p-6 transition-all group-hover:border-accent-400 group-hover:bg-accent-50/20 bg-slate-50/50 flex items-center gap-4 md:gap-6">
-                                        <div className="w-14 h-14 md:w-20 md:h-20 bg-white rounded-xl md:rounded-2xl flex items-center justify-center text-slate-400 shadow-sm border border-slate-100 overflow-hidden shrink-0">
+                                    <div className="border-2 border-dashed border-slate-300 rounded-2xl md:rounded-3xl p-4 md:p-6 transition-all group-hover:border-accent-400 bg-white shadow-sm flex items-center gap-4 md:gap-6">
+                                        <div className="w-14 h-14 md:w-20 md:h-20 bg-white rounded-xl md:rounded-2xl flex items-center justify-center text-slate-500 shadow-sm border border-slate-200 overflow-hidden shrink-0">
                                             {photo ? <img src={photo} alt="Member photo" className="w-full h-full object-cover" /> : <UploadCloud size={24} className="md:w-[30px] md:h-[30px]" />}
                                         </div>
                                         <div className="flex-1">
                                             <p className="text-sm font-bold text-slate-700">{photo ? "Photo Selected" : "Click to select photo"}</p>
-                                            <p className="text-xs text-slate-400 mt-1 uppercase tracking-wider">Visible on your ID</p>
+                                            <p className="text-xs text-slate-500 mt-1">Visible on your ID</p>
                                         </div>
                                     </div>
                                 </div>
@@ -492,30 +583,29 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Full Name</label>
-                                    <input name="name" value={formData.name} onChange={handleInputChange} type="text" className="w-full px-4 md:px-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl outline-none transition-all text-sm font-bold text-brand-950 focus:ring-2 focus:ring-accent-500/20" />
+                                    <label className="text-xs font-semibold text-slate-700 ml-1">Full Name</label>
+                                    <input name="name" value={formData.name} onChange={handleInputChange} type="text" className="w-full px-4 md:px-6 py-3 md:py-4 bg-white border border-slate-300 rounded-xl md:rounded-2xl outline-none transition-all text-sm font-semibold text-brand-950 placeholder:text-slate-500 shadow-sm focus:ring-2 focus:ring-accent-500/20" />
                                 </div>
 
-                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">WhatsApp Number</label>
-                                    <div className="flex items-center w-full bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-accent-500/20">
-                                        <span className="px-3 py-3 md:py-4 text-sm font-bold text-slate-600 bg-slate-100 border-r border-slate-200 shrink-0">+91</span>
-                                        <input name="emergency" value={formData.emergency} onChange={handleInputChange} type="tel" placeholder="10-digit number" className="flex-1 px-3 md:px-4 py-3 md:py-4 bg-transparent outline-none text-sm font-bold text-brand-950" />
+                                <div className="space-y-2">
+                                    <label className="text-xs font-semibold text-slate-700 ml-1">WhatsApp Number</label>
+                                    <div className="flex items-center w-full bg-white border border-slate-300 rounded-xl md:rounded-2xl overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-accent-500/20">
+                                        <span className="px-3 py-3 md:py-4 text-sm font-bold text-slate-700 bg-slate-100 border-r border-slate-200 shrink-0">+91</span>
+                                        <input name="emergency" value={formData.emergency} onChange={handleInputChange} type="tel" placeholder="10-digit number" className="flex-1 px-3 md:px-4 py-3 md:py-4 bg-transparent outline-none text-sm font-semibold text-brand-950 placeholder:text-slate-500" />
                                     </div>
                                 </div>
-                                {/* Password field removed as requested. Password will be auto-set to Phone Number */}
-                                {/* Email field is now optional */}
+
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Email Address</label>
-                                    <input name="email" value={formData.email} onChange={handleInputChange} type="email" className="w-full px-4 md:px-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl outline-none transition-all text-sm font-bold text-brand-950 focus:ring-2 focus:ring-accent-500/20" placeholder="Enter your email" />
+                                    <label className="text-xs font-semibold text-slate-700 ml-1">Email Address</label>
+                                    <input name="email" value={formData.email} onChange={handleInputChange} type="email" className="w-full px-4 md:px-6 py-3 md:py-4 bg-white border border-slate-300 rounded-xl md:rounded-2xl outline-none transition-all text-sm font-semibold text-brand-950 placeholder:text-slate-500 shadow-sm focus:ring-2 focus:ring-accent-500/20" placeholder="Enter your email (optional)" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Tamil Nadu District</label>
+                                    <label className="text-xs font-semibold text-slate-700 ml-1">Tamil Nadu District</label>
                                     <select
                                         name="location"
                                         value={formData.location}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 md:px-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl outline-none transition-all text-sm font-bold text-brand-950 focus:ring-2 focus:ring-accent-500/20"
+                                        className="w-full px-4 md:px-6 py-3 md:py-4 bg-white border border-slate-300 rounded-xl md:rounded-2xl outline-none transition-all text-sm font-semibold text-brand-950 shadow-sm focus:ring-2 focus:ring-accent-500/20"
                                     >
                                         <option value="" disabled>Select District</option>
                                         {[
@@ -532,6 +622,85 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                     </select>
                                 </div>
                             </div>
+
+                            {registrationType === 'family' && (
+                                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 md:p-5">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h4 className="text-base font-bold text-brand-900">Family Members ({familyMembers.length})</h4>
+                                        <Button type="button" onClick={addFamilyMember} variant="outline" className="!py-2 !px-3 text-xs">
+                                            <Plus size={14} className="mr-1" /> Add Family Member
+                                        </Button>
+                                    </div>
+
+                                    {familyMembers.length === 0 && (
+                                        <p className="text-xs text-slate-500">No members added yet. You can continue now or add members.</p>
+                                    )}
+
+                                    <div className="space-y-3 mt-3">
+                                        {familyMembers.map((member, index) => (
+                                            <div key={member.id} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => updateFamilyMember(member.id, 'isExpanded', !member.isExpanded)}
+                                                    className="w-full px-4 py-3 flex items-center justify-between text-left"
+                                                >
+                                                    <span className="text-sm font-semibold text-slate-700">
+                                                        {index === 0 ? 'First Family Member' : `Additional Member ${index}`}
+                                                    </span>
+                                                    {member.isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                                </button>
+                                                {member.isExpanded && (
+                                                    <div className="px-4 pb-4 border-t border-slate-100 space-y-3">
+                                                        <div className="space-y-2 pt-3">
+                                                            <label className="text-xs font-semibold text-slate-700">Photo (optional)</label>
+                                                            <div className="relative">
+                                                                <input type="file" accept="image/*" onChange={(e) => handleMemberPhotoUpload(member.id, e)} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                                                                <div className="h-20 rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center gap-3 px-3">
+                                                                    <div className="w-12 h-12 rounded-lg bg-white border border-slate-200 overflow-hidden flex items-center justify-center text-slate-500">
+                                                                        {member.photo ? <img src={member.photo} alt="member" className="w-full h-full object-cover" /> : <UploadCloud size={16} />}
+                                                                    </div>
+                                                                    <span className="text-xs text-slate-600">{member.photo ? 'Photo selected' : 'Tap to upload'}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                            <div className="space-y-1.5">
+                                                                <label className="text-xs font-semibold text-slate-700">Name (optional)</label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={member.name}
+                                                                    onChange={(e) => updateFamilyMember(member.id, 'name', e.target.value)}
+                                                                    className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl outline-none text-sm text-brand-950 shadow-sm focus:ring-2 focus:ring-accent-500/20"
+                                                                    placeholder="Enter member name"
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-1.5">
+                                                                <label className="text-xs font-semibold text-slate-700">Relationship (optional)</label>
+                                                                <select
+                                                                    value={member.relationship}
+                                                                    onChange={(e) => updateFamilyMember(member.id, 'relationship', e.target.value)}
+                                                                    className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl outline-none text-sm text-brand-950 shadow-sm focus:ring-2 focus:ring-accent-500/20"
+                                                                >
+                                                                    {RELATIONSHIP_OPTIONS.map(option => (
+                                                                        <option key={option} value={option}>{option}</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeFamilyMember(member.id)}
+                                                            className="text-xs text-red-600 font-semibold inline-flex items-center gap-1 hover:text-red-700"
+                                                        >
+                                                            <Trash2 size={13} /> Remove member
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </motion.div>
 
@@ -552,6 +721,10 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                                 alert("Please fill in Name, Phone, and Location to register.");
                                                 return;
                                             }
+                                            if (registrationType === 'family' && !photo) {
+                                                alert("Please upload Family Head photo to continue.");
+                                                return;
+                                            }
                                             // Set password to phone number if not provided
                                             const finalPassword = formData.emergency;
 
@@ -567,7 +740,16 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                                 return;
                                             }
 
-                                            onRegister({ ...formData, emergency: `+91${formData.emergency}`, phone: `+91${formData.emergency}`, password: finalPassword, uniqueId, photo });
+                                            onRegister({
+                                                ...formData,
+                                                registrationType,
+                                                familyMembers,
+                                                emergency: `+91${formData.emergency}`,
+                                                phone: `+91${formData.emergency}`,
+                                                password: finalPassword,
+                                                uniqueId,
+                                                photo
+                                            });
                                         }
                                     }}
                                     variant="primary"
@@ -575,7 +757,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                     className="py-4 md:py-6 text-sm md:text-base bg-gradient-to-r from-[#1D4ED8] to-[#2563EB] hover:from-[#1E40AF] hover:to-[#1D4ED8] shadow-xl shadow-blue-600/40 font-black tracking-widest hover:shadow-2xl transition-all border-0"
                                     disabled={isProcessing}
                                 >
-                                    <CheckCircle size={22} /> COMPLETE REGISTRATION
+                                    <CheckCircle size={22} /> {registrationType === 'family' ? 'REGISTER FAMILY' : 'COMPLETE REGISTRATION'}
                                 </Button>
 
                                 {/* Info Box */}
