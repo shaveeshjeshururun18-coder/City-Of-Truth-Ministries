@@ -591,7 +591,7 @@ const App: React.FC = () => {
     const normalizeText = (value: string) => value.trim().toLowerCase();
     const normalizePhone = (value: string) => {
       const digits = value.replace(/\D/g, '');
-      if (digits.length === 12 && digits.startsWith('91')) return digits.slice(2);
+      if (digits.length === 12 && digits.startsWith('91') && /^[6-9]/.test(digits.slice(2))) return digits.slice(2);
       return digits;
     };
     const normalizeMemberId = (value: string) => {
