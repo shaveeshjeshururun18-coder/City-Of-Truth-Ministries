@@ -39,6 +39,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [idRevealed, setIdRevealed] = useState(false);
     const [showCardPreview, setShowCardPreview] = useState(false);
     const [cardFlipped, setCardFlipped] = useState(false);
+    const canAccessEntrustFeatures = user.status === 'Active';
 
     useEffect(() => {
         if (!initialProfileId) {
@@ -181,7 +182,18 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         } finally { setCalendarRenderMode(null); setIsGeneratingCalendar(false); }
     };
 
-    const startEditing = () => { setFormData({ phone: user.phone, email: user.email, location: user.location, emergency: user.emergency, photo: user.photo }); setIsEditing(true); };
+    const startEditing = () => {
+        const pending = user.pendingProfileUpdate || {};
+        setFormData({
+            name: pending.name ?? user.name,
+            phone: pending.phone ?? user.phone,
+            email: pending.email ?? user.email,
+            location: pending.location ?? user.location,
+            emergency: pending.emergency ?? user.emergency,
+            photo: user.photo
+        });
+        setIsEditing(true);
+    };
     const cancelEditing = () => { setIsEditing(false); setFormData({}); };
     const saveChanges = (e: React.FormEvent) => { e.preventDefault(); onUpdate({ ...user, ...formData } as User); setIsEditing(false); };
 
@@ -352,6 +364,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 {pf.name.split(' ')[0]}
                             </button>
                         ))}
+                    </div>
+                )}
+                {activeProfileId === user.id && user.pendingProfileUpdate && (
+                    <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-4 py-3 text-xs font-semibold">
+                        Your profile update request is pending admin approval.
                     </div>
                 )}
 
@@ -636,9 +653,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             </div>
                             {/* Action buttons */}
                             <div className="grid grid-cols-2 gap-4">
-                                <button onClick={() => { handleDownloadPDF(); setShowCardPreview(false); }} disabled={isProcessing}
+                                <button onClick={() => { if (canAccessEntrustFeatures) { handleDownloadPDF(); setShowCardPreview(false); } }} disabled={isProcessing || !canAccessEntrustFeatures}
                                     className="flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-black uppercase tracking-widest text-sm py-4 rounded-2xl transition-all shadow-lg disabled:opacity-60">
-                                    <FileText size={18} /> {isProcessing ? 'Generating…' : 'Download Card'}
+                                    <FileText size={18} /> {!canAccessEntrustFeatures ? 'Awaiting Approval' : isProcessing ? 'Generating…' : 'Download Card'}
                                 </button>
                                 <button onClick={() => { startEditing(); setShowCardPreview(false); }}
                                     className="flex items-center justify-center gap-2 bg-white text-slate-700 hover:bg-slate-50 font-black uppercase tracking-widest text-sm py-4 rounded-2xl transition-all shadow-lg border border-slate-200">
@@ -698,10 +715,15 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                         <form onSubmit={(e) => {
                             e.preventDefault();
-                            // Flag that details edit requires admin approval
-                            onUpdate({ ...user, ...formData, _pendingApproval: true } as User);
+                            const requestedChanges = {
+                                name: (formData.name ?? user.name)?.trim(),
+                                phone: formData.phone ?? user.phone,
+                                email: (formData.email ?? user.email)?.trim(),
+                                location: (formData.location ?? user.location)?.trim(),
+                                emergency: formData.emergency ?? user.emergency,
+                            };
+                            onUpdate({ ...user, pendingProfileUpdate: requestedChanges } as User);
                             setIsEditing(false);
-                            alert("✅ Edit request submitted. Changes will be reflected after admin approval.");
                         }} className="space-y-4">
                             <div>
                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Full Name</label>

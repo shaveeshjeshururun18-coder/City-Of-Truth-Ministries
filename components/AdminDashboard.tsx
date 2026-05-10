@@ -356,7 +356,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         try {
             const updatePromises = Array.from(selectedUsers).map(userId => {
                 const user = users.find(u => u.id === userId);
-                return user ? onUpdateUser({ ...user, status: 'Active' }) : Promise.resolve();
+                if (!user) return Promise.resolve();
+                const approvedUser: User = {
+                    ...user,
+                    ...(user.pendingProfileUpdate || {}),
+                    pendingProfileUpdate: undefined,
+                    status: 'Active'
+                };
+                return onUpdateUser(approvedUser);
             });
             await Promise.all(updatePromises);
             setSelectedUsers(new Set());
@@ -374,7 +381,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         try {
             const updatePromises = Array.from(selectedUsers).map(userId => {
                 const user = users.find(u => u.id === userId);
-                return user ? onUpdateUser({ ...user, status: 'Rejected' }) : Promise.resolve();
+                if (!user) return Promise.resolve();
+                const hasPendingEdit = !!user.pendingProfileUpdate && Object.keys(user.pendingProfileUpdate).length > 0;
+                if (user.status === 'Pending Verification') {
+                    return onUpdateUser({ ...user, status: 'Rejected', pendingProfileUpdate: undefined });
+                }
+                if (hasPendingEdit) {
+                    return onUpdateUser({ ...user, pendingProfileUpdate: undefined });
+                }
+                return Promise.resolve();
             });
             await Promise.all(updatePromises);
             setSelectedUsers(new Set());
@@ -393,6 +408,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             newSelected.add(userId);
         }
         setSelectedUsers(newSelected);
+    };
+    const hasPendingProfileUpdate = (user: User) => !!user.pendingProfileUpdate && Object.keys(user.pendingProfileUpdate).length > 0;
+    const approveUserOrPendingEdit = async (user: User) => {
+        const approvedUser: User = {
+            ...user,
+            ...(user.pendingProfileUpdate || {}),
+            pendingProfileUpdate: undefined,
+            status: 'Active'
+        };
+        await onUpdateUser(approvedUser);
+    };
+    const rejectPendingEdit = async (user: User) => {
+        await onUpdateUser({ ...user, pendingProfileUpdate: undefined });
     };
 
     const toggleSelectAll = () => {
@@ -800,12 +828,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(user.status)}`}>
-                                                    {user.status === 'Active' && <CheckCircle size={12} />}
-                                                    {user.status === 'Pending Verification' && <Clock size={12} />}
-                                                    {user.status === 'Rejected' && <AlertCircle size={12} />}
-                                                    {user.status}
-                                                </span>
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(user.status)}`}>
+                                                        {user.status === 'Active' && <CheckCircle size={12} />}
+                                                        {user.status === 'Pending Verification' && <Clock size={12} />}
+                                                        {user.status === 'Rejected' && <AlertCircle size={12} />}
+                                                        {user.status}
+                                                    </span>
+                                                    {hasPendingProfileUpdate(user) && (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase bg-amber-100 text-amber-700 border border-amber-200">
+                                                            <Clock size={10} />
+                                                            Edit Pending
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="px-6 py-4 text-sm text-slate-600">
                                                 {new Date(user.joinedDate).toLocaleDateString()}
@@ -817,7 +853,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                             <button
                                                                 onClick={async () => {
                                                                     if (window.confirm(`Approve ${user.name}?`)) {
-                                                                        await onUpdateUser({ ...user, status: 'Active' });
+                                                                        await approveUserOrPendingEdit(user);
                                                                     }
                                                                 }}
                                                                 className="p-2 hover:bg-green-50 text-green-600 rounded-lg transition-colors"
@@ -828,11 +864,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                             <button
                                                                 onClick={async () => {
                                                                     if (window.confirm(`Reject ${user.name}?`)) {
-                                                                        await onUpdateUser({ ...user, status: 'Rejected' });
+                                                                        await onUpdateUser({ ...user, status: 'Rejected', pendingProfileUpdate: undefined });
                                                                     }
                                                                 }}
                                                                 className="p-2 hover:bg-amber-50 text-amber-600 rounded-lg transition-colors"
                                                                 title="Reject User"
+                                                            >
+                                                                <XCircle size={16} />
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    {user.status !== 'Pending Verification' && hasPendingProfileUpdate(user) && (
+                                                        <>
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (window.confirm(`Approve pending profile edits for ${user.name}?`)) {
+                                                                        await approveUserOrPendingEdit(user);
+                                                                    }
+                                                                }}
+                                                                className="p-2 hover:bg-emerald-50 text-emerald-600 rounded-lg transition-colors"
+                                                                title="Approve Pending Edit"
+                                                            >
+                                                                <CheckCircle size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (window.confirm(`Reject pending profile edits for ${user.name}?`)) {
+                                                                        await rejectPendingEdit(user);
+                                                                    }
+                                                                }}
+                                                                className="p-2 hover:bg-orange-50 text-orange-600 rounded-lg transition-colors"
+                                                                title="Reject Pending Edit"
                                                             >
                                                                 <XCircle size={16} />
                                                             </button>
@@ -914,6 +976,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         {user.status}
                                     </span>
                                 </div>
+                                {hasPendingProfileUpdate(user) && (
+                                    <div className="mb-4">
+                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase bg-amber-100 text-amber-700 border border-amber-200">
+                                            <Clock size={10} />
+                                            Pending Profile Edit
+                                        </span>
+                                    </div>
+                                )}
 
                                 <div className="space-y-2 mb-4">
                                     <div className="flex items-center gap-2 text-sm text-slate-600">
@@ -935,7 +1005,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <button
                                             onClick={async () => {
                                                 if (window.confirm(`Approve ${user.name}?`)) {
-                                                    await onUpdateUser({ ...user, status: 'Active' });
+                                                    await approveUserOrPendingEdit(user);
                                                 }
                                             }}
                                             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-50 text-green-600 rounded-xl font-medium text-sm hover:bg-green-100 transition-colors"
@@ -946,13 +1016,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <button
                                             onClick={async () => {
                                                 if (window.confirm(`Reject ${user.name}?`)) {
-                                                    await onUpdateUser({ ...user, status: 'Rejected' });
+                                                    await onUpdateUser({ ...user, status: 'Rejected', pendingProfileUpdate: undefined });
                                                 }
                                             }}
                                             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-amber-50 text-amber-600 rounded-xl font-medium text-sm hover:bg-amber-100 transition-colors"
                                         >
                                             <XCircle size={16} />
                                             Reject
+                                        </button>
+                                    </div>
+                                )}
+                                {user.status !== 'Pending Verification' && hasPendingProfileUpdate(user) && (
+                                    <div className="flex gap-2 pb-4 mb-4 border-b border-slate-100">
+                                        <button
+                                            onClick={async () => {
+                                                if (window.confirm(`Approve pending profile edits for ${user.name}?`)) {
+                                                    await approveUserOrPendingEdit(user);
+                                                }
+                                            }}
+                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl font-medium text-sm hover:bg-emerald-100 transition-colors"
+                                        >
+                                            <CheckCircle size={16} />
+                                            Approve Edit
+                                        </button>
+                                        <button
+                                            onClick={async () => {
+                                                if (window.confirm(`Reject pending profile edits for ${user.name}?`)) {
+                                                    await rejectPendingEdit(user);
+                                                }
+                                            }}
+                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-orange-50 text-orange-600 rounded-xl font-medium text-sm hover:bg-orange-100 transition-colors"
+                                        >
+                                            <XCircle size={16} />
+                                            Reject Edit
                                         </button>
                                     </div>
                                 )}

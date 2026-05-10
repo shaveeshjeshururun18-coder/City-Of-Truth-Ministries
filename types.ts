@@ -35,6 +35,14 @@ export interface NavItem {
 export type UserStatus = 'Pending Verification' | 'Active' | 'Rejected';
 export type UserRole = 'Member' | 'Admin';
 
+export interface PendingProfileUpdate {
+  name?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  emergency?: string;
+}
+
 export interface User {
   id: string; // COT-xxxx
   phone: string;
@@ -50,6 +58,7 @@ export interface User {
   joinedDate: string;
   linkedProfiles?: SubProfile[];
   verificationDoc?: { name: string; uploadedAt: string };
+  pendingProfileUpdate?: PendingProfileUpdate;
   communityProfile?: {
     denomination?: string;
     churchName?: string;
