@@ -21,7 +21,7 @@ const VerifyIDPage = () => {
     const scannerRef = useRef<any>(null);
 
     const normalizeCotId = (value: string) => value.trim().toUpperCase().replace(/^COT(?!-)/, 'COT-');
-    const extractIdFromPath = (value: string) => value.match(/\/(?:verify|card)\/([A-Za-z0-9-]+)/i)?.[1] || null;
+    const extractIdFromPath = (value: string) => value.match(/\/(?:verify|card)\/([A-Za-z0-9]+(?:-[A-Za-z0-9]+)*)/i)?.[1] || null;
 
     const extractMemberId = (payload: string): string | null => {
         if (!payload) return null;

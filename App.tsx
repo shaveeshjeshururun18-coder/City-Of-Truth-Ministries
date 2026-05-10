@@ -583,6 +583,7 @@ const App: React.FC = () => {
   };
 
   const handleLogin = (identifier: string) => {
+    // Minimum digits to treat numeric input as a full phone number and avoid short false-positive matches
     const MIN_PHONE_DIGITS = 10;
     if (!identifier) {
       alert("Please enter your Member ID, Email, Phone, or Name.");
@@ -636,12 +637,12 @@ const App: React.FC = () => {
   };
 
   const handleRegister = async (data: any) => {
-    const normalizePhoneDigits = (value: string | undefined) => (value || '').replace(/\D/g, '');
-    const incomingPhoneDigits = normalizePhoneDigits(data.phone || data.emergency);
+    const extractPhoneDigits = (value: string | undefined) => (value || '').replace(/\D/g, '');
+    const incomingPhoneDigits = extractPhoneDigits(data.phone || data.emergency);
     const incomingEmail = (data.email || '').trim().toLowerCase();
 
     const existingByContact = users.find(u => {
-      const userPhoneDigits = normalizePhoneDigits(u.phone || u.emergency);
+      const userPhoneDigits = extractPhoneDigits(u.phone || u.emergency);
       const userEmail = (u.email || '').trim().toLowerCase();
       const phoneMatch = !!incomingPhoneDigits && userPhoneDigits === incomingPhoneDigits;
       const emailMatch = !!incomingEmail && userEmail === incomingEmail;
