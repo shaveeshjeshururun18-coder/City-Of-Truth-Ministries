@@ -5,28 +5,28 @@ import { audioService } from '../services/audioService';
 import { analyzeHebrewWord } from '../services/openRouterService';
 
 const HEBREW_LETTERS = [
-    { letter: "א", name: "ALEPH", hebrewName: "אלף", number: 1 },
-    { letter: "ב", name: "BET", hebrewName: "בית", number: 2 },
-    { letter: "ג", name: "GIMEL", hebrewName: "גימל", number: 3 },
-    { letter: "ד", name: "DALET", hebrewName: "דלת", number: 4 },
-    { letter: "ה", name: "HE", hebrewName: "הא", number: 5 },
-    { letter: "ו", name: "VAV", hebrewName: "וו", number: 6 },
-    { letter: "ז", name: "ZAYIN", hebrewName: "זין", number: 7 },
-    { letter: "ח", name: "CHET", hebrewName: "חית", number: 8 },
-    { letter: "ט", name: "TET", hebrewName: "טית", number: 9 },
-    { letter: "י", name: "YOD", hebrewName: "יוד", number: 10 },
-    { letter: "כ", name: "KAF", hebrewName: "כף", number: 20 },
-    { letter: "ל", name: "LAMED", hebrewName: "למד", number: 30 },
-    { letter: "מ", name: "MEM", hebrewName: "מם", number: 40 },
-    { letter: "נ", name: "NUN", hebrewName: "נון", number: 50 },
-    { letter: "ס", name: "SAMEKH", hebrewName: "סמך", number: 60 },
-    { letter: "ע", name: "AYIN", hebrewName: "עין", number: 70 },
-    { letter: "פ", name: "PE", hebrewName: "פה", number: 80 },
-    { letter: "צ", name: "TSADE", hebrewName: "צדי", number: 90 },
-    { letter: "ק", name: "QOPH", hebrewName: "קוף", number: 100 },
-    { letter: "ר", name: "RESH", hebrewName: "ריש", number: 200 },
-    { letter: "ש", name: "SHIN", hebrewName: "שין", number: 300 },
-    { letter: "ת", name: "TAV", hebrewName: "תו", number: 400 },
+    { letter: "א", name: "ALEPH", hebrewName: "אלף", number: 1, latinPronunciation: "Ah-lef", tamilPronunciation: "ஆலெஃப்", tamilGuide: "ஆலெஃப். வாயை திறந்து மெதுவாக ஆ ஒலி சொல்லி, பிறகு லெஃப் சொல்லுங்கள்." },
+    { letter: "ב", name: "BET", hebrewName: "בית", number: 2, latinPronunciation: "Bet", tamilPronunciation: "பெத்", tamilGuide: "பெத். பே என்று தொடங்கி, முடிவில் த் ஒலியை மெதுவாக சேர்க்கவும்." },
+    { letter: "ג", name: "GIMEL", hebrewName: "גימל", number: 3, latinPronunciation: "Gee-mel", tamilPronunciation: "கீமெல்", tamilGuide: "கீமெல். கீ என்று நீட்டி, பிறகு மெல் என்று மெதுவாக சொல்லுங்கள்." },
+    { letter: "ד", name: "DALET", hebrewName: "דלת", number: 4, latinPronunciation: "Dah-let", tamilPronunciation: "தாலெத்", tamilGuide: "தாலெத். தா என்று தொடங்கி, லெத் என்று முடிக்கவும்." },
+    { letter: "ה", name: "HE", hebrewName: "הא", number: 5, latinPronunciation: "Heh", tamilPronunciation: "ஹே", tamilGuide: "ஹே. மெதுவான மூச்சோசையுடன் ஹே என்று சொல்லுங்கள்." },
+    { letter: "ו", name: "VAV", hebrewName: "וו", number: 6, latinPronunciation: "Vav", tamilPronunciation: "வாவ்", tamilGuide: "வாவ். வா ஒலியைத் தெளிவாக சொல்லி, இறுதியில் வ் ஒலி மெதுவாக முடிக்கவும்." },
+    { letter: "ז", name: "ZAYIN", hebrewName: "זין", number: 7, latinPronunciation: "Zah-yin", tamilPronunciation: "சயின்", tamilGuide: "சயின். சா அல்லது ஸா ஒலியுடன் தொடங்கி, யின் என்று முடிக்கவும்." },
+    { letter: "ח", name: "CHET", hebrewName: "חית", number: 8, latinPronunciation: "Khet", tamilPronunciation: "க்ஹெட்", tamilGuide: "க்ஹெட். தொண்டையில் இருந்து வரும் க்ஹ் ஒலியுடன் ஹெட் போல சொல்லுங்கள்." },
+    { letter: "ט", name: "TET", hebrewName: "טית", number: 9, latinPronunciation: "Tet", tamilPronunciation: "டெட்", tamilGuide: "டெட். டெ என்று சொல்லி, இறுதியில் ட் ஒலி தெளிவாக முடிக்கவும்." },
+    { letter: "י", name: "YOD", hebrewName: "יוד", number: 10, latinPronunciation: "Yod", tamilPronunciation: "யோத்", tamilGuide: "யோத். யோ என்று நீட்டி, மெதுவாகத் த் ஒலியில் முடிக்கவும்." },
+    { letter: "כ", name: "KAF", hebrewName: "כף", number: 20, latinPronunciation: "Kaf", tamilPronunciation: "காஃப்", tamilGuide: "காஃப். கா ஒலியுடன் தொடங்கி, ஃப் ஒலி தெளிவாக சொல்லுங்கள்." },
+    { letter: "ל", name: "LAMED", hebrewName: "למד", number: 30, latinPronunciation: "Lah-med", tamilPronunciation: "லாமெட்", tamilGuide: "லாமெட். லா என்று தொடங்கி, மெத் ஒலியில் மெதுவாக முடிக்கவும்." },
+    { letter: "מ", name: "MEM", hebrewName: "מם", number: 40, latinPronunciation: "Mem", tamilPronunciation: "மேம்", tamilGuide: "மேம். மே என்று நீட்டி, ம் ஒலியில் முடிக்கவும்." },
+    { letter: "נ", name: "NUN", hebrewName: "נון", number: 50, latinPronunciation: "Noon", tamilPronunciation: "நூன்", tamilGuide: "நூன். நூ என்று நீட்டி, ந் ஒலி மெதுவாக முடிக்கவும்." },
+    { letter: "ס", name: "SAMEKH", hebrewName: "סמך", number: 60, latinPronunciation: "Sah-mekh", tamilPronunciation: "சாமெக்", tamilGuide: "சாமெக். சா என்று தொடங்கி, மெக் என்று மெதுவாக முடிக்கவும்." },
+    { letter: "ע", name: "AYIN", hebrewName: "עין", number: 70, latinPronunciation: "Ah-yin", tamilPronunciation: "ஆயின்", tamilGuide: "ஆயின். ஆ என்று திறந்த ஒலியுடன் தொடங்கி, யின் என்று சொல்லுங்கள்." },
+    { letter: "פ", name: "PE", hebrewName: "פה", number: 80, latinPronunciation: "Peh", tamilPronunciation: "பே", tamilGuide: "பே. உதட்டை சேர்த்து ப ஒலி தெளிவாக கூறி, ஏ ஒலியை நீட்டுங்கள்." },
+    { letter: "צ", name: "TSADE", hebrewName: "צדי", number: 90, latinPronunciation: "Tsah-deh", tamilPronunciation: "ட்சாதே", tamilGuide: "ட்சாதே. ட்ஸ் ஒலியுடன் தொடங்கி, சாதே என்று மெதுவாக சொல்லுங்கள்." },
+    { letter: "ק", name: "QOPH", hebrewName: "קוף", number: 100, latinPronunciation: "Qof", tamilPronunciation: "கோஃப்", tamilGuide: "கோஃப். தொண்டை ஒலியுடன் கோ என்று சொல்லி, ஃப் ஒலியில் முடிக்கவும்." },
+    { letter: "ר", name: "RESH", hebrewName: "ריש", number: 200, latinPronunciation: "Resh", tamilPronunciation: "ரேஷ்", tamilGuide: "ரேஷ். ரே என்று தொடங்கி, ஷ் ஒலி மெதுவாக முடிக்கவும்." },
+    { letter: "ש", name: "SHIN", hebrewName: "שין", number: 300, latinPronunciation: "Sheen", tamilPronunciation: "ஷீன்", tamilGuide: "ஷீன். ஷீ என்று நீட்டி, ந் ஒலியில் முடிக்கவும்." },
+    { letter: "ת", name: "TAV", hebrewName: "תו", number: 400, latinPronunciation: "Tav", tamilPronunciation: "தாவ்", tamilGuide: "தாவ். தா என்று கூறி, வ் ஒலி மெதுவாக முடிக்கவும்." },
 ];
 
 interface LetterToken {
@@ -50,6 +50,7 @@ const makeId = () => `tok-${++tokenCounter}-${Math.random().toString(36).slice(2
 
 export const HebrewAlphabetPage: React.FC = () => {
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
+    const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
     // Word builder state
     const [tokens, setTokens] = useState<LetterToken[]>([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -60,10 +61,10 @@ export const HebrewAlphabetPage: React.FC = () => {
 
     const builtWord = tokens.map(t => t.letter).join('');
 
-    const handlePlay = async (index: number, hebrewText: string) => {
+    const handlePlay = async (index: number, hebrewText: string, rate: number = 0.8) => {
         setActiveIndex(index);
         try {
-            await audioService.playHebrew(hebrewText);
+            await audioService.playHebrew(hebrewText, rate);
         } catch (error) {
             console.warn('Hebrew pronunciation playback failed:', error);
         } finally {
@@ -75,6 +76,8 @@ export const HebrewAlphabetPage: React.FC = () => {
         event.stopPropagation();
         handlePlay(index, hebrewText);
     };
+
+    const selectedLetter = selectedIndex !== null ? HEBREW_LETTERS[selectedIndex] : null;
 
     // Add letter to the LEFT (prepend) — Hebrew reads right to left
     const addLetter = useCallback((letter: string) => {
@@ -260,6 +263,51 @@ export const HebrewAlphabetPage: React.FC = () => {
                     <p className="text-[11px] text-[#F59E0B]/40 italic">Tap any letter to play audio · Click letters to build words in the builder above</p>
                 </header>
 
+                {selectedLetter && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-10 rounded-3xl border border-[#F59E0B]/30 bg-gradient-to-br from-[#F59E0B]/10 to-white/[0.03] p-6 md:p-8"
+                    >
+                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                            <div className="space-y-2">
+                                <div className="text-[10px] uppercase tracking-[0.28em] text-[#F59E0B]/60 font-black">Selected Letter Teaching</div>
+                                <div className="flex items-end gap-3">
+                                    <span className="text-5xl md:text-6xl font-serif text-[#FBBF24]">{selectedLetter.letter}</span>
+                                    <div className="space-y-0.5 pb-1">
+                                        <div className="text-base md:text-lg font-black tracking-[0.14em] text-white">{selectedLetter.name}</div>
+                                        <div className="text-sm text-[#F59E0B]/80">{selectedLetter.hebrewName}</div>
+                                    </div>
+                                </div>
+                                <p className="text-sm text-white/80"><span className="text-[#F59E0B]/80 font-bold">English pronunciation:</span> {selectedLetter.latinPronunciation}</p>
+                                <p className="text-sm text-white/80"><span className="text-[#F59E0B]/80 font-bold">தமிழ் உச்சரிப்பு:</span> {selectedLetter.tamilPronunciation}</p>
+                                <p className="text-xs md:text-sm text-white/70 leading-relaxed">{selectedLetter.tamilGuide}</p>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2 md:justify-end">
+                                <button
+                                    onClick={() => handlePlay(selectedIndex, selectedLetter.hebrewName)}
+                                    className="h-9 px-3 rounded-xl bg-[#F59E0B]/15 border border-[#F59E0B]/40 text-[#FBBF24] text-xs font-bold tracking-wide hover:bg-[#F59E0B]/25 transition-colors"
+                                >
+                                    Hebrew Audio
+                                </button>
+                                <button
+                                    onClick={() => handlePlay(selectedIndex, selectedLetter.hebrewName, 0.55)}
+                                    className="h-9 px-3 rounded-xl bg-white/10 border border-white/20 text-white text-xs font-bold tracking-wide hover:bg-white/20 transition-colors"
+                                >
+                                    Slow Audio
+                                </button>
+                                <button
+                                    onClick={() => audioService.playTamil(selectedLetter.tamilGuide, 0.78)}
+                                    className="h-9 px-3 rounded-xl bg-[#22c55e]/10 border border-[#22c55e]/40 text-[#86efac] text-xs font-bold tracking-wide hover:bg-[#22c55e]/20 transition-colors"
+                                >
+                                    தமிழ் Teaching Audio
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5 md:gap-7 max-w-6xl mx-auto">
                     {HEBREW_LETTERS.map((item, index) => (
                         <motion.div
@@ -270,6 +318,7 @@ export const HebrewAlphabetPage: React.FC = () => {
                             whileHover={{ scale: 1.05, y: -5 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => {
+                                setSelectedIndex(index);
                                 handlePlay(index, item.hebrewName);
                                 addLetter(item.letter);
                             }}
