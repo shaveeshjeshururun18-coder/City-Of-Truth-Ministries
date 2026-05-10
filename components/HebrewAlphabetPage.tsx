@@ -286,13 +286,13 @@ export const HebrewAlphabetPage: React.FC = () => {
 
                             <div className="flex flex-wrap gap-2 md:justify-end">
                                 <button
-                                    onClick={() => handlePlay(selectedIndex, selectedLetter.hebrewName)}
+                                    onClick={() => handlePlay(selectedIndex!, selectedLetter.hebrewName)}
                                     className="h-9 px-3 rounded-xl bg-[#F59E0B]/15 border border-[#F59E0B]/40 text-[#FBBF24] text-xs font-bold tracking-wide hover:bg-[#F59E0B]/25 transition-colors"
                                 >
                                     Hebrew Audio
                                 </button>
                                 <button
-                                    onClick={() => handlePlay(selectedIndex, selectedLetter.hebrewName, 0.55)}
+                                    onClick={() => handlePlay(selectedIndex!, selectedLetter.hebrewName, 0.55)}
                                     className="h-9 px-3 rounded-xl bg-white/10 border border-white/20 text-white text-xs font-bold tracking-wide hover:bg-white/20 transition-colors"
                                 >
                                     Slow Audio
