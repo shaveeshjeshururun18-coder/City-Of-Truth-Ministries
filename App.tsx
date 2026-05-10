@@ -589,6 +589,7 @@ const App: React.FC = () => {
     }
 
     const searchId = identifier.trim().toLowerCase();
+    const inputPhoneDigits = identifier.replace(/\D/g, '');
 
     // Multi-identifier login: Phone, Email, ID, or Name
     const matches = users.map(u => {
@@ -597,6 +598,8 @@ const App: React.FC = () => {
       const uId = (u.id || '').trim().toLowerCase();
       const uName = (u.name || '').trim().toLowerCase();
       const uEmergency = (u.emergency || '').trim();
+      const uPhoneDigits = uPhone.replace(/\D/g, '');
+      const uEmergencyDigits = uEmergency.replace(/\D/g, '');
       const linked = (u.linkedProfiles || []).find(sp => {
         const spId = (sp.id || '').trim().toLowerCase();
         const spName = (sp.name || '').trim().toLowerCase();
@@ -610,6 +613,7 @@ const App: React.FC = () => {
       const isMatch = (
         uPhone === identifier ||
         uEmergency === identifier ||
+        (inputPhoneDigits.length >= 10 && (uPhoneDigits === inputPhoneDigits || uEmergencyDigits === inputPhoneDigits)) ||
         uId === searchId ||
         uEmail === searchId ||
         uName === searchId
@@ -631,6 +635,26 @@ const App: React.FC = () => {
   };
 
   const handleRegister = async (data: any) => {
+    const normalizePhoneDigits = (value: string | undefined) => (value || '').replace(/\D/g, '');
+    const incomingPhoneDigits = normalizePhoneDigits(data.phone || data.emergency);
+    const incomingEmail = (data.email || '').trim().toLowerCase();
+
+    const existingByContact = users.find(u => {
+      const userPhoneDigits = normalizePhoneDigits(u.phone || u.emergency);
+      const userEmail = (u.email || '').trim().toLowerCase();
+      const phoneMatch = !!incomingPhoneDigits && userPhoneDigits === incomingPhoneDigits;
+      const emailMatch = !!incomingEmail && userEmail === incomingEmail;
+      return phoneMatch || emailMatch;
+    });
+
+    if (existingByContact) {
+      setCurrentUser(existingByContact);
+      setSelectedDashboardProfileId(existingByContact.id);
+      setCurrentView(ViewState.USER_DASHBOARD);
+      alert(`Account already exists for these details. Opening dashboard for ${existingByContact.id}.`);
+      return;
+    }
+
     // Check if user already exists
     const existingUser = users.find(u =>
       u.id === data.uniqueId
@@ -1069,7 +1093,7 @@ const App: React.FC = () => {
                     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
                       {[
                         { icon: UserIcon, label: 'Login to Account', desc: 'Access your personal dashboard with your Member ID, phone, or email.', color: 'from-brand-500 to-brand-700', light: 'bg-brand-50 text-brand-600', action: () => navigate('/auth?view=login'), cta: 'Login Now' },
-                        { icon: UploadCloud, label: 'Upload Entrust PDF', desc: 'Upload your Entrust Card PDF to verify your membership document.', color: 'from-accent-500 to-accent-700', light: 'bg-accent-50 text-accent-600', action: () => currentUser ? setCurrentView(ViewState.USER_DASHBOARD) : navigate('/auth?view=login'), cta: 'Upload File' },
+                        { icon: UploadCloud, label: 'Upload Entrust PDF', desc: 'Upload your Entrust Card PDF to verify your membership document.', color: 'from-accent-500 to-accent-700', light: 'bg-accent-50 text-accent-600', action: () => navigate('/verify-id'), cta: 'Upload File' },
                       { icon: CreditCard, label: 'View Entrust Card', desc: 'Register or view your official digital ID card and QR code.', color: 'from-emerald-500 to-emerald-700', light: 'bg-emerald-50 text-emerald-600', action: () => setCurrentView(ViewState.ID_CARD), cta: 'View Card' },
                       { icon: CheckCircle, label: 'Scan QR Code', desc: 'Scan any member\'s QR code to instantly verify their identity.', color: 'from-amber-500 to-orange-600', light: 'bg-amber-50 text-amber-600', action: () => navigate('/verify-id'), cta: 'Open Scanner' },
                     ].map((item, i) => (

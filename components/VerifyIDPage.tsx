@@ -20,20 +20,22 @@ const VerifyIDPage = () => {
     const [scannerInitialized, setScannerInitialized] = useState(false);
     const scannerRef = useRef<any>(null);
 
-    const normalizeCotId = (value: string) => value.toUpperCase().replace(/^COT(?!-)/, 'COT-');
+    const normalizeCotId = (value: string) => value.trim().toUpperCase().replace(/^COT(?!-)/, 'COT-');
 
     const extractMemberId = (payload: string): string | null => {
         if (!payload) return null;
         const trimmed = payload.trim();
         if (trimmed.includes('/verify/')) {
-            return trimmed.split('/verify/')[1]?.split('?')[0]?.trim() || null;
+            const fromVerify = trimmed.split('/verify/')[1]?.split('?')[0]?.split('/')[0]?.trim();
+            return fromVerify ? normalizeCotId(fromVerify) : null;
         }
         if (trimmed.includes('/card/')) {
-            return trimmed.split('/card/')[1]?.split('?')[0]?.trim() || null;
+            const fromCard = trimmed.split('/card/')[1]?.split('?')[0]?.split('/')[0]?.trim();
+            return fromCard ? normalizeCotId(fromCard) : null;
         }
         try {
             const parsed = JSON.parse(trimmed);
-            if (parsed?.id && typeof parsed.id === 'string') return parsed.id.trim();
+            if (parsed?.id && typeof parsed.id === 'string') return normalizeCotId(parsed.id);
         } catch (_e) {}
         if (/^COT-[A-Z0-9-]+$/i.test(trimmed)) return normalizeCotId(trimmed);
         return null;
@@ -42,7 +44,7 @@ const VerifyIDPage = () => {
     const extractMemberIdFromText = (text: string): string | null => {
         if (!text) return null;
         const fromPath = text.match(/\/(verify|card)\/([A-Za-z0-9-]+)/i)?.[2];
-        if (fromPath) return fromPath;
+        if (fromPath) return normalizeCotId(fromPath);
         const cotMatch = text.match(/\bCOT-?[A-Za-z0-9-]{3,}\b/i)?.[0];
         if (cotMatch) return normalizeCotId(cotMatch);
         return null;
@@ -69,9 +71,10 @@ const VerifyIDPage = () => {
     }, []);
 
     const verifyID = async (idToVerify: string) => {
+        const normalizedId = normalizeCotId(idToVerify);
         setLoading(true); setError(null); setUser(null);
         try {
-            const userRef = doc(db, 'users', idToVerify);
+            const userRef = doc(db, 'users', normalizedId);
             const userSnap = await getDoc(userRef);
             if (userSnap.exists()) {
                 setUser({ ...userSnap.data(), id: userSnap.id } as User);
@@ -79,9 +82,9 @@ const VerifyIDPage = () => {
                 const allUsers = await api.getUsers();
                 let foundMatch = null;
                 for (const u of allUsers) {
-                    if (u.id === idToVerify) { foundMatch = u; break; }
+                    if (normalizeCotId(u.id) === normalizedId) { foundMatch = u; break; }
                     if (u.linkedProfiles) {
-                        const subMatch = u.linkedProfiles.find(sp => sp.id === idToVerify);
+                        const subMatch = u.linkedProfiles.find(sp => normalizeCotId(sp.id) === normalizedId);
                         if (subMatch) {
                             foundMatch = { ...u, id: subMatch.id, name: subMatch.name, role: subMatch.role, photo: subMatch.photo || u.photo } as User;
                             break;
@@ -108,7 +111,12 @@ const VerifyIDPage = () => {
                 (decodedText: string) => {
                     const extractedId = extractMemberId(decodedText);
                     if (extractedId) {
-                        html5Qrcode.stop().then(() => { setIsScanning(false); setScannedId(extractedId); verifyID(extractedId); });
+                        html5Qrcode.stop().then(() => {
+                            const normalized = normalizeCotId(extractedId);
+                            setIsScanning(false);
+                            setScannedId(normalized);
+                            verifyID(normalized);
+                        });
                     }
                 },
                 (_errorMessage: string) => {}
@@ -188,8 +196,9 @@ const VerifyIDPage = () => {
 
         scanTask()
             .then((extractedId: string) => {
-                setScannedId(extractedId);
-                verifyID(extractedId);
+                const normalized = normalizeCotId(extractedId);
+                setScannedId(normalized);
+                verifyID(normalized);
             })
             .catch((err: any) => {
                 setError(err?.message || 'No valid QR code found in the uploaded file.');
@@ -200,7 +209,11 @@ const VerifyIDPage = () => {
 
     const handleManualCheck = (e: React.FormEvent) => {
         e.preventDefault();
-        if (scannedId) verifyID(scannedId.trim());
+        if (scannedId) {
+            const normalized = normalizeCotId(scannedId);
+            setScannedId(normalized);
+            verifyID(normalized);
+        }
     };
 
     return (
