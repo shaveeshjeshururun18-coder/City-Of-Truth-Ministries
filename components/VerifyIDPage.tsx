@@ -21,18 +21,13 @@ const VerifyIDPage = () => {
     const scannerRef = useRef<any>(null);
 
     const normalizeCotId = (value: string) => value.trim().toUpperCase().replace(/^COT(?!-)/, 'COT-');
+    const extractIdFromPath = (value: string) => value.match(/\/(?:verify|card)\/([A-Za-z0-9-]+)/i)?.[1] || null;
 
     const extractMemberId = (payload: string): string | null => {
         if (!payload) return null;
         const trimmed = payload.trim();
-        if (trimmed.includes('/verify/')) {
-            const fromVerify = trimmed.split('/verify/')[1]?.split('?')[0]?.split('/')[0]?.trim();
-            return fromVerify ? normalizeCotId(fromVerify) : null;
-        }
-        if (trimmed.includes('/card/')) {
-            const fromCard = trimmed.split('/card/')[1]?.split('?')[0]?.split('/')[0]?.trim();
-            return fromCard ? normalizeCotId(fromCard) : null;
-        }
+        const fromPath = extractIdFromPath(trimmed);
+        if (fromPath) return normalizeCotId(fromPath);
         try {
             const parsed = JSON.parse(trimmed);
             if (parsed?.id && typeof parsed.id === 'string') return normalizeCotId(parsed.id);
@@ -43,7 +38,7 @@ const VerifyIDPage = () => {
 
     const extractMemberIdFromText = (text: string): string | null => {
         if (!text) return null;
-        const fromPath = text.match(/\/(verify|card)\/([A-Za-z0-9-]+)/i)?.[2];
+        const fromPath = extractIdFromPath(text);
         if (fromPath) return normalizeCotId(fromPath);
         const cotMatch = text.match(/\bCOT-?[A-Za-z0-9-]{3,}\b/i)?.[0];
         if (cotMatch) return normalizeCotId(cotMatch);

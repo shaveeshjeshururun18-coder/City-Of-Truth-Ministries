@@ -583,6 +583,7 @@ const App: React.FC = () => {
   };
 
   const handleLogin = (identifier: string) => {
+    const MIN_PHONE_DIGITS = 10;
     if (!identifier) {
       alert("Please enter your Member ID, Email, Phone, or Name.");
       return;
@@ -613,7 +614,7 @@ const App: React.FC = () => {
       const isMatch = (
         uPhone === identifier ||
         uEmergency === identifier ||
-        (inputPhoneDigits.length >= 10 && (uPhoneDigits === inputPhoneDigits || uEmergencyDigits === inputPhoneDigits)) ||
+        (inputPhoneDigits.length >= MIN_PHONE_DIGITS && (uPhoneDigits === inputPhoneDigits || uEmergencyDigits === inputPhoneDigits)) ||
         uId === searchId ||
         uEmail === searchId ||
         uName === searchId
