@@ -6,6 +6,7 @@ import { User } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
+import { addCenteredCardPage } from './pdfCardUtils';
 
 interface QRVerifyPageProps {
     userId: string;
@@ -63,25 +64,8 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack }) =>
             const frontDataUrl = await toPng(frontNode, opts);
             const backDataUrl = await toPng(backNode, opts);
             const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
-
-            const addCenteredCardPage = (dataUrl: string, format: 'PNG' | 'JPEG', isFirstPage: boolean) => {
-                if (!isFirstPage) pdf.addPage('a4', 'landscape');
-                const pageWidth = pdf.internal.pageSize.getWidth();
-                const pageHeight = pdf.internal.pageSize.getHeight();
-                const img = pdf.getImageProperties(dataUrl);
-                const margin = 8;
-                const maxWidth = pageWidth - (margin * 2);
-                const maxHeight = pageHeight - (margin * 2);
-                const scale = Math.min(maxWidth / img.width, maxHeight / img.height);
-                const renderWidth = img.width * scale;
-                const renderHeight = img.height * scale;
-                const x = (pageWidth - renderWidth) / 2;
-                const y = (pageHeight - renderHeight) / 2;
-                pdf.addImage(dataUrl, format, x, y, renderWidth, renderHeight, undefined, 'FAST');
-            };
-
-            addCenteredCardPage(frontDataUrl, 'PNG', true);
-            addCenteredCardPage(backDataUrl, 'PNG', false);
+            addCenteredCardPage(pdf, frontDataUrl, 'PNG', true);
+            addCenteredCardPage(pdf, backDataUrl, 'PNG', false);
             pdf.save(`ENTRUST-CARD-${user?.id}.pdf`);
             setDownloaded(true);
         } catch (err: any) {

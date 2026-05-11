@@ -12,6 +12,7 @@ import { PrintableHebrewCalendar } from './PrintableHebrewCalendar';
 import { PrintableReferenceGuide } from './PrintableReferenceGuide';
 import { getCalendarData5786 } from './CalendarLogic';
 import { CalendarCustomizationModal, CalendarOptions } from './CalendarCustomizationModal';
+import { addCenteredCardPage, waitForNodeImages } from './pdfCardUtils';
 
 interface UserDashboardProps {
     user: User;
@@ -90,20 +91,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         const backNode = document.getElementById('capture-back');
         if (frontNode && backNode) {
             try {
-                const waitForNodeImages = async (node: HTMLElement) => {
-                    const images = Array.from(node.querySelectorAll('img')) as HTMLImageElement[];
-                    await Promise.all(images.map((img) => (
-                        img.complete && img.naturalWidth > 0
-                            ? Promise.resolve()
-                            : new Promise<void>((resolve) => {
-                                const done = () => resolve();
-                                img.addEventListener('load', done, { once: true });
-                                img.addEventListener('error', done, { once: true });
-                                setTimeout(done, 3000);
-                            })
-                    )));
-                };
-
                 await Promise.all([waitForNodeImages(frontNode), waitForNodeImages(backNode)]);
                 await new Promise(r => setTimeout(r, 600));
                 // Explicit dimensions ensure off-screen nodes render correctly in all browsers
@@ -111,23 +98,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 const frontDataUrl = await toPng(frontNode, opts);
                 const backDataUrl = await toPng(backNode, opts);
                 const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
-
-                const addCenteredCardPage = (pdfDoc: jsPDF, dataUrl: string, format: 'PNG' | 'JPEG', isFirstPage: boolean) => {
-                    if (!isFirstPage) pdfDoc.addPage('a4', 'landscape');
-                    const pageWidth = pdfDoc.internal.pageSize.getWidth();
-                    const pageHeight = pdfDoc.internal.pageSize.getHeight();
-                    const img = pdfDoc.getImageProperties(dataUrl);
-                    const margin = 8;
-                    const maxWidth = pageWidth - (margin * 2);
-                    const maxHeight = pageHeight - (margin * 2);
-                    const scale = Math.min(maxWidth / img.width, maxHeight / img.height);
-                    const renderWidth = img.width * scale;
-                    const renderHeight = img.height * scale;
-                    const x = (pageWidth - renderWidth) / 2;
-                    const y = (pageHeight - renderHeight) / 2;
-                    pdfDoc.addImage(dataUrl, format, x, y, renderWidth, renderHeight, undefined, 'FAST');
-                };
-
                 addCenteredCardPage(pdf, frontDataUrl, 'PNG', true);
                 addCenteredCardPage(pdf, backDataUrl, 'PNG', false);
                 pdf.save(`ENTRUST-CARD-${displayProfile.id}.pdf`);
