@@ -12,6 +12,7 @@ import { PrintableHebrewCalendar } from './PrintableHebrewCalendar';
 import { PrintableReferenceGuide } from './PrintableReferenceGuide';
 import { getCalendarData5786 } from './CalendarLogic';
 import { CalendarCustomizationModal, CalendarOptions } from './CalendarCustomizationModal';
+import { addCenteredCardPage, waitForNodeImages } from './pdfCardUtils';
 
 interface UserDashboardProps {
     user: User;
@@ -22,6 +23,12 @@ interface UserDashboardProps {
     initialProfileId?: string;
     onGoToLogin?: () => void;
 }
+
+const FAMILY_RELATIONSHIP_OPTIONS = {
+    immediate: ['Spouse', 'Son', 'Daughter', 'Father', 'Mother', 'Brother', 'Sister'],
+    extended: ['Grandfather', 'Grandmother', 'Father-in-law', 'Mother-in-law', 'Uncle', 'Aunt', 'Cousin'],
+    others: ['Guardian', 'Other']
+};
 
 export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, onOpenScanner, initialProfileId, onGoToLogin }) => {
     const [isEditing, setIsEditing] = useState(false);
@@ -85,18 +92,15 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         const backNode = document.getElementById('capture-back');
         if (frontNode && backNode) {
             try {
+                await Promise.all([waitForNodeImages(frontNode), waitForNodeImages(backNode)]);
                 await new Promise(r => setTimeout(r, 600));
                 // Explicit dimensions ensure off-screen nodes render correctly in all browsers
                 const opts = { pixelRatio: 3, quality: 1, backgroundColor: '#ffffff', cacheBust: true, width: 680, height: 430 };
                 const frontDataUrl = await toPng(frontNode, opts);
                 const backDataUrl = await toPng(backNode, opts);
                 const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = (215 * pdfWidth) / 340;
-                const yPos = (pdf.internal.pageSize.getHeight() - pdfHeight) / 2;
-                pdf.addImage(frontDataUrl, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight, undefined, 'FAST');
-                pdf.addPage();
-                pdf.addImage(backDataUrl, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight, undefined, 'FAST');
+                addCenteredCardPage(pdf, frontDataUrl, 'PNG', true);
+                addCenteredCardPage(pdf, backDataUrl, 'PNG', false);
                 pdf.save(`ENTRUST-CARD-${displayProfile.id}.pdf`);
             } catch (err: any) {
                 console.error('PDF generation failed', err);
@@ -107,12 +111,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     const frontDataUrl2 = await toJpeg2(frontNode!, opts2);
                     const backDataUrl2 = await toJpeg2(backNode!, opts2);
                     const pdf2 = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
-                    const pdfWidth2 = pdf2.internal.pageSize.getWidth();
-                    const pdfHeight2 = (215 * pdfWidth2) / 340;
-                    const yPos2 = (pdf2.internal.pageSize.getHeight() - pdfHeight2) / 2;
-                    pdf2.addImage(frontDataUrl2, 'JPEG', 0, yPos2 > 0 ? yPos2 : 0, pdfWidth2, pdfHeight2, undefined, 'FAST');
-                    pdf2.addPage();
-                    pdf2.addImage(backDataUrl2, 'JPEG', 0, yPos2 > 0 ? yPos2 : 0, pdfWidth2, pdfHeight2, undefined, 'FAST');
+                    addCenteredCardPage(pdf2, frontDataUrl2, 'JPEG', true);
+                    addCenteredCardPage(pdf2, backDataUrl2, 'JPEG', false);
                     pdf2.save(`ENTRUST-CARD-${displayProfile.id}.pdf`);
                 } catch (err2) {
                     alert('PDF generation failed. Please try again or contact admin.');
@@ -329,36 +329,51 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             <AnimatePresence>
                 {showFamilyModal && (
                     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-3xl shadow-2xl w-full max-w-md relative overflow-hidden">
+                        <motion.div initial={{ opacity: 0, scale: 0.95, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 8 }} className="bg-white rounded-3xl shadow-2xl w-full max-w-md relative overflow-hidden border border-slate-100">
                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-500 to-accent-500" />
                             <div className="p-6 md:p-8">
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-xl font-bold font-serif text-brand-950">Add Family Member</h3>
                                     <button onClick={() => setShowFamilyModal(false)} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
                                 </div>
+                                <p className="text-xs text-slate-500 mb-5">Keep it simple: name and relationship first. You can update profile details later.</p>
                                 <form onSubmit={handleAddSubProfile} className="space-y-4">
                                     <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Full Name</label>
-                                        <input required type="text" value={subProfileForm.name || ''} onChange={e => setSubProfileForm({ ...subProfileForm, name: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm font-medium" placeholder="John Doe" />
+                                        <label className="text-xs font-semibold text-slate-700 block mb-1.5">Full Name</label>
+                                        <input required type="text" value={subProfileForm.name || ''} onChange={e => setSubProfileForm({ ...subProfileForm, name: e.target.value })} className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm font-medium shadow-sm placeholder:text-slate-500" placeholder="John Doe" />
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Relation</label>
-                                            <select required value={subProfileForm.role || 'Family Member'} onChange={e => setSubProfileForm({ ...subProfileForm, role: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm appearance-none">
-                                                <option>Spouse</option><option>Son</option><option>Daughter</option><option>Parent</option><option value="Family Member">Other</option>
+                                            <label className="text-xs font-semibold text-slate-700 block mb-1.5">Relationship</label>
+                                            <select required value={subProfileForm.role || 'Spouse'} onChange={e => setSubProfileForm({ ...subProfileForm, role: e.target.value })} className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm appearance-none shadow-sm">
+                                                <optgroup label="Immediate Family">
+                                                    {FAMILY_RELATIONSHIP_OPTIONS.immediate.map(option => (
+                                                        <option key={option} value={option}>{option}</option>
+                                                    ))}
+                                                </optgroup>
+                                                <optgroup label="Extended Family">
+                                                    {FAMILY_RELATIONSHIP_OPTIONS.extended.map(option => (
+                                                        <option key={option} value={option}>{option}</option>
+                                                    ))}
+                                                </optgroup>
+                                                <optgroup label="Others">
+                                                    {FAMILY_RELATIONSHIP_OPTIONS.others.map(option => (
+                                                        <option key={option} value={option}>{option}</option>
+                                                    ))}
+                                                </optgroup>
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Blood Group</label>
-                                            <select value={subProfileForm.bloodGroup || ''} onChange={e => setSubProfileForm({ ...subProfileForm, bloodGroup: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm appearance-none">
+                                            <label className="text-xs font-semibold text-slate-700 block mb-1.5">Blood Group (optional)</label>
+                                            <select value={subProfileForm.bloodGroup || ''} onChange={e => setSubProfileForm({ ...subProfileForm, bloodGroup: e.target.value })} className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm appearance-none shadow-sm">
                                                 <option value="">Select…</option>
                                                 <option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>O+</option><option>O-</option><option>AB+</option><option>AB-</option>
                                             </select>
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widests block mb-1">Date of Birth</label>
-                                        <input type="date" value={subProfileForm.dob || ''} onChange={e => setSubProfileForm({ ...subProfileForm, dob: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm" />
+                                        <label className="text-xs font-semibold text-slate-700 block mb-1.5">Date of Birth (optional)</label>
+                                        <input type="date" value={subProfileForm.dob || ''} onChange={e => setSubProfileForm({ ...subProfileForm, dob: e.target.value })} className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm shadow-sm" />
                                     </div>
                                     <div className="pt-2">
                                         <Button type="submit" variant="primary" fullWidth className="py-3 shadow-lg shadow-brand-500/20"><UserPlus size={16} className="mr-2" /> Add Member</Button>
@@ -442,32 +457,32 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 <PlusCircle size={14} /> Add
                             </button>
                         </div>
-                        <div className="divide-y divide-slate-50">
-                            {/* Primary (Me) row */}
-                            <button onClick={() => setActiveProfileId(user.id)} className={`w-full flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 transition-all text-left ${activeProfileId === user.id ? 'bg-brand-50' : ''}`}>
+                        <div className="p-4 space-y-3 bg-slate-50">
+                            <button onClick={() => setActiveProfileId(user.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all text-left ${activeProfileId === user.id ? 'bg-brand-50 border-brand-200' : 'bg-white border-slate-200 hover:border-brand-200'}`}>
                                 <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-brand-100 shrink-0">
                                     <img src={user.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=1e1b4b&color=fff&bold=true&size=80`} alt={user.name} className="w-full h-full object-cover" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="font-bold text-slate-900 text-sm truncate">{user.name}</p>
-                                    <p className="text-[10px] text-slate-400 font-mono">{user.id} · Primary</p>
+                                    <p className="text-[10px] text-slate-500 font-medium">{user.id} · Primary</p>
                                 </div>
                                 {activeProfileId === user.id && <CheckCircle size={16} className="text-brand-500 shrink-0" />}
                             </button>
-                            {/* Sub-profiles */}
-                            {user.linkedProfiles.map(pf => (
-                                <div key={pf.id} className={`flex items-center gap-3 px-5 py-3.5 group ${activeProfileId === pf.id ? 'bg-accent-50' : 'hover:bg-slate-50'} transition-all`}>
+                            {user.linkedProfiles.map((pf, index) => (
+                                <div key={pf.id} className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all group ${activeProfileId === pf.id ? 'bg-accent-50 border-accent-200' : 'bg-white border-slate-200 hover:border-accent-200'}`}>
                                     <button onClick={() => setActiveProfileId(pf.id)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
                                         <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-100 shrink-0">
                                             <img src={pf.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(pf.name)}&background=5b47d0&color=fff&bold=true&size=80`} alt={pf.name} className="w-full h-full object-cover" />
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="font-bold text-slate-900 text-sm truncate">{pf.name}</p>
-                                            <p className="text-[10px] text-slate-400 font-mono">{pf.id} · {pf.role || 'Family'}</p>
+                                            <p className="text-[10px] text-slate-500 font-medium">
+                                                {(index === 0 ? 'First Family Member' : `Additional Member ${index}`)} · {pf.role || 'Family'}
+                                            </p>
                                         </div>
                                         {activeProfileId === pf.id && <CheckCircle size={16} className="text-accent-500 shrink-0" />}
                                     </button>
-                                    <button onClick={() => handleDeleteSubProfile(pf.id)} className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-red-300 hover:text-red-500 hover:bg-red-50 transition-all ml-2 shrink-0">
+                                    <button onClick={() => handleDeleteSubProfile(pf.id)} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1.5 rounded-lg text-red-300 hover:text-red-500 hover:bg-red-50 transition-all ml-2 shrink-0">
                                         <Trash2 size={14} />
                                     </button>
                                 </div>
@@ -551,11 +566,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         className="relative inline-block bg-white rounded-3xl p-4 border border-slate-100 shadow-lg shadow-brand-900/5"
                                     >
                                         <img src={qrImgSrc} alt="QR Code" className="w-48 h-48 block mx-auto" crossOrigin="anonymous" />
-                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                            <div className="bg-white rounded-full w-12 h-12 flex items-center justify-center shadow-md border border-slate-100">
-                                                <img src="/logo.png" alt="COT" className="w-8 h-8 object-contain" />
-                                            </div>
-                                        </div>
                                     </button>
                                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-4">Tap QR to open scanner</p>
                                 </div>

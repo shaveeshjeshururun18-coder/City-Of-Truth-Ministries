@@ -12,7 +12,8 @@ const translations: Record<Language, Record<string, string>> = {
   en: {
     // Nav labels
     'nav.home': 'HOME',
-    'nav.hebrew': 'HEBREW',
+    'nav.hebrew': 'HEBREW CONTENT',
+    'nav.hebrewTools': 'HEBREW TOOLS',
     'nav.alphabets': 'ALPHABETS',
     'nav.valparai': 'VALPARAI',
     'nav.pastor': 'PASTOR',
@@ -38,6 +39,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.numbers': 'Hebrew Numbers',
     'nav.gematria': 'Gematria Value',
     'nav.reference': 'Month/Year Reference',
+    'nav.grammar': 'Hebrew Grammar',
     // AI Page
     'ai.title': 'Divine AI Assistant',
     'ai.subtitle': 'Satyar Margam Guidance',
@@ -61,7 +63,8 @@ const translations: Record<Language, Record<string, string>> = {
   ta: {
     // Nav labels
     'nav.home': 'வீடு',
-    'nav.hebrew': 'எபிரேயம்',
+    'nav.hebrew': 'எபிரேயம் உள்ளடக்கம்',
+    'nav.hebrewTools': 'எபிரேயம் கருவிகள்',
     'nav.alphabets': 'அகரமுதலி',
     'nav.valparai': 'வல்பாறை',
     'nav.pastor': 'போதகர்',
@@ -87,6 +90,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.numbers': 'எபிரேய எண்கள்',
     'nav.gematria': 'கெமாட்ரியா மதிப்பு',
     'nav.reference': 'மாதம்/ஆண்டு குறிப்பு',
+    'nav.grammar': 'எபிரேயம் இலக்கணம்',
     // AI Page
     'ai.title': 'தெய்வீக AI உதவியாளர்',
     'ai.subtitle': 'சத்திய மார்க்க வழிகாட்டுதல்',
@@ -151,6 +155,8 @@ export const useLanguage = () => useContext(LanguageContext);
 export const NAV_LABEL_TO_KEY: Record<string, string> = {
   'HOME': 'nav.home',
   'HEBREW': 'nav.hebrew',
+  'HEBREW CONTENT': 'nav.hebrew',
+  'HEBREW TOOLS': 'nav.hebrewTools',
   'ALPHABETS': 'nav.alphabets',
   'VALPARAI': 'nav.valparai',
   'PASTOR': 'nav.pastor',
@@ -168,4 +174,5 @@ export const NAV_LABEL_TO_KEY: Record<string, string> = {
   'Hebrew Numbers': 'nav.numbers',
   'Gematria Value': 'nav.gematria',
   'Month/Year Reference': 'nav.reference',
+  'Hebrew Grammar': 'nav.grammar',
 };

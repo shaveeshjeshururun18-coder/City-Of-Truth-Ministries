@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Scroll, Volume2 } from 'lucide-react';
+import { Scroll, Volume2, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { audioService } from '../services/audioService';
 
@@ -121,7 +121,7 @@ export const HebrewAlphabetPage: React.FC = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5 md:gap-7 max-w-6xl mx-auto">
                     {HEBREW_LETTERS.map((item, index) => (
                         <motion.div
-                            key={index}
+                            key={item.letter}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.03 }}
@@ -138,39 +138,29 @@ export const HebrewAlphabetPage: React.FC = () => {
                                 }`}
                         >
                             <button
-                                onClick={(e) => handleAudioButtonClick(e, index, item.hebrewName)}
+                                onClick={(event) => handleAudioButtonClick(event, index, item.hebrewName)}
                                 className={`absolute top-4 right-4 p-2 rounded-full transition-all duration-300 ${activeIndex === index ? 'opacity-100 bg-white/20 scale-110' : 'bg-[#F59E0B]/20 opacity-100 group-hover:bg-white/20'}`}
                                 title={`Play ${item.name}`}
                                 aria-label={`Play ${item.name} pronunciation`}
                             >
                                 <Volume2 size={14} className="text-[#F59E0B]" />
                             </button>
-                            <span className={`text-6xl md:text-[5rem] text-transparent bg-clip-text mb-5 font-serif transition-transform duration-500 drop-shadow-lg leading-none
-                                ${activeIndex === index ? 'bg-gradient-to-b from-white to-white/70 scale-110' : 'bg-gradient-to-b from-[#FBBF24] to-[#F59E0B] group-hover:from-white group-hover:to-white/70 group-hover:scale-110'}`}>
+                            <span className={`text-6xl md:text-[5rem] text-transparent bg-clip-text mb-5 font-serif transition-transform duration-500 drop-shadow-lg leading-none ${activeIndex === index ? 'bg-gradient-to-b from-white to-white/70 scale-110' : 'bg-gradient-to-b from-[#FBBF24] to-[#F59E0B] group-hover:from-white group-hover:to-white/70 group-hover:scale-110'}`}>
                                 {item.letter}
                             </span>
                             <div className="text-center space-y-1">
                                 <strong className="block text-[#F59E0B] text-sm md:text-base tracking-[0.2em] font-bold uppercase group-hover:text-white/90 transition-colors">{item.name}</strong>
-                                <span className="block text-[#F59E0B]/70 text-xs md:text-sm tracking-widest group-hover:text-white/50 transition-colors">{item.hebrewName}</span>
+                                <span className="block text-[#F59E0B]/70 text-xs md:text-sm tracking-wide group-hover:text-white/60 transition-colors">{item.tamilPronunciation}</span>
                                 <div className="mt-3 inline-block bg-[#F59E0B]/10 group-hover:bg-white/10 px-3 py-1 rounded-full border border-[#F59E0B]/30 group-hover:border-white/25 transition-all">
                                     <span className="text-xs text-[#F59E0B]/80 group-hover:text-white/60 font-mono tracking-widest transition-colors">VALUE: {item.number}</span>
                                 </div>
                             </div>
-                            {/* Active pulse ring */}
-                            {activeIndex === index && (
-                                <motion.div
-                                    initial={{ scale: 0.8, opacity: 0.6 }}
-                                    animate={{ scale: 1.4, opacity: 0 }}
-                                    transition={{ duration: 1.2, repeat: Infinity }}
-                                    className="absolute inset-0 rounded-[2rem] border border-[#F59E0B]/50 pointer-events-none"
-                                />
-                            )}
                         </motion.div>
                     ))}
                 </div>
 
                 <div className="mt-24 p-12 bg-gradient-to-b from-white/5 to-transparent rounded-[3rem] border border-white/8 text-center space-y-6 relative overflow-hidden backdrop-blur-md">
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                     <Sparkles className="mx-auto text-white/30" size={36} />
                     <p className="font-serif italic text-2xl md:text-3xl text-white/80 leading-relaxed max-w-3xl mx-auto drop-shadow-md">
                         "For then will I turn to the people a pure language, that they may all call upon the name of the Lord, to serve him with one consent."

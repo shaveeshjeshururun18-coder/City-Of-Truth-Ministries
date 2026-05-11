@@ -60,7 +60,7 @@ import { GoldenMenorah } from './components/GoldenMenorah';
 import { GoldenMenorahPage } from './components/GoldenMenorahPage';
 import { AIPage } from './components/AIPage';
 // import { GlobalAIWidget } from './components/GlobalAIWidget';
-import { MinistryHighlights, HebrewSanctuaryIntro, ValparaiPresence, TestimonialHighlights, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, CommunityMembersSection } from './components/HomeSections';
+import { MinistryHighlights, HebrewSanctuaryIntro, HebrewPagesPreviewSection, PastorBaruchPreviewSection, ValparaiPresence, TestimonialHighlights, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, CommunityMembersSection } from './components/HomeSections';
 import { MessageFromLeader } from './components/MessageFromLeader';
 import { HebrewAlphabetPage } from './components/HebrewAlphabetPage';
 import { MinistriesPage } from './components/MinistriesPage';
@@ -170,17 +170,23 @@ interface ContactMessage {
 const HEBREW_RESOURCE_SUBMENU: NavItem[] = [
   { label: 'Festivals & Holy Days', view: ViewState.HEBREW_FESTIVALS },
   { label: 'Biblical Calendar', view: ViewState.HEBREW_CALENDAR },
+  { label: 'Month/Year Reference', view: ViewState.HEBREW_REFERENCE },
+  { label: 'Hebrew Grammar', view: ViewState.HEBREW_GRAMMAR },
+];
+
+const HEBREW_TOOLS_SUBMENU: NavItem[] = [
   { label: 'Hebrew Words', view: ViewState.HEBREW_WORDS },
   { label: 'Letters Audio Lab', view: ViewState.HEBREW_LETTERS_AUDIO },
   { label: 'Hebrew Numbers', view: ViewState.HEBREW_NUMBERS },
   { label: 'Gematria Value', view: ViewState.HEBREW_GEMATRIA },
-  { label: 'Month/Year Reference', view: ViewState.HEBREW_REFERENCE },
 ];
 
 const withHebrewResourceSubmenu = (items: NavItem[]): NavItem[] =>
   items.map(item =>
-    item.label === 'HEBREW'
+    item.label === 'HEBREW CONTENT' || item.label === 'HEBREW'
       ? { ...item, submenu: HEBREW_RESOURCE_SUBMENU }
+      : item.label === 'HEBREW TOOLS'
+        ? { ...item, submenu: HEBREW_TOOLS_SUBMENU }
       : item
   );
 
@@ -351,9 +357,14 @@ const App: React.FC = () => {
   const [navigationItems, setNavigationItems] = useState<NavItem[]>(withHebrewResourceSubmenu([
     { label: 'HOME', view: ViewState.HOME },
     {
-      label: 'HEBREW',
+      label: 'HEBREW CONTENT',
       view: ViewState.ABOUT,
       submenu: HEBREW_RESOURCE_SUBMENU
+    },
+    {
+      label: 'HEBREW TOOLS',
+      view: ViewState.HEBREW_TOOLS,
+      submenu: HEBREW_TOOLS_SUBMENU
     },
     { label: 'ALPHABETS', view: ViewState.HEBREW },
     { label: 'VALPARAI', view: ViewState.ABOUT_VALPARAI },
@@ -369,9 +380,9 @@ const App: React.FC = () => {
   const [homeSectionsOrder, setHomeSectionsOrder] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('cot_home_sections_order');
-      return saved ? JSON.parse(saved) : ['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'verify'];
+      return saved ? JSON.parse(saved) : ['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'hebrewPages', 'pastorBaruch', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'verify'];
     } catch (e) {
-      return ['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'verify'];
+      return ['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'hebrewPages', 'pastorBaruch', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'verify'];
     }
   });
 
@@ -568,6 +579,7 @@ const App: React.FC = () => {
       case ViewState.ABOUT_VALPARAI: return "bg-slate-50 text-brand-950";
       case ViewState.MINISTRIES: return "bg-[#f0f9ff] text-sky-950";
       case ViewState.HEBREW: return "bg-black text-amber-500";
+      case ViewState.HEBREW_TOOLS: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.HEBREW_WORDS: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.HEBREW_LETTERS_AUDIO: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.HEBREW_GEMATRIA: return "bg-[#fdfcf0] text-brand-950";
@@ -1075,6 +1087,8 @@ const App: React.FC = () => {
           case 'highlights': return <MinistryHighlights key="highlights" setView={setCurrentView} />;
           case 'leader': return null; // Leader message is now a fixed overlay triggered by email input
           case 'hebrew': return <HebrewSanctuaryIntro key="hebrew" setView={setCurrentView} />;
+          case 'hebrewPages': return <HebrewPagesPreviewSection key="hebrewPages" setView={setCurrentView} />;
+          case 'pastorBaruch': return <PastorBaruchPreviewSection key="pastorBaruch" setView={setCurrentView} />;
           case 'valparai': return <ValparaiPresence key="valparai" setView={setCurrentView} />;
           case 'testimonials': return <TestimonialHighlights key="testimonials" setView={setCurrentView} />;
           case 'members': return <CommunityMembersSection key="members" setView={setCurrentView} users={users} />;
@@ -1134,7 +1148,13 @@ const App: React.FC = () => {
 
           {currentView === ViewState.ABOUT && (
             <div key="hebrew-hub">
-              <HebrewResources />
+              <HebrewResources mode="content" initialTab="calendar" currentUser={currentUser || undefined} />
+            </div>
+          )}
+
+          {currentView === ViewState.HEBREW_TOOLS && (
+            <div key="hebrew-tools">
+              <HebrewResources mode="tools" initialTab="words" />
             </div>
           )}
 
@@ -1177,6 +1197,12 @@ const App: React.FC = () => {
           {currentView === ViewState.HEBREW_REFERENCE && (
             <div key="hebrew-reference">
               <HebrewResources initialTab="reference" />
+            </div>
+          )}
+
+          {currentView === ViewState.HEBREW_GRAMMAR && (
+            <div key="hebrew-grammar">
+              <HebrewResources mode="content" initialTab="grammar" />
             </div>
           )}
 

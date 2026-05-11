@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X, Calendar, Droplets, Users, Mail, UserCheck } from 'lucide-react';
+import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X, UserCheck } from 'lucide-react';
 import { Button } from './Button';
-import { EntrustCard3D } from './WorshipperIDCard';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
@@ -162,8 +161,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     }, [initialIdentifier]);
 
     const handleFileQRScan = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+        const files = Array.from(e.target.files || []);
+        if (!files.length) return;
         setScanningFile(true);
 
         const doScan = () => {
@@ -174,9 +173,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 return;
             }
             const h5 = new (window as any).Html5Qrcode('qr-auth-page-hidden-reader');
-            const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-            const isImage = file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp|svg)$/i.test(file.name);
-
             const scanImageFile = async (imageFile: File) => {
                 const text = await h5.scanFile(imageFile, true);
                 return extractIdentifier(text);
@@ -206,16 +202,31 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 throw new Error('No valid QR code found in the uploaded PDF pages.');
             };
 
-            const scanTask = async () => {
+            const scanSingleFile = async (fileToScan: File) => {
+                const isPdf = fileToScan.type === 'application/pdf' || fileToScan.name.toLowerCase().endsWith('.pdf');
+                const isImage = fileToScan.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp|svg)$/i.test(fileToScan.name);
+
                 if (isPdf) {
-                    try { return await scanPdfFile(file); } catch (error) { console.warn('PDF QR scan failed, falling back to text extraction.', error); }
-                    return await extractIdentifierFromFile(file);
+                    try { return await scanPdfFile(fileToScan); } catch (error) { console.warn('PDF QR scan failed, falling back to text extraction.', error); }
+                    return await extractIdentifierFromFile(fileToScan);
                 }
                 if (isImage) {
-                    try { return await scanImageFile(file); } catch (error) { console.warn('Image QR scan failed, falling back to text extraction.', error); }
-                    return await extractIdentifierFromFile(file);
+                    try { return await scanImageFile(fileToScan); } catch (error) { console.warn('Image QR scan failed, falling back to text extraction.', error); }
+                    return await extractIdentifierFromFile(fileToScan);
                 }
-                return await extractIdentifierFromFile(file);
+                return await extractIdentifierFromFile(fileToScan);
+            };
+
+            const scanTask = async () => {
+                for (const file of files) {
+                    try {
+                        const foundId = await scanSingleFile(file);
+                        if (foundId) return foundId;
+                    } catch (error) {
+                        console.warn(`Scan failed for file "${file.name}", trying next file.`, error);
+                    }
+                }
+                throw new Error('No QR code or member details were found in uploaded files. Upload clear Entrust card image/PDF files with visible ID details.');
             };
 
             scanTask()
@@ -356,47 +367,56 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             <div className="bg-gradient-to-br from-brand-700 to-brand-900 p-5 sm:p-8 md:p-16 rounded-[2rem] md:rounded-[4rem] border border-brand-600 shadow-[0_30px_100_rgba(59,130,246,0.2)] text-center relative overflow-hidden">
                                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none" />
                                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-white/50 to-white/20 opacity-60" />
-                                <p className="text-brand-50/90 mb-6 md:mb-12 text-sm sm:text-base md:text-lg font-light italic relative z-10">Enter any detail to preview name, COT ID, phone, and profile before login.</p>
+                                <p className="text-brand-50/95 mb-6 md:mb-10 text-sm sm:text-base md:text-lg font-semibold relative z-10">Login with any one detail: Member ID, Phone Number, Name, or Email.</p>
 
-                                <div className="relative mb-6 md:mb-12 z-10">
-                                    <div className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-white/80">
-                                        <UserIcon size={20} className="md:w-7 md:h-7" />
-                                    </div>
-                                    <input
-                                        type="text"
-                                        placeholder="Enter any member detail (ID / Phone / Name / Email)"
-                                        className="w-full pl-12 md:pl-16 pr-28 sm:pr-36 md:pr-44 py-4 md:py-7 text-base md:text-xl bg-white/95 text-brand-950 border-2 border-white/50 rounded-2xl md:rounded-3xl outline-none focus:bg-white focus:ring-8 focus:ring-white/20 focus:border-white transition-all shadow-inner font-bold placeholder:text-brand-300"
-                                        value={identifier}
-                                        onChange={e => {
-                                            let val = e.target.value;
-                                            if (val.toLowerCase().startsWith('cot')) {
-                                                val = val.toUpperCase().replace(/[^A-Z0-9-]/g, '');
-                                                if (val.startsWith('COT') && !val.startsWith('COT-') && val.length > 3) {
-                                                    val = 'COT-' + val.substring(3).replace(/-/g, '');
+                                <div className="mb-6 md:mb-12 z-10">
+                                    <p className="text-left text-[10px] md:text-xs font-black uppercase tracking-[0.18em] text-white/90 mb-2">Enter Member Detail</p>
+                                    <div className="relative">
+                                        <div className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-white/80">
+                                            <UserIcon size={20} className="md:w-7 md:h-7" />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            placeholder="Try: COT ID, phone number, name, or email"
+                                            className="w-full pl-12 md:pl-16 pr-28 sm:pr-36 md:pr-44 py-4 md:py-7 text-base md:text-xl bg-white/95 text-brand-950 border-2 border-white/50 rounded-2xl md:rounded-3xl outline-none focus:bg-white focus:ring-8 focus:ring-white/20 focus:border-white transition-all shadow-inner font-bold placeholder:text-brand-300"
+                                            value={identifier}
+                                            onChange={e => {
+                                                let val = e.target.value;
+                                                if (val.toLowerCase().startsWith('cot')) {
+                                                    val = val.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+                                                    if (val.startsWith('COT') && !val.startsWith('COT-') && val.length > 3) {
+                                                        val = 'COT-' + val.substring(3).replace(/-/g, '');
+                                                    }
+                                                    if (val.length > 20) val = val.substring(0, 20);
                                                 }
-                                                if (val.length > 20) val = val.substring(0, 20);
-                                            } else if (/^\d/.test(val)) {
-                                                val = val.replace(/\D/g, '').substring(0, 10);
-                                            }
-                                            setIdentifier(val);
-                                            setPreviewUser(null);
-                                            setPreviewProfileId(null);
-                                            setNotFound(false);
-                                        }}
-                                        onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
-                                    />
-                                    <button
-                                        onClick={() => handleSearch()}
-                                        disabled={!identifier.trim() || searching}
-                                        className="absolute right-2 md:right-3 top-2 md:top-3 bottom-2 md:bottom-3 px-4 sm:px-8 md:px-12 bg-brand-900 hover:bg-brand-950 text-white rounded-xl md:rounded-[1.5rem] font-black text-sm md:text-lg transition-all disabled:opacity-50 flex items-center justify-center shadow-lg hover:shadow-brand-900/40 active:scale-[0.98]"
-                                    >
-                                        {searching ? <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin" /> : <span>Verify</span>}
-                                    </button>
+                                                setIdentifier(val);
+                                                setPreviewUser(null);
+                                                setPreviewProfileId(null);
+                                                setNotFound(false);
+                                            }}
+                                            onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => handleSearch()}
+                                            disabled={!identifier.trim() || searching}
+                                            className="absolute right-2 md:right-3 top-2 md:top-3 bottom-2 md:bottom-3 px-4 sm:px-8 md:px-12 bg-brand-900 hover:bg-brand-950 text-white rounded-xl md:rounded-[1.5rem] font-black text-sm md:text-lg transition-all disabled:opacity-50 flex items-center justify-center shadow-lg hover:shadow-brand-900/40 active:scale-[0.98]"
+                                        >
+                                            {searching ? <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin" /> : <span>Verify</span>}
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="flex flex-wrap items-center justify-center gap-2 text-[10px] md:text-xs text-white/80 uppercase tracking-wider font-semibold">
+                                    <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20">Example: COT-12345</span>
+                                    <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20">Phone: 9876543210</span>
+                                    <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20">Name: John</span>
+                                    <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20">Email: john@mail.com</span>
                                 </div>
 
                                 {/* Smart Auth Grid */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mt-6 md:mt-12 relative z-10">
                                     <button
+                                        type="button"
                                         onClick={() => setShowScanner(!showScanner)}
                                         className={`group flex flex-col items-center justify-center p-5 md:p-8 border-2 rounded-[1.5rem] md:rounded-[2.5rem] transition-all duration-500 ${showScanner ? 'bg-red-50 border-red-200 text-red-600 shadow-xl scale-[1.02]' : 'bg-white border-brand-50 hover:border-brand-200 hover:shadow-2xl shadow-sm'}`}
                                     >
@@ -412,8 +432,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                             {scanningFile ? <div className="w-8 h-8 md:w-10 md:h-10 border-4 border-brand-400 border-t-transparent rounded-full animate-spin" /> : <UploadCloud size={28} className="md:w-9 md:h-9" />}
                                         </div>
                                         <h4 className="font-black text-lg md:text-xl mb-1 md:mb-2 tracking-tight">Upload Entrust Card</h4>
-                                        <p className="text-[10px] text-brand-300 font-black uppercase tracking-widest">Any File Format</p>
-                                        <input type="file" className="hidden" onChange={handleFileQRScan} disabled={scanningFile} />
+                                        <p className="text-[10px] text-brand-300 font-black uppercase tracking-widest">Any image/PDF, multiple files supported</p>
+                                        <input type="file" className="hidden" onChange={handleFileQRScan} disabled={scanningFile} multiple accept="image/*,.pdf" />
                                     </label>
                                 </div>
                             </div>
@@ -424,7 +444,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                     <div className="h-full flex flex-col">
                                         <div className="p-4 bg-slate-900 text-white text-xs text-center font-black uppercase tracking-[0.2em] flex justify-between items-center px-4 md:px-8 border-b border-white/5">
                                             <span className="flex items-center gap-2 font-serif italic"><span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> Live Scanner</span>
-                                            <button onClick={() => setShowScanner(false)} className="text-white/60 hover:text-white transition-colors">Close ×</button>
+                                            <button type="button" onClick={() => setShowScanner(false)} className="text-white/60 hover:text-white transition-colors">Close ×</button>
                                         </div>
                                         <div className="flex-1 p-2 sm:p-4 relative">
                                             <div id="qr-auth-page-reader" role="region" aria-label="QR code scanner" className="w-full h-full min-h-[70vh] rounded-2xl overflow-hidden bg-black" />
@@ -442,137 +462,74 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
                                         exit={{ opacity: 0 }}
+                                        onClick={() => { setPreviewUser(null); setPreviewProfileId(null); }}
                                         className="fixed inset-0 z-[115] bg-black/60 backdrop-blur-sm p-4 md:p-8 overflow-y-auto"
                                     >
                                         <motion.div
                                             initial={{ opacity: 0, y: 40, scale: 0.95 }}
                                             animate={{ opacity: 1, y: 0, scale: 1 }}
                                             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                                            className="max-w-3xl mx-auto bg-gradient-to-br from-brand-50 via-white to-brand-100 border-4 border-brand-100 rounded-[2rem] md:rounded-[4rem] p-5 sm:p-8 md:p-14 shadow-2xl relative overflow-hidden group"
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="max-w-2xl mx-auto bg-gradient-to-br from-brand-50 via-white to-brand-100 border-2 border-brand-100 rounded-[1.8rem] md:rounded-[2.2rem] p-5 sm:p-6 md:p-7 shadow-2xl relative overflow-hidden group"
                                         >
-                                            <button onClick={() => { setPreviewUser(null); setPreviewProfileId(null); }} className="absolute top-4 right-4 md:top-6 md:right-6 w-9 h-9 rounded-full bg-white border border-brand-100 text-brand-500 hover:text-brand-700 shadow-sm flex items-center justify-center">
+                                            <button type="button" onClick={() => { setPreviewUser(null); setPreviewProfileId(null); }} className="absolute top-4 right-4 md:top-5 md:right-5 w-9 h-9 rounded-full bg-white border border-brand-100 text-brand-500 hover:text-brand-700 shadow-sm flex items-center justify-center">
                                                 <X size={18} />
                                             </button>
                                             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-brand-400/10 to-transparent opacity-50" />
 
-                                            {/* Identity Header */}
-                                            <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10 relative z-10">
-                                                <div className="relative shrink-0">
-                                                    <div className="w-24 h-24 md:w-32 md:h-32 rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl bg-brand-100 transition-transform duration-700 group-hover:scale-110 group-hover:rotate-3">
+                                            <div className="relative z-10 rounded-2xl bg-white/90 border border-brand-100 p-4 md:p-5">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="relative shrink-0">
+                                                        <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden border-2 border-white shadow-lg bg-brand-100">
                                                         {previewUser.photo ? (
                                                             <img src={previewUser.photo} alt={previewUser.name} className="w-full h-full object-cover" />
                                                         ) : (
-                                                            <div className="w-full h-full flex items-center justify-center text-4xl md:text-5xl font-black text-brand-700">
+                                                                <div className="w-full h-full flex items-center justify-center text-2xl md:text-3xl font-black text-brand-700">
                                                                 {previewUser.name?.charAt(0)}
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <div className="absolute -bottom-3 -right-3 bg-brand-500 text-white p-2 rounded-2xl shadow-lg border-4 border-white">
-                                                        <CheckCircle size={20} className="md:w-6 md:h-6" />
+                                                        <div className="absolute -bottom-2 -right-2 bg-brand-500 text-white p-1.5 rounded-xl shadow border-2 border-white">
+                                                            <CheckCircle size={14} className="md:w-4 md:h-4" />
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div className="flex-1 text-center md:text-left">
-                                                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-4 md:mb-6">
-                                                        <span className="bg-brand-600 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-brand-600/20">Verified Member</span>
-                                                        <span className="bg-white/80 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-brand-400 border border-brand-100">{previewUser.role || 'Member'}</span>
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                                                            <span className="bg-brand-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.15em]">Verified Member</span>
+                                                            <span className="bg-white/90 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.15em] text-brand-500 border border-brand-100">{previewUser.role || 'Member'}</span>
                                                         {previewProfileId && previewProfileId !== previewUser.id && (
-                                                            <span className="bg-amber-50 text-amber-700 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border border-amber-200 flex items-center gap-1">
+                                                                <span className="bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.15em] border border-amber-200 flex items-center gap-1">
                                                                 <UserCheck size={12} /> Linked Profile
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <h4 className="text-2xl md:text-4xl font-serif font-black text-brand-950 mb-3 tracking-tighter">{previewUser.name}</h4>
-                                                    <div className="flex flex-wrap justify-center md:justify-start gap-3 md:gap-4 text-brand-500 font-medium text-sm md:text-base">
-                                                        <div className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-xl border border-brand-50 shadow-sm"><IdCard size={16} className="text-brand-500" /> {previewUser.id}</div>
-                                                        {previewUser.phone && <div className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-xl border border-brand-50 shadow-sm"><Phone size={16} className="text-brand-500" /> {previewUser.phone}</div>}
-                                                        {previewUser.location && <div className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-xl border border-brand-50 shadow-sm"><MapPin size={16} className="text-brand-500" /> {previewUser.location}</div>}
+                                                        <h4 className="text-xl md:text-2xl font-serif font-black text-brand-950 leading-tight truncate">{previewUser.name}</h4>
+                                                    </div>
+                                                </div>
+                                                <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+                                                    <div className="bg-white border border-brand-100 rounded-xl px-3 py-2">
+                                                        <p className="text-[10px] uppercase tracking-wide font-black text-brand-300">Member ID</p>
+                                                        <p className="text-xs md:text-sm font-semibold text-brand-900 truncate">{previewProfileId || previewUser.id || '—'}</p>
+                                                    </div>
+                                                    <div className="bg-white border border-brand-100 rounded-xl px-3 py-2">
+                                                        <p className="text-[10px] uppercase tracking-wide font-black text-brand-300">Phone</p>
+                                                        <p className="text-xs md:text-sm font-semibold text-brand-900 truncate">{previewUser.phone || previewUser.emergency || '—'}</p>
+                                                    </div>
+                                                    <div className="bg-white border border-brand-100 rounded-xl px-3 py-2">
+                                                        <p className="text-[10px] uppercase tracking-wide font-black text-brand-300">Status</p>
+                                                        <p className="text-xs md:text-sm font-semibold text-brand-900 truncate">{previewUser.status || '—'}</p>
+                                                    </div>
+                                                    <div className="bg-white border border-brand-100 rounded-xl px-3 py-2">
+                                                        <p className="text-[10px] uppercase tracking-wide font-black text-brand-300 flex items-center gap-1"><MapPin size={10} /> Location</p>
+                                                        <p className="text-xs md:text-sm font-semibold text-brand-900 truncate">{previewUser.location || '—'}</p>
                                                     </div>
                                                 </div>
                                             </div>
-
-                                            {/* Full Details Grid */}
-                                            <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3 relative z-10">
-                                                <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
-                                                    <p className="text-[10px] uppercase tracking-widest font-black text-brand-300">Status</p>
-                                                    <p className="text-sm font-semibold text-brand-800">{previewUser.status || '—'}</p>
-                                                </div>
-                                                <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2 col-span-2 sm:col-span-1">
-                                                    <p className="text-[10px] uppercase tracking-widest font-black text-brand-300 flex items-center gap-1"><Mail size={10} /> Email</p>
-                                                    <p className="text-sm font-semibold text-brand-800 break-all">{previewUser.email || '—'}</p>
-                                                </div>
-                                                <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
-                                                    <p className="text-[10px] uppercase tracking-widest font-black text-brand-300 flex items-center gap-1"><Phone size={10} /> Contact</p>
-                                                    <p className="text-sm font-semibold text-brand-800">{previewUser.emergency || '—'}</p>
-                                                </div>
-                                                {previewUser.memberSince && (
-                                                    <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
-                                                        <p className="text-[10px] uppercase tracking-widest font-black text-brand-300 flex items-center gap-1"><Calendar size={10} /> Member Since</p>
-                                                        <p className="text-sm font-semibold text-brand-800">{previewUser.memberSince}</p>
-                                                    </div>
-                                                )}
-                                                {previewUser.joinedDate && (
-                                                    <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
-                                                        <p className="text-[10px] uppercase tracking-widest font-black text-brand-300 flex items-center gap-1"><Calendar size={10} /> Joined Date</p>
-                                                        <p className="text-sm font-semibold text-brand-800">{previewUser.joinedDate}</p>
-                                                    </div>
-                                                )}
-                                                {previewUser.dob && (
-                                                    <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
-                                                        <p className="text-[10px] uppercase tracking-widest font-black text-brand-300 flex items-center gap-1"><Calendar size={10} /> Date of Birth</p>
-                                                        <p className="text-sm font-semibold text-brand-800">{previewUser.dob}</p>
-                                                    </div>
-                                                )}
-                                                {previewUser.bloodGroup && (
-                                                    <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
-                                                        <p className="text-[10px] uppercase tracking-widest font-black text-brand-300 flex items-center gap-1"><Droplets size={10} /> Blood Group</p>
-                                                        <p className="text-sm font-semibold text-brand-800">{previewUser.bloodGroup}</p>
-                                                    </div>
-                                                )}
-                                                {previewUser.gender && (
-                                                    <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
-                                                        <p className="text-[10px] uppercase tracking-widest font-black text-brand-300">Gender</p>
-                                                        <p className="text-sm font-semibold text-brand-800">{previewUser.gender}</p>
-                                                    </div>
-                                                )}
-                                                {previewUser.linkedProfiles && previewUser.linkedProfiles.length > 0 && (
-                                                    <div className="bg-white/80 border border-brand-100 rounded-xl px-4 py-2">
-                                                        <p className="text-[10px] uppercase tracking-widest font-black text-brand-300 flex items-center gap-1"><Users size={10} /> Family Members</p>
-                                                        <p className="text-sm font-semibold text-brand-800">{previewUser.linkedProfiles.length} linked</p>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Entrust Card Preview — only for verified (Active) members */}
-                                            {previewUser.status === 'Active' && (
-                                            <div className="mt-8 relative z-10">
-                                                <div className="flex items-center gap-2 mb-4">
-                                                    <span className="flex-1 h-px bg-brand-100" />
-                                                    <p className="text-[10px] uppercase tracking-widest font-black text-brand-300 flex items-center gap-1.5"><IdCard size={12} /> Entrust Card Preview</p>
-                                                    <span className="flex-1 h-px bg-brand-100" />
-                                                </div>
-                                                {/* EntrustCard3D renders at 340×215px; scale to 72% and constrain container height */}
-                                                <div className="flex justify-center overflow-hidden">
-                                                    <div style={{ transform: 'scale(0.72)', transformOrigin: 'top center', height: '155px' }}>
-                                                        <EntrustCard3D
-                                                            isStatic={true}
-                                                            name={previewUser.name}
-                                                            email={previewUser.email}
-                                                            location={previewUser.location}
-                                                            emergency={previewUser.phone || previewUser.emergency}
-                                                            memberSince={previewUser.memberSince}
-                                                            uniqueId={previewUser.id}
-                                                            photo={previewUser.photo}
-                                                            gender={previewUser.gender}
-                                                            status={previewUser.status}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            )}
 
                                             <button
+                                                type="button"
                                                 onClick={handleProceed}
-                                                className="mt-8 md:mt-10 w-full bg-gradient-to-r from-brand-600 to-brand-800 hover:from-brand-700 hover:to-brand-900 text-white font-black uppercase tracking-[0.2em] md:tracking-[0.3em] text-xs sm:text-sm py-4 md:py-7 rounded-[1.2rem] md:rounded-[2rem] transition-all shadow-2xl shadow-brand-500/40 hover:shadow-brand-500/60 active:scale-[0.98] flex items-center justify-center gap-3 md:gap-4 group relative z-10"
+                                                className="mt-5 md:mt-6 w-full bg-gradient-to-r from-brand-600 to-brand-800 hover:from-brand-700 hover:to-brand-900 text-white font-black uppercase tracking-[0.16em] md:tracking-[0.2em] text-[11px] sm:text-xs py-3.5 md:py-4 rounded-2xl transition-all shadow-2xl shadow-brand-500/40 hover:shadow-brand-500/60 active:scale-[0.98] flex items-center justify-center gap-2.5 group relative z-10"
                                             >
                                                 Proceed to Dashboard <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform duration-500" />
                                             </button>

@@ -6,6 +6,7 @@ import { User } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
+import { addCenteredCardPage } from './pdfCardUtils';
 
 interface QRVerifyPageProps {
     userId: string;
@@ -63,12 +64,8 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack }) =>
             const frontDataUrl = await toPng(frontNode, opts);
             const backDataUrl = await toPng(backNode, opts);
             const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (215 * pdfWidth) / 340;
-            const yPos = (pdf.internal.pageSize.getHeight() - pdfHeight) / 2;
-            pdf.addImage(frontDataUrl, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight, undefined, 'FAST');
-            pdf.addPage();
-            pdf.addImage(backDataUrl, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight, undefined, 'FAST');
+            addCenteredCardPage(pdf, frontDataUrl, 'PNG', true);
+            addCenteredCardPage(pdf, backDataUrl, 'PNG', false);
             pdf.save(`ENTRUST-CARD-${user?.id}.pdf`);
             setDownloaded(true);
         } catch (err: any) {
