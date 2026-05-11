@@ -861,7 +861,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                     onClick={() => {
                                         if (onRegister) {
                                             // Validate all required fields (Email is now OPTIONAL, Password auto-set)
-                                            if (!formData.name?.trim() || !formData.emergency || !formData.location) {
+                                            if (!formData.name?.trim() || !formData.emergency?.trim() || !formData.location?.trim()) {
                                                 alert("Please fill in Name, Phone, and Location to register.");
                                                 return;
                                             }
@@ -870,7 +870,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                                 return;
                                             }
                                             if (registrationType === 'family' && familyMembers.some(member => !member.name.trim())) {
-                                                alert("Please enter name for every added family member.");
+                                                alert("Please enter a name for every added family member.");
                                                 return;
                                             }
                                             // Set password to phone number if not provided
