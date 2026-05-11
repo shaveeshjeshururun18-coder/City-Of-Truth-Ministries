@@ -63,12 +63,6 @@ export const WalletIDCard: React.FC<WalletIDCardProps> = ({ id, status, onDownlo
                                     className="w-24 h-24 block"
                                     crossOrigin="anonymous"
                                 />
-                                {/* Logo overlay in QR center */}
-                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                    <div className="bg-white rounded-full w-7 h-7 flex items-center justify-center shadow border border-slate-100">
-                                        <img src="/logo.png" alt="COT" className="w-5 h-5 object-contain rounded-full" />
-                                    </div>
-                                </div>
                             </div>
                         </>
                     ) : (
