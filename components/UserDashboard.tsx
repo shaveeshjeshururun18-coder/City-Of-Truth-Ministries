@@ -90,18 +90,46 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         const backNode = document.getElementById('capture-back');
         if (frontNode && backNode) {
             try {
+                const waitForNodeImages = async (node: HTMLElement) => {
+                    const images = Array.from(node.querySelectorAll('img')) as HTMLImageElement[];
+                    await Promise.all(images.map((img) => (
+                        img.complete && img.naturalWidth > 0
+                            ? Promise.resolve()
+                            : new Promise<void>((resolve) => {
+                                const done = () => resolve();
+                                img.addEventListener('load', done, { once: true });
+                                img.addEventListener('error', done, { once: true });
+                                setTimeout(done, 3000);
+                            })
+                    )));
+                };
+
+                await Promise.all([waitForNodeImages(frontNode), waitForNodeImages(backNode)]);
                 await new Promise(r => setTimeout(r, 600));
                 // Explicit dimensions ensure off-screen nodes render correctly in all browsers
                 const opts = { pixelRatio: 3, quality: 1, backgroundColor: '#ffffff', cacheBust: true, width: 680, height: 430 };
                 const frontDataUrl = await toPng(frontNode, opts);
                 const backDataUrl = await toPng(backNode, opts);
                 const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = (215 * pdfWidth) / 340;
-                const yPos = (pdf.internal.pageSize.getHeight() - pdfHeight) / 2;
-                pdf.addImage(frontDataUrl, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight, undefined, 'FAST');
-                pdf.addPage();
-                pdf.addImage(backDataUrl, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight, undefined, 'FAST');
+
+                const addCenteredCardPage = (dataUrl: string, format: 'PNG' | 'JPEG', isFirstPage: boolean) => {
+                    if (!isFirstPage) pdf.addPage('a4', 'landscape');
+                    const pageWidth = pdf.internal.pageSize.getWidth();
+                    const pageHeight = pdf.internal.pageSize.getHeight();
+                    const img = pdf.getImageProperties(dataUrl);
+                    const margin = 8;
+                    const maxWidth = pageWidth - (margin * 2);
+                    const maxHeight = pageHeight - (margin * 2);
+                    const scale = Math.min(maxWidth / img.width, maxHeight / img.height);
+                    const renderWidth = img.width * scale;
+                    const renderHeight = img.height * scale;
+                    const x = (pageWidth - renderWidth) / 2;
+                    const y = (pageHeight - renderHeight) / 2;
+                    pdf.addImage(dataUrl, format, x, y, renderWidth, renderHeight, undefined, 'FAST');
+                };
+
+                addCenteredCardPage(frontDataUrl, 'PNG', true);
+                addCenteredCardPage(backDataUrl, 'PNG', false);
                 pdf.save(`ENTRUST-CARD-${displayProfile.id}.pdf`);
             } catch (err: any) {
                 console.error('PDF generation failed', err);
@@ -112,12 +140,25 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     const frontDataUrl2 = await toJpeg2(frontNode!, opts2);
                     const backDataUrl2 = await toJpeg2(backNode!, opts2);
                     const pdf2 = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
-                    const pdfWidth2 = pdf2.internal.pageSize.getWidth();
-                    const pdfHeight2 = (215 * pdfWidth2) / 340;
-                    const yPos2 = (pdf2.internal.pageSize.getHeight() - pdfHeight2) / 2;
-                    pdf2.addImage(frontDataUrl2, 'JPEG', 0, yPos2 > 0 ? yPos2 : 0, pdfWidth2, pdfHeight2, undefined, 'FAST');
-                    pdf2.addPage();
-                    pdf2.addImage(backDataUrl2, 'JPEG', 0, yPos2 > 0 ? yPos2 : 0, pdfWidth2, pdfHeight2, undefined, 'FAST');
+
+                    const addCenteredCardPage2 = (dataUrl: string, isFirstPage: boolean) => {
+                        if (!isFirstPage) pdf2.addPage('a4', 'landscape');
+                        const pageWidth = pdf2.internal.pageSize.getWidth();
+                        const pageHeight = pdf2.internal.pageSize.getHeight();
+                        const img = pdf2.getImageProperties(dataUrl);
+                        const margin = 8;
+                        const maxWidth = pageWidth - (margin * 2);
+                        const maxHeight = pageHeight - (margin * 2);
+                        const scale = Math.min(maxWidth / img.width, maxHeight / img.height);
+                        const renderWidth = img.width * scale;
+                        const renderHeight = img.height * scale;
+                        const x = (pageWidth - renderWidth) / 2;
+                        const y = (pageHeight - renderHeight) / 2;
+                        pdf2.addImage(dataUrl, 'JPEG', x, y, renderWidth, renderHeight, undefined, 'FAST');
+                    };
+
+                    addCenteredCardPage2(frontDataUrl2, true);
+                    addCenteredCardPage2(backDataUrl2, false);
                     pdf2.save(`ENTRUST-CARD-${displayProfile.id}.pdf`);
                 } catch (err2) {
                     alert('PDF generation failed. Please try again or contact admin.');
@@ -494,11 +535,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         className="relative inline-block bg-white rounded-3xl p-4 border border-slate-100 shadow-lg shadow-brand-900/5"
                                     >
                                         <img src={qrImgSrc} alt="QR Code" className="w-48 h-48 block mx-auto" crossOrigin="anonymous" />
-                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                            <div className="bg-white rounded-full w-12 h-12 flex items-center justify-center shadow-md border border-slate-100">
-                                                <img src="/logo.png" alt="COT" className="w-8 h-8 object-contain" />
-                                            </div>
-                                        </div>
                                     </button>
                                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-4">Tap QR to open scanner</p>
                                 </div>

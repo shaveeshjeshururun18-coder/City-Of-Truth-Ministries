@@ -562,6 +562,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                             )}
 
                                             <button
+                                                type="button"
                                                 onClick={handleProceed}
                                                 className="mt-8 md:mt-10 w-full bg-gradient-to-r from-brand-600 to-brand-800 hover:from-brand-700 hover:to-brand-900 text-white font-black uppercase tracking-[0.2em] md:tracking-[0.3em] text-xs sm:text-sm py-4 md:py-7 rounded-[1.2rem] md:rounded-[2rem] transition-all shadow-2xl shadow-brand-500/40 hover:shadow-brand-500/60 active:scale-[0.98] flex items-center justify-center gap-3 md:gap-4 group relative z-10"
                                             >
