@@ -827,6 +827,7 @@ const App: React.FC = () => {
   if (isAuthRoute) {
     const params = new URLSearchParams(location.search);
     const routeInitial = params.get('view');
+    const routeIdentifier = params.get('identifier') || '';
     const initialView = routeInitial === 'login' || routeInitial === 'register' || routeInitial === 'forgot-id' || routeInitial === 'choice'
       ? routeInitial
       : 'login';
@@ -842,6 +843,7 @@ const App: React.FC = () => {
         onBack={() => navigate('/')}
         users={users}
         initialView={initialView}
+        initialIdentifier={routeIdentifier}
       />
     );
   }
@@ -872,6 +874,7 @@ const App: React.FC = () => {
                 onBack={() => setCurrentView(ViewState.HOME)}
                 users={users}
                 initialView={authInitialView}
+                initialIdentifier=""
               />
             </motion.div>
           )}
@@ -1266,6 +1269,7 @@ const App: React.FC = () => {
                 initialProfileId={selectedDashboardProfileId || undefined}
                 onEdit={() => { }}
                 onLogout={handleLogout}
+                onGoToLogin={() => navigate('/auth?view=login')}
                 onOpenScanner={() => setCurrentView(ViewState.VERIFY_ID)}
                 onUpdate={async (updatedUser) => {
                   await api.updateUser(updatedUser);

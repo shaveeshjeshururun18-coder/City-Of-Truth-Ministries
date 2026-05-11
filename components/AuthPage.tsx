@@ -15,6 +15,7 @@ interface AuthPageProps {
     onBack: () => void;
     users?: any[];
     initialView?: 'choice' | 'login' | 'register' | 'forgot-id';
+    initialIdentifier?: string;
 }
 
 export const AuthPage: React.FC<AuthPageProps> = ({
@@ -23,7 +24,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     onAdminClick,
     onBack,
     users = [],
-    initialView = 'login'
+    initialView = 'login',
+    initialIdentifier = ''
 }) => {
     const [view, setView] = useState<'choice' | 'login' | 'register' | 'forgot-id'>(initialView);
     const [identifier, setIdentifier] = useState('');
@@ -151,6 +153,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             stopScanner();
         };
     }, [showScanner]);
+
+    useEffect(() => {
+        const incoming = (initialIdentifier || '').trim();
+        if (!incoming) return;
+        setIdentifier(incoming);
+        handleSearch(incoming);
+    }, [initialIdentifier]);
 
     const handleFileQRScan = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];

@@ -16,6 +16,52 @@ import { getCalendarData5786 } from './CalendarLogic';
 import { audioService } from '../services/audioService';
 
 
+const captureNodeToJpeg = async (
+    sourceNode: HTMLElement,
+    options: { backgroundColor: string; width?: number }
+) => {
+    const wrapper = document.createElement('div');
+    const clone = sourceNode.cloneNode(true) as HTMLElement;
+    const sourceRect = sourceNode.getBoundingClientRect();
+    const targetWidth = options.width || Math.max(640, Math.ceil(sourceRect.width) || 640);
+
+    wrapper.style.position = 'fixed';
+    wrapper.style.left = '0';
+    wrapper.style.top = '0';
+    wrapper.style.opacity = '0';
+    wrapper.style.pointerEvents = 'none';
+    wrapper.style.zIndex = '-1';
+    wrapper.style.background = options.backgroundColor;
+    wrapper.style.width = `${targetWidth}px`;
+    wrapper.style.margin = '0';
+    wrapper.style.padding = '0';
+
+    clone.style.position = 'relative';
+    clone.style.left = '0';
+    clone.style.top = '0';
+    clone.style.width = `${targetWidth}px`;
+    clone.style.margin = '0';
+
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
+
+    try {
+        if ('fonts' in document) {
+            await (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts?.ready;
+        }
+        await new Promise(resolve => setTimeout(resolve, 150));
+        const pixelRatio = Math.min(2.5, Math.max(1.5, window.devicePixelRatio || 1));
+        return await toJpeg(clone, {
+            quality: 0.98,
+            pixelRatio,
+            backgroundColor: options.backgroundColor,
+            cacheBust: true,
+        });
+    } finally {
+        document.body.removeChild(wrapper);
+    }
+};
+
 const toHebrew = (num: number): string => {
     if (num <= 0) return '';
     const units = ['', 'א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט'];
@@ -868,12 +914,7 @@ const HebrewLettersAudioLab: React.FC = () => {
         if (!aiResultRef.current || !combinedWord) return;
         setIsExporting(true);
         try {
-            const dataUrl = await toJpeg(aiResultRef.current, {
-                quality: 0.98,
-                pixelRatio: 3,
-                backgroundColor: '#020617',
-                cacheBust: true,
-            });
+            const dataUrl = await captureNodeToJpeg(aiResultRef.current, { backgroundColor: '#020617' });
             const safeWord = combinedWord.replace(/[^a-zA-Z0-9\u0590-\u05FF]/g, '') || 'Hebrew-Word';
             const filename = `COT-Hebrew-Insight-${safeWord}`;
             if (format === 'jpeg') {

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, SubProfile } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
-import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud } from 'lucide-react';
+import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag } from 'lucide-react';
 import { Button } from './Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TestimonialModal } from './TestimonialModal';
@@ -20,9 +20,10 @@ interface UserDashboardProps {
     onLogout: () => void;
     onOpenScanner?: () => void;
     initialProfileId?: string;
+    onGoToLogin?: () => void;
 }
 
-export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, onOpenScanner, initialProfileId }) => {
+export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, onOpenScanner, initialProfileId, onGoToLogin }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [showTestimonialModal, setShowTestimonialModal] = useState(false);
     const [formData, setFormData] = useState<Partial<User>>({});
@@ -201,9 +202,86 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     };
 
     const handleShare = () => {
-        const url = `${window.location.origin}/verify/${displayProfile.id}`;
-        if (navigator.share) { navigator.share({ title: `${displayProfile.name} — City of Truth Ministries`, text: 'Check my Entrust ID Card', url }); }
-        else { navigator.clipboard.writeText(url); alert('Profile link copied!'); }
+        const url = `${window.location.origin}/auth?view=login&identifier=${encodeURIComponent(displayProfile.id)}`;
+        if (navigator.share) {
+            navigator.share({
+                title: `${displayProfile.name} — City of Truth Ministries`,
+                text: `Login with this unique member profile link: ${displayProfile.id}`,
+                url
+            });
+        } else {
+            navigator.clipboard.writeText(url);
+            alert('Profile login link copied!');
+        }
+    };
+
+    const handleExportProfileDetailsPDF = () => {
+        try {
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+            const lineHeight = 7;
+            const left = 14;
+            const pageBottom = 280;
+            let y = 16;
+
+            const addLine = (text: string, bold = false) => {
+                if (y > pageBottom) {
+                    pdf.addPage();
+                    y = 16;
+                }
+                pdf.setFont('helvetica', bold ? 'bold' : 'normal');
+                pdf.text(text, left, y);
+                y += lineHeight;
+            };
+
+            addLine('City of Truth Ministries — Profile Details Export', true);
+            addLine(`Generated: ${new Date().toLocaleString()}`);
+            addLine(`Primary Member ID: ${user.id}`);
+            y += 2;
+
+            addLine('Primary Profile', true);
+            addLine(`Name: ${user.name}`);
+            addLine(`Member ID: ${user.id}`);
+            addLine(`Email: ${user.email || '-'}`);
+            addLine(`Phone: ${user.phone || user.emergency || '-'}`);
+            addLine(`Emergency: ${user.emergency || '-'}`);
+            addLine(`Location: ${user.location || '-'}`);
+            addLine(`Blood Group: ${user.bloodGroup || '-'}`);
+            addLine(`DOB: ${user.dob || '-'}`);
+            addLine(`Role: ${user.role || 'Member'}`);
+            addLine(`Status: ${user.status || '-'}`);
+            y += 2;
+
+            addLine(`Currently Active Profile: ${displayProfile.name} (${displayProfile.id})`, true);
+            y += 2;
+
+            addLine('Family Profiles', true);
+            if (!user.linkedProfiles || user.linkedProfiles.length === 0) {
+                addLine('No linked family profiles found.');
+            } else {
+                user.linkedProfiles.forEach((profile, index) => {
+                    addLine(`Family ${index + 1}`, true);
+                    addLine(`Name: ${profile.name || '-'}`);
+                    addLine(`Member ID: ${profile.id || '-'}`);
+                    addLine(`Relation: ${profile.role || 'Family Member'}`);
+                    addLine(`DOB: ${profile.dob || '-'}`);
+                    addLine(`Blood Group: ${profile.bloodGroup || '-'}`);
+                    y += 1;
+                });
+            }
+
+            pdf.save(`COT-Profile-Details-${user.id}.pdf`);
+        } catch (error) {
+            console.error('Profile details PDF export failed:', error);
+            alert('Unable to export profile details PDF. Please try again.');
+        }
+    };
+
+    const handleGoToLogin = () => {
+        if (onGoToLogin) {
+            onGoToLogin();
+            return;
+        }
+        window.location.href = '/auth?view=login';
     };
 
     const handleVerificationDocUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -518,16 +596,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                     {/* Action buttons row (mAadhaar style) */}
                     {user.status === 'Active' && (
-                        <div className="grid grid-cols-4 gap-1 px-4 pb-5 pt-3">
+                        <div className="grid grid-cols-5 gap-1 px-4 pb-5 pt-3">
                             {[
                                 { icon: <Share2 size={20} />, label: 'Share', action: handleShare },
                                 { icon: <Download size={20} />, label: 'Download', action: handleDownloadPDF, loading: isProcessing },
+                                { icon: <FileText size={20} />, label: 'Details PDF', action: handleExportProfileDetailsPDF },
                                 { icon: <QrCode size={20} />, label: 'Open Scanner', action: () => onOpenScanner?.() },
-                                { 
-                                    icon: <div className="relative"><CheckCircle size={20} className="text-amber-500" /><div className="absolute inset-0 bg-amber-400 blur-sm rounded-full -z-10 animate-pulse" /></div>, 
-                                    label: <span className="bg-gradient-to-r from-amber-500 to-amber-700 bg-clip-text text-transparent font-black shadow-sm">VERIFIED MEMBER</span>, 
-                                    action: () => {}
-                                },
+                                { icon: <LogIn size={20} />, label: 'Profile Login', action: handleGoToLogin },
                             ].map(({ icon, label, action, loading }, i) => (
                                 <button key={i} onClick={action} disabled={loading}
                                     className="flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-2xl bg-slate-50 hover:bg-brand-50 hover:text-brand-700 text-slate-600 transition-all disabled:opacity-60 border border-transparent hover:border-brand-100">
@@ -576,6 +651,28 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         </span>
                     </button>
 
+                    {/* Share Profile Link */}
+                    <button onClick={handleShare}
+                        className="bg-gradient-to-br from-emerald-600 to-teal-700 text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
+                        <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Share2 size={18} /></div>
+                        <p className="font-bold text-sm leading-tight mb-1">Share Profile Link</p>
+                        <p className="text-white/80 text-[10px]">Share unique login URL for this profile</p>
+                        <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
+                            <Share2 size={11} /> Share
+                        </span>
+                    </button>
+
+                    {/* Profile Details PDF */}
+                    <button onClick={handleExportProfileDetailsPDF}
+                        className="bg-gradient-to-br from-indigo-700 to-violet-800 text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
+                        <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><FileText size={18} /></div>
+                        <p className="font-bold text-sm leading-tight mb-1">Profile Details PDF</p>
+                        <p className="text-white/80 text-[10px]">Export user + family + active profile details</p>
+                        <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
+                            <Download size={11} /> Export
+                        </span>
+                    </button>
+
                     {/* Jewish Calendar — amber (full width row) */}
                     {activeProfileId === user.id && (
                         <button onClick={() => setIsCalendarModalOpen(true)}
@@ -608,6 +705,28 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             📱
                         </div>
                     </a>
+
+                    {/* Menorah Flag Download */}
+                    <a href="/menorah-flag-image.png" download="COT-Menorah-Flag.png"
+                        className="col-span-2 bg-gradient-to-br from-[#7c4d00] to-[#f59e0b] text-white rounded-[22px] p-5 text-left shadow-xl hover:brightness-110 transition-all relative overflow-hidden group block">
+                        <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Flag size={22} /></div>
+                        <p className="font-bold text-base leading-tight mb-1">Download Menorah Flag</p>
+                        <p className="text-white/80 text-[11px] mb-3">Save the official ministry flag image to your device.</p>
+                        <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/20 rounded-xl px-4 py-2">
+                            <Download size={12} /> Download Flag
+                        </span>
+                    </a>
+
+                    {/* Go To Login */}
+                    <button onClick={handleGoToLogin}
+                        className="col-span-2 bg-gradient-to-br from-slate-700 to-slate-900 text-white rounded-[22px] p-5 text-left shadow-xl hover:brightness-110 transition-all relative overflow-hidden group">
+                        <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><LogIn size={22} /></div>
+                        <p className="font-bold text-base leading-tight mb-1">Profile Login</p>
+                        <p className="text-white/80 text-[11px] mb-3">Open default login page to switch or sign in with another profile.</p>
+                        <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/20 rounded-xl px-4 py-2">
+                            <LogIn size={12} /> Open Login
+                        </span>
+                    </button>
                 </div>
 
                 </div>
