@@ -572,6 +572,9 @@ const getChennaiTimeParts = () => {
     }).formatToParts(now);
 
     const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+    if (!map.hour || !map.minute || !map.second) {
+        console.warn('Unexpected time parts from Intl.DateTimeFormat for Chennai timezone.', map);
+    }
     const hour = Number(map.hour || '0');
     const minute = Number(map.minute || '0');
     const second = Number(map.second || '0');
