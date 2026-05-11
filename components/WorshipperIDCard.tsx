@@ -56,21 +56,14 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
         if (isStatic) setIsFlipped(isBackSide);
     }, [isBackSide, isStatic]);
 
-    const sanitizeImageSrc = (value?: string) => {
-        if (!value) return '';
-        const src = value.trim();
-        return /^(data:image\/[a-zA-Z+.-]+;base64,|https?:\/\/|blob:|\/)/.test(src) ? src : '';
-    };
-
-    const safeHeadPhoto = sanitizeImageSrc(photo);
+    const safeHeadPhoto = photo?.trim().startsWith('data:image/') ? photo : '';
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`https://city-of-truth-ministries.vercel.app/verify/${uniqueId}`)}&bgcolor=ffffff&color=2c298c&margin=2`;
     const sanitizedFamilyMembers = familyMembers.filter(member => member.name.trim());
     const memberCount = sanitizedFamilyMembers.length + 1;
     const memberNames = sanitizedFamilyMembers
-        .filter(member => member.name.trim())
         .map(member => member.name.trim().split(/\s+/)[0])
         .slice(0, 6);
-    const familyBadge = `👨‍👩‍👧 ${memberCount} Members`;
+    const familyBadge = `${memberCount} Members`;
 
     const IndividualFrontFace = () => (
         <div className="absolute inset-0 bg-white rounded-xl overflow-hidden border border-gray-200 shadow-2xl flex flex-col" style={{ backfaceVisibility: 'hidden' }}>
@@ -234,8 +227,8 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                             <p className="text-[5px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Family Members</p>
                             {memberNames.length > 0 ? (
                                 <div className="space-y-0.5">
-                                    {memberNames.map(memberName => (
-                                        <p key={`${uniqueId}-${memberName}`} className="text-[7px] text-slate-700 font-semibold truncate">• {memberName}</p>
+                                    {memberNames.map((memberName, index) => (
+                                        <p key={`${uniqueId}-${memberName}-${index}`} className="text-[7px] text-slate-700 font-semibold truncate">• {memberName}</p>
                                     ))}
                                 </div>
                             ) : (
@@ -245,7 +238,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                     </div>
 
                     <div className="flex items-end justify-between gap-2">
-                        <span className="text-[6px] font-bold text-brand-700 bg-brand-100 border border-brand-200 rounded-full px-2 py-0.5 whitespace-nowrap">{familyBadge}</span>
+                        <span className="text-[6px] font-bold text-brand-700 bg-brand-100 border border-brand-200 rounded-full px-2 py-0.5 whitespace-nowrap" aria-label={`${memberCount} family members`}>👨‍👩‍👧 {familyBadge}</span>
                         <button
                             type="button"
                             onClick={(e) => {
@@ -286,9 +279,9 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
 
                     <div className="grid grid-cols-2 gap-2 flex-1">
                         {sanitizedFamilyMembers.slice(0, 4).map((member, index) => (
-                            <div key={`${member.name}-${index}`} className="bg-white/10 border border-white/20 rounded-lg p-1.5 backdrop-blur-sm">
+                            <div key={index} className="bg-white/10 border border-white/20 rounded-lg p-1.5 backdrop-blur-sm">
                                 <div className="w-8 h-8 rounded-full bg-white/20 border border-white/30 overflow-hidden flex items-center justify-center text-white/70 mb-1">
-                                    {sanitizeImageSrc(member.photo) ? <img src={sanitizeImageSrc(member.photo)} alt={member.name || 'member'} className="w-full h-full object-cover" /> : <User size={14} />}
+                                    {member.photo?.trim().startsWith('data:image/') ? <img src={member.photo} alt={member.name || 'member'} className="w-full h-full object-cover" /> : <User size={14} />}
                                 </div>
                                 <p className="text-[7px] font-bold truncate">{member.name || 'Member'}</p>
                                 <p className="text-[6px] text-white/75 truncate">{member.relationship || 'None'}</p>
