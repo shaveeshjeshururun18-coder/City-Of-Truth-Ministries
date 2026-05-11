@@ -860,8 +860,11 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                 <Button
                                     onClick={() => {
                                         if (onRegister) {
+                                            const trimmedName = formData.name?.trim() || '';
+                                            const trimmedEmergency = formData.emergency?.trim() || '';
+                                            const trimmedLocation = formData.location?.trim() || '';
                                             // Validate all required fields (Email is now OPTIONAL, Password auto-set)
-                                            if (!formData.name?.trim() || !formData.emergency?.trim() || !formData.location?.trim()) {
+                                            if (!trimmedName || !trimmedEmergency || !trimmedLocation) {
                                                 alert("Please fill in Name, Phone, and Location to register.");
                                                 return;
                                             }
@@ -874,10 +877,10 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                                 return;
                                             }
                                             // Set password to phone number if not provided
-                                            const finalPassword = formData.emergency;
+                                            const finalPassword = trimmedEmergency;
 
                                             // Validate phone number length
-                                            if (formData.emergency.length !== 10) {
+                                            if (trimmedEmergency.length !== 10) {
                                                 alert("Phone number must be exactly 10 digits.");
                                                 return;
                                             }
@@ -890,10 +893,12 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
 
                                             onRegister({
                                                 ...formData,
+                                                name: trimmedName,
                                                 registrationType,
                                                 familyMembers,
-                                                emergency: `+91${formData.emergency}`,
-                                                phone: `+91${formData.emergency}`,
+                                                emergency: `+91${trimmedEmergency}`,
+                                                location: trimmedLocation,
+                                                phone: `+91${trimmedEmergency}`,
                                                 password: finalPassword,
                                                 uniqueId,
                                                 photo
