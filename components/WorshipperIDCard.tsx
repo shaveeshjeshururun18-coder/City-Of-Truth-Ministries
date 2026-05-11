@@ -726,7 +726,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                                 <div className="space-y-2">
                                     <label className="text-xs font-semibold text-slate-700 ml-1">Full Name</label>
-                                    <input name="name" value={formData.name} onChange={handleInputChange} type="text" className="w-full px-4 md:px-6 py-3 md:py-4 bg-white border border-slate-300 rounded-xl md:rounded-2xl outline-none transition-all text-sm font-semibold text-brand-950 placeholder:text-slate-500 shadow-sm focus:ring-2 focus:ring-accent-500/20" />
+                                    <input required aria-required="true" name="name" value={formData.name} onChange={handleInputChange} type="text" className="w-full px-4 md:px-6 py-3 md:py-4 bg-white border border-slate-300 rounded-xl md:rounded-2xl outline-none transition-all text-sm font-semibold text-brand-950 placeholder:text-slate-500 shadow-sm focus:ring-2 focus:ring-accent-500/20" />
                                 </div>
 
                                 <div className="space-y-2">
@@ -861,7 +861,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                     onClick={() => {
                                         if (onRegister) {
                                             // Validate all required fields (Email is now OPTIONAL, Password auto-set)
-                                            if (!formData.name || !formData.emergency || !formData.location) {
+                                            if (!formData.name?.trim() || !formData.emergency || !formData.location) {
                                                 alert("Please fill in Name, Phone, and Location to register.");
                                                 return;
                                             }

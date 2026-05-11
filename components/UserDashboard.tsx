@@ -23,7 +23,7 @@ interface UserDashboardProps {
 }
 
 const FAMILY_RELATIONSHIP_OPTIONS = {
-    immediate: ['Spouse', 'Son', 'Daughter', 'Father', 'Mother', 'Brother', 'Sister'],
+    immediate: ['None', 'Spouse', 'Son', 'Daughter', 'Father', 'Mother', 'Brother', 'Sister'],
     extended: ['Grandfather', 'Grandmother', 'Father-in-law', 'Mother-in-law', 'Uncle', 'Aunt', 'Cousin'],
     others: ['Guardian', 'Other']
 };
@@ -193,8 +193,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
     const handleAddSubProfile = (e: React.FormEvent) => {
         e.preventDefault();
+        const trimmedName = (subProfileForm.name || '').trim();
+        if (!trimmedName) {
+            alert('Family member name is required.');
+            return;
+        }
         const newId = `${user.id}-${(user.linkedProfiles?.length || 0) + 1}`;
-        const newProfile: SubProfile = { id: newId, name: subProfileForm.name || '', role: subProfileForm.role || 'Family Member', dob: subProfileForm.dob, bloodGroup: subProfileForm.bloodGroup };
+        const newProfile: SubProfile = { id: newId, name: trimmedName, role: subProfileForm.role || 'None', dob: subProfileForm.dob, bloodGroup: subProfileForm.bloodGroup };
         onUpdate({ ...user, linkedProfiles: [...(user.linkedProfiles || []), newProfile] } as User);
         setShowFamilyModal(false); setSubProfileForm({});
     };
@@ -273,7 +278,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="text-xs font-semibold text-slate-700 block mb-1.5">Relationship</label>
-                                            <select required value={subProfileForm.role || 'Spouse'} onChange={e => setSubProfileForm({ ...subProfileForm, role: e.target.value })} className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm appearance-none shadow-sm">
+                                            <select required value={subProfileForm.role || 'None'} onChange={e => setSubProfileForm({ ...subProfileForm, role: e.target.value })} className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm appearance-none shadow-sm">
                                                 <optgroup label="Immediate Family">
                                                     {FAMILY_RELATIONSHIP_OPTIONS.immediate.map(option => (
                                                         <option key={option} value={option}>{option}</option>
