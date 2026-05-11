@@ -56,9 +56,15 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
         if (isStatic) setIsFlipped(isBackSide);
     }, [isBackSide, isStatic]);
 
-    const fullDetails = `CITY OF TRUTH MINISTRIES\nID: ${uniqueId}\nName: ${name}\nLocation: ${location}\nPhone: ${emergency}\nMember Since: ${memberSince}`.trim();
+    const sanitizeImageSrc = (value?: string) => {
+        if (!value) return '';
+        const src = value.trim();
+        return /^(data:image\/[a-zA-Z+.-]+;base64,|https?:\/\/|blob:|\/)/.test(src) ? src : '';
+    };
+
+    const safeHeadPhoto = sanitizeImageSrc(photo);
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`https://city-of-truth-ministries.vercel.app/verify/${uniqueId}`)}&bgcolor=ffffff&color=2c298c&margin=2`;
-    const sanitizedFamilyMembers = familyMembers.filter(member => member.name.trim() || member.relationship !== 'None');
+    const sanitizedFamilyMembers = familyMembers.filter(member => member.name.trim());
     const memberCount = sanitizedFamilyMembers.length + 1;
     const memberNames = sanitizedFamilyMembers
         .filter(member => member.name.trim())
@@ -91,7 +97,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
             <div className="flex-1 flex p-2 gap-2 relative z-10">
                 {/* Left: Photo */}
                 <div className="w-24 h-28 bg-slate-50 rounded-lg border-2 border-slate-100 flex items-center justify-center text-slate-300 overflow-hidden shadow-sm shrink-0">
-                    {photo ? <img src={photo} alt="P" className="w-full h-full object-cover" /> : <User size={32} />}
+                    {safeHeadPhoto ? <img src={safeHeadPhoto} alt="P" className="w-full h-full object-cover" /> : <User size={32} />}
                 </div>
 
                 {/* Right: Details */}
@@ -196,7 +202,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
             <div className="flex-1 p-2 relative z-10 flex gap-2">
                 <div className="w-[40%] flex flex-col">
                     <div className="flex-1 min-h-0 rounded-lg border border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center">
-                        {photo ? <img src={photo} alt="Family Head" className="w-full h-full object-cover" /> : <User size={30} className="text-slate-300" />}
+                        {safeHeadPhoto ? <img src={safeHeadPhoto} alt="Family Head" className="w-full h-full object-cover" /> : <User size={30} className="text-slate-300" />}
                     </div>
                     <div className="mt-1 bg-white/90 rounded-md border border-slate-200 px-1.5 py-1">
                         <p className="text-[5px] uppercase tracking-wider text-slate-500 font-bold">Family Head</p>
@@ -282,7 +288,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                         {sanitizedFamilyMembers.slice(0, 4).map((member, index) => (
                             <div key={`${member.name}-${index}`} className="bg-white/10 border border-white/20 rounded-lg p-1.5 backdrop-blur-sm">
                                 <div className="w-8 h-8 rounded-full bg-white/20 border border-white/30 overflow-hidden flex items-center justify-center text-white/70 mb-1">
-                                    {member.photo ? <img src={member.photo} alt={member.name || 'member'} className="w-full h-full object-cover" /> : <User size={14} />}
+                                    {sanitizeImageSrc(member.photo) ? <img src={sanitizeImageSrc(member.photo)} alt={member.name || 'member'} className="w-full h-full object-cover" /> : <User size={14} />}
                                 </div>
                                 <p className="text-[7px] font-bold truncate">{member.name || 'Member'}</p>
                                 <p className="text-[6px] text-white/75 truncate">{member.relationship || 'None'}</p>
@@ -813,6 +819,8 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                                                     type="text"
                                                                     value={member.name}
                                                                     onChange={(e) => updateFamilyMember(member.id, 'name', e.target.value)}
+                                                                    required
+                                                                    aria-required="true"
                                                                     className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl outline-none text-sm text-brand-950 shadow-sm focus:ring-2 focus:ring-accent-500/20"
                                                                     placeholder="Enter member name"
                                                                 />
