@@ -317,7 +317,7 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
     };
 
     return (
-        <div className="space-y-6 md:space-y-12 w-full max-w-5xl mx-auto px-4 md:px-6 scale-[0.95] origin-top">
+        <div className="space-y-6 md:space-y-12 w-full max-w-none mx-auto px-0 md:px-2">
             {/* Hidden Print Config */}
             {/* Hidden Print Config - Mounted on-screen for capture */}
             {/* Hidden Print Config - Mounted off-screen for capture but visible to DOM */}
@@ -340,27 +340,12 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
             <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-12 shadow-[0_20px_60px_rgba(0,0,0,0.05)] border border-slate-100 font-serif">
                 <div className="flex flex-col xl:flex-row items-center justify-between gap-6 md:gap-8 mb-8 md:mb-12">
                     <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4 bg-slate-50 p-2 md:p-3 rounded-2xl w-full xl:w-auto">
-                        {/* Selector */}
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="number"
-                                value={year || ''}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    if (val === '') {
-                                        setYear(0); // Temporary state while typing
-                                    } else {
-                                        setYear(Number(val));
-                                    }
-                                }}
-                                className="bg-slate-100 border text-center w-24 border-slate-200 rounded-lg font-bold text-brand-950 outline-none px-2 py-1.5 text-xs md:text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                                placeholder="Year"
-                                min="1"
-                                max="9999"
-                            />
-                        </div>
+                        <HebrewYearDropdown
+                            selectedYear={safeYear}
+                            onYearChange={(selectedYear) => setYear(selectedYear)}
+                        />
                         <div className="bg-white px-3 py-1.5 rounded-lg border border-slate-100 text-xs font-bold text-slate-500 shadow-sm">
-                            Year {year}
+                            Year {safeYear}
                         </div>
                     </div>
 

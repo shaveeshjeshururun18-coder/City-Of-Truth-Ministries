@@ -244,8 +244,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                     </div>
                   </div>
                   <button
+                    type="button"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="p-1.5 hover:bg-white rounded-full transition-all text-[#333] shadow-sm border border-gray-100"
+                    className="p-2 rounded-full transition-all text-white bg-blue-700 hover:bg-blue-800 shadow-md border border-blue-500/60 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    title="Close menu"
+                    aria-label="Close navigation menu"
                   >
                     <X size={18} />
                   </button>

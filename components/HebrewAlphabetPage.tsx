@@ -49,6 +49,8 @@ export const HebrewAlphabetPage: React.FC = () => {
     };
 
     const selectedLetter = selectedIndex !== null ? HEBREW_LETTERS[selectedIndex] : null;
+    const letterCount = HEBREW_LETTERS.length;
+    const wordCount = new Set(HEBREW_LETTERS.map((item) => item.hebrewName)).size;
 
     return (
         <div className="min-h-screen bg-[#000000] text-[#e5e5e5] pb-24 overflow-hidden relative">
@@ -61,7 +63,14 @@ export const HebrewAlphabetPage: React.FC = () => {
                     <h1 className="font-serif text-5xl md:text-7xl text-transparent bg-clip-text bg-gradient-to-b from-[#FBBF24] via-[#F59E0B] to-[#D97706] tracking-wider uppercase font-bold px-2 drop-shadow-xl">Lashon HaKodesh</h1>
                     <div className="w-24 h-[1px] bg-gradient-to-r from-transparent via-[#F59E0B]/50 to-transparent mx-auto mt-4 mb-4"></div>
                     <p className="text-xs md:text-sm tracking-[4px] md:tracking-[6px] text-[#F59E0B]/50 uppercase font-bold">The Holy Tongue: Hebrew Aleph-Bet · ஆலெஃப்-பேத்</p>
-                    <p className="text-[11px] text-[#F59E0B]/40 italic">Tap any letter to play audio and learn pronunciation slowly with Tamil guidance</p>
+                    <div className="flex items-center justify-center gap-3 md:gap-4 pt-2">
+                        <div className="px-4 py-2 rounded-2xl border border-[#F59E0B]/40 bg-[#F59E0B]/10 text-[#FBBF24] text-xs md:text-sm font-black tracking-[0.15em] uppercase">
+                            {letterCount} Letters
+                        </div>
+                        <div className="px-4 py-2 rounded-2xl border border-white/20 bg-white/10 text-white text-xs md:text-sm font-black tracking-[0.15em] uppercase">
+                            {wordCount} Words
+                        </div>
+                    </div>
                 </header>
 
                 {selectedLetter && (

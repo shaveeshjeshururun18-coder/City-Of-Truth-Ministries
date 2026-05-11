@@ -1160,43 +1160,43 @@ const App: React.FC = () => {
 
           {currentView === ViewState.HEBREW_CALENDAR && (
             <div key="hebrew-calendar">
-              <HebrewResources initialTab="calendar" currentUser={currentUser || undefined} />
+              <HebrewResources mode="content" initialTab="calendar" currentUser={currentUser || undefined} />
             </div>
           )}
 
           {currentView === ViewState.HEBREW_NUMBERS && (
             <div key="hebrew-numbers">
-              <HebrewResources initialTab="numbers" />
+              <HebrewResources mode="tools" initialTab="numbers" />
             </div>
           )}
 
           {currentView === ViewState.HEBREW_WORDS && (
             <div key="hebrew-words">
-              <HebrewResources initialTab="words" />
+              <HebrewResources mode="tools" initialTab="words" />
             </div>
           )}
 
           {currentView === ViewState.HEBREW_LETTERS_AUDIO && (
             <div key="hebrew-letters-audio">
-              <HebrewResources initialTab="lettersaudio" />
+              <HebrewResources mode="tools" initialTab="lettersaudio" />
             </div>
           )}
 
           {currentView === ViewState.HEBREW_GEMATRIA && (
             <div key="hebrew-gematria">
-              <HebrewResources initialTab="gematria" />
+              <HebrewResources mode="tools" initialTab="gematria" />
             </div>
           )}
 
           {currentView === ViewState.HEBREW_FESTIVALS && (
             <div key="hebrew-festivals">
-              <HebrewResources initialTab="festivals" />
+              <HebrewResources mode="content" initialTab="festivals" />
             </div>
           )}
 
           {currentView === ViewState.HEBREW_REFERENCE && (
             <div key="hebrew-reference">
-              <HebrewResources initialTab="reference" />
+              <HebrewResources mode="content" initialTab="reference" />
             </div>
           )}
 
