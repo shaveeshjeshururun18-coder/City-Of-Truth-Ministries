@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X, Calendar, Droplets, Users, Mail, UserCheck } from 'lucide-react';
 import { Button } from './Button';
@@ -159,7 +159,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         if (!incoming) return;
         setIdentifier(incoming);
         handleSearch(incoming);
-    }, [initialIdentifier]);
+    }, [initialIdentifier, handleSearch]);
 
     const handleFileQRScan = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -240,7 +240,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         }
     };
 
-    const handleSearch = (searchVal?: any) => {
+    const handleSearch = useCallback((searchVal?: any) => {
         const queryTerm = typeof searchVal === 'string' ? searchVal : identifier;
         if (!queryTerm.trim()) return;
 
@@ -261,7 +261,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             }
             setSearching(false);
         }, 400);
-    };
+    }, [identifier, users]);
 
     const handleProceed = () => {
         if (previewUser) {
