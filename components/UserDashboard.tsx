@@ -112,11 +112,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 const backDataUrl = await toPng(backNode, opts);
                 const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
 
-                const addCenteredCardPage = (dataUrl: string, format: 'PNG' | 'JPEG', isFirstPage: boolean) => {
-                    if (!isFirstPage) pdf.addPage('a4', 'landscape');
-                    const pageWidth = pdf.internal.pageSize.getWidth();
-                    const pageHeight = pdf.internal.pageSize.getHeight();
-                    const img = pdf.getImageProperties(dataUrl);
+                const addCenteredCardPage = (pdfDoc: jsPDF, dataUrl: string, format: 'PNG' | 'JPEG', isFirstPage: boolean) => {
+                    if (!isFirstPage) pdfDoc.addPage('a4', 'landscape');
+                    const pageWidth = pdfDoc.internal.pageSize.getWidth();
+                    const pageHeight = pdfDoc.internal.pageSize.getHeight();
+                    const img = pdfDoc.getImageProperties(dataUrl);
                     const margin = 8;
                     const maxWidth = pageWidth - (margin * 2);
                     const maxHeight = pageHeight - (margin * 2);
@@ -125,11 +125,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     const renderHeight = img.height * scale;
                     const x = (pageWidth - renderWidth) / 2;
                     const y = (pageHeight - renderHeight) / 2;
-                    pdf.addImage(dataUrl, format, x, y, renderWidth, renderHeight, undefined, 'FAST');
+                    pdfDoc.addImage(dataUrl, format, x, y, renderWidth, renderHeight, undefined, 'FAST');
                 };
 
-                addCenteredCardPage(frontDataUrl, 'PNG', true);
-                addCenteredCardPage(backDataUrl, 'PNG', false);
+                addCenteredCardPage(pdf, frontDataUrl, 'PNG', true);
+                addCenteredCardPage(pdf, backDataUrl, 'PNG', false);
                 pdf.save(`ENTRUST-CARD-${displayProfile.id}.pdf`);
             } catch (err: any) {
                 console.error('PDF generation failed', err);
@@ -140,25 +140,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     const frontDataUrl2 = await toJpeg2(frontNode!, opts2);
                     const backDataUrl2 = await toJpeg2(backNode!, opts2);
                     const pdf2 = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
-
-                    const addCenteredCardPage2 = (dataUrl: string, isFirstPage: boolean) => {
-                        if (!isFirstPage) pdf2.addPage('a4', 'landscape');
-                        const pageWidth = pdf2.internal.pageSize.getWidth();
-                        const pageHeight = pdf2.internal.pageSize.getHeight();
-                        const img = pdf2.getImageProperties(dataUrl);
-                        const margin = 8;
-                        const maxWidth = pageWidth - (margin * 2);
-                        const maxHeight = pageHeight - (margin * 2);
-                        const scale = Math.min(maxWidth / img.width, maxHeight / img.height);
-                        const renderWidth = img.width * scale;
-                        const renderHeight = img.height * scale;
-                        const x = (pageWidth - renderWidth) / 2;
-                        const y = (pageHeight - renderHeight) / 2;
-                        pdf2.addImage(dataUrl, 'JPEG', x, y, renderWidth, renderHeight, undefined, 'FAST');
-                    };
-
-                    addCenteredCardPage2(frontDataUrl2, true);
-                    addCenteredCardPage2(backDataUrl2, false);
+                    addCenteredCardPage(pdf2, frontDataUrl2, 'JPEG', true);
+                    addCenteredCardPage(pdf2, backDataUrl2, 'JPEG', false);
                     pdf2.save(`ENTRUST-CARD-${displayProfile.id}.pdf`);
                 } catch (err2) {
                     alert('PDF generation failed. Please try again or contact admin.');
