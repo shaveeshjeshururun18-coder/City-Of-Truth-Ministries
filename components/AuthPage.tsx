@@ -159,7 +159,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         if (!incoming) return;
         setIdentifier(incoming);
         handleSearch(incoming);
-    }, [initialIdentifier, handleSearch]);
+    }, [initialIdentifier]);
 
     const handleFileQRScan = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
