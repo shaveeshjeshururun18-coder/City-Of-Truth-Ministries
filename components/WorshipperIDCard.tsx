@@ -134,12 +134,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                     aria-label="Open QR code"
                 >
                     <div className="relative inline-block w-14 h-14">
-                        <img src={qrCodeUrl} alt="QR" className="w-full h-full block" />
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="bg-white rounded-full flex items-center justify-center p-0.5 shadow-sm" style={{ width: '16px', height: '16px' }}>
-                                <img src="/logo.png" alt="COT" className="w-full h-full object-contain rounded-full" />
-                            </div>
-                        </div>
+                        <img src={qrCodeUrl} alt="QR" className="w-full h-full block" crossOrigin="anonymous" />
                     </div>
                 </button>
 
@@ -333,7 +328,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 <p className="text-sm font-black text-brand-950 mb-4 uppercase tracking-widest">{qrModalTitle}</p>
-                                <img src={qrCodeUrl} alt="Entrust QR Code" className="w-full max-w-[320px] mx-auto rounded-2xl border border-slate-200" />
+                                <img src={qrCodeUrl} alt="Entrust QR Code" className="w-full max-w-[320px] mx-auto rounded-2xl border border-slate-200" crossOrigin="anonymous" />
                                 <Button onClick={() => setShowQrFullScreen(false)} className="mt-5 w-full">
                                     Close
                                 </Button>
@@ -386,7 +381,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                             onClick={(e) => e.stopPropagation()}
                         >
                             <p className="text-sm font-black text-brand-950 mb-4 uppercase tracking-widest">{qrModalTitle}</p>
-                            <img src={qrCodeUrl} alt="Entrust QR Code" className="w-full max-w-[320px] mx-auto rounded-2xl border border-slate-200" />
+                            <img src={qrCodeUrl} alt="Entrust QR Code" className="w-full max-w-[320px] mx-auto rounded-2xl border border-slate-200" crossOrigin="anonymous" />
                             <Button onClick={() => setShowQrFullScreen(false)} className="mt-5 w-full">
                                 Close
                             </Button>
@@ -575,8 +570,26 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
 
         if (frontNode && backNode) {
             try {
-                const frontDataUrl = await toPng(frontNode, { pixelRatio: 4, quality: 1 });
-                const backDataUrl = await toPng(backNode, { pixelRatio: 4, quality: 1 });
+                const waitForNodeImages = async (node: HTMLElement) => {
+                    const images = Array.from(node.querySelectorAll('img')) as HTMLImageElement[];
+                    await Promise.all(images.map((img) => (
+                        img.complete && img.naturalWidth > 0
+                            ? Promise.resolve()
+                            : new Promise<void>((resolve) => {
+                                const done = () => resolve();
+                                img.addEventListener('load', done, { once: true });
+                                img.addEventListener('error', done, { once: true });
+                                setTimeout(done, 3000);
+                            })
+                    )));
+                };
+
+                await Promise.all([waitForNodeImages(frontNode), waitForNodeImages(backNode)]);
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                const captureOptions = { pixelRatio: 4, quality: 1, backgroundColor: '#ffffff', cacheBust: true, width: 680, height: 430 };
+                const frontDataUrl = await toPng(frontNode, captureOptions);
+                const backDataUrl = await toPng(backNode, captureOptions);
 
                 const pdf = new jsPDF({
                     orientation: 'landscape',
@@ -585,13 +598,26 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                     compress: true
                 });
 
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = (215 * pdfWidth) / 340;
-                const yPos = (pdf.internal.pageSize.getHeight() - pdfHeight) / 2;
+                const addCenteredCardPage = (dataUrl: string, format: 'PNG' | 'JPEG', isFirstPage: boolean) => {
+                    if (!isFirstPage) {
+                        pdf.addPage('a4', 'landscape');
+                    }
+                    const pageWidth = pdf.internal.pageSize.getWidth();
+                    const pageHeight = pdf.internal.pageSize.getHeight();
+                    const img = pdf.getImageProperties(dataUrl);
+                    const margin = 8;
+                    const maxWidth = pageWidth - (margin * 2);
+                    const maxHeight = pageHeight - (margin * 2);
+                    const scale = Math.min(maxWidth / img.width, maxHeight / img.height);
+                    const renderWidth = img.width * scale;
+                    const renderHeight = img.height * scale;
+                    const x = (pageWidth - renderWidth) / 2;
+                    const y = (pageHeight - renderHeight) / 2;
+                    pdf.addImage(dataUrl, format, x, y, renderWidth, renderHeight, undefined, 'FAST');
+                };
 
-                pdf.addImage(frontDataUrl, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight, undefined, 'FAST');
-                pdf.addPage();
-                pdf.addImage(backDataUrl, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight, undefined, 'FAST');
+                addCenteredCardPage(frontDataUrl, 'PNG', true);
+                addCenteredCardPage(backDataUrl, 'PNG', false);
 
                 pdf.save(`ENTRUST-CARD-HD-FULL-${uniqueId}.pdf`);
 
