@@ -595,29 +595,40 @@ const App: React.FC = () => {
   };
 
   const handleLogin = (identifier: string) => {
-    // Minimum digits to treat numeric input as a full phone number and avoid short false-positive matches
-    const MIN_PHONE_DIGITS = 10;
     if (!identifier) {
       alert("Please enter your Member ID, Email, Phone, or Name.");
       return;
     }
 
-    const searchId = identifier.trim().toLowerCase();
-    const inputPhoneDigits = identifier.replace(/\D/g, '');
+    const normalizeText = (value: string) => value.trim().toLowerCase();
+    const normalizePhone = (value: string) => {
+      const digits = value.replace(/\D/g, '');
+      if (digits.length === 12 && digits.startsWith('91') && /^[6-9]/.test(digits.slice(2))) return digits.slice(2);
+      return digits;
+    };
+    const normalizeMemberId = (value: string) => {
+      const normalized = normalizeText(value).replace(/\s+/g, '');
+      if (normalized.startsWith('cot') && !normalized.startsWith('cot-')) {
+        return normalized.replace(/^cot/, 'cot-');
+      }
+      return normalized;
+    };
+
+    const searchText = normalizeText(identifier);
+    const searchPhone = normalizePhone(identifier);
+    const searchMemberId = normalizeMemberId(identifier);
 
     // Multi-identifier login: Phone, Email, ID, or Name
     const matches = users.map(u => {
-      const uPhone = (u.phone || '').trim();
-      const uEmail = (u.email || '').trim().toLowerCase();
-      const uId = (u.id || '').trim().toLowerCase();
-      const uName = (u.name || '').trim().toLowerCase();
-      const uEmergency = (u.emergency || '').trim();
-      const uPhoneDigits = uPhone.replace(/\D/g, '');
-      const uEmergencyDigits = uEmergency.replace(/\D/g, '');
+      const uPhone = normalizePhone(u.phone || '');
+      const uEmergency = normalizePhone(u.emergency || '');
+      const uEmail = normalizeText(u.email || '');
+      const uId = normalizeMemberId(u.id || '');
+      const uName = normalizeText(u.name || '');
       const linked = (u.linkedProfiles || []).find(sp => {
-        const spId = (sp.id || '').trim().toLowerCase();
-        const spName = (sp.name || '').trim().toLowerCase();
-        return spId === searchId || spName === searchId;
+        const spId = normalizeMemberId(sp.id || '');
+        const spName = normalizeText(sp.name || '');
+        return spId === searchMemberId || spName === searchText;
       });
 
       if (linked) {
@@ -625,12 +636,10 @@ const App: React.FC = () => {
       }
 
       const isMatch = (
-        uPhone === identifier ||
-        uEmergency === identifier ||
-        (inputPhoneDigits.length >= MIN_PHONE_DIGITS && (uPhoneDigits === inputPhoneDigits || uEmergencyDigits === inputPhoneDigits)) ||
-        uId === searchId ||
-        uEmail === searchId ||
-        uName === searchId
+        (searchPhone && (uPhone === searchPhone || uEmergency === searchPhone)) ||
+        uId === searchMemberId ||
+        uEmail === searchText ||
+        uName === searchText
       );
       return isMatch ? { user: u, profileId: u.id } : null;
     }).filter(Boolean) as Array<{ user: User; profileId: string }>;
@@ -1301,7 +1310,11 @@ const App: React.FC = () => {
                   await api.updateUser(updatedUser);
                   setCurrentUser(updatedUser);
                   setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
-                  alert("Profile Updated Successfully!");
+                  if (updatedUser.pendingProfileUpdate) {
+                    alert("✅ Edit request submitted. Changes will be reflected after admin approval.");
+                  } else {
+                    alert("Profile Updated Successfully!");
+                  }
                 }}
               />
             </motion.div>
