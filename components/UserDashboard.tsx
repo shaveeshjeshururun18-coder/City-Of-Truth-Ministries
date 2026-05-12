@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, SubProfile } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
-import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud } from 'lucide-react';
+import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag } from 'lucide-react';
 import { Button } from './Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TestimonialModal } from './TestimonialModal';
@@ -12,6 +12,7 @@ import { PrintableHebrewCalendar } from './PrintableHebrewCalendar';
 import { PrintableReferenceGuide } from './PrintableReferenceGuide';
 import { getCalendarData5786 } from './CalendarLogic';
 import { CalendarCustomizationModal, CalendarOptions } from './CalendarCustomizationModal';
+import { addCenteredCardPage, waitForNodeImages } from './pdfCardUtils';
 
 interface UserDashboardProps {
     user: User;
@@ -20,9 +21,16 @@ interface UserDashboardProps {
     onLogout: () => void;
     onOpenScanner?: () => void;
     initialProfileId?: string;
+    onGoToLogin?: () => void;
 }
 
-export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, onOpenScanner, initialProfileId }) => {
+const FAMILY_RELATIONSHIP_OPTIONS = {
+    immediate: ['Spouse', 'Son', 'Daughter', 'Father', 'Mother', 'Brother', 'Sister'],
+    extended: ['Grandfather', 'Grandmother', 'Father-in-law', 'Mother-in-law', 'Uncle', 'Aunt', 'Cousin'],
+    others: ['Guardian', 'Other']
+};
+
+export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, onOpenScanner, initialProfileId, onGoToLogin }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [showTestimonialModal, setShowTestimonialModal] = useState(false);
     const [formData, setFormData] = useState<Partial<User>>({});
@@ -85,18 +93,15 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         const backNode = document.getElementById('capture-back');
         if (frontNode && backNode) {
             try {
+                await Promise.all([waitForNodeImages(frontNode), waitForNodeImages(backNode)]);
                 await new Promise(r => setTimeout(r, 600));
                 // Explicit dimensions ensure off-screen nodes render correctly in all browsers
                 const opts = { pixelRatio: 3, quality: 1, backgroundColor: '#ffffff', cacheBust: true, width: 680, height: 430 };
                 const frontDataUrl = await toPng(frontNode, opts);
                 const backDataUrl = await toPng(backNode, opts);
                 const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = (215 * pdfWidth) / 340;
-                const yPos = (pdf.internal.pageSize.getHeight() - pdfHeight) / 2;
-                pdf.addImage(frontDataUrl, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight, undefined, 'FAST');
-                pdf.addPage();
-                pdf.addImage(backDataUrl, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight, undefined, 'FAST');
+                addCenteredCardPage(pdf, frontDataUrl, 'PNG', true);
+                addCenteredCardPage(pdf, backDataUrl, 'PNG', false);
                 pdf.save(`ENTRUST-CARD-${displayProfile.id}.pdf`);
             } catch (err: any) {
                 console.error('PDF generation failed', err);
@@ -107,12 +112,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     const frontDataUrl2 = await toJpeg2(frontNode!, opts2);
                     const backDataUrl2 = await toJpeg2(backNode!, opts2);
                     const pdf2 = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
-                    const pdfWidth2 = pdf2.internal.pageSize.getWidth();
-                    const pdfHeight2 = (215 * pdfWidth2) / 340;
-                    const yPos2 = (pdf2.internal.pageSize.getHeight() - pdfHeight2) / 2;
-                    pdf2.addImage(frontDataUrl2, 'JPEG', 0, yPos2 > 0 ? yPos2 : 0, pdfWidth2, pdfHeight2, undefined, 'FAST');
-                    pdf2.addPage();
-                    pdf2.addImage(backDataUrl2, 'JPEG', 0, yPos2 > 0 ? yPos2 : 0, pdfWidth2, pdfHeight2, undefined, 'FAST');
+                    addCenteredCardPage(pdf2, frontDataUrl2, 'JPEG', true);
+                    addCenteredCardPage(pdf2, backDataUrl2, 'JPEG', false);
                     pdf2.save(`ENTRUST-CARD-${displayProfile.id}.pdf`);
                 } catch (err2) {
                     alert('PDF generation failed. Please try again or contact admin.');
@@ -213,9 +214,86 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     };
 
     const handleShare = () => {
-        const url = `${window.location.origin}/verify/${displayProfile.id}`;
-        if (navigator.share) { navigator.share({ title: `${displayProfile.name} — City of Truth Ministries`, text: 'Check my Entrust ID Card', url }); }
-        else { navigator.clipboard.writeText(url); alert('Profile link copied!'); }
+        const url = `${window.location.origin}/auth?view=login&identifier=${encodeURIComponent(displayProfile.id)}`;
+        if (navigator.share) {
+            navigator.share({
+                title: `${displayProfile.name} — City of Truth Ministries`,
+                text: `Login with this unique member profile link: ${displayProfile.id}`,
+                url
+            });
+        } else {
+            navigator.clipboard.writeText(url);
+            alert('Profile login link copied!');
+        }
+    };
+
+    const handleExportProfileDetailsPDF = () => {
+        try {
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+            const lineHeight = 7;
+            const left = 14;
+            const pageBottom = 280;
+            let y = 16;
+
+            const addLine = (text: string, bold = false) => {
+                if (y > pageBottom) {
+                    pdf.addPage();
+                    y = 16;
+                }
+                pdf.setFont('helvetica', bold ? 'bold' : 'normal');
+                pdf.text(text, left, y);
+                y += lineHeight;
+            };
+
+            addLine('City of Truth Ministries — Profile Details Export', true);
+            addLine(`Generated: ${new Date().toLocaleString()}`);
+            addLine(`Primary Member ID: ${user.id}`);
+            y += 2;
+
+            addLine('Primary Profile', true);
+            addLine(`Name: ${user.name}`);
+            addLine(`Member ID: ${user.id}`);
+            addLine(`Email: ${user.email || '-'}`);
+            addLine(`Phone: ${user.phone || user.emergency || '-'}`);
+            addLine(`Emergency: ${user.emergency || '-'}`);
+            addLine(`Location: ${user.location || '-'}`);
+            addLine(`Blood Group: ${user.bloodGroup || '-'}`);
+            addLine(`DOB: ${user.dob || '-'}`);
+            addLine(`Role: ${user.role || 'Member'}`);
+            addLine(`Status: ${user.status || '-'}`);
+            y += 2;
+
+            addLine(`Currently Active Profile: ${displayProfile.name} (${displayProfile.id})`, true);
+            y += 2;
+
+            addLine('Family Profiles', true);
+            if (!user.linkedProfiles || user.linkedProfiles.length === 0) {
+                addLine('No linked family profiles found.');
+            } else {
+                user.linkedProfiles.forEach((profile, index) => {
+                    addLine(`Family ${index + 1}`, true);
+                    addLine(`Name: ${profile.name || '-'}`);
+                    addLine(`Member ID: ${profile.id || '-'}`);
+                    addLine(`Relation: ${profile.role || 'Family Member'}`);
+                    addLine(`DOB: ${profile.dob || '-'}`);
+                    addLine(`Blood Group: ${profile.bloodGroup || '-'}`);
+                    y += 1;
+                });
+            }
+
+            pdf.save(`COT-Profile-Details-${user.id}.pdf`);
+        } catch (error) {
+            console.error('Profile details PDF export failed:', error);
+            alert('Unable to export profile details PDF. Please try again.');
+        }
+    };
+
+    const handleGoToLogin = () => {
+        if (onGoToLogin) {
+            onGoToLogin();
+            return;
+        }
+        window.location.href = '/auth?view=login';
     };
 
     const handleVerificationDocUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -263,36 +341,51 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             <AnimatePresence>
                 {showFamilyModal && (
                     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-3xl shadow-2xl w-full max-w-md relative overflow-hidden">
+                        <motion.div initial={{ opacity: 0, scale: 0.95, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 8 }} className="bg-white rounded-3xl shadow-2xl w-full max-w-md relative overflow-hidden border border-slate-100">
                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-500 to-accent-500" />
                             <div className="p-6 md:p-8">
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-xl font-bold font-serif text-brand-950">Add Family Member</h3>
                                     <button onClick={() => setShowFamilyModal(false)} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
                                 </div>
+                                <p className="text-xs text-slate-500 mb-5">Keep it simple: name and relationship first. You can update profile details later.</p>
                                 <form onSubmit={handleAddSubProfile} className="space-y-4">
                                     <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Full Name</label>
-                                        <input required type="text" value={subProfileForm.name || ''} onChange={e => setSubProfileForm({ ...subProfileForm, name: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm font-medium" placeholder="John Doe" />
+                                        <label className="text-xs font-semibold text-slate-700 block mb-1.5">Full Name</label>
+                                        <input required type="text" value={subProfileForm.name || ''} onChange={e => setSubProfileForm({ ...subProfileForm, name: e.target.value })} className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm font-medium shadow-sm placeholder:text-slate-500" placeholder="John Doe" />
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Relation</label>
-                                            <select required value={subProfileForm.role || 'Family Member'} onChange={e => setSubProfileForm({ ...subProfileForm, role: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm appearance-none">
-                                                <option>Spouse</option><option>Son</option><option>Daughter</option><option>Parent</option><option value="Family Member">Other</option>
+                                            <label className="text-xs font-semibold text-slate-700 block mb-1.5">Relationship</label>
+                                            <select required value={subProfileForm.role || 'Spouse'} onChange={e => setSubProfileForm({ ...subProfileForm, role: e.target.value })} className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm appearance-none shadow-sm">
+                                                <optgroup label="Immediate Family">
+                                                    {FAMILY_RELATIONSHIP_OPTIONS.immediate.map(option => (
+                                                        <option key={option} value={option}>{option}</option>
+                                                    ))}
+                                                </optgroup>
+                                                <optgroup label="Extended Family">
+                                                    {FAMILY_RELATIONSHIP_OPTIONS.extended.map(option => (
+                                                        <option key={option} value={option}>{option}</option>
+                                                    ))}
+                                                </optgroup>
+                                                <optgroup label="Others">
+                                                    {FAMILY_RELATIONSHIP_OPTIONS.others.map(option => (
+                                                        <option key={option} value={option}>{option}</option>
+                                                    ))}
+                                                </optgroup>
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Blood Group</label>
-                                            <select value={subProfileForm.bloodGroup || ''} onChange={e => setSubProfileForm({ ...subProfileForm, bloodGroup: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm appearance-none">
+                                            <label className="text-xs font-semibold text-slate-700 block mb-1.5">Blood Group (optional)</label>
+                                            <select value={subProfileForm.bloodGroup || ''} onChange={e => setSubProfileForm({ ...subProfileForm, bloodGroup: e.target.value })} className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm appearance-none shadow-sm">
                                                 <option value="">Select…</option>
                                                 <option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>O+</option><option>O-</option><option>AB+</option><option>AB-</option>
                                             </select>
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Date of Birth</label>
-                                        <input type="date" value={subProfileForm.dob || ''} onChange={e => setSubProfileForm({ ...subProfileForm, dob: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm" />
+                                        <label className="text-xs font-semibold text-slate-700 block mb-1.5">Date of Birth (optional)</label>
+                                        <input type="date" value={subProfileForm.dob || ''} onChange={e => setSubProfileForm({ ...subProfileForm, dob: e.target.value })} className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm shadow-sm" />
                                     </div>
                                     <div className="pt-2">
                                         <Button type="submit" variant="primary" fullWidth className="py-3 shadow-lg shadow-brand-500/20"><UserPlus size={16} className="mr-2" /> Add Member</Button>
@@ -381,32 +474,32 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 <PlusCircle size={14} /> Add
                             </button>
                         </div>
-                        <div className="divide-y divide-slate-50">
-                            {/* Primary (Me) row */}
-                            <button onClick={() => setActiveProfileId(user.id)} className={`w-full flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 transition-all text-left ${activeProfileId === user.id ? 'bg-brand-50' : ''}`}>
+                        <div className="p-4 space-y-3 bg-slate-50">
+                            <button onClick={() => setActiveProfileId(user.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all text-left ${activeProfileId === user.id ? 'bg-brand-50 border-brand-200' : 'bg-white border-slate-200 hover:border-brand-200'}`}>
                                 <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-brand-100 shrink-0">
                                     <img src={user.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=1e1b4b&color=fff&bold=true&size=80`} alt={user.name} className="w-full h-full object-cover" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="font-bold text-slate-900 text-sm truncate">{user.name}</p>
-                                    <p className="text-[10px] text-slate-400 font-mono">{user.id} · Primary</p>
+                                    <p className="text-[10px] text-slate-500 font-medium">{user.id} · Primary</p>
                                 </div>
                                 {activeProfileId === user.id && <CheckCircle size={16} className="text-brand-500 shrink-0" />}
                             </button>
-                            {/* Sub-profiles */}
-                            {user.linkedProfiles.map(pf => (
-                                <div key={pf.id} className={`flex items-center gap-3 px-5 py-3.5 group ${activeProfileId === pf.id ? 'bg-accent-50' : 'hover:bg-slate-50'} transition-all`}>
+                            {user.linkedProfiles.map((pf, index) => (
+                                <div key={pf.id} className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all group ${activeProfileId === pf.id ? 'bg-accent-50 border-accent-200' : 'bg-white border-slate-200 hover:border-accent-200'}`}>
                                     <button onClick={() => setActiveProfileId(pf.id)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
                                         <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-100 shrink-0">
                                             <img src={pf.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(pf.name)}&background=5b47d0&color=fff&bold=true&size=80`} alt={pf.name} className="w-full h-full object-cover" />
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="font-bold text-slate-900 text-sm truncate">{pf.name}</p>
-                                            <p className="text-[10px] text-slate-400 font-mono">{pf.id} · {pf.role || 'Family'}</p>
+                                            <p className="text-[10px] text-slate-500 font-medium">
+                                                {(index === 0 ? 'First Family Member' : `Additional Member ${index}`)} · {pf.role || 'Family'}
+                                            </p>
                                         </div>
                                         {activeProfileId === pf.id && <CheckCircle size={16} className="text-accent-500 shrink-0" />}
                                     </button>
-                                    <button onClick={() => handleDeleteSubProfile(pf.id)} aria-label={`Remove ${pf.name}`} className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1.5 rounded-lg text-red-300 hover:text-red-500 hover:bg-red-50 transition-all ml-2 shrink-0">
+                                    <button onClick={() => handleDeleteSubProfile(pf.id)} aria-label={`Remove ${pf.name}`} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1.5 rounded-lg text-red-300 hover:text-red-500 hover:bg-red-50 transition-all ml-2 shrink-0">
                                         <Trash2 size={14} />
                                     </button>
                                 </div>
@@ -490,11 +583,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         className="relative inline-block bg-white rounded-3xl p-4 border border-slate-100 shadow-lg shadow-brand-900/5"
                                     >
                                         <img src={qrImgSrc} alt="QR Code" className="w-48 h-48 block mx-auto" crossOrigin="anonymous" />
-                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                            <div className="bg-white rounded-full w-12 h-12 flex items-center justify-center shadow-md border border-slate-100">
-                                                <img src="/logo.png" alt="COT" className="w-8 h-8 object-contain" />
-                                            </div>
-                                        </div>
                                     </button>
                                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-4">Tap QR to open scanner</p>
                                 </div>
@@ -535,16 +623,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                     {/* Action buttons row (mAadhaar style) */}
                     {user.status === 'Active' && (
-                        <div className="grid grid-cols-4 gap-1 px-4 pb-5 pt-3">
+                        <div className="grid grid-cols-5 gap-1 px-4 pb-5 pt-3">
                             {[
                                 { icon: <Share2 size={20} />, label: 'Share', action: handleShare },
                                 { icon: <Download size={20} />, label: 'Download', action: handleDownloadPDF, loading: isProcessing },
+                                { icon: <FileText size={20} />, label: 'Details PDF', action: handleExportProfileDetailsPDF },
                                 { icon: <QrCode size={20} />, label: 'Open Scanner', action: () => onOpenScanner?.() },
-                                { 
-                                    icon: <div className="relative"><CheckCircle size={20} className="text-amber-500" /><div className="absolute inset-0 bg-amber-400 blur-sm rounded-full -z-10 animate-pulse" /></div>, 
-                                    label: <span className="bg-gradient-to-r from-amber-500 to-amber-700 bg-clip-text text-transparent font-black shadow-sm">VERIFIED MEMBER</span>, 
-                                    action: () => {}
-                                },
+                                { icon: <LogIn size={20} />, label: 'Profile Login', action: handleGoToLogin },
                             ].map(({ icon, label, action, loading }, i) => (
                                 <button key={i} onClick={action} disabled={loading}
                                     className="flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-2xl bg-slate-50 hover:bg-brand-50 hover:text-brand-700 text-slate-600 transition-all disabled:opacity-60 border border-transparent hover:border-brand-100">
@@ -593,6 +678,28 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         </span>
                     </button>
 
+                    {/* Share Profile Link */}
+                    <button onClick={handleShare}
+                        className="bg-gradient-to-br from-emerald-600 to-teal-700 text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
+                        <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Share2 size={18} /></div>
+                        <p className="font-bold text-sm leading-tight mb-1">Share Profile Link</p>
+                        <p className="text-white/80 text-[10px]">Share unique login URL for this profile</p>
+                        <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
+                            <Share2 size={11} /> Share
+                        </span>
+                    </button>
+
+                    {/* Profile Details PDF */}
+                    <button onClick={handleExportProfileDetailsPDF}
+                        className="bg-gradient-to-br from-indigo-700 to-violet-800 text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
+                        <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><FileText size={18} /></div>
+                        <p className="font-bold text-sm leading-tight mb-1">Profile Details PDF</p>
+                        <p className="text-white/80 text-[10px]">Export user + family + active profile details</p>
+                        <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
+                            <Download size={11} /> Export
+                        </span>
+                    </button>
+
                     {/* Jewish Calendar — amber (full width row) */}
                     {activeProfileId === user.id && (
                         <button onClick={() => setIsCalendarModalOpen(true)}
@@ -625,6 +732,28 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             📱
                         </div>
                     </a>
+
+                    {/* Menorah Flag Download */}
+                    <a href="/menorah-flag-image.png" download="COT-Menorah-Flag.png"
+                        className="col-span-2 bg-gradient-to-br from-[#7c4d00] to-[#f59e0b] text-white rounded-[22px] p-5 text-left shadow-xl hover:brightness-110 transition-all relative overflow-hidden group block">
+                        <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Flag size={22} /></div>
+                        <p className="font-bold text-base leading-tight mb-1">Download Menorah Flag</p>
+                        <p className="text-white/80 text-[11px] mb-3">Save the official ministry flag image to your device.</p>
+                        <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/20 rounded-xl px-4 py-2">
+                            <Download size={12} /> Download Flag
+                        </span>
+                    </a>
+
+                    {/* Go To Login */}
+                    <button onClick={handleGoToLogin}
+                        className="col-span-2 bg-gradient-to-br from-slate-700 to-slate-900 text-white rounded-[22px] p-5 text-left shadow-xl hover:brightness-110 transition-all relative overflow-hidden group">
+                        <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><LogIn size={22} /></div>
+                        <p className="font-bold text-base leading-tight mb-1">Profile Login</p>
+                        <p className="text-white/80 text-[11px] mb-3">Open default login page to switch or sign in with another profile.</p>
+                        <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/20 rounded-xl px-4 py-2">
+                            <LogIn size={12} /> Open Login
+                        </span>
+                    </button>
                 </div>
 
                 </div>

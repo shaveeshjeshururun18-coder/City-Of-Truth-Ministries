@@ -10,6 +10,7 @@ interface BottomNavProps {
 
 const HEBREW_VIEWS = new Set<ViewState>([
     ViewState.ABOUT,
+    ViewState.HEBREW_TOOLS,
     ViewState.HEBREW_FESTIVALS,
     ViewState.HEBREW_CALENDAR,
     ViewState.HEBREW_WORDS,
@@ -31,12 +32,15 @@ const HEBREW_NAV_ITEMS = [
 
 const VIEW_TO_NAV_ID: Partial<Record<ViewState, string>> = {
     [ViewState.HEBREW_FESTIVALS]:     'festivals',
+    [ViewState.ABOUT]:                'calendar',
+    [ViewState.HEBREW_TOOLS]:         'words',
     [ViewState.HEBREW_CALENDAR]:      'calendar',
     [ViewState.HEBREW_WORDS]:         'words',
     [ViewState.HEBREW_LETTERS_AUDIO]: 'lettersaudio',
     [ViewState.HEBREW_NUMBERS]:       'numbers',
     [ViewState.HEBREW_GEMATRIA]:      'gematria',
     [ViewState.HEBREW_REFERENCE]:     'reference',
+    [ViewState.HEBREW_GRAMMAR]:       'reference',
 };
 
 export const BottomNav: React.FC<BottomNavProps> = ({ currentView, setView }) => {

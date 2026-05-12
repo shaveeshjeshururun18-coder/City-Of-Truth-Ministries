@@ -19,10 +19,12 @@ const getIcon = (view: ViewState) => {
   switch (view) {
     case ViewState.HOME: return <Home size={18} />;
     case ViewState.ABOUT: return <Languages size={18} />;
+    case ViewState.HEBREW_TOOLS: return <Zap size={18} />;
     case ViewState.HEBREW_CALENDAR: return <Calendar size={18} />;
     case ViewState.HEBREW_NUMBERS: return <Hash size={18} />;
     case ViewState.HEBREW_FESTIVALS: return <Star size={18} />;
     case ViewState.HEBREW_REFERENCE: return <BookOpen size={18} />;
+    case ViewState.HEBREW_GRAMMAR: return <BookOpen size={18} />;
     case ViewState.MINISTRIES: return <Heart size={18} />;
     case ViewState.HEBREW: return <Languages size={18} />;
     case ViewState.CONTACT: return <Phone size={18} />;
@@ -115,8 +117,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
               >
                 <button
                   onClick={() => {
-                    if (item.label === 'HEBREW') setView(ViewState.ABOUT); // Parent link
-                    else if (!hasSubmenu) setView(item.view);
+                    if (hasSubmenu) {
+                      setView(item.view);
+                    } else {
+                      setView(item.view);
+                    }
                   }}
                   className={`text-[0.65rem] font-bold uppercase tracking-[0.5px] px-[12px] py-2 rounded-[20px] transition-all duration-300 no-underline whitespace-nowrap flex items-center gap-1 ${isActive
                     ? 'bg-brand-50 text-brand-600 shadow-sm border border-brand-100'
@@ -239,8 +244,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                     </div>
                   </div>
                   <button
+                    type="button"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="p-1.5 hover:bg-white rounded-full transition-all text-[#333] shadow-sm border border-gray-100"
+                    className="p-2 rounded-full transition-all text-white bg-blue-700 hover:bg-blue-800 shadow-md border border-blue-500/60 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    title="Close menu"
+                    aria-label="Close navigation menu"
                   >
                     <X size={18} />
                   </button>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Download } from 'lucide-react';
 import { InteractiveMenorah } from './InteractiveMenorah';
 
 interface GoldenMenorahPageProps {
@@ -8,6 +8,21 @@ interface GoldenMenorahPageProps {
 }
 
 export const GoldenMenorahPage: React.FC<GoldenMenorahPageProps> = () => {
+    const [flagImageSrc, setFlagImageSrc] = React.useState('/menorah-flag-image.png');
+    const [isFlagUnavailable, setIsFlagUnavailable] = React.useState(false);
+
+    const handleFlagImageError = () => {
+        if (flagImageSrc === '/menorah-flag-image.png') {
+            setFlagImageSrc('/menorah-flag.png');
+            return;
+        }
+        if (flagImageSrc === '/menorah-flag.png') {
+            setFlagImageSrc('/sacred-menorah.png');
+            return;
+        }
+        setIsFlagUnavailable(true);
+    };
+
     return (
         <div className="min-h-screen bg-black pt-32 pb-20 relative overflow-hidden">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-900/20 via-black to-black pointer-events-none"></div>
@@ -36,12 +51,34 @@ export const GoldenMenorahPage: React.FC<GoldenMenorahPageProps> = () => {
                         <div className="relative w-full h-full bg-gradient-to-bl from-white/[0.05] to-white/[0.01] backdrop-blur-xl border border-amber-500/30 rounded-[2.5rem] p-10 shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col justify-center">
                             <div className="absolute top-6 right-6 flex items-center gap-2 text-amber-500/50 font-bold text-xs uppercase tracking-[0.3em]"><Sparkles size={14} /> Sacred Standard</div>
                             <div className="relative overflow-hidden rounded-2xl shadow-inner border border-amber-500/10 w-full max-w-md mx-auto h-full flex items-center justify-center">
-                                <img src="/menorah-flag-image.png" alt="Sacred Menorah Flag with YHWH inscriptions" className="max-w-full max-h-full object-contain transform hover:scale-105 transition-transform duration-700" />
+                                {!isFlagUnavailable ? (
+                                    <img
+                                        src={flagImageSrc}
+                                        alt="Sacred Menorah Flag with YHWH inscriptions"
+                                        className="max-w-full max-h-full object-contain transform hover:scale-105 transition-transform duration-700"
+                                        onError={handleFlagImageError}
+                                    />
+                                ) : (
+                                    <div className="text-center px-6">
+                                        <p className="text-amber-200 font-bold">Flag image could not be loaded.</p>
+                                        <p className="text-amber-100/60 text-xs mt-1">Please refresh the page and try again.</p>
+                                    </div>
+                                )}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
                             </div>
                             <div className="mt-8 text-center">
                                 <h3 className="text-xl font-bold text-amber-200 mb-2 font-serif">YHWH (יהוה)</h3>
                                 <p className="text-amber-100/60 text-sm italic">"I AM WHO I AM" — The Eternal Name</p>
+                                {!isFlagUnavailable && (
+                                    <a
+                                        href={flagImageSrc}
+                                        download="COT-Menorah-Flag.png"
+                                        className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500 text-black font-bold text-xs uppercase tracking-wider hover:bg-amber-400 transition-colors"
+                                    >
+                                        <Download size={14} />
+                                        Download Flag
+                                    </a>
+                                )}
                             </div>
                         </div>
                     </motion.div>

@@ -60,7 +60,7 @@ import { GoldenMenorah } from './components/GoldenMenorah';
 import { GoldenMenorahPage } from './components/GoldenMenorahPage';
 import { AIPage } from './components/AIPage';
 // import { GlobalAIWidget } from './components/GlobalAIWidget';
-import { MinistryHighlights, HebrewSanctuaryIntro, ValparaiPresence, TestimonialHighlights, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, CommunityMembersSection } from './components/HomeSections';
+import { MinistryHighlights, HebrewSanctuaryIntro, HebrewPagesPreviewSection, PastorBaruchPreviewSection, ValparaiPresence, TestimonialHighlights, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, CommunityMembersSection } from './components/HomeSections';
 import { MessageFromLeader } from './components/MessageFromLeader';
 import { HebrewAlphabetPage } from './components/HebrewAlphabetPage';
 import { MinistriesPage } from './components/MinistriesPage';
@@ -170,17 +170,23 @@ interface ContactMessage {
 const HEBREW_RESOURCE_SUBMENU: NavItem[] = [
   { label: 'Festivals & Holy Days', view: ViewState.HEBREW_FESTIVALS },
   { label: 'Biblical Calendar', view: ViewState.HEBREW_CALENDAR },
+  { label: 'Month/Year Reference', view: ViewState.HEBREW_REFERENCE },
+  { label: 'Hebrew Grammar', view: ViewState.HEBREW_GRAMMAR },
+];
+
+const HEBREW_TOOLS_SUBMENU: NavItem[] = [
   { label: 'Hebrew Words', view: ViewState.HEBREW_WORDS },
   { label: 'Letters Audio Lab', view: ViewState.HEBREW_LETTERS_AUDIO },
   { label: 'Hebrew Numbers', view: ViewState.HEBREW_NUMBERS },
   { label: 'Gematria Value', view: ViewState.HEBREW_GEMATRIA },
-  { label: 'Month/Year Reference', view: ViewState.HEBREW_REFERENCE },
 ];
 
 const withHebrewResourceSubmenu = (items: NavItem[]): NavItem[] =>
   items.map(item =>
-    item.label === 'HEBREW'
+    item.label === 'HEBREW CONTENT' || item.label === 'HEBREW'
       ? { ...item, submenu: HEBREW_RESOURCE_SUBMENU }
+      : item.label === 'HEBREW TOOLS'
+        ? { ...item, submenu: HEBREW_TOOLS_SUBMENU }
       : item
   );
 
@@ -351,9 +357,14 @@ const App: React.FC = () => {
   const [navigationItems, setNavigationItems] = useState<NavItem[]>(withHebrewResourceSubmenu([
     { label: 'HOME', view: ViewState.HOME },
     {
-      label: 'HEBREW',
+      label: 'HEBREW CONTENT',
       view: ViewState.ABOUT,
       submenu: HEBREW_RESOURCE_SUBMENU
+    },
+    {
+      label: 'HEBREW TOOLS',
+      view: ViewState.HEBREW_TOOLS,
+      submenu: HEBREW_TOOLS_SUBMENU
     },
     { label: 'ALPHABETS', view: ViewState.HEBREW },
     { label: 'VALPARAI', view: ViewState.ABOUT_VALPARAI },
@@ -369,9 +380,9 @@ const App: React.FC = () => {
   const [homeSectionsOrder, setHomeSectionsOrder] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('cot_home_sections_order');
-      return saved ? JSON.parse(saved) : ['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'verify'];
+      return saved ? JSON.parse(saved) : ['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'hebrewPages', 'pastorBaruch', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'verify'];
     } catch (e) {
-      return ['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'verify'];
+      return ['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'hebrewPages', 'pastorBaruch', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'verify'];
     }
   });
 
@@ -568,6 +579,7 @@ const App: React.FC = () => {
       case ViewState.ABOUT_VALPARAI: return "bg-slate-50 text-brand-950";
       case ViewState.MINISTRIES: return "bg-[#f0f9ff] text-sky-950";
       case ViewState.HEBREW: return "bg-black text-amber-500";
+      case ViewState.HEBREW_TOOLS: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.HEBREW_WORDS: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.HEBREW_LETTERS_AUDIO: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.HEBREW_GEMATRIA: return "bg-[#fdfcf0] text-brand-950";
@@ -646,6 +658,26 @@ const App: React.FC = () => {
   };
 
   const handleRegister = async (data: any) => {
+    const extractPhoneDigits = (value: string | undefined) => (value || '').replace(/\D/g, '');
+    const incomingPhoneDigits = extractPhoneDigits(data.phone || data.emergency);
+    const incomingEmail = (data.email || '').trim().toLowerCase();
+
+    const existingByContact = users.find(u => {
+      const userPhoneDigits = extractPhoneDigits(u.phone || u.emergency);
+      const userEmail = (u.email || '').trim().toLowerCase();
+      const phoneMatch = !!incomingPhoneDigits && userPhoneDigits === incomingPhoneDigits;
+      const emailMatch = !!incomingEmail && userEmail === incomingEmail;
+      return phoneMatch || emailMatch;
+    });
+
+    if (existingByContact) {
+      setCurrentUser(existingByContact);
+      setSelectedDashboardProfileId(existingByContact.id);
+      setCurrentView(ViewState.USER_DASHBOARD);
+      alert(`Account already exists for these details. Opening dashboard for ${existingByContact.id}.`);
+      return;
+    }
+
     // Check if user already exists
     const existingUser = users.find(u =>
       u.id === data.uniqueId
@@ -816,6 +848,7 @@ const App: React.FC = () => {
   if (isAuthRoute) {
     const params = new URLSearchParams(location.search);
     const routeInitial = params.get('view');
+    const routeIdentifier = params.get('identifier') || '';
     const initialView = routeInitial === 'login' || routeInitial === 'register' || routeInitial === 'forgot-id' || routeInitial === 'choice'
       ? routeInitial
       : 'login';
@@ -831,6 +864,7 @@ const App: React.FC = () => {
         onBack={() => navigate('/')}
         users={users}
         initialView={initialView}
+        initialIdentifier={routeIdentifier}
       />
     );
   }
@@ -861,6 +895,7 @@ const App: React.FC = () => {
                 onBack={() => setCurrentView(ViewState.HOME)}
                 users={users}
                 initialView={authInitialView}
+                initialIdentifier=""
               />
             </motion.div>
           )}
@@ -1061,6 +1096,8 @@ const App: React.FC = () => {
           case 'highlights': return <MinistryHighlights key="highlights" setView={setCurrentView} />;
           case 'leader': return null; // Leader message is now a fixed overlay triggered by email input
           case 'hebrew': return <HebrewSanctuaryIntro key="hebrew" setView={setCurrentView} />;
+          case 'hebrewPages': return <HebrewPagesPreviewSection key="hebrewPages" setView={setCurrentView} />;
+          case 'pastorBaruch': return <PastorBaruchPreviewSection key="pastorBaruch" setView={setCurrentView} />;
           case 'valparai': return <ValparaiPresence key="valparai" setView={setCurrentView} />;
           case 'testimonials': return <TestimonialHighlights key="testimonials" setView={setCurrentView} />;
           case 'members': return <CommunityMembersSection key="members" setView={setCurrentView} users={users} />;
@@ -1084,7 +1121,7 @@ const App: React.FC = () => {
                     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
                       {[
                         { icon: UserIcon, label: 'Login to Account', desc: 'Access your personal dashboard with your Member ID, phone, or email.', color: 'from-brand-500 to-brand-700', light: 'bg-brand-50 text-brand-600', action: () => navigate('/auth?view=login'), cta: 'Login Now' },
-                        { icon: UploadCloud, label: 'Upload Entrust PDF', desc: 'Upload your Entrust Card PDF to verify your membership document.', color: 'from-accent-500 to-accent-700', light: 'bg-accent-50 text-accent-600', action: () => currentUser ? setCurrentView(ViewState.USER_DASHBOARD) : navigate('/auth?view=login'), cta: 'Upload File' },
+                        { icon: UploadCloud, label: 'Upload Entrust PDF', desc: 'Upload your Entrust Card PDF to verify your membership document.', color: 'from-accent-500 to-accent-700', light: 'bg-accent-50 text-accent-600', action: () => navigate('/verify-id'), cta: 'Upload File' },
                       { icon: CreditCard, label: 'View Entrust Card', desc: 'Register or view your official digital ID card and QR code.', color: 'from-emerald-500 to-emerald-700', light: 'bg-emerald-50 text-emerald-600', action: () => setCurrentView(ViewState.ID_CARD), cta: 'View Card' },
                       { icon: CheckCircle, label: 'Scan QR Code', desc: 'Scan any member\'s QR code to instantly verify their identity.', color: 'from-amber-500 to-orange-600', light: 'bg-amber-50 text-amber-600', action: () => navigate('/verify-id'), cta: 'Open Scanner' },
                     ].map((item, i) => (
@@ -1120,49 +1157,61 @@ const App: React.FC = () => {
 
           {currentView === ViewState.ABOUT && (
             <div key="hebrew-hub">
-              <HebrewResources />
+              <HebrewResources mode="content" initialTab="calendar" currentUser={currentUser || undefined} />
+            </div>
+          )}
+
+          {currentView === ViewState.HEBREW_TOOLS && (
+            <div key="hebrew-tools">
+              <HebrewResources mode="tools" initialTab="words" />
             </div>
           )}
 
           {currentView === ViewState.HEBREW_CALENDAR && (
             <div key="hebrew-calendar">
-              <HebrewResources initialTab="calendar" currentUser={currentUser || undefined} />
+              <HebrewResources mode="content" initialTab="calendar" currentUser={currentUser || undefined} />
             </div>
           )}
 
           {currentView === ViewState.HEBREW_NUMBERS && (
             <div key="hebrew-numbers">
-              <HebrewResources initialTab="numbers" />
+              <HebrewResources mode="tools" initialTab="numbers" />
             </div>
           )}
 
           {currentView === ViewState.HEBREW_WORDS && (
             <div key="hebrew-words">
-              <HebrewResources initialTab="words" />
+              <HebrewResources mode="tools" initialTab="words" />
             </div>
           )}
 
           {currentView === ViewState.HEBREW_LETTERS_AUDIO && (
             <div key="hebrew-letters-audio">
-              <HebrewResources initialTab="lettersaudio" />
+              <HebrewResources mode="tools" initialTab="lettersaudio" />
             </div>
           )}
 
           {currentView === ViewState.HEBREW_GEMATRIA && (
             <div key="hebrew-gematria">
-              <HebrewResources initialTab="gematria" />
+              <HebrewResources mode="tools" initialTab="gematria" />
             </div>
           )}
 
           {currentView === ViewState.HEBREW_FESTIVALS && (
             <div key="hebrew-festivals">
-              <HebrewResources initialTab="festivals" />
+              <HebrewResources mode="content" initialTab="festivals" />
             </div>
           )}
 
           {currentView === ViewState.HEBREW_REFERENCE && (
             <div key="hebrew-reference">
-              <HebrewResources initialTab="reference" />
+              <HebrewResources mode="content" initialTab="reference" />
+            </div>
+          )}
+
+          {currentView === ViewState.HEBREW_GRAMMAR && (
+            <div key="hebrew-grammar">
+              <HebrewResources mode="content" initialTab="grammar" />
             </div>
           )}
 
@@ -1255,6 +1304,7 @@ const App: React.FC = () => {
                 initialProfileId={selectedDashboardProfileId || undefined}
                 onEdit={() => { }}
                 onLogout={handleLogout}
+                onGoToLogin={() => navigate('/auth?view=login')}
                 onOpenScanner={() => setCurrentView(ViewState.VERIFY_ID)}
                 onUpdate={async (updatedUser) => {
                   await api.updateUser(updatedUser);

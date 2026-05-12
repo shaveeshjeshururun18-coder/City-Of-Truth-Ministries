@@ -128,6 +128,89 @@ export const HebrewSanctuaryIntro: React.FC<SectionProps> = ({ setView }) => {
     );
 };
 
+export const HebrewPagesPreviewSection: React.FC<SectionProps> = ({ setView }) => {
+    const contentItems = ['Calendar', 'Festivals', 'Months & Days', 'Grammar'];
+    const toolItems = ['Word Hub', 'Letters Audio', 'Numbers', 'Gematria'];
+
+    return (
+        <section className="py-24 bg-white">
+            <div className="container mx-auto px-6">
+                <div className="text-center mb-14">
+                    <span className="inline-flex items-center gap-2 bg-brand-50 text-brand-700 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em]">
+                        <BookOpen size={12} /> Hebrew Hub Preview
+                    </span>
+                    <h2 className="mt-5 text-4xl md:text-6xl font-serif font-black text-brand-950 tracking-tight">
+                        Hebrew <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-accent-500 italic font-light">Content & Tools</span>
+                    </h2>
+                </div>
+
+                <div className="grid lg:grid-cols-2 gap-8">
+                    <div className="rounded-[2.5rem] bg-gradient-to-br from-brand-50 to-white border border-brand-100 p-8">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-2xl font-bold text-brand-950">Hebrew Content</h3>
+                            <button onClick={() => setView(ViewState.ABOUT)} className="text-xs font-black uppercase tracking-wider text-brand-600 hover:text-brand-700">
+                                Open <ArrowRight size={14} className="inline ml-1" />
+                            </button>
+                        </div>
+                        <div className="grid sm:grid-cols-2 gap-3">
+                            {contentItems.map(item => (
+                                <div key={item} className="bg-white border border-brand-100 rounded-2xl px-4 py-3 text-sm font-bold text-brand-800">{item}</div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="rounded-[2.5rem] bg-gradient-to-br from-amber-50 to-white border border-amber-100 p-8">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-2xl font-bold text-brand-950">Hebrew Tools</h3>
+                            <button onClick={() => setView(ViewState.HEBREW_TOOLS)} className="text-xs font-black uppercase tracking-wider text-amber-700 hover:text-amber-800">
+                                Open <ArrowRight size={14} className="inline ml-1" />
+                            </button>
+                        </div>
+                        <div className="grid sm:grid-cols-2 gap-3">
+                            {toolItems.map(item => (
+                                <div key={item} className="bg-white border border-amber-100 rounded-2xl px-4 py-3 text-sm font-bold text-amber-900">{item}</div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    );
+};
+
+export const PastorBaruchPreviewSection: React.FC<SectionProps> = ({ setView }) => {
+    return (
+        <section className="py-24 bg-slate-50">
+            <div className="container mx-auto px-6">
+                <div className="text-center mb-12">
+                    <span className="inline-flex items-center gap-2 bg-white text-slate-700 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] border border-slate-200">
+                        <Heart size={12} /> Spiritual Highlights
+                    </span>
+                    <h2 className="mt-5 text-4xl md:text-6xl font-serif font-black text-brand-950 tracking-tight">
+                        Pastor & <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500 italic font-light">Baruch Hashem</span>
+                    </h2>
+                </div>
+                <div className="grid md:grid-cols-2 gap-8">
+                    <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
+                        <h3 className="text-2xl font-bold text-brand-950 mb-3">Pastor Section</h3>
+                        <p className="text-slate-500 mb-6">Know the shepherd’s vision, background, and ministry message in one dedicated page.</p>
+                        <button onClick={() => setView(ViewState.PASTOR)} className="group inline-flex items-center gap-2 bg-brand-950 text-white px-6 py-3 rounded-full text-sm font-bold hover:scale-105 transition-transform">
+                            View Pastor Page <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
+                        </button>
+                    </div>
+                    <div className="bg-white rounded-[2.5rem] border border-amber-100 p-8 shadow-sm">
+                        <h3 className="text-2xl font-bold text-brand-950 mb-3">Baruch Hashem</h3>
+                        <p className="text-slate-500 mb-6">Explore praise, Hebrew-Tamil devotion flow, and visual worship resources.</p>
+                        <button onClick={() => setView(ViewState.BARUCH_HASHEM)} className="group inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-full text-sm font-bold hover:scale-105 transition-transform">
+                            View Baruch Hashem <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    );
+};
+
 export const ValparaiPresence: React.FC<SectionProps> = ({ setView }) => {
     return (
         <section className="py-24 bg-brand-950 relative overflow-hidden">
