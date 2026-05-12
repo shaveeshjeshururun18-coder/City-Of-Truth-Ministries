@@ -67,7 +67,7 @@ export const HebrewAlphabetPage: React.FC = () => {
                             {letterCount} Letters
                         </div>
                         <div className="px-4 py-2 rounded-2xl border border-white/20 bg-white/10 text-white text-xs md:text-sm font-black tracking-[0.15em] uppercase">
-                            How Old
+                            3000+ Years Old
                         </div>
                     </div>
                 </header>
