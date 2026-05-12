@@ -102,6 +102,52 @@ const sanitizeFilename = (text: string): string =>
         .replace(/-+/g, '-')
         .replace(/^-|-$/g, '') || 'word';
 
+const captureNodeToJpeg = async (
+    sourceNode: HTMLElement,
+    options: { backgroundColor: string; width?: number } = { backgroundColor: '#ffffff' }
+) => {
+    const wrapper = document.createElement('div');
+    const clone = sourceNode.cloneNode(true) as HTMLElement;
+    const sourceRect = sourceNode.getBoundingClientRect();
+    const targetWidth = options.width || Math.max(700, Math.ceil(sourceRect.width) || 700);
+
+    wrapper.style.position = 'fixed';
+    wrapper.style.left = '0';
+    wrapper.style.top = '0';
+    wrapper.style.opacity = '0';
+    wrapper.style.pointerEvents = 'none';
+    wrapper.style.zIndex = '-1';
+    wrapper.style.background = options.backgroundColor;
+    wrapper.style.padding = '0';
+    wrapper.style.margin = '0';
+    wrapper.style.width = `${targetWidth}px`;
+
+    clone.style.position = 'relative';
+    clone.style.left = '0';
+    clone.style.top = '0';
+    clone.style.width = `${targetWidth}px`;
+    clone.style.margin = '0';
+
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
+
+    try {
+        if ('fonts' in document) {
+            await (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts?.ready;
+        }
+        await new Promise(resolve => setTimeout(resolve, 150));
+        const pixelRatio = Math.min(2.5, Math.max(1.5, window.devicePixelRatio || 1));
+        return await toJpeg(clone, {
+            quality: 0.97,
+            pixelRatio,
+            backgroundColor: options.backgroundColor,
+            cacheBust: true,
+        });
+    } finally {
+        document.body.removeChild(wrapper);
+    }
+};
+
 export const HebrewWordHub: React.FC = () => {
     const [wordInput, setWordInput] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
@@ -203,11 +249,7 @@ export const HebrewWordHub: React.FC = () => {
         if (!wordDetails || !exportCardRef.current) return;
         setIsExporting(true);
         try {
-            const dataUrl = await toJpeg(exportCardRef.current, {
-                quality: 0.97,
-                pixelRatio: 3,
-                backgroundColor: '#ffffff',
-            });
+            const dataUrl = await captureNodeToJpeg(exportCardRef.current, { backgroundColor: '#ffffff', width: 800 });
             const filename = `COT-Hebrew-${sanitizeFilename(wordDetails.pronunciation)}`;
             if (format === 'jpeg') {
                 const link = document.createElement('a');
@@ -230,6 +272,7 @@ export const HebrewWordHub: React.FC = () => {
             }
         } catch (err) {
             console.error('Export failed:', err);
+            alert('Export failed. Please try again.');
         } finally {
             setIsExporting(false);
         }

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X, UserCheck } from 'lucide-react';
 import { Button } from './Button';
@@ -14,6 +14,7 @@ interface AuthPageProps {
     onBack: () => void;
     users?: any[];
     initialView?: 'choice' | 'login' | 'register' | 'forgot-id';
+    initialIdentifier?: string;
 }
 
 export const AuthPage: React.FC<AuthPageProps> = ({
@@ -22,7 +23,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     onAdminClick,
     onBack,
     users = [],
-    initialView = 'login'
+    initialView = 'login',
+    initialIdentifier = ''
 }) => {
     const [view, setView] = useState<'choice' | 'login' | 'register' | 'forgot-id'>(initialView);
     const [identifier, setIdentifier] = useState('');
@@ -151,6 +153,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         };
     }, [showScanner]);
 
+    useEffect(() => {
+        const incoming = (initialIdentifier || '').trim();
+        if (!incoming) return;
+        setIdentifier(incoming);
+        handleSearch(incoming);
+    }, [initialIdentifier]);
+
     const handleFileQRScan = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         if (!files.length) return;
@@ -242,7 +251,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         }
     };
 
-    const handleSearch = (searchVal?: any) => {
+    const handleSearch = useCallback((searchVal?: any) => {
         const queryTerm = typeof searchVal === 'string' ? searchVal : identifier;
         if (!queryTerm.trim()) return;
 
@@ -263,7 +272,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             }
             setSearching(false);
         }, 400);
-    };
+    }, [identifier, users]);
 
     const handleProceed = () => {
         if (previewUser) {

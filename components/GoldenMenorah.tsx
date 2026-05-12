@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Flame, Sparkles, Book } from 'lucide-react';
+import { Flame, Sparkles, Book, Download } from 'lucide-react';
 
 
 import { InteractiveMenorah } from './InteractiveMenorah';
@@ -12,6 +12,18 @@ interface GoldenMenorahProps {
 }
 
 export const GoldenMenorah: React.FC<GoldenMenorahProps> = ({ onPreviewClick }) => {
+  const [flagImageSrc, setFlagImageSrc] = React.useState('/menorah-flag-image.png');
+
+  const handleFlagError = () => {
+    if (flagImageSrc === '/menorah-flag-image.png') {
+      setFlagImageSrc('/menorah-flag.png');
+      return;
+    }
+    if (flagImageSrc === '/menorah-flag.png') {
+      setFlagImageSrc('/sacred-menorah.png');
+    }
+  };
+
   return (
     <section className="min-h-screen bg-brand-950 pt-32 pb-20 relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent pointer-events-none"></div>
@@ -76,9 +88,10 @@ export const GoldenMenorah: React.FC<GoldenMenorahProps> = ({ onPreviewClick }) 
                 onClick={onPreviewClick}
               >
                 <img
-                  src="/menorah-flag-image.png"
+                  src={flagImageSrc}
                   alt="Sacred Menorah Flag"
                   className="w-full h-full object-contain p-4"
+                  onError={handleFlagError}
                 />
 
                 {/* Hover Overlay */}
@@ -89,6 +102,16 @@ export const GoldenMenorah: React.FC<GoldenMenorahProps> = ({ onPreviewClick }) 
                     </div>
                   </div>
                 </div>
+              </div>
+              <div className="mt-4 flex justify-center">
+                <a
+                  href={flagImageSrc}
+                  download="COT-Menorah-Flag.png"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500 text-black font-bold text-xs uppercase tracking-wider hover:bg-amber-400 transition-colors"
+                >
+                  <Download size={14} />
+                  Download Flag
+                </a>
               </div>
             </motion.div>
           </div>

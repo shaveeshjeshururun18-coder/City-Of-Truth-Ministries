@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type, Volume2, Loader2, Info, Fingerprint } from 'lucide-react';
+import { Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type, Volume2, Loader2, Info, Fingerprint, FileImage } from 'lucide-react';
 import { analyzeHebrewWord } from '../services/openRouterService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HebrewYearDropdown } from './HebrewYearDropdown';
@@ -15,6 +15,52 @@ import { Download, Printer } from 'lucide-react';
 import { getCalendarData5786 } from './CalendarLogic';
 import { audioService } from '../services/audioService';
 
+
+const captureNodeToJpeg = async (
+    sourceNode: HTMLElement,
+    options: { backgroundColor: string; width?: number }
+) => {
+    const wrapper = document.createElement('div');
+    const clone = sourceNode.cloneNode(true) as HTMLElement;
+    const sourceRect = sourceNode.getBoundingClientRect();
+    const targetWidth = options.width || Math.max(640, Math.ceil(sourceRect.width) || 640);
+
+    wrapper.style.position = 'fixed';
+    wrapper.style.left = '0';
+    wrapper.style.top = '0';
+    wrapper.style.opacity = '0';
+    wrapper.style.pointerEvents = 'none';
+    wrapper.style.zIndex = '-1';
+    wrapper.style.background = options.backgroundColor;
+    wrapper.style.width = `${targetWidth}px`;
+    wrapper.style.margin = '0';
+    wrapper.style.padding = '0';
+
+    clone.style.position = 'relative';
+    clone.style.left = '0';
+    clone.style.top = '0';
+    clone.style.width = `${targetWidth}px`;
+    clone.style.margin = '0';
+
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
+
+    try {
+        if ('fonts' in document) {
+            await (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts?.ready;
+        }
+        await new Promise(resolve => setTimeout(resolve, 150));
+        const pixelRatio = Math.min(2.5, Math.max(1.5, window.devicePixelRatio || 1));
+        return await toJpeg(clone, {
+            quality: 0.98,
+            pixelRatio,
+            backgroundColor: options.backgroundColor,
+            cacheBust: true,
+        });
+    } finally {
+        document.body.removeChild(wrapper);
+    }
+};
 
 const toHebrew = (num: number): string => {
     if (num <= 0) return '';
@@ -271,7 +317,7 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
     };
 
     return (
-        <div className="space-y-6 md:space-y-12 w-full max-w-5xl mx-auto px-4 md:px-6 scale-[0.95] origin-top">
+        <div className="space-y-6 md:space-y-12 w-full max-w-none mx-auto px-0 md:px-2">
             {/* Hidden Print Config */}
             {/* Hidden Print Config - Mounted on-screen for capture */}
             {/* Hidden Print Config - Mounted off-screen for capture but visible to DOM */}
@@ -294,27 +340,12 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
             <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-12 shadow-[0_20px_60px_rgba(0,0,0,0.05)] border border-slate-100 font-serif">
                 <div className="flex flex-col xl:flex-row items-center justify-between gap-6 md:gap-8 mb-8 md:mb-12">
                     <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4 bg-slate-50 p-2 md:p-3 rounded-2xl w-full xl:w-auto">
-                        {/* Selector */}
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="number"
-                                value={year || ''}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    if (val === '') {
-                                        setYear(0); // Temporary state while typing
-                                    } else {
-                                        setYear(Number(val));
-                                    }
-                                }}
-                                className="bg-slate-100 border text-center w-24 border-slate-200 rounded-lg font-bold text-brand-950 outline-none px-2 py-1.5 text-xs md:text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                                placeholder="Year"
-                                min="1"
-                                max="9999"
-                            />
-                        </div>
+                        <HebrewYearDropdown
+                            selectedYear={safeYear}
+                            onYearChange={(selectedYear) => setYear(selectedYear)}
+                        />
                         <div className="bg-white px-3 py-1.5 rounded-lg border border-slate-100 text-xs font-bold text-slate-500 shadow-sm">
-                            Year {year}
+                            Year {safeYear}
                         </div>
                     </div>
 
@@ -890,9 +921,11 @@ const HebrewLettersAudioLab: React.FC = () => {
     const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
     const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
     const [aiResult, setAiResult] = useState<any | null>(null);
     const [aiError, setAiError] = useState<string | null>(null);
     const nextKey = React.useRef(0);
+    const aiResultRef = useRef<HTMLDivElement>(null);
 
     const combinedWord = selectedLetters.map(l => l.letter).join('');
 
@@ -969,6 +1002,60 @@ const HebrewLettersAudioLab: React.FC = () => {
 
     const handleDragEnd = () => { setDraggingIdx(null); setDragOverIdx(null); };
 
+    const moveLetter = (idx: number, direction: -1 | 1) => {
+        setSelectedLetters(prev => {
+            const targetIdx = idx + direction;
+            if (targetIdx < 0 || targetIdx >= prev.length) return prev;
+            const next = [...prev];
+            const [removed] = next.splice(idx, 1);
+            next.splice(targetIdx, 0, removed);
+            return next;
+        });
+    };
+
+    useEffect(() => {
+        if (!aiResult || !aiResultRef.current) return;
+        const timer = window.setTimeout(() => {
+            aiResultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 120);
+        return () => window.clearTimeout(timer);
+    }, [aiResult]);
+
+    const handleExportInsight = async (format: 'pdf' | 'jpeg') => {
+        if (!aiResultRef.current || !combinedWord) return;
+        setIsExporting(true);
+        try {
+            const dataUrl = await captureNodeToJpeg(aiResultRef.current, { backgroundColor: '#020617' });
+            const safeWord = combinedWord.replace(/[^a-zA-Z0-9\u0590-\u05FF]/g, '') || 'Hebrew-Word';
+            const filename = `COT-Hebrew-Insight-${safeWord}`;
+            if (format === 'jpeg') {
+                const link = document.createElement('a');
+                link.download = `${filename}.jpg`;
+                link.href = dataUrl;
+                link.click();
+            } else {
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                const pdfW = pdf.internal.pageSize.getWidth();
+                const img = new Image();
+                img.src = dataUrl;
+                await new Promise<void>((resolve, reject) => {
+                    img.onload = () => resolve();
+                    img.onerror = () => reject(new Error('Failed to load insight image for PDF export'));
+                });
+                const rawPdfH = (img.height * pdfW) / img.width;
+                const pageH = pdf.internal.pageSize.getHeight();
+                const pdfH = Math.min(rawPdfH, pageH);
+                pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfW, pdfH);
+                pdf.save(`${filename}.pdf`);
+            }
+        } catch (error) {
+            console.error('Insight export failed:', error);
+            alert('Export failed. Please try again.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     return (
         <div className="space-y-8 py-8">
             <div className="text-center space-y-3">
@@ -978,91 +1065,112 @@ const HebrewLettersAudioLab: React.FC = () => {
                 </p>
             </div>
 
-            {/* ── WORD BUILDER (always visible at top) ── */}
-            <div className="bg-gradient-to-r from-fuchsia-500 via-sky-500 to-emerald-500 p-[2px] rounded-[2rem] sticky top-20 md:top-[7rem] z-20">
-                <div className="bg-white rounded-[2rem] p-4 md:p-6">
-                    <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                        <div className="flex-1 min-w-0">
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Word Builder — {selectedLetters.length} letter{selectedLetters.length !== 1 ? 's' : ''} (unlimited)</p>
-                            {selectedLetters.length === 0 ? (
-                                <p className="text-slate-300 text-sm italic">Tap letters below to build a word…</p>
-                            ) : (
-                                <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto pr-1" dir="rtl">
-                                    {selectedLetters.map((l, idx) => (
-                                        <div
-                                            key={l.key}
-                                            draggable
-                                            onDragStart={e => handleDragStart(e, idx)}
-                                            onDragOver={e => handleDragOver(e, idx)}
-                                            onDrop={e => handleDrop(e, idx)}
-                                            onDragEnd={handleDragEnd}
-                                            className={`flex items-center gap-1 px-3 py-1.5 rounded-2xl border-2 cursor-grab active:cursor-grabbing select-none transition-all ${dragOverIdx === idx ? 'border-brand-400 bg-brand-50 scale-105' : 'border-slate-200 bg-slate-50 hover:border-brand-300'} ${draggingIdx === idx ? 'opacity-40' : ''}`}
-                                        >
-                                            <span className="text-2xl font-serif text-brand-950 leading-none">{l.letter}</span>
-                                            <span className="text-[9px] font-bold text-slate-400 uppercase">{l.name}</span>
-                                            <button
-                                                onClick={() => removeLetter(idx)}
-                                                className="ml-1 w-4 h-4 rounded-full bg-slate-200 hover:bg-red-100 hover:text-red-500 text-slate-400 flex items-center justify-center transition-colors text-[10px] font-black shrink-0"
-                                                title={`Remove ${l.name}`}
-                                            >
-                                                ✕
-                                            </button>
+            <div className="grid gap-6 xl:grid-cols-2 xl:items-start">
+                <div className="space-y-6">
+                    {/* ── WORD BUILDER (always visible at top) ── */}
+                    <div className="bg-gradient-to-r from-fuchsia-500 via-sky-500 to-emerald-500 p-[2px] rounded-[2rem] sticky top-20 md:top-[7rem] z-20">
+                        <div className="bg-white rounded-[2rem] p-4 md:p-6">
+                            <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Word Builder — {selectedLetters.length} letter{selectedLetters.length !== 1 ? 's' : ''} (unlimited)</p>
+                                    {selectedLetters.length === 0 ? (
+                                        <p className="text-slate-300 text-sm italic">Tap letters below to build a word…</p>
+                                    ) : (
+                                        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 pr-1" dir="rtl">
+                                            {selectedLetters.map((l, idx) => (
+                                                <div
+                                                    key={l.key}
+                                                    draggable
+                                                    onDragStart={e => handleDragStart(e, idx)}
+                                                    onDragOver={e => handleDragOver(e, idx)}
+                                                    onDrop={e => handleDrop(e, idx)}
+                                                    onDragEnd={handleDragEnd}
+                                                    className={`shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-2xl border-2 cursor-grab active:cursor-grabbing select-none transition-all ${dragOverIdx === idx ? 'border-brand-400 bg-brand-50 scale-105' : 'border-slate-200 bg-slate-50 hover:border-brand-300'} ${draggingIdx === idx ? 'opacity-40' : ''}`}
+                                                >
+                                                    <span className="text-2xl font-serif text-brand-950 leading-none">{l.letter}</span>
+                                                    <span className="text-[9px] font-bold text-slate-400 uppercase">{l.name}</span>
+                                                    <div className="flex items-center gap-0.5 ml-1">
+                                                        <button
+                                                            onClick={() => moveLetter(idx, -1)}
+                                                            disabled={idx === 0}
+                                                            className="w-5 h-5 rounded-full bg-slate-200 hover:bg-brand-100 disabled:opacity-40 text-slate-500 flex items-center justify-center transition-colors"
+                                                            title={`Move ${l.name} left`}
+                                                        >
+                                                            <ChevronLeft size={10} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => moveLetter(idx, 1)}
+                                                            disabled={idx === selectedLetters.length - 1}
+                                                            className="w-5 h-5 rounded-full bg-slate-200 hover:bg-brand-100 disabled:opacity-40 text-slate-500 flex items-center justify-center transition-colors"
+                                                            title={`Move ${l.name} right`}
+                                                        >
+                                                            <ChevronRight size={10} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => removeLetter(idx)}
+                                                            className="w-5 h-5 rounded-full bg-slate-200 hover:bg-red-100 hover:text-red-500 text-slate-400 flex items-center justify-center transition-colors text-[10px] font-black"
+                                                            title={`Remove ${l.name}`}
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
-                                    ))}
+                                    )}
+                                    {selectedLetters.length > 0 && (
+                                        <div className="text-3xl md:text-4xl font-serif text-brand-950 mt-2 max-h-12 overflow-hidden leading-tight" dir="rtl">{combinedWord}</div>
+                                    )}
                                 </div>
-                            )}
-                            {selectedLetters.length > 0 && (
-                                <div className="text-3xl md:text-4xl font-serif text-brand-950 mt-2 max-h-12 overflow-hidden leading-tight" dir="rtl">{combinedWord}</div>
-                            )}
-                        </div>
-                        <div className="flex gap-2 shrink-0 flex-wrap">
-                            <button
-                                onClick={playCombined}
-                                disabled={!combinedWord}
-                                className="px-5 py-2.5 rounded-full bg-brand-950 text-white font-bold text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-900 transition-colors"
-                            >
-                                <Volume2 size={15} /> Play Word
-                            </button>
-                            {selectedLetters.length > 0 && !aiResult && (
-                                <button
-                                    onClick={handleDeepAnalysis}
-                                    disabled={isAnalyzing}
-                                    className="px-5 py-2.5 rounded-full bg-accent-500 text-brand-950 font-bold text-sm flex items-center gap-2 disabled:opacity-50 hover:bg-accent-400 transition-colors shadow-lg"
-                                >
-                                    {isAnalyzing ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
-                                    {isAnalyzing ? 'Analyzing…' : 'Deep Insight'}
-                                </button>
-                            )}
-                            {selectedLetters.length > 0 && (
-                                <button
-                                    onClick={() => { setSelectedLetters([]); setAiResult(null); setAiError(null); }}
-                                    className="px-4 py-2.5 rounded-full border border-slate-200 text-slate-500 font-bold text-sm hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors"
-                                >
-                                    Clear All
-                                </button>
-                            )}
+                                <div className="flex gap-2 shrink-0 flex-wrap">
+                                    <button
+                                        onClick={playCombined}
+                                        disabled={!combinedWord}
+                                        className="px-5 py-2.5 rounded-full bg-brand-950 text-white font-bold text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-900 transition-colors"
+                                    >
+                                        <Volume2 size={15} /> Play Word
+                                    </button>
+                                    {selectedLetters.length > 0 && !aiResult && (
+                                        <button
+                                            onClick={handleDeepAnalysis}
+                                            disabled={isAnalyzing}
+                                            className="px-5 py-2.5 rounded-full bg-accent-500 text-brand-950 font-bold text-sm flex items-center gap-2 disabled:opacity-50 hover:bg-accent-400 transition-colors shadow-lg"
+                                        >
+                                            {isAnalyzing ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
+                                            {isAnalyzing ? 'Analyzing…' : 'Deep Insight'}
+                                        </button>
+                                    )}
+                                    {selectedLetters.length > 0 && (
+                                        <button
+                                            onClick={() => { setSelectedLetters([]); setAiResult(null); setAiError(null); }}
+                                            className="px-4 py-2.5 rounded-full border border-slate-200 text-slate-500 font-bold text-sm hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors"
+                                        >
+                                            Clear All
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            {/* ── AI ERROR ── */}
-            {aiError && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 text-red-500 text-xs font-bold bg-red-50 p-4 rounded-2xl border border-red-100">
-                    <Info size={15} /> {aiError}
-                </motion.div>
-            )}
+                    {/* ── AI ERROR ── */}
+                    {aiError && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 text-red-500 text-xs font-bold bg-red-50 p-4 rounded-2xl border border-red-100">
+                            <Info size={15} /> {aiError}
+                        </motion.div>
+                    )}
 
-            {/* ── AI ANALYSIS RESULT ── */}
-            <AnimatePresence>
-                {aiResult && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -12 }}
-                        transition={{ duration: 0.35 }}
-                        className="bg-slate-950 text-white rounded-[2rem] p-6 md:p-8 flex flex-col space-y-5 shadow-2xl relative overflow-hidden"
-                    >
+                    {/* ── AI ANALYSIS RESULT ── */}
+                    <AnimatePresence>
+                        {aiResult && (
+                            <motion.div
+                                ref={aiResultRef}
+                                initial={{ opacity: 0, y: 12 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -12 }}
+                                transition={{ duration: 0.35 }}
+                                className="bg-slate-950 text-white rounded-[2rem] p-6 md:p-8 flex flex-col space-y-5 shadow-2xl relative overflow-hidden"
+                            >
                         <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
                         {/* Header row */}
                         <div className="flex justify-between items-start gap-3">
@@ -1133,8 +1241,8 @@ const HebrewLettersAudioLab: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Re-analyze button */}
-                        <div className="pt-2">
+                        {/* Re-analyze / Export actions */}
+                        <div className="pt-2 flex flex-wrap gap-2">
                             <button
                                 onClick={handleDeepAnalysis}
                                 disabled={isAnalyzing}
@@ -1143,38 +1251,57 @@ const HebrewLettersAudioLab: React.FC = () => {
                                 {isAnalyzing ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
                                 Re-analyze
                             </button>
+                            <button
+                                onClick={() => handleExportInsight('pdf')}
+                                disabled={isExporting}
+                                className="px-4 py-2 rounded-full bg-accent-500 text-brand-950 hover:bg-accent-400 font-bold text-xs flex items-center gap-2 disabled:opacity-50 transition-colors"
+                            >
+                                {isExporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                                Export PDF
+                            </button>
+                            <button
+                                onClick={() => handleExportInsight('jpeg')}
+                                disabled={isExporting}
+                                className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-2 disabled:opacity-50 transition-colors"
+                            >
+                                {isExporting ? <Loader2 size={13} className="animate-spin" /> : <FileImage size={13} />}
+                                Save Image
+                            </button>
                         </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-10 shadow-xl">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-6 text-center">Tap a letter to add it to your word</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    {HEBREW_AUDIO_LETTERS.map((item, index) => (
-                        <div key={item.letter} className={`rounded-3xl bg-gradient-to-br ${RAINBOW_GRADIENTS[index % RAINBOW_GRADIENTS.length]} p-[1px]`}>
-                            <div className="bg-white rounded-3xl p-4 h-full flex flex-col items-center text-center gap-2">
-                                <span className="text-4xl font-serif text-brand-950">{item.letter}</span>
-                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">{item.name}</span>
-                                <div className="flex items-center gap-1 pt-1 w-full justify-center">
-                                    <button
-                                        onClick={() => addLetter(item)}
-                                        className="flex-1 px-2 py-1.5 rounded-xl text-[10px] font-bold bg-brand-600 text-white hover:bg-brand-700 transition-colors shadow-sm"
-                                        title={`Add ${item.name}`}
-                                    >
-                                        + Add
-                                    </button>
-                                    <button
-                                        onClick={() => playLetter(item.letter, item.hebrewName)}
-                                        className="w-8 h-8 rounded-full bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors flex items-center justify-center shrink-0"
-                                        title={`Play ${item.hebrewName}`}
-                                        aria-label={`Play ${item.hebrewName}`}
-                                    >
-                                        <Volume2 size={13} />
-                                    </button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-10 shadow-xl xl:sticky xl:top-24">
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-6 text-center">Tap a letter to add it to your word</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {HEBREW_AUDIO_LETTERS.map((item, index) => (
+                            <div key={item.letter} className={`rounded-3xl bg-gradient-to-br ${RAINBOW_GRADIENTS[index % RAINBOW_GRADIENTS.length]} p-[1px]`}>
+                                <div className="bg-white rounded-3xl p-4 h-full flex flex-col items-center text-center gap-2">
+                                    <span className="text-4xl font-serif text-brand-950">{item.letter}</span>
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">{item.name}</span>
+                                    <div className="flex items-center gap-1 pt-1 w-full justify-center">
+                                        <button
+                                            onClick={() => addLetter(item)}
+                                            className="flex-1 px-2 py-1.5 rounded-xl text-[10px] font-bold bg-brand-600 text-white hover:bg-brand-700 transition-colors shadow-sm"
+                                            title={`Add ${item.name}`}
+                                        >
+                                            + Add
+                                        </button>
+                                        <button
+                                            onClick={() => playLetter(item.letter, item.hebrewName)}
+                                            className="w-8 h-8 rounded-full bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors flex items-center justify-center shrink-0"
+                                            title={`Play ${item.hebrewName}`}
+                                            aria-label={`Play ${item.hebrewName}`}
+                                        >
+                                            <Volume2 size={13} />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>
