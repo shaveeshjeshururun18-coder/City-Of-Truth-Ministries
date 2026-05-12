@@ -50,7 +50,6 @@ export const HebrewAlphabetPage: React.FC = () => {
 
     const selectedLetter = selectedIndex !== null ? HEBREW_LETTERS[selectedIndex] : null;
     const letterCount = HEBREW_LETTERS.length;
-    const uniqueHebrewNamesCount = new Set(HEBREW_LETTERS.map((item) => item.hebrewName)).size;
 
     return (
         <div className="min-h-screen bg-[#000000] text-[#e5e5e5] pb-24 overflow-hidden relative">
@@ -68,7 +67,7 @@ export const HebrewAlphabetPage: React.FC = () => {
                             {letterCount} Letters
                         </div>
                         <div className="px-4 py-2 rounded-2xl border border-white/20 bg-white/10 text-white text-xs md:text-sm font-black tracking-[0.15em] uppercase">
-                            {uniqueHebrewNamesCount} Words
+                            How Old
                         </div>
                     </div>
                 </header>
