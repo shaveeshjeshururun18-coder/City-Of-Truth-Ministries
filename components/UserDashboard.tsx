@@ -47,7 +47,16 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [idRevealed, setIdRevealed] = useState(false);
     const [showCardPreview, setShowCardPreview] = useState(false);
     const [cardFlipped, setCardFlipped] = useState(false);
+    const [showDashboardIntro, setShowDashboardIntro] = useState(false);
+    const [dashboardTourStepIndex, setDashboardTourStepIndex] = useState<number | null>(null);
+    const [dashboardTourRect, setDashboardTourRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
     const canAccessEntrustFeatures = user.status === 'Active';
+    const DASHBOARD_TOUR_STEPS = [
+        { selector: '#dashboard-edit-btn', title: 'Edit Details', text: 'Update your profile and submit changes for admin approval.' },
+        { selector: '#dashboard-testimony-btn', title: 'Write Testimony', text: 'Share your testimony and track approval in admin review.' },
+        { selector: '#dashboard-share-btn', title: 'Share Profile', text: 'Send your secure profile login link to family members.' },
+        { selector: '#dashboard-login-btn', title: 'Profile Login', text: 'Quickly open login page to switch accounts.' },
+    ];
 
     useEffect(() => {
         if (!initialProfileId) {
@@ -58,6 +67,63 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         const isLinked = !!user.linkedProfiles?.some(p => p.id === initialProfileId);
         setActiveProfileId((isPrimary || isLinked) ? initialProfileId : user.id);
     }, [initialProfileId, user.id, user.linkedProfiles]);
+
+    useEffect(() => {
+        const key = `cot_dashboard_tour_seen_${user.id}`;
+        const seen = localStorage.getItem(key) === '1';
+        if (!seen) setShowDashboardIntro(true);
+    }, [user.id]);
+
+    useEffect(() => {
+        if (dashboardTourStepIndex === null) return;
+        const step = DASHBOARD_TOUR_STEPS[dashboardTourStepIndex];
+        const target = document.querySelector(step.selector) as HTMLElement | null;
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, [dashboardTourStepIndex]);
+
+    useEffect(() => {
+        if (dashboardTourStepIndex === null) return;
+        const updateRect = () => {
+            const step = DASHBOARD_TOUR_STEPS[dashboardTourStepIndex];
+            const target = document.querySelector(step.selector) as HTMLElement | null;
+            if (!target) {
+                setDashboardTourRect(null);
+                return;
+            }
+            const rect = target.getBoundingClientRect();
+            setDashboardTourRect({
+                top: rect.top - 8,
+                left: rect.left - 8,
+                width: rect.width + 16,
+                height: rect.height + 16
+            });
+        };
+        const timer = setTimeout(updateRect, 220);
+        window.addEventListener('resize', updateRect);
+        window.addEventListener('scroll', updateRect, true);
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('resize', updateRect);
+            window.removeEventListener('scroll', updateRect, true);
+        };
+    }, [dashboardTourStepIndex]);
+
+    const markDashboardTourSeen = () => {
+        localStorage.setItem(`cot_dashboard_tour_seen_${user.id}`, '1');
+    };
+
+    const startDashboardTour = () => {
+        markDashboardTourSeen();
+        setShowDashboardIntro(false);
+        setDashboardTourStepIndex(0);
+    };
+
+    const skipDashboardTour = () => {
+        markDashboardTourSeen();
+        setShowDashboardIntro(false);
+        setDashboardTourStepIndex(null);
+        setDashboardTourRect(null);
+    };
 
     const getDisplayProfile = () => {
         if (activeProfileId === user.id) return user;
@@ -416,7 +482,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
                         </label>
                         {/* Active indicator */}
-                        <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white ${user.status === 'Active' ? 'bg-green-500' : 'bg-amber-400'}`} />
+                        <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white ${user.status === 'Active' ? 'bg-green-500' : user.status === 'Rejected' ? 'bg-red-500' : 'bg-amber-400'}`} />
                     </div>
 
                     {/* Family member avatars */}
@@ -608,7 +674,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             <p className="font-black text-white text-xs uppercase tracking-widest">Not Verified</p>
                                         </div>
                                     </div>
-                                    <p className="text-[10px] text-slate-400 mt-2">Pending admin verification</p>
+                                    <p className={`text-[10px] mt-2 ${user.status === 'Rejected' ? 'text-red-500' : 'text-slate-400'}`}>
+                                        {user.status === 'Rejected' ? 'Denied by admin. Please contact support.' : 'Pending admin verification'}
+                                    </p>
                                 </div>
                             )}
                         </div>
@@ -616,7 +684,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                     {/* Edit Details button below card + QR */}
                     <div className="flex justify-center pb-2">
-                        <button onClick={startEditing} className="flex items-center gap-2 cursor-pointer bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 text-slate-500 hover:text-brand-600 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all shadow-sm">
+                        <button id="dashboard-edit-btn" onClick={startEditing} className="flex items-center gap-2 cursor-pointer bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 text-slate-500 hover:text-brand-600 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all shadow-sm">
                             <Edit2 size={13} /> Edit Details
                         </button>
                     </div>
@@ -625,13 +693,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     {user.status === 'Active' && (
                         <div className="grid grid-cols-5 gap-1 px-4 pb-5 pt-3">
                             {[
-                                { icon: <Share2 size={20} />, label: 'Share', action: handleShare },
+                                { icon: <Share2 size={20} />, label: 'Share', action: handleShare, id: 'dashboard-share-top-btn' },
                                 { icon: <Download size={20} />, label: 'Download', action: handleDownloadPDF, loading: isProcessing },
                                 { icon: <FileText size={20} />, label: 'Details PDF', action: handleExportProfileDetailsPDF },
-                                { icon: <QrCode size={20} />, label: 'Open Scanner', action: () => onOpenScanner?.() },
-                                { icon: <LogIn size={20} />, label: 'Profile Login', action: handleGoToLogin },
-                            ].map(({ icon, label, action, loading }, i) => (
-                                <button key={i} onClick={action} disabled={loading}
+                                { icon: <QrCode size={20} />, label: 'Open Scanner', action: () => onOpenScanner?.(), id: 'dashboard-scanner-btn' },
+                                { icon: <LogIn size={20} />, label: 'Profile Login', action: handleGoToLogin, id: 'dashboard-login-top-btn' },
+                            ].map(({ icon, label, action, loading, id }, i) => (
+                                <button id={id} key={i} onClick={action} disabled={loading}
                                     className="flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-2xl bg-slate-50 hover:bg-brand-50 hover:text-brand-700 text-slate-600 transition-all disabled:opacity-60 border border-transparent hover:border-brand-100">
                                     {loading ? <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" /> : icon}
                                     <span className="text-[9px] font-bold uppercase tracking-wide leading-tight text-center">{loading ? 'Wait…' : label}</span>
@@ -660,7 +728,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         <div className="bg-slate-100 rounded-[22px] p-4 border border-slate-200">
                             <div className="w-9 h-9 bg-slate-200 rounded-xl flex items-center justify-center mb-3"><FileText size={18} className="text-slate-400" /></div>
                             <p className="font-bold text-sm text-slate-500 mb-1">Entrust ID Card</p>
-                            <p className="text-slate-400 text-[10px]">Pending verification</p>
+                            <p className={`text-[10px] ${user.status === 'Rejected' ? 'text-red-500' : 'text-slate-400'}`}>
+                                {user.status === 'Rejected' ? 'Denied by admin' : 'Pending verification'}
+                            </p>
                             <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase bg-slate-200 rounded-lg px-2.5 py-1.5 text-slate-400">
                                 <AlertCircle size={11} /> Locked
                             </span>
@@ -668,7 +738,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     )}
 
                     {/* Testimony */}
-                    <button onClick={() => setShowTestimonialModal(true)}
+                    <button id="dashboard-testimony-btn" onClick={() => setShowTestimonialModal(true)}
                         className="bg-gradient-to-br from-brand-700 to-brand-900 text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
                         <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><MessageSquare size={18} /></div>
                         <p className="font-bold text-sm leading-tight mb-1">Write Testimony</p>
@@ -679,7 +749,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     </button>
 
                     {/* Share Profile Link */}
-                    <button onClick={handleShare}
+                    <button id="dashboard-share-btn" onClick={handleShare}
                         className="bg-gradient-to-br from-emerald-600 to-teal-700 text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
                         <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Share2 size={18} /></div>
                         <p className="font-bold text-sm leading-tight mb-1">Share Profile Link</p>
@@ -745,7 +815,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     </a>
 
                     {/* Go To Login */}
-                    <button onClick={handleGoToLogin}
+                    <button id="dashboard-login-btn" onClick={handleGoToLogin}
                         className="col-span-2 bg-gradient-to-br from-slate-700 to-slate-900 text-white rounded-[22px] p-5 text-left shadow-xl hover:brightness-110 transition-all relative overflow-hidden group">
                         <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><LogIn size={22} /></div>
                         <p className="font-bold text-base leading-tight mb-1">Profile Login</p>
@@ -886,6 +956,85 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     </motion.div>
                 </div>
             )}
+
+            <AnimatePresence>
+                {showDashboardIntro && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[170] bg-black/45 backdrop-blur-sm flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ y: 20, opacity: 0, scale: 0.96 }}
+                            animate={{ y: 0, opacity: 1, scale: 1 }}
+                            exit={{ y: 12, opacity: 0 }}
+                            className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-slate-100"
+                        >
+                            <div className="text-[11px] font-black uppercase tracking-widest text-brand-500 mb-2">Dashboard Tour</div>
+                            <h3 className="text-xl font-bold text-brand-950 mb-2">Quick Guide</h3>
+                            <p className="text-sm text-slate-600 mb-5">Get a short walkthrough of the key options in your dashboard. You can skip anytime.</p>
+                            <div className="flex items-center justify-end gap-2">
+                                <button onClick={skipDashboardTour} className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100">Skip</button>
+                                <button onClick={startDashboardTour} className="px-4 py-2 rounded-xl text-sm font-bold bg-brand-600 text-white hover:bg-brand-700">Start Tour</button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {dashboardTourStepIndex !== null && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[175] pointer-events-none"
+                    >
+                        <div className="absolute inset-0 bg-black/65" />
+                        {dashboardTourRect && (
+                            <div
+                                className="absolute rounded-2xl border-2 border-amber-300 shadow-[0_0_0_9999px_rgba(2,6,23,0.72)]"
+                                style={{
+                                    top: dashboardTourRect.top,
+                                    left: dashboardTourRect.left,
+                                    width: dashboardTourRect.width,
+                                    height: dashboardTourRect.height
+                                }}
+                            />
+                        )}
+                        <div className="absolute left-1/2 -translate-x-1/2 bottom-5 w-[calc(100%-1.5rem)] max-w-md bg-white rounded-3xl p-5 shadow-2xl pointer-events-auto">
+                            <div className="text-[11px] uppercase tracking-widest font-black text-brand-500 mb-2">
+                                Step {dashboardTourStepIndex + 1} of {DASHBOARD_TOUR_STEPS.length}
+                            </div>
+                            <h4 className="text-lg font-bold text-brand-950 mb-1">{DASHBOARD_TOUR_STEPS[dashboardTourStepIndex]?.title}</h4>
+                            <p className="text-sm text-slate-600 mb-4">{DASHBOARD_TOUR_STEPS[dashboardTourStepIndex]?.text}</p>
+                            <div className="flex items-center justify-between gap-2">
+                                <button
+                                    onClick={skipDashboardTour}
+                                    className="px-4 py-2 text-sm font-bold rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"
+                                >
+                                    Skip Tour
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const isLastStep = dashboardTourStepIndex >= DASHBOARD_TOUR_STEPS.length - 1;
+                                        if (isLastStep) {
+                                            setDashboardTourStepIndex(null);
+                                            setDashboardTourRect(null);
+                                        } else {
+                                            setDashboardTourStepIndex(dashboardTourStepIndex + 1);
+                                        }
+                                    }}
+                                    className="px-4 py-2 text-sm font-bold rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors"
+                                >
+                                    {dashboardTourStepIndex >= DASHBOARD_TOUR_STEPS.length - 1 ? 'Done' : 'Next'}
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
         </div>
     );

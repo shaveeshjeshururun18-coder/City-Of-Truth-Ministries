@@ -60,7 +60,7 @@ import { GoldenMenorah } from './components/GoldenMenorah';
 import { GoldenMenorahPage } from './components/GoldenMenorahPage';
 import { AIPage } from './components/AIPage';
 // import { GlobalAIWidget } from './components/GlobalAIWidget';
-import { MinistryHighlights, HebrewSanctuaryIntro, HebrewPagesPreviewSection, PastorBaruchPreviewSection, ValparaiPresence, TestimonialHighlights, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, CommunityMembersSection } from './components/HomeSections';
+import { MinistryHighlights, HebrewSanctuaryIntro, HebrewPagesPreviewSection, PastorBaruchPreviewSection, ValparaiPresence, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, CommunityMembersSection } from './components/HomeSections';
 import { MessageFromLeader } from './components/MessageFromLeader';
 import { HebrewAlphabetPage } from './components/HebrewAlphabetPage';
 import { MinistriesPage } from './components/MinistriesPage';
@@ -165,6 +165,8 @@ interface ContactMessage {
   message: string;
   createdAt: string;
   source: 'hero-widget' | 'contact-form';
+  senderType: 'Registered' | 'Non-Registered';
+  senderId?: string;
 }
 
 const HEBREW_RESOURCE_SUBMENU: NavItem[] = [
@@ -191,34 +193,35 @@ const withHebrewResourceSubmenu = (items: NavItem[]): NavItem[] =>
   );
 
 const TestimonialSection: React.FC<TestimonialSectionProps> = ({ currentUser }) => {
-  const [formData, setFormData] = useState({ name: currentUser?.displayName || '', location: currentUser?.location || '', text: '' });
+  const [formData, setFormData] = useState({ name: currentUser?.name || '', location: currentUser?.location || '', text: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser) {
-      alert("Please login to share your testimony.");
-      return;
-    }
-    if (currentUser.status !== 'Active') {
-      alert("Only verified members can share testimonies. Please wait for your account approval.");
-      return;
-    }
-    if (!formData.name || !formData.text) {
+    const trimmedName = formData.name.trim();
+    const trimmedText = formData.text.trim();
+    const trimmedLocation = formData.location.trim();
+    if (!trimmedName || !trimmedText) {
       alert("Please fill in your name and testimony.");
       return;
     }
 
     setIsSubmitting(true);
     try {
+      const isRegistered = !!currentUser;
+      const senderStatus = isRegistered ? currentUser.status : 'Guest';
       await api.createTestimonial({
-        ...formData,
-        userId: currentUser.id,
-        userPhoto: currentUser.photo,
-        role: 'Member', // Or use currentUser.role
-        rating: 5,
+        userId: isRegistered ? currentUser.id : `guest-${Date.now()}`,
+        userName: isRegistered ? (currentUser.name || trimmedName) : trimmedName,
+        content: trimmedText,
         date: new Date().toISOString(),
-        approved: false
+        status: 'Pending',
+        rating: 5,
+        userPhoto: isRegistered ? currentUser.photo : undefined,
+        location: isRegistered ? currentUser.location : trimmedLocation,
+        role: isRegistered ? currentUser.role : 'Guest',
+        senderType: isRegistered ? 'Registered' : 'Non-Registered',
+        senderStatus
       });
       alert("Testimony sent successfully! It will be visible after approval.");
       setFormData({ name: '', location: '', text: '' });
@@ -338,6 +341,8 @@ const App: React.FC = () => {
   const [showLeaderMessage, setShowLeaderMessage] = useState(false);
   const [showDonationModal, setShowDonationModal] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationMode, setCelebrationMode] = useState<'approval' | 'welcome'>('approval');
+  const [statusNotice, setStatusNotice] = useState<{ type: 'approved' | 'rejected'; message: string } | null>(null);
   const [showWelcomeIntro, setShowWelcomeIntro] = useState(false);
   const [tourStepIndex, setTourStepIndex] = useState<number | null>(null);
   const [tourRect, setTourRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
@@ -444,6 +449,10 @@ const App: React.FC = () => {
     setContactMessages(prev => [next, ...prev].slice(0, MAX_STORED_CONTACT_MESSAGES));
   };
 
+  const handleDeleteContactMessage = (messageId: string) => {
+    setContactMessages(prev => prev.filter(msg => msg.id !== messageId));
+  };
+
   const handleHeroSendMessage = () => {
     const message = heroEmail.trim();
     if (!message) return;
@@ -452,7 +461,9 @@ const App: React.FC = () => {
       email: '',
       subject: 'Hero Quick Message',
       message,
-      source: 'hero-widget'
+      source: 'hero-widget',
+      senderType: currentUser ? 'Registered' : 'Non-Registered',
+      senderId: currentUser?.id
     });
     setHeroEmail('');
     setShowLeaderMessage(true);
@@ -470,7 +481,9 @@ const App: React.FC = () => {
       email: contactForm.email.trim(),
       subject: contactForm.subject.trim() || 'General Inquiry',
       message: contactForm.message.trim(),
-      source: 'contact-form'
+      source: 'contact-form',
+      senderType: currentUser ? 'Registered' : 'Non-Registered',
+      senderId: currentUser?.id
     });
     setContactForm({ name: '', email: '', subject: 'Prayer Request', message: '' });
     alert('Message sent successfully. Admin will receive it in the dashboard.');
@@ -512,6 +525,13 @@ const App: React.FC = () => {
       target.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [tourStepIndex, currentView]);
+
+  useEffect(() => {
+    if (!showCelebration) return;
+    const delay = celebrationMode === 'approval' ? 7000 : 4500;
+    const timer = setTimeout(() => setShowCelebration(false), delay);
+    return () => clearTimeout(timer);
+  }, [showCelebration, celebrationMode]);
 
   useEffect(() => {
     if (tourStepIndex === null || currentView !== ViewState.HOME) return;
@@ -602,11 +622,21 @@ const App: React.FC = () => {
               me.status === 'Active' &&
               currentUser.status !== 'Active' &&
               !localStorage.getItem(`cot_celebrated_${currentUser.id}`);
+            const wasJustRejected =
+              me.status === 'Rejected' &&
+              currentUser.status !== 'Rejected';
             if (wasJustApproved) {
               setCurrentUser(me);
+              setCelebrationMode('approval');
               setShowCelebration(true);
+              setShowLeaderMessage(true);
+              setStatusNotice({ type: 'approved', message: 'Your account has been approved by admin.' });
               setCurrentView(ViewState.HOME);
               localStorage.setItem(`cot_celebrated_${me.id}`, '1');
+            } else if (wasJustRejected) {
+              setCurrentUser(me);
+              setStatusNotice({ type: 'rejected', message: 'Your account was denied. Please contact admin or update details.' });
+              setCurrentView(ViewState.HOME);
             } else if (me.status !== currentUser.status) {
               setCurrentUser(me);
             }
@@ -742,6 +772,8 @@ const App: React.FC = () => {
     if (user) {
       setCurrentUser(user);
       setSelectedDashboardProfileId(match?.profileId || user.id);
+      setCelebrationMode('welcome');
+      setShowCelebration(true);
       setCurrentView(ViewState.USER_DASHBOARD);
       navigate('/');
     } else {
@@ -765,6 +797,8 @@ const App: React.FC = () => {
     if (existingByContact) {
       setCurrentUser(existingByContact);
       setSelectedDashboardProfileId(existingByContact.id);
+      setCelebrationMode('welcome');
+      setShowCelebration(true);
       setCurrentView(ViewState.USER_DASHBOARD);
       alert(`Account already exists for these details. Opening dashboard for ${existingByContact.id}.`);
       return;
@@ -838,6 +872,8 @@ const App: React.FC = () => {
       }
 
       alert("Registration Successful! Your ID is " + savedUser.id + ". Welcome to the family!");
+      setCelebrationMode('welcome');
+      setShowCelebration(true);
       setCurrentView(ViewState.USER_DASHBOARD);
     } catch (e) {
       console.error(e);
@@ -910,6 +946,7 @@ const App: React.FC = () => {
         users={users}
         deletedUsers={deletedUsers}
         contactMessages={contactMessages}
+        onDeleteContactMessage={handleDeleteContactMessage}
         onUpdateUser={async (user) => {
           await api.updateUser(user);
           setUsers(users.map(u => u.id === user.id ? user : u));
@@ -1206,7 +1243,7 @@ const App: React.FC = () => {
           case 'hebrewPages': return <HebrewPagesPreviewSection key="hebrewPages" setView={setCurrentView} />;
           case 'pastorBaruch': return <PastorBaruchPreviewSection key="pastorBaruch" setView={setCurrentView} />;
           case 'valparai': return <ValparaiPresence key="valparai" setView={setCurrentView} />;
-          case 'testimonials': return <TestimonialHighlights key="testimonials" setView={setCurrentView} />;
+          case 'testimonials': return <TestimonialSection key="testimonials" currentUser={currentUser || undefined} />;
           case 'members': return <CommunityMembersSection key="members" setView={setCurrentView} users={users} />;
           case 'preview': return <EntrustCardPreview key="preview" setView={setCurrentView} />;
           case 'donations': return <DonationsHighlight key="donations" setView={setCurrentView} onDonate={() => setShowDonationModal(true)} />;
@@ -1377,6 +1414,7 @@ const App: React.FC = () => {
                 users={users}
                 deletedUsers={deletedUsers}
                 contactMessages={contactMessages}
+                onDeleteContactMessage={handleDeleteContactMessage}
                 onUpdateUser={async (user) => {
                   await api.updateUser(user);
                   setUsers(users.map(u => u.id === user.id ? user : u));
@@ -1807,6 +1845,45 @@ const App: React.FC = () => {
 
       {/* Donation Modal */}
       <DonationModal isOpen={showDonationModal} onClose={() => setShowDonationModal(false)} />
+
+      {/* Account Status Notice */}
+      <AnimatePresence>
+        {statusNotice && (
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[220] w-[calc(100%-1.5rem)] max-w-md"
+          >
+            <div className={`rounded-2xl border p-4 shadow-2xl ${statusNotice.type === 'approved'
+                ? 'bg-green-50 border-green-200'
+                : 'bg-red-50 border-red-200'
+              }`}>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className={`text-xs font-black uppercase tracking-widest ${statusNotice.type === 'approved' ? 'text-green-700' : 'text-red-700'}`}>
+                    {statusNotice.type === 'approved' ? 'Approval Update' : 'Account Notice'}
+                  </p>
+                  <p className={`text-sm font-semibold mt-1 ${statusNotice.type === 'approved' ? 'text-green-900' : 'text-red-900'}`}>
+                    {statusNotice.message}
+                  </p>
+                </div>
+                <button onClick={() => setStatusNotice(null)} className="text-slate-500 hover:text-slate-700 font-bold">✕</button>
+              </div>
+              <button
+                onClick={() => {
+                  setCurrentView(ViewState.HOME);
+                  setStatusNotice(null);
+                }}
+                className="mt-3 w-full py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider hover:bg-slate-50"
+              >
+                Go to Website Home
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ✨ ADMIN APPROVAL FIREWORKS CELEBRATION ✨ */}
       <AnimatePresence>
         {showCelebration && (
@@ -1880,8 +1957,17 @@ const App: React.FC = () => {
                 transition={{ delay: 0.5 }}
                 className="text-amber-100/70 text-base leading-relaxed mb-6"
               >
-                🙌 You have been <span className="text-amber-300 font-bold">verified & approved</span> by our ministry admin!<br />
-                Welcome to the family of City of Truth Ministries.
+                {celebrationMode === 'approval' ? (
+                  <>
+                    🙌 You have been <span className="text-amber-300 font-bold">verified & approved</span> by our ministry admin!<br />
+                    Welcome to the family of City of Truth Ministries.
+                  </>
+                ) : (
+                  <>
+                    ✨ Welcome back to City of Truth Ministries.<br />
+                    Explore your dashboard and stay connected in truth.
+                  </>
+                )}
               </motion.p>
               <motion.p
                 initial={{ opacity: 0 }}
@@ -1889,7 +1975,9 @@ const App: React.FC = () => {
                 transition={{ delay: 0.7 }}
                 className="text-white/40 text-sm italic mb-8"
               >
-                "You are no longer strangers and foreigners, but fellow citizens" — Eph 2:19
+                {celebrationMode === 'approval'
+                  ? '"You are no longer strangers and foreigners, but fellow citizens" — Eph 2:19'
+                  : '"Then you will know the truth, and the truth will set you free." — John 8:32'}
               </motion.p>
               <motion.button
                 whileHover={{ scale: 1.05 }}

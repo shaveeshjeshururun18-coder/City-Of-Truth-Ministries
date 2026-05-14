@@ -26,12 +26,15 @@ interface ContactMessage {
     message: string;
     createdAt: string;
     source: 'hero-widget' | 'contact-form';
+    senderType?: 'Registered' | 'Non-Registered';
+    senderId?: string;
 }
 
 interface AdminDashboardProps {
     users: User[];
     deletedUsers?: DeletedUser[];
     contactMessages?: ContactMessage[];
+    onDeleteContactMessage?: (messageId: string) => void;
     onUpdateUser: (user: User) => Promise<void>;
     onDeleteUser: (userId: string) => Promise<void>;
     onRestoreUser?: (userId: string) => Promise<void>;
@@ -98,6 +101,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     users,
     deletedUsers = [],
     contactMessages = [],
+    onDeleteContactMessage,
     onUpdateUser,
     onDeleteUser,
     onRestoreUser,
@@ -1334,9 +1338,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 {msg.source === 'hero-widget' ? 'Hero' : 'Form'}
                                             </span>
                                         </div>
+                                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
+                                            <span className={`px-2 py-0.5 rounded-full border ${msg.senderType === 'Registered' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                                                {msg.senderType || 'Non-Registered'}
+                                            </span>
+                                            {msg.senderId && <span className="text-slate-500 font-mono">{msg.senderId}</span>}
+                                        </div>
                                         <p className="text-xs font-semibold text-brand-700 bg-brand-50 px-2 py-1 rounded-lg truncate">{msg.subject}</p>
                                         <p className="text-sm text-slate-700 whitespace-pre-wrap break-words flex-1">{msg.message}</p>
-                                        <p className="text-[10px] text-slate-400 text-right mt-1">{new Date(msg.createdAt).toLocaleString()}</p>
+                                        <div className="flex items-center justify-between mt-1">
+                                            <p className="text-[10px] text-slate-400">{new Date(msg.createdAt).toLocaleString()}</p>
+                                            <button
+                                                onClick={() => onDeleteContactMessage?.(msg.id)}
+                                                className="text-[10px] font-bold text-red-600 hover:text-red-700 bg-red-50 border border-red-100 rounded-lg px-2 py-1"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -1364,6 +1382,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             }`}>
                                             {t.status}
                                         </span>
+                                    </div>
+                                    <div className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
+                                        <span className={`px-2 py-0.5 rounded-full border ${t.senderType === 'Registered' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                                            {t.senderType || 'Registered'}
+                                        </span>
+                                        {t.userId && <span className="text-slate-400 font-mono normal-case">{t.userId}</span>}
                                     </div>
 
                                     <p className="text-slate-600 text-sm italic mb-6">"{t.content}"</p>

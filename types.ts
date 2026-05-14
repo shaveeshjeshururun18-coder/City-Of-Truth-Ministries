@@ -102,6 +102,8 @@ export interface Testimonial {
   userPhoto?: string;
   location?: string;
   role?: string;
+  senderType?: 'Registered' | 'Non-Registered';
+  senderStatus?: UserStatus | 'Guest';
 }
 export interface Ministry {
   id: string;
