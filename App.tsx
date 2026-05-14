@@ -1896,18 +1896,19 @@ const App: React.FC = () => {
             {/* Firework particles */}
             {Array.from({ length: 24 }).map((_, i) => {
               const angle = (i / 24) * 360;
-              const dist = 120 + Math.random() * 200;
+              const dist = 120 + ((i * 37) % 200);
               const x = Math.cos((angle * Math.PI) / 180) * dist;
               const y = Math.sin((angle * Math.PI) / 180) * dist;
               const colors = ['#fbbf24', '#f59e0b', '#34d399', '#60a5fa', '#f472b6', '#a78bfa', '#fff'];
               const color = colors[i % colors.length];
-              const size = 6 + Math.random() * 10;
+              const size = 6 + ((i * 17) % 10);
+              const delay = ((i * 13) % 5) / 10;
               return (
                 <motion.div
                   key={i}
                   initial={{ x: 0, y: 0, opacity: 1, scale: 0 }}
                   animate={{ x, y, opacity: 0, scale: 1 }}
-                  transition={{ duration: 1.5, delay: Math.random() * 0.5, ease: 'easeOut', repeat: Infinity, repeatDelay: 2 }}
+                  transition={{ duration: 1.5, delay, ease: 'easeOut', repeat: Infinity, repeatDelay: 2 }}
                   className="absolute rounded-full pointer-events-none"
                   style={{ width: size, height: size, background: color, top: '50%', left: '50%', marginTop: -size / 2, marginLeft: -size / 2 }}
                 />

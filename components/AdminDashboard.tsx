@@ -2253,6 +2253,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                             </div>
 
+                            {/* Member Form (Community Profile) */}
+                            {viewingDetailsUser.communityProfile && (
+                                <div className="mt-8 pt-6 border-t border-slate-200">
+                                    <h4 className="text-sm font-bold text-brand-950 mb-4 uppercase tracking-wider">Member Form Submission</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Denomination</p>
+                                            <p className="text-sm font-semibold text-slate-700">{viewingDetailsUser.communityProfile.denomination || 'N/A'}</p>
+                                        </div>
+                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Church Name</p>
+                                            <p className="text-sm font-semibold text-slate-700">{viewingDetailsUser.communityProfile.churchName || 'N/A'}</p>
+                                        </div>
+                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 md:col-span-2">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Role in Ministry</p>
+                                            <p className="text-sm font-semibold text-slate-700">{viewingDetailsUser.communityProfile.role || 'N/A'}</p>
+                                        </div>
+                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 md:col-span-2">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Testimony / Bio</p>
+                                            <p className="text-sm text-slate-700 whitespace-pre-wrap">{viewingDetailsUser.communityProfile.bio || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* QR Code Section in Details */}
                             <div className="mt-8 pt-6 border-t border-slate-200">
                                 <h4 className="text-sm font-bold text-brand-950 mb-4 uppercase tracking-wider">Security QR Code</h4>

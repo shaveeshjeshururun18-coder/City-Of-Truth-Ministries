@@ -13,6 +13,7 @@ import { PrintableReferenceGuide } from './PrintableReferenceGuide';
 import { getCalendarData5786 } from './CalendarLogic';
 import { CalendarCustomizationModal, CalendarOptions } from './CalendarCustomizationModal';
 import { addCenteredCardPage, waitForNodeImages } from './pdfCardUtils';
+import { CommunityProfileForm } from './CommunityProfileForm';
 
 interface UserDashboardProps {
     user: User;
@@ -47,6 +48,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [idRevealed, setIdRevealed] = useState(false);
     const [showCardPreview, setShowCardPreview] = useState(false);
     const [cardFlipped, setCardFlipped] = useState(false);
+    const [showCommunityProfileForm, setShowCommunityProfileForm] = useState(false);
     const [showDashboardIntro, setShowDashboardIntro] = useState(false);
     const [dashboardTourStepIndex, setDashboardTourStepIndex] = useState<number | null>(null);
     const [dashboardTourRect, setDashboardTourRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
@@ -386,6 +388,15 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             {/* Off-screen capture nodes */}
             {croppingImage && <div className="z-[100] relative"><ImageCropper imageSrc={croppingImage} onCropComplete={handleCropComplete} onCancel={() => setCroppingImage(null)} /></div>}
             <TestimonialModal isOpen={showTestimonialModal} onClose={() => setShowTestimonialModal(false)} user={user} />
+            <CommunityProfileForm
+                isOpen={showCommunityProfileForm}
+                onClose={() => setShowCommunityProfileForm(false)}
+                initialData={user.communityProfile}
+                onSave={(communityData) => {
+                    onUpdate({ ...user, communityProfile: communityData } as User);
+                    alert('Member form submitted successfully. Admin can view it in dashboard.');
+                }}
+            />
             <CalendarCustomizationModal isOpen={isCalendarModalOpen} onClose={() => setIsCalendarModalOpen(false)} onDownload={handleDownloadCalendar} />
 
             <div className="fixed left-[-9999px] top-0 pointer-events-none z-0">
@@ -767,6 +778,17 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         <p className="text-white/80 text-[10px]">Export user + family + active profile details</p>
                         <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
                             <Download size={11} /> Export
+                        </span>
+                    </button>
+
+                    {/* Member Form */}
+                    <button onClick={() => setShowCommunityProfileForm(true)}
+                        className="col-span-2 bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] rounded-[22px] p-5 text-left shadow-xl hover:brightness-110 transition-all relative overflow-hidden group border border-[#d4a547]/30">
+                        <div className="w-11 h-11 bg-white/15 rounded-xl flex items-center justify-center mb-3"><Users size={22} /></div>
+                        <p className="font-bold text-base leading-tight mb-1">Member Form</p>
+                        <p className="text-[#f8e7b0] text-[11px] mb-3">Fill your details in this styled form. Submission is visible in Admin Dashboard.</p>
+                        <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/20 rounded-xl px-4 py-2">
+                            <Edit2 size={12} /> Open Form
                         </span>
                     </button>
 
