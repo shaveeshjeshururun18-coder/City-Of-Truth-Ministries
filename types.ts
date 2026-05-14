@@ -69,6 +69,11 @@ export interface User {
   };
 }
 
+export interface DeletedUser extends User {
+  deletedAt: string;
+  autoDeleteAt: string;
+}
+
 export interface SubProfile {
   id: string;
   name: string;
