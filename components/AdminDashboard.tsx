@@ -5,11 +5,13 @@ import {
     ChevronLeft, ChevronRight, Filter, Mail, Phone, MapPin, Droplet,
     Calendar, Award, Shield, ShieldCheck, AlertCircle, CheckCircle, QrCode, Download,
     Save, GripVertical, Globe, Plus, ImagePlus, Camera, Image as ImageIcon, MessageSquare, Check, XCircle,
-    PanelLeft, PanelTop
+    PanelLeft, PanelTop, Database, RotateCcw
 } from 'lucide-react';
-import { User, UserRole, UserStatus, Testimonial, Ministry } from '../types';
+import { User, UserRole, UserStatus, Testimonial, Ministry, DeletedUser } from '../types';
 import { Button } from './Button';
 import { api } from '../services/api';
+import { firebaseConfig, storage } from '../services/firebase';
+import { listAll, ref as storageRef } from 'firebase/storage';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { ImageCropper } from './ImageCropper';
@@ -24,13 +26,18 @@ interface ContactMessage {
     message: string;
     createdAt: string;
     source: 'hero-widget' | 'contact-form';
+    senderType?: 'Registered' | 'Non-Registered';
+    senderId?: string;
 }
 
 interface AdminDashboardProps {
     users: User[];
+    deletedUsers?: DeletedUser[];
     contactMessages?: ContactMessage[];
+    onDeleteContactMessage?: (messageId: string) => void;
     onUpdateUser: (user: User) => Promise<void>;
     onDeleteUser: (userId: string) => Promise<void>;
+    onRestoreUser?: (userId: string) => Promise<void>;
     onCreateUser?: (user: User) => Promise<void>;
     onBack: () => void;
     homeSectionsOrder: string[];
@@ -56,8 +63,10 @@ const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any
 
 
 
-const TAB_ITEMS: { id: 'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor' | 'messages'; label: string; icon: React.ElementType }[] = [
+const TAB_ITEMS: { id: 'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'; label: string; icon: React.ElementType }[] = [
     { id: 'users', label: 'Users', icon: Users },
+    { id: 'recycle-bin', label: 'Recycle Bin', icon: RotateCcw },
+    { id: 'firebase', label: 'Firebase', icon: Database },
     { id: 'messages', label: 'Messages', icon: MessageSquare },
     { id: 'testimonials', label: 'Testimonials', icon: MessageSquare },
     { id: 'ministries', label: 'Ministries', icon: Globe },
@@ -90,9 +99,12 @@ const EMPTY_NEW_USER = {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     users,
+    deletedUsers = [],
     contactMessages = [],
+    onDeleteContactMessage,
     onUpdateUser,
     onDeleteUser,
+    onRestoreUser,
     onCreateUser,
     onBack,
     homeSectionsOrder,
@@ -120,7 +132,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
     const [downloadingCardUserId, setDownloadingCardUserId] = useState<string | null>(null);
 
-    const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor' | 'messages'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'>('users');
     const [menuMode, setMenuMode] = useState<'horizontal' | 'vertical'>(() => {
         const stored = localStorage.getItem('adminMenuMode');
         return stored === 'vertical' ? 'vertical' : 'horizontal';
@@ -138,6 +150,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [isCropping, setIsCropping] = useState(false);
     const [cropImage, setCropImage] = useState<string | null>(null);
     const [croppingType, setCroppingType] = useState<'user' | 'ministry' | null>(null);
+    const [storageFiles, setStorageFiles] = useState<string[]>([]);
+    const [isLoadingStorage, setIsLoadingStorage] = useState(false);
+    const [isStorageListTruncated, setIsStorageListTruncated] = useState(false);
 
     React.useEffect(() => {
         if (activeTab === 'testimonials') {
@@ -145,6 +160,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         } else if (activeTab === 'ministries') {
             api.getMinistries().then(setMinistries);
         }
+    }, [activeTab]);
+
+    React.useEffect(() => {
+        if (activeTab !== 'firebase') return;
+
+        const loadStorageFiles = async () => {
+            setIsLoadingStorage(true);
+            try {
+                const MAX_FILES = 120;
+                const files: string[] = [];
+                let truncated = false;
+
+                const walk = async (folder: ReturnType<typeof storageRef>) => {
+                    if (files.length >= MAX_FILES) {
+                        truncated = true;
+                        return;
+                    }
+                    const result = await listAll(folder);
+                    for (const item of result.items) {
+                        files.push(item.fullPath);
+                        if (files.length >= MAX_FILES) {
+                            truncated = true;
+                            break;
+                        }
+                    }
+                    if (files.length >= MAX_FILES) return;
+                    for (const childFolder of result.prefixes) {
+                        await walk(childFolder);
+                        if (files.length >= MAX_FILES) {
+                            truncated = true;
+                            return;
+                        }
+                    }
+                };
+
+                await walk(storageRef(storage, '/'));
+                setStorageFiles(files);
+                setIsStorageListTruncated(truncated);
+            } catch (error) {
+                console.error('Failed to list Firebase storage files', error);
+                setStorageFiles([]);
+                setIsStorageListTruncated(false);
+            } finally {
+                setIsLoadingStorage(false);
+            }
+        };
+
+        loadStorageFiles();
     }, [activeTab]);
 
     const handleUpdateTestimonialStatus = async (testimonial: Testimonial, status: 'Approved' | 'Rejected') => {
@@ -344,6 +407,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             setShowBulkDeleteConfirm(false);
         } catch (error) {
             alert('Failed to delete some users');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleRestoreDeletedUser = async (deletedUserId: string) => {
+        if (!onRestoreUser) return;
+        setIsLoading(true);
+        try {
+            await onRestoreUser(deletedUserId);
+        } catch (error) {
+            alert('Failed to restore user');
         } finally {
             setIsLoading(false);
         }
@@ -568,7 +643,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </button>
                         <div className="flex-1 min-w-0">
                             <h1 className="text-xl md:text-3xl lg:text-4xl font-serif font-bold text-brand-950 truncate">Admin Dashboard</h1>
-                            <p className="text-slate-500 mt-0.5 text-xs md:text-sm">Manage users and testimonials</p>
+                            <p className="text-slate-500 mt-0.5 text-xs md:text-sm">Manage users, Firebase, approvals, and recycle bin</p>
                         </div>
                         <button
                             onClick={toggleMenuMode}
@@ -874,6 +949,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                             </button>
                                                         </>
                                                     )}
+                                                    {user.status === 'Rejected' && (
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (window.confirm(`Approve ${user.name} again?`)) {
+                                                                    await onUpdateUser({ ...user, status: 'Active' });
+                                                                }
+                                                            }}
+                                                            className="p-2 hover:bg-green-50 text-green-600 rounded-lg transition-colors"
+                                                            title="Approve Again"
+                                                        >
+                                                            <CheckCircle size={16} />
+                                                        </button>
+                                                    )}
                                                     {user.status !== 'Pending Verification' && hasPendingProfileUpdate(user) && (
                                                         <>
                                                             <button
@@ -1023,6 +1111,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         >
                                             <XCircle size={16} />
                                             Reject
+                                        </button>
+                                    </div>
+                                )}
+                                {user.status === 'Rejected' && (
+                                    <div className="pb-4 mb-4 border-b border-slate-100">
+                                        <button
+                                            onClick={async () => {
+                                                if (window.confirm(`Approve ${user.name} again?`)) {
+                                                    await onUpdateUser({ ...user, status: 'Active' });
+                                                }
+                                            }}
+                                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-50 text-green-600 rounded-xl font-medium text-sm hover:bg-green-100 transition-colors"
+                                        >
+                                            <CheckCircle size={16} />
+                                            Approve Again
                                         </button>
                                     </div>
                                 )}
@@ -1235,9 +1338,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 {msg.source === 'hero-widget' ? 'Hero' : 'Form'}
                                             </span>
                                         </div>
+                                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
+                                            <span className={`px-2 py-0.5 rounded-full border ${msg.senderType === 'Registered' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                                                {msg.senderType || 'Non-Registered'}
+                                            </span>
+                                            {msg.senderId && <span className="text-slate-500 font-mono">{msg.senderId}</span>}
+                                        </div>
                                         <p className="text-xs font-semibold text-brand-700 bg-brand-50 px-2 py-1 rounded-lg truncate">{msg.subject}</p>
                                         <p className="text-sm text-slate-700 whitespace-pre-wrap break-words flex-1">{msg.message}</p>
-                                        <p className="text-[10px] text-slate-400 text-right mt-1">{new Date(msg.createdAt).toLocaleString()}</p>
+                                        <div className="flex items-center justify-between mt-1">
+                                            <p className="text-[10px] text-slate-400">{new Date(msg.createdAt).toLocaleString()}</p>
+                                            <button
+                                                onClick={() => onDeleteContactMessage?.(msg.id)}
+                                                className="text-[10px] font-bold text-red-600 hover:text-red-700 bg-red-50 border border-red-100 rounded-lg px-2 py-1"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -1265,6 +1382,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             }`}>
                                             {t.status}
                                         </span>
+                                    </div>
+                                    <div className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
+                                        <span className={`px-2 py-0.5 rounded-full border ${t.senderType === 'Registered' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                                            {t.senderType || 'Registered'}
+                                        </span>
+                                        {t.userId && <span className="text-slate-400 font-mono normal-case">{t.userId}</span>}
                                     </div>
 
                                     <p className="text-slate-600 text-sm italic mb-6">"{t.content}"</p>
@@ -1590,6 +1713,130 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                 )}
 
+                {activeTab === 'recycle-bin' && (
+                    <div className="space-y-6">
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 flex items-center justify-between">
+                            <div>
+                                <h2 className="text-2xl font-serif font-black text-brand-950">User Recycle Bin</h2>
+                                <p className="text-slate-500 text-sm mt-1">Deleted users can be restored within 30 days. After that, they are removed automatically.</p>
+                            </div>
+                            <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest bg-brand-50 text-brand-600 border border-brand-100">
+                                {deletedUsers.length} in bin
+                            </span>
+                        </div>
+
+                        {deletedUsers.length === 0 ? (
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-16 text-center">
+                                <RotateCcw size={48} className="mx-auto text-slate-300 mb-4" />
+                                <p className="text-slate-500 font-medium">Recycle bin is empty.</p>
+                            </div>
+                        ) : (
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-slate-50 border-b border-slate-100">
+                                            <tr>
+                                                <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">User</th>
+                                                <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Deleted At</th>
+                                                <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Auto Delete</th>
+                                                <th className="text-right px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {deletedUsers.map((user) => {
+                                                const daysLeft = Math.max(
+                                                    0,
+                                                    Math.ceil((new Date(user.autoDeleteAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+                                                );
+                                                return (
+                                                    <tr key={user.id} className="hover:bg-slate-50">
+                                                        <td className="px-6 py-4">
+                                                            <p className="font-bold text-brand-950">{user.name}</p>
+                                                            <p className="text-xs text-slate-500 font-mono">{user.id}</p>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-sm text-slate-600">{new Date(user.deletedAt).toLocaleString()}</td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="text-sm text-slate-600">{new Date(user.autoDeleteAt).toLocaleDateString()}</div>
+                                                            <div className="text-xs text-amber-600 font-bold">{daysLeft} day{daysLeft === 1 ? '' : 's'} left</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            <button
+                                                                onClick={() => handleRestoreDeletedUser(user.id)}
+                                                                disabled={isLoading || !onRestoreUser}
+                                                                className="inline-flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 border border-green-200 rounded-xl text-xs font-bold hover:bg-green-100 transition-colors disabled:opacity-50"
+                                                            >
+                                                                <RotateCcw size={14} />
+                                                                Restore
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'firebase' && (
+                    <div className="space-y-6 max-w-4xl mx-auto">
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+                            <h2 className="text-2xl font-serif font-black text-brand-950 flex items-center gap-2 mb-2">
+                                <Database size={24} className="text-brand-600" /> Firebase Details
+                            </h2>
+                            <p className="text-slate-500 text-sm">Live Firebase project and storage configuration used by this admin dashboard.</p>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+                                <h3 className="text-sm font-black uppercase tracking-widest text-brand-600 mb-4">Project</h3>
+                                <div className="space-y-2 text-sm">
+                                    <p><span className="font-bold text-slate-700">Project ID:</span> <span className="text-slate-600">{firebaseConfig.projectId}</span></p>
+                                    <p><span className="font-bold text-slate-700">Auth Domain:</span> <span className="text-slate-600 break-all">{firebaseConfig.authDomain}</span></p>
+                                    <p><span className="font-bold text-slate-700">App ID:</span> <span className="text-slate-600 break-all">{firebaseConfig.appId}</span></p>
+                                    <p><span className="font-bold text-slate-700">Sender ID:</span> <span className="text-slate-600">{firebaseConfig.messagingSenderId}</span></p>
+                                </div>
+                            </div>
+
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+                                <h3 className="text-sm font-black uppercase tracking-widest text-brand-600 mb-4">Storage & Collections</h3>
+                                <div className="space-y-2 text-sm">
+                                    <p><span className="font-bold text-slate-700">Storage Bucket:</span> <span className="text-slate-600 break-all">{firebaseConfig.storageBucket}</span></p>
+                                    <p><span className="font-bold text-slate-700">Storage Files Loaded:</span> <span className="text-slate-600">{isLoadingStorage ? 'Loading...' : storageFiles.length}</span></p>
+                                    <p><span className="font-bold text-slate-700">Active Users:</span> <span className="text-slate-600">{users.length}</span></p>
+                                    <p><span className="font-bold text-slate-700">Deleted Users:</span> <span className="text-slate-600">{deletedUsers.length}</span></p>
+                                    <p><span className="font-bold text-slate-700">Testimonials Loaded:</span> <span className="text-slate-600">{testimonials.length}</span></p>
+                                    <p><span className="font-bold text-slate-700">Ministry Items Loaded:</span> <span className="text-slate-600">{ministries.length}</span></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+                            <h3 className="text-sm font-black uppercase tracking-widest text-brand-600 mb-4">Firebase Storage File Details</h3>
+                            {isLoadingStorage ? (
+                                <p className="text-sm text-slate-500">Loading storage details...</p>
+                            ) : storageFiles.length === 0 ? (
+                                <p className="text-sm text-slate-500">No files found or storage listing not accessible from this session.</p>
+                            ) : (
+                                <div className="max-h-72 overflow-auto border border-slate-100 rounded-2xl divide-y divide-slate-100">
+                                    {storageFiles.map((filePath) => (
+                                        <div key={filePath} className="px-4 py-2 text-xs text-slate-600 font-mono break-all">
+                                            {filePath}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {isStorageListTruncated && (
+                                <p className="text-xs text-amber-600 font-bold mt-3">
+                                    Showing first 120 files only.
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                     </div>{/* /Main Content */}
                 </div>{/* /Content Layout */}
 
@@ -1790,7 +2037,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </div>
                                 <h3 className="text-2xl font-bold text-brand-950 mb-2">Delete User?</h3>
                                 <p className="text-slate-600">
-                                    Are you sure you want to delete <strong>{deletingUser.name}</strong>? This action cannot be undone.
+                                    Move <strong>{deletingUser.name}</strong> to recycle bin? You can restore within 30 days.
                                 </p>
                             </div>
 
@@ -1899,7 +2146,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </div>
                                 <h3 className="text-2xl font-bold text-brand-950 mb-2">Delete {selectedUsers.size} Users?</h3>
                                 <p className="text-slate-600">
-                                    Are you sure you want to delete {selectedUsers.size} selected user{selectedUsers.size > 1 ? 's' : ''}? This action cannot be undone.
+                                    Move {selectedUsers.size} selected user{selectedUsers.size > 1 ? 's' : ''} to recycle bin? You can restore within 30 days.
                                 </p>
                             </div>
 
@@ -2005,6 +2252,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
 
                             </div>
+
+                            {/* Member Form (Community Profile) */}
+                            {viewingDetailsUser.communityProfile && (
+                                <div className="mt-8 pt-6 border-t border-slate-200">
+                                    <h4 className="text-sm font-bold text-brand-950 mb-4 uppercase tracking-wider">Member Form Submission</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Denomination</p>
+                                            <p className="text-sm font-semibold text-slate-700">{viewingDetailsUser.communityProfile.denomination || 'N/A'}</p>
+                                        </div>
+                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Church Name</p>
+                                            <p className="text-sm font-semibold text-slate-700">{viewingDetailsUser.communityProfile.churchName || 'N/A'}</p>
+                                        </div>
+                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 md:col-span-2">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Role in Ministry</p>
+                                            <p className="text-sm font-semibold text-slate-700">{viewingDetailsUser.communityProfile.role || 'N/A'}</p>
+                                        </div>
+                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 md:col-span-2">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Testimony / Bio</p>
+                                            <p className="text-sm text-slate-700 whitespace-pre-wrap">{viewingDetailsUser.communityProfile.bio || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* QR Code Section in Details */}
                             <div className="mt-8 pt-6 border-t border-slate-200">

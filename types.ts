@@ -69,6 +69,11 @@ export interface User {
   };
 }
 
+export interface DeletedUser extends User {
+  deletedAt: string;
+  autoDeleteAt: string;
+}
+
 export interface SubProfile {
   id: string;
   name: string;
@@ -97,6 +102,8 @@ export interface Testimonial {
   userPhoto?: string;
   location?: string;
   role?: string;
+  senderType?: 'Registered' | 'Non-Registered';
+  senderStatus?: UserStatus | 'Guest';
 }
 export interface Ministry {
   id: string;
