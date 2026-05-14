@@ -211,7 +211,7 @@ const TestimonialSection: React.FC<TestimonialSectionProps> = ({ currentUser }) 
       const isRegistered = !!currentUser;
       const senderStatus = isRegistered ? currentUser.status : 'Guest';
       await api.createTestimonial({
-        userId: isRegistered ? currentUser.id : `guest-${Date.now()}`,
+        userId: isRegistered ? currentUser.id : 'NON_REGISTERED',
         userName: isRegistered ? (currentUser.name || trimmedName) : trimmedName,
         content: trimmedText,
         date: new Date().toISOString(),
