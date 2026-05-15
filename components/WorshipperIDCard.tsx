@@ -312,9 +312,15 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
     const [croppingImage, setCroppingImage] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const secureRandomInt = (min: number, max: number) => {
+        const range = max - min + 1;
+        const values = new Uint32Array(1);
+        window.crypto.getRandomValues(values);
+        return min + (values[0] % range);
+    };
 
     useEffect(() => {
-        setUniqueId(`COT-${Math.floor(1000 + Math.random() * 9000)}`);
+        setUniqueId(`COT-${secureRandomInt(1000, 9999)}`);
     }, []);
 
     // Helper for cropping logic could go here, but for now relying on basic photo upload as per user request flow adjustment
@@ -369,7 +375,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
     };
 
     const createFamilyMember = (): FamilyMemberForm => ({
-        id: `FM-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        id: `FM-${Date.now()}-${secureRandomInt(100, 999)}`,
         name: '',
         relationship: 'Spouse',
         photo: '',
