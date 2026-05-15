@@ -595,6 +595,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
     };
 
+    const appOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://city-of-truth-ministries.vercel.app';
+    const getVerificationUrl = (memberId: string) => `${appOrigin}/verify/${encodeURIComponent(memberId)}`;
+    const getQrImageUrl = (memberId: string, size = 220) =>
+        `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(getVerificationUrl(memberId))}&bgcolor=ffffff&color=1a237e&margin=2&format=png&cb=${encodeURIComponent(memberId)}`;
+
     return (
         <div className="min-h-screen bg-slate-50 pt-20 pb-24">
             {/* HIDDEN CARD RENDER AREA FOR PDF GENERATION */}
@@ -1047,15 +1052,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.05 }}
-                                className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm"
+                                className="bg-white p-4 sm:p-6 rounded-3xl border border-slate-100 shadow-sm"
                             >
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="flex items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingUser(user)}
+                                    className="w-full flex items-start justify-between mb-3 text-left"
+                                >
+                                    <div className="flex items-center gap-3 min-w-0">
                                         <div className="w-12 h-12 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold">
                                             {user.name.charAt(0)}
                                         </div>
-                                        <div>
-                                            <div className="font-bold text-brand-950">{user.name}</div>
+                                        <div className="min-w-0">
+                                            <div className="font-bold text-brand-950 truncate">{user.name}</div>
                                             <div className="text-xs text-slate-500 font-mono">{user.id}</div>
                                         </div>
                                     </div>
@@ -1063,7 +1072,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         {user.status === 'Active' && <CheckCircle size={10} />}
                                         {user.status}
                                     </span>
-                                </div>
+                                </button>
+                                <p className="text-[10px] text-slate-400 font-semibold mb-4">Tap name/photo to edit details & photo</p>
                                 {hasPendingProfileUpdate(user) && (
                                     <div className="mb-4">
                                         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase bg-amber-100 text-amber-700 border border-amber-200">
@@ -1157,21 +1167,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 )}
                                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-4 border-t border-slate-100">
                                     <button
-                                        onClick={() => setViewingDetailsUser(user)}
+                                        onClick={(e) => { e.stopPropagation(); setViewingDetailsUser(user); }}
                                         className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-green-50 text-green-600 rounded-xl font-medium text-sm hover:bg-green-100 transition-colors"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
                                         View
                                     </button>
                                     <button
-                                        onClick={() => setViewingQrUser(user)}
+                                        onClick={(e) => { e.stopPropagation(); setViewingQrUser(user); }}
                                         className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-medium text-sm hover:bg-indigo-100 transition-colors"
                                     >
                                         <QrCode size={16} />
                                         QR
                                     </button>
                                     <button
-                                        onClick={() => handleDownloadUserCard(user)}
+                                        onClick={(e) => { e.stopPropagation(); handleDownloadUserCard(user); }}
                                         className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-purple-50 text-purple-600 rounded-xl font-medium text-sm hover:bg-purple-100 transition-colors"
                                         disabled={downloadingCardUserId === user.id}
                                     >
@@ -1182,14 +1192,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         )}
                                     </button>
                                     <button
-                                        onClick={() => setEditingUser(user)}
+                                        onClick={(e) => { e.stopPropagation(); setEditingUser(user); }}
                                         className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-xl font-medium text-sm hover:bg-blue-100 transition-colors"
                                     >
                                         <Edit2 size={16} />
                                         Edit
                                     </button>
                                     <button
-                                        onClick={() => setDeletingUser(user)}
+                                        onClick={(e) => { e.stopPropagation(); setDeletingUser(user); }}
                                         className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-xl font-medium text-sm hover:bg-red-100 transition-colors"
                                     >
                                         <Trash2 size={16} />
@@ -2087,16 +2097,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                             <div className="bg-white p-4 rounded-xl border-2 border-dashed border-slate-200 mb-6 flex justify-center">
                                 <img
-                                    src={`https://quickchart.io/qr?text=${encodeURIComponent(JSON.stringify({
-                                        id: viewingQrUser.id,
-                                        name: viewingQrUser.name,
-                                        email: viewingQrUser.email,
-                                        phone: viewingQrUser.phone,
-                                        location: viewingQrUser.location,
-                                        emergency: viewingQrUser.emergency || 'N/A',
-                                        role: viewingQrUser.role,
-                                        status: viewingQrUser.status
-                                    }))}&dark=4c51f7&size=200`}
+                                    src={getQrImageUrl(viewingQrUser.id, 220)}
                                     alt="User QR Code"
                                     className="w-48 h-48"
                                 />
@@ -2104,16 +2105,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                             <div className="flex gap-2">
                                 <button
-                                    onClick={() => window.open(`https://quickchart.io/qr?text=${encodeURIComponent(JSON.stringify({
-                                        id: viewingQrUser.id,
-                                        name: viewingQrUser.name,
-                                        email: viewingQrUser.email,
-                                        phone: viewingQrUser.phone,
-                                        location: viewingQrUser.location,
-                                        emergency: viewingQrUser.emergency || 'N/A',
-                                        role: viewingQrUser.role,
-                                        status: viewingQrUser.status
-                                    }))}&dark=4c51f7&size=400`, '_blank')}
+                                    onClick={() => window.open(getQrImageUrl(viewingQrUser.id, 400), '_blank')}
                                     className="flex-1 py-3 bg-brand-600 text-white rounded-xl font-bold text-sm hover:bg-brand-700 transition-colors"
                                 >
                                     Download
@@ -2284,30 +2276,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <div className="flex flex-col md:flex-row items-center gap-6 bg-slate-50 p-6 rounded-3xl border border-slate-100">
                                     <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
                                         <img
-                                            src={`https://quickchart.io/qr?text=${encodeURIComponent(JSON.stringify({
-                                                id: viewingDetailsUser.id,
-                                                name: viewingDetailsUser.name,
-                                                role: viewingDetailsUser.role
-                                            }))}&dark=4c51f7&size=150`}
+                                            src={getQrImageUrl(viewingDetailsUser.id, 180)}
                                             alt="User QR Code"
                                             className="w-32 h-32"
                                         />
                                     </div>
                                     <div className="flex-1 text-center md:text-left">
                                         <p className="text-xs text-slate-500 mb-4">
-                                            Scan this code at the sanctuary entrance for digital verification and attendance marking.
+                                            Scan this code to open the current live verification page for this member ID.
                                         </p>
                                         <button
-                                            onClick={() => window.open(`https://quickchart.io/qr?text=${encodeURIComponent(JSON.stringify({
-                                                id: viewingDetailsUser.id,
-                                                name: viewingDetailsUser.name,
-                                                email: viewingDetailsUser.email,
-                                                phone: viewingDetailsUser.phone,
-                                                location: viewingDetailsUser.location,
-                                                emergency: viewingDetailsUser.emergency || 'N/A',
-                                                role: viewingDetailsUser.role,
-                                                status: viewingDetailsUser.status
-                                            }))}&dark=4c51f7&size=400`, '_blank')}
+                                            onClick={() => window.open(getQrImageUrl(viewingDetailsUser.id, 400), '_blank')}
                                             className="inline-flex items-center gap-2 px-4 py-2 bg-brand-100 text-brand-700 rounded-xl font-bold text-xs hover:bg-brand-200 transition-colors"
                                         >
                                             <Download size={14} /> Download HQ QR

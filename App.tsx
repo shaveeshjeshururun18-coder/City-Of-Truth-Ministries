@@ -453,17 +453,31 @@ const App: React.FC = () => {
     setContactMessages(prev => prev.filter(msg => msg.id !== messageId));
   };
 
+  const getContactSenderMeta = (fallbackName = '', fallbackEmail = '') => {
+    const isRegistered = !!currentUser;
+    const nonRegisteredName = fallbackName.trim() || 'Website Visitor';
+    const nonRegisteredEmail = fallbackEmail.trim();
+
+    return {
+      senderType: isRegistered ? 'Registered' as const : 'Non-Registered' as const,
+      senderId: isRegistered ? currentUser?.id : undefined,
+      name: isRegistered ? (currentUser?.name?.trim() || nonRegisteredName) : nonRegisteredName,
+      email: isRegistered ? (currentUser?.email?.trim() || nonRegisteredEmail) : nonRegisteredEmail
+    };
+  };
+
   const handleHeroSendMessage = () => {
     const message = heroEmail.trim();
     if (!message) return;
+    const sender = getContactSenderMeta();
     saveContactMessage({
-      name: 'Website Visitor',
-      email: '',
-      subject: 'Hero Quick Message',
+      name: sender.name,
+      email: sender.email,
+      subject: sender.senderId ? `Hero Quick Message (${sender.senderId})` : 'Hero Quick Message',
       message,
       source: 'hero-widget',
-      senderType: currentUser ? 'Registered' : 'Non-Registered',
-      senderId: currentUser?.id
+      senderType: sender.senderType,
+      senderId: sender.senderId
     });
     setHeroEmail('');
     setShowLeaderMessage(true);
@@ -472,18 +486,22 @@ const App: React.FC = () => {
 
   const handleContactFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!contactForm.name.trim() || !contactForm.email.trim() || !contactForm.message.trim()) {
-      alert('Please fill in your name, email, and message.');
+    const isRegistered = !!currentUser;
+    if (!contactForm.message.trim() || (!isRegistered && (!contactForm.name.trim() || !contactForm.email.trim()))) {
+      alert(isRegistered ? 'Please enter your message.' : 'Please fill in your name, email, and message.');
       return;
     }
+    const sender = getContactSenderMeta(contactForm.name, contactForm.email);
     saveContactMessage({
-      name: contactForm.name.trim(),
-      email: contactForm.email.trim(),
-      subject: contactForm.subject.trim() || 'General Inquiry',
+      name: sender.name,
+      email: sender.email,
+      subject: sender.senderId
+        ? `${contactForm.subject.trim() || 'General Inquiry'} (${sender.senderId})`
+        : (contactForm.subject.trim() || 'General Inquiry'),
       message: contactForm.message.trim(),
       source: 'contact-form',
-      senderType: currentUser ? 'Registered' : 'Non-Registered',
-      senderId: currentUser?.id
+      senderType: sender.senderType,
+      senderId: sender.senderId
     });
     setContactForm({ name: '', email: '', subject: 'Prayer Request', message: '' });
     alert('Message sent successfully. Admin will receive it in the dashboard.');
@@ -587,6 +605,15 @@ const App: React.FC = () => {
       return null;
     }
   });
+
+  useEffect(() => {
+    if (!currentUser) return;
+    setContactForm(prev => ({
+      ...prev,
+      name: currentUser.name || prev.name,
+      email: currentUser.email || prev.email
+    }));
+  }, [currentUser?.id, currentUser?.name, currentUser?.email]);
 
   // Scroll to top on view change
   useEffect(() => {
@@ -1570,11 +1597,16 @@ const App: React.FC = () => {
                   <div className="bg-white p-10 md:p-12 rounded-[3.5rem] shadow-2xl shadow-slate-200/50 border border-slate-50 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-40 h-40 bg-brand-50 rounded-full blur-3xl opacity-50 -mr-20 -mt-20"></div>
                     <form className="space-y-6 md:space-y-8 relative z-10 text-left" onSubmit={handleContactFormSubmit}>
+                      {currentUser && (
+                        <div className="text-[10px] font-black uppercase tracking-[0.16em] text-brand-700 bg-brand-50 border border-brand-100 rounded-xl px-3 py-2">
+                          Sending as {currentUser.name || 'Registered User'} ({currentUser.id})
+                        </div>
+                      )}
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Your Name</label>
                         <div className="relative">
                           <UserIcon size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
-                          <input type="text" placeholder="John Doe" className="w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all text-sm font-bold text-brand-950" value={contactForm.name} onChange={e => setContactForm(prev => ({ ...prev, name: e.target.value }))} />
+                          <input type="text" placeholder="John Doe" readOnly={!!currentUser} className={`w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3 md:py-4 border border-slate-100 rounded-2xl outline-none transition-all text-sm font-bold text-brand-950 ${currentUser ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-slate-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-brand-500/10'}`} value={contactForm.name} onChange={e => setContactForm(prev => ({ ...prev, name: e.target.value }))} />
                         </div>
                       </div>
 
@@ -1582,7 +1614,7 @@ const App: React.FC = () => {
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Email Address</label>
                         <div className="relative">
                           <Mail size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
-                          <input type="email" placeholder="john@example.com" className="w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all text-sm font-bold text-brand-950" value={contactForm.email} onChange={e => setContactForm(prev => ({ ...prev, email: e.target.value }))} />
+                          <input type="email" placeholder="john@example.com" readOnly={!!currentUser} className={`w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3 md:py-4 border border-slate-100 rounded-2xl outline-none transition-all text-sm font-bold text-brand-950 ${currentUser ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-slate-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-brand-500/10'}`} value={contactForm.email} onChange={e => setContactForm(prev => ({ ...prev, email: e.target.value }))} />
                         </div>
                       </div>
 
