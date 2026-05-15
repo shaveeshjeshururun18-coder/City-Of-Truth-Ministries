@@ -50,7 +50,7 @@ import {
   CreditCard,
   Globe
 } from 'lucide-react';
-import { ViewState, User, UserRole, UserStatus, NavItem, DeletedUser } from './types';
+import { ViewState, User, UserRole, UserStatus, NavItem, DeletedUser, SubProfile } from './types';
 import { Navbar } from './components/Navbar';
 import { Button } from './components/Button';
 import { AuthPage } from './components/AuthPage';
@@ -743,7 +743,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogin = (identifier: string) => {
+  const handleLogin = async (identifier: string) => {
     if (!identifier) {
       alert("Please enter your Member ID, Email, Phone, or Name.");
       return;
@@ -797,6 +797,43 @@ const App: React.FC = () => {
     const user = match?.user;
 
     if (user) {
+      const isSwitchingToDifferentAccount = !!currentUser && currentUser.id !== user.id;
+      if (isSwitchingToDifferentAccount && currentUser) {
+        const existingLinkedProfiles = currentUser.linkedProfiles || [];
+        const alreadyLinked = existingLinkedProfiles.some(profile => profile.id === user.id);
+        const linkedAccountProfile: SubProfile = {
+          id: user.id,
+          name: user.name,
+          role: user.role || 'Member',
+          photo: user.photo
+        };
+        const updatedCurrentUser: User = alreadyLinked
+          ? currentUser
+          : { ...currentUser, linkedProfiles: [...existingLinkedProfiles, linkedAccountProfile] };
+
+        if (!alreadyLinked) {
+          try {
+            const savedCurrentUser = await api.updateUser(updatedCurrentUser);
+            setUsers(prev => prev.map(u => (u.id === currentUser.id ? savedCurrentUser : u)));
+            setCurrentUser(savedCurrentUser);
+          } catch (error) {
+            console.error('Failed to add logged-in account as dashboard profile', error);
+            alert('Could not add this account as a new profile. Please try again.');
+            return;
+          }
+        } else {
+          setCurrentUser(updatedCurrentUser);
+        }
+
+        setSelectedDashboardProfileId(user.id);
+        setCurrentView(ViewState.USER_DASHBOARD);
+        navigate('/');
+        alert(alreadyLinked
+          ? `Profile ${user.id} is already available in your dashboard.`
+          : `Logged in as ${user.id}. This account was added to your dashboard profiles.`);
+        return;
+      }
+
       try {
         localStorage.removeItem(`cot_dashboard_tour_seen_${user.id}`);
       } catch (error) {

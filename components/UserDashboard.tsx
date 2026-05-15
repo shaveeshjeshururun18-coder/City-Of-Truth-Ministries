@@ -31,6 +31,14 @@ const FAMILY_RELATIONSHIP_OPTIONS = {
     others: ['Guardian', 'Other']
 };
 
+const TAMIL_NADU_LOCATIONS = [
+    'Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli', 'Salem', 'Erode', 'Tirunelveli',
+    'Thoothukudi', 'Vellore', 'Dindigul', 'Thanjavur', 'Kancheepuram', 'Kanyakumari',
+    'Namakkal', 'Karur', 'Nagapattinam', 'Cuddalore', 'Villupuram', 'Dharmapuri', 'Krishnagiri',
+    'Sivaganga', 'Virudhunagar', 'Ramanathapuram', 'The Nilgiris', 'Tiruppur', 'Ariyalur',
+    'Pudukkottai', 'Perambalur', 'Tenkasi', 'Ranipet', 'Tirupattur', 'Mayiladuthurai', 'Valparai'
+];
+
 export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, onOpenScanner, initialProfileId, onGoToLogin }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [showTestimonialModal, setShowTestimonialModal] = useState(false);
@@ -52,6 +60,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [showDashboardIntro, setShowDashboardIntro] = useState(false);
     const [dashboardTourStepIndex, setDashboardTourStepIndex] = useState<number | null>(null);
     const [dashboardTourRect, setDashboardTourRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
+    const [photoUpdateMode, setPhotoUpdateMode] = useState<'edit-existing' | 'add-new' | null>(null);
     const canAccessEntrustFeatures = user.status === 'Active';
     const DASHBOARD_TOUR_STEPS = [
         { selector: '#dashboard-edit-btn', title: 'Edit Details', text: 'Update your profile and submit changes for admin approval.' },
@@ -137,22 +146,38 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const displayProfile = getDisplayProfile();
 
 
-    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, mode: 'edit-existing' | 'add-new') => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             const reader = new FileReader();
-            reader.onloadend = () => { setCroppingImage(reader.result as string); e.target.value = ''; };
+            reader.onloadend = () => {
+                setPhotoUpdateMode(mode);
+                setCroppingImage(reader.result as string);
+                e.target.value = '';
+            };
             reader.readAsDataURL(file);
         }
     };
 
     const handleCropComplete = (croppedImg: string) => {
-        if (activeProfileId === user.id) {
-            onUpdate({ ...user, photo: croppedImg } as User);
+        if (photoUpdateMode === 'add-new' && activeProfileId === user.id) {
+            onUpdate({
+                ...user,
+                pendingProfileUpdate: {
+                    ...(user.pendingProfileUpdate || {}),
+                    photo: croppedImg
+                }
+            } as User);
+            alert('New photo submitted for admin approval.');
+        } else if (activeProfileId === user.id) {
+            onUpdate({ ...user, photo: croppedImg, pendingProfileUpdate: { ...(user.pendingProfileUpdate || {}), photo: undefined } } as User);
+            alert('Photo updated successfully.');
         } else {
             const updatedProfiles = user.linkedProfiles?.map(p => p.id === activeProfileId ? { ...p, photo: croppedImg } : p) || [];
             onUpdate({ ...user, linkedProfiles: updatedProfiles } as User);
+            alert('Profile photo updated successfully.');
         }
+        setPhotoUpdateMode(null);
         setCroppingImage(null);
     };
 
@@ -491,7 +516,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         </div>
                         <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 cursor-pointer transition-all">
                             <Camera size={14} className="text-white" />
-                            <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoUpload(e, 'add-new')} />
                         </label>
                         {/* Active indicator */}
                         <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white ${user.status === 'Active' ? 'bg-green-500' : user.status === 'Rejected' ? 'bg-red-500' : 'bg-amber-400'}`} />
@@ -920,22 +945,45 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             <button onClick={cancelEditing} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
                         </div>
 
-                        {/* Photo section — no admin approval needed for crop/upload */}
+                        {/* Photo section */}
                         <div className="flex flex-col items-center gap-3 mb-6">
-                            <div className="relative group">
-                                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-slate-100 shadow-lg">
-                                    <img
-                                        src={displayProfile.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayProfile.name)}&background=1e1b4b&color=fff&bold=true&size=256`}
-                                        alt={displayProfile.name}
-                                        className="w-full h-full object-cover"
+                            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-slate-100 shadow-lg">
+                                <img
+                                    src={displayProfile.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayProfile.name)}&background=1e1b4b&color=fff&bold=true&size=256`}
+                                    alt={displayProfile.name}
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+                            <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (!displayProfile.photo) {
+                                            alert('No existing photo to crop. Use "Add New Photo" first.');
+                                            return;
+                                        }
+                                        setPhotoUpdateMode('edit-existing');
+                                        setCroppingImage(displayProfile.photo);
+                                        setIsEditing(false);
+                                    }}
+                                    className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
+                                >
+                                    <Camera size={14} /> Edit/Crop Current Photo
+                                </button>
+                                <label className="flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100 cursor-pointer">
+                                    <UploadCloud size={14} /> Add New Photo (Approval)
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            handlePhotoUpload(e, 'add-new');
+                                            setIsEditing(false);
+                                        }}
                                     />
-                                </div>
-                                <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 cursor-pointer transition-all">
-                                    <Camera size={20} className="text-white" />
-                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { handlePhotoUpload(e); cancelEditing(); }} />
                                 </label>
                             </div>
-                            <p className="text-slate-400 text-xs text-center">Tap photo to update — no approval needed</p>
+                            <p className="text-slate-400 text-xs text-center">Crop edits are instant. New uploads are sent for admin approval.</p>
                         </div>
 
                         <form onSubmit={(e) => {
@@ -967,7 +1015,18 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Location</label>
-                                <input type="text" value={formData.location ?? user.location} onChange={e => setFormData(p => ({ ...p, location: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                                <select
+                                    value={formData.location ?? user.location}
+                                    onChange={e => setFormData(p => ({ ...p, location: e.target.value }))}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500"
+                                >
+                                    {!TAMIL_NADU_LOCATIONS.includes((formData.location ?? user.location) || '') && (
+                                        <option value={formData.location ?? user.location}>{formData.location ?? user.location}</option>
+                                    )}
+                                    {TAMIL_NADU_LOCATIONS.map(location => (
+                                        <option key={location} value={location}>{location}</option>
+                                    ))}
+                                </select>
                             </div>
 
                             <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700 font-medium">

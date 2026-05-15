@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X, UserCheck } from 'lucide-react';
+import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X, UserCheck, UserPlus } from 'lucide-react';
 import { Button } from './Button';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
@@ -395,6 +395,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                 <p className="text-brand-50/95 mb-6 md:mb-10 text-sm sm:text-base md:text-lg font-semibold relative z-10">Login with any one detail: Member ID, Phone Number, Name, or Email.</p>
 
                                 <div className="mb-6 md:mb-12 z-10">
+                                    <div className="mb-4 rounded-2xl bg-white/10 border border-white/15 p-3 md:p-4 text-left">
+                                        <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.18em] text-white/85 mb-1 flex items-center gap-2">
+                                            <UserPlus size={14} /> Add Profile Support
+                                        </p>
+                                        <p className="text-[11px] md:text-sm text-white/85 font-semibold leading-relaxed">
+                                            If you login with another account while already signed in, that account will be added as an extra profile in your dashboard.
+                                        </p>
+                                    </div>
                                     <p className="text-left text-[10px] md:text-xs font-black uppercase tracking-[0.18em] text-white/90 mb-2">Enter Member Detail</p>
                                     <div className="relative">
                                         <div className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-white/80">

@@ -43,6 +43,7 @@ export interface PendingProfileUpdate {
   phone?: string;
   location?: string;
   emergency?: string;
+  photo?: string;
 }
 
 export interface User {
