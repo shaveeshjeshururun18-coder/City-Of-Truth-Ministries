@@ -56,6 +56,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const DASHBOARD_TOUR_STEPS = [
         { selector: '#dashboard-edit-btn', title: 'Edit Details', text: 'Update your profile and submit changes for admin approval.' },
         { selector: '#dashboard-testimony-btn', title: 'Write Testimony', text: 'Share your testimony and track approval in admin review.' },
+        { selector: '#dashboard-member-form-btn', title: 'User Book Member Form', text: 'Open the themed member form in the User Book column and submit your ministry profile details.' },
         { selector: '#dashboard-share-btn', title: 'Share Profile', text: 'Send your secure profile login link to family members.' },
         { selector: '#dashboard-login-btn', title: 'Profile Login', text: 'Quickly open login page to switch accounts.' },
     ];
@@ -782,11 +783,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     </button>
 
                     {/* Member Form */}
-                    <button onClick={() => setShowCommunityProfileForm(true)}
+                    <button id="dashboard-member-form-btn" onClick={() => setShowCommunityProfileForm(true)}
                         className="col-span-2 bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] rounded-[22px] p-5 text-left shadow-xl hover:brightness-110 transition-all relative overflow-hidden group border border-[#d4a547]/30">
+                        <div className="absolute top-3 right-3 px-2 py-1 rounded-full bg-[#d4a547]/15 border border-[#d4a547]/40 text-[9px] font-black uppercase tracking-widest text-[#f8e7b0]">
+                            User Book
+                        </div>
                         <div className="w-11 h-11 bg-white/15 rounded-xl flex items-center justify-center mb-3"><Users size={22} /></div>
-                        <p className="font-bold text-base leading-tight mb-1">Member Form</p>
-                        <p className="text-[#f8e7b0] text-[11px] mb-3">Fill your details in this styled form. Submission is visible in Admin Dashboard.</p>
+                        <p className="font-bold text-base leading-tight mb-1">Member Form Column</p>
+                        <p className="text-[#f8e7b0] text-[11px] mb-3">Professional themed profile form for User Book. Submission is visible in Admin Dashboard.</p>
                         <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/20 rounded-xl px-4 py-2">
                             <Edit2 size={12} /> Open Form
                         </span>
@@ -995,7 +999,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         >
                             <div className="text-[11px] font-black uppercase tracking-widest text-brand-500 mb-2">Dashboard Tour</div>
                             <h3 className="text-xl font-bold text-brand-950 mb-2">Quick Guide</h3>
-                            <p className="text-sm text-slate-600 mb-5">Get a short walkthrough of the key options in your dashboard. You can skip anytime.</p>
+                            <p className="text-sm text-slate-600 mb-5">Get a short walkthrough of key dashboard options, including the new User Book member form column. You can skip anytime.</p>
                             <div className="flex items-center justify-end gap-2">
                                 <button onClick={skipDashboardTour} className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100">Skip</button>
                                 <button onClick={startDashboardTour} className="px-4 py-2 rounded-xl text-sm font-bold bg-brand-600 text-white hover:bg-brand-700">Start Tour</button>
