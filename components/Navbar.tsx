@@ -232,7 +232,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
 
               
-              <div className="p-5 flex flex-col relative z-20">
+              <div className="p-5 pt-[max(1.25rem,env(safe-area-inset-top))] flex flex-col relative z-20">
                 <div className="flex justify-between items-center w-full mb-5">
                   <div className="flex items-center gap-4">
                     <div className="w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center border border-brand-100">
@@ -246,11 +246,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                   <button
                     type="button"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="p-2 rounded-full transition-all text-white bg-blue-700 hover:bg-blue-800 shadow-md border border-blue-500/60 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    className="p-2.5 rounded-full transition-all text-white bg-blue-700 hover:bg-blue-800 shadow-lg border-2 border-blue-400/80 focus:outline-none focus:ring-2 focus:ring-blue-300"
                     title="Close menu"
                     aria-label="Close navigation menu"
                   >
-                    <X size={18} />
+                    <X size={20} strokeWidth={2.8} />
                   </button>
 
 

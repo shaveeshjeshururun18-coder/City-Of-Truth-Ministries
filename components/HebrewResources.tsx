@@ -1354,8 +1354,8 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
 
 
     return (
-        <div className="min-h-screen pt-20 md:pt-28 pb-32 md:pb-20 container mx-auto px-6 font-sans bg-[#fffdf6]">
-            <div className="max-w-7xl mx-auto md:flex md:items-start md:gap-8">
+        <div className="min-h-screen pt-20 md:pt-28 pb-32 md:pb-20 w-full px-3 md:px-6 font-sans bg-[#fffdf6]">
+            <div className={`mx-auto md:flex md:items-start md:gap-8 ${tab === 'calendar' ? 'max-w-[96rem]' : 'max-w-7xl'}`}>
                 <aside className="hidden md:block md:w-64 md:shrink-0 md:sticky md:top-[110px]">
                     <div className="flex flex-col gap-3">
                         {availableTabs.map((t) => {
@@ -1384,7 +1384,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
                     </div>
                 </aside>
 
-                <div className="flex-1 space-y-12">
+                <div className={`flex-1 ${tab === 'calendar' ? 'space-y-8' : 'space-y-12'}`}>
                     <div className="text-center space-y-4 mb-4 md:mb-12">
                     <h1 className="text-4xl md:text-8xl font-serif font-bold text-brand-950 px-2">
                         {mode === 'tools' ? (
