@@ -797,11 +797,16 @@ const App: React.FC = () => {
     const user = match?.user;
 
     if (user) {
+      try {
+        localStorage.removeItem(`cot_dashboard_tour_seen_${user.id}`);
+      } catch (error) {
+        console.error('Failed to reset dashboard tour state', error);
+      }
       setCurrentUser(user);
       setSelectedDashboardProfileId(match?.profileId || user.id);
       setCelebrationMode('welcome');
       setShowCelebration(true);
-      setCurrentView(ViewState.USER_DASHBOARD);
+      setCurrentView(ViewState.HOME);
       navigate('/');
     } else {
       alert("Account not found. Please check your Member ID, Email, Phone, or Name.");
@@ -822,12 +827,18 @@ const App: React.FC = () => {
     });
 
     if (existingByContact) {
+      try {
+        localStorage.removeItem(`cot_dashboard_tour_seen_${existingByContact.id}`);
+      } catch (error) {
+        console.error('Failed to reset dashboard tour state', error);
+      }
       setCurrentUser(existingByContact);
       setSelectedDashboardProfileId(existingByContact.id);
       setCelebrationMode('welcome');
       setShowCelebration(true);
-      setCurrentView(ViewState.USER_DASHBOARD);
-      alert(`Account already exists for these details. Opening dashboard for ${existingByContact.id}.`);
+      setCurrentView(ViewState.HOME);
+      navigate('/');
+      alert(`Account already exists for these details. You are logged in as ${existingByContact.id}.`);
       return;
     }
 
@@ -862,6 +873,11 @@ const App: React.FC = () => {
       setUsers([...users, savedUser]);
       setCurrentUser(savedUser);
       setSelectedDashboardProfileId(savedUser.id);
+      try {
+        localStorage.removeItem(`cot_dashboard_tour_seen_${savedUser.id}`);
+      } catch (error) {
+        console.error('Failed to reset dashboard tour state', error);
+      }
 
       // --- EMAILJS INTEGRATION (Using User Provided Keys) ---
       const EMAILJS_SERVICE_ID = 'service_wcxaetv';
@@ -901,7 +917,8 @@ const App: React.FC = () => {
       alert("Registration Successful! Your ID is " + savedUser.id + ". Welcome to the family!");
       setCelebrationMode('welcome');
       setShowCelebration(true);
-      setCurrentView(ViewState.USER_DASHBOARD);
+      setCurrentView(ViewState.HOME);
+      navigate('/');
     } catch (e) {
       console.error(e);
       alert("Registration Failed. Please try again.");

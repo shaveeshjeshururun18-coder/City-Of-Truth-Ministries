@@ -302,6 +302,26 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
 
               <div className="flex-1 overflow-y-auto py-3 px-4 space-y-0.5">
+                {currentUser && (
+                  <button
+                    onClick={() => {
+                      setView(ViewState.USER_DASHBOARD);
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all ${currentView === ViewState.USER_DASHBOARD
+                      ? 'bg-[#EEF0FF] text-[#5D5FEF]'
+                      : 'bg-transparent text-[#555] hover:bg-gray-50'
+                      }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <span className={currentView === ViewState.USER_DASHBOARD ? 'text-[#5D5FEF]' : 'text-gray-400'}>
+                        <CircleUser size={18} />
+                      </span>
+                      <span className="font-bold tracking-wide uppercase text-[11px]">My Dashboard</span>
+                    </div>
+                    <ChevronRight size={14} />
+                  </button>
+                )}
                 {navItems.map((item) => {
                   const hasSubmenu = item.submenu && item.submenu.length > 0;
                   const isSubmenuOpen = activeMobileSubmenu === item.label;
