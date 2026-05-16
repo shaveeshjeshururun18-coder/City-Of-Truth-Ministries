@@ -249,7 +249,7 @@ export const HebrewWordHub: React.FC = () => {
         if (!wordDetails || !exportCardRef.current) return;
         setIsExporting(true);
         try {
-            const dataUrl = await captureNodeToJpeg(exportCardRef.current, { backgroundColor: '#ffffff', width: 800 });
+            const dataUrl = await captureNodeToJpeg(exportCardRef.current, { backgroundColor: '#ffffff', width: 820 });
             const filename = `COT-Hebrew-${sanitizeFilename(wordDetails.pronunciation)}`;
             if (format === 'jpeg') {
                 const link = document.createElement('a');
@@ -265,9 +265,16 @@ export const HebrewWordHub: React.FC = () => {
                     img.onload = () => resolve();
                     img.onerror = () => reject(new Error('Failed to load export image'));
                 });
-                const pdfH = (img.height * pdfW) / img.width;
                 const pageH = pdf.internal.pageSize.getHeight();
-                pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfW, Math.min(pdfH, pageH));
+                const margin = 8;
+                const maxW = pdfW - margin * 2;
+                const maxH = pageH - margin * 2;
+                const scale = Math.min(maxW / img.width, maxH / img.height);
+                const renderW = img.width * scale;
+                const renderH = img.height * scale;
+                const x = (pdfW - renderW) / 2;
+                const y = (pageH - renderH) / 2;
+                pdf.addImage(dataUrl, 'JPEG', x, y, renderW, renderH);
                 pdf.save(`${filename}.pdf`);
             }
         } catch (err) {

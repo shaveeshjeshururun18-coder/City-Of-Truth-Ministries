@@ -812,11 +812,54 @@ const ALPHABET_REF = [
 
 const HebrewGematriaCalc: React.FC = () => {
     const [word, setWord] = useState('');
+    const [isExporting, setIsExporting] = useState(false);
+    const gematriaExportRef = useRef<HTMLDivElement>(null);
     const total = useMemo(() => word.split('').reduce((sum, c) => sum + (GEMATRIA_VALUES[c] || 0), 0), [word]);
 
     const letterBreakdown = useMemo(() => {
         return word.split('').filter(c => c.trim()).map(c => ({ char: c, value: GEMATRIA_VALUES[c] || 0 }));
     }, [word]);
+
+    const handleExportGematria = async (format: 'pdf' | 'jpeg') => {
+        if (!word.trim() || !gematriaExportRef.current) return;
+        setIsExporting(true);
+        try {
+            const dataUrl = await captureNodeToJpeg(gematriaExportRef.current, { backgroundColor: '#ffffff', width: 820 });
+            const safeWord = word.replace(/[^a-zA-Z0-9\u0590-\u05FF]/g, '') || 'Gematria';
+            const filename = `COT-Gematria-${safeWord}`;
+            if (format === 'jpeg') {
+                const link = document.createElement('a');
+                link.download = `${filename}.jpg`;
+                link.href = dataUrl;
+                link.click();
+            } else {
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                const pageW = pdf.internal.pageSize.getWidth();
+                const pageH = pdf.internal.pageSize.getHeight();
+                const img = new Image();
+                img.src = dataUrl;
+                await new Promise<void>((resolve, reject) => {
+                    img.onload = () => resolve();
+                    img.onerror = () => reject(new Error('Failed to load gematria export image'));
+                });
+                const margin = 8;
+                const maxW = pageW - margin * 2;
+                const maxH = pageH - margin * 2;
+                const scale = Math.min(maxW / img.width, maxH / img.height);
+                const renderW = img.width * scale;
+                const renderH = img.height * scale;
+                const x = (pageW - renderW) / 2;
+                const y = (pageH - renderH) / 2;
+                pdf.addImage(dataUrl, 'JPEG', x, y, renderW, renderH);
+                pdf.save(`${filename}.pdf`);
+            }
+        } catch (error) {
+            console.error('Gematria export failed:', error);
+            alert('Gematria export failed. Please try again.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     return (
         <div className="space-y-12 py-8">
@@ -862,6 +905,27 @@ const HebrewGematriaCalc: React.FC = () => {
                 </div>
             )}
 
+            {word.trim() && (
+                <div className="flex flex-wrap justify-center gap-3">
+                    <button
+                        onClick={() => handleExportGematria('pdf')}
+                        disabled={isExporting}
+                        className="px-5 py-2.5 rounded-full bg-accent-500 text-brand-950 hover:bg-accent-400 font-bold text-xs uppercase tracking-wider flex items-center gap-2 disabled:opacity-50"
+                    >
+                        {isExporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                        Save PDF
+                    </button>
+                    <button
+                        onClick={() => handleExportGematria('jpeg')}
+                        disabled={isExporting}
+                        className="px-5 py-2.5 rounded-full bg-brand-950 text-white hover:bg-brand-900 font-bold text-xs uppercase tracking-wider flex items-center gap-2 disabled:opacity-50"
+                    >
+                        {isExporting ? <Loader2 size={14} className="animate-spin" /> : <FileImage size={14} />}
+                        Save Image
+                    </button>
+                </div>
+            )}
+
             {/* Alphabet reference */}
             <div className="space-y-6">
                 <h3 className="text-xl font-serif font-bold text-brand-950 text-center">Alphabet Values Reference</h3>
@@ -876,6 +940,34 @@ const HebrewGematriaCalc: React.FC = () => {
                 </div>
                 <p className="text-center text-xs text-slate-400">👆 Click a letter to add it to your word</p>
             </div>
+
+            {word.trim() && (
+                <div
+                    ref={gematriaExportRef}
+                    style={{ position: 'fixed', left: '-9999px', top: 0, width: '820px', pointerEvents: 'none', zIndex: -1 }}
+                >
+                    <div style={{ background: 'linear-gradient(135deg, #0f0c29 0%, #1a1450 55%, #0f0c29 100%)', padding: '44px', borderRadius: '22px', color: '#fff', fontFamily: 'Georgia, serif' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', paddingBottom: '18px', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
+                            <div style={{ fontSize: '20px', fontWeight: 900, color: '#f0c040', letterSpacing: '0.08em', textTransform: 'uppercase' }}>City of Truth Ministries</div>
+                            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.16em', textTransform: 'uppercase' }}>Gematria Value</div>
+                        </div>
+                        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                            <div style={{ fontSize: '90px', fontWeight: 900, color: '#f0c040', direction: 'rtl', lineHeight: 1.05 }}>{word}</div>
+                            <div style={{ marginTop: '10px', fontSize: '11px', color: 'rgba(255,255,255,0.42)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>Calculated Total</div>
+                            <div style={{ fontSize: '70px', fontWeight: 900, color: '#f0c040', lineHeight: 1 }}>{total}</div>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '18px' }}>
+                            {letterBreakdown.map((item, idx) => (
+                                <div key={`${item.char}-${idx}`} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '12px', padding: '10px 12px', minWidth: '64px', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '30px', color: '#fff', lineHeight: 1 }}>{item.char}</div>
+                                    <div style={{ fontSize: '13px', color: '#f0c040', fontWeight: 700 }}>{item.value}</div>
+                                </div>
+                            ))}
+                        </div>
+                        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', textAlign: 'center' }}>© {new Date().getFullYear()} City of Truth Ministries · Gematria Calculator</div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -922,10 +1014,12 @@ const HebrewLettersAudioLab: React.FC = () => {
     const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
+    const [isWordExporting, setIsWordExporting] = useState(false);
     const [aiResult, setAiResult] = useState<any | null>(null);
     const [aiError, setAiError] = useState<string | null>(null);
     const nextKey = React.useRef(0);
     const aiResultRef = useRef<HTMLDivElement>(null);
+    const wordExportRef = useRef<HTMLDivElement>(null);
 
     const combinedWord = selectedLetters.map(l => l.letter).join('');
 
@@ -1056,6 +1150,47 @@ const HebrewLettersAudioLab: React.FC = () => {
         }
     };
 
+    const handleExportWordBuilder = async (format: 'pdf' | 'jpeg') => {
+        if (!combinedWord || !wordExportRef.current) return;
+        setIsWordExporting(true);
+        try {
+            const dataUrl = await captureNodeToJpeg(wordExportRef.current, { backgroundColor: '#ffffff', width: 820 });
+            const safeWord = combinedWord.replace(/[^a-zA-Z0-9\u0590-\u05FF]/g, '') || 'Hebrew-Word';
+            const filename = `COT-Hebrew-Word-${safeWord}`;
+            if (format === 'jpeg') {
+                const link = document.createElement('a');
+                link.download = `${filename}.jpg`;
+                link.href = dataUrl;
+                link.click();
+            } else {
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                const pageW = pdf.internal.pageSize.getWidth();
+                const pageH = pdf.internal.pageSize.getHeight();
+                const img = new Image();
+                img.src = dataUrl;
+                await new Promise<void>((resolve, reject) => {
+                    img.onload = () => resolve();
+                    img.onerror = () => reject(new Error('Failed to load export image'));
+                });
+                const margin = 8;
+                const maxW = pageW - margin * 2;
+                const maxH = pageH - margin * 2;
+                const scale = Math.min(maxW / img.width, maxH / img.height);
+                const renderW = img.width * scale;
+                const renderH = img.height * scale;
+                const x = (pageW - renderW) / 2;
+                const y = (pageH - renderH) / 2;
+                pdf.addImage(dataUrl, 'JPEG', x, y, renderW, renderH);
+                pdf.save(`${filename}.pdf`);
+            }
+        } catch (error) {
+            console.error('Word builder export failed:', error);
+            alert('Export failed. Please try again.');
+        } finally {
+            setIsWordExporting(false);
+        }
+    };
+
     return (
         <div className="space-y-8 py-8">
             <div className="text-center space-y-3">
@@ -1147,6 +1282,26 @@ const HebrewLettersAudioLab: React.FC = () => {
                                         >
                                             Clear All
                                         </button>
+                                    )}
+                                    {selectedLetters.length > 0 && (
+                                        <>
+                                            <button
+                                                onClick={() => handleExportWordBuilder('pdf')}
+                                                disabled={isWordExporting}
+                                                className="px-4 py-2.5 rounded-full bg-accent-500 text-brand-950 font-bold text-sm flex items-center gap-2 hover:bg-accent-400 transition-colors disabled:opacity-50"
+                                            >
+                                                {isWordExporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                                                Save PDF
+                                            </button>
+                                            <button
+                                                onClick={() => handleExportWordBuilder('jpeg')}
+                                                disabled={isWordExporting}
+                                                className="px-4 py-2.5 rounded-full bg-brand-950 text-white font-bold text-sm flex items-center gap-2 hover:bg-brand-900 transition-colors disabled:opacity-50"
+                                            >
+                                                {isWordExporting ? <Loader2 size={14} className="animate-spin" /> : <FileImage size={14} />}
+                                                Save Image
+                                            </button>
+                                        </>
                                     )}
                                 </div>
                             </div>
@@ -1304,6 +1459,34 @@ const HebrewLettersAudioLab: React.FC = () => {
                     </div>
                 </div>
             </div>
+            {combinedWord && (
+                <div
+                    ref={wordExportRef}
+                    style={{ position: 'fixed', left: '-9999px', top: 0, width: '820px', pointerEvents: 'none', zIndex: -1 }}
+                >
+                    <div style={{ background: 'linear-gradient(135deg, #0f0c29 0%, #1a1450 55%, #0f0c29 100%)', padding: '44px', borderRadius: '22px', color: '#fff', fontFamily: 'Georgia, serif' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
+                            <div style={{ fontSize: '20px', fontWeight: 900, color: '#f0c040', letterSpacing: '0.08em', textTransform: 'uppercase' }}>City of Truth Ministries</div>
+                            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Letters Audio Lab</div>
+                        </div>
+                        <div style={{ textAlign: 'center', marginBottom: '14px' }}>
+                            <div style={{ fontSize: '96px', lineHeight: 1.05, color: '#f0c040', direction: 'rtl', letterSpacing: '0.08em', fontWeight: 900 }}>{combinedWord}</div>
+                            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.55)', letterSpacing: '0.16em', textTransform: 'uppercase', marginTop: '6px' }}>
+                                Drag-Reordered Hebrew Word
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '18px', justifyContent: 'center' }}>
+                            {selectedLetters.map((item, index) => (
+                                <div key={`${item.key}-${index}`} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: '12px', padding: '10px 12px', textAlign: 'center', minWidth: '72px' }}>
+                                    <div style={{ fontSize: '30px', color: '#fff', lineHeight: 1 }}>{item.letter}</div>
+                                    <div style={{ fontSize: '10px', color: '#93c5fd', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{item.name}</div>
+                                </div>
+                            ))}
+                        </div>
+                        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', textAlign: 'center' }}>© {new Date().getFullYear()} City of Truth Ministries · Hebrew Letters Audio Lab</div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

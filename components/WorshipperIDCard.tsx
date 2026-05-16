@@ -330,6 +330,18 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
         }
     }, []);
 
+    useEffect(() => {
+        if (!showRegisterTour) return;
+        if (registerTourStepIndex >= registerTourSteps.length - 1) {
+            const doneTimer = window.setTimeout(() => completeRegisterTour(), 1800);
+            return () => window.clearTimeout(doneTimer);
+        }
+        const stepTimer = window.setTimeout(() => {
+            setRegisterTourStepIndex(prev => Math.min(prev + 1, registerTourSteps.length - 1));
+        }, 2200);
+        return () => window.clearTimeout(stepTimer);
+    }, [showRegisterTour, registerTourStepIndex]);
+
     const registerTourSteps = [
         { title: 'Registration Type', text: 'Choose Individual or Family in the registration type section.' },
         { title: 'Fill Member Details', text: 'Enter member details and upload a clear profile photo for Entrust Card.' },
@@ -891,20 +903,19 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                             <div className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-4">
                                 Step {registerTourStepIndex + 1} of {registerTourSteps.length}
                             </div>
+                            <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden mb-4">
+                                <div
+                                    className="bg-brand-600 h-2 rounded-full transition-all duration-500"
+                                    style={{ width: `${((registerTourStepIndex + 1) / registerTourSteps.length) * 100}%` }}
+                                />
+                            </div>
                             <div className="flex items-center justify-between gap-2">
                                 <button onClick={completeRegisterTour} className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100">
                                     Skip Tour
                                 </button>
-                                <button
-                                    onClick={() => {
-                                        const isLastStep = registerTourStepIndex >= registerTourSteps.length - 1;
-                                        if (isLastStep) completeRegisterTour();
-                                        else setRegisterTourStepIndex(registerTourStepIndex + 1);
-                                    }}
-                                    className="px-4 py-2 rounded-xl text-sm font-bold bg-brand-600 text-white hover:bg-brand-700"
-                                >
-                                    {registerTourStepIndex >= registerTourSteps.length - 1 ? 'Done' : 'Next'}
-                                </button>
+                                <div className="px-4 py-2 rounded-xl text-sm font-bold bg-brand-600 text-white">
+                                    Auto Tour
+                                </div>
                             </div>
                         </motion.div>
                     </motion.div>

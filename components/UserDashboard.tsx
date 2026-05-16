@@ -785,37 +785,70 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     )}
 
                     {/* Testimony */}
-                    <button id="dashboard-testimony-btn" onClick={() => setShowTestimonialModal(true)}
-                        className="bg-gradient-to-br from-brand-700 to-brand-900 text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
-                        <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><MessageSquare size={18} /></div>
-                        <p className="font-bold text-sm leading-tight mb-1">Write Testimony</p>
-                        <p className="text-white/70 text-[10px]">Share what God has done</p>
-                        <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
-                            <MessageSquare size={11} /> Write Now
-                        </span>
-                    </button>
+                    {user.status === 'Active' ? (
+                        <button id="dashboard-testimony-btn" onClick={() => setShowTestimonialModal(true)}
+                            className="bg-gradient-to-br from-brand-700 to-brand-900 text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
+                            <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><MessageSquare size={18} /></div>
+                            <p className="font-bold text-sm leading-tight mb-1">Write Testimony</p>
+                            <p className="text-white/70 text-[10px]">Share what God has done</p>
+                            <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
+                                <MessageSquare size={11} /> Write Now
+                            </span>
+                        </button>
+                    ) : (
+                        <div className="bg-slate-100 rounded-[22px] p-4 border border-slate-200">
+                            <div className="w-9 h-9 bg-slate-200 rounded-xl flex items-center justify-center mb-3"><MessageSquare size={18} className="text-slate-400" /></div>
+                            <p className="font-bold text-sm text-slate-500 mb-1">Write Testimony</p>
+                            <p className="text-[10px] text-slate-400">Available after account approval</p>
+                            <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase bg-slate-200 rounded-lg px-2.5 py-1.5 text-slate-400">
+                                <AlertCircle size={11} /> Locked
+                            </span>
+                        </div>
+                    )}
 
                     {/* Share Profile Link */}
-                    <button id="dashboard-share-btn" onClick={handleShare}
-                        className="bg-gradient-to-br from-emerald-600 to-teal-700 text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
-                        <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Share2 size={18} /></div>
-                        <p className="font-bold text-sm leading-tight mb-1">Share Profile Link</p>
-                        <p className="text-white/80 text-[10px]">Share unique login URL for this profile</p>
-                        <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
-                            <Share2 size={11} /> Share
-                        </span>
-                    </button>
+                    {user.status === 'Active' ? (
+                        <button id="dashboard-share-btn" onClick={handleShare}
+                            className="bg-gradient-to-br from-emerald-600 to-teal-700 text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
+                            <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Share2 size={18} /></div>
+                            <p className="font-bold text-sm leading-tight mb-1">Share Profile Link</p>
+                            <p className="text-white/80 text-[10px]">Share unique login URL for this profile</p>
+                            <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
+                                <Share2 size={11} /> Share
+                            </span>
+                        </button>
+                    ) : (
+                        <div className="bg-slate-100 rounded-[22px] p-4 border border-slate-200">
+                            <div className="w-9 h-9 bg-slate-200 rounded-xl flex items-center justify-center mb-3"><Share2 size={18} className="text-slate-400" /></div>
+                            <p className="font-bold text-sm text-slate-500 mb-1">Share Profile Link</p>
+                            <p className="text-[10px] text-slate-400">Available after account approval</p>
+                            <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase bg-slate-200 rounded-lg px-2.5 py-1.5 text-slate-400">
+                                <AlertCircle size={11} /> Locked
+                            </span>
+                        </div>
+                    )}
 
                     {/* Profile Details PDF */}
-                    <button onClick={handleExportProfileDetailsPDF}
-                        className="bg-gradient-to-br from-indigo-700 to-violet-800 text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
-                        <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><FileText size={18} /></div>
-                        <p className="font-bold text-sm leading-tight mb-1">Profile Details PDF</p>
-                        <p className="text-white/80 text-[10px]">Export user + family + active profile details</p>
-                        <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
-                            <Download size={11} /> Export
-                        </span>
-                    </button>
+                    {user.status === 'Active' ? (
+                        <button onClick={handleExportProfileDetailsPDF}
+                            className="bg-gradient-to-br from-indigo-700 to-violet-800 text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
+                            <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><FileText size={18} /></div>
+                            <p className="font-bold text-sm leading-tight mb-1">Profile Details PDF</p>
+                            <p className="text-white/80 text-[10px]">Export user + family + active profile details</p>
+                            <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
+                                <Download size={11} /> Export
+                            </span>
+                        </button>
+                    ) : (
+                        <div className="bg-slate-100 rounded-[22px] p-4 border border-slate-200">
+                            <div className="w-9 h-9 bg-slate-200 rounded-xl flex items-center justify-center mb-3"><FileText size={18} className="text-slate-400" /></div>
+                            <p className="font-bold text-sm text-slate-500 mb-1">Profile Details PDF</p>
+                            <p className="text-[10px] text-slate-400">Available after account approval</p>
+                            <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase bg-slate-200 rounded-lg px-2.5 py-1.5 text-slate-400">
+                                <AlertCircle size={11} /> Locked
+                            </span>
+                        </div>
+                    )}
 
                     {/* Member Form */}
                     <button onClick={() => setShowCommunityProfileForm(true)}

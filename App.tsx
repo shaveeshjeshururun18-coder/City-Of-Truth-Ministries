@@ -1417,39 +1417,43 @@ const App: React.FC = () => {
             </motion.div>
           )}
 
-          {currentView === ViewState.ADMIN_DASHBOARD && currentUser && (
+          {currentView === ViewState.ADMIN_DASHBOARD && (
             <motion.div key="admin-dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <AdminDashboard
-                users={users}
-                deletedUsers={deletedUsers}
-                contactMessages={contactMessages}
-                onDeleteContactMessage={handleDeleteContactMessage}
-                onUpdateUser={async (user) => {
-                  await api.updateUser(user);
-                  setUsers(users.map(u => u.id === user.id ? user : u));
-                  if (currentUser.id === user.id) setCurrentUser(user);
-                }}
-                onDeleteUser={async (userId) => {
-                  await handleDeleteUser(userId);
-                }}
-                onRestoreUser={handleRestoreDeletedUser}
-                homeSectionsOrder={homeSectionsOrder}
-                onUpdateHomeSectionsOrder={(newOrder) => {
-                  setHomeSectionsOrder(newOrder);
-                  localStorage.setItem('home_section_order', JSON.stringify(newOrder));
-                }}
-                navItems={navigationItems}
-                onUpdateNavItems={async (newItems) => {
-                  const updatedNav = withHebrewResourceSubmenu(newItems);
-                  setNavigationItems(updatedNav);
-                  try {
-                    await api.updateNavigationLayout(updatedNav);
-                  } catch (error) {
-                    console.error('Failed to save nav layout to cloud:', error);
-                  }
-                }}
-                onBack={() => setCurrentView(ViewState.HOME)}
-              />
+              {!isAdminAuthenticated ? (
+                <AdminPasswordModal onSuccess={handleAdminAuthenticated} />
+              ) : (
+                <AdminDashboard
+                  users={users}
+                  deletedUsers={deletedUsers}
+                  contactMessages={contactMessages}
+                  onDeleteContactMessage={handleDeleteContactMessage}
+                  onUpdateUser={async (user) => {
+                    await api.updateUser(user);
+                    setUsers(users.map(u => u.id === user.id ? user : u));
+                    if (currentUser?.id === user.id) setCurrentUser(user);
+                  }}
+                  onDeleteUser={async (userId) => {
+                    await handleDeleteUser(userId);
+                  }}
+                  onRestoreUser={handleRestoreDeletedUser}
+                  homeSectionsOrder={homeSectionsOrder}
+                  onUpdateHomeSectionsOrder={(newOrder) => {
+                    setHomeSectionsOrder(newOrder);
+                    localStorage.setItem('home_section_order', JSON.stringify(newOrder));
+                  }}
+                  navItems={navigationItems}
+                  onUpdateNavItems={async (newItems) => {
+                    const updatedNav = withHebrewResourceSubmenu(newItems);
+                    setNavigationItems(updatedNav);
+                    try {
+                      await api.updateNavigationLayout(updatedNav);
+                    } catch (error) {
+                      console.error('Failed to save nav layout to cloud:', error);
+                    }
+                  }}
+                  onBack={() => setCurrentView(ViewState.HOME)}
+                />
+              )}
             </motion.div>
           )}
 
