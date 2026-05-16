@@ -145,8 +145,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     };
     const getSafePhotoSrc = (photo: string | undefined, name: string, size: number, bg = '1e1b4b') => {
         const candidate = (photo || '').trim();
-        const trustedPrefix = /^(https?:\/\/|data:image\/|blob:)/i;
-        if (candidate && trustedPrefix.test(candidate)) return candidate;
+        if (candidate.startsWith('data:image/')) return candidate;
+        if (candidate.startsWith('blob:')) return candidate;
         return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${bg}&color=fff&bold=true&size=${size}`;
     };
     const displayProfile = getDisplayProfile();
