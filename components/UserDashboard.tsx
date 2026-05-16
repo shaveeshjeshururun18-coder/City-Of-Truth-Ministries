@@ -330,58 +330,301 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const handleExportProfileDetailsPDF = () => {
         try {
             const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
-            const lineHeight = 7;
-            const left = 14;
-            const pageBottom = 280;
-            let y = 16;
-
-            const addLine = (text: string, bold = false) => {
-                if (y > pageBottom) {
-                    pdf.addPage();
-                    y = 16;
-                }
-                pdf.setFont('helvetica', bold ? 'bold' : 'normal');
-                pdf.text(text, left, y);
-                y += lineHeight;
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const margin = 14;
+            const contentWidth = pageWidth - margin * 2;
+            const familyProfiles = user.linkedProfiles || [];
+            const generatedAt = new Date().toLocaleString();
+            const formatValue = (value?: string, fallback = 'Not provided') => {
+                const normalized = `${value || ''}`.trim();
+                return normalized || fallback;
+            };
+            const getInitials = (name?: string) => {
+                const parts = formatValue(name, 'City of Truth').split(/\s+/).filter(Boolean);
+                return (parts[0]?.[0] || 'C') + (parts[1]?.[0] || parts[0]?.[1] || 'T');
             };
 
-            addLine('City of Truth Ministries — Profile Details Export', true);
-            addLine(`Generated: ${new Date().toLocaleString()}`);
-            addLine(`Primary Member ID: ${user.id}`);
-            y += 2;
+            let y = 0;
+            let pageNumber = 1;
 
-            addLine('Primary Profile', true);
-            addLine(`Name: ${user.name}`);
-            addLine(`Member ID: ${user.id}`);
-            addLine(`Email: ${user.email || '-'}`);
-            addLine(`Phone: ${user.phone || user.emergency || '-'}`);
-            addLine(`Emergency: ${user.emergency || '-'}`);
-            addLine(`Location: ${user.location || '-'}`);
-            addLine(`Blood Group: ${user.bloodGroup || '-'}`);
-            addLine(`DOB: ${user.dob || '-'}`);
-            addLine(`Role: ${user.role || 'Member'}`);
-            addLine(`Status: ${user.status || '-'}`);
-            y += 2;
+            const drawPageShell = (variant: 'hero' | 'standard') => {
+                pdf.setFillColor(248, 250, 252);
+                pdf.rect(0, 0, pageWidth, pageHeight, 'F');
 
-            addLine(`Currently Active Profile: ${displayProfile.name} (${displayProfile.id})`, true);
-            y += 2;
+                if (variant === 'hero') {
+                    pdf.setFillColor(15, 23, 42);
+                    pdf.rect(0, 0, pageWidth, 52, 'F');
+                    pdf.setFillColor(79, 70, 229);
+                    pdf.roundedRect(margin, 12, contentWidth, 26, 6, 6, 'F');
+                    pdf.setFillColor(245, 158, 11);
+                    pdf.circle(pageWidth - 26, 18, 7, 'F');
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(20);
+                    pdf.text('Family Portfolio', margin + 6, 24);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(9.5);
+                    pdf.text('City of Truth Ministries • Professional family profile summary', margin + 6, 31);
+                    y = 60;
+                    return;
+                }
 
-            addLine('Family Profiles', true);
-            if (!user.linkedProfiles || user.linkedProfiles.length === 0) {
-                addLine('No linked family profiles found.');
-            } else {
-                user.linkedProfiles.forEach((profile, index) => {
-                    addLine(`Family ${index + 1}`, true);
-                    addLine(`Name: ${profile.name || '-'}`);
-                    addLine(`Member ID: ${profile.id || '-'}`);
-                    addLine(`Relation: ${profile.role || 'Family Member'}`);
-                    addLine(`DOB: ${profile.dob || '-'}`);
-                    addLine(`Blood Group: ${profile.bloodGroup || '-'}`);
-                    y += 1;
-                });
-            }
+                pdf.setFillColor(15, 23, 42);
+                pdf.rect(0, 0, pageWidth, 18, 'F');
+                pdf.setTextColor(255, 255, 255);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(11);
+                pdf.text('City of Truth Ministries', margin, 10.5);
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(8);
+                pdf.text(`Family Portfolio • ${user.id}`, margin, 15);
+                pdf.setTextColor(71, 85, 105);
+                y = 26;
+            };
 
-            pdf.save(`COT-Profile-Details-${user.id}.pdf`);
+            const addNewPage = () => {
+                pdf.addPage();
+                pageNumber += 1;
+                drawPageShell('standard');
+            };
+
+            const ensureSpace = (requiredHeight: number) => {
+                if (y + requiredHeight <= pageHeight - 18) return;
+                addNewPage();
+            };
+
+            const drawChip = (x: number, top: number, width: number, label: string, value: string) => {
+                pdf.setFillColor(255, 255, 255);
+                pdf.setDrawColor(226, 232, 240);
+                pdf.roundedRect(x, top, width, 17, 4, 4, 'FD');
+                pdf.setTextColor(100, 116, 139);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(7);
+                pdf.text(label.toUpperCase(), x + 4, top + 5.2);
+                pdf.setTextColor(15, 23, 42);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(10.5);
+                pdf.text(pdf.splitTextToSize(value, width - 8), x + 4, top + 10.8);
+            };
+
+            const drawSectionTitle = (title: string, subtitle: string) => {
+                ensureSpace(16);
+                pdf.setTextColor(30, 41, 59);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(13);
+                pdf.text(title, margin, y);
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(8.5);
+                pdf.setTextColor(100, 116, 139);
+                pdf.text(subtitle, margin, y + 5);
+                y += 10;
+            };
+
+            const drawProfileCard = (
+                title: string,
+                subtitle: string,
+                accent: [number, number, number],
+                profile: { name?: string; id?: string; role?: string; email?: string; phone?: string; emergency?: string; location?: string; bloodGroup?: string; dob?: string; status?: string },
+                extraEntries: Array<[string, string]>
+            ) => {
+                const entries: Array<[string, string]> = [
+                    ['Member ID', formatValue(profile.id)],
+                    ['Role', formatValue(profile.role, 'Member')],
+                    ['Email', formatValue(profile.email)],
+                    ['Phone', formatValue(profile.phone)],
+                    ['Emergency', formatValue(profile.emergency)],
+                    ['Location', formatValue(profile.location)],
+                    ['Blood Group', formatValue(profile.bloodGroup)],
+                    ['Date of Birth', formatValue(profile.dob)],
+                    ...extraEntries,
+                ];
+                const columns = 2;
+                const columnGap = 8;
+                const innerX = margin + 7;
+                const colWidth = (contentWidth - 14 - columnGap) / columns;
+                const topPadding = 22;
+                const rowGap = 4;
+                const bottomPadding = 8;
+                const perColumn = Math.ceil(entries.length / columns);
+                const measureColumnHeight = (columnEntries: Array<[string, string]>) => columnEntries.reduce((height, [label, value]) => {
+                    const lines = pdf.splitTextToSize(value, colWidth);
+                    const labelHeight = 4;
+                    const valueHeight = Math.max(lines.length, 1) * 4.2;
+                    return height + labelHeight + valueHeight + rowGap;
+                }, 0);
+                const leftEntries = entries.slice(0, perColumn);
+                const rightEntries = entries.slice(perColumn);
+                const bodyHeight = Math.max(measureColumnHeight(leftEntries), measureColumnHeight(rightEntries));
+                const cardHeight = topPadding + bodyHeight + bottomPadding;
+
+                ensureSpace(cardHeight + 8);
+
+                pdf.setFillColor(255, 255, 255);
+                pdf.setDrawColor(226, 232, 240);
+                pdf.roundedRect(margin, y, contentWidth, cardHeight, 6, 6, 'FD');
+                pdf.setFillColor(accent[0], accent[1], accent[2]);
+                pdf.roundedRect(margin, y, contentWidth, 16, 6, 6, 'F');
+                pdf.setFillColor(255, 255, 255);
+                pdf.circle(margin + 11, y + 8, 5.5, 'F');
+                pdf.setTextColor(accent[0], accent[1], accent[2]);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(10);
+                pdf.text(getInitials(profile.name).toUpperCase(), margin + 8.2, y + 9.5);
+                pdf.setTextColor(255, 255, 255);
+                pdf.setFontSize(11);
+                pdf.text(title, margin + 20, y + 7);
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(8);
+                pdf.text(subtitle, margin + 20, y + 11.8);
+                pdf.setTextColor(15, 23, 42);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(13);
+                pdf.text(formatValue(profile.name), margin + 7, y + 24);
+
+                const drawColumn = (columnEntries: Array<[string, string]>, x: number) => {
+                    let columnY = y + 31;
+                    columnEntries.forEach(([label, value]) => {
+                        pdf.setTextColor(100, 116, 139);
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.setFontSize(7);
+                        pdf.text(label.toUpperCase(), x, columnY);
+                        columnY += 4;
+                        pdf.setTextColor(30, 41, 59);
+                        pdf.setFont('helvetica', 'normal');
+                        pdf.setFontSize(9);
+                        const valueLines = pdf.splitTextToSize(value, colWidth);
+                        pdf.text(valueLines, x, columnY);
+                        columnY += Math.max(valueLines.length, 1) * 4.2 + rowGap;
+                    });
+                };
+
+                drawColumn(leftEntries, innerX);
+                drawColumn(rightEntries, innerX + colWidth + columnGap);
+                y += cardHeight + 6;
+            };
+
+            const drawFamilyCards = () => {
+                if (familyProfiles.length === 0) {
+                    ensureSpace(28);
+                    pdf.setFillColor(255, 255, 255);
+                    pdf.setDrawColor(226, 232, 240);
+                    pdf.roundedRect(margin, y, contentWidth, 22, 6, 6, 'FD');
+                    pdf.setTextColor(71, 85, 105);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(11);
+                    pdf.text('No linked family profiles yet', margin + 8, y + 10);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(8.5);
+                    pdf.text('Add family members from the dashboard to include them in future portfolio exports.', margin + 8, y + 16);
+                    y += 28;
+                    return;
+                }
+
+                const gap = 6;
+                const cardWidth = (contentWidth - gap) / 2;
+                const drawFamilyCard = (profile: SubProfile, index: number, x: number, top: number) => {
+                    const entries: Array<[string, string]> = [
+                        ['Member ID', formatValue(profile.id)],
+                        ['Relation', formatValue(profile.role, 'Family Member')],
+                        ['Date of Birth', formatValue(profile.dob)],
+                        ['Blood Group', formatValue(profile.bloodGroup)],
+                    ];
+                    const bodyStart = top + 21;
+                    let localY = bodyStart;
+                    pdf.setFillColor(255, 255, 255);
+                    pdf.setDrawColor(226, 232, 240);
+                    pdf.roundedRect(x, top, cardWidth, 43, 6, 6, 'FD');
+                    pdf.setFillColor(59, 130, 246);
+                    pdf.roundedRect(x, top, cardWidth, 14, 6, 6, 'F');
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(10);
+                    pdf.text(`Family ${index + 1}`, x + 6, top + 7.5);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(7.5);
+                    pdf.text(formatValue(profile.role, 'Family Member'), x + 6, top + 11.5);
+                    pdf.setTextColor(15, 23, 42);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(11);
+                    pdf.text(formatValue(profile.name), x + 6, localY);
+                    localY += 5;
+                    entries.forEach(([label, value]) => {
+                        pdf.setTextColor(100, 116, 139);
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.setFontSize(6.8);
+                        pdf.text(label.toUpperCase(), x + 6, localY);
+                        localY += 3.5;
+                        pdf.setTextColor(30, 41, 59);
+                        pdf.setFont('helvetica', 'normal');
+                        pdf.setFontSize(8.5);
+                        pdf.text(pdf.splitTextToSize(value, cardWidth - 12), x + 6, localY);
+                        localY += 6;
+                    });
+                };
+
+                for (let i = 0; i < familyProfiles.length; i += 2) {
+                    ensureSpace(49);
+                    drawFamilyCard(familyProfiles[i], i, margin, y);
+                    if (familyProfiles[i + 1]) {
+                        drawFamilyCard(familyProfiles[i + 1], i + 1, margin + cardWidth + gap, y);
+                    }
+                    y += 49;
+                }
+            };
+
+            drawPageShell('hero');
+
+            const chipGap = 6;
+            const chipWidth = (contentWidth - chipGap) / 2;
+            drawChip(margin, y, chipWidth, 'Primary Member', user.id);
+            drawChip(margin + chipWidth + chipGap, y, chipWidth, 'Active Profile', `${displayProfile.name} • ${displayProfile.id}`);
+            y += 21;
+            drawChip(margin, y, chipWidth, 'Family Members', `${familyProfiles.length}`);
+            drawChip(margin + chipWidth + chipGap, y, chipWidth, 'Generated', generatedAt);
+            y += 26;
+
+            drawSectionTitle('Primary member profile', 'Core contact and ministry details for the main account holder.');
+            drawProfileCard('Primary Member', `Status • ${formatValue(user.status, 'Pending Verification')}`, [79, 70, 229], {
+                name: user.name,
+                id: user.id,
+                role: user.role,
+                email: user.email,
+                phone: user.phone || user.emergency,
+                emergency: user.emergency,
+                location: user.location,
+                bloodGroup: user.bloodGroup,
+                dob: user.dob,
+                status: user.status,
+            }, [
+                ['Member Since', formatValue(user.memberSince || user.joinedDate)],
+                ['Status', formatValue(user.status)],
+            ]);
+
+            drawSectionTitle('Active profile spotlight', 'The profile currently selected inside the dashboard at export time.');
+            drawProfileCard('Active Profile', displayProfile.id === user.id ? 'Primary account in focus' : 'Linked family account in focus', [14, 116, 144], {
+                name: displayProfile.name,
+                id: displayProfile.id,
+                role: displayProfile.role || 'Family Member',
+                phone: displayProfile.id === user.id ? (user.phone || user.emergency) : undefined,
+                emergency: displayProfile.id === user.id ? user.emergency : undefined,
+                location: displayProfile.id === user.id ? user.location : undefined,
+                bloodGroup: displayProfile.bloodGroup,
+                dob: displayProfile.dob,
+            }, [
+                ['Profile Type', displayProfile.id === user.id ? 'Primary Member' : 'Linked Family Profile'],
+            ]);
+
+            drawSectionTitle('Family member directory', 'Every linked family member included in this account.');
+            drawFamilyCards();
+
+            const footerText = `Confidential portfolio generated for ${user.name} • Page ${pageNumber}`;
+            pdf.setFont('helvetica', 'italic');
+            pdf.setFontSize(7.5);
+            pdf.setTextColor(148, 163, 184);
+            pdf.text(footerText, margin, pageHeight - 8);
+
+            pdf.save(`COT-Family-Portfolio-${user.id}.pdf`);
         } catch (error) {
             console.error('Profile details PDF export failed:', error);
             alert('Unable to export profile details PDF. Please try again.');
@@ -802,14 +1045,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         </span>
                     </button>
 
-                    {/* Profile Details PDF */}
+                    {/* Family Portfolio PDF */}
                     <button onClick={handleExportProfileDetailsPDF}
                         className="bg-gradient-to-br from-indigo-700 to-violet-800 text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
                         <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><FileText size={18} /></div>
-                        <p className="font-bold text-sm leading-tight mb-1">Profile Details PDF</p>
-                        <p className="text-white/80 text-[10px]">Export user + family + active profile details</p>
+                        <p className="font-bold text-sm leading-tight mb-1">Family Portfolio PDF</p>
+                        <p className="text-white/80 text-[10px]">Download a polished member, family, and active-profile portfolio</p>
                         <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
-                            <Download size={11} /> Export
+                            <Download size={11} /> Download PDF
                         </span>
                     </button>
 

@@ -185,7 +185,7 @@ const HEBREW_TOOLS_SUBMENU: NavItem[] = [
 
 const withHebrewResourceSubmenu = (items: NavItem[]): NavItem[] =>
   items.map(item =>
-    item.label === 'HEBREW CONTENT' || item.label === 'HEBREW'
+    item.label === 'HEBREW CONTENT' || item.label === 'HEBREW RESOURCES' || item.label === 'HEBREW'
       ? { ...item, submenu: HEBREW_RESOURCE_SUBMENU }
       : item.label === 'HEBREW TOOLS'
         ? { ...item, submenu: HEBREW_TOOLS_SUBMENU }
@@ -366,7 +366,7 @@ const App: React.FC = () => {
   const [navigationItems, setNavigationItems] = useState<NavItem[]>(withHebrewResourceSubmenu([
     { label: 'HOME', view: ViewState.HOME },
     {
-      label: 'HEBREW CONTENT',
+      label: 'HEBREW RESOURCES',
       view: ViewState.ABOUT,
       submenu: HEBREW_RESOURCE_SUBMENU
     },

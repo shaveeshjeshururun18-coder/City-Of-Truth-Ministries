@@ -1257,7 +1257,7 @@ const HebrewLettersAudioLab: React.FC = () => {
                                 className="px-4 py-2 rounded-full bg-accent-500 text-brand-950 hover:bg-accent-400 font-bold text-xs flex items-center gap-2 disabled:opacity-50 transition-colors"
                             >
                                 {isExporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-                                Export PDF
+                                Download PDF
                             </button>
                             <button
                                 onClick={() => handleExportInsight('jpeg')}
@@ -1322,7 +1322,7 @@ const HEBREW_RESOURCE_TABS: ReadonlyArray<{ id: HebrewResourceTab; label: string
     { id: 'reference', label: 'Month & Days', icon: <BookOpen size={16} /> },
     { id: 'grammar', label: 'Grammar', icon: <BookOpen size={16} /> },
     { id: 'words', label: 'Hebrew Word', icon: <Type size={16} /> },
-    { id: 'lettersaudio', label: 'Letters Audio', icon: <Volume2 size={16} /> },
+    { id: 'lettersaudio', label: 'Audio Lab', icon: <Volume2 size={16} /> },
     { id: 'numbers', label: 'Numbers', icon: <Hash size={16} /> },
     { id: 'gematria', label: 'Gematria Value', icon: <Calculator size={16} /> },
 ];
