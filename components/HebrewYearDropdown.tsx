@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Search, Calendar } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Search, Calendar, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Helper to convert number to Hebrew (simplified for year display)
@@ -68,8 +68,29 @@ export const HebrewYearDropdown: React.FC<HebrewYearDropdownProps> = ({ selected
         );
     }, [years, search]);
 
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setIsOpen(false);
+        };
+        const handleOutsideClick = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (!target.closest('[data-hebrew-year-dropdown]')) {
+                setIsOpen(false);
+            }
+        };
+
+        document.addEventListener('keydown', handleEscape);
+        document.addEventListener('mousedown', handleOutsideClick);
+        return () => {
+            document.removeEventListener('keydown', handleEscape);
+            document.removeEventListener('mousedown', handleOutsideClick);
+        };
+    }, [isOpen]);
+
     return (
-        <div className="relative w-full max-w-xs font-sans">
+        <div className="relative w-full max-w-xs font-sans" data-hebrew-year-dropdown>
             <div
                 onClick={() => setIsOpen(!isOpen)}
                 className="flex items-center justify-between p-4 bg-white/80 backdrop-blur-md rounded-2xl border border-white/20 shadow-lg cursor-pointer hover:bg-white transition-all group"
@@ -96,7 +117,19 @@ export const HebrewYearDropdown: React.FC<HebrewYearDropdownProps> = ({ selected
                         exit={{ opacity: 0, scale: 0.95 }}
                         className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-50 p-2"
                     >
-                        <div className="relative mb-2 px-2 pt-2">
+                        <div className="px-2 pt-2 pb-1 flex items-center justify-between">
+                            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-black">Select Hebrew Year</p>
+                            <button
+                                type="button"
+                                onClick={() => setIsOpen(false)}
+                                className="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center hover:bg-slate-700 transition-colors"
+                                aria-label="Close year list"
+                                title="Close"
+                            >
+                                <X size={14} />
+                            </button>
+                        </div>
+                        <div className="relative mb-2 px-2">
                             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                             <input
                                 autoFocus
@@ -108,7 +141,7 @@ export const HebrewYearDropdown: React.FC<HebrewYearDropdownProps> = ({ selected
                             />
                         </div>
 
-                        <div className="max-h-60 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                        <div className="max-h-[68vh] overflow-y-auto space-y-1 pr-1 custom-scrollbar">
                             {filteredYears.map(y => (
                                 <button
                                     key={y}

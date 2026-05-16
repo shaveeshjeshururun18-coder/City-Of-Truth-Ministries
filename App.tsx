@@ -50,7 +50,7 @@ import {
   CreditCard,
   Globe
 } from 'lucide-react';
-import { ViewState, User, UserRole, UserStatus, NavItem, DeletedUser } from './types';
+import { ViewState, User, UserRole, UserStatus, NavItem, DeletedUser, SubProfile } from './types';
 import { Navbar } from './components/Navbar';
 import { Button } from './components/Button';
 import { AuthPage } from './components/AuthPage';
@@ -172,6 +172,7 @@ interface ContactMessage {
 const HEBREW_RESOURCE_SUBMENU: NavItem[] = [
   { label: 'Festivals & Holy Days', view: ViewState.HEBREW_FESTIVALS },
   { label: 'Biblical Calendar', view: ViewState.HEBREW_CALENDAR },
+  { label: 'Hebrew Clock', view: ViewState.HEBREW_CLOCK },
   { label: 'Month/Year Reference', view: ViewState.HEBREW_REFERENCE },
   { label: 'Hebrew Grammar', view: ViewState.HEBREW_GRAMMAR },
 ];
@@ -185,12 +186,50 @@ const HEBREW_TOOLS_SUBMENU: NavItem[] = [
 
 const withHebrewResourceSubmenu = (items: NavItem[]): NavItem[] =>
   items.map(item =>
-    item.label === 'HEBREW CONTENT' || item.label === 'HEBREW'
+    item.label === 'HEBREW CONTENT' || item.label === 'HEBREW RESOURCES' || item.label === 'HEBREW'
       ? { ...item, submenu: HEBREW_RESOURCE_SUBMENU }
       : item.label === 'HEBREW TOOLS'
         ? { ...item, submenu: HEBREW_TOOLS_SUBMENU }
       : item
   );
+
+const VIEW_ALIASES: Record<string, ViewState> = {
+  MENORAH: ViewState.GOLDEN_MENORAH,
+  MENORAH_FLAG: ViewState.GOLDEN_MENORAH,
+  GOLDEN_MENORAH_FLAG: ViewState.GOLDEN_MENORAH,
+  GOLDENMENORAH: ViewState.GOLDEN_MENORAH,
+  ENTRUST_CARD: ViewState.ID_CARD,
+  ENTRUSTCARD: ViewState.ID_CARD,
+  HEBREW_CONTENT: ViewState.ABOUT,
+  HEBREW_RESOURCES: ViewState.ABOUT,
+};
+
+const normalizeViewState = (value: unknown, fallback: ViewState = ViewState.HOME): ViewState => {
+  if (typeof value !== 'string') return fallback;
+  const normalizedKey = value.trim().toUpperCase().replace(/[\s-]+/g, '_');
+  const validView = Object.values(ViewState).find(v => v === normalizedKey);
+  if (validView) return validView as ViewState;
+  return VIEW_ALIASES[normalizedKey] || fallback;
+};
+
+const normalizeNavItems = (items: unknown): NavItem[] => {
+  if (!Array.isArray(items)) return [];
+  return items
+    .filter((item): item is { label?: unknown; view?: unknown; submenu?: unknown } => !!item && typeof item === 'object')
+    .map((item) => {
+      const label = typeof item.label === 'string' && item.label.trim() ? item.label : 'HOME';
+      const view = normalizeViewState(item.view, ViewState.HOME);
+      const submenu = Array.isArray(item.submenu)
+        ? item.submenu
+            .filter((sub): sub is { label?: unknown; view?: unknown } => !!sub && typeof sub === 'object')
+            .map((sub) => ({
+              label: typeof sub.label === 'string' && sub.label.trim() ? sub.label : label,
+              view: normalizeViewState(sub.view, view),
+            }))
+        : undefined;
+      return { label, view, submenu };
+    });
+};
 
 const TestimonialSection: React.FC<TestimonialSectionProps> = ({ currentUser }) => {
   const [formData, setFormData] = useState({ name: currentUser?.name || '', location: currentUser?.location || '', text: '' });
@@ -366,7 +405,7 @@ const App: React.FC = () => {
   const [navigationItems, setNavigationItems] = useState<NavItem[]>(withHebrewResourceSubmenu([
     { label: 'HOME', view: ViewState.HOME },
     {
-      label: 'HEBREW CONTENT',
+      label: 'HEBREW RESOURCES',
       view: ViewState.ABOUT,
       submenu: HEBREW_RESOURCE_SUBMENU
     },
@@ -453,17 +492,31 @@ const App: React.FC = () => {
     setContactMessages(prev => prev.filter(msg => msg.id !== messageId));
   };
 
+  const getContactSenderMeta = (fallbackName = '', fallbackEmail = '') => {
+    const isRegistered = !!currentUser;
+    const nonRegisteredName = fallbackName.trim() || 'Website Visitor';
+    const nonRegisteredEmail = fallbackEmail.trim();
+
+    return {
+      senderType: isRegistered ? 'Registered' as const : 'Non-Registered' as const,
+      senderId: isRegistered ? currentUser?.id : undefined,
+      name: isRegistered ? (currentUser?.name?.trim() || nonRegisteredName) : nonRegisteredName,
+      email: isRegistered ? (currentUser?.email?.trim() || nonRegisteredEmail) : nonRegisteredEmail
+    };
+  };
+
   const handleHeroSendMessage = () => {
     const message = heroEmail.trim();
     if (!message) return;
+    const sender = getContactSenderMeta();
     saveContactMessage({
-      name: 'Website Visitor',
-      email: '',
-      subject: 'Hero Quick Message',
+      name: sender.name,
+      email: sender.email,
+      subject: sender.senderId ? `Hero Quick Message (${sender.senderId})` : 'Hero Quick Message',
       message,
       source: 'hero-widget',
-      senderType: currentUser ? 'Registered' : 'Non-Registered',
-      senderId: currentUser?.id
+      senderType: sender.senderType,
+      senderId: sender.senderId
     });
     setHeroEmail('');
     setShowLeaderMessage(true);
@@ -472,18 +525,22 @@ const App: React.FC = () => {
 
   const handleContactFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!contactForm.name.trim() || !contactForm.email.trim() || !contactForm.message.trim()) {
-      alert('Please fill in your name, email, and message.');
+    const isRegistered = !!currentUser;
+    if (!contactForm.message.trim() || (!isRegistered && (!contactForm.name.trim() || !contactForm.email.trim()))) {
+      alert(isRegistered ? 'Please enter your message.' : 'Please fill in your name, email, and message.');
       return;
     }
+    const sender = getContactSenderMeta(contactForm.name, contactForm.email);
     saveContactMessage({
-      name: contactForm.name.trim(),
-      email: contactForm.email.trim(),
-      subject: contactForm.subject.trim() || 'General Inquiry',
+      name: sender.name,
+      email: sender.email,
+      subject: sender.senderId
+        ? `${contactForm.subject.trim() || 'General Inquiry'} (${sender.senderId})`
+        : (contactForm.subject.trim() || 'General Inquiry'),
       message: contactForm.message.trim(),
       source: 'contact-form',
-      senderType: currentUser ? 'Registered' : 'Non-Registered',
-      senderId: currentUser?.id
+      senderType: sender.senderType,
+      senderId: sender.senderId
     });
     setContactForm({ name: '', email: '', subject: 'Prayer Request', message: '' });
     alert('Message sent successfully. Admin will receive it in the dashboard.');
@@ -568,7 +625,7 @@ const App: React.FC = () => {
       try {
         const remoteNav = await api.getNavigationLayout();
         if (remoteNav && remoteNav.length > 0) {
-          setNavigationItems(withHebrewResourceSubmenu(remoteNav));
+          setNavigationItems(withHebrewResourceSubmenu(normalizeNavItems(remoteNav)));
         }
       } catch (error) {
         console.error('Failed to fetch remote navigation layout:', error);
@@ -587,6 +644,15 @@ const App: React.FC = () => {
       return null;
     }
   });
+
+  useEffect(() => {
+    if (!currentUser) return;
+    setContactForm(prev => ({
+      ...prev,
+      name: currentUser.name || prev.name,
+      email: currentUser.email || prev.email
+    }));
+  }, [currentUser?.id, currentUser?.name, currentUser?.email]);
 
   // Scroll to top on view change
   useEffect(() => {
@@ -705,6 +771,7 @@ const App: React.FC = () => {
       case ViewState.HEBREW_WORDS: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.HEBREW_LETTERS_AUDIO: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.HEBREW_GEMATRIA: return "bg-[#fdfcf0] text-brand-950";
+      case ViewState.HEBREW_CLOCK: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.ID_CARD: return "bg-[#f8fafc] text-slate-950";
       case ViewState.CONTACT: return "bg-[#f5f3ff] text-indigo-950";
       case ViewState.AI: return "bg-slate-950 text-white";
@@ -716,7 +783,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogin = (identifier: string) => {
+  const handleLogin = async (identifier: string) => {
     if (!identifier) {
       alert("Please enter your Member ID, Email, Phone, or Name.");
       return;
@@ -770,11 +837,53 @@ const App: React.FC = () => {
     const user = match?.user;
 
     if (user) {
+      const isSwitchingToDifferentAccount = !!currentUser && currentUser.id !== user.id;
+      if (isSwitchingToDifferentAccount && currentUser) {
+        const existingLinkedProfiles = currentUser.linkedProfiles || [];
+        const alreadyLinked = existingLinkedProfiles.some(profile => profile.id === user.id);
+        const linkedAccountProfile: SubProfile = {
+          id: user.id,
+          name: user.name,
+          role: user.role || 'Member',
+          photo: user.photo
+        };
+        const updatedCurrentUser: User = alreadyLinked
+          ? currentUser
+          : { ...currentUser, linkedProfiles: [...existingLinkedProfiles, linkedAccountProfile] };
+
+        if (!alreadyLinked) {
+          try {
+            const savedCurrentUser = await api.updateUser(updatedCurrentUser);
+            setUsers(prev => prev.map(u => (u.id === currentUser.id ? savedCurrentUser : u)));
+            setCurrentUser(savedCurrentUser);
+          } catch (error) {
+            console.error('Failed to add logged-in account as dashboard profile', error);
+            alert('Could not add this account as a new profile. Please try again.');
+            return;
+          }
+        } else {
+          setCurrentUser(updatedCurrentUser);
+        }
+
+        setSelectedDashboardProfileId(user.id);
+        setCurrentView(ViewState.USER_DASHBOARD);
+        navigate('/');
+        alert(alreadyLinked
+          ? `Profile ${user.id} is already available in your dashboard.`
+          : `Logged in as ${user.id}. This account was added to your dashboard profiles.`);
+        return;
+      }
+
+      try {
+        localStorage.removeItem(`cot_dashboard_tour_seen_${user.id}`);
+      } catch (error) {
+        console.error('Failed to reset dashboard tour state', error);
+      }
       setCurrentUser(user);
       setSelectedDashboardProfileId(match?.profileId || user.id);
       setCelebrationMode('welcome');
       setShowCelebration(true);
-      setCurrentView(ViewState.USER_DASHBOARD);
+      setCurrentView(ViewState.HOME);
       navigate('/');
     } else {
       alert("Account not found. Please check your Member ID, Email, Phone, or Name.");
@@ -795,12 +904,18 @@ const App: React.FC = () => {
     });
 
     if (existingByContact) {
+      try {
+        localStorage.removeItem(`cot_dashboard_tour_seen_${existingByContact.id}`);
+      } catch (error) {
+        console.error('Failed to reset dashboard tour state', error);
+      }
       setCurrentUser(existingByContact);
       setSelectedDashboardProfileId(existingByContact.id);
       setCelebrationMode('welcome');
       setShowCelebration(true);
-      setCurrentView(ViewState.USER_DASHBOARD);
-      alert(`Account already exists for these details. Opening dashboard for ${existingByContact.id}.`);
+      setCurrentView(ViewState.HOME);
+      navigate('/');
+      alert(`Account already exists for these details. You are logged in as ${existingByContact.id}.`);
       return;
     }
 
@@ -835,6 +950,11 @@ const App: React.FC = () => {
       setUsers([...users, savedUser]);
       setCurrentUser(savedUser);
       setSelectedDashboardProfileId(savedUser.id);
+      try {
+        localStorage.removeItem(`cot_dashboard_tour_seen_${savedUser.id}`);
+      } catch (error) {
+        console.error('Failed to reset dashboard tour state', error);
+      }
 
       // --- EMAILJS INTEGRATION (Using User Provided Keys) ---
       const EMAILJS_SERVICE_ID = 'service_wcxaetv';
@@ -874,7 +994,8 @@ const App: React.FC = () => {
       alert("Registration Successful! Your ID is " + savedUser.id + ". Welcome to the family!");
       setCelebrationMode('welcome');
       setShowCelebration(true);
-      setCurrentView(ViewState.USER_DASHBOARD);
+      setCurrentView(ViewState.HOME);
+      navigate('/');
     } catch (e) {
       console.error(e);
       alert("Registration Failed. Please try again.");
@@ -970,7 +1091,7 @@ const App: React.FC = () => {
         }}
         navItems={navigationItems}
         onUpdateNavItems={async (newItems) => {
-          const updatedNav = withHebrewResourceSubmenu(newItems);
+          const updatedNav = withHebrewResourceSubmenu(normalizeNavItems(newItems));
           setNavigationItems(updatedNav);
           try {
             await api.updateNavigationLayout(updatedNav);
@@ -1019,7 +1140,7 @@ const App: React.FC = () => {
     <div className={`min-h-screen transition-colors duration-1000 ease-in-out font-sans ${getThemeClass()}`}>
       <Navbar
         currentView={currentView}
-        setView={setCurrentView}
+        setView={(view) => setCurrentView(normalizeViewState(view))}
         onLoginClick={() => navigate('/auth?view=login')}
         onLogoutClick={handleLogout}
         currentUser={currentUser}
@@ -1318,6 +1439,12 @@ const App: React.FC = () => {
             </div>
           )}
 
+          {currentView === ViewState.HEBREW_CLOCK && (
+            <div key="hebrew-clock">
+              <HebrewResources mode="content" initialTab="clock" />
+            </div>
+          )}
+
           {currentView === ViewState.HEBREW_NUMBERS && (
             <div key="hebrew-numbers">
               <HebrewResources mode="tools" initialTab="numbers" />
@@ -1431,7 +1558,7 @@ const App: React.FC = () => {
                 }}
                 navItems={navigationItems}
                 onUpdateNavItems={async (newItems) => {
-                  const updatedNav = withHebrewResourceSubmenu(newItems);
+                  const updatedNav = withHebrewResourceSubmenu(normalizeNavItems(newItems));
                   setNavigationItems(updatedNav);
                   try {
                     await api.updateNavigationLayout(updatedNav);
@@ -1570,11 +1697,16 @@ const App: React.FC = () => {
                   <div className="bg-white p-10 md:p-12 rounded-[3.5rem] shadow-2xl shadow-slate-200/50 border border-slate-50 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-40 h-40 bg-brand-50 rounded-full blur-3xl opacity-50 -mr-20 -mt-20"></div>
                     <form className="space-y-6 md:space-y-8 relative z-10 text-left" onSubmit={handleContactFormSubmit}>
+                      {currentUser && (
+                        <div className="text-[10px] font-black uppercase tracking-[0.16em] text-brand-700 bg-brand-50 border border-brand-100 rounded-xl px-3 py-2">
+                          Sending as {currentUser.name || 'Registered User'} ({currentUser.id})
+                        </div>
+                      )}
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Your Name</label>
                         <div className="relative">
                           <UserIcon size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
-                          <input type="text" placeholder="John Doe" className="w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all text-sm font-bold text-brand-950" value={contactForm.name} onChange={e => setContactForm(prev => ({ ...prev, name: e.target.value }))} />
+                          <input type="text" placeholder="John Doe" readOnly={!!currentUser} className={`w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3 md:py-4 border border-slate-100 rounded-2xl outline-none transition-all text-sm font-bold text-brand-950 ${currentUser ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-slate-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-brand-500/10'}`} value={contactForm.name} onChange={e => setContactForm(prev => ({ ...prev, name: e.target.value }))} />
                         </div>
                       </div>
 
@@ -1582,7 +1714,7 @@ const App: React.FC = () => {
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Email Address</label>
                         <div className="relative">
                           <Mail size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
-                          <input type="email" placeholder="john@example.com" className="w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all text-sm font-bold text-brand-950" value={contactForm.email} onChange={e => setContactForm(prev => ({ ...prev, email: e.target.value }))} />
+                          <input type="email" placeholder="john@example.com" readOnly={!!currentUser} className={`w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3 md:py-4 border border-slate-100 rounded-2xl outline-none transition-all text-sm font-bold text-brand-950 ${currentUser ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-slate-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-brand-500/10'}`} value={contactForm.email} onChange={e => setContactForm(prev => ({ ...prev, email: e.target.value }))} />
                         </div>
                       </div>
 

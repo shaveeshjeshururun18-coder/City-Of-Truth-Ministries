@@ -31,6 +31,14 @@ const FAMILY_RELATIONSHIP_OPTIONS = {
     others: ['Guardian', 'Other']
 };
 
+const TAMIL_NADU_LOCATIONS = [
+    'Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli', 'Salem', 'Erode', 'Tirunelveli',
+    'Thoothukudi', 'Vellore', 'Dindigul', 'Thanjavur', 'Kancheepuram', 'Kanyakumari',
+    'Namakkal', 'Karur', 'Nagapattinam', 'Cuddalore', 'Villupuram', 'Dharmapuri', 'Krishnagiri',
+    'Sivaganga', 'Virudhunagar', 'Ramanathapuram', 'The Nilgiris', 'Tiruppur', 'Ariyalur',
+    'Pudukkottai', 'Perambalur', 'Tenkasi', 'Ranipet', 'Tirupattur', 'Mayiladuthurai', 'Valparai'
+];
+
 export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, onOpenScanner, initialProfileId, onGoToLogin }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [showTestimonialModal, setShowTestimonialModal] = useState(false);
@@ -52,10 +60,12 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [showDashboardIntro, setShowDashboardIntro] = useState(false);
     const [dashboardTourStepIndex, setDashboardTourStepIndex] = useState<number | null>(null);
     const [dashboardTourRect, setDashboardTourRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
+    const [photoUpdateMode, setPhotoUpdateMode] = useState<'edit-existing' | 'add-new' | null>(null);
     const canAccessEntrustFeatures = user.status === 'Active';
     const DASHBOARD_TOUR_STEPS = [
         { selector: '#dashboard-edit-btn', title: 'Edit Details', text: 'Update your profile and submit changes for admin approval.' },
         { selector: '#dashboard-testimony-btn', title: 'Write Testimony', text: 'Share your testimony and track approval in admin review.' },
+        { selector: '#dashboard-member-form-btn', title: 'User Book Member Form', text: 'Open the themed member form in the User Book column and submit your ministry profile details.' },
         { selector: '#dashboard-share-btn', title: 'Share Profile', text: 'Send your secure profile login link to family members.' },
         { selector: '#dashboard-login-btn', title: 'Profile Login', text: 'Quickly open login page to switch accounts.' },
     ];
@@ -133,25 +143,83 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         if (sub) return { ...user, id: sub.id, name: sub.name, photo: sub.photo, bloodGroup: sub.bloodGroup, dob: sub.dob };
         return user;
     };
+    const getSafePhotoSrc = (photo?: string) => {
+        const candidate = (photo || '').trim();
+        if (!candidate) return null;
+        if (/^data:image\/(?:png|jpe?g|webp|gif|bmp);base64,/i.test(candidate)) return candidate;
+        if (candidate.startsWith('blob:')) return candidate;
+        if (/^https?:\/\//i.test(candidate)) {
+            try {
+                const allowedHosts = new Set([
+                    'firebasestorage.googleapis.com',
+                    'lh3.googleusercontent.com',
+                    'avatars.githubusercontent.com',
+                    'user-attachments.githubusercontent.com',
+                    'raw.githubusercontent.com',
+                    'ui-avatars.com',
+                ]);
+                const parsed = new URL(candidate);
+                if (allowedHosts.has(parsed.hostname)) return candidate;
+            } catch {
+                return null;
+            }
+        }
+        return null;
+    };
+    const getAvatarInitials = (name?: string) => {
+        const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+        if (parts.length >= 2) return `${parts[0][0] || 'C'}${parts[1][0] || 'T'}`.toUpperCase();
+        return ((parts[0] || 'CT').slice(0, 2)).toUpperCase();
+    };
+    const renderAvatarContent = (
+        photo: string | undefined,
+        name: string,
+        initialClass = 'text-sm',
+        gradientClass = 'from-brand-600 to-violet-700'
+    ) => {
+        const safeSrc = getSafePhotoSrc(photo);
+        if (safeSrc) return <img src={safeSrc} alt="Profile photo" className="w-full h-full object-cover" loading="lazy" />;
+        return (
+            <div className={`w-full h-full bg-gradient-to-br ${gradientClass} flex items-center justify-center text-white ${initialClass} font-black tracking-[0.2em]`}>
+                {getAvatarInitials(name)}
+            </div>
+        );
+    };
     const displayProfile = getDisplayProfile();
 
 
-    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, mode: 'edit-existing' | 'add-new') => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             const reader = new FileReader();
-            reader.onloadend = () => { setCroppingImage(reader.result as string); e.target.value = ''; };
+            reader.onloadend = () => {
+                setPhotoUpdateMode(mode);
+                setCroppingImage(reader.result as string);
+                e.target.value = '';
+            };
             reader.readAsDataURL(file);
         }
     };
 
     const handleCropComplete = (croppedImg: string) => {
-        if (activeProfileId === user.id) {
-            onUpdate({ ...user, photo: croppedImg } as User);
+        if (photoUpdateMode === 'add-new' && activeProfileId === user.id) {
+            onUpdate({
+                ...user,
+                pendingProfileUpdate: {
+                    ...(user.pendingProfileUpdate || {}),
+                    photo: croppedImg
+                }
+            } as User);
+            alert('New photo submitted for admin approval.');
+        } else if (activeProfileId === user.id) {
+            onUpdate({ ...user, photo: croppedImg, pendingProfileUpdate: { ...(user.pendingProfileUpdate || {}), photo: undefined } } as User);
+            alert('Photo updated successfully.');
         } else {
             const updatedProfiles = user.linkedProfiles?.map(p => p.id === activeProfileId ? { ...p, photo: croppedImg } : p) || [];
             onUpdate({ ...user, linkedProfiles: updatedProfiles } as User);
+            alert('Profile photo updated successfully.');
         }
+        setPhotoUpdateMode(null);
         setCroppingImage(null);
     };
 
@@ -298,58 +366,301 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const handleExportProfileDetailsPDF = () => {
         try {
             const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
-            const lineHeight = 7;
-            const left = 14;
-            const pageBottom = 280;
-            let y = 16;
-
-            const addLine = (text: string, bold = false) => {
-                if (y > pageBottom) {
-                    pdf.addPage();
-                    y = 16;
-                }
-                pdf.setFont('helvetica', bold ? 'bold' : 'normal');
-                pdf.text(text, left, y);
-                y += lineHeight;
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const margin = 14;
+            const contentWidth = pageWidth - margin * 2;
+            const familyProfiles = user.linkedProfiles || [];
+            const generatedAt = new Date().toLocaleString();
+            const formatValue = (value?: string, fallback = 'Not provided') => {
+                const normalized = `${value || ''}`.trim();
+                return normalized || fallback;
+            };
+            const getInitials = (name?: string) => {
+                const parts = formatValue(name, 'City of Truth').split(/\s+/).filter(Boolean);
+                return (parts[0]?.[0] || 'C') + (parts[1]?.[0] || parts[0]?.[1] || 'T');
             };
 
-            addLine('City of Truth Ministries — Profile Details Export', true);
-            addLine(`Generated: ${new Date().toLocaleString()}`);
-            addLine(`Primary Member ID: ${user.id}`);
-            y += 2;
+            let y = 0;
+            let pageNumber = 1;
 
-            addLine('Primary Profile', true);
-            addLine(`Name: ${user.name}`);
-            addLine(`Member ID: ${user.id}`);
-            addLine(`Email: ${user.email || '-'}`);
-            addLine(`Phone: ${user.phone || user.emergency || '-'}`);
-            addLine(`Emergency: ${user.emergency || '-'}`);
-            addLine(`Location: ${user.location || '-'}`);
-            addLine(`Blood Group: ${user.bloodGroup || '-'}`);
-            addLine(`DOB: ${user.dob || '-'}`);
-            addLine(`Role: ${user.role || 'Member'}`);
-            addLine(`Status: ${user.status || '-'}`);
-            y += 2;
+            const drawPageShell = (variant: 'hero' | 'standard') => {
+                pdf.setFillColor(248, 250, 252);
+                pdf.rect(0, 0, pageWidth, pageHeight, 'F');
 
-            addLine(`Currently Active Profile: ${displayProfile.name} (${displayProfile.id})`, true);
-            y += 2;
+                if (variant === 'hero') {
+                    pdf.setFillColor(15, 23, 42);
+                    pdf.rect(0, 0, pageWidth, 52, 'F');
+                    pdf.setFillColor(79, 70, 229);
+                    pdf.roundedRect(margin, 12, contentWidth, 26, 6, 6, 'F');
+                    pdf.setFillColor(245, 158, 11);
+                    pdf.circle(pageWidth - 26, 18, 7, 'F');
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(20);
+                    pdf.text('Family Portfolio', margin + 6, 24);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(9.5);
+                    pdf.text('City of Truth Ministries • Professional family profile summary', margin + 6, 31);
+                    y = 60;
+                    return;
+                }
 
-            addLine('Family Profiles', true);
-            if (!user.linkedProfiles || user.linkedProfiles.length === 0) {
-                addLine('No linked family profiles found.');
-            } else {
-                user.linkedProfiles.forEach((profile, index) => {
-                    addLine(`Family ${index + 1}`, true);
-                    addLine(`Name: ${profile.name || '-'}`);
-                    addLine(`Member ID: ${profile.id || '-'}`);
-                    addLine(`Relation: ${profile.role || 'Family Member'}`);
-                    addLine(`DOB: ${profile.dob || '-'}`);
-                    addLine(`Blood Group: ${profile.bloodGroup || '-'}`);
-                    y += 1;
-                });
-            }
+                pdf.setFillColor(15, 23, 42);
+                pdf.rect(0, 0, pageWidth, 18, 'F');
+                pdf.setTextColor(255, 255, 255);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(11);
+                pdf.text('City of Truth Ministries', margin, 10.5);
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(8);
+                pdf.text(`Family Portfolio • ${user.id}`, margin, 15);
+                pdf.setTextColor(71, 85, 105);
+                y = 26;
+            };
 
-            pdf.save(`COT-Profile-Details-${user.id}.pdf`);
+            const addNewPage = () => {
+                pdf.addPage();
+                pageNumber += 1;
+                drawPageShell('standard');
+            };
+
+            const ensureSpace = (requiredHeight: number) => {
+                if (y + requiredHeight <= pageHeight - 18) return;
+                addNewPage();
+            };
+
+            const drawChip = (x: number, top: number, width: number, label: string, value: string) => {
+                pdf.setFillColor(255, 255, 255);
+                pdf.setDrawColor(226, 232, 240);
+                pdf.roundedRect(x, top, width, 17, 4, 4, 'FD');
+                pdf.setTextColor(100, 116, 139);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(7);
+                pdf.text(label.toUpperCase(), x + 4, top + 5.2);
+                pdf.setTextColor(15, 23, 42);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(10.5);
+                pdf.text(pdf.splitTextToSize(value, width - 8), x + 4, top + 10.8);
+            };
+
+            const drawSectionTitle = (title: string, subtitle: string) => {
+                ensureSpace(16);
+                pdf.setTextColor(30, 41, 59);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(13);
+                pdf.text(title, margin, y);
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(8.5);
+                pdf.setTextColor(100, 116, 139);
+                pdf.text(subtitle, margin, y + 5);
+                y += 10;
+            };
+
+            const drawProfileCard = (
+                title: string,
+                subtitle: string,
+                accent: [number, number, number],
+                profile: { name?: string; id?: string; role?: string; email?: string; phone?: string; emergency?: string; location?: string; bloodGroup?: string; dob?: string; status?: string },
+                extraEntries: Array<[string, string]>
+            ) => {
+                const entries: Array<[string, string]> = [
+                    ['Member ID', formatValue(profile.id)],
+                    ['Role', formatValue(profile.role, 'Member')],
+                    ['Email', formatValue(profile.email)],
+                    ['Phone', formatValue(profile.phone)],
+                    ['Emergency', formatValue(profile.emergency)],
+                    ['Location', formatValue(profile.location)],
+                    ['Blood Group', formatValue(profile.bloodGroup)],
+                    ['Date of Birth', formatValue(profile.dob)],
+                    ...extraEntries,
+                ];
+                const columns = 2;
+                const columnGap = 8;
+                const innerX = margin + 7;
+                const colWidth = (contentWidth - 14 - columnGap) / columns;
+                const topPadding = 22;
+                const rowGap = 4;
+                const bottomPadding = 8;
+                const perColumn = Math.ceil(entries.length / columns);
+                const measureColumnHeight = (columnEntries: Array<[string, string]>) => columnEntries.reduce((height, [label, value]) => {
+                    const lines = pdf.splitTextToSize(value, colWidth);
+                    const labelHeight = 4;
+                    const valueHeight = Math.max(lines.length, 1) * 4.2;
+                    return height + labelHeight + valueHeight + rowGap;
+                }, 0);
+                const leftEntries = entries.slice(0, perColumn);
+                const rightEntries = entries.slice(perColumn);
+                const bodyHeight = Math.max(measureColumnHeight(leftEntries), measureColumnHeight(rightEntries));
+                const cardHeight = topPadding + bodyHeight + bottomPadding;
+
+                ensureSpace(cardHeight + 8);
+
+                pdf.setFillColor(255, 255, 255);
+                pdf.setDrawColor(226, 232, 240);
+                pdf.roundedRect(margin, y, contentWidth, cardHeight, 6, 6, 'FD');
+                pdf.setFillColor(accent[0], accent[1], accent[2]);
+                pdf.roundedRect(margin, y, contentWidth, 16, 6, 6, 'F');
+                pdf.setFillColor(255, 255, 255);
+                pdf.circle(margin + 11, y + 8, 5.5, 'F');
+                pdf.setTextColor(accent[0], accent[1], accent[2]);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(10);
+                pdf.text(getInitials(profile.name).toUpperCase(), margin + 8.2, y + 9.5);
+                pdf.setTextColor(255, 255, 255);
+                pdf.setFontSize(11);
+                pdf.text(title, margin + 20, y + 7);
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(8);
+                pdf.text(subtitle, margin + 20, y + 11.8);
+                pdf.setTextColor(15, 23, 42);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(13);
+                pdf.text(formatValue(profile.name), margin + 7, y + 24);
+
+                const drawColumn = (columnEntries: Array<[string, string]>, x: number) => {
+                    let columnY = y + 31;
+                    columnEntries.forEach(([label, value]) => {
+                        pdf.setTextColor(100, 116, 139);
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.setFontSize(7);
+                        pdf.text(label.toUpperCase(), x, columnY);
+                        columnY += 4;
+                        pdf.setTextColor(30, 41, 59);
+                        pdf.setFont('helvetica', 'normal');
+                        pdf.setFontSize(9);
+                        const valueLines = pdf.splitTextToSize(value, colWidth);
+                        pdf.text(valueLines, x, columnY);
+                        columnY += Math.max(valueLines.length, 1) * 4.2 + rowGap;
+                    });
+                };
+
+                drawColumn(leftEntries, innerX);
+                drawColumn(rightEntries, innerX + colWidth + columnGap);
+                y += cardHeight + 6;
+            };
+
+            const drawFamilyCards = () => {
+                if (familyProfiles.length === 0) {
+                    ensureSpace(28);
+                    pdf.setFillColor(255, 255, 255);
+                    pdf.setDrawColor(226, 232, 240);
+                    pdf.roundedRect(margin, y, contentWidth, 22, 6, 6, 'FD');
+                    pdf.setTextColor(71, 85, 105);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(11);
+                    pdf.text('No linked family profiles yet', margin + 8, y + 10);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(8.5);
+                    pdf.text('Add family members from the dashboard to include them in future portfolio exports.', margin + 8, y + 16);
+                    y += 28;
+                    return;
+                }
+
+                const gap = 6;
+                const cardWidth = (contentWidth - gap) / 2;
+                const drawFamilyCard = (profile: SubProfile, index: number, x: number, top: number) => {
+                    const entries: Array<[string, string]> = [
+                        ['Member ID', formatValue(profile.id)],
+                        ['Relation', formatValue(profile.role, 'Family Member')],
+                        ['Date of Birth', formatValue(profile.dob)],
+                        ['Blood Group', formatValue(profile.bloodGroup)],
+                    ];
+                    const bodyStart = top + 21;
+                    let localY = bodyStart;
+                    pdf.setFillColor(255, 255, 255);
+                    pdf.setDrawColor(226, 232, 240);
+                    pdf.roundedRect(x, top, cardWidth, 43, 6, 6, 'FD');
+                    pdf.setFillColor(59, 130, 246);
+                    pdf.roundedRect(x, top, cardWidth, 14, 6, 6, 'F');
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(10);
+                    pdf.text(`Family ${index + 1}`, x + 6, top + 7.5);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(7.5);
+                    pdf.text(formatValue(profile.role, 'Family Member'), x + 6, top + 11.5);
+                    pdf.setTextColor(15, 23, 42);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(11);
+                    pdf.text(formatValue(profile.name), x + 6, localY);
+                    localY += 5;
+                    entries.forEach(([label, value]) => {
+                        pdf.setTextColor(100, 116, 139);
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.setFontSize(6.8);
+                        pdf.text(label.toUpperCase(), x + 6, localY);
+                        localY += 3.5;
+                        pdf.setTextColor(30, 41, 59);
+                        pdf.setFont('helvetica', 'normal');
+                        pdf.setFontSize(8.5);
+                        pdf.text(pdf.splitTextToSize(value, cardWidth - 12), x + 6, localY);
+                        localY += 6;
+                    });
+                };
+
+                for (let i = 0; i < familyProfiles.length; i += 2) {
+                    ensureSpace(49);
+                    drawFamilyCard(familyProfiles[i], i, margin, y);
+                    if (familyProfiles[i + 1]) {
+                        drawFamilyCard(familyProfiles[i + 1], i + 1, margin + cardWidth + gap, y);
+                    }
+                    y += 49;
+                }
+            };
+
+            drawPageShell('hero');
+
+            const chipGap = 6;
+            const chipWidth = (contentWidth - chipGap) / 2;
+            drawChip(margin, y, chipWidth, 'Primary Member', user.id);
+            drawChip(margin + chipWidth + chipGap, y, chipWidth, 'Active Profile', `${displayProfile.name} • ${displayProfile.id}`);
+            y += 21;
+            drawChip(margin, y, chipWidth, 'Family Members', `${familyProfiles.length}`);
+            drawChip(margin + chipWidth + chipGap, y, chipWidth, 'Generated', generatedAt);
+            y += 26;
+
+            drawSectionTitle('Primary member profile', 'Core contact and ministry details for the main account holder.');
+            drawProfileCard('Primary Member', `Status • ${formatValue(user.status, 'Pending Verification')}`, [79, 70, 229], {
+                name: user.name,
+                id: user.id,
+                role: user.role,
+                email: user.email,
+                phone: user.phone || user.emergency,
+                emergency: user.emergency,
+                location: user.location,
+                bloodGroup: user.bloodGroup,
+                dob: user.dob,
+                status: user.status,
+            }, [
+                ['Member Since', formatValue(user.memberSince || user.joinedDate)],
+                ['Status', formatValue(user.status)],
+            ]);
+
+            drawSectionTitle('Active profile spotlight', 'The profile currently selected inside the dashboard at export time.');
+            drawProfileCard('Active Profile', displayProfile.id === user.id ? 'Primary account in focus' : 'Linked family account in focus', [14, 116, 144], {
+                name: displayProfile.name,
+                id: displayProfile.id,
+                role: displayProfile.role || 'Family Member',
+                phone: displayProfile.id === user.id ? (user.phone || user.emergency) : undefined,
+                emergency: displayProfile.id === user.id ? user.emergency : undefined,
+                location: displayProfile.id === user.id ? user.location : undefined,
+                bloodGroup: displayProfile.bloodGroup,
+                dob: displayProfile.dob,
+            }, [
+                ['Profile Type', displayProfile.id === user.id ? 'Primary Member' : 'Linked Family Profile'],
+            ]);
+
+            drawSectionTitle('Family member directory', 'Every linked family member included in this account.');
+            drawFamilyCards();
+
+            const footerText = `Confidential portfolio generated for ${user.name} • Page ${pageNumber}`;
+            pdf.setFont('helvetica', 'italic');
+            pdf.setFontSize(7.5);
+            pdf.setTextColor(148, 163, 184);
+            pdf.text(footerText, margin, pageHeight - 8);
+
+            pdf.save(`COT-Family-Portfolio-${user.id}.pdf`);
         } catch (error) {
             console.error('Profile details PDF export failed:', error);
             alert('Unable to export profile details PDF. Please try again.');
@@ -378,7 +689,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     };
 
     const qrUrl = `${window.location.origin}/verify/${displayProfile.id}`;
-    const qrImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(qrUrl)}&bgcolor=ffffff&color=1a237e&margin=5&format=png`;
+    const qrImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(qrUrl)}&bgcolor=ffffff&color=1a237e&margin=5&format=png&cb=${encodeURIComponent(`${displayProfile.id}-${user.status}`)}`;
 
     /* ─────────────────────────────────────────────── */
     return (
@@ -486,11 +797,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     {/* Primary profile + family avatars */}
                     <div className="relative group shrink-0">
                         <div className="w-14 h-14 rounded-full overflow-hidden border-[3px] border-white shadow-lg bg-brand-100">
-                            <img src={displayProfile.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayProfile.name)}&background=1e1b4b&color=fff&bold=true&size=128`} alt={displayProfile.name} className="w-full h-full object-cover" />
+                            {renderAvatarContent(displayProfile.photo, displayProfile.name, 'text-sm', 'from-brand-600 to-violet-700')}
                         </div>
-                        <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-all">
+                        <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 cursor-pointer transition-all">
                             <Camera size={14} className="text-white" />
-                            <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoUpload(e, 'add-new')} />
                         </label>
                         {/* Active indicator */}
                         <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white ${user.status === 'Active' ? 'bg-green-500' : user.status === 'Rejected' ? 'bg-red-500' : 'bg-amber-400'}`} />
@@ -500,7 +811,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     {user.linkedProfiles?.map(pf => (
                         <button key={pf.id} onClick={() => setActiveProfileId(pf.id)} title={pf.name}
                             className={`relative shrink-0 w-10 h-10 rounded-full overflow-hidden border-2 transition-all ${activeProfileId === pf.id ? 'border-brand-500 shadow-lg scale-110' : 'border-white/70 opacity-70 hover:opacity-100 hover:scale-105'}`}>
-                            <img src={pf.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(pf.name)}&background=5b47d0&color=fff&bold=true&size=80`} alt={pf.name} className="w-full h-full object-cover" />
+                            {renderAvatarContent(pf.photo, pf.name, 'text-[10px]', 'from-violet-600 to-fuchsia-700')}
                         </button>
                     ))}
 
@@ -554,7 +865,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         <div className="p-4 space-y-3 bg-slate-50">
                             <button onClick={() => setActiveProfileId(user.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all text-left ${activeProfileId === user.id ? 'bg-brand-50 border-brand-200' : 'bg-white border-slate-200 hover:border-brand-200'}`}>
                                 <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-brand-100 shrink-0">
-                                    <img src={user.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=1e1b4b&color=fff&bold=true&size=80`} alt={user.name} className="w-full h-full object-cover" />
+                                    {renderAvatarContent(user.photo, user.name, 'text-[10px]', 'from-brand-600 to-violet-700')}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="font-bold text-slate-900 text-sm truncate">{user.name}</p>
@@ -566,7 +877,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 <div key={pf.id} className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all group ${activeProfileId === pf.id ? 'bg-accent-50 border-accent-200' : 'bg-white border-slate-200 hover:border-accent-200'}`}>
                                     <button onClick={() => setActiveProfileId(pf.id)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
                                         <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-100 shrink-0">
-                                            <img src={pf.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(pf.name)}&background=5b47d0&color=fff&bold=true&size=80`} alt={pf.name} className="w-full h-full object-cover" />
+                                            {renderAvatarContent(pf.photo, pf.name, 'text-[10px]', 'from-violet-600 to-fuchsia-700')}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="font-bold text-slate-900 text-sm truncate">{pf.name}</p>
@@ -618,7 +929,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 <div className="relative bg-gradient-to-r from-[#1a237e] to-[#3949ab] rounded-2xl h-24 flex items-center justify-center overflow-hidden border border-white/20">
                                     <div className="absolute left-4 flex items-center gap-3">
                                         <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/50 bg-white/20 shrink-0">
-                                            <img src={displayProfile.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayProfile.name)}&background=1e1b4b&color=fff&bold=true&size=96`} alt={displayProfile.name} className="w-full h-full object-cover" />
+                                            {renderAvatarContent(displayProfile.photo, displayProfile.name, 'text-xs', 'from-brand-500 to-violet-700')}
                                         </div>
                                         <div>
                                             <p className="text-white font-bold text-sm leading-tight">{displayProfile.name}</p>
@@ -659,7 +970,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         onClick={() => onOpenScanner?.()}
                                         className="relative inline-block bg-white rounded-3xl p-4 border border-slate-100 shadow-lg shadow-brand-900/5"
                                     >
-                                        <img src={qrImgSrc} alt="QR Code" className="w-48 h-48 block mx-auto" crossOrigin="anonymous" />
+                                        <img src={qrImgSrc} alt="QR Code" className="w-40 h-40 sm:w-48 sm:h-48 block mx-auto" crossOrigin="anonymous" />
                                     </button>
                                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-4">Tap QR to open scanner</p>
                                 </div>
@@ -770,23 +1081,26 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         </span>
                     </button>
 
-                    {/* Profile Details PDF */}
+                    {/* Family Portfolio PDF */}
                     <button onClick={handleExportProfileDetailsPDF}
                         className="bg-gradient-to-br from-indigo-700 to-violet-800 text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
                         <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><FileText size={18} /></div>
-                        <p className="font-bold text-sm leading-tight mb-1">Profile Details PDF</p>
-                        <p className="text-white/80 text-[10px]">Export user + family + active profile details</p>
+                        <p className="font-bold text-sm leading-tight mb-1">Family Portfolio PDF</p>
+                        <p className="text-white/80 text-[10px]">Download a polished member, family, and active-profile portfolio</p>
                         <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
-                            <Download size={11} /> Export
+                            <Download size={11} /> Download PDF
                         </span>
                     </button>
 
                     {/* Member Form */}
-                    <button onClick={() => setShowCommunityProfileForm(true)}
+                    <button id="dashboard-member-form-btn" onClick={() => setShowCommunityProfileForm(true)}
                         className="col-span-2 bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] rounded-[22px] p-5 text-left shadow-xl hover:brightness-110 transition-all relative overflow-hidden group border border-[#d4a547]/30">
+                        <div className="absolute top-3 right-3 px-2 py-1 rounded-full bg-[#d4a547]/15 border border-[#d4a547]/40 text-[9px] font-black uppercase tracking-widest text-[#f8e7b0]">
+                            User Book
+                        </div>
                         <div className="w-11 h-11 bg-white/15 rounded-xl flex items-center justify-center mb-3"><Users size={22} /></div>
-                        <p className="font-bold text-base leading-tight mb-1">Member Form</p>
-                        <p className="text-[#f8e7b0] text-[11px] mb-3">Fill your details in this styled form. Submission is visible in Admin Dashboard.</p>
+                        <p className="font-bold text-base leading-tight mb-1">Member Form Column</p>
+                        <p className="text-[#f8e7b0] text-[11px] mb-3">Professional themed profile form for User Book. Submission is visible in Admin Dashboard.</p>
                         <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/20 rounded-xl px-4 py-2">
                             <Edit2 size={12} /> Open Form
                         </span>
@@ -916,22 +1230,41 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             <button onClick={cancelEditing} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
                         </div>
 
-                        {/* Photo section — no admin approval needed for crop/upload */}
+                        {/* Photo section */}
                         <div className="flex flex-col items-center gap-3 mb-6">
-                            <div className="relative group">
-                                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-slate-100 shadow-lg">
-                                    <img
-                                        src={displayProfile.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayProfile.name)}&background=1e1b4b&color=fff&bold=true&size=256`}
-                                        alt={displayProfile.name}
-                                        className="w-full h-full object-cover"
+                            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-slate-100 shadow-lg">
+                                {renderAvatarContent(displayProfile.photo, displayProfile.name, 'text-2xl', 'from-brand-600 via-brand-700 to-violet-800')}
+                            </div>
+                            <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (!displayProfile.photo) {
+                                            alert('No existing photo to crop. Use "Add New Photo" first.');
+                                            return;
+                                        }
+                                        setPhotoUpdateMode('edit-existing');
+                                        setCroppingImage(displayProfile.photo);
+                                        setIsEditing(false);
+                                    }}
+                                    className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
+                                >
+                                    <Camera size={14} /> Edit/Crop Current Photo
+                                </button>
+                                <label className="flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100 cursor-pointer">
+                                    <UploadCloud size={14} /> Add New Photo (Approval)
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            handlePhotoUpload(e, 'add-new');
+                                            setIsEditing(false);
+                                        }}
                                     />
-                                </div>
-                                <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-all">
-                                    <Camera size={20} className="text-white" />
-                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { handlePhotoUpload(e); cancelEditing(); }} />
                                 </label>
                             </div>
-                            <p className="text-slate-400 text-xs text-center">Tap photo to update — no approval needed</p>
+                            <p className="text-slate-400 text-xs text-center">Crop edits are instant. New uploads are sent for admin approval.</p>
                         </div>
 
                         <form onSubmit={(e) => {
@@ -963,7 +1296,18 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Location</label>
-                                <input type="text" value={formData.location ?? user.location} onChange={e => setFormData(p => ({ ...p, location: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                                <select
+                                    value={formData.location ?? user.location}
+                                    onChange={e => setFormData(p => ({ ...p, location: e.target.value }))}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500"
+                                >
+                                    {!TAMIL_NADU_LOCATIONS.includes((formData.location ?? user.location) || '') && (
+                                        <option value={formData.location ?? user.location}>{formData.location ?? user.location}</option>
+                                    )}
+                                    {TAMIL_NADU_LOCATIONS.map(location => (
+                                        <option key={location} value={location}>{location}</option>
+                                    ))}
+                                </select>
                             </div>
 
                             <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700 font-medium">
@@ -995,7 +1339,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         >
                             <div className="text-[11px] font-black uppercase tracking-widest text-brand-500 mb-2">Dashboard Tour</div>
                             <h3 className="text-xl font-bold text-brand-950 mb-2">Quick Guide</h3>
-                            <p className="text-sm text-slate-600 mb-5">Get a short walkthrough of the key options in your dashboard. You can skip anytime.</p>
+                            <p className="text-sm text-slate-600 mb-5">Get a short walkthrough of key dashboard options, including the new User Book member form column. You can skip anytime.</p>
                             <div className="flex items-center justify-end gap-2">
                                 <button onClick={skipDashboardTour} className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100">Skip</button>
                                 <button onClick={startDashboardTour} className="px-4 py-2 rounded-xl text-sm font-bold bg-brand-600 text-white hover:bg-brand-700">Start Tour</button>

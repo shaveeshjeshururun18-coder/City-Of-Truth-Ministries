@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Church, Home, Info, Heart, Flame, Phone, ChevronRight, CreditCard, Facebook, Youtube, Instagram, MapPin, Languages, Zap, Sparkles, Send, Globe, LogIn, CircleUser, LogOut, ChevronDown, Calendar, Hash, Star, BookOpen, ExternalLink, Plus } from 'lucide-react';
+import { Menu, X, Church, Home, Info, Heart, Flame, Phone, ChevronRight, CreditCard, Facebook, Youtube, Instagram, MapPin, Languages, Zap, Sparkles, Send, Globe, LogIn, CircleUser, LogOut, ChevronDown, Calendar, Clock, Hash, Star, BookOpen, ExternalLink, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ViewState, NavItem } from '../types';
 import { Button } from './Button';
@@ -21,6 +21,7 @@ const getIcon = (view: ViewState) => {
     case ViewState.ABOUT: return <Languages size={18} />;
     case ViewState.HEBREW_TOOLS: return <Zap size={18} />;
     case ViewState.HEBREW_CALENDAR: return <Calendar size={18} />;
+    case ViewState.HEBREW_CLOCK: return <Clock size={18} />;
     case ViewState.HEBREW_NUMBERS: return <Hash size={18} />;
     case ViewState.HEBREW_FESTIVALS: return <Star size={18} />;
     case ViewState.HEBREW_REFERENCE: return <BookOpen size={18} />;
@@ -32,6 +33,7 @@ const getIcon = (view: ViewState) => {
     case ViewState.ABOUT_VALPARAI: return <MapPin size={18} />;
     case ViewState.MENORAH: return <Flame size={18} />;
     case ViewState.MENORAH_FLAG: return <Flame size={18} />;
+    case ViewState.GOLDEN_MENORAH: return <Flame size={18} />;
     case ViewState.BARUCH_HASHEM: return <Globe size={18} />;
     case ViewState.AI: return <Sparkles size={18} />;
     default: return <Church size={18} />;
@@ -232,7 +234,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
 
               
-              <div className="p-5 flex flex-col relative z-20">
+              <div className="p-5 pt-[max(1.25rem,env(safe-area-inset-top))] flex flex-col relative z-20">
                 <div className="flex justify-between items-center w-full mb-5">
                   <div className="flex items-center gap-4">
                     <div className="w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center border border-brand-100">
@@ -246,11 +248,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                   <button
                     type="button"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="p-2 rounded-full transition-all text-white bg-blue-700 hover:bg-blue-800 shadow-md border border-blue-500/60 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    className="p-2.5 rounded-full transition-all text-white bg-blue-700 hover:bg-blue-800 shadow-lg border-2 border-blue-400/80 focus:outline-none focus:ring-2 focus:ring-blue-300"
                     title="Close menu"
                     aria-label="Close navigation menu"
                   >
-                    <X size={18} />
+                    <X size={20} strokeWidth={2.8} />
                   </button>
 
 
@@ -302,6 +304,26 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
 
               <div className="flex-1 overflow-y-auto py-3 px-4 space-y-0.5">
+                {currentUser && (
+                  <button
+                    onClick={() => {
+                      setView(ViewState.USER_DASHBOARD);
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all ${currentView === ViewState.USER_DASHBOARD
+                      ? 'bg-[#EEF0FF] text-[#5D5FEF]'
+                      : 'bg-transparent text-[#555] hover:bg-gray-50'
+                      }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <span className={currentView === ViewState.USER_DASHBOARD ? 'text-[#5D5FEF]' : 'text-gray-400'}>
+                        <CircleUser size={18} />
+                      </span>
+                      <span className="font-bold tracking-wide uppercase text-[11px]">My Dashboard</span>
+                    </div>
+                    <ChevronRight size={14} />
+                  </button>
+                )}
                 {navItems.map((item) => {
                   const hasSubmenu = item.submenu && item.submenu.length > 0;
                   const isSubmenuOpen = activeMobileSubmenu === item.label;

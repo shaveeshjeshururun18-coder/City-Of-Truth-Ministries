@@ -12,7 +12,7 @@ const translations: Record<Language, Record<string, string>> = {
   en: {
     // Nav labels
     'nav.home': 'HOME',
-    'nav.hebrew': 'HEBREW CONTENT',
+    'nav.hebrew': 'HEBREW RESOURCES',
     'nav.hebrewTools': 'HEBREW TOOLS',
     'nav.alphabets': 'ALPHABETS',
     'nav.valparai': 'VALPARAI',
@@ -156,6 +156,7 @@ export const NAV_LABEL_TO_KEY: Record<string, string> = {
   'HOME': 'nav.home',
   'HEBREW': 'nav.hebrew',
   'HEBREW CONTENT': 'nav.hebrew',
+  'HEBREW RESOURCES': 'nav.hebrew',
   'HEBREW TOOLS': 'nav.hebrewTools',
   'ALPHABETS': 'nav.alphabets',
   'VALPARAI': 'nav.valparai',

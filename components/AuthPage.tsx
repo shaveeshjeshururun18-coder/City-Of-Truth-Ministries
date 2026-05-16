@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X, UserCheck } from 'lucide-react';
+import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X, UserCheck, UserPlus } from 'lucide-react';
 import { Button } from './Button';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
@@ -326,8 +326,32 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             initial={{ opacity: 0, scale: 0.98 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, y: -20 }}
-                            className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10"
+                            className="space-y-6 md:space-y-8"
                         >
+                            <div className="bg-white border border-brand-100 rounded-[2rem] p-5 md:p-7 shadow-sm">
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-500 mb-2">New Here?</p>
+                                        <h3 className="text-xl md:text-2xl font-serif font-bold text-brand-950">Start with Entrust Registration</h3>
+                                        <p className="text-sm text-slate-600 mt-2">Create your profile, receive your member ID, and unlock dashboard access.</p>
+                                    </div>
+                                    <button
+                                        onClick={onNavigateToRegister}
+                                        className="shrink-0 px-5 py-3 rounded-2xl bg-brand-600 text-white font-black text-xs uppercase tracking-wider hover:bg-brand-700 transition-colors"
+                                    >
+                                        Open Registration Page
+                                    </button>
+                                </div>
+                                <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+                                    {['Digital Entrust Card', 'Dashboard Access', 'Ministry Updates'].map((benefit) => (
+                                        <div key={benefit} className="rounded-xl border border-brand-100 bg-brand-50/40 px-3 py-2 text-brand-800 font-semibold text-center">
+                                            {benefit}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10">
                             {[
                                 { id: 'login', icon: <UserIcon size={48} />, title: 'Member Login', desc: 'Access your personal dashboard\nand profile settings', color: 'blue' },
                                 { id: 'register', icon: <IdCard size={48} />, title: 'New Registration', desc: 'Apply for membership\nand Entrust Card', color: 'indigo' },
@@ -352,6 +376,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                     </div>
                                 </button>
                             ))}
+                            </div>
                         </motion.div>
                     )}
 
@@ -370,6 +395,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                 <p className="text-brand-50/95 mb-6 md:mb-10 text-sm sm:text-base md:text-lg font-semibold relative z-10">Login with any one detail: Member ID, Phone Number, Name, or Email.</p>
 
                                 <div className="mb-6 md:mb-12 z-10">
+                                    <div className="mb-4 rounded-2xl bg-white/10 border border-white/15 p-3 md:p-4 text-left">
+                                        <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.18em] text-white/85 mb-1 flex items-center gap-2">
+                                            <UserPlus size={14} /> Add Profile Support
+                                        </p>
+                                        <p className="text-[11px] md:text-sm text-white/85 font-semibold leading-relaxed">
+                                            If you login with another account while already signed in, that account will be added as an extra profile in your dashboard.
+                                        </p>
+                                    </div>
                                     <p className="text-left text-[10px] md:text-xs font-black uppercase tracking-[0.18em] text-white/90 mb-2">Enter Member Detail</p>
                                     <div className="relative">
                                         <div className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-white/80">
@@ -411,6 +444,22 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                     <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20">Phone: 9876543210</span>
                                     <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20">Name: John</span>
                                     <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20">Email: john@mail.com</span>
+                                </div>
+
+                                <div className="mt-6 md:mt-8 bg-white/10 border border-white/15 rounded-2xl p-4 text-left">
+                                    <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.18em] text-white/80 mb-2">New Member Advantages</p>
+                                    <ul className="space-y-1.5 text-xs md:text-sm text-white/85 font-semibold">
+                                        <li>• Get your official Entrust card and unique member ID</li>
+                                        <li>• Access your user dashboard and account updates</li>
+                                        <li>• Receive approval/denial and ministry status notifications</li>
+                                    </ul>
+                                    <button
+                                        type="button"
+                                        onClick={onNavigateToRegister}
+                                        className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-brand-900 font-black text-[11px] uppercase tracking-wider hover:bg-brand-50 transition-colors"
+                                    >
+                                        Register Now <ArrowRight size={14} />
+                                    </button>
                                 </div>
 
                                 {/* Smart Auth Grid */}
