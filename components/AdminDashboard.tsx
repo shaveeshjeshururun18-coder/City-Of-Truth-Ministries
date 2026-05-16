@@ -304,12 +304,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     // Filtered users
     const filteredUsers = useMemo(() => {
+        const query = searchQuery.toLowerCase();
         const filtered = users.filter(user => {
             const matchesSearch = searchQuery === '' ||
-                user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                user.phone.includes(searchQuery) ||
-                user.id.toLowerCase().includes(searchQuery.toLowerCase());
+                (user.name || '').toLowerCase().includes(query) ||
+                (user.email || '').toLowerCase().includes(query) ||
+                (user.phone || '').includes(searchQuery) ||
+                (user.id || '').toLowerCase().includes(query);
 
             const matchesStatus = filterStatus === 'All' || user.status === filterStatus;
             const matchesRole = filterRole === 'All' || user.role === filterRole;
@@ -601,6 +602,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
     };
 
+    const safeInitial = (value?: string) => (value || '?').trim().charAt(0).toUpperCase() || '?';
+    const safeDateLabel = (value?: string, includeTime = false) => {
+        if (!value) return '—';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return '—';
+        return includeTime ? date.toLocaleString() : date.toLocaleDateString();
+    };
+
     return (
         <div className="min-h-screen bg-slate-50 pt-20 pb-24">
             {/* HIDDEN CARD RENDER AREA FOR PDF GENERATION */}
@@ -882,10 +891,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold shrink-0">
-                                                        {user.name.charAt(0)}
+                                                        {safeInitial(user.name)}
                                                     </div>
                                                     <div>
-                                                        <div className="font-bold text-brand-950">{user.name}</div>
+                                                        <div className="font-bold text-brand-950">{user.name || 'Unknown User'}</div>
                                                         <div className="text-xs text-slate-500 font-mono">{user.id}</div>
                                                     </div>
                                                 </div>
@@ -894,11 +903,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 <div className="space-y-1">
                                                     <div className="text-sm text-slate-700 flex items-center gap-2">
                                                         <Mail size={14} className="text-slate-400" />
-                                                        {user.email}
+                                                        {user.email || '—'}
                                                     </div>
                                                     <div className="text-sm text-slate-700 flex items-center gap-2">
                                                         <Phone size={14} className="text-slate-400" />
-                                                        {user.phone}
+                                                        {user.phone || '—'}
                                                     </div>
                                                 </div>
                                             </td>
@@ -925,7 +934,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-sm text-slate-600">
-                                                {new Date(user.joinedDate).toLocaleDateString()}
+                                                {safeDateLabel(user.joinedDate)}
                                             </td>
                                             <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                                                 <div className="flex items-center justify-end gap-2">
@@ -1058,10 +1067,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <div className="flex items-start justify-between mb-4">
                                     <div className="flex items-center gap-3">
                                         <div className="w-12 h-12 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold">
-                                            {user.name.charAt(0)}
+                                            {safeInitial(user.name)}
                                         </div>
                                         <div>
-                                            <div className="font-bold text-brand-950">{user.name}</div>
+                                            <div className="font-bold text-brand-950">{user.name || 'Unknown User'}</div>
                                             <div className="text-xs text-slate-500 font-mono">{user.id}</div>
                                         </div>
                                     </div>
@@ -1082,11 +1091,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <div className="space-y-2 mb-4">
                                     <div className="flex items-center gap-2 text-sm text-slate-600">
                                         <Mail size={14} className="text-slate-400" />
-                                        {user.email}
+                                        {user.email || '—'}
                                     </div>
                                     <div className="flex items-center gap-2 text-sm text-slate-600">
                                         <Phone size={14} className="text-slate-400" />
-                                        {user.phone}
+                                        {user.phone || '—'}
                                     </div>
                                     <div className="flex items-center gap-2 text-sm text-slate-600">
                                         <Award size={14} className="text-slate-400" />
@@ -1353,7 +1362,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <p className="text-xs font-semibold text-brand-700 bg-brand-50 px-2 py-1 rounded-lg truncate">{msg.subject}</p>
                                         <p className="text-sm text-slate-700 whitespace-pre-wrap break-words flex-1">{msg.message}</p>
                                         <div className="flex items-center justify-between mt-1">
-                                            <p className="text-[10px] text-slate-400">{new Date(msg.createdAt).toLocaleString()}</p>
+                                            <p className="text-[10px] text-slate-400">{safeDateLabel(msg.createdAt, true)}</p>
                                             <button
                                                 onClick={() => onDeleteContactMessage?.(msg.id)}
                                                 className="text-[10px] font-bold text-red-600 hover:text-red-700 bg-red-50 border border-red-100 rounded-lg px-2 py-1"
@@ -1375,11 +1384,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <div className="flex justify-between items-start mb-4">
                                         <div className="flex items-center gap-2">
                                             <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-xs">
-                                                {t.userName.charAt(0)}
+                                                {safeInitial(t.userName)}
                                             </div>
                                             <div>
-                                                <div className="font-bold text-sm text-brand-950">{t.userName}</div>
-                                                <div className="text-[10px] text-slate-400">{new Date(t.date).toLocaleDateString()}</div>
+                                                <div className="font-bold text-sm text-brand-950">{t.userName || 'Anonymous'}</div>
+                                                <div className="text-[10px] text-slate-400">{safeDateLabel(t.date)}</div>
                                             </div>
                                         </div>
                                         <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${t.status === 'Approved' ? 'bg-green-100 text-green-700' :
@@ -1840,6 +1849,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </p>
                             )}
                         </div>
+
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+                            <h3 className="text-sm font-black uppercase tracking-widest text-brand-600 mb-4">Raw Data (Loaded Records)</h3>
+                            <p className="text-xs text-slate-500 mb-4">Original records currently loaded into this dashboard from Firebase-backed API calls.</p>
+                            <div className="space-y-4">
+                                <details className="border border-slate-100 rounded-2xl p-3">
+                                    <summary className="cursor-pointer text-xs font-bold text-slate-700 uppercase tracking-widest">Users ({users.length})</summary>
+                                    <pre className="mt-3 max-h-56 overflow-auto text-[11px] text-slate-700 bg-slate-50 rounded-xl p-3">{JSON.stringify(users, null, 2)}</pre>
+                                </details>
+                                <details className="border border-slate-100 rounded-2xl p-3">
+                                    <summary className="cursor-pointer text-xs font-bold text-slate-700 uppercase tracking-widest">Deleted Users ({deletedUsers.length})</summary>
+                                    <pre className="mt-3 max-h-56 overflow-auto text-[11px] text-slate-700 bg-slate-50 rounded-xl p-3">{JSON.stringify(deletedUsers, null, 2)}</pre>
+                                </details>
+                                <details className="border border-slate-100 rounded-2xl p-3">
+                                    <summary className="cursor-pointer text-xs font-bold text-slate-700 uppercase tracking-widest">Testimonials ({testimonials.length})</summary>
+                                    <pre className="mt-3 max-h-56 overflow-auto text-[11px] text-slate-700 bg-slate-50 rounded-xl p-3">{JSON.stringify(testimonials, null, 2)}</pre>
+                                </details>
+                                <details className="border border-slate-100 rounded-2xl p-3">
+                                    <summary className="cursor-pointer text-xs font-bold text-slate-700 uppercase tracking-widest">Ministries ({ministries.length})</summary>
+                                    <pre className="mt-3 max-h-56 overflow-auto text-[11px] text-slate-700 bg-slate-50 rounded-xl p-3">{JSON.stringify(ministries, null, 2)}</pre>
+                                </details>
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -1911,7 +1943,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                         </div>
                                                     </>
                                                 ) : (
-                                                    <span className="text-3xl font-bold text-slate-400">{editingUser.name.charAt(0)}</span>
+                                                    <span className="text-3xl font-bold text-slate-400">{safeInitial(editingUser.name)}</span>
                                                 )}
                                             </div>
                                             <label className="absolute bottom-0 right-0 w-10 h-10 bg-brand-600 text-white rounded-full border-4 border-white flex items-center justify-center cursor-pointer hover:bg-brand-700 transition-colors shadow-lg" title="Change Photo">
@@ -2203,11 +2235,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     {viewingDetailsUser.photo ? (
                                         <img src={viewingDetailsUser.photo} alt={viewingDetailsUser.name} className="w-full h-full object-cover" />
                                     ) : (
-                                        <span className="text-4xl font-bold">{viewingDetailsUser.name.charAt(0)}</span>
+                                        <span className="text-4xl font-bold">{safeInitial(viewingDetailsUser.name)}</span>
                                     )}
                                 </div>
                                 <div className="flex-1">
-                                    <h4 className="text-2xl font-bold text-brand-950 mb-2">{viewingDetailsUser.name}</h4>
+                                    <h4 className="text-2xl font-bold text-brand-950 mb-2">{viewingDetailsUser.name || 'Unknown User'}</h4>
                                     <p className="text-sm font-mono text-slate-500 mb-3">{viewingDetailsUser.id}</p>
                                     <div className="flex gap-2">
                                         <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold border ${getStatusColor(viewingDetailsUser.status)}`}>

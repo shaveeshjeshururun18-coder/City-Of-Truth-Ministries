@@ -687,7 +687,7 @@ const App: React.FC = () => {
   }, [currentUser]);
 
   // Check if on admin route
-  const isAdminRoute = location.pathname === '/admin';
+  const isAdminRoute = /^\/admin\/?$/.test(location.pathname);
   // Check if on verify route
   const verifyMatch = location.pathname.match(/^\/verify\/(.+)$/);
   const isVerifyRoute = !!verifyMatch;
@@ -1137,7 +1137,7 @@ const App: React.FC = () => {
                     <Button
                       id="tour-register-btn"
                       onClick={() => setCurrentView(ViewState.ID_CARD)}
-                      className="flex-1 sm:flex-none sm:w-auto px-6 py-3 sm:px-12 sm:py-5 text-[11px] sm:text-sm uppercase tracking-[0.15em] font-black border-none hover:scale-105 active:scale-95 whitespace-nowrap"
+                      className="hidden sm:inline-flex sm:flex-none sm:w-auto px-6 py-3 sm:px-12 sm:py-5 text-[11px] sm:text-sm uppercase tracking-[0.15em] font-black border-none hover:scale-105 active:scale-95 whitespace-nowrap"
                       style={{ background: "linear-gradient(135deg, #f59e0b 0%, #fbbf24 40%, #fde68a 65%, #d97706 100%)", color: "#3b1f00", borderRadius: "9999px", boxShadow: "0 0 0 2px rgba(251,191,36,0.4), 0 8px 28px rgba(212,160,0,0.55)", letterSpacing: "0.18em" }}
                     >
                       Register Now

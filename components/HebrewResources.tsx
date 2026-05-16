@@ -1524,6 +1524,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
         ? initialTab
         : (availableTabs[0]?.id || 'calendar');
     const [tab, setTab] = useState<HebrewResourceTab>(defaultTab);
+    const [showResourceIntro, setShowResourceIntro] = useState(false);
 
     useEffect(() => {
         if (initialTab && availableTabs.some(t => t.id === initialTab)) {
@@ -1535,6 +1536,25 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
         }
     }, [availableTabs, initialTab, tab]);
 
+    useEffect(() => {
+        const introKey = `cot_hebrew_intro_seen_${mode}`;
+        try {
+            const seen = localStorage.getItem(introKey) === '1';
+            if (!seen) setShowResourceIntro(true);
+        } catch {
+            setShowResourceIntro(true);
+        }
+    }, [mode]);
+
+    const dismissResourceIntro = () => {
+        const introKey = `cot_hebrew_intro_seen_${mode}`;
+        try {
+            localStorage.setItem(introKey, '1');
+        } catch {
+            // no-op
+        }
+        setShowResourceIntro(false);
+    };
 
     return (
         <div className="min-h-screen pt-20 md:pt-28 pb-32 md:pb-20 container mx-auto px-6 font-sans bg-[#fffdf6]">
@@ -1609,6 +1629,48 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
                 </div>
                 </div>
             </div>
+            <AnimatePresence>
+                {showResourceIntro && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] bg-black/45 backdrop-blur-sm flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.96, y: 8 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.96, y: 8 }}
+                            className="max-w-lg w-full bg-white rounded-3xl border border-slate-100 shadow-2xl p-6"
+                        >
+                            <div className="text-[11px] font-black uppercase tracking-widest text-brand-500 mb-2">Hebrew Resource Intro</div>
+                            <h3 className="text-2xl font-serif font-bold text-brand-950 mb-3">
+                                {mode === 'tools' ? 'Hebrew Tools Page' : mode === 'content' ? 'Hebrew Content Page' : 'Hebrew Resource Hub'}
+                            </h3>
+                            <p className="text-sm text-slate-600 mb-4">
+                                {mode === 'tools'
+                                    ? 'Build words, hear letters audio, explore numbers, and export gematria and word insights.'
+                                    : mode === 'content'
+                                        ? 'Browse festivals, calendar, month/day reference, and grammar topics in one place.'
+                                        : 'Use this space to explore both Hebrew content and tools.'}
+                            </p>
+                            <ul className="text-sm text-slate-600 space-y-2 mb-5 list-disc pl-5">
+                                <li>Use the side menu to switch sections quickly.</li>
+                                <li>Interactive tabs support export and study workflows.</li>
+                                <li>You can revisit this intro from browser storage reset.</li>
+                            </ul>
+                            <div className="flex justify-end">
+                                <button
+                                    onClick={dismissResourceIntro}
+                                    className="px-5 py-2.5 rounded-full bg-brand-600 text-white text-sm font-bold hover:bg-brand-700 transition-colors"
+                                >
+                                    Start Exploring
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

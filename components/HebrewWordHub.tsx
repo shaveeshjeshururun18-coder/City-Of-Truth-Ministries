@@ -704,7 +704,7 @@ export const HebrewWordHub: React.FC = () => {
             {wordDetails && (
                 <div
                     ref={exportCardRef}
-                    style={{ position: 'fixed', left: '-9999px', top: 0, width: '800px', pointerEvents: 'none', zIndex: -1 }}
+                    style={{ position: 'fixed', left: '-9999px', top: 0, width: '820px', pointerEvents: 'none', zIndex: -1 }}
                 >
                     <div style={{ background: 'linear-gradient(135deg, #0f0c29 0%, #1a1450 50%, #0f0c29 100%)', padding: '48px', fontFamily: 'Georgia, serif', color: '#ffffff', borderRadius: '24px', position: 'relative', overflow: 'hidden' }}>
                         {/* Subtle grid background */}
