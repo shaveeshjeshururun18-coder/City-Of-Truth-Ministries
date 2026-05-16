@@ -37,6 +37,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [formData, setFormData] = useState<Partial<User>>({});
     const [isProcessing, setIsProcessing] = useState(false);
     const [croppingImage, setCroppingImage] = useState<string | null>(null);
+    const [cropTargetProfileId, setCropTargetProfileId] = useState<string | null>(null);
     const [showFamilyModal, setShowFamilyModal] = useState(false);
     const [subProfileForm, setSubProfileForm] = useState<Partial<SubProfile>>({});
     const [activeProfileId, setActiveProfileId] = useState<string>(initialProfileId || user.id);
@@ -138,22 +139,28 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const displayProfile = getDisplayProfile();
 
 
-    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, targetProfileId = activeProfileId) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             const reader = new FileReader();
-            reader.onloadend = () => { setCroppingImage(reader.result as string); e.target.value = ''; };
+            reader.onloadend = () => {
+                setCropTargetProfileId(targetProfileId);
+                setCroppingImage(reader.result as string);
+                e.target.value = '';
+            };
             reader.readAsDataURL(file);
         }
     };
 
     const handleCropComplete = (croppedImg: string) => {
-        if (activeProfileId === user.id) {
+        const targetProfileId = cropTargetProfileId || activeProfileId;
+        if (targetProfileId === user.id) {
             onUpdate({ ...user, photo: croppedImg } as User);
         } else {
-            const updatedProfiles = user.linkedProfiles?.map(p => p.id === activeProfileId ? { ...p, photo: croppedImg } : p) || [];
+            const updatedProfiles = user.linkedProfiles?.map(p => p.id === targetProfileId ? { ...p, photo: croppedImg } : p) || [];
             onUpdate({ ...user, linkedProfiles: updatedProfiles } as User);
         }
+        setCropTargetProfileId(null);
         setCroppingImage(null);
     };
 
@@ -396,7 +403,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.06] pointer-events-none z-0" />
 
             {/* Off-screen capture nodes */}
-            {croppingImage && <div className="z-[100] relative"><ImageCropper imageSrc={croppingImage} onCropComplete={handleCropComplete} onCancel={() => setCroppingImage(null)} /></div>}
+            {croppingImage && <div className="z-[100] relative"><ImageCropper imageSrc={croppingImage} onCropComplete={handleCropComplete} onCancel={() => { setCropTargetProfileId(null); setCroppingImage(null); }} /></div>}
             <TestimonialModal isOpen={showTestimonialModal} onClose={() => setShowTestimonialModal(false)} user={user} />
             <CommunityProfileForm
                 isOpen={showCommunityProfileForm}
@@ -495,13 +502,20 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 <div className="flex items-center gap-3 mb-5 px-1">
                     {/* Primary profile + family avatars */}
                     <div className="relative group shrink-0">
-                        <div className="w-14 h-14 rounded-full overflow-hidden border-[3px] border-white shadow-lg bg-brand-100">
-                            <img src={displayProfile.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayProfile.name)}&background=1e1b4b&color=fff&bold=true&size=128`} alt={displayProfile.name} className="w-full h-full object-cover" />
-                        </div>
-                        <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-all">
-                            <Camera size={14} className="text-white" />
-                            <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-                        </label>
+                        <button
+                            type="button"
+                            onClick={() => setActiveProfileId(user.id)}
+                            title="Switch to primary profile"
+                            className={`w-14 h-14 rounded-full overflow-hidden border-[3px] shadow-lg bg-brand-100 transition-all ${activeProfileId === user.id ? 'border-brand-500 scale-105' : 'border-white'}`}
+                        >
+                            <img src={user.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=1e1b4b&color=fff&bold=true&size=128`} alt={user.name} className="w-full h-full object-cover" />
+                        </button>
+                        {activeProfileId === user.id && (
+                            <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-all">
+                                <Camera size={14} className="text-white" />
+                                <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoUpload(e, user.id)} />
+                            </label>
+                        )}
                         {/* Active indicator */}
                         <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white ${user.status === 'Active' ? 'bg-green-500' : user.status === 'Rejected' ? 'bg-red-500' : 'bg-amber-400'}`} />
                     </div>
@@ -997,7 +1011,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 </div>
                                 <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-all">
                                     <Camera size={20} className="text-white" />
-                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { handlePhotoUpload(e); cancelEditing(); }} />
+                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { handlePhotoUpload(e, user.id); cancelEditing(); }} />
                                 </label>
                             </div>
                             <p className="text-slate-400 text-xs text-center">Tap photo to update — no approval needed</p>
