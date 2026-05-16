@@ -178,7 +178,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         gradientClass = 'from-brand-600 to-violet-700'
     ) => {
         const safeSrc = getSafePhotoSrc(photo);
-        if (safeSrc) return <img src={safeSrc} alt={name} className="w-full h-full object-cover" loading="lazy" />;
+        if (safeSrc) return <img src={safeSrc} alt="Profile photo" className="w-full h-full object-cover" loading="lazy" />;
         return (
             <div className={`w-full h-full bg-gradient-to-br ${gradientClass} flex items-center justify-center text-white ${initialClass} font-black tracking-[0.2em]`}>
                 {getAvatarInitials(name)}
