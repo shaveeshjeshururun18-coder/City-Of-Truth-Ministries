@@ -177,7 +177,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             aria-label="Toggle language"
           >
             <Languages size={13} className="shrink-0" />
-            <span>{language === 'en' ? 'தமிழ்' : 'EN + தமிழ்'}</span>
+            <span>{language === 'en' ? 'தமிழ் மட்டும்' : 'EN + தமிழ்'}</span>
           </button>
 
           <div className={`flex items-center gap-3 sm:gap-3.5 p-1 sm:p-1.5 rounded-2xl backdrop-blur-md border transition-all duration-300 ${currentView === ViewState.HOME && !isScrolled ? 'bg-white/10 border-white/20' : 'bg-white/95 border-brand-200/80'}`}>

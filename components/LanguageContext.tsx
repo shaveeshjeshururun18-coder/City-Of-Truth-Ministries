@@ -139,14 +139,16 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const t = (key: string): string => {
-    const englishText = translations.en[key];
-    const tamilText = translations.ta[key];
+    const englishText = translations.en?.[key];
+    const tamilText = translations.ta?.[key];
+    const normalizedEnglish = typeof englishText === 'string' ? englishText.trim() : englishText;
+    const normalizedTamil = typeof tamilText === 'string' ? tamilText.trim() : tamilText;
 
     if (language === 'ta') {
       return tamilText ?? englishText ?? key;
     }
 
-    if (englishText && tamilText && englishText !== tamilText) {
+    if (englishText && tamilText && normalizedEnglish !== normalizedTamil) {
       return `${englishText} / ${tamilText}`;
     }
 
