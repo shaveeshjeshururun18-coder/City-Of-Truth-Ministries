@@ -131,6 +131,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
     const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
     const [downloadingCardUserId, setDownloadingCardUserId] = useState<string | null>(null);
+    const [downloadingProfilePdfUserId, setDownloadingProfilePdfUserId] = useState<string | null>(null);
 
     const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'>('users');
     const [menuMode, setMenuMode] = useState<'horizontal' | 'vertical'>(() => {
@@ -538,6 +539,126 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             }
         }
         setDownloadingCardUserId(null);
+    };
+
+    const handleDownloadUserDetailsPdf = async (member: User) => {
+        setDownloadingProfilePdfUserId(member.id);
+        try {
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const margin = 12;
+            const contentWidth = pageWidth - margin * 2;
+            let y = 18;
+
+            pdf.setFillColor(15, 23, 42);
+            pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+
+            pdf.setFillColor(30, 41, 59);
+            pdf.roundedRect(margin, y, contentWidth, 40, 6, 6, 'F');
+            pdf.setFillColor(245, 158, 11);
+            pdf.circle(pageWidth - 24, y + 12, 5, 'F');
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(17);
+            pdf.text('Professional Member Portfolio', margin + 5, y + 12);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(9);
+            pdf.text('City of Truth Ministries • Admin Generated Profile PDF', margin + 5, y + 19);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(`Card ID: ${member.id}`, margin + 5, y + 27);
+            pdf.text(`Generated: ${new Date().toLocaleString()}`, margin + 5, y + 33);
+
+            if (member.photo) {
+                try {
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.src = member.photo;
+                    await new Promise<void>((resolve, reject) => {
+                        img.onload = () => resolve();
+                        img.onerror = () => reject(new Error('photo-load-failed'));
+                    });
+                    pdf.addImage(member.photo, 'JPEG', pageWidth - 44, y + 4, 26, 30, undefined, 'FAST');
+                    pdf.setDrawColor(255, 255, 255);
+                    pdf.roundedRect(pageWidth - 44, y + 4, 26, 30, 4, 4, 'S');
+                } catch {
+                    // Keep PDF generation resilient when image loading fails.
+                }
+            }
+
+            y += 50;
+            const drawField = (label: string, value?: string) => {
+                pdf.setFillColor(248, 250, 252);
+                pdf.roundedRect(margin, y, contentWidth, 12, 3, 3, 'F');
+                pdf.setTextColor(100, 116, 139);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(8);
+                pdf.text(label.toUpperCase(), margin + 3, y + 4);
+                pdf.setTextColor(15, 23, 42);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(10);
+                const normalized = `${value || ''}`.trim() || 'Not provided';
+                pdf.text(pdf.splitTextToSize(normalized, contentWidth - 6), margin + 3, y + 9);
+                y += 15;
+            };
+
+            drawField('Member Name', member.name);
+            drawField('Member ID / Card ID', member.id);
+            drawField('Status', member.status);
+            drawField('Role', member.role);
+            drawField('Email', member.email);
+            drawField('Phone', member.phone);
+            drawField('Location', member.location);
+            drawField('Emergency Contact', member.emergency);
+            drawField('Member Since', member.memberSince);
+            drawField('Joined Date', member.joinedDate ? new Date(member.joinedDate).toLocaleDateString() : '');
+
+            if (member.communityProfile) {
+                y += 2;
+                pdf.setFillColor(79, 70, 229);
+                pdf.roundedRect(margin, y, contentWidth, 10, 3, 3, 'F');
+                pdf.setTextColor(255, 255, 255);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(9);
+                pdf.text('MEMBER FORM DETAILS', margin + 3, y + 6.8);
+                y += 13;
+                drawField('Denomination', member.communityProfile.denomination);
+                drawField('Church Name', member.communityProfile.churchName);
+                drawField('Role in Ministry', member.communityProfile.role);
+
+                const bio = `${member.communityProfile.bio || ''}`.trim() || 'Not provided';
+                const bioLines = pdf.splitTextToSize(bio, contentWidth - 6);
+                const bioHeight = Math.max(18, bioLines.length * 4 + 7);
+                if (y + bioHeight > pageHeight - 20) {
+                    pdf.addPage();
+                    pdf.setFillColor(15, 23, 42);
+                    pdf.rect(0, 0, pageWidth, 14, 'F');
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(10);
+                    pdf.text(`Member Form Details • ${member.id}`, margin, 9.5);
+                    y = 22;
+                }
+                pdf.setFillColor(248, 250, 252);
+                pdf.roundedRect(margin, y, contentWidth, bioHeight, 3, 3, 'F');
+                pdf.setTextColor(100, 116, 139);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(8);
+                pdf.text('TESTIMONY / BIO', margin + 3, y + 4);
+                pdf.setTextColor(15, 23, 42);
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(10);
+                pdf.text(bioLines, margin + 3, y + 9);
+                y += bioHeight + 4;
+            }
+
+            pdf.save(`COT-PROFILE-DETAILS-${member.id}.pdf`);
+        } catch (error) {
+            console.error('Profile PDF generation failed', error);
+            alert('Failed to generate profile PDF. Please try again.');
+        } finally {
+            setDownloadingProfilePdfUserId(null);
+        }
     };
 
     const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1006,6 +1127,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                         )}
                                                     </button>
                                                     <button
+                                                        onClick={() => handleDownloadUserDetailsPdf(user)}
+                                                        className="p-2 hover:bg-teal-50 text-teal-600 rounded-lg transition-colors"
+                                                        title="Download Profile Details PDF"
+                                                        disabled={downloadingProfilePdfUserId === user.id}
+                                                    >
+                                                        {downloadingProfilePdfUserId === user.id ? (
+                                                            <div className="animate-spin">⏳</div>
+                                                        ) : (
+                                                            <FileText size={16} />
+                                                        )}
+                                                    </button>
+                                                    <button
                                                         onClick={() => setViewingQrUser(user)}
                                                         className="p-2 hover:bg-indigo-50 text-indigo-600 rounded-lg transition-colors"
                                                         title="View QR Code"
@@ -1165,7 +1298,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         </button>
                                     </div>
                                 )}
-                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-4 border-t border-slate-100">
+                                <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 pt-4 border-t border-slate-100">
                                     <button
                                         onClick={(e) => { e.stopPropagation(); setViewingDetailsUser(user); }}
                                         className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-green-50 text-green-600 rounded-xl font-medium text-sm hover:bg-green-100 transition-colors"
@@ -1189,6 +1322,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <div className="animate-spin">⏳</div>
                                         ) : (
                                             <><Download size={16} /> Card</>
+                                        )}
+                                    </button>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleDownloadUserDetailsPdf(user); }}
+                                        className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-teal-50 text-teal-600 rounded-xl font-medium text-sm hover:bg-teal-100 transition-colors"
+                                        disabled={downloadingProfilePdfUserId === user.id}
+                                    >
+                                        {downloadingProfilePdfUserId === user.id ? (
+                                            <div className="animate-spin">⏳</div>
+                                        ) : (
+                                            <><FileText size={16} /> PDF</>
                                         )}
                                     </button>
                                     <button
@@ -2297,6 +2441,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                             {/* Close Button */}
                             <div className="mt-8 pt-6 border-t border-slate-200">
+                                <button
+                                    onClick={() => handleDownloadUserDetailsPdf(viewingDetailsUser)}
+                                    className="w-full mb-3 px-6 py-3 bg-teal-600 text-white rounded-xl font-bold hover:bg-teal-700 transition-colors flex items-center justify-center gap-2"
+                                    disabled={downloadingProfilePdfUserId === viewingDetailsUser.id}
+                                >
+                                    {downloadingProfilePdfUserId === viewingDetailsUser.id ? (
+                                        <><span className="animate-spin">⏳</span> Generating Profile PDF...</>
+                                    ) : (
+                                        <><FileText size={16} /> Download Professional Profile PDF</>
+                                    )}
+                                </button>
                                 <button
                                     onClick={() => setViewingDetailsUser(null)}
                                     className="w-full px-6 py-3 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 transition-colors"
