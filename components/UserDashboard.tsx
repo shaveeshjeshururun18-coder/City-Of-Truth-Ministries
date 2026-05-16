@@ -146,7 +146,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const getSafePhotoSrc = (photo?: string) => {
         const candidate = (photo || '').trim();
         if (!candidate) return null;
-        if (/^data:image\/(?:png|jpe?g|webp|gif|bmp|svg\+xml);base64,/i.test(candidate)) return candidate;
+        if (/^data:image\/(?:png|jpe?g|webp|gif|bmp);base64,/i.test(candidate)) return candidate;
         if (candidate.startsWith('blob:')) return candidate;
         if (/^https?:\/\//i.test(candidate)) {
             try {
