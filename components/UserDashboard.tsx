@@ -38,6 +38,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [isProcessing, setIsProcessing] = useState(false);
     const [croppingImage, setCroppingImage] = useState<string | null>(null);
     const [cropTargetProfileId, setCropTargetProfileId] = useState<string | null>(null);
+    const [cropSourceOriginalImage, setCropSourceOriginalImage] = useState<string | null>(null);
     const [showFamilyModal, setShowFamilyModal] = useState(false);
     const [subProfileForm, setSubProfileForm] = useState<Partial<SubProfile>>({});
     const [activeProfileId, setActiveProfileId] = useState<string>(initialProfileId || user.id);
@@ -144,8 +145,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             const file = e.target.files[0];
             const reader = new FileReader();
             reader.onloadend = () => {
+                const sourceImage = reader.result as string;
                 setCropTargetProfileId(targetProfileId);
-                setCroppingImage(reader.result as string);
+                setCropSourceOriginalImage(sourceImage);
+                setCroppingImage(sourceImage);
                 e.target.value = '';
             };
             reader.readAsDataURL(file);
@@ -155,13 +158,31 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const handleCropComplete = (croppedImg: string) => {
         const targetProfileId = cropTargetProfileId || activeProfileId;
         if (targetProfileId === user.id) {
-            onUpdate({ ...user, photo: croppedImg } as User);
+            onUpdate({
+                ...user,
+                photo: croppedImg,
+                photoOriginal: cropSourceOriginalImage || user.photoOriginal || user.photo
+            } as User);
         } else {
-            const updatedProfiles = user.linkedProfiles?.map(p => p.id === targetProfileId ? { ...p, photo: croppedImg } : p) || [];
+            const updatedProfiles = user.linkedProfiles?.map(p => p.id === targetProfileId ? {
+                ...p,
+                photo: croppedImg,
+                photoOriginal: cropSourceOriginalImage || p.photoOriginal || p.photo
+            } : p) || [];
             onUpdate({ ...user, linkedProfiles: updatedProfiles } as User);
         }
+        setCropSourceOriginalImage(null);
         setCropTargetProfileId(null);
         setCroppingImage(null);
+    };
+
+    const openRecropForPrimary = () => {
+        const source = user.photoOriginal || user.photo;
+        if (!source) return;
+        setCropTargetProfileId(user.id);
+        setCropSourceOriginalImage(source);
+        setCroppingImage(source);
+        if (isEditing) setIsEditing(false);
     };
 
     const handleDownloadPDF = async () => {
@@ -403,7 +424,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.06] pointer-events-none z-0" />
 
             {/* Off-screen capture nodes */}
-            {croppingImage && <div className="z-[100] relative"><ImageCropper imageSrc={croppingImage} onCropComplete={handleCropComplete} onCancel={() => { setCropTargetProfileId(null); setCroppingImage(null); }} /></div>}
+            {croppingImage && <div className="z-[100] relative"><ImageCropper imageSrc={croppingImage} onCropComplete={handleCropComplete} onCancel={() => { setCropSourceOriginalImage(null); setCropTargetProfileId(null); setCroppingImage(null); }} /></div>}
             <TestimonialModal isOpen={showTestimonialModal} onClose={() => setShowTestimonialModal(false)} user={user} />
             <CommunityProfileForm
                 isOpen={showCommunityProfileForm}
@@ -1015,6 +1036,15 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 </label>
                             </div>
                             <p className="text-slate-400 text-xs text-center">Tap photo to update — no approval needed</p>
+                            {(user.photoOriginal || user.photo) && (
+                                <button
+                                    type="button"
+                                    onClick={openRecropForPrimary}
+                                    className="text-[11px] font-bold text-brand-600 hover:text-brand-700"
+                                >
+                                    Re-crop using original quality
+                                </button>
+                            )}
                         </div>
 
                         <form onSubmit={(e) => {

@@ -57,6 +57,7 @@ export interface User {
   role: UserRole;
   status: UserStatus;
   photo?: string;
+  photoOriginal?: string;
   joinedDate: string;
   linkedProfiles?: SubProfile[];
   verificationDoc?: { name: string; uploadedAt: string };
@@ -79,6 +80,7 @@ export interface SubProfile {
   name: string;
   role: string;
   photo?: string;
+  photoOriginal?: string;
   dob?: string;
   bloodGroup?: string;
 }
