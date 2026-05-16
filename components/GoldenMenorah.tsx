@@ -104,14 +104,19 @@ export const GoldenMenorah: React.FC<GoldenMenorahProps> = ({ onPreviewClick }) 
                 </div>
               </div>
               <div className="mt-4 flex justify-center">
-                <a
+                <motion.a
                   href={flagImageSrc}
                   download="COT-Menorah-Flag.png"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500 text-black font-bold text-xs uppercase tracking-wider hover:bg-amber-400 transition-colors"
+                  whileHover={{ y: -2, scale: 1.03 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="group relative inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-400 text-[#2f2200] font-black text-xs uppercase tracking-[0.18em] border border-amber-100/80 shadow-[0_10px_28px_-12px_rgba(251,191,36,0.95)] hover:shadow-[0_14px_32px_-12px_rgba(251,191,36,1)] transition-all duration-500 overflow-hidden"
                 >
-                  <Download size={14} />
-                  Download Flag
-                </a>
+                  <span className="pointer-events-none absolute -inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/95 to-transparent opacity-80 group-hover:animate-pulse" />
+                  <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(255,255,255,0.7),transparent_35%),radial-gradient(circle_at_85%_80%,rgba(255,255,255,0.5),transparent_30%)] opacity-55 group-hover:opacity-85 transition-opacity duration-500" />
+                  <Sparkles size={14} className="text-amber-700 relative z-10 animate-pulse" />
+                  <Download size={14} className="text-amber-900 relative z-10" />
+                  <span className="relative z-10">Download Flag</span>
+                </motion.a>
               </div>
             </motion.div>
           </div>

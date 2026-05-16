@@ -32,6 +32,7 @@ const getIcon = (view: ViewState) => {
     case ViewState.ABOUT_VALPARAI: return <MapPin size={18} />;
     case ViewState.MENORAH: return <Flame size={18} />;
     case ViewState.MENORAH_FLAG: return <Flame size={18} />;
+    case ViewState.GOLDEN_MENORAH: return <Flame size={18} />;
     case ViewState.BARUCH_HASHEM: return <Globe size={18} />;
     case ViewState.AI: return <Sparkles size={18} />;
     default: return <Church size={18} />;

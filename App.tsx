@@ -192,6 +192,44 @@ const withHebrewResourceSubmenu = (items: NavItem[]): NavItem[] =>
       : item
   );
 
+const VIEW_ALIASES: Record<string, ViewState> = {
+  MENORAH: ViewState.GOLDEN_MENORAH,
+  MENORAH_FLAG: ViewState.GOLDEN_MENORAH,
+  GOLDEN_MENORAH_FLAG: ViewState.GOLDEN_MENORAH,
+  GOLDENMENORAH: ViewState.GOLDEN_MENORAH,
+  ENTRUST_CARD: ViewState.ID_CARD,
+  ENTRUSTCARD: ViewState.ID_CARD,
+  HEBREW_CONTENT: ViewState.ABOUT,
+  HEBREW_RESOURCES: ViewState.ABOUT,
+};
+
+const normalizeViewState = (value: unknown, fallback: ViewState = ViewState.HOME): ViewState => {
+  if (typeof value !== 'string') return fallback;
+  const normalizedKey = value.trim().toUpperCase().replace(/[\s-]+/g, '_');
+  const validView = Object.values(ViewState).find(v => v === normalizedKey);
+  if (validView) return validView as ViewState;
+  return VIEW_ALIASES[normalizedKey] || fallback;
+};
+
+const normalizeNavItems = (items: unknown): NavItem[] => {
+  if (!Array.isArray(items)) return [];
+  return items
+    .filter((item): item is { label?: unknown; view?: unknown; submenu?: unknown } => !!item && typeof item === 'object')
+    .map((item) => {
+      const label = typeof item.label === 'string' && item.label.trim() ? item.label : 'HOME';
+      const view = normalizeViewState(item.view, ViewState.HOME);
+      const submenu = Array.isArray(item.submenu)
+        ? item.submenu
+            .filter((sub): sub is { label?: unknown; view?: unknown } => !!sub && typeof sub === 'object')
+            .map((sub) => ({
+              label: typeof sub.label === 'string' && sub.label.trim() ? sub.label : label,
+              view: normalizeViewState(sub.view, view),
+            }))
+        : undefined;
+      return { label, view, submenu };
+    });
+};
+
 const TestimonialSection: React.FC<TestimonialSectionProps> = ({ currentUser }) => {
   const [formData, setFormData] = useState({ name: currentUser?.name || '', location: currentUser?.location || '', text: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -586,7 +624,7 @@ const App: React.FC = () => {
       try {
         const remoteNav = await api.getNavigationLayout();
         if (remoteNav && remoteNav.length > 0) {
-          setNavigationItems(withHebrewResourceSubmenu(remoteNav));
+          setNavigationItems(withHebrewResourceSubmenu(normalizeNavItems(remoteNav)));
         }
       } catch (error) {
         console.error('Failed to fetch remote navigation layout:', error);
@@ -1051,7 +1089,7 @@ const App: React.FC = () => {
         }}
         navItems={navigationItems}
         onUpdateNavItems={async (newItems) => {
-          const updatedNav = withHebrewResourceSubmenu(newItems);
+          const updatedNav = withHebrewResourceSubmenu(normalizeNavItems(newItems));
           setNavigationItems(updatedNav);
           try {
             await api.updateNavigationLayout(updatedNav);
@@ -1100,7 +1138,7 @@ const App: React.FC = () => {
     <div className={`min-h-screen transition-colors duration-1000 ease-in-out font-sans ${getThemeClass()}`}>
       <Navbar
         currentView={currentView}
-        setView={setCurrentView}
+        setView={(view) => setCurrentView(normalizeViewState(view))}
         onLoginClick={() => navigate('/auth?view=login')}
         onLogoutClick={handleLogout}
         currentUser={currentUser}
@@ -1512,7 +1550,7 @@ const App: React.FC = () => {
                 }}
                 navItems={navigationItems}
                 onUpdateNavItems={async (newItems) => {
-                  const updatedNav = withHebrewResourceSubmenu(newItems);
+                  const updatedNav = withHebrewResourceSubmenu(normalizeNavItems(newItems));
                   setNavigationItems(updatedNav);
                   try {
                     await api.updateNavigationLayout(updatedNav);
