@@ -149,6 +149,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         if (candidate.startsWith('blob:')) return candidate;
         return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${bg}&color=fff&bold=true&size=${size}`;
     };
+    const getAvatarInitials = (name?: string) => {
+        const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+        if (parts.length >= 2) return `${parts[0][0] || 'C'}${parts[1][0] || 'T'}`.toUpperCase();
+        return ((parts[0] || 'CT').slice(0, 2)).toUpperCase();
+    };
     const displayProfile = getDisplayProfile();
 
 
@@ -761,7 +766,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     {/* Primary profile + family avatars */}
                     <div className="relative group shrink-0">
                         <div className="w-14 h-14 rounded-full overflow-hidden border-[3px] border-white shadow-lg bg-brand-100">
-                            <img src={getSafePhotoSrc(displayProfile.photo, displayProfile.name, 128)} alt={displayProfile.name} className="w-full h-full object-cover" />
+                            <div className="w-full h-full bg-gradient-to-br from-brand-600 to-violet-700 flex items-center justify-center text-white text-sm font-black tracking-[0.2em]">
+                                {getAvatarInitials(displayProfile.name)}
+                            </div>
                         </div>
                         <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 cursor-pointer transition-all">
                             <Camera size={14} className="text-white" />
@@ -775,7 +782,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     {user.linkedProfiles?.map(pf => (
                         <button key={pf.id} onClick={() => setActiveProfileId(pf.id)} title={pf.name}
                             className={`relative shrink-0 w-10 h-10 rounded-full overflow-hidden border-2 transition-all ${activeProfileId === pf.id ? 'border-brand-500 shadow-lg scale-110' : 'border-white/70 opacity-70 hover:opacity-100 hover:scale-105'}`}>
-                            <img src={getSafePhotoSrc(pf.photo, pf.name, 80, '5b47d0')} alt={pf.name} className="w-full h-full object-cover" />
+                            <div className="w-full h-full bg-gradient-to-br from-violet-600 to-fuchsia-700 flex items-center justify-center text-white text-[10px] font-black tracking-[0.2em]">
+                                {getAvatarInitials(pf.name)}
+                            </div>
                         </button>
                     ))}
 
@@ -893,7 +902,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 <div className="relative bg-gradient-to-r from-[#1a237e] to-[#3949ab] rounded-2xl h-24 flex items-center justify-center overflow-hidden border border-white/20">
                                     <div className="absolute left-4 flex items-center gap-3">
                                         <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/50 bg-white/20 shrink-0">
-                                            <img src={getSafePhotoSrc(displayProfile.photo, displayProfile.name, 96)} alt={displayProfile.name} className="w-full h-full object-cover" />
+                                            <div className="w-full h-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white text-xs font-black tracking-[0.22em]">
+                                                {getAvatarInitials(displayProfile.name)}
+                                            </div>
                                         </div>
                                         <div>
                                             <p className="text-white font-bold text-sm leading-tight">{displayProfile.name}</p>
@@ -1197,11 +1208,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         {/* Photo section */}
                         <div className="flex flex-col items-center gap-3 mb-6">
                             <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-slate-100 shadow-lg">
-                                <img
-                                    src={getSafePhotoSrc(displayProfile.photo, displayProfile.name, 256)}
-                                    alt={displayProfile.name}
-                                    className="w-full h-full object-cover"
-                                />
+                                <div className="w-full h-full bg-gradient-to-br from-brand-600 via-brand-700 to-violet-800 flex items-center justify-center text-white text-2xl font-black tracking-[0.22em]">
+                                    {getAvatarInitials(displayProfile.name)}
+                                </div>
                             </div>
                             <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 <button
