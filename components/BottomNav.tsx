@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flame, Calendar, Type, Volume2, Hash, Calculator, BookOpen, LucideIcon } from 'lucide-react';
+import { Flame, Calendar, Clock3, Type, Volume2, Hash, Calculator, BookOpen, LucideIcon } from 'lucide-react';
 import { ViewState } from '../types';
 import { motion } from 'framer-motion';
 
@@ -13,6 +13,7 @@ const HEBREW_VIEWS = new Set<ViewState>([
     ViewState.HEBREW_TOOLS,
     ViewState.HEBREW_FESTIVALS,
     ViewState.HEBREW_CALENDAR,
+    ViewState.HEBREW_CLOCK,
     ViewState.HEBREW_WORDS,
     ViewState.HEBREW_LETTERS_AUDIO,
     ViewState.HEBREW_NUMBERS,
@@ -23,6 +24,7 @@ const HEBREW_VIEWS = new Set<ViewState>([
 const HEBREW_RESOURCE_ITEMS = [
     { id: 'festivals', label: 'Festivals', Icon: Flame, view: ViewState.HEBREW_FESTIVALS },
     { id: 'calendar', label: 'Calendar', Icon: Calendar, view: ViewState.HEBREW_CALENDAR },
+    { id: 'clock', label: 'Clock', Icon: Clock3, view: ViewState.HEBREW_CLOCK },
     { id: 'reference', label: 'Guide', Icon: BookOpen, view: ViewState.HEBREW_REFERENCE },
 ] as const;
 
@@ -38,6 +40,7 @@ const VIEW_TO_NAV_ID: Partial<Record<ViewState, string>> = {
     [ViewState.ABOUT]:                'calendar',
     [ViewState.HEBREW_TOOLS]:         'words',
     [ViewState.HEBREW_CALENDAR]:      'calendar',
+    [ViewState.HEBREW_CLOCK]:         'clock',
     [ViewState.HEBREW_WORDS]:         'words',
     [ViewState.HEBREW_LETTERS_AUDIO]: 'lettersaudio',
     [ViewState.HEBREW_NUMBERS]:       'numbers',
@@ -115,7 +118,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentView, setView }) =>
             <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-amber-300/60 to-transparent" />
             <div className="mx-2 mb-2 mt-0 bg-white/96 backdrop-blur-3xl rounded-[1.75rem] shadow-[0_-2px_20px_rgba(0,0,0,0.08),0_8px_32px_rgba(0,0,0,0.12)] border border-slate-100/80 px-2 py-2">
                 <div className="space-y-2.5">
-                    {renderGroup('Resources', HEBREW_RESOURCE_ITEMS, 'grid-cols-3')}
+                    {renderGroup('Resources', HEBREW_RESOURCE_ITEMS, 'grid-cols-4')}
                     {renderGroup('Tools', HEBREW_TOOL_ITEMS, 'grid-cols-4')}
                 </div>
             </div>

@@ -639,6 +639,123 @@ const ReferenceView: React.FC = () => {
     );
 };
 
+const CHENNAI_TIMEZONE = 'Asia/Kolkata';
+
+const AnalogDial: React.FC<{
+    label: string;
+    hourAngle: number;
+    minuteAngle: number;
+    secondAngle: number;
+    accent: string;
+}> = ({ label, hourAngle, minuteAngle, secondAngle, accent }) => (
+    <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 text-center mb-4">{label}</p>
+        <div className={`relative mx-auto w-40 h-40 rounded-full border-4 ${accent} bg-slate-50 shadow-inner`}>
+            {Array.from({ length: 12 }).map((_, i) => (
+                <span
+                    key={i}
+                    className="absolute w-1.5 h-1.5 rounded-full bg-slate-300"
+                    style={{
+                        left: '50%',
+                        top: '50%',
+                        transform: `rotate(${i * 30}deg) translateY(-64px) translateX(-50%)`,
+                        transformOrigin: 'center center',
+                    }}
+                />
+            ))}
+            <span
+                className="absolute left-1/2 top-1/2 w-1.5 h-10 bg-slate-800 rounded-full"
+                style={{ transform: `translate(-50%, -100%) rotate(${hourAngle}deg)`, transformOrigin: '50% 100%' }}
+            />
+            <span
+                className="absolute left-1/2 top-1/2 w-1 h-14 bg-brand-600 rounded-full"
+                style={{ transform: `translate(-50%, -100%) rotate(${minuteAngle}deg)`, transformOrigin: '50% 100%' }}
+            />
+            <span
+                className="absolute left-1/2 top-1/2 w-0.5 h-16 bg-red-500 rounded-full"
+                style={{ transform: `translate(-50%, -100%) rotate(${secondAngle}deg)`, transformOrigin: '50% 100%' }}
+            />
+            <span className="absolute left-1/2 top-1/2 w-3 h-3 bg-slate-800 rounded-full -translate-x-1/2 -translate-y-1/2 border-2 border-white" />
+        </div>
+    </div>
+);
+
+const HebrewClockView: React.FC = () => {
+    const [now, setNow] = useState(() => new Date());
+
+    useEffect(() => {
+        const timer = window.setInterval(() => setNow(new Date()), 1000);
+        return () => window.clearInterval(timer);
+    }, []);
+
+    const digitalTime = useMemo(
+        () =>
+            now.toLocaleTimeString('en-IN', {
+                timeZone: CHENNAI_TIMEZONE,
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+            }),
+        [now]
+    );
+
+    const dateLine = useMemo(
+        () =>
+            now.toLocaleDateString('en-IN', {
+                timeZone: CHENNAI_TIMEZONE,
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+            }),
+        [now]
+    );
+
+    const [hour = 0, minute = 0, second = 0] = digitalTime.split(':').map((v) => Number(v));
+    const hourAngle = ((hour % 12) + minute / 60 + second / 3600) * 30;
+    const minuteAngle = (minute + second / 60) * 6;
+    const secondAngle = second * 6;
+
+    const analogThemes = [
+        { label: 'Chennai Standard', accent: 'border-amber-300' },
+        { label: 'Sacred Watch 1', accent: 'border-emerald-300' },
+        { label: 'Sacred Watch 2', accent: 'border-sky-300' },
+        { label: 'Sacred Watch 3', accent: 'border-violet-300' },
+    ] as const;
+
+    return (
+        <div className="space-y-10">
+            <div className="text-center">
+                <h3 className="text-3xl md:text-5xl font-serif font-bold text-brand-950">Hebrew Clock — Chennai Time</h3>
+                <p className="text-slate-500 mt-2">Live time synced to Chennai (Asia/Kolkata).</p>
+            </div>
+
+            <div className="bg-white rounded-[2rem] border border-amber-100 p-8 shadow-xl text-center">
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-600 mb-3">Digital Clock</p>
+                <div className="text-5xl md:text-7xl font-black font-mono text-brand-950 tracking-wider">{digitalTime}</div>
+                <p className="text-sm text-slate-500 mt-4">{dateLine}</p>
+            </div>
+
+            <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 text-center mb-4">Quad Analogue Clock</p>
+                <div className="grid sm:grid-cols-2 gap-6">
+                    {analogThemes.map((theme) => (
+                        <AnalogDial
+                            key={theme.label}
+                            label={theme.label}
+                            hourAngle={hourAngle}
+                            minuteAngle={minuteAngle}
+                            secondAngle={secondAngle}
+                            accent={theme.accent}
+                        />
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const GrammarView: React.FC = () => {
     const grammarTopics = [
         {
@@ -1309,16 +1426,17 @@ const HebrewLettersAudioLab: React.FC = () => {
 };
 
 interface HebrewResourcesProps {
-    initialTab?: 'numbers' | 'calendar' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio' | 'grammar';
+    initialTab?: 'numbers' | 'calendar' | 'clock' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio' | 'grammar';
     mode?: 'all' | 'content' | 'tools';
     currentUser?: User;
 }
 
-type HebrewResourceTab = 'numbers' | 'calendar' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio' | 'grammar';
+type HebrewResourceTab = 'numbers' | 'calendar' | 'clock' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio' | 'grammar';
 
 const HEBREW_RESOURCE_TABS: ReadonlyArray<{ id: HebrewResourceTab; label: string; icon: React.ReactNode }> = [
     { id: 'festivals', label: 'Festivals', icon: <Flame size={16} /> },
     { id: 'calendar', label: 'Hebrew Calendar', icon: <CalendarIcon size={16} /> },
+    { id: 'clock', label: 'Hebrew Clock', icon: <Clock size={16} /> },
     { id: 'reference', label: 'Month & Days', icon: <BookOpen size={16} /> },
     { id: 'grammar', label: 'Grammar', icon: <BookOpen size={16} /> },
     { id: 'words', label: 'Hebrew Word', icon: <Type size={16} /> },
@@ -1327,7 +1445,7 @@ const HEBREW_RESOURCE_TABS: ReadonlyArray<{ id: HebrewResourceTab; label: string
     { id: 'gematria', label: 'Gematria Value', icon: <Calculator size={16} /> },
 ];
 
-const CONTENT_TAB_IDS: HebrewResourceTab[] = ['festivals', 'calendar', 'reference', 'grammar'];
+const CONTENT_TAB_IDS: HebrewResourceTab[] = ['festivals', 'calendar', 'clock', 'reference', 'grammar'];
 const TOOLS_TAB_IDS: HebrewResourceTab[] = ['words', 'lettersaudio', 'numbers', 'gematria'];
 
 export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mode = 'all', currentUser }) => {
@@ -1399,7 +1517,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
                         {mode === 'tools'
                             ? 'Explore Hebrew learning tools: words, letters audio, numbers, and gematria.'
                             : mode === 'content'
-                                ? 'Explore Hebrew calendar, festivals, month/day reference, and complete grammar foundations.'
+                                ? 'Explore Hebrew calendar, live Chennai Hebrew clock, festivals, month/day reference, and complete grammar foundations.'
                                 : 'A sanctuary of divine knowledge. Explore the sacred calendar, biblical festivals, and spiritual mathematics.'}
                     </p>
                 </div>
@@ -1415,6 +1533,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
                         >
                             {tab === 'festivals' && <FestivalsView />}
                             {tab === 'calendar' && <HebrewCalendarView currentUser={currentUser} />}
+                            {tab === 'clock' && <HebrewClockView />}
                             {tab === 'words' && <HebrewWordHub />}
                             {tab === 'lettersaudio' && <HebrewLettersAudioLab />}
                             {tab === 'numbers' && <HebrewConverterNumbers />}

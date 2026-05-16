@@ -172,6 +172,7 @@ interface ContactMessage {
 const HEBREW_RESOURCE_SUBMENU: NavItem[] = [
   { label: 'Festivals & Holy Days', view: ViewState.HEBREW_FESTIVALS },
   { label: 'Biblical Calendar', view: ViewState.HEBREW_CALENDAR },
+  { label: 'Hebrew Clock', view: ViewState.HEBREW_CLOCK },
   { label: 'Month/Year Reference', view: ViewState.HEBREW_REFERENCE },
   { label: 'Hebrew Grammar', view: ViewState.HEBREW_GRAMMAR },
 ];
@@ -770,6 +771,7 @@ const App: React.FC = () => {
       case ViewState.HEBREW_WORDS: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.HEBREW_LETTERS_AUDIO: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.HEBREW_GEMATRIA: return "bg-[#fdfcf0] text-brand-950";
+      case ViewState.HEBREW_CLOCK: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.ID_CARD: return "bg-[#f8fafc] text-slate-950";
       case ViewState.CONTACT: return "bg-[#f5f3ff] text-indigo-950";
       case ViewState.AI: return "bg-slate-950 text-white";
@@ -1434,6 +1436,12 @@ const App: React.FC = () => {
           {currentView === ViewState.HEBREW_CALENDAR && (
             <div key="hebrew-calendar">
               <HebrewResources mode="content" initialTab="calendar" currentUser={currentUser || undefined} />
+            </div>
+          )}
+
+          {currentView === ViewState.HEBREW_CLOCK && (
+            <div key="hebrew-clock">
+              <HebrewResources mode="content" initialTab="clock" />
             </div>
           )}
 

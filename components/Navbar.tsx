@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Church, Home, Info, Heart, Flame, Phone, ChevronRight, CreditCard, Facebook, Youtube, Instagram, MapPin, Languages, Zap, Sparkles, Send, Globe, LogIn, CircleUser, LogOut, ChevronDown, Calendar, Hash, Star, BookOpen, ExternalLink, Plus } from 'lucide-react';
+import { Menu, X, Church, Home, Info, Heart, Flame, Phone, ChevronRight, CreditCard, Facebook, Youtube, Instagram, MapPin, Languages, Zap, Sparkles, Send, Globe, LogIn, CircleUser, LogOut, ChevronDown, Calendar, Clock, Hash, Star, BookOpen, ExternalLink, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ViewState, NavItem } from '../types';
 import { Button } from './Button';
@@ -21,6 +21,7 @@ const getIcon = (view: ViewState) => {
     case ViewState.ABOUT: return <Languages size={18} />;
     case ViewState.HEBREW_TOOLS: return <Zap size={18} />;
     case ViewState.HEBREW_CALENDAR: return <Calendar size={18} />;
+    case ViewState.HEBREW_CLOCK: return <Clock size={18} />;
     case ViewState.HEBREW_NUMBERS: return <Hash size={18} />;
     case ViewState.HEBREW_FESTIVALS: return <Star size={18} />;
     case ViewState.HEBREW_REFERENCE: return <BookOpen size={18} />;
