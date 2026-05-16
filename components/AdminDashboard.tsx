@@ -424,6 +424,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
     };
 
+    const withoutPendingProfileUpdate = (user: User): User => {
+        const { pendingProfileUpdate, ...cleanUser } = user;
+        return cleanUser as User;
+    };
+
     const handleBulkApprove = async () => {
         if (selectedUsers.size === 0) return;
         if (!window.confirm(`Approve ${selectedUsers.size} selected user(s)?`)) return;
@@ -433,9 +438,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 const user = users.find(u => u.id === userId);
                 if (!user) return Promise.resolve();
                 const approvedUser: User = {
-                    ...user,
+                    ...withoutPendingProfileUpdate(user),
                     ...(user.pendingProfileUpdate || {}),
-                    pendingProfileUpdate: undefined,
                     status: 'Active'
                 };
                 return onUpdateUser(approvedUser);
@@ -459,10 +463,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 if (!user) return Promise.resolve();
                 const hasPendingEdit = !!user.pendingProfileUpdate && Object.keys(user.pendingProfileUpdate).length > 0;
                 if (user.status === 'Pending Verification') {
-                    return onUpdateUser({ ...user, status: 'Rejected', pendingProfileUpdate: undefined });
+                    return onUpdateUser({ ...withoutPendingProfileUpdate(user), status: 'Rejected' });
                 }
                 if (hasPendingEdit) {
-                    return onUpdateUser({ ...user, pendingProfileUpdate: undefined });
+                    return onUpdateUser(withoutPendingProfileUpdate(user));
                 }
                 return Promise.resolve();
             });
@@ -487,15 +491,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const hasPendingProfileUpdate = (user: User) => !!user.pendingProfileUpdate && Object.keys(user.pendingProfileUpdate).length > 0;
     const approveUserOrPendingEdit = async (user: User) => {
         const approvedUser: User = {
-            ...user,
+            ...withoutPendingProfileUpdate(user),
             ...(user.pendingProfileUpdate || {}),
-            pendingProfileUpdate: undefined,
             status: 'Active'
         };
         await onUpdateUser(approvedUser);
     };
     const rejectPendingEdit = async (user: User) => {
-        await onUpdateUser({ ...user, pendingProfileUpdate: undefined });
+        await onUpdateUser(withoutPendingProfileUpdate(user));
+    };
+    const rejectUser = async (user: User) => {
+        await onUpdateUser({ ...withoutPendingProfileUpdate(user), status: 'Rejected' });
     };
 
     const toggleSelectAll = () => {
@@ -939,7 +945,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                             <button
                                                                 onClick={async () => {
                                                                     if (window.confirm(`Reject ${user.name}?`)) {
-                                                                        await onUpdateUser({ ...user, status: 'Rejected', pendingProfileUpdate: undefined });
+                                                                        await rejectUser(user);
                                                                     }
                                                                 }}
                                                                 className="p-2 hover:bg-amber-50 text-amber-600 rounded-lg transition-colors"
@@ -1104,7 +1110,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <button
                                             onClick={async () => {
                                                 if (window.confirm(`Reject ${user.name}?`)) {
-                                                    await onUpdateUser({ ...user, status: 'Rejected', pendingProfileUpdate: undefined });
+                                                    await rejectUser(user);
                                                 }
                                             }}
                                             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-amber-50 text-amber-600 rounded-xl font-medium text-sm hover:bg-amber-100 transition-colors"
