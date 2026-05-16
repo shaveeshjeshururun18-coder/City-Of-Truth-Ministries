@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, CheckCircle, XCircle, Search, ScanLine, X, Loader2 } from 'lucide-react';
+import { Camera, CheckCircle, XCircle, Search, ScanLine, X, Loader2, Flashlight, FlashlightOff, Minimize2, Maximize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
 import { User } from '../types';
@@ -18,6 +18,9 @@ const VerifyIDPage = () => {
     const [error, setError] = useState<string | null>(null);
     const [isScanning, setIsScanning] = useState(false);
     const [scannerInitialized, setScannerInitialized] = useState(false);
+    const [torchSupported, setTorchSupported] = useState(false);
+    const [torchOn, setTorchOn] = useState(false);
+    const [compactScanner, setCompactScanner] = useState(false);
     const scannerRef = useRef<any>(null);
 
     const normalizeCotId = (value: string) => value.trim().toUpperCase().replace(/^COT(?!-)/, 'COT-');
@@ -97,6 +100,9 @@ const VerifyIDPage = () => {
     const startScanner = () => {
         if (!window.Html5Qrcode || !scannerInitialized) return;
         setIsScanning(true); setError(null); setScannedId(null); setUser(null);
+        setCompactScanner(false);
+        setTorchSupported(false);
+        setTorchOn(false);
         setTimeout(() => {
             const html5Qrcode = new window.Html5Qrcode('qr-reader');
             scannerRef.current = html5Qrcode;
@@ -115,18 +121,52 @@ const VerifyIDPage = () => {
                     }
                 },
                 (_errorMessage: string) => {}
-            ).catch((err: any) => {
-                console.error('Scanner Error:', err);
-                setError('Could not access camera. Please allow camera permissions or upload a picture.');
-                setIsScanning(false);
-            });
+            )
+                .then(async () => {
+                    const capabilities = scannerRef.current?.getRunningTrackCapabilities?.();
+                    const supportsTorch = Boolean(capabilities?.torch);
+                    setTorchSupported(supportsTorch);
+                    if (supportsTorch) {
+                        try {
+                            await scannerRef.current?.applyVideoConstraints?.({ advanced: [{ torch: true }] });
+                            setTorchOn(true);
+                        } catch (_e) {
+                            setTorchOn(false);
+                        }
+                    }
+                })
+                .catch((err: any) => {
+                    console.error('Scanner Error:', err);
+                    setError('Could not access camera. Please allow camera permissions or upload a picture.');
+                    setIsScanning(false);
+                    setTorchSupported(false);
+                    setTorchOn(false);
+                });
         }, 300);
+    };
+
+    const toggleTorch = async () => {
+        if (!scannerRef.current || !torchSupported) return;
+        const nextTorchState = !torchOn;
+        try {
+            await scannerRef.current.applyVideoConstraints?.({ advanced: [{ torch: nextTorchState }] });
+            setTorchOn(nextTorchState);
+        } catch (_e) {}
     };
 
     const stopScanner = () => {
         if (scannerRef.current) {
-            scannerRef.current.stop().then(() => { setIsScanning(false); scannerRef.current = null; }).catch(console.error);
-        } else { setIsScanning(false); }
+            scannerRef.current.stop().then(() => {
+                setIsScanning(false);
+                setTorchSupported(false);
+                setTorchOn(false);
+                scannerRef.current = null;
+            }).catch(console.error);
+        } else {
+            setIsScanning(false);
+            setTorchSupported(false);
+            setTorchOn(false);
+        }
     };
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -226,30 +266,32 @@ const VerifyIDPage = () => {
                         <div className="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 min-h-[300px]">
                             {!isScanning ? (
                                 <div className="text-center">
-                                    <div className="w-24 h-24 bg-brand-100 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner border border-brand-50">
-                                        <ScanLine className="text-brand-600 w-12 h-12" />
-                                    </div>
-                                    <h3 className="font-bold text-xl text-slate-800 mb-2">Scan with Camera</h3>
-                                    <p className="text-slate-500 mb-6 max-w-xs mx-auto text-sm">Use your device camera to quickly scan a digital or printed ID card.</p>
-                                    <button onClick={startScanner} disabled={!scannerInitialized} className="px-8 py-4 bg-brand-600 text-white font-bold rounded-2xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-500/20 disabled:opacity-50 flex items-center gap-2 mx-auto">
-                                        <Camera size={20} /> Start Scanner
+                                <div className="w-24 h-24 bg-brand-100 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner border border-brand-50">
+                                    <ScanLine className="text-brand-600 w-12 h-12" />
+                                </div>
+                                <h3 className="font-bold text-xl text-slate-800 mb-2">Scan with Camera</h3>
+                                <p className="text-slate-500 mb-6 max-w-xs mx-auto text-sm">Full-screen live scanner with auto flashlight (if supported), plus minimize/maximize controls.</p>
+                                <button onClick={startScanner} disabled={!scannerInitialized} className="px-8 py-4 bg-brand-600 text-white font-bold rounded-2xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-500/20 disabled:opacity-50 flex items-center gap-2 mx-auto">
+                                    <Camera size={20} /> Start Scanner
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center text-center px-4">
+                                <span className="font-bold text-brand-600 flex items-center gap-2 px-4 py-2 bg-brand-50 rounded-full mb-4">
+                                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> Scanner Active
+                                </span>
+                                <p className="text-slate-600 text-sm mb-5">Scanner is running in full-screen mode. You can minimize/maximize and control flashlight.</p>
+                                <div className="flex items-center gap-3">
+                                    <button onClick={() => setCompactScanner(false)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition-colors flex items-center gap-2">
+                                        <Maximize2 size={16} /> Full Screen
+                                    </button>
+                                    <button onClick={stopScanner} className="px-4 py-2 bg-red-50 text-red-600 rounded-xl font-semibold hover:bg-red-100 transition-colors flex items-center gap-2">
+                                        <X size={16} /> Stop
                                     </button>
                                 </div>
-                            ) : (
-                                <div className="w-full h-full flex flex-col">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <span className="font-bold text-brand-600 flex items-center gap-2 px-4 py-2 bg-brand-50 rounded-full">
-                                            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> Scanning Active
-                                        </span>
-                                        <button onClick={stopScanner} className="p-3 bg-slate-200 text-slate-600 hover:bg-slate-300 rounded-full transition-colors"><X size={20} /></button>
-                                    </div>
-                                    <div className="flex-1 bg-black rounded-2xl overflow-hidden relative shadow-inner">
-                                        <div id="qr-reader" className="absolute inset-0 w-full h-full"></div>
-                                        <div className="absolute inset-0 pointer-events-none border-[12px] border-black/50" />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
+                    </div>
                         <div className="flex flex-col justify-center space-y-8">
                             <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
                                 <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -283,6 +325,61 @@ const VerifyIDPage = () => {
                         </div>
                     </div>
                 </div>
+                <AnimatePresence>
+                    {isScanning && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className={`fixed z-[140] bg-black/95 backdrop-blur-sm overflow-hidden ${
+                                compactScanner
+                                    ? 'left-3 right-3 bottom-3 h-[260px] sm:left-auto sm:right-4 sm:w-[380px] sm:h-[280px] rounded-3xl border border-white/10 shadow-2xl'
+                                    : 'inset-0'
+                            }`}
+                        >
+                            <div className="h-full w-full flex flex-col">
+                                <div className="px-4 py-3 bg-black/50 border-b border-white/10 flex items-center justify-between">
+                                    <span className="text-white font-black text-xs uppercase tracking-[0.18em] flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> Live QR Scanner
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        {torchSupported && (
+                                            <button
+                                                type="button"
+                                                onClick={toggleTorch}
+                                                className={`p-2 rounded-lg transition-colors ${torchOn ? 'bg-amber-400 text-black' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                                                title={torchOn ? 'Turn flashlight off' : 'Turn flashlight on'}
+                                            >
+                                                {torchOn ? <Flashlight size={16} /> : <FlashlightOff size={16} />}
+                                            </button>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => setCompactScanner(prev => !prev)}
+                                            className="p-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+                                            title={compactScanner ? 'Maximize scanner' : 'Minimize scanner'}
+                                        >
+                                            {compactScanner ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={stopScanner}
+                                            className="p-2 rounded-lg bg-red-500/20 text-red-300 hover:bg-red-500/30 transition-colors"
+                                            title="Close scanner"
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="relative flex-1">
+                                    <div id="qr-reader" className="absolute inset-0 w-full h-full" />
+                                    <div className="absolute inset-0 pointer-events-none border-[12px] sm:border-[24px] border-black/45" />
+                                    <div className="absolute inset-[48px] sm:inset-[72px] border-2 border-brand-400/60 rounded-3xl pointer-events-none animate-pulse" />
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
                 <AnimatePresence mode="wait">
                     {loading && (
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-white p-12 rounded-[2.5rem] text-center shadow-2xl shadow-brand-900/5 border border-slate-100 flex flex-col items-center max-w-2xl mx-auto">

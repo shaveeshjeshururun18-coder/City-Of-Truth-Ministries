@@ -364,10 +364,43 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             exit={{ opacity: 0, scale: 0.95 }}
                             className="max-w-3xl mx-auto space-y-8 md:space-y-12"
                         >
-                            <div className="bg-gradient-to-br from-brand-700 to-brand-900 p-5 sm:p-8 md:p-16 rounded-[2rem] md:rounded-[4rem] border border-brand-600 shadow-[0_30px_100_rgba(59,130,246,0.2)] text-center relative overflow-hidden">
+                             <div className="bg-gradient-to-br from-brand-700 to-brand-900 p-5 sm:p-8 md:p-16 rounded-[2rem] md:rounded-[4rem] border border-brand-600 shadow-[0_30px_100_rgba(59,130,246,0.2)] text-center relative overflow-hidden">
                                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none" />
                                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-white/50 to-white/20 opacity-60" />
-                                <p className="text-brand-50/95 mb-6 md:mb-10 text-sm sm:text-base md:text-lg font-semibold relative z-10">Login with any one detail: Member ID, Phone Number, Name, or Email.</p>
+                                 <p className="text-brand-50/95 mb-6 md:mb-10 text-sm sm:text-base md:text-lg font-semibold relative z-10">Login with any one detail: Member ID, Phone Number, Name, or Email.</p>
+                                <div className="mb-6 md:mb-10 relative z-10">
+                                    <p className="text-white/80 text-[10px] font-black uppercase tracking-[0.2em] mb-3">Quick Options</p>
+                                    <div className="flex flex-wrap items-center justify-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={onNavigateToRegister}
+                                            className="px-4 py-2 rounded-full bg-white text-brand-700 text-[10px] font-black uppercase tracking-[0.12em] hover:bg-brand-50 transition-colors"
+                                        >
+                                            New • Individual
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={onNavigateToRegister}
+                                            className="px-4 py-2 rounded-full bg-white text-brand-700 text-[10px] font-black uppercase tracking-[0.12em] hover:bg-brand-50 transition-colors"
+                                        >
+                                            New • Family
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setView('choice')}
+                                            className="px-4 py-2 rounded-full bg-white/10 border border-white/20 text-white text-[10px] font-black uppercase tracking-[0.12em] hover:bg-white/20 transition-colors"
+                                        >
+                                            More Options
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={onBack}
+                                            className="px-4 py-2 rounded-full bg-white/10 border border-white/20 text-white text-[10px] font-black uppercase tracking-[0.12em] hover:bg-white/20 transition-colors"
+                                        >
+                                            Main Page
+                                        </button>
+                                    </div>
+                                </div>
 
                                 <div className="mb-6 md:mb-12 z-10">
                                     <p className="text-left text-[10px] md:text-xs font-black uppercase tracking-[0.18em] text-white/90 mb-2">Enter Member Detail</p>
@@ -563,9 +596,19 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                 <h3 className="text-4xl font-serif font-black text-brand-900 tracking-tighter">Registration Hub</h3>
                                 <p className="text-brand-400 font-light leading-relaxed text-lg">Acquire your official <strong>Entrust Card</strong> to finalize your membership within the COT family.</p>
                             </div>
-                            <Button fullWidth onClick={onNavigateToRegister} className="py-7 rounded-[2rem] text-sm shadow-2xl shadow-brand-500/20 bg-brand-600 hover:bg-brand-700">
-                                Start Digital Registration <ArrowRight size={20} className="ml-3" />
-                            </Button>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <Button fullWidth onClick={onNavigateToRegister} className="py-6 rounded-[1.5rem] text-xs shadow-xl shadow-brand-500/20 bg-brand-600 hover:bg-brand-700">
+                                    Register Individual <ArrowRight size={18} className="ml-2" />
+                                </Button>
+                                <Button fullWidth onClick={onNavigateToRegister} className="py-6 rounded-[1.5rem] text-xs shadow-xl shadow-brand-500/20 bg-brand-700 hover:bg-brand-800">
+                                    Register Family <ArrowRight size={18} className="ml-2" />
+                                </Button>
+                            </div>
+                            <p className="text-[11px] text-brand-400 font-semibold -mt-5">You can choose Individual or Family again inside the registration form.</p>
+                            <div className="flex flex-wrap items-center justify-center gap-3">
+                                <button onClick={() => setView('login')} className="px-5 py-2.5 rounded-full border border-brand-200 text-brand-700 font-black text-[10px] uppercase tracking-[0.15em] hover:bg-brand-50 transition-colors">Login</button>
+                                <button onClick={onBack} className="px-5 py-2.5 rounded-full border border-slate-200 text-slate-700 font-black text-[10px] uppercase tracking-[0.15em] hover:bg-slate-50 transition-colors">Main Page</button>
+                            </div>
                             <button onClick={() => setView('choice')} className="text-brand-400 font-black uppercase tracking-widest text-xs hover:text-brand-600 transition-colors">Back to Options</button>
                         </motion.div>
                     )}

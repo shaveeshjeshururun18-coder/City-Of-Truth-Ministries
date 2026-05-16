@@ -546,9 +546,35 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                     </div>
 
                     {onLogin && (
-                        <div className="flex items-center justify-center gap-2">
-                            <span className="text-slate-500 text-sm">Already a member?</span>
-                            <button onClick={onLogin} className="text-brand-600 font-bold hover:underline text-sm">Login Here</button>
+                        <div className="space-y-3">
+                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Quick Options</p>
+                            <div className="flex flex-wrap items-center justify-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setRegistrationType('individual')}
+                                    className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.12em] transition-colors ${registrationType === 'individual' ? 'bg-brand-600 text-white' : 'bg-white text-brand-700 border border-brand-200 hover:bg-brand-50'}`}
+                                >
+                                    Individual
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setRegistrationType('family')}
+                                    className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.12em] transition-colors ${registrationType === 'family' ? 'bg-brand-600 text-white' : 'bg-white text-brand-700 border border-brand-200 hover:bg-brand-50'}`}
+                                >
+                                    Family
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={onLogin}
+                                    className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.12em] bg-accent-100 text-accent-800 border border-accent-200 hover:bg-accent-200 transition-colors"
+                                >
+                                    Login
+                                </button>
+                            </div>
+                            <div className="flex items-center justify-center gap-2">
+                                <span className="text-slate-500 text-sm">Already a member?</span>
+                                <button onClick={onLogin} className="text-brand-600 font-bold hover:underline text-sm">Login Here</button>
+                            </div>
                         </div>
                     )}
                 </div>
