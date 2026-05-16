@@ -173,11 +173,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
           <button
             onClick={() => setLanguage(language === 'en' ? 'ta' : 'en')}
             className={`hidden sm:flex items-center gap-1 px-2.5 h-9 rounded-xl text-[11px] font-bold transition-all whitespace-nowrap ${currentView === ViewState.HOME && !isScrolled ? 'border border-white/20 bg-white/10 text-white hover:bg-white/20' : 'border border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50'}`}
-            title={language === 'en' ? 'Switch to Tamil' : 'Switch to English'}
+            title={language === 'en' ? 'Current mode: English + Tamil' : 'Current mode: Tamil only'}
             aria-label="Toggle language"
           >
             <Languages size={13} className="shrink-0" />
-            <span>{language === 'en' ? 'தமிழ்' : 'EN'}</span>
+            <span>{language === 'en' ? 'EN + தமிழ்' : 'தமிழ் மட்டும்'}</span>
           </button>
 
           <div className={`flex items-center gap-3 sm:gap-3.5 p-1 sm:p-1.5 rounded-2xl backdrop-blur-md border transition-all duration-300 ${currentView === ViewState.HOME && !isScrolled ? 'bg-white/10 border-white/20' : 'bg-white/95 border-brand-200/80'}`}>
@@ -438,16 +438,38 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                 )}
               </div>
 
-              {/* Language Toggle in Mobile Menu */}
+              {/* Language Mode in Mobile Menu */}
               <div className="px-4 pb-2">
-                <button
-                  onClick={() => setLanguage(language === 'en' ? 'ta' : 'en')}
-                  className="w-full flex items-center justify-center gap-2 bg-white border border-brand-100 text-brand-700 p-2.5 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-brand-50 transition-colors"
-                  aria-label="Toggle language"
-                >
-                  <Languages size={14} />
-                  {language === 'en' ? 'தமிழில் மாறு (Switch to Tamil)' : 'Switch to English (ஆங்கிலத்திற்கு மாறு)'}
-                </button>
+                <div className="w-full rounded-xl border border-brand-100 bg-white p-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-brand-700 mb-2 flex items-center gap-1.5">
+                    <Languages size={12} />
+                    Language
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setLanguage('en')}
+                      className={`p-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                        language === 'en'
+                          ? 'bg-brand-600 text-white'
+                          : 'bg-brand-50 text-brand-700 hover:bg-brand-100'
+                      }`}
+                      aria-label="Set English and Tamil mode"
+                    >
+                      EN + தமிழ்
+                    </button>
+                    <button
+                      onClick={() => setLanguage('ta')}
+                      className={`p-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                        language === 'ta'
+                          ? 'bg-brand-600 text-white'
+                          : 'bg-brand-50 text-brand-700 hover:bg-brand-100'
+                      }`}
+                      aria-label="Set Tamil only mode"
+                    >
+                      தமிழ் மட்டும்
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Logout Button in Mobile Menu */}
