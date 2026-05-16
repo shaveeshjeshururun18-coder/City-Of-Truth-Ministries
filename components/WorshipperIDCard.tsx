@@ -310,6 +310,8 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
     const [showPhotoPreview, setShowPhotoPreview] = useState(false);
     const [croppingImage, setCroppingImage] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [showRegisterTour, setShowRegisterTour] = useState(false);
+    const [registerTourStepIndex, setRegisterTourStepIndex] = useState(0);
     const [showPassword, setShowPassword] = useState(false);
 
     useEffect(() => {
@@ -319,6 +321,27 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
     useEffect(() => {
         setRegistrationType(initialRegistrationType);
     }, [initialRegistrationType]);
+
+    useEffect(() => {
+        const seen = localStorage.getItem('cot_register_page_tour_seen') === '1';
+        if (!seen) {
+            setRegisterTourStepIndex(0);
+            setShowRegisterTour(true);
+        }
+    }, []);
+
+    const registerTourSteps = [
+        { title: 'Registration Type', text: 'Choose Individual or Family in the registration type section.' },
+        { title: 'Fill Member Details', text: 'Enter member details and upload a clear profile photo for Entrust Card.' },
+        { title: 'Family Information', text: 'If Family is selected, add available family member details.' },
+        { title: 'Submit & Login', text: 'Tap Complete Registration, then login to access the dashboard.' },
+    ];
+
+    const completeRegisterTour = () => {
+        localStorage.setItem('cot_register_page_tour_seen', '1');
+        setShowRegisterTour(false);
+        setRegisterTourStepIndex(0);
+    };
 
     // Helper for cropping logic could go here, but for now relying on basic photo upload as per user request flow adjustment
     // The user mentioned "able to crop and edit their photo", so we might need a library or just a simple preview with scale.
@@ -551,32 +574,13 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                     </div>
 
                     {onLogin && (
-                        <div className="space-y-3">
-                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Quick Options</p>
-                            <div className="flex flex-wrap items-center justify-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setRegistrationType('individual')}
-                                    className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.12em] transition-colors ${registrationType === 'individual' ? 'bg-brand-600 text-white' : 'bg-white text-brand-700 border border-brand-200 hover:bg-brand-50'}`}
-                                >
-                                    Individual
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setRegistrationType('family')}
-                                    className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.12em] transition-colors ${registrationType === 'family' ? 'bg-brand-600 text-white' : 'bg-white text-brand-700 border border-brand-200 hover:bg-brand-50'}`}
-                                >
-                                    Family
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={onLogin}
-                                    className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.12em] bg-accent-100 text-accent-800 border border-accent-200 hover:bg-accent-200 transition-colors"
-                                >
-                                    Login
-                                </button>
-                            </div>
-                        </div>
+                        <button
+                            type="button"
+                            onClick={onLogin}
+                            className="px-5 py-2.5 rounded-full border border-brand-200 text-brand-700 font-black text-[10px] uppercase tracking-[0.15em] hover:bg-brand-50 transition-colors"
+                        >
+                            Go to Login
+                        </button>
                     )}
                 </div>
 
@@ -867,6 +871,45 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                     </motion.div>
                 </div >
             </div >
+            <AnimatePresence>
+                {showRegisterTour && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[170] bg-black/55 backdrop-blur-sm flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ y: 20, opacity: 0, scale: 0.96 }}
+                            animate={{ y: 0, opacity: 1, scale: 1 }}
+                            exit={{ y: 12, opacity: 0 }}
+                            className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-slate-100"
+                        >
+                            <div className="text-[11px] font-black uppercase tracking-widest text-brand-500 mb-2">Register Page Tour</div>
+                            <h3 className="text-xl font-bold text-brand-950 mb-2">{registerTourSteps[registerTourStepIndex]?.title}</h3>
+                            <p className="text-sm text-slate-600 mb-5">{registerTourSteps[registerTourStepIndex]?.text}</p>
+                            <div className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-4">
+                                Step {registerTourStepIndex + 1} of {registerTourSteps.length}
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                                <button onClick={completeRegisterTour} className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100">
+                                    Skip Tour
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const isLastStep = registerTourStepIndex >= registerTourSteps.length - 1;
+                                        if (isLastStep) completeRegisterTour();
+                                        else setRegisterTourStepIndex(registerTourStepIndex + 1);
+                                    }}
+                                    className="px-4 py-2 rounded-xl text-sm font-bold bg-brand-600 text-white hover:bg-brand-700"
+                                >
+                                    {registerTourStepIndex >= registerTourSteps.length - 1 ? 'Done' : 'Next'}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </section >
     );
 };

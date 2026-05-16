@@ -34,6 +34,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     const [notFound, setNotFound] = useState(false);
     const [showScanner, setShowScanner] = useState(false);
     const [scanningFile, setScanningFile] = useState(false);
+    const [showAuthTour, setShowAuthTour] = useState(false);
+    const [authTourStepIndex, setAuthTourStepIndex] = useState(0);
     const scannerRef = useRef<any>(null);
     const searchableKeys = ['id', 'name', 'email', 'phone', 'emergency', 'location', 'role', 'status', 'dob', 'memberSince', 'gender', 'joinedDate', 'bloodGroup'] as const;
 
@@ -160,6 +162,19 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         handleSearch(incoming);
     }, [initialIdentifier]);
 
+    useEffect(() => {
+        if (view !== 'login' && view !== 'register') {
+            setShowAuthTour(false);
+            return;
+        }
+        const tourKey = view === 'login' ? 'cot_auth_login_tour_seen' : 'cot_auth_register_tour_seen';
+        const seen = localStorage.getItem(tourKey) === '1';
+        if (!seen) {
+            setAuthTourStepIndex(0);
+            setShowAuthTour(true);
+        }
+    }, [view]);
+
     const handleFileQRScan = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         if (!files.length) return;
@@ -281,6 +296,26 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             onLogin(loginId);
         }
     };
+
+    const authTourSteps = view === 'register'
+        ? [
+            { title: 'Choose Registration Type', text: 'Pick Individual or Family registration as needed for your household.' },
+            { title: 'Open Registration Form', text: 'Use the register buttons to continue and complete member details.' },
+            { title: 'Use Main Navigation', text: 'Use Main Page or Back to Options anytime to return safely.' },
+        ]
+        : [
+            { title: 'Login Options', text: 'Enter Member ID, Phone, Name, or Email and tap Verify.' },
+            { title: 'Entrust Card Input', text: 'You can scan QR or upload Entrust Card image/PDF for faster login.' },
+            { title: 'New User Guidance', text: 'If you are new, continue to registration and choose Individual or Family there.' },
+            { title: 'Return to Main Page', text: 'Use Back to Menu button to come out and return to the main page.' },
+        ];
+
+    const completeAuthTour = () => {
+        const tourKey = view === 'register' ? 'cot_auth_register_tour_seen' : 'cot_auth_login_tour_seen';
+        localStorage.setItem(tourKey, '1');
+        setShowAuthTour(false);
+        setAuthTourStepIndex(0);
+    };
     const heroContainerClass = view === 'login' ? 'h-20 md:h-24 justify-center' : 'h-64 md:h-80 justify-center';
 
     return (
@@ -368,40 +403,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none" />
                                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-white/50 to-white/20 opacity-60" />
                                  <p className="text-brand-50/95 mb-6 md:mb-10 text-sm sm:text-base md:text-lg font-semibold relative z-10">Login with any one detail: Member ID, Phone Number, Name, or Email.</p>
-                                <div className="mb-6 md:mb-10 relative z-10">
-                                    <p className="text-white/80 text-[10px] font-black uppercase tracking-[0.2em] mb-3">Quick Options</p>
-                                    <div className="flex flex-wrap items-center justify-center gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => onNavigateToRegister('individual')}
-                                            className="px-4 py-2 rounded-full bg-white text-brand-700 text-[10px] font-black uppercase tracking-[0.12em] hover:bg-brand-50 transition-colors"
-                                        >
-                                            New • Individual
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => onNavigateToRegister('family')}
-                                            className="px-4 py-2 rounded-full bg-white text-brand-700 text-[10px] font-black uppercase tracking-[0.12em] hover:bg-brand-50 transition-colors"
-                                        >
-                                            New • Family
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setView('choice')}
-                                            className="px-4 py-2 rounded-full bg-white/10 border border-white/20 text-white text-[10px] font-black uppercase tracking-[0.12em] hover:bg-white/20 transition-colors"
-                                        >
-                                            More Options
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={onBack}
-                                            className="px-4 py-2 rounded-full bg-white/10 border border-white/20 text-white text-[10px] font-black uppercase tracking-[0.12em] hover:bg-white/20 transition-colors"
-                                        >
-                                            Main Page
-                                        </button>
-                                    </div>
-                                </div>
-
                                 <div className="mb-6 md:mb-12 z-10">
                                     <p className="text-left text-[10px] md:text-xs font-black uppercase tracking-[0.18em] text-white/90 mb-2">Enter Member Detail</p>
                                     <div className="relative">
@@ -635,6 +636,47 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     )}
                 </AnimatePresence>
             </main>
+            <AnimatePresence>
+                {showAuthTour && (view === 'login' || view === 'register') && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[170] bg-black/55 backdrop-blur-sm flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ y: 20, opacity: 0, scale: 0.96 }}
+                            animate={{ y: 0, opacity: 1, scale: 1 }}
+                            exit={{ y: 12, opacity: 0 }}
+                            className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-slate-100"
+                        >
+                            <div className="text-[11px] font-black uppercase tracking-widest text-brand-500 mb-2">
+                                {view === 'register' ? 'Register Page Tour' : 'Login Page Tour'}
+                            </div>
+                            <h3 className="text-xl font-bold text-brand-950 mb-2">{authTourSteps[authTourStepIndex]?.title}</h3>
+                            <p className="text-sm text-slate-600 mb-5">{authTourSteps[authTourStepIndex]?.text}</p>
+                            <div className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-4">
+                                Step {authTourStepIndex + 1} of {authTourSteps.length}
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                                <button onClick={completeAuthTour} className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100">
+                                    Skip Tour
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const isLastStep = authTourStepIndex >= authTourSteps.length - 1;
+                                        if (isLastStep) completeAuthTour();
+                                        else setAuthTourStepIndex(authTourStepIndex + 1);
+                                    }}
+                                    className="px-4 py-2 rounded-xl text-sm font-bold bg-brand-600 text-white hover:bg-brand-700"
+                                >
+                                    {authTourStepIndex >= authTourSteps.length - 1 ? 'Done' : 'Next'}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <footer className="py-12 border-t border-brand-50 relative z-10 bg-brand-50/10">
                 <div className="max-w-5xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">

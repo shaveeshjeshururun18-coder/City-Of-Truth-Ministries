@@ -31,7 +31,7 @@ const FAMILY_RELATIONSHIP_OPTIONS = {
     others: ['Guardian', 'Other']
 };
 
-export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, onOpenScanner, initialProfileId, onGoToLogin }) => {
+export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, initialProfileId, onGoToLogin }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [showTestimonialModal, setShowTestimonialModal] = useState(false);
     const [formData, setFormData] = useState<Partial<User>>({});
@@ -54,10 +54,12 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [dashboardTourRect, setDashboardTourRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
     const canAccessEntrustFeatures = user.status === 'Active';
     const DASHBOARD_TOUR_STEPS = [
+        { selector: '#dashboard-download-card-btn', title: 'Entrust Card', text: 'Download your official Entrust ID Card PDF from this option.' },
+        { selector: '#dashboard-qr-download-btn', title: 'Download QR', text: 'Download your personal verification QR code for sharing or printing.' },
         { selector: '#dashboard-edit-btn', title: 'Edit Details', text: 'Update your profile and submit changes for admin approval.' },
         { selector: '#dashboard-testimony-btn', title: 'Write Testimony', text: 'Share your testimony and track approval in admin review.' },
         { selector: '#dashboard-share-btn', title: 'Share Profile', text: 'Send your secure profile login link to family members.' },
-        { selector: '#dashboard-login-btn', title: 'Profile Login', text: 'Quickly open login page to switch accounts.' },
+        { selector: '#dashboard-login-top-btn', title: 'Profile Login', text: 'Quickly open login page to switch accounts.' },
     ];
 
     useEffect(() => {
@@ -379,6 +381,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
     const qrUrl = `${window.location.origin}/verify/${displayProfile.id}`;
     const qrImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(qrUrl)}&bgcolor=ffffff&color=1a237e&margin=5&format=png`;
+    const handleDownloadQR = () => {
+        const link = document.createElement('a');
+        link.href = qrImgSrc;
+        link.download = `COT-QR-${displayProfile.id}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     /* ─────────────────────────────────────────────── */
     return (
@@ -653,16 +663,42 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         {/* Right: QR Code */}
                         <div className="w-full xl:w-2/5 flex flex-col items-center justify-center border-t xl:border-t-0 xl:border-l border-slate-100 pt-6 xl:pt-0 xl:pl-6">
                             {user.status === 'Active' ? (
-                                <div className="flex flex-col items-center">
-                                    <button
-                                        type="button"
-                                        onClick={() => onOpenScanner?.()}
-                                        className="relative inline-block bg-white rounded-3xl p-4 border border-slate-100 shadow-lg shadow-brand-900/5"
-                                    >
-                                        <img src={qrImgSrc} alt="QR Code" className="w-48 h-48 block mx-auto" crossOrigin="anonymous" />
-                                    </button>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-4">Tap QR to open scanner</p>
-                                </div>
+                                <>
+                                    <div className="md:hidden flex flex-col items-center w-full">
+                                        <button
+                                            type="button"
+                                            id="dashboard-mobile-entrust-btn"
+                                            onClick={() => setShowCardPreview(true)}
+                                            className="w-full max-w-[280px] bg-white rounded-2xl border border-slate-200 shadow-md p-3"
+                                        >
+                                            <div className="blur-[2px] pointer-events-none select-none" style={{ transform: 'scale(0.72)', transformOrigin: 'top center', height: '155px', width: '245px', margin: '0 auto' }}>
+                                                <EntrustCard3D
+                                                    name={displayProfile.name}
+                                                    email={user.email}
+                                                    location={user.location}
+                                                    emergency={user.emergency}
+                                                    uniqueId={displayProfile.id}
+                                                    memberSince={user.memberSince}
+                                                    photo={displayProfile.photo}
+                                                    status={user.status}
+                                                    isStatic={true}
+                                                    isBackSide={false}
+                                                />
+                                            </div>
+                                        </button>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-3">Mobile: Entrust Card Preview</p>
+                                    </div>
+                                    <div className="hidden md:flex flex-col items-center">
+                                        <button
+                                            type="button"
+                                            onClick={handleDownloadQR}
+                                            className="relative inline-block bg-white rounded-3xl p-4 border border-slate-100 shadow-lg shadow-brand-900/5"
+                                        >
+                                            <img src={qrImgSrc} alt="QR Code" className="w-48 h-48 block mx-auto" crossOrigin="anonymous" />
+                                        </button>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-4">Tap QR to download</p>
+                                    </div>
+                                </>
                             ) : (
                                 <div className="flex flex-col items-center text-center">
                                     <div className="relative rounded-2xl overflow-hidden border border-slate-200 shadow-md">
@@ -707,7 +743,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 { icon: <Share2 size={20} />, label: 'Share', action: handleShare, id: 'dashboard-share-top-btn' },
                                 { icon: <Download size={20} />, label: 'Download', action: handleDownloadPDF, loading: isProcessing },
                                 { icon: <FileText size={20} />, label: 'Details PDF', action: handleExportProfileDetailsPDF },
-                                { icon: <QrCode size={20} />, label: 'Open Scanner', action: () => onOpenScanner?.(), id: 'dashboard-scanner-btn' },
+                                { icon: <QrCode size={20} />, label: 'Download QR', action: handleDownloadQR, id: 'dashboard-qr-download-btn' },
                                 { icon: <LogIn size={20} />, label: 'Profile Login', action: handleGoToLogin, id: 'dashboard-login-top-btn' },
                             ].map(({ icon, label, action, loading, id }, i) => (
                                 <button id={id} key={i} onClick={action} disabled={loading}
@@ -726,7 +762,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                     {/* Entrust ID Card — brown */}
                     {user.status === 'Active' ? (
-                        <button onClick={handleDownloadPDF} disabled={isProcessing}
+                        <button id="dashboard-download-card-btn" onClick={handleDownloadPDF} disabled={isProcessing}
                             className="bg-gradient-to-br from-[#7B3F00] to-[#C0652B] text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all disabled:opacity-70 relative overflow-hidden group">
                             <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><FileText size={18} /></div>
                             <p className="font-bold text-sm leading-tight mb-1">Entrust ID Card</p>
