@@ -231,6 +231,16 @@ const normalizeNavItems = (items: unknown): NavItem[] => {
     });
 };
 
+const DEFAULT_HOME_SECTIONS_ORDER = ['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'hebrewPages', 'pastorBaruch', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'verify'];
+
+const normalizeHomeSectionsOrder = (sections: string[]): string[] => {
+  const uniqueSections = Array.from(new Set(sections));
+  const knownSections = DEFAULT_HOME_SECTIONS_ORDER.filter(sectionId => uniqueSections.includes(sectionId));
+  const missingSections = DEFAULT_HOME_SECTIONS_ORDER.filter(sectionId => !knownSections.includes(sectionId));
+  const extraSections = uniqueSections.filter(sectionId => !DEFAULT_HOME_SECTIONS_ORDER.includes(sectionId));
+  return [...knownSections, ...missingSections, ...extraSections];
+};
+
 const TestimonialSection: React.FC<TestimonialSectionProps> = ({ currentUser }) => {
   const [formData, setFormData] = useState({ name: currentUser?.name || '', location: currentUser?.location || '', text: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -428,19 +438,15 @@ const App: React.FC = () => {
   const [homeSectionsOrder, setHomeSectionsOrder] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('cot_home_sections_order');
-      return saved ? JSON.parse(saved) : ['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'hebrewPages', 'pastorBaruch', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'verify'];
+      return saved ? normalizeHomeSectionsOrder(JSON.parse(saved)) : DEFAULT_HOME_SECTIONS_ORDER;
     } catch (e) {
-      return ['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'hebrewPages', 'pastorBaruch', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'verify'];
+      return DEFAULT_HOME_SECTIONS_ORDER;
     }
   });
 
   useEffect(() => {
-    if (homeSectionsOrder.includes('members')) return;
-    const insertAt = homeSectionsOrder.indexOf('testimonials');
-    const nextOrder =
-      insertAt >= 0
-        ? [...homeSectionsOrder.slice(0, insertAt + 1), 'members', ...homeSectionsOrder.slice(insertAt + 1)]
-        : [...homeSectionsOrder, 'members'];
+    const nextOrder = normalizeHomeSectionsOrder(homeSectionsOrder);
+    if (JSON.stringify(nextOrder) === JSON.stringify(homeSectionsOrder)) return;
     setHomeSectionsOrder(nextOrder);
     localStorage.setItem('cot_home_sections_order', JSON.stringify(nextOrder));
   }, [homeSectionsOrder]);
@@ -552,8 +558,9 @@ const App: React.FC = () => {
       try {
         const remoteLayout = await api.getHomeLayout();
         if (remoteLayout && remoteLayout.length > 0) {
-          setHomeSectionsOrder(remoteLayout);
-          localStorage.setItem('cot_home_sections_order', JSON.stringify(remoteLayout));
+          const normalizedLayout = normalizeHomeSectionsOrder(remoteLayout);
+          setHomeSectionsOrder(normalizedLayout);
+          localStorage.setItem('cot_home_sections_order', JSON.stringify(normalizedLayout));
         }
       } catch (error) {
         console.error('Failed to fetch remote home layout:', error);

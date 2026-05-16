@@ -53,6 +53,8 @@ const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any
     highlights: { name: 'Ministry Moments', desc: 'Global highlights and focus', icon: ImagePlus, color: 'bg-sky-500' },
     leader: { name: 'Leader Message', desc: 'Direct word from ministry leadership', icon: ShieldCheck, color: 'bg-indigo-500' },
     hebrew: { name: 'Hebrew Sanctuary', desc: 'Language and spiritual resources', icon: Mail, color: 'bg-rose-500' },
+    hebrewPages: { name: 'All Page Previews', desc: 'Hebrew content, tools, and page preview cards', icon: Globe, color: 'bg-fuchsia-500' },
+    pastorBaruch: { name: 'Pastor & Baruch', desc: 'Pastor page and worship preview', icon: Award, color: 'bg-amber-600' },
     valparai: { name: 'Valparai Presence', desc: 'Local impact and community', icon: MapPin, color: 'bg-emerald-500' },
     testimonials: { name: 'Voices of Faith', desc: 'Member stories and testimonies', icon: MessageSquare, color: 'bg-teal-500' },
     members: { name: 'Member Initials', desc: 'Names with two-letter identity logos', icon: Users, color: 'bg-orange-500' },
@@ -1695,7 +1697,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <button 
                                         onClick={() => {
                                             if (window.confirm("Absolutely sure? This resets the home page for EVERYONE.")) {
-                                                onUpdateHomeSectionsOrder(['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'valparai', 'testimonials', 'members', 'preview', 'verify']);
+                                                onUpdateHomeSectionsOrder(['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'hebrewPages', 'pastorBaruch', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'verify']);
                                             }
                                         }}
                                         className="px-6 py-2.5 text-[10px] font-black uppercase tracking-[2px] text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-2xl transition-all border border-transparent hover:border-brand-100"
