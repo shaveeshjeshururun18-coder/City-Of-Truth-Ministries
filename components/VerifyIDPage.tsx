@@ -280,10 +280,15 @@ const VerifyIDPage = () => {
                                 <span className="font-bold text-brand-600 flex items-center gap-2 px-4 py-2 bg-brand-50 rounded-full mb-4">
                                     <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> Scanner Active
                                 </span>
-                                <p className="text-slate-600 text-sm mb-5">Scanner is running in full-screen mode. You can minimize/maximize and control torch.</p>
+                                <p className="text-slate-600 text-sm mb-5">
+                                    {compactScanner
+                                        ? 'Scanner is in compact corner mode. Tap “Full Screen” to maximize again.'
+                                        : 'Scanner is running in full-screen mode. You can switch to compact corner mode anytime.'}
+                                </p>
                                 <div className="flex items-center gap-3">
-                                    <button onClick={() => setCompactScanner(false)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition-colors flex items-center gap-2">
-                                        <Maximize2 size={16} /> Full Screen
+                                    <button onClick={() => setCompactScanner(prev => !prev)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition-colors flex items-center gap-2">
+                                        {compactScanner ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
+                                        {compactScanner ? 'Full Screen' : 'Compact View'}
                                     </button>
                                     <button onClick={stopScanner} className="px-4 py-2 bg-red-50 text-red-600 rounded-xl font-semibold hover:bg-red-100 transition-colors flex items-center gap-2">
                                         <X size={16} /> Stop
