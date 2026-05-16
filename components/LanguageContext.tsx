@@ -139,7 +139,18 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const t = (key: string): string => {
-    return translations[language][key] ?? translations['en'][key] ?? key;
+    const englishText = translations.en[key];
+    const tamilText = translations.ta[key];
+
+    if (language === 'ta') {
+      return tamilText ?? englishText ?? key;
+    }
+
+    if (englishText && tamilText && englishText !== tamilText) {
+      return `${englishText} / ${tamilText}`;
+    }
+
+    return englishText ?? tamilText ?? key;
   };
 
   return (
