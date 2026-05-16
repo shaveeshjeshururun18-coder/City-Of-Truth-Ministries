@@ -334,6 +334,7 @@ const App: React.FC = () => {
   const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.HOME);
   const [authInitialView, setAuthInitialView] = useState<'choice' | 'login' | 'register' | 'forgot-id'>('choice');
+  const [registrationInitialType, setRegistrationInitialType] = useState<'individual' | 'family'>('individual');
   const [selectedDashboardProfileId, setSelectedDashboardProfileId] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [deletedUsers, setDeletedUsers] = useState<DeletedUser[]>([]);
@@ -998,7 +999,8 @@ const App: React.FC = () => {
     return (
       <AuthPage
         onLogin={handleLogin}
-        onNavigateToRegister={() => {
+        onNavigateToRegister={(registrationType) => {
+          setRegistrationInitialType(registrationType || 'individual');
           navigate('/');
           setCurrentView(ViewState.ID_CARD);
         }}
@@ -1032,7 +1034,10 @@ const App: React.FC = () => {
             <motion.div key="auth" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <AuthPage
                 onLogin={handleLogin}
-                onNavigateToRegister={() => setCurrentView(ViewState.ID_CARD)}
+                onNavigateToRegister={(registrationType) => {
+                  setRegistrationInitialType(registrationType || 'individual');
+                  setCurrentView(ViewState.ID_CARD);
+                }}
                 onAdminClick={() => navigate('/admin')}
                 onBack={() => setCurrentView(ViewState.HOME)}
                 users={users}
@@ -1386,7 +1391,11 @@ const App: React.FC = () => {
 
           {currentView === ViewState.ID_CARD && (
             <motion.div key="id-card" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <WorshipperIDCard onRegister={handleRegister} onLogin={() => navigate('/auth?view=login')} />
+              <WorshipperIDCard
+                onRegister={handleRegister}
+                onLogin={() => navigate('/auth?view=login')}
+                initialRegistrationType={registrationInitialType}
+              />
             </motion.div>
           )}
 

@@ -270,7 +270,7 @@ const VerifyIDPage = () => {
                                     <ScanLine className="text-brand-600 w-12 h-12" />
                                 </div>
                                 <h3 className="font-bold text-xl text-slate-800 mb-2">Scan with Camera</h3>
-                                <p className="text-slate-500 mb-6 max-w-xs mx-auto text-sm">Full-screen live scanner with auto flashlight (if supported), plus minimize/maximize controls.</p>
+                                <p className="text-slate-500 mb-6 max-w-xs mx-auto text-sm">Full-screen live scanner with auto torch (if supported), plus minimize/maximize controls.</p>
                                 <button onClick={startScanner} disabled={!scannerInitialized} className="px-8 py-4 bg-brand-600 text-white font-bold rounded-2xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-500/20 disabled:opacity-50 flex items-center gap-2 mx-auto">
                                     <Camera size={20} /> Start Scanner
                                 </button>
@@ -280,7 +280,7 @@ const VerifyIDPage = () => {
                                 <span className="font-bold text-brand-600 flex items-center gap-2 px-4 py-2 bg-brand-50 rounded-full mb-4">
                                     <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> Scanner Active
                                 </span>
-                                <p className="text-slate-600 text-sm mb-5">Scanner is running in full-screen mode. You can minimize/maximize and control flashlight.</p>
+                                <p className="text-slate-600 text-sm mb-5">Scanner is running in full-screen mode. You can minimize/maximize and control torch.</p>
                                 <div className="flex items-center gap-3">
                                     <button onClick={() => setCompactScanner(false)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition-colors flex items-center gap-2">
                                         <Maximize2 size={16} /> Full Screen

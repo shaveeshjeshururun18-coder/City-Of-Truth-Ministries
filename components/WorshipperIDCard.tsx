@@ -253,6 +253,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
 interface WorshipperIDCardProps {
     onRegister?: (data: any) => void;
     onLogin?: () => void;
+    initialRegistrationType?: 'individual' | 'family';
     currentUser?: {
         displayName?: string;
         email?: string;
@@ -293,9 +294,9 @@ const RELATIONSHIP_OPTIONS = [
     'Other'
 ];
 
-export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, onLogin, currentUser }) => {
+export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, onLogin, initialRegistrationType = 'individual', currentUser }) => {
     const [uniqueId, setUniqueId] = useState('');
-    const [registrationType, setRegistrationType] = useState<RegistrationType>('individual');
+    const [registrationType, setRegistrationType] = useState<RegistrationType>(initialRegistrationType);
     const [formData, setFormData] = useState({
         name: currentUser?.displayName || '',
         email: currentUser?.email || '',
@@ -314,6 +315,10 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
     useEffect(() => {
         setUniqueId(`COT-${Math.floor(1000 + Math.random() * 9000)}`);
     }, []);
+
+    useEffect(() => {
+        setRegistrationType(initialRegistrationType);
+    }, [initialRegistrationType]);
 
     // Helper for cropping logic could go here, but for now relying on basic photo upload as per user request flow adjustment
     // The user mentioned "able to crop and edit their photo", so we might need a library or just a simple preview with scale.
@@ -570,10 +575,6 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                 >
                                     Login
                                 </button>
-                            </div>
-                            <div className="flex items-center justify-center gap-2">
-                                <span className="text-slate-500 text-sm">Already a member?</span>
-                                <button onClick={onLogin} className="text-brand-600 font-bold hover:underline text-sm">Login Here</button>
                             </div>
                         </div>
                     )}

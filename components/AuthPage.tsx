@@ -9,7 +9,7 @@ GlobalWorkerOptions.workerSrc = pdfWorker;
 
 interface AuthPageProps {
     onLogin: (identifier: string) => void;
-    onNavigateToRegister: () => void;
+    onNavigateToRegister: (registrationType?: 'individual' | 'family') => void;
     onAdminClick: () => void;
     onBack: () => void;
     users?: any[];
@@ -337,7 +337,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                     key={item.id}
                                     onClick={() => {
                                         if (item.id === 'login') setView('login');
-                                        else if (item.id === 'register') onNavigateToRegister();
+                                        else if (item.id === 'register') onNavigateToRegister('individual');
                                         else if (item.id === 'admin') onAdminClick();
                                     }}
                                     className={`group flex flex-col items-center justify-center p-12 bg-white/80 border-2 border-brand-50 hover:border-brand-400 rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.02)] hover:shadow-[0_40px_100px_rgba(59,130,246,0.1)] hover:-translate-y-2 transition-all duration-500 text-center relative overflow-hidden`}
@@ -373,14 +373,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                     <div className="flex flex-wrap items-center justify-center gap-2">
                                         <button
                                             type="button"
-                                            onClick={onNavigateToRegister}
+                                            onClick={() => onNavigateToRegister('individual')}
                                             className="px-4 py-2 rounded-full bg-white text-brand-700 text-[10px] font-black uppercase tracking-[0.12em] hover:bg-brand-50 transition-colors"
                                         >
                                             New • Individual
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={onNavigateToRegister}
+                                            onClick={() => onNavigateToRegister('family')}
                                             className="px-4 py-2 rounded-full bg-white text-brand-700 text-[10px] font-black uppercase tracking-[0.12em] hover:bg-brand-50 transition-colors"
                                         >
                                             New • Family
@@ -575,7 +575,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             {notFound && (
                                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-red-50 border-2 border-red-100 rounded-[2rem] p-8 text-center shadow-lg">
                                     <div className="text-red-600 font-black text-lg mb-2">Membership Status: Unknown</div>
-                                    <p className="text-red-400 font-medium">We couldn't find an account matching these details. <button onClick={onNavigateToRegister} className="underline font-black hover:text-red-700 transition-colors">Register for an ID Card</button></p>
+                                    <p className="text-red-400 font-medium">We couldn't find an account matching these details. <button onClick={() => onNavigateToRegister('individual')} className="underline font-black hover:text-red-700 transition-colors">Register for an ID Card</button></p>
                                 </motion.div>
                             )}
 
@@ -597,10 +597,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                 <p className="text-brand-400 font-light leading-relaxed text-lg">Acquire your official <strong>Entrust Card</strong> to finalize your membership within the COT family.</p>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <Button fullWidth onClick={onNavigateToRegister} className="py-6 rounded-[1.5rem] text-xs shadow-xl shadow-brand-500/20 bg-brand-600 hover:bg-brand-700">
+                                <Button fullWidth onClick={() => onNavigateToRegister('individual')} className="py-6 rounded-[1.5rem] text-xs shadow-xl shadow-brand-500/20 bg-brand-600 hover:bg-brand-700">
                                     Register Individual <ArrowRight size={18} className="ml-2" />
                                 </Button>
-                                <Button fullWidth onClick={onNavigateToRegister} className="py-6 rounded-[1.5rem] text-xs shadow-xl shadow-brand-500/20 bg-brand-700 hover:bg-brand-800">
+                                <Button fullWidth onClick={() => onNavigateToRegister('family')} className="py-6 rounded-[1.5rem] text-xs shadow-xl shadow-brand-500/20 bg-brand-700 hover:bg-brand-800">
                                     Register Family <ArrowRight size={18} className="ml-2" />
                                 </Button>
                             </div>
