@@ -173,7 +173,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
           <button
             onClick={() => setLanguage(language === 'en' ? 'ta' : 'en')}
             className={`hidden sm:flex items-center gap-1 px-2.5 h-9 rounded-xl text-[11px] font-bold transition-all whitespace-nowrap ${currentView === ViewState.HOME && !isScrolled ? 'border border-white/20 bg-white/10 text-white hover:bg-white/20' : 'border border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50'}`}
-            title={language === 'en' ? 'Switch to Tamil only mode' : 'Switch to English + Tamil mode'}
+            title={language === 'en' ? 'Current mode: English + Tamil' : 'Current mode: Tamil only'}
             aria-label="Toggle language"
           >
             <Languages size={13} className="shrink-0" />
