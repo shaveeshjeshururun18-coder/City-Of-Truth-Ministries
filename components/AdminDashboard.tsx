@@ -39,6 +39,7 @@ interface AdminDashboardProps {
     onDeleteUser: (userId: string) => Promise<void>;
     onRestoreUser?: (userId: string) => Promise<void>;
     onCreateUser?: (user: User) => Promise<void>;
+    onReassignUserId?: (oldUserId: string, newUserId: string, updatedUser: User) => Promise<void>;
     onBack: () => void;
     homeSectionsOrder: string[];
     onUpdateHomeSectionsOrder: (newOrder: string[]) => Promise<void>;
@@ -87,8 +88,10 @@ const TAMIL_NADU_DISTRICTS = [
     'Tirupathur', 'Tiruppur', 'Tiruvallur', 'Tiruvannamalai', 'Tiruvarur',
     'Vellore', 'Villupuram', 'Virudhunagar'
 ];
+const MAX_SUGGESTED_COT_IDS = 200;
 
 const EMPTY_NEW_USER = {
+    memberId: '',
     name: '',
     phone: '',
     email: '',
@@ -119,6 +122,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     onDeleteUser,
     onRestoreUser,
     onCreateUser,
+    onReassignUserId,
     onBack,
     homeSectionsOrder,
     onUpdateHomeSectionsOrder,
@@ -149,14 +153,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'>('users');
     const [menuMode, setMenuMode] = useState<'horizontal' | 'vertical'>(() => {
-        const stored = localStorage.getItem('adminMenuMode');
-        return stored === 'vertical' ? 'vertical' : 'horizontal';
+        try {
+            const stored = localStorage.getItem('adminMenuMode');
+            return stored === 'vertical' ? 'vertical' : 'horizontal';
+        } catch {
+            return 'horizontal';
+        }
     });
 
     const toggleMenuMode = () => {
         const next = menuMode === 'horizontal' ? 'vertical' : 'horizontal';
         setMenuMode(next);
-        localStorage.setItem('adminMenuMode', next);
+        try {
+            localStorage.setItem('adminMenuMode', next);
+        } catch {
+            // Ignore storage write failures (e.g., private mode restrictions)
+        }
     };
     const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
     const [ministries, setMinistries] = useState<Ministry[]>([]);
@@ -340,14 +352,77 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString();
     };
 
+    const existingCotIds = useMemo(() => {
+        return new Set(
+            users
+                .map(user => `${user.id ?? ''}`.trim().toUpperCase())
+                .filter(Boolean)
+        );
+    }, [users]);
+
+    const suggestedCotIds = useMemo(() => {
+        const ids: string[] = [];
+        for (let idNum = 1000; idNum <= 9999 && ids.length < MAX_SUGGESTED_COT_IDS; idNum += 1) {
+            const candidate = `COT-${idNum}`;
+            if (!existingCotIds.has(candidate)) {
+                ids.push(candidate);
+            }
+        }
+        return ids;
+    }, [existingCotIds]);
+
+    const getRandomAvailableCotId = () => {
+        if (suggestedCotIds.length === 0) return null;
+        if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+            const randomBuffer = new Uint32Array(1);
+            crypto.getRandomValues(randomBuffer);
+            return suggestedCotIds[randomBuffer[0] % suggestedCotIds.length];
+        }
+        return suggestedCotIds[0];
+    };
+
+    const isCotId = (id: string) => /^COT-\d{4,}$/i.test((id || '').trim());
+
+    const activateUserWithCotId = async (user: User) => {
+        const approvedUserBase: User = {
+            ...user,
+            ...(user.pendingProfileUpdate || {}),
+            pendingProfileUpdate: undefined,
+            status: 'Active'
+        };
+
+        if (isCotId(approvedUserBase.id)) {
+            await onUpdateUser(approvedUserBase);
+            return;
+        }
+
+        const generatedCotId = getRandomAvailableCotId();
+        if (!generatedCotId) {
+            throw new Error('No available COT IDs left. Please add more ID capacity.');
+        }
+
+        const approvedWithCotId: User = { ...approvedUserBase, id: generatedCotId };
+        if (onReassignUserId) {
+            await onReassignUserId(user.id, generatedCotId, approvedWithCotId);
+            return;
+        }
+
+        await onUpdateUser(approvedWithCotId);
+    };
+
     // Filtered users
     const filteredUsers = useMemo(() => {
+        const query = searchQuery.toLowerCase();
         const filtered = users.filter(user => {
+            const name = `${user.name ?? ''}`.toLowerCase();
+            const email = `${user.email ?? ''}`.toLowerCase();
+            const phone = `${user.phone ?? ''}`.toLowerCase();
+            const id = `${user.id ?? ''}`.toLowerCase();
             const matchesSearch = searchQuery === '' ||
-                user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                user.phone.includes(searchQuery) ||
-                user.id.toLowerCase().includes(searchQuery.toLowerCase());
+                name.includes(query) ||
+                email.includes(query) ||
+                phone.includes(query) ||
+                id.includes(query);
 
             const matchesStatus = filterStatus === 'All' || user.status === filterStatus;
             const matchesRole = filterRole === 'All' || user.role === filterRole;
@@ -382,7 +457,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         setIsLoading(true);
         try {
-            const newId = `COT-${Math.floor(1000 + Math.random() * 9000)}`;
+            const rawRequestedId = `${newUserData.memberId || ''}`.trim();
+            const normalizedIdBody = rawRequestedId.toUpperCase().replace(/^COT[-\s]*/i, '');
+            let newId = normalizedIdBody ? `COT-${normalizedIdBody}` : '';
+            if (newId && !/^COT-\d{4,}$/.test(newId)) {
+                alert('Enter a valid Member ID with at least 4 digits (example: COT-1960).');
+                setIsLoading(false);
+                return;
+            }
+            if (newId && existingCotIds.has(newId)) {
+                alert(`Member ID ${newId} is already in use. Please choose another ID.`);
+                setIsLoading(false);
+                return;
+            }
+            if (!newId) {
+                const fallback = getRandomAvailableCotId();
+                if (!fallback) {
+                    alert('No available COT IDs left in the current range. Please enter a manual ID.');
+                    setIsLoading(false);
+                    return;
+                }
+                newId = fallback;
+            }
+
             const user: User = {
                 id: newId,
                 name: newUserData.name.trim(),
@@ -470,13 +567,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             const updatePromises = Array.from(selectedUsers).map(userId => {
                 const user = users.find(u => u.id === userId);
                 if (!user) return Promise.resolve();
-                const approvedUser: User = {
-                    ...user,
-                    ...(user.pendingProfileUpdate || {}),
-                    pendingProfileUpdate: undefined,
-                    status: 'Active'
-                };
-                return onUpdateUser(approvedUser);
+                return activateUserWithCotId(user);
             });
             await Promise.all(updatePromises);
             setSelectedUsers(new Set());
@@ -524,13 +615,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     };
     const hasPendingProfileUpdate = (user: User) => !!user.pendingProfileUpdate && Object.keys(user.pendingProfileUpdate).length > 0;
     const approveUserOrPendingEdit = async (user: User) => {
-        const approvedUser: User = {
-            ...user,
-            ...(user.pendingProfileUpdate || {}),
-            pendingProfileUpdate: undefined,
-            status: 'Active'
-        };
-        await onUpdateUser(approvedUser);
+        await activateUserWithCotId(user);
     };
     const rejectPendingEdit = async (user: User) => {
         await onUpdateUser({ ...user, pendingProfileUpdate: undefined });
@@ -2844,6 +2929,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 )}
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="space-y-1.5 sm:col-span-2">
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Member ID (Optional Manual)</label>
+                                        <div className="flex flex-col sm:flex-row gap-2">
+                                            <input
+                                                list="available-cot-ids"
+                                                type="text"
+                                                placeholder="Leave empty for random ID, or enter COT-1960"
+                                                value={newUserData.memberId}
+                                                onChange={(e) => setNewUserData(d => ({ ...d, memberId: e.target.value }))}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const pick = getRandomAvailableCotId();
+                                                    if (!pick) {
+                                                        alert('No available COT IDs found.');
+                                                        return;
+                                                    }
+                                                    setNewUserData(d => ({ ...d, memberId: pick }));
+                                                }}
+                                                className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs whitespace-nowrap transition-colors"
+                                            >
+                                                Pick Random ID
+                                            </button>
+                                        </div>
+                                        <datalist id="available-cot-ids">
+                                            {suggestedCotIds.map(id => (
+                                                <option key={id} value={id} />
+                                            ))}
+                                        </datalist>
+                                        <p className="text-[10px] text-slate-400 font-medium">
+                                            Admin can manually choose a COT ID from available options.
+                                        </p>
+                                    </div>
                                     <div className="space-y-1.5 sm:col-span-2">
                                         <label className="text-xs font-bold text-slate-500 uppercase">Full Name *</label>
                                         <input

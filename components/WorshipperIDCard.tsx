@@ -354,7 +354,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
     };
 
     useEffect(() => {
-        setUniqueId(`COT-${secureRandomInt(1000, 9999)}`);
+        setUniqueId(`TEMP-${Date.now()}-${secureRandomInt(100, 999)}`);
     }, []);
 
     useEffect(() => {
