@@ -97,7 +97,18 @@ const EMPTY_NEW_USER = {
     photo: '',
     emergency: '',
     memberSince: new Date().getFullYear().toString(),
+    joinedDate: new Date().toISOString().split('T')[0],
 };
+
+type UserQuickViewMode = 'photos' | 'ids' | 'cards' | 'locations' | 'join-dates';
+
+const USER_QUICK_VIEW_OPTIONS: { id: UserQuickViewMode; label: string; description: string; icon: React.ElementType; accent: string; bg: string }[] = [
+    { id: 'photos', label: 'Images', description: 'Show only member photos', icon: ImageIcon, accent: 'text-pink-600', bg: 'bg-pink-50' },
+    { id: 'ids', label: 'COT IDs', description: 'Show only member IDs', icon: Shield, accent: 'text-indigo-600', bg: 'bg-indigo-50' },
+    { id: 'cards', label: 'Entrust Cards', description: 'Show member entrust cards', icon: QrCode, accent: 'text-purple-600', bg: 'bg-purple-50' },
+    { id: 'locations', label: 'Locations', description: 'Show member locations', icon: MapPin, accent: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { id: 'join-dates', label: 'Join Dates', description: 'Show all member join dates', icon: Calendar, accent: 'text-amber-600', bg: 'bg-amber-50' },
+];
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     users,
@@ -134,6 +145,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
     const [downloadingCardUserId, setDownloadingCardUserId] = useState<string | null>(null);
     const [downloadingProfilePdfUserId, setDownloadingProfilePdfUserId] = useState<string | null>(null);
+    const [userQuickViewMode, setUserQuickViewMode] = useState<UserQuickViewMode | null>(null);
 
     const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'>('users');
     const [menuMode, setMenuMode] = useState<'horizontal' | 'vertical'>(() => {
@@ -305,6 +317,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         rejected: users.filter(u => u.status === 'Rejected').length,
     }), [users]);
 
+    const locationStats = useMemo(() => {
+        const counts = users.reduce<Record<string, number>>((acc, user) => {
+            const key = user.location?.trim() || 'Unknown';
+            acc[key] = (acc[key] || 0) + 1;
+            return acc;
+        }, {});
+
+        return Object.entries(counts)
+            .map(([location, count]) => ({ location, count }))
+            .sort((a, b) => b.count - a.count || a.location.localeCompare(b.location));
+    }, [users]);
+
+    const selectedQuickView = useMemo(
+        () => USER_QUICK_VIEW_OPTIONS.find(option => option.id === userQuickViewMode) || null,
+        [userQuickViewMode]
+    );
+
+    const formatDateValue = (value?: string) => {
+        if (!value) return 'Not provided';
+        const parsed = new Date(value);
+        return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString();
+    };
+
     // Filtered users
     const filteredUsers = useMemo(() => {
         const filtered = users.filter(user => {
@@ -359,7 +394,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 status: 'Active',
                 photo: newUserData.photo || '',
                 memberSince: newUserData.memberSince,
-                joinedDate: new Date().toISOString().split('T')[0],
+                joinedDate: newUserData.joinedDate || new Date().toISOString().split('T')[0],
             };
             if (onCreateUser) {
                 await onCreateUser(user);
@@ -859,6 +894,62 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <div className="text-xs md:text-sm text-slate-500 font-medium">{stat.label}</div>
                             </motion.div>
                         ))}
+                    </div>
+                )}
+
+                {activeTab === 'users' && (
+                    <div className="grid grid-cols-2 xl:grid-cols-5 gap-3 md:gap-4 mb-6">
+                        {USER_QUICK_VIEW_OPTIONS.map(option => {
+                            const Icon = option.icon;
+                            return (
+                                <button
+                                    key={option.id}
+                                    onClick={() => setUserQuickViewMode(option.id)}
+                                    className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-brand-200 transition-all text-left"
+                                >
+                                    <div className={`w-11 h-11 rounded-2xl ${option.bg} ${option.accent} flex items-center justify-center mb-3`}>
+                                        <Icon size={20} />
+                                    </div>
+                                    <div className="text-sm font-black text-brand-950">{option.label}</div>
+                                    <div className="text-xs text-slate-500 mt-1">{option.description}</div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {activeTab === 'users' && (
+                    <div className="bg-white p-4 md:p-6 rounded-3xl border border-slate-100 shadow-sm mb-6">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
+                            <div>
+                                <h3 className="font-bold text-brand-950 text-sm md:text-base">Location Registration Overview</h3>
+                                <p className="text-xs text-slate-500 mt-1">Static state-wise count of how many members are registered in each location.</p>
+                            </div>
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-brand-50 text-brand-700 rounded-full text-xs font-bold border border-brand-100">
+                                <MapPin size={13} />
+                                {locationStats.length} Locations
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            {locationStats.map(stat => {
+                                const maxCount = locationStats[0]?.count || 1;
+                                const barWidth = `${Math.max((stat.count / maxCount) * 100, 10)}%`;
+
+                                return (
+                                    <div key={stat.location} className="grid grid-cols-[minmax(0,140px)_1fr_auto] items-center gap-3">
+                                        <div className="text-sm font-semibold text-slate-700 truncate">{stat.location}</div>
+                                        <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                                            <div className="h-full rounded-full bg-gradient-to-r from-brand-500 to-accent-500" style={{ width: barWidth }} />
+                                        </div>
+                                        <div className="min-w-[2.5rem] text-right text-sm font-black text-brand-950">{stat.count}</div>
+                                    </div>
+                                );
+                            })}
+                            {locationStats.length === 0 && (
+                                <div className="text-sm text-slate-400 text-center py-4">No location data available yet.</div>
+                            )}
+                        </div>
                     </div>
                 )}
 
@@ -2128,6 +2219,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         />
                                     </div>
                                     <div className="space-y-2">
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Joined Date</label>
+                                        <input
+                                            type="date"
+                                            value={(editingUser.joinedDate || '').slice(0, 10)}
+                                            onChange={(e) => setEditingUser({ ...editingUser, joinedDate: e.target.value })}
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
                                         <label className="text-xs font-bold text-slate-500 uppercase">Role</label>
                                         <select
                                             value={editingUser.role}
@@ -2388,6 +2488,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     </div>
                                 </div>
 
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Joined Date</label>
+                                    <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                        <Calendar size={16} className="text-slate-400" />
+                                        <span className="text-sm text-slate-700">{formatDateValue(viewingDetailsUser.joinedDate)}</span>
+                                    </div>
+                                </div>
+
 
                             </div>
 
@@ -2461,6 +2569,128 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     Close
                                 </button>
                             </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* User Quick View Modal */}
+            <AnimatePresence>
+                {userQuickViewMode && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-3xl p-6 md:p-8 max-w-6xl w-full max-h-[90vh] overflow-y-auto"
+                        >
+                            <div className="flex items-start justify-between gap-4 mb-6">
+                                <div>
+                                    <h3 className="text-2xl font-bold text-brand-950">{selectedQuickView?.label}</h3>
+                                    <p className="text-sm text-slate-500 mt-1">
+                                        {selectedQuickView?.description} • {filteredUsers.length} user{filteredUsers.length === 1 ? '' : 's'}
+                                    </p>
+                                </div>
+                                <button onClick={() => setUserQuickViewMode(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors shrink-0">
+                                    <X size={20} className="text-slate-500" />
+                                </button>
+                            </div>
+
+                            {userQuickViewMode === 'photos' && (
+                                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                                    {filteredUsers.map(user => (
+                                        <div key={user.id} className="rounded-3xl overflow-hidden border border-slate-100 bg-slate-50">
+                                            <div className="aspect-square bg-slate-100">
+                                                {user.photo ? (
+                                                    <img src={user.photo} alt={user.name} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-4xl font-black text-slate-300 bg-gradient-to-br from-slate-100 to-slate-200">
+                                                        {user.name.charAt(0)}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="px-4 py-3">
+                                                <div className="font-bold text-sm text-brand-950 truncate">{user.name}</div>
+                                                <div className="text-[11px] text-slate-500 font-mono">{user.id}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {userQuickViewMode === 'ids' && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {filteredUsers.map(user => (
+                                        <div key={user.id} className="px-4 py-4 rounded-2xl border border-slate-100 bg-slate-50">
+                                            <div className="text-lg font-black text-brand-950 font-mono">{user.id}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {userQuickViewMode === 'cards' && (
+                                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                    {filteredUsers.map(user => (
+                                        <div key={user.id} className="bg-slate-50 border border-slate-100 rounded-3xl p-4">
+                                            <div className="mb-3">
+                                                <div className="font-bold text-brand-950">{user.name}</div>
+                                                <div className="text-xs font-mono text-slate-500">{user.id}</div>
+                                            </div>
+                                            <div className="overflow-x-auto">
+                                                <div className="min-w-[340px]">
+                                                    <EntrustCard3D
+                                                        name={user.name}
+                                                        email={user.email}
+                                                        location={user.location}
+                                                        emergency={user.emergency}
+                                                        uniqueId={user.id}
+                                                        memberSince={user.memberSince}
+                                                        photo={user.photo}
+                                                        status={user.status}
+                                                        isStatic={true}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {userQuickViewMode === 'locations' && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                    {filteredUsers.map(user => (
+                                        <div key={user.id} className="p-4 rounded-2xl border border-slate-100 bg-slate-50">
+                                            <div className="flex items-center gap-2 text-emerald-600 font-bold mb-2">
+                                                <MapPin size={16} />
+                                                <span>{user.location || 'Unknown'}</span>
+                                            </div>
+                                            <div className="text-sm font-semibold text-brand-950">{user.name}</div>
+                                            <div className="text-[11px] font-mono text-slate-500 mt-1">{user.id}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {userQuickViewMode === 'join-dates' && (
+                                <div className="space-y-3">
+                                    {filteredUsers.map(user => (
+                                        <div key={user.id} className="flex items-center justify-between gap-3 p-4 rounded-2xl border border-slate-100 bg-slate-50">
+                                            <div>
+                                                <div className="font-bold text-brand-950">{user.name}</div>
+                                                <div className="text-[11px] font-mono text-slate-500">{user.id}</div>
+                                            </div>
+                                            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-700">
+                                                <Calendar size={14} className="text-slate-400" />
+                                                {formatDateValue(user.joinedDate)}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {filteredUsers.length === 0 && (
+                                <div className="text-center text-slate-400 py-10">No users found for this view.</div>
+                            )}
                         </motion.div>
                     </div>
                 )}
@@ -2666,6 +2896,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <option value="Member">Member</option>
                                             <option value="Admin">Admin</option>
                                         </select>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Joined Date</label>
+                                        <input
+                                            type="date"
+                                            value={newUserData.joinedDate}
+                                            onChange={(e) => setNewUserData(d => ({ ...d, joinedDate: e.target.value }))}
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
+                                        />
                                     </div>
                                 </div>
 
