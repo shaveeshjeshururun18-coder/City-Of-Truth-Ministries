@@ -452,6 +452,12 @@ const App: React.FC = () => {
   }, [homeSectionsOrder]);
 
   useEffect(() => {
+    if (currentView === ViewState.USER_DASHBOARD && !currentUser) {
+      navigate('/auth?view=login');
+    }
+  }, [currentView, currentUser, navigate]);
+
+  useEffect(() => {
     localStorage.setItem('cot_contact_messages', JSON.stringify(contactMessages));
   }, [contactMessages]);
 

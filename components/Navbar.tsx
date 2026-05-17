@@ -63,7 +63,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
   const translateLabel = (label: string) => {
     const key = NAV_LABEL_TO_KEY[label];
-    return key ? t(key) : label;
+    if (!key) return label;
+    if (language === 'ta') return t(key);
+    return label;
   };
 
   useEffect(() => {
@@ -173,11 +175,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
           <button
             onClick={() => setLanguage(language === 'en' ? 'ta' : 'en')}
             className={`hidden sm:flex items-center gap-1 px-2.5 h-9 rounded-xl text-[11px] font-bold transition-all whitespace-nowrap ${currentView === ViewState.HOME && !isScrolled ? 'border border-white/20 bg-white/10 text-white hover:bg-white/20' : 'border border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50'}`}
-            title={language === 'en' ? 'Current mode: English + Tamil' : 'Current mode: Tamil only'}
+            title={language === 'en' ? 'Current mode: Bilingual' : 'Current mode: Tamil only'}
             aria-label="Toggle language"
           >
             <Languages size={13} className="shrink-0" />
-            <span>{language === 'en' ? 'EN + தமிழ்' : 'தமிழ் மட்டும்'}</span>
+            <span>{language === 'en' ? 'Bilingual' : 'Tamil Only'}</span>
           </button>
 
           <div className={`flex items-center gap-3 sm:gap-3.5 p-1 sm:p-1.5 rounded-2xl backdrop-blur-md border transition-all duration-300 ${currentView === ViewState.HOME && !isScrolled ? 'bg-white/10 border-white/20' : 'bg-white/95 border-brand-200/80'}`}>
@@ -455,7 +457,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                       }`}
                       aria-label="Set English and Tamil mode"
                     >
-                      EN + தமிழ்
+                      Bilingual
                     </button>
                     <button
                       onClick={() => setLanguage('ta')}
@@ -466,7 +468,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                       }`}
                       aria-label="Set Tamil only mode"
                     >
-                      தமிழ் மட்டும்
+                      Tamil Only
                     </button>
                   </div>
                 </div>

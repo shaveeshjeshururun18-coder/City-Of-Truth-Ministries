@@ -273,6 +273,7 @@ interface FamilyMemberForm {
 }
 
 const RELATIONSHIP_OPTIONS = [
+    'None',
     'Spouse',
     'Son',
     'Daughter',
@@ -312,6 +313,15 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
     const [croppingImage, setCroppingImage] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [showEntrustIntro, setShowEntrustIntro] = useState(false);
+    const [entrustTourStepIndex, setEntrustTourStepIndex] = useState<number | null>(null);
+    const [entrustTourRect, setEntrustTourRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
+    const ENTRUST_TOUR_STEPS = [
+        { selector: '#entrust-name-field', title: 'Enter Full Name', text: 'Start by entering your name exactly as you want it on the Entrust card.' },
+        { selector: '#entrust-phone-field', title: 'Enter WhatsApp Number', text: 'Use a valid 10-digit number to receive updates and login access.' },
+        { selector: '#entrust-location-field', title: 'Choose District', text: 'Select your district from Tamil Nadu for registration records.' },
+        { selector: '#entrust-register-btn', title: 'Complete Registration', text: 'Tap register to submit details and get your member ID.' },
+    ];
     const secureRandomInt = (min: number, max: number) => {
         const range = max - min + 1;
         const values = new Uint32Array(1);
@@ -322,6 +332,54 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
     useEffect(() => {
         setUniqueId(`COT-${secureRandomInt(1000, 9999)}`);
     }, []);
+
+    useEffect(() => {
+        if (currentUser) return;
+        const seen = localStorage.getItem('cot_entrust_tour_seen') === '1';
+        if (!seen) setShowEntrustIntro(true);
+    }, [currentUser]);
+
+    useEffect(() => {
+        if (entrustTourStepIndex === null) return;
+        const step = ENTRUST_TOUR_STEPS[entrustTourStepIndex];
+        const target = document.querySelector(step.selector) as HTMLElement | null;
+        target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, [entrustTourStepIndex]);
+
+    useEffect(() => {
+        if (entrustTourStepIndex === null) return;
+        const updateRect = () => {
+            const step = ENTRUST_TOUR_STEPS[entrustTourStepIndex];
+            const target = document.querySelector(step.selector) as HTMLElement | null;
+            if (!target) {
+                setEntrustTourRect(null);
+                return;
+            }
+            const rect = target.getBoundingClientRect();
+            setEntrustTourRect({ top: rect.top - 8, left: rect.left - 8, width: rect.width + 16, height: rect.height + 16 });
+        };
+        const timer = setTimeout(updateRect, 220);
+        window.addEventListener('resize', updateRect);
+        window.addEventListener('scroll', updateRect, true);
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('resize', updateRect);
+            window.removeEventListener('scroll', updateRect, true);
+        };
+    }, [entrustTourStepIndex]);
+
+    const markEntrustTourSeen = () => localStorage.setItem('cot_entrust_tour_seen', '1');
+    const startEntrustTour = () => {
+        markEntrustTourSeen();
+        setShowEntrustIntro(false);
+        setEntrustTourStepIndex(0);
+    };
+    const skipEntrustTour = () => {
+        markEntrustTourSeen();
+        setShowEntrustIntro(false);
+        setEntrustTourStepIndex(null);
+        setEntrustTourRect(null);
+    };
 
     // Helper for cropping logic could go here, but for now relying on basic photo upload as per user request flow adjustment
     // The user mentioned "able to crop and edit their photo", so we might need a library or just a simple preview with scale.
@@ -377,7 +435,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
     const createFamilyMember = (): FamilyMemberForm => ({
         id: `FM-${Date.now()}-${secureRandomInt(100, 999)}`,
         name: '',
-        relationship: 'Spouse',
+        relationship: 'None',
         photo: '',
         isExpanded: true
     });
@@ -618,14 +676,14 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                                 <div className="space-y-2">
                                     <label className="text-xs font-semibold text-slate-700 ml-1">Full Name</label>
-                                    <input name="name" value={formData.name} onChange={handleInputChange} type="text" className="w-full px-4 md:px-6 py-3 md:py-4 bg-white border border-slate-300 rounded-xl md:rounded-2xl outline-none transition-all text-sm font-semibold text-brand-950 placeholder:text-slate-500 shadow-sm focus:ring-2 focus:ring-accent-500/20" />
+                                    <input id="entrust-name-field" required name="name" value={formData.name} onChange={handleInputChange} type="text" className="w-full px-4 md:px-6 py-3 md:py-4 bg-white border border-slate-300 rounded-xl md:rounded-2xl outline-none transition-all text-sm font-semibold text-brand-950 placeholder:text-slate-500 shadow-sm focus:ring-2 focus:ring-accent-500/20" />
                                 </div>
 
                                 <div className="space-y-2">
                                     <label className="text-xs font-semibold text-slate-700 ml-1">WhatsApp Number</label>
                                     <div className="flex items-center w-full bg-white border border-slate-300 rounded-xl md:rounded-2xl overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-accent-500/20">
                                         <span className="px-3 py-3 md:py-4 text-sm font-bold text-slate-700 bg-slate-100 border-r border-slate-200 shrink-0">+91</span>
-                                        <input name="emergency" value={formData.emergency} onChange={handleInputChange} type="tel" placeholder="10-digit number" className="flex-1 px-3 md:px-4 py-3 md:py-4 bg-transparent outline-none text-sm font-semibold text-brand-950 placeholder:text-slate-500" />
+                                        <input id="entrust-phone-field" name="emergency" value={formData.emergency} onChange={handleInputChange} type="tel" placeholder="10-digit number" className="flex-1 px-3 md:px-4 py-3 md:py-4 bg-transparent outline-none text-sm font-semibold text-brand-950 placeholder:text-slate-500" />
                                     </div>
                                 </div>
 
@@ -636,6 +694,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                 <div className="space-y-2">
                                     <label className="text-xs font-semibold text-slate-700 ml-1">Tamil Nadu District</label>
                                     <select
+                                        id="entrust-location-field"
                                         name="location"
                                         value={formData.location}
                                         onChange={handleInputChange}
@@ -699,7 +758,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                                         </div>
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                             <div className="space-y-1.5">
-                                                                <label className="text-xs font-semibold text-slate-700">Name (optional)</label>
+                                                                <label className="text-xs font-semibold text-slate-700">Name</label>
                                                                 <input
                                                                     type="text"
                                                                     value={member.name}
@@ -709,7 +768,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                                                 />
                                                             </div>
                                                             <div className="space-y-1.5">
-                                                                <label className="text-xs font-semibold text-slate-700">Relationship (optional)</label>
+                                                                <label className="text-xs font-semibold text-slate-700">Relationship</label>
                                                                 <select
                                                                     value={member.relationship}
                                                                     onChange={(e) => updateFamilyMember(member.id, 'relationship', e.target.value)}
@@ -748,6 +807,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                             <div className="space-y-4">
                                 {/* Primary Registration Button */}
                                 <Button
+                                    id="entrust-register-btn"
                                     onClick={() => {
                                         if (onRegister) {
                                             // Validate all required fields (Email is now OPTIONAL, Password auto-set)
@@ -758,6 +818,13 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                             if (registrationType === 'family' && !photo) {
                                                 alert("Please upload Family Head photo to continue.");
                                                 return;
+                                            }
+                                            if (registrationType === 'family') {
+                                                const invalidMember = familyMembers.find(member => !member.name.trim() || member.relationship === 'None');
+                                                if (invalidMember) {
+                                                    alert("Please fill family member Name and Relationship.");
+                                                    return;
+                                                }
                                             }
                                             // Set password to phone number if not provided
                                             const finalPassword = formData.emergency;
@@ -847,6 +914,54 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                         </div>
                     </motion.div>
                 </div >
+                <AnimatePresence>
+                    {showEntrustIntro && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[170] bg-black/45 backdrop-blur-sm flex items-center justify-center p-4">
+                            <motion.div initial={{ y: 20, opacity: 0, scale: 0.96 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 12, opacity: 0 }} className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-slate-100">
+                                <div className="text-[11px] font-black uppercase tracking-widest text-brand-500 mb-2">Entrust Tour</div>
+                                <h3 className="text-xl font-bold text-brand-950 mb-2">Quick Introduction</h3>
+                                <p className="text-sm text-slate-600 mb-5">We will highlight each required field one by one. You can skip anytime.</p>
+                                <div className="flex items-center justify-end gap-2">
+                                    <button onClick={skipEntrustTour} className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100">Skip</button>
+                                    <button onClick={startEntrustTour} className="px-4 py-2 rounded-xl text-sm font-bold bg-brand-600 text-white hover:bg-brand-700">Take Tour</button>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                    {entrustTourStepIndex !== null && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[175] pointer-events-none">
+                            <div className="absolute inset-0 bg-black/65" />
+                            {entrustTourRect && (
+                                <div className="absolute rounded-2xl border-2 border-amber-300 shadow-[0_0_0_9999px_rgba(2,6,23,0.72)]" style={{ top: entrustTourRect.top, left: entrustTourRect.left, width: entrustTourRect.width, height: entrustTourRect.height }} />
+                            )}
+                            <div className="absolute left-1/2 -translate-x-1/2 bottom-5 w-[calc(100%-1.5rem)] max-w-md bg-white rounded-3xl p-5 shadow-2xl pointer-events-auto">
+                                <div className="text-[11px] uppercase tracking-widest font-black text-brand-500 mb-2">Step {entrustTourStepIndex + 1} of {ENTRUST_TOUR_STEPS.length}</div>
+                                <h4 className="text-lg font-bold text-brand-950 mb-1">{ENTRUST_TOUR_STEPS[entrustTourStepIndex]?.title}</h4>
+                                <p className="text-sm text-slate-600 mb-4">{ENTRUST_TOUR_STEPS[entrustTourStepIndex]?.text}</p>
+                                <div className="flex items-center justify-between gap-2">
+                                    <button onClick={skipEntrustTour} className="px-4 py-2 text-sm font-bold rounded-xl text-slate-600 hover:bg-slate-100 transition-colors">Skip Tour</button>
+                                    <button
+                                        onClick={() => {
+                                            const isLastStep = entrustTourStepIndex >= ENTRUST_TOUR_STEPS.length - 1;
+                                            if (isLastStep) {
+                                                setEntrustTourStepIndex(null);
+                                                setEntrustTourRect(null);
+                                            } else {
+                                                setEntrustTourStepIndex(entrustTourStepIndex + 1);
+                                            }
+                                        }}
+                                        className="px-4 py-2 text-sm font-bold rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors"
+                                    >
+                                        {entrustTourStepIndex >= ENTRUST_TOUR_STEPS.length - 1 ? 'Done' : 'Next'}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div >
         </section >
     );
