@@ -605,6 +605,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 if (user.status === 'Pending Verification') {
                     return onUpdateUser({ ...user, status: 'Rejected', pendingProfileUpdate: undefined });
                 }
+                if (user.status === 'Active') {
+                    return onUpdateUser({ ...user, status: 'Rejected', pendingProfileUpdate: undefined });
+                }
                 if (hasPendingEdit) {
                     return onUpdateUser({ ...user, pendingProfileUpdate: undefined });
                 }
@@ -1272,7 +1275,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                         <button
                                                             onClick={async () => {
                                                                 if (window.confirm(`Approve ${user.name} again?`)) {
-                                                                    await onUpdateUser({ ...user, status: 'Active' });
+                                                                    await approveUserOrPendingEdit(user);
                                                                 }
                                                             }}
                                                             className="p-2 hover:bg-green-50 text-green-600 rounded-lg transition-colors"
@@ -1468,7 +1471,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <button
                                             onClick={async () => {
                                                 if (window.confirm(`Approve ${user.name} again?`)) {
-                                                    await onUpdateUser({ ...user, status: 'Active' });
+                                                    await approveUserOrPendingEdit(user);
                                                 }
                                             }}
                                             className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-50 text-green-600 rounded-xl font-medium text-sm hover:bg-green-100 transition-colors"
