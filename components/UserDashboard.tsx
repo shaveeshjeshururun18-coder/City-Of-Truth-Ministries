@@ -616,6 +616,32 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         window.location.href = '/auth?view=login';
     };
 
+    const handleBlockedFeature = () => {
+        alert('This feature is locked until admin approval.');
+    };
+
+    const handleDownloadQrCode = async () => {
+        if (!canAccessEntrustFeatures) {
+            handleBlockedFeature();
+            return;
+        }
+        try {
+            const response = await fetch(qrImgSrc);
+            const blob = await response.blob();
+            const objectUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = objectUrl;
+            link.download = `COT-QR-${displayProfile.id}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(objectUrl);
+        } catch (error) {
+            console.error('QR download failed:', error);
+            alert('Unable to download QR code. Please try again.');
+        }
+    };
+
     const handleVerificationDocUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -903,18 +929,33 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             </div>
                         </div>
 
-                        {/* Right: QR Code */}
+                        {/* Right: Entrust card preview + QR download */}
                         <div className="w-full xl:w-2/5 flex flex-col items-center justify-center border-t xl:border-t-0 xl:border-l border-slate-100 pt-6 xl:pt-0 xl:pl-6">
                             {user.status === 'Active' ? (
                                 <div className="flex flex-col items-center">
+                                    <div className="relative rounded-2xl overflow-hidden border border-slate-200 shadow-md">
+                                        <div style={{ transform: 'scale(0.72)', transformOrigin: 'top center', height: '155px', width: '245px' }}>
+                                            <EntrustCard3D
+                                                name={displayProfile.name}
+                                                email={user.email}
+                                                location={user.location}
+                                                emergency={user.emergency}
+                                                uniqueId={displayProfile.id}
+                                                memberSince={user.memberSince}
+                                                photo={displayProfile.photo}
+                                                status={user.status}
+                                                isStatic={true}
+                                                isBackSide={false}
+                                            />
+                                        </div>
+                                    </div>
                                     <button
                                         type="button"
-                                        onClick={() => onOpenScanner?.()}
-                                        className="relative inline-block bg-white rounded-3xl p-4 border border-slate-100 shadow-lg shadow-brand-900/5"
+                                        onClick={handleDownloadQrCode}
+                                        className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-black uppercase tracking-wider transition-colors"
                                     >
-                                        <img src={qrImgSrc} alt="QR Code" className="w-40 h-40 sm:w-48 sm:h-48 block mx-auto" crossOrigin="anonymous" />
+                                        <QrCode size={14} /> Download QR Code
                                     </button>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-4">Tap QR to open scanner</p>
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center text-center">
@@ -960,7 +1001,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 { icon: <Share2 size={20} />, label: 'Share', action: handleShare, id: 'dashboard-share-top-btn' },
                                 { icon: <Download size={20} />, label: 'Download', action: handleDownloadPDF, loading: isProcessing },
                                 { icon: <FileText size={20} />, label: 'Details PDF', action: handleExportProfileDetailsPDF },
-                                { icon: <QrCode size={20} />, label: 'Open Scanner', action: () => onOpenScanner?.(), id: 'dashboard-scanner-btn' },
+                                { icon: <QrCode size={20} />, label: 'Download QR', action: handleDownloadQrCode, id: 'dashboard-scanner-btn' },
                                 { icon: <LogIn size={20} />, label: 'Profile Login', action: handleGoToLogin, id: 'dashboard-login-top-btn' },
                             ].map(({ icon, label, action, loading, id }, i) => (
                                 <button id={id} key={i} onClick={action} disabled={loading}
@@ -1002,62 +1043,62 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     )}
 
                     {/* Testimony */}
-                    <button id="dashboard-testimony-btn" onClick={() => setShowTestimonialModal(true)}
-                        className="bg-gradient-to-br from-brand-700 to-brand-900 text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
+                    <button id="dashboard-testimony-btn" onClick={canAccessEntrustFeatures ? () => setShowTestimonialModal(true) : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
+                        className={`rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-brand-700 to-brand-900 text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
                         <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><MessageSquare size={18} /></div>
                         <p className="font-bold text-sm leading-tight mb-1">Write Testimony</p>
-                        <p className="text-white/70 text-[10px]">Share what God has done</p>
-                        <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
-                            <MessageSquare size={11} /> Write Now
+                        <p className={`${canAccessEntrustFeatures ? 'text-white/70' : 'text-slate-400'} text-[10px]`}>Share what God has done</p>
+                        <span className={`mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest rounded-lg px-2.5 py-1.5 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
+                            <MessageSquare size={11} /> {canAccessEntrustFeatures ? 'Write Now' : 'Locked'}
                         </span>
                     </button>
 
                     {/* Share Profile Link */}
-                    <button id="dashboard-share-btn" onClick={handleShare}
-                        className="bg-gradient-to-br from-emerald-600 to-teal-700 text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
+                    <button id="dashboard-share-btn" onClick={canAccessEntrustFeatures ? handleShare : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
+                        className={`rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-emerald-600 to-teal-700 text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
                         <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Share2 size={18} /></div>
                         <p className="font-bold text-sm leading-tight mb-1">Share Profile Link</p>
-                        <p className="text-white/80 text-[10px]">Share unique login URL for this profile</p>
-                        <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
-                            <Share2 size={11} /> Share
+                        <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[10px]`}>Share unique login URL for this profile</p>
+                        <span className={`mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest rounded-lg px-2.5 py-1.5 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
+                            <Share2 size={11} /> {canAccessEntrustFeatures ? 'Share' : 'Locked'}
                         </span>
                     </button>
 
                     {/* Family Portfolio PDF */}
-                    <button onClick={handleExportProfileDetailsPDF}
-                        className="bg-gradient-to-br from-indigo-700 to-violet-800 text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
+                    <button onClick={canAccessEntrustFeatures ? handleExportProfileDetailsPDF : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
+                        className={`rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-indigo-700 to-violet-800 text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
                         <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><FileText size={18} /></div>
                         <p className="font-bold text-sm leading-tight mb-1">Family Portfolio PDF</p>
-                        <p className="text-white/80 text-[10px]">Download a polished member, family, and active-profile portfolio</p>
-                        <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
-                            <Download size={11} /> Download PDF
+                        <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[10px]`}>Download a polished member, family, and active-profile portfolio</p>
+                        <span className={`mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest rounded-lg px-2.5 py-1.5 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
+                            <Download size={11} /> {canAccessEntrustFeatures ? 'Download PDF' : 'Locked'}
                         </span>
                     </button>
 
                     {/* Member Form */}
-                    <button id="dashboard-member-form-btn" onClick={() => setShowCommunityProfileForm(true)}
-                        className="col-span-2 bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] rounded-[22px] p-5 text-left shadow-xl hover:brightness-110 transition-all relative overflow-hidden group border border-[#d4a547]/30">
+                    <button id="dashboard-member-form-btn" onClick={canAccessEntrustFeatures ? () => setShowCommunityProfileForm(true) : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
+                        className={`col-span-2 rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] hover:brightness-110 border border-[#d4a547]/30' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
                         <div className="absolute top-3 right-3 px-2 py-1 rounded-full bg-[#d4a547]/15 border border-[#d4a547]/40 text-[9px] font-black uppercase tracking-widest text-[#f8e7b0]">
                             User Book
                         </div>
                         <div className="w-11 h-11 bg-white/15 rounded-xl flex items-center justify-center mb-3"><Users size={22} /></div>
                         <p className="font-bold text-base leading-tight mb-1">Member Form Column</p>
-                        <p className="text-[#f8e7b0] text-[11px] mb-3">Professional themed profile form for User Book. Submission is visible in Admin Dashboard.</p>
+                        <p className={`${canAccessEntrustFeatures ? 'text-[#f8e7b0]' : 'text-slate-400'} text-[11px] mb-3`}>Professional themed profile form for User Book. Submission is visible in Admin Dashboard.</p>
                         <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/20 rounded-xl px-4 py-2">
-                            <Edit2 size={12} /> Open Form
+                            <Edit2 size={12} /> {canAccessEntrustFeatures ? 'Open Form' : 'Locked'}
                         </span>
                     </button>
 
                     {/* Jewish Calendar — amber (full width row) */}
                     {activeProfileId === user.id && (
-                        <button onClick={() => setIsCalendarModalOpen(true)}
-                            className="col-span-2 bg-gradient-to-br from-[#8B4500] via-[#C07000] to-[#D97706] text-white rounded-[22px] p-5 text-left shadow-xl hover:brightness-110 transition-all relative overflow-hidden group">
+                        <button onClick={canAccessEntrustFeatures ? () => setIsCalendarModalOpen(true) : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
+                            className={`col-span-2 rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#8B4500] via-[#C07000] to-[#D97706] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
                             <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Calendar size={22} /></div>
                             <p className="font-bold text-base leading-tight mb-1">Jewish Calendar 5786</p>
-                            <p className="text-white/80 text-[11px] mb-0.5">Download the official City of Truth Ministries Jewish Calendar.</p>
-                            <p className="text-white/60 text-[10px] mb-3">Pro Max Quality Edition.</p>
-                            <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-[#fff8e8] text-[#7B3F00] rounded-xl px-4 py-2">
-                                <Download size={12} /> DOWNLOAD PDF
+                            <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-0.5`}>Download the official City of Truth Ministries Jewish Calendar.</p>
+                            <p className={`${canAccessEntrustFeatures ? 'text-white/60' : 'text-slate-400'} text-[10px] mb-3`}>Pro Max Quality Edition.</p>
+                            <span className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 ${canAccessEntrustFeatures ? 'bg-[#fff8e8] text-[#7B3F00]' : 'bg-slate-200 text-slate-500'}`}>
+                                <Download size={12} /> {canAccessEntrustFeatures ? 'DOWNLOAD PDF' : 'LOCKED'}
                             </span>
                             <div className="absolute right-4 bottom-4 opacity-10 group-hover:opacity-20 transition-opacity">
                                 <Calendar size={64} />
@@ -1066,31 +1107,53 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     )}
 
                     {/* Mobile App — navy (full width row) */}
-                    <a href="/COT Ministries.apk" download
-                        className="col-span-2 bg-gradient-to-br from-[#1a237e] to-[#3949ab] text-white rounded-[22px] p-5 text-left shadow-xl hover:brightness-110 transition-all relative overflow-hidden group block">
+                    <button type="button" onClick={() => {
+                        if (!canAccessEntrustFeatures) {
+                            handleBlockedFeature();
+                            return;
+                        }
+                        const link = document.createElement('a');
+                        link.href = '/COT Ministries.apk';
+                        link.download = 'COT Ministries.apk';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }}
+                        className={`col-span-2 rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#1a237e] to-[#3949ab] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
                         <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3">
                             <svg viewBox="0 0 24 24" className="w-[22px] h-[22px] fill-white"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.38.07 2.33.76 3.13.8 1.18-.25 2.31-.94 3.56-.84 1.5.12 2.63.72 3.37 1.8-3.09 1.85-2.56 5.93.28 7.05-.55 1.5-1.27 2.98-2.34 4.07zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" /></svg>
                         </div>
                         <p className="font-bold text-base leading-tight mb-1">Get the Mobile App</p>
-                        <p className="text-white/80 text-[11px] mb-3">Access your ID card offline and get instant ministry updates on your Android device.</p>
-                        <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/20 rounded-xl px-4 py-2">
-                            <Download size={12} /> Download Our App
+                        <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-3`}>Access your ID card offline and get instant ministry updates on your Android device.</p>
+                        <span className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
+                            <Download size={12} /> {canAccessEntrustFeatures ? 'Download Our App' : 'Locked'}
                         </span>
                         <div className="absolute right-4 bottom-4 opacity-10 group-hover:opacity-20 transition-opacity text-[64px] font-bold">
                             📱
                         </div>
-                    </a>
+                    </button>
 
                     {/* Menorah Flag Download */}
-                    <a href="/menorah-flag-image.png" download="COT-Menorah-Flag.png"
-                        className="col-span-2 bg-gradient-to-br from-[#7c4d00] to-[#f59e0b] text-white rounded-[22px] p-5 text-left shadow-xl hover:brightness-110 transition-all relative overflow-hidden group block">
+                    <button type="button" onClick={() => {
+                        if (!canAccessEntrustFeatures) {
+                            handleBlockedFeature();
+                            return;
+                        }
+                        const link = document.createElement('a');
+                        link.href = '/menorah-flag-image.png';
+                        link.download = 'COT-Menorah-Flag.png';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }}
+                        className={`col-span-2 rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#7c4d00] to-[#f59e0b] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
                         <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Flag size={22} /></div>
                         <p className="font-bold text-base leading-tight mb-1">Download Menorah Flag</p>
-                        <p className="text-white/80 text-[11px] mb-3">Save the official ministry flag image to your device.</p>
-                        <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/20 rounded-xl px-4 py-2">
-                            <Download size={12} /> Download Flag
+                        <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-3`}>Save the official ministry flag image to your device.</p>
+                        <span className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
+                            <Download size={12} /> {canAccessEntrustFeatures ? 'Download Flag' : 'Locked'}
                         </span>
-                    </a>
+                    </button>
 
                     {/* Go To Login */}
                     <button id="dashboard-login-btn" onClick={handleGoToLogin}
