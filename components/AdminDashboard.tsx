@@ -4,7 +4,7 @@ import {
     Users, UserCheck, UserX, Clock, Search, Edit2, Trash2, X, User as UserIcon, ShieldAlert,
     ChevronLeft, ChevronRight, Filter, Mail, Phone, MapPin, Droplet,
     Calendar, Award, Shield, ShieldCheck, AlertCircle, CheckCircle, QrCode, Download,
-    Save, GripVertical, Globe, Plus, ImagePlus, Camera, Image as ImageIcon, MessageSquare, Check, XCircle,
+    Save, GripVertical, Globe, Plus, ImagePlus, Camera, Image as ImageIcon, MessageSquare, Check, XCircle, FileText,
     PanelLeft, PanelTop, Database, RotateCcw
 } from 'lucide-react';
 import { User, UserRole, UserStatus, Testimonial, Ministry, DeletedUser } from '../types';
