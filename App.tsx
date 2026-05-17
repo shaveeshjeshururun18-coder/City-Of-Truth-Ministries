@@ -1064,6 +1064,39 @@ const App: React.FC = () => {
     }
   };
 
+  const footerMainPages: Array<{ label: string; view: ViewState }> = [
+    { label: 'Home', view: ViewState.HOME },
+    { label: 'Alphabets', view: ViewState.HEBREW },
+    { label: 'Valparai', view: ViewState.ABOUT_VALPARAI },
+    { label: 'Pastor', view: ViewState.PASTOR },
+    { label: 'Ministries', view: ViewState.MINISTRIES },
+    { label: 'Menorah', view: ViewState.GOLDEN_MENORAH },
+    { label: 'Baruch Hashem', view: ViewState.BARUCH_HASHEM },
+    { label: 'AI Assistance', view: ViewState.AI },
+    { label: 'Entrust Card', view: ViewState.ID_CARD },
+    { label: 'Contact', view: ViewState.CONTACT },
+  ];
+
+  const footerHebrewContentPages: Array<{ label: string; view: ViewState }> = [
+    { label: 'Hebrew Content Hub', view: ViewState.ABOUT },
+    { label: 'Festivals & Holy Days', view: ViewState.HEBREW_FESTIVALS },
+    { label: 'Biblical Calendar', view: ViewState.HEBREW_CALENDAR },
+    { label: 'Hebrew Clock', view: ViewState.HEBREW_CLOCK },
+    { label: 'Month/Year Reference', view: ViewState.HEBREW_REFERENCE },
+  ];
+
+  const footerHebrewGrammarPages: Array<{ label: string; view: ViewState }> = [
+    { label: 'Hebrew Grammar', view: ViewState.HEBREW_GRAMMAR },
+  ];
+
+  const footerHebrewToolPages: Array<{ label: string; view: ViewState }> = [
+    { label: 'Hebrew Tools Hub', view: ViewState.HEBREW_TOOLS },
+    { label: 'Hebrew Words', view: ViewState.HEBREW_WORDS },
+    { label: 'Letters Audio Lab', view: ViewState.HEBREW_LETTERS_AUDIO },
+    { label: 'Hebrew Numbers', view: ViewState.HEBREW_NUMBERS },
+    { label: 'Gematria Value', view: ViewState.HEBREW_GEMATRIA },
+  ];
+
   // If on admin route, show admin interface
   if (isAdminRoute) {
     if (!isAdminAuthenticated) {
@@ -1801,22 +1834,86 @@ const App: React.FC = () => {
             </div>
 
             <div className="col-span-1">
-              <h4 className="font-bold text-white mb-6">Ministries</h4>
+              <h4 className="font-bold text-white mb-6">Site Map — Main Pages</h4>
               <ul className="space-y-4 text-sm text-brand-100/60">
-                {['Sunday Worship', 'Bible Study', 'Youth Fellowship', 'Outreach', 'Counseling'].map(item => (
-                  <li key={item}><a href="#" className="hover:text-white transition-colors flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-accent-500/50"></div>{item}</a></li>
+                {footerMainPages.map(item => (
+                  <li key={item.label}>
+                    <button
+                      onClick={() => { setCurrentView(item.view); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                      className="hover:text-white transition-colors flex items-center gap-2 text-left"
+                    >
+                      <div className="w-1.5 h-1.5 rounded-full bg-accent-500/50"></div>
+                      {item.label}
+                    </button>
+                  </li>
                 ))}
+                {currentUser && (
+                  <li>
+                    <button
+                      onClick={() => { setCurrentView(ViewState.USER_DASHBOARD); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                      className="hover:text-white transition-colors flex items-center gap-2 text-left"
+                    >
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/60"></div>
+                      User Dashboard
+                    </button>
+                  </li>
+                )}
+                <li><a href="/admin" className="hover:text-white transition-colors flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-red-500/50"></div>Admin Dashboard</a></li>
               </ul>
             </div>
 
             <div className="col-span-1">
-              <h4 className="font-bold text-white mb-6">Quick Links</h4>
-              <ul className="space-y-4 text-sm text-brand-100/60">
-                {['About Us', 'Sermons', 'Events', 'Give', 'Contact'].map(item => (
-                  <li key={item}><a href="#" className="hover:text-white transition-colors flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-accent-500/50"></div>{item}</a></li>
-                ))}
-                <li><a href="/admin" className="hover:text-white transition-colors flex items-center gap-2 pr-2 border-r border-white/10"><div className="w-1.5 h-1.5 rounded-full bg-red-500/50"></div>Admin Dashboard</a></li>
-              </ul>
+              <h4 className="font-bold text-white mb-6">Hebrew Site Map</h4>
+              <div className="space-y-5">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-400 mb-2">Hebrew Content</p>
+                  <ul className="space-y-2 text-sm text-brand-100/60">
+                    {footerHebrewContentPages.map(item => (
+                      <li key={item.label}>
+                        <button
+                          onClick={() => { setCurrentView(item.view); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className="hover:text-white transition-colors flex items-center gap-2 text-left"
+                        >
+                          <div className="w-1.5 h-1.5 rounded-full bg-amber-400/70"></div>
+                          {item.label}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-400 mb-2">Hebrew Grammar</p>
+                  <ul className="space-y-2 text-sm text-brand-100/60">
+                    {footerHebrewGrammarPages.map(item => (
+                      <li key={item.label}>
+                        <button
+                          onClick={() => { setCurrentView(item.view); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className="hover:text-white transition-colors flex items-center gap-2 text-left"
+                        >
+                          <div className="w-1.5 h-1.5 rounded-full bg-sky-400/70"></div>
+                          {item.label}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-400 mb-2">Hebrew Tools</p>
+                  <ul className="space-y-2 text-sm text-brand-100/60">
+                    {footerHebrewToolPages.map(item => (
+                      <li key={item.label}>
+                        <button
+                          onClick={() => { setCurrentView(item.view); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className="hover:text-white transition-colors flex items-center gap-2 text-left"
+                        >
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/70"></div>
+                          {item.label}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             </div>
 
             <div className="col-span-1">
