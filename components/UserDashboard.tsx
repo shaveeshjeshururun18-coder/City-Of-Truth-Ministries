@@ -77,29 +77,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         if (sub) return { ...user, id: sub.id, name: sub.name, photo: sub.photo, bloodGroup: sub.bloodGroup, dob: sub.dob };
         return user;
     };
-    const getSafePhotoSrc = (photo?: string) => {
-        const candidate = (photo || '').trim();
-        if (!candidate) return null;
-        if (/^data:image\/(?:png|jpe?g|webp|gif|bmp);base64,/i.test(candidate)) return candidate;
-        if (candidate.startsWith('blob:')) return candidate;
-        if (/^https?:\/\//i.test(candidate)) {
-            try {
-                const allowedHosts = new Set([
-                    'firebasestorage.googleapis.com',
-                    'lh3.googleusercontent.com',
-                    'avatars.githubusercontent.com',
-                    'user-attachments.githubusercontent.com',
-                    'raw.githubusercontent.com',
-                    'ui-avatars.com',
-                ]);
-                const parsed = new URL(candidate);
-                if (allowedHosts.has(parsed.hostname)) return candidate;
-            } catch {
-                return null;
-            }
-        }
-        return null;
-    };
     const getAvatarInitials = (name?: string) => {
         const parts = (name || '').trim().split(/\s+/).filter(Boolean);
         if (parts.length >= 2) return `${parts[0][0] || 'C'}${parts[1][0] || 'T'}`.toUpperCase();
@@ -111,8 +88,30 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         initialClass = 'text-sm',
         gradientClass = 'from-brand-600 to-violet-700'
     ) => {
-        const safeSrc = getSafePhotoSrc(photo);
-        if (safeSrc) return <img src={safeSrc} alt="Profile photo" className="w-full h-full object-cover" loading="lazy" />;
+        const candidate = (photo || '').trim();
+        if (candidate) {
+            if (/^data:image\/(?:png|jpe?g|webp|gif|bmp);base64,/i.test(candidate) || candidate.startsWith('blob:')) {
+                return <img src={candidate} alt="Profile photo" className="w-full h-full object-cover" loading="lazy" />;
+            }
+            if (/^https?:\/\//i.test(candidate)) {
+                try {
+                    const parsed = new URL(candidate);
+                    const allowedHosts = new Set([
+                        'firebasestorage.googleapis.com',
+                        'lh3.googleusercontent.com',
+                        'avatars.githubusercontent.com',
+                        'user-attachments.githubusercontent.com',
+                        'raw.githubusercontent.com',
+                        'ui-avatars.com',
+                    ]);
+                    if (allowedHosts.has(parsed.hostname)) {
+                        return <img src={parsed.toString()} alt="Profile photo" className="w-full h-full object-cover" loading="lazy" />;
+                    }
+                } catch {
+                    // Fall back to initials when the URL is invalid.
+                }
+            }
+        }
         return (
             <div className={`w-full h-full bg-gradient-to-br ${gradientClass} flex items-center justify-center text-white ${initialClass} font-black tracking-[0.2em]`}>
                 {getAvatarInitials(name)}

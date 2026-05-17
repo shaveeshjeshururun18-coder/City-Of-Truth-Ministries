@@ -44,6 +44,30 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
         if (isStatic) setIsFlipped(isBackSide);
     }, [isBackSide, isStatic]);
 
+    const safePhotoSrc = (() => {
+        const candidate = (photo || '').trim();
+        if (!candidate) return null;
+        if (/^data:image\/(?:png|jpe?g|webp|gif|bmp);base64,/i.test(candidate)) return candidate;
+        if (candidate.startsWith('blob:')) return candidate;
+        if (/^https?:\/\//i.test(candidate)) {
+            try {
+                const parsed = new URL(candidate);
+                const allowedHosts = new Set([
+                    'firebasestorage.googleapis.com',
+                    'lh3.googleusercontent.com',
+                    'avatars.githubusercontent.com',
+                    'user-attachments.githubusercontent.com',
+                    'raw.githubusercontent.com',
+                    'ui-avatars.com',
+                ]);
+                if (allowedHosts.has(parsed.hostname)) return parsed.toString();
+            } catch {
+                return null;
+            }
+        }
+        return null;
+    })();
+
     const fullDetails = `CITY OF TRUTH MINISTRIES\nID: ${uniqueId}\nName: ${name}\nLocation: ${location}\nPhone: ${emergency}\nMember Since: ${memberSince}`.trim();
     const appOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://city-of-truth-ministries.vercel.app';
     const verifyUrl = `${appOrigin}/verify/${uniqueId}`;
@@ -74,7 +98,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
             <div className="flex-1 flex p-2 gap-2 relative z-10">
                 {/* Left: Photo */}
                 <div className="w-24 h-28 bg-slate-50 rounded-lg border-2 border-slate-100 flex items-center justify-center text-slate-300 overflow-hidden shadow-sm shrink-0">
-                    {photo ? <img src={photo} alt="P" className="w-full h-full object-cover" /> : <User size={32} />}
+                    {safePhotoSrc ? <img src={safePhotoSrc} alt="P" className="w-full h-full object-cover" /> : <User size={32} />}
                 </div>
 
                 {/* Right: Details */}
