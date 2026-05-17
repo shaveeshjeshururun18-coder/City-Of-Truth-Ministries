@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, XCircle, Loader2, Download, Shield, FileText, ArrowLeft } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Download, Shield, ArrowLeft, LogIn } from 'lucide-react';
 import { api } from '../services/api';
 import { User } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
@@ -11,9 +11,10 @@ import { addCenteredCardPage } from './pdfCardUtils';
 interface QRVerifyPageProps {
     userId: string;
     onBack?: () => void;
+    onProceedToDashboard?: (identifier: string) => void;
 }
 
-export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack }) => {
+export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack, onProceedToDashboard }) => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -282,6 +283,18 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack }) =>
                                 ) : (
                                     <><Download size={20} /> Download Entrust Card PDF</>
                                 )}
+                            </motion.button>
+                        )}
+
+                        {onProceedToDashboard && (
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => onProceedToDashboard(user.id)}
+                                className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-white text-brand-700 font-bold rounded-2xl shadow-sm border border-brand-200 hover:bg-brand-50 transition-all"
+                            >
+                                <LogIn size={20} />
+                                Proceed to Dashboard
                             </motion.button>
                         )}
 

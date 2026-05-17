@@ -57,6 +57,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [showCardPreview, setShowCardPreview] = useState(false);
     const [cardFlipped, setCardFlipped] = useState(false);
     const [showCommunityProfileForm, setShowCommunityProfileForm] = useState(false);
+    const [cropTarget, setCropTarget] = useState<{ type: 'primary' | 'linked-profile' | 'new-family-member'; profileId?: string } | null>(null);
     const canAccessEntrustFeatures = user.status === 'Active';
 
     useEffect(() => {
@@ -120,11 +121,17 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const displayProfile = getDisplayProfile();
 
 
-    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handlePhotoUpload = (
+        e: React.ChangeEvent<HTMLInputElement>,
+        target: 'primary' | 'linked-profile' | 'new-family-member' = activeProfileId === user.id ? 'primary' : 'linked-profile'
+    ) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             const reader = new FileReader();
             reader.onloadend = () => {
+                setCropTarget(target === 'linked-profile'
+                    ? { type: target, profileId: activeProfileId }
+                    : { type: target });
                 setCroppingImage(reader.result as string);
                 e.target.value = '';
             };
@@ -133,7 +140,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     };
 
     const handleCropComplete = (croppedImg: string) => {
-        if (activeProfileId === user.id) {
+        if (cropTarget?.type === 'new-family-member') {
+            setSubProfileForm(prev => ({ ...prev, photo: croppedImg }));
+        } else if (cropTarget?.type === 'linked-profile' && cropTarget.profileId) {
+            const updatedProfiles = user.linkedProfiles?.map(p => p.id === cropTarget.profileId ? { ...p, photo: croppedImg } : p) || [];
+            onUpdate({ ...user, linkedProfiles: updatedProfiles } as User);
+            alert('Profile photo updated successfully.');
+        } else {
             onUpdate({
                 ...user,
                 pendingProfileUpdate: {
@@ -142,12 +155,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 }
             } as User);
             alert('Photo update submitted for admin approval.');
-        } else {
-            const updatedProfiles = user.linkedProfiles?.map(p => p.id === activeProfileId ? { ...p, photo: croppedImg } : p) || [];
-            onUpdate({ ...user, linkedProfiles: updatedProfiles } as User);
-            alert('Profile photo updated successfully.');
         }
         setCroppingImage(null);
+        setCropTarget(null);
     };
 
     const handleDownloadPDF = async () => {
@@ -278,7 +288,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             return;
         }
         const newId = `${user.id}-${(user.linkedProfiles?.length || 0) + 1}`;
-        const newProfile: SubProfile = { id: newId, name: trimmedName, role: selectedRole, dob: subProfileForm.dob, bloodGroup: subProfileForm.bloodGroup };
+        const newProfile: SubProfile = {
+            id: newId,
+            name: trimmedName,
+            role: selectedRole,
+            photo: subProfileForm.photo,
+            dob: subProfileForm.dob,
+            bloodGroup: subProfileForm.bloodGroup
+        };
         onUpdate({ ...user, linkedProfiles: [...(user.linkedProfiles || []), newProfile] } as User);
         setShowFamilyModal(false); setSubProfileForm({});
     };
@@ -291,11 +308,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     };
 
     const handleShare = () => {
-        const url = `${window.location.origin}/auth?view=login&identifier=${encodeURIComponent(displayProfile.id)}`;
+        const url = `${window.location.origin}/verify/${encodeURIComponent(displayProfile.id)}`;
         if (navigator.share) {
             navigator.share({
                 title: `${displayProfile.name} — City of Truth Ministries`,
-                text: `Login with this unique member profile link: ${displayProfile.id}`,
+                text: `Open this verified member link: ${displayProfile.id}`,
                 url
             });
         } else {
@@ -664,7 +681,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.06] pointer-events-none z-0" />
 
             {/* Off-screen capture nodes */}
-            {croppingImage && <div className="z-[100] relative"><ImageCropper imageSrc={croppingImage} onCropComplete={handleCropComplete} onCancel={() => setCroppingImage(null)} /></div>}
+            {croppingImage && <div className="z-[100] relative"><ImageCropper imageSrc={croppingImage} onCropComplete={handleCropComplete} onCancel={() => { setCroppingImage(null); setCropTarget(null); }} /></div>}
             <TestimonialModal isOpen={showTestimonialModal} onClose={() => setShowTestimonialModal(false)} user={user} />
             <CommunityProfileForm
                 isOpen={showCommunityProfileForm}
@@ -706,6 +723,25 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 <p className="text-xs text-slate-500 mb-5">Keep it simple: name and relationship first. You can update profile details later.</p>
                                 <form onSubmit={handleAddSubProfile} className="space-y-4">
                                     <div>
+                                        <label className="text-xs font-semibold text-slate-700 block mb-1.5">Photo (optional)</label>
+                                        <label className="flex items-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 cursor-pointer hover:border-brand-400 hover:bg-brand-50 transition-colors">
+                                            <div className="w-14 h-14 rounded-xl overflow-hidden border border-slate-200 bg-white flex items-center justify-center text-slate-400 shrink-0">
+                                                {subProfileForm.photo
+                                                    ? <img src={subProfileForm.photo} alt="Family member" className="w-full h-full object-cover" />
+                                                    : <UploadCloud size={18} />}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-bold text-slate-700">
+                                                    {subProfileForm.photo ? 'Photo ready' : 'Upload and crop family photo'}
+                                                </p>
+                                                <p className="text-[11px] text-slate-500">
+                                                    {subProfileForm.photo ? 'You can still replace it before saving.' : 'Optional, but you can add it now instead of later.'}
+                                                </p>
+                                            </div>
+                                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoUpload(e, 'new-family-member')} />
+                                        </label>
+                                    </div>
+                                    <div>
                                         <label className="text-xs font-semibold text-slate-700 block mb-1.5">Full Name</label>
                                         <input required type="text" value={subProfileForm.name || ''} onChange={e => setSubProfileForm({ ...subProfileForm, name: e.target.value })} className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm font-medium shadow-sm placeholder:text-slate-500" placeholder="John Doe" />
                                     </div>
@@ -745,7 +781,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                     </div>
                                     <div className="pt-2">
                                         <Button type="submit" variant="primary" fullWidth className="py-3 shadow-lg shadow-brand-500/20"><UserPlus size={16} className="mr-2" /> Add Member</Button>
-                                        <p className="text-[10px] text-center text-slate-400 mt-2">Switch to their profile after creation to set a photo.</p>
+                                        <p className="text-[10px] text-center text-slate-400 mt-2">You can add the member with their photo already cropped and ready.</p>
                                     </div>
                                 </form>
                             </div>
@@ -769,7 +805,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         </div>
                         <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 cursor-pointer transition-all">
                             <Camera size={14} className="text-white" />
-                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoUpload(e, 'add-new')} />
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoUpload(e)} />
                         </label>
                         {/* Active indicator */}
                         <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white ${user.status === 'Active' ? 'bg-green-500' : user.status === 'Rejected' ? 'bg-red-500' : 'bg-amber-400'}`} />
@@ -932,22 +968,24 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         {/* Right: Entrust card preview + QR download */}
                         <div className="w-full xl:w-2/5 flex flex-col items-center justify-center border-t xl:border-t-0 xl:border-l border-slate-100 pt-6 xl:pt-0 xl:pl-6">
                             {user.status === 'Active' ? (
-                                <div className="flex flex-col items-center">
-                                    <div className="relative rounded-2xl overflow-hidden border border-slate-200 shadow-md">
-                                        <div style={{ transform: 'scale(0.72)', transformOrigin: 'top center', height: '155px', width: '245px' }}>
-                                            <EntrustCard3D
-                                                name={displayProfile.name}
-                                                email={user.email}
-                                                location={user.location}
-                                                emergency={user.emergency}
-                                                uniqueId={displayProfile.id}
-                                                memberSince={user.memberSince}
-                                                photo={displayProfile.photo}
-                                                status={user.status}
-                                                isStatic={true}
-                                                isBackSide={false}
+                                <div className="flex flex-col items-center w-full">
+                                    <div className="w-full max-w-[320px] rounded-[28px] border border-slate-200 bg-gradient-to-br from-slate-50 to-white shadow-md px-5 py-6 flex flex-col items-center text-center">
+                                        <div className="inline-flex items-center gap-2 rounded-full bg-brand-50 border border-brand-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-brand-600 mb-4">
+                                            <QrCode size={12} />
+                                            Verify QR
+                                        </div>
+                                        <div className="rounded-[24px] border border-slate-200 bg-white p-3 shadow-inner">
+                                            <img
+                                                src={qrImgSrc}
+                                                alt={`QR code for ${displayProfile.id}`}
+                                                className="w-44 h-44 md:w-52 md:h-52 object-contain"
                                             />
                                         </div>
+                                        <p className="mt-4 text-sm font-bold text-brand-950">{displayProfile.name}</p>
+                                        <p className="text-[11px] text-slate-500 font-mono mt-1">{displayProfile.id.toUpperCase()}</p>
+                                        <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
+                                            Scan this code to open the official verification page for this Entrust profile.
+                                        </p>
                                     </div>
                                     <button
                                         type="button"
@@ -959,21 +997,16 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center text-center">
-                                    <div className="relative rounded-2xl overflow-hidden border border-slate-200 shadow-md">
-                                        <div className="blur-[3px] pointer-events-none select-none" style={{ transform: 'scale(0.72)', transformOrigin: 'top center', height: '155px', width: '245px' }}>
-                                            <EntrustCard3D
-                                                name={displayProfile.name}
-                                                email={user.email}
-                                                location={user.location}
-                                                emergency={user.emergency}
-                                                uniqueId={displayProfile.id}
-                                                memberSince={user.memberSince}
-                                                photo={displayProfile.photo}
-                                                status={user.status}
-                                                isStatic={true}
-                                                isBackSide={false}
-                                            />
+                                    <div className="w-full max-w-[320px] rounded-[28px] border border-slate-200 bg-slate-50 px-5 py-6">
+                                        <div className="mx-auto w-fit rounded-full bg-slate-200 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-slate-500 mb-4">
+                                            QR Locked
                                         </div>
+                                        <div className="relative mx-auto rounded-[24px] overflow-hidden border border-slate-200 shadow-md bg-white p-3 w-fit">
+                                            <img
+                                                src={qrImgSrc}
+                                                alt={`QR code for ${displayProfile.id}`}
+                                                className="w-44 h-44 md:w-52 md:h-52 object-contain blur-[3px] pointer-events-none select-none"
+                                            />
                                         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 gap-2">
                                             <ShieldCheck size={28} className="text-amber-300" />
                                             <p className="font-black text-white text-xs uppercase tracking-widest">Not Verified</p>
@@ -982,6 +1015,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                     <p className={`text-[10px] mt-2 ${user.status === 'Rejected' ? 'text-red-500' : 'text-slate-400'}`}>
                                         {user.status === 'Rejected' ? 'Denied by admin. Please contact support.' : 'Pending admin verification'}
                                     </p>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -1016,7 +1050,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 </div>
 
                 {/* ── ACTION CARDS GRID ── */}
-                <div className="grid grid-cols-2 gap-4 mb-5">
+                    <div className="grid grid-cols-2 gap-4 mb-5">
 
                     {/* Entrust ID Card — brown */}
                     {user.status === 'Active' ? (
@@ -1248,6 +1282,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             alert('No existing photo to crop. Use "Add New Photo" first.');
                                             return;
                                         }
+                                        setCropTarget(activeProfileId === user.id
+                                            ? { type: 'primary' }
+                                            : { type: 'linked-profile', profileId: activeProfileId });
                                         setCroppingImage(displayProfile.photo);
                                         setIsEditing(false);
                                     }}

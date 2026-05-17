@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, CheckCircle, XCircle, Search, ScanLine, X, Loader2 } from 'lucide-react';
+import { Camera, CheckCircle, XCircle, Search, ScanLine, X, Loader2, LogIn } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
 import { User } from '../types';
@@ -11,7 +11,11 @@ import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 GlobalWorkerOptions.workerSrc = pdfWorker;
 
-const VerifyIDPage = () => {
+interface VerifyIDPageProps {
+    onProceedToDashboard?: (identifier: string) => void;
+}
+
+const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => {
     const [scannedId, setScannedId] = useState<string | null>(null);
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(false);
@@ -398,7 +402,18 @@ const VerifyIDPage = () => {
                                             </div>
                                         )}
                                     </div>
-                                    <button onClick={() => { setUser(null); setScannedId(null); }} className="mt-8 px-6 py-3 w-full bg-white text-slate-700 font-bold rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors">Scan Another ID</button>
+                                    <div className="mt-8 space-y-3">
+                                        {onProceedToDashboard && (
+                                            <button
+                                                onClick={() => onProceedToDashboard(user.id)}
+                                                className="px-6 py-3 w-full bg-brand-600 text-white font-bold rounded-xl border border-brand-600 hover:bg-brand-700 transition-colors flex items-center justify-center gap-2"
+                                            >
+                                                <LogIn size={18} />
+                                                Proceed to Dashboard
+                                            </button>
+                                        )}
+                                        <button onClick={() => { setUser(null); setScannedId(null); }} className="px-6 py-3 w-full bg-white text-slate-700 font-bold rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors">Scan Another ID</button>
+                                    </div>
                                 </div>
                             </div>
                         </motion.div>
