@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Church, Home, Info, Heart, Flame, Phone, ChevronRight, CreditCard, Facebook, Youtube, Instagram, MapPin, Languages, Zap, Sparkles, Send, Globe, LogIn, CircleUser, LogOut, ChevronDown, Calendar, Hash, Star, BookOpen, ExternalLink, Plus } from 'lucide-react';
+import { Menu, X, Church, Home, Info, Heart, Flame, Phone, ChevronRight, CreditCard, Facebook, Youtube, Instagram, MapPin, Languages, Zap, Sparkles, Send, Globe, LogIn, CircleUser, LogOut, ChevronDown, Calendar, Clock, Hash, Star, BookOpen, ExternalLink, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ViewState, NavItem } from '../types';
 import { Button } from './Button';
@@ -21,6 +21,7 @@ const getIcon = (view: ViewState) => {
     case ViewState.ABOUT: return <Languages size={18} />;
     case ViewState.HEBREW_TOOLS: return <Zap size={18} />;
     case ViewState.HEBREW_CALENDAR: return <Calendar size={18} />;
+    case ViewState.HEBREW_CLOCK: return <Clock size={18} />;
     case ViewState.HEBREW_NUMBERS: return <Hash size={18} />;
     case ViewState.HEBREW_FESTIVALS: return <Star size={18} />;
     case ViewState.HEBREW_REFERENCE: return <BookOpen size={18} />;
@@ -32,6 +33,7 @@ const getIcon = (view: ViewState) => {
     case ViewState.ABOUT_VALPARAI: return <MapPin size={18} />;
     case ViewState.MENORAH: return <Flame size={18} />;
     case ViewState.MENORAH_FLAG: return <Flame size={18} />;
+    case ViewState.GOLDEN_MENORAH: return <Flame size={18} />;
     case ViewState.BARUCH_HASHEM: return <Globe size={18} />;
     case ViewState.AI: return <Sparkles size={18} />;
     default: return <Church size={18} />;
@@ -61,7 +63,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
   const translateLabel = (label: string) => {
     const key = NAV_LABEL_TO_KEY[label];
-    return key ? t(key) : label;
+    if (!key) return label;
+    if (language === 'ta') return t(key);
+    return label;
   };
 
   useEffect(() => {
@@ -171,11 +175,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
           <button
             onClick={() => setLanguage(language === 'en' ? 'ta' : 'en')}
             className={`hidden sm:flex items-center gap-1 px-2.5 h-9 rounded-xl text-[11px] font-bold transition-all whitespace-nowrap ${currentView === ViewState.HOME && !isScrolled ? 'border border-white/20 bg-white/10 text-white hover:bg-white/20' : 'border border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50'}`}
-            title={language === 'en' ? 'Switch to Tamil' : 'Switch to English'}
+            title={language === 'en' ? 'Current mode: Bilingual' : 'Current mode: Tamil only'}
             aria-label="Toggle language"
           >
             <Languages size={13} className="shrink-0" />
-            <span>{language === 'en' ? 'தமிழ்' : 'EN'}</span>
+            <span>{language === 'en' ? 'Bilingual' : 'Tamil Only'}</span>
           </button>
 
           <div className={`flex items-center gap-3 sm:gap-3.5 p-1 sm:p-1.5 rounded-2xl backdrop-blur-md border transition-all duration-300 ${currentView === ViewState.HOME && !isScrolled ? 'bg-white/10 border-white/20' : 'bg-white/95 border-brand-200/80'}`}>
@@ -232,7 +236,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
 
               
-              <div className="p-5 flex flex-col relative z-20">
+              <div className="p-5 pt-[max(1.25rem,env(safe-area-inset-top))] flex flex-col relative z-20">
                 <div className="flex justify-between items-center w-full mb-5">
                   <div className="flex items-center gap-4">
                     <div className="w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center border border-brand-100">
@@ -246,11 +250,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                   <button
                     type="button"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="p-2 rounded-full transition-all text-white bg-blue-700 hover:bg-blue-800 shadow-md border border-blue-500/60 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    className="p-2.5 rounded-full transition-all text-white bg-blue-700 hover:bg-blue-800 shadow-lg border-2 border-blue-400/80 focus:outline-none focus:ring-2 focus:ring-blue-300"
                     title="Close menu"
                     aria-label="Close navigation menu"
                   >
-                    <X size={18} />
+                    <X size={20} strokeWidth={2.8} />
                   </button>
 
 
@@ -302,6 +306,26 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
 
               <div className="flex-1 overflow-y-auto py-3 px-4 space-y-0.5">
+                {currentUser && (
+                  <button
+                    onClick={() => {
+                      setView(ViewState.USER_DASHBOARD);
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all ${currentView === ViewState.USER_DASHBOARD
+                      ? 'bg-[#EEF0FF] text-[#5D5FEF]'
+                      : 'bg-transparent text-[#555] hover:bg-gray-50'
+                      }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <span className={currentView === ViewState.USER_DASHBOARD ? 'text-[#5D5FEF]' : 'text-gray-400'}>
+                        <CircleUser size={18} />
+                      </span>
+                      <span className="font-bold tracking-wide uppercase text-[11px]">My Dashboard</span>
+                    </div>
+                    <ChevronRight size={14} />
+                  </button>
+                )}
                 {navItems.map((item) => {
                   const hasSubmenu = item.submenu && item.submenu.length > 0;
                   const isSubmenuOpen = activeMobileSubmenu === item.label;
@@ -416,16 +440,38 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                 )}
               </div>
 
-              {/* Language Toggle in Mobile Menu */}
+              {/* Language Mode in Mobile Menu */}
               <div className="px-4 pb-2">
-                <button
-                  onClick={() => setLanguage(language === 'en' ? 'ta' : 'en')}
-                  className="w-full flex items-center justify-center gap-2 bg-white border border-brand-100 text-brand-700 p-2.5 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-brand-50 transition-colors"
-                  aria-label="Toggle language"
-                >
-                  <Languages size={14} />
-                  {language === 'en' ? 'தமிழில் மாறு (Switch to Tamil)' : 'Switch to English (ஆங்கிலத்திற்கு மாறு)'}
-                </button>
+                <div className="w-full rounded-xl border border-brand-100 bg-white p-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-brand-700 mb-2 flex items-center gap-1.5">
+                    <Languages size={12} />
+                    Language
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setLanguage('en')}
+                      className={`p-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                        language === 'en'
+                          ? 'bg-brand-600 text-white'
+                          : 'bg-brand-50 text-brand-700 hover:bg-brand-100'
+                      }`}
+                      aria-label="Set English and Tamil mode"
+                    >
+                      Bilingual
+                    </button>
+                    <button
+                      onClick={() => setLanguage('ta')}
+                      className={`p-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                        language === 'ta'
+                          ? 'bg-brand-600 text-white'
+                          : 'bg-brand-50 text-brand-700 hover:bg-brand-100'
+                      }`}
+                      aria-label="Set Tamil only mode"
+                    >
+                      Tamil Only
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Logout Button in Mobile Menu */}

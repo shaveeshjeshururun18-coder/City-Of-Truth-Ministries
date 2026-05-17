@@ -167,14 +167,25 @@ export const HebrewAlphabetPage: React.FC = () => {
                     ))}
                 </div>
 
-                <div className="mt-24 p-12 bg-gradient-to-b from-white/5 to-transparent rounded-[3rem] border border-white/8 text-center space-y-6 relative overflow-hidden backdrop-blur-md">
+                <div className="mt-24 p-8 md:p-12 bg-gradient-to-b from-white/5 to-transparent rounded-[3rem] border border-white/8 text-center space-y-6 relative overflow-hidden backdrop-blur-md">
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                     <Sparkles className="mx-auto text-white/30" size={36} />
-                    <p className="font-serif italic text-2xl md:text-3xl text-white/80 leading-relaxed max-w-3xl mx-auto drop-shadow-md">
-                        "For then will I turn to the people a pure language, that they may all call upon the name of the Lord, to serve him with one consent."
-                    </p>
-                    <div className="text-white/40 text-sm tracking-[0.3em] font-bold uppercase">Zephaniah 3:9</div>
-                    <p className="text-white/30 text-xs">🔊 Click any card or audio icon to hear Hebrew pronunciation and Tamil teaching guidance</p>
+                    <p className="text-[10px] md:text-xs uppercase tracking-[0.28em] text-white/40 font-black">Quick Snapshot</p>
+                    <div className="grid sm:grid-cols-3 gap-3 md:gap-4 max-w-3xl mx-auto">
+                        <div className="rounded-2xl border border-[#F59E0B]/35 bg-[#F59E0B]/12 px-4 py-4">
+                            <div className="text-3xl md:text-4xl font-black text-[#FBBF24] leading-none">{letterCount}</div>
+                            <p className="text-[10px] md:text-xs font-black tracking-[0.14em] uppercase text-[#F59E0B]/80 mt-2">Letters</p>
+                        </div>
+                        <div className="rounded-2xl border border-white/20 bg-white/10 px-4 py-4">
+                            <div className="text-3xl md:text-4xl font-black text-white leading-none">{letterCount}</div>
+                            <p className="text-[10px] md:text-xs font-black tracking-[0.14em] uppercase text-white/70 mt-2">Name Words</p>
+                        </div>
+                        <div className="rounded-2xl border border-emerald-400/35 bg-emerald-500/10 px-4 py-4">
+                            <div className="text-3xl md:text-4xl font-black text-emerald-300 leading-none">5</div>
+                            <p className="text-[10px] md:text-xs font-black tracking-[0.14em] uppercase text-emerald-200/80 mt-2">Final Forms</p>
+                        </div>
+                    </div>
+                    <p className="text-white/30 text-[11px] md:text-xs font-bold">Tap a letter card to learn pronunciation instantly.</p>
                 </div>
             </div>
         </div>

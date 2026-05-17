@@ -12,7 +12,7 @@ const translations: Record<Language, Record<string, string>> = {
   en: {
     // Nav labels
     'nav.home': 'HOME',
-    'nav.hebrew': 'HEBREW CONTENT',
+    'nav.hebrew': 'HEBREW RESOURCES',
     'nav.hebrewTools': 'HEBREW TOOLS',
     'nav.alphabets': 'ALPHABETS',
     'nav.valparai': 'VALPARAI',
@@ -139,7 +139,20 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const t = (key: string): string => {
-    return translations[language][key] ?? translations['en'][key] ?? key;
+    const englishText = translations.en?.[key];
+    const tamilText = translations.ta?.[key];
+    const normalizedEnglish = typeof englishText === 'string' ? englishText.trim() : '';
+    const normalizedTamil = typeof tamilText === 'string' ? tamilText.trim() : '';
+
+    if (language === 'ta') {
+      return tamilText ?? englishText ?? key;
+    }
+
+    if (englishText && tamilText && normalizedEnglish !== normalizedTamil) {
+      return `${englishText} / ${tamilText}`;
+    }
+
+    return englishText ?? tamilText ?? key;
   };
 
   return (
@@ -156,6 +169,7 @@ export const NAV_LABEL_TO_KEY: Record<string, string> = {
   'HOME': 'nav.home',
   'HEBREW': 'nav.hebrew',
   'HEBREW CONTENT': 'nav.hebrew',
+  'HEBREW RESOURCES': 'nav.hebrew',
   'HEBREW TOOLS': 'nav.hebrewTools',
   'ALPHABETS': 'nav.alphabets',
   'VALPARAI': 'nav.valparai',

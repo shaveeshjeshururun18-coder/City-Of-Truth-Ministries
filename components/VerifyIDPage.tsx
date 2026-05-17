@@ -22,6 +22,7 @@ const VerifyIDPage = () => {
     const [torchOn, setTorchOn] = useState(false);
     const [compactScanner, setCompactScanner] = useState(false);
     const scannerRef = useRef<any>(null);
+    const isApprovedUser = user?.status === 'Active';
 
     const normalizeCotId = (value: string) => value.trim().toUpperCase().replace(/^COT(?!-)/, 'COT-');
     const extractIdFromPath = (value: string) => value.match(/\/(?:verify|card)\/([A-Za-z0-9]+(?:-[A-Za-z0-9]+)*)/i)?.[1] || null;
@@ -404,24 +405,83 @@ const VerifyIDPage = () => {
                         </motion.div>
                     )}
                     {!loading && user && (
-                        <motion.div initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -20, scale: 0.95 }} className="bg-gradient-to-br from-green-50 to-emerald-50 p-10 rounded-[2.5rem] shadow-2xl shadow-green-900/10 border-2 border-green-200 relative overflow-hidden max-w-3xl mx-auto">
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-green-400 rounded-full blur-[100px] opacity-20 pointer-events-none" />
+                        <motion.div
+                            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                            className={`p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden max-w-3xl mx-auto border-2 ${
+                                user.status === 'Active'
+                                    ? 'bg-gradient-to-br from-green-50 to-emerald-50 shadow-green-900/10 border-green-200'
+                                    : user.status === 'Rejected'
+                                        ? 'bg-gradient-to-br from-red-50 to-rose-50 shadow-red-900/10 border-red-200'
+                                        : 'bg-gradient-to-br from-amber-50 to-yellow-50 shadow-amber-900/10 border-amber-200'
+                            }`}
+                        >
+                            <div className={`absolute top-0 right-0 w-64 h-64 rounded-full blur-[100px] opacity-20 pointer-events-none ${
+                                user.status === 'Active'
+                                    ? 'bg-green-400'
+                                    : user.status === 'Rejected'
+                                        ? 'bg-red-400'
+                                        : 'bg-amber-400'
+                            }`} />
                             <div className="flex flex-col md:flex-row items-center gap-10 relative z-10">
                                 <div className="w-48 h-48 md:w-56 md:h-56 shrink-0 relative">
-                                    <div className="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-20" />
+                                    <div className={`absolute inset-0 rounded-full animate-ping opacity-20 ${
+                                        user.status === 'Active'
+                                            ? 'bg-green-400'
+                                            : user.status === 'Rejected'
+                                                ? 'bg-red-400'
+                                                : 'bg-amber-400'
+                                    }`} />
                                     {user.photo ? (
                                         <img src={user.photo} alt={user.name} className="w-full h-full object-cover rounded-full border-8 border-white shadow-2xl relative z-10" />
                                     ) : (
                                         <div className="w-full h-full bg-slate-200 rounded-full border-8 border-white shadow-2xl relative z-10 flex items-center justify-center text-6xl font-black text-slate-400">{user.name.charAt(0).toUpperCase()}</div>
                                     )}
-                                    <div className="absolute -bottom-2 -right-2 bg-green-500 text-white p-3 rounded-full shadow-lg border-4 border-white z-20"><CheckCircle className="w-8 h-8" /></div>
+                                    <div className={`absolute -bottom-2 -right-2 text-white p-3 rounded-full shadow-lg border-4 border-white z-20 ${
+                                        user.status === 'Active'
+                                            ? 'bg-green-500'
+                                            : user.status === 'Rejected'
+                                                ? 'bg-red-500'
+                                                : 'bg-amber-500'
+                                    }`}>
+                                        {user.status === 'Active' ? <CheckCircle className="w-8 h-8" /> : <XCircle className="w-8 h-8" />}
+                                    </div>
                                 </div>
                                 <div className="text-center md:text-left flex-1">
-                                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-200/50 text-green-800 rounded-full text-sm font-bold uppercase tracking-widest mb-4 border border-green-300/50">
-                                        <span className="w-2 h-2 rounded-full bg-green-600 opacity-75" /> Valid Member
+                                    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold uppercase tracking-widest mb-4 border ${
+                                        user.status === 'Active'
+                                            ? 'bg-green-200/50 text-green-800 border-green-300/50'
+                                            : user.status === 'Rejected'
+                                                ? 'bg-red-200/50 text-red-800 border-red-300/50'
+                                                : 'bg-amber-200/60 text-amber-800 border-amber-300/50'
+                                    }`}>
+                                        <span className={`w-2 h-2 rounded-full opacity-75 ${
+                                            user.status === 'Active'
+                                                ? 'bg-green-600'
+                                                : user.status === 'Rejected'
+                                                    ? 'bg-red-600'
+                                                    : 'bg-amber-600'
+                                        }`} />
+                                        {user.status === 'Active' ? 'Valid Member' : user.status === 'Rejected' ? 'Rejected Member' : 'Pending Approval'}
                                     </div>
                                     <h4 className="text-4xl font-black text-slate-900 mb-2 tracking-tight">{user.name}</h4>
-                                    <p className="text-green-700 font-bold text-xl mb-6">{user.role || 'Worshipper'}</p>
+                                    <p className={`font-bold text-xl mb-4 ${
+                                        user.status === 'Active'
+                                            ? 'text-green-700'
+                                            : user.status === 'Rejected'
+                                                ? 'text-red-700'
+                                                : 'text-amber-700'
+                                    }`}>{user.role || 'Worshipper'}</p>
+                                    {!isApprovedUser && (
+                                        <p className={`text-sm font-medium mb-6 ${
+                                            user.status === 'Rejected' ? 'text-red-700' : 'text-amber-700'
+                                        }`}>
+                                            {user.status === 'Rejected'
+                                                ? 'This member is not approved. Entrust card access remains blocked.'
+                                                : 'This member is awaiting admin approval. Entrust card access remains blocked.'}
+                                        </p>
+                                    )}
                                     <div className="grid grid-cols-2 gap-4 text-left">
                                         <div className="bg-white/80 backdrop-blur-sm p-4 rounded-2xl border border-green-100 shadow-sm">
                                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-1">Member ID</span>

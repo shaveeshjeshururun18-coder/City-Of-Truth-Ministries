@@ -19,6 +19,7 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack }) =>
     const [error, setError] = useState<string | null>(null);
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloaded, setDownloaded] = useState(false);
+    const isApprovedUser = user?.status === 'Active';
 
     useEffect(() => {
         const loadUser = async () => {
@@ -51,6 +52,10 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack }) =>
     }, [userId]);
 
     const handleDownloadPDF = async () => {
+        if (!user || user.status !== 'Active') {
+            alert('Entrust card download is available only after admin approval.');
+            return;
+        }
         setIsDownloading(true);
         try {
             const frontNode = document.getElementById('qr-verify-front');
@@ -77,7 +82,7 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack }) =>
     };
 
     useEffect(() => {
-        if (user && user.status === 'Active' && !downloaded && !isDownloading) {
+        if (isApprovedUser && !downloaded && !isDownloading) {
             // Wait for all images in the hidden nodes to fully load before capturing
             const waitForImages = () => {
                 const container = document.querySelector('#qr-verify-front, #qr-verify-back');
@@ -103,12 +108,12 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack }) =>
             }, 1500);
             return () => clearTimeout(timer);
         }
-    }, [user, downloaded, isDownloading]);
+    }, [isApprovedUser, downloaded, isDownloading]);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-brand-50 flex flex-col items-center px-4 py-8">
             {/* Hidden capture nodes */}
-            {user && (
+            {user && isApprovedUser && (
                 <div className="fixed left-[-9999px] top-0 pointer-events-none z-0">
                     <div id="qr-verify-front" className="bg-white">
                         <EntrustCard3D name={user.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={user.id} memberSince={user.memberSince} photo={user.photo} status={user.status} isStatic={true} isBackSide={false} />
@@ -166,17 +171,45 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack }) =>
                 {!loading && user && (
                     <motion.div key="success" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md space-y-6">
                         {/* Status Banner */}
-                        <div className={`flex items-center gap-3 px-5 py-4 rounded-2xl border ${user.status === 'Active' ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+                        <div className={`flex items-center gap-3 px-5 py-4 rounded-2xl border ${
+                            user.status === 'Active'
+                                ? 'bg-green-50 border-green-200'
+                                : user.status === 'Rejected'
+                                    ? 'bg-red-50 border-red-200'
+                                    : 'bg-amber-50 border-amber-200'
+                        }`}>
                             {user.status === 'Active'
                                 ? <CheckCircle className="text-green-500 shrink-0" size={22} />
-                                : <Shield className="text-amber-500 shrink-0" size={22} />
+                                : user.status === 'Rejected'
+                                    ? <XCircle className="text-red-500 shrink-0" size={22} />
+                                    : <Shield className="text-amber-500 shrink-0" size={22} />
                             }
                             <div>
-                                <p className={`font-bold text-sm ${user.status === 'Active' ? 'text-green-800' : 'text-amber-800'}`}>
-                                    {user.status === 'Active' ? '✓ Verified Active Member' : '⏳ Pending Verification'}
+                                <p className={`font-bold text-sm ${
+                                    user.status === 'Active'
+                                        ? 'text-green-800'
+                                        : user.status === 'Rejected'
+                                            ? 'text-red-800'
+                                            : 'text-amber-800'
+                                }`}>
+                                    {user.status === 'Active'
+                                        ? '✓ Verified Active Member'
+                                        : user.status === 'Rejected'
+                                            ? '✕ Verification Rejected'
+                                            : '⏳ Pending Verification'}
                                 </p>
-                                <p className={`text-xs mt-0.5 ${user.status === 'Active' ? 'text-green-600' : 'text-amber-600'}`}>
-                                    {user.status === 'Active' ? 'This member is officially registered and active.' : 'This member is awaiting admin approval.'}
+                                <p className={`text-xs mt-0.5 ${
+                                    user.status === 'Active'
+                                        ? 'text-green-600'
+                                        : user.status === 'Rejected'
+                                            ? 'text-red-600'
+                                            : 'text-amber-600'
+                                }`}>
+                                    {user.status === 'Active'
+                                        ? 'This member is officially registered and active.'
+                                        : user.status === 'Rejected'
+                                            ? 'This member cannot download the entrust card because approval was rejected.'
+                                            : 'This member is awaiting admin approval and cannot download the entrust card yet.'}
                                 </p>
                             </div>
                         </div>
@@ -210,21 +243,31 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack }) =>
                         </div>
 
                         {/* ID Card Preview */}
-                        <div className="flex justify-center">
-                            <EntrustCard3D
-                                name={user.name}
-                                email={user.email}
-                                location={user.location}
-                                emergency={user.emergency}
-                                uniqueId={user.id}
-                                memberSince={user.memberSince}
-                                photo={user.photo}
-                                status={user.status}
-                            />
-                        </div>
+                        {isApprovedUser ? (
+                            <div className="flex justify-center">
+                                <EntrustCard3D
+                                    name={user.name}
+                                    email={user.email}
+                                    location={user.location}
+                                    emergency={user.emergency}
+                                    uniqueId={user.id}
+                                    memberSince={user.memberSince}
+                                    photo={user.photo}
+                                    status={user.status}
+                                />
+                            </div>
+                        ) : (
+                            <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+                                <Shield className="mx-auto text-slate-400 mb-3" size={30} />
+                                <h3 className="text-base font-bold text-slate-800">Entrust card locked</h3>
+                                <p className="text-sm text-slate-500 mt-2">
+                                    Admin approval is required before this entrust card can be previewed or downloaded.
+                                </p>
+                            </div>
+                        )}
 
                         {/* Download Button */}
-                        {user.status === 'Active' && (
+                        {isApprovedUser && (
                             <motion.button
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}

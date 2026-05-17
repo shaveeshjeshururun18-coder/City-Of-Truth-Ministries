@@ -10,6 +10,7 @@ export enum ViewState {
   HEBREW = 'HEBREW',
   HEBREW_TOOLS = 'HEBREW_TOOLS',
   HEBREW_CALENDAR = 'HEBREW_CALENDAR',
+  HEBREW_CLOCK = 'HEBREW_CLOCK',
   HEBREW_NUMBERS = 'HEBREW_NUMBERS',
   HEBREW_WORDS = 'HEBREW_WORDS',
   HEBREW_LETTERS_AUDIO = 'HEBREW_LETTERS_AUDIO',
@@ -43,6 +44,7 @@ export interface PendingProfileUpdate {
   phone?: string;
   location?: string;
   emergency?: string;
+  photo?: string;
 }
 
 export interface User {

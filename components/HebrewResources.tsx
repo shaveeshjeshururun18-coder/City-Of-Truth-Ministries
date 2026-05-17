@@ -639,7 +639,136 @@ const ReferenceView: React.FC = () => {
     );
 };
 
+const CHENNAI_TIMEZONE = 'Asia/Kolkata';
+
+const AnalogDial: React.FC<{
+    label: string;
+    hourAngle: number;
+    minuteAngle: number;
+    secondAngle: number;
+    accent: string;
+}> = ({ label, hourAngle, minuteAngle, secondAngle, accent }) => (
+    <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 text-center mb-4">{label}</p>
+        <div className={`relative mx-auto w-52 h-52 rounded-full border-4 ${accent} bg-slate-50 shadow-inner`}>
+            {Array.from({ length: 12 }).map((_, i) => {
+                const value = i + 1;
+                const hebrewNumber = toHebrew(value);
+                const hebrewLetter = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ', 'ל'][i];
+                return (
+                    <span
+                        key={value}
+                        className="absolute text-[10px] font-black text-brand-900 flex flex-col items-center leading-none"
+                        style={{
+                            left: '50%',
+                            top: '50%',
+                            transform: `rotate(${value * 30}deg) translateY(-88px) translateX(-50%)`,
+                            transformOrigin: 'center center',
+                        }}
+                    >
+                        <span className="text-[11px]">{hebrewNumber}</span>
+                        <span className="text-[10px] text-slate-500">{hebrewLetter}</span>
+                    </span>
+                );
+            })}
+            <span
+                className="absolute left-1/2 top-1/2 w-1.5 h-12 bg-slate-800 rounded-full"
+                style={{ transform: `translate(-50%, -100%) rotate(${hourAngle}deg)`, transformOrigin: '50% 100%' }}
+            />
+            <span
+                className="absolute left-1/2 top-1/2 w-1 h-16 bg-brand-600 rounded-full"
+                style={{ transform: `translate(-50%, -100%) rotate(${minuteAngle}deg)`, transformOrigin: '50% 100%' }}
+            />
+            <span
+                className="absolute left-1/2 top-1/2 w-0.5 h-20 bg-red-500 rounded-full"
+                style={{ transform: `translate(-50%, -100%) rotate(${secondAngle}deg)`, transformOrigin: '50% 100%' }}
+            />
+            <span className="absolute left-1/2 top-1/2 w-3 h-3 bg-slate-800 rounded-full -translate-x-1/2 -translate-y-1/2 border-2 border-white" />
+        </div>
+    </div>
+);
+
+const HebrewClockView: React.FC = () => {
+    const [now, setNow] = useState(() => new Date());
+
+    useEffect(() => {
+        const timer = window.setInterval(() => setNow(new Date()), 1000);
+        return () => window.clearInterval(timer);
+    }, []);
+
+    const digitalTime = useMemo(
+        () =>
+            now.toLocaleTimeString('en-IN', {
+                timeZone: CHENNAI_TIMEZONE,
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+            }),
+        [now]
+    );
+
+    const dateLine = useMemo(
+        () =>
+            now.toLocaleDateString('en-IN', {
+                timeZone: CHENNAI_TIMEZONE,
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+            }),
+        [now]
+    );
+
+    const [hour = 0, minute = 0, second = 0] = digitalTime.split(':').map((v) => Number(v));
+    const hourAngle = ((hour % 12) + minute / 60 + second / 3600) * 30;
+    const minuteAngle = (minute + second / 60) * 6;
+    const secondAngle = second * 6;
+    const hebrewDigitalTime = `${toHebrew((hour % 12) || 12)}:${toHebrew(minute)}:${toHebrew(second)}`;
+
+    return (
+        <div className="space-y-10">
+            <div className="text-center">
+                <h3 className="text-3xl md:text-5xl font-serif font-bold text-brand-950">Hebrew Clock — Chennai Time</h3>
+                <p className="text-slate-500 mt-2">Live time synced to Chennai (Asia/Kolkata).</p>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+                <div className="bg-white rounded-[2rem] border border-amber-100 p-8 shadow-xl text-center">
+                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-600 mb-3">Hebrew Digital Clock</p>
+                    <div className="text-4xl md:text-6xl font-black text-brand-950 tracking-wider" dir="rtl">{hebrewDigitalTime}</div>
+                    <p className="text-sm text-slate-500 mt-4">Digits rendered as Hebrew numerals.</p>
+                </div>
+                <div className="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-xl text-center">
+                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 mb-3">Normal Digital Timing</p>
+                    <div className="text-5xl md:text-7xl font-black font-mono text-brand-950 tracking-wider">{digitalTime}</div>
+                    <p className="text-sm text-slate-500 mt-4">{dateLine}</p>
+                </div>
+            </div>
+
+            <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 text-center mb-4">Hebrew Quartz Clock</p>
+                <div className="max-w-md mx-auto">
+                    <AnalogDial
+                        label="Analogue Dial (Hebrew Letters + Numbers)"
+                        hourAngle={hourAngle}
+                        minuteAngle={minuteAngle}
+                        secondAngle={secondAngle}
+                        accent="border-emerald-300"
+                    />
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const GrammarView: React.FC = () => {
+    const [sentence, setSentence] = useState('');
+    const [correctedSentence, setCorrectedSentence] = useState('');
+    const [correctionNotes, setCorrectionNotes] = useState<string[]>([]);
+    const [isExportingGrammar, setIsExportingGrammar] = useState(false);
+    const grammarExportRef = useRef<HTMLDivElement>(null);
+
     const grammarTopics = [
         {
             title: 'Hebrew Script & Direction',
@@ -647,6 +776,7 @@ const GrammarView: React.FC = () => {
                 'Hebrew is written from right to left.',
                 'The alphabet has 22 letters (Aleph to Tav).',
                 'Five letters have final forms at word endings: ך ם ן ף ץ.',
+                'Diacritics and punctuation should keep visual flow right-to-left for fluent reading.',
             ],
         },
         {
@@ -655,6 +785,7 @@ const GrammarView: React.FC = () => {
                 'Ancient Hebrew consonants are read with vowel marks called nikkud.',
                 'Common marks include kamatz (ָ), patach (ַ), segol (ֶ), hiriq (ִ), and holam (ֹ).',
                 'Modern Hebrew often omits nikkud in daily text, but biblical reading uses them for clarity.',
+                'When learning, read each word first with nikkud and then without nikkud to build fluency.',
             ],
         },
         {
@@ -663,6 +794,7 @@ const GrammarView: React.FC = () => {
                 'Nouns are masculine or feminine.',
                 'Words change for singular and plural forms.',
                 'Adjectives must agree with nouns in gender and number.',
+                'Common plural endings include -ים (masculine) and -ות (feminine), with notable irregular nouns.',
             ],
         },
         {
@@ -671,6 +803,15 @@ const GrammarView: React.FC = () => {
                 'Most Hebrew words come from a 3-letter root.',
                 'Verb patterns (binyanim) shape voice and meaning.',
                 'Tense usage is often described as perfect (completed) and imperfect (ongoing/future).',
+                'Tracking binyan changes helps identify active, passive, and reflexive meaning quickly.',
+            ],
+        },
+        {
+            title: 'Sentence Structure',
+            points: [
+                'Biblical Hebrew often uses verb-subject-object order, while modern usage can be more flexible.',
+                'Construct state (smikhut) links nouns into possession-like phrases without extra particles.',
+                'Particles such as את, גם, רק, and הנה add emphasis and structure to meaning.',
             ],
         },
         {
@@ -679,6 +820,7 @@ const GrammarView: React.FC = () => {
                 'ו can mean “and”, ב means “in”, ל means “to/for”, כ means “as/like”.',
                 'Possessive endings attach to nouns (e.g., -י means “my”).',
                 'Pronoun endings may attach to verbs and prepositions.',
+                'A single Hebrew word can carry conjunction, preposition, root, and suffix together.',
             ],
         },
         {
@@ -687,15 +829,100 @@ const GrammarView: React.FC = () => {
                 'Read slowly by syllable before speed reading.',
                 'Track roots to understand related words across verses.',
                 'Use both Hebrew and English context together for better learning.',
+                'Mark repeated grammar patterns in a passage to improve long-term retention.',
             ],
         },
     ];
+
+    const rectifySentence = () => {
+        const trimmed = sentence.replace(/\s+/g, ' ').trim();
+        if (!trimmed) {
+            setCorrectedSentence('');
+            setCorrectionNotes(['Please enter a sentence to rectify.']);
+            return;
+        }
+
+        let next = trimmed;
+        const notes: string[] = [];
+
+        const punctuationSpaced = next
+            .replace(/\s+([,.;:!?])/g, '$1')
+            .replace(/([,.;:!?])(?!\s|$)/g, '$1 ');
+        if (punctuationSpaced !== next) notes.push('Normalized spacing around punctuation.');
+        next = punctuationSpaced;
+
+        const finalToRegular: Record<string, string> = { ך: 'כ', ם: 'מ', ן: 'נ', ף: 'פ', ץ: 'צ' };
+        const regularToFinal: Record<string, string> = { כ: 'ך', מ: 'ם', נ: 'ן', פ: 'ף', צ: 'ץ' };
+
+        const normalizedWords = next.split(' ').map((word) => {
+            const match = word.match(/^(.+?)([.,;:!?]*)$/);
+            const core = match?.[1] || word;
+            const suffix = match?.[2] || '';
+            if (!core) return word;
+
+            const chars = core.split('');
+            for (let i = 0; i < chars.length - 1; i += 1) {
+                const regularChar = finalToRegular[chars[i]];
+                if (regularChar) chars[i] = regularChar;
+            }
+            const lastIdx = chars.length - 1;
+            if (regularToFinal[chars[lastIdx]]) chars[lastIdx] = regularToFinal[chars[lastIdx]];
+            return `${chars.join('')}${suffix}`;
+        }).join(' ');
+
+        if (normalizedWords !== next) notes.push('Adjusted Hebrew final-letter forms at word endings.');
+        next = normalizedWords;
+
+        const capitalized = next.replace(/^[a-z]/, (c) => c.toUpperCase());
+        if (capitalized !== next) notes.push('Capitalized sentence beginning.');
+        next = capitalized;
+
+        if (!/[.!?]$/.test(next)) {
+            next = `${next}.`;
+            notes.push('Added sentence-ending punctuation.');
+        }
+
+        setCorrectedSentence(next);
+        setCorrectionNotes(notes.length ? notes : ['No changes were needed.']);
+    };
+
+    const handleGrammarExport = async (format: 'pdf' | 'png') => {
+        if (!grammarExportRef.current || !correctedSentence) return;
+        setIsExportingGrammar(true);
+        try {
+            const image = await toPng(grammarExportRef.current, { pixelRatio: 2.5, cacheBust: true, backgroundColor: '#0f172a' });
+            const fileBase = `COT-Hebrew-Grammar-Rectification-${Date.now()}`;
+            if (format === 'png') {
+                const link = document.createElement('a');
+                link.href = image;
+                link.download = `${fileBase}.png`;
+                link.click();
+            } else {
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                const width = pdf.internal.pageSize.getWidth();
+                const img = new Image();
+                img.src = image;
+                await new Promise<void>((resolve, reject) => {
+                    img.onload = () => resolve();
+                    img.onerror = () => reject(new Error('Failed to load grammar preview image for export.'));
+                });
+                const height = Math.min((img.height * width) / img.width, pdf.internal.pageSize.getHeight());
+                pdf.addImage(image, 'PNG', 0, 0, width, height);
+                pdf.save(`${fileBase}.pdf`);
+            }
+        } catch (error) {
+            console.error('Grammar export failed:', error);
+            alert('Could not export grammar result. Please try again.');
+        } finally {
+            setIsExportingGrammar(false);
+        }
+    };
 
     return (
         <div className="space-y-8">
             <div className="text-center max-w-3xl mx-auto">
                 <h3 className="text-3xl md:text-5xl font-serif font-bold text-brand-950 mb-3">Hebrew Grammar</h3>
-                <p className="text-slate-500">A complete foundation for script, vowels, roots, word forms, and biblical reading flow.</p>
+                <p className="text-slate-500">A complete foundation for script, vowels, sentence flow, roots, and biblical reading mastery.</p>
             </div>
             <div className="grid md:grid-cols-2 gap-6">
                 {grammarTopics.map((topic) => (
@@ -708,6 +935,56 @@ const GrammarView: React.FC = () => {
                         </ul>
                     </div>
                 ))}
+            </div>
+            <div className="bg-white border border-slate-100 rounded-[2rem] p-6 md:p-8 shadow-xl space-y-5">
+                <div className="space-y-2">
+                    <h4 className="text-2xl font-bold text-brand-950">Sentence Rectifier</h4>
+                    <p className="text-sm text-slate-500">Paste a sentence and rectify spacing, punctuation, and Hebrew final-letter form mistakes.</p>
+                </div>
+                <textarea
+                    value={sentence}
+                    onChange={(e) => setSentence(e.target.value)}
+                    placeholder="Type Hebrew or transliterated sentence..."
+                    className="w-full min-h-28 rounded-2xl border border-slate-200 p-4 text-sm text-slate-700 focus:outline-none focus:ring-4 focus:ring-brand-500/10"
+                />
+                <div className="flex flex-wrap gap-3">
+                    <button
+                        onClick={rectifySentence}
+                        className="px-5 py-2.5 rounded-full bg-brand-950 text-white font-bold text-sm hover:bg-brand-900 transition-colors"
+                    >
+                        Rectify Mistakes
+                    </button>
+                    {correctedSentence && (
+                        <>
+                            <button
+                                onClick={() => handleGrammarExport('pdf')}
+                                disabled={isExportingGrammar}
+                                className="px-5 py-2.5 rounded-full bg-gradient-to-r from-emerald-400 via-sky-500 to-indigo-500 text-white font-bold text-sm shadow-lg disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {isExportingGrammar ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                                Export PDF
+                            </button>
+                            <button
+                                onClick={() => handleGrammarExport('png')}
+                                disabled={isExportingGrammar}
+                                className="px-5 py-2.5 rounded-full bg-slate-100 text-slate-700 font-bold text-sm hover:bg-slate-200 disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {isExportingGrammar ? <Loader2 size={14} className="animate-spin" /> : <FileImage size={14} />}
+                                Export Image
+                            </button>
+                        </>
+                    )}
+                </div>
+                {correctedSentence && (
+                    <div ref={grammarExportRef} className="bg-slate-900 text-white rounded-[1.5rem] p-5 border border-slate-700 space-y-3">
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-sky-300 font-black">Professional Export Preview</p>
+                        <p className="text-sm text-slate-300">Corrected Sentence</p>
+                        <div className="text-2xl font-serif bg-white/5 rounded-xl p-4" dir="rtl">{correctedSentence}</div>
+                        <ul className="space-y-1 text-xs text-slate-300 list-disc pl-5">
+                            {correctionNotes.map((note) => <li key={note}>{note}</li>)}
+                        </ul>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -1012,6 +1289,8 @@ const HebrewLettersAudioLab: React.FC = () => {
     const [selectedLetters, setSelectedLetters] = useState<{ letter: string; name: string; hebrewName: string; key: number }[]>([]);
     const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
     const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
+    const [isBuilderDragOver, setIsBuilderDragOver] = useState(false);
+    const [builderSticky, setBuilderSticky] = useState(true);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const [isWordExporting, setIsWordExporting] = useState(false);
@@ -1095,6 +1374,32 @@ const HebrewLettersAudioLab: React.FC = () => {
     };
 
     const handleDragEnd = () => { setDraggingIdx(null); setDragOverIdx(null); };
+
+    const handleSourceLetterDragStart = (e: React.DragEvent, item: (typeof HEBREW_AUDIO_LETTERS)[number]) => {
+        e.dataTransfer.effectAllowed = 'copy';
+        e.dataTransfer.setData('application/json', JSON.stringify({ type: 'cot-hebrew-letter', payload: item }));
+    };
+
+    const handleBuilderDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        setIsBuilderDragOver(true);
+    };
+
+    const handleBuilderDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsBuilderDragOver(false);
+        const payload = e.dataTransfer.getData('application/json');
+        if (!payload) return;
+        try {
+            const parsed = JSON.parse(payload) as { type?: string; payload?: { letter: string; name: string; hebrewName: string } };
+            if (parsed?.type === 'cot-hebrew-letter' && parsed?.payload?.letter && parsed?.payload?.name && parsed?.payload?.hebrewName) {
+                addLetter(parsed.payload);
+            }
+        } catch (error) {
+            console.warn('Invalid Hebrew letter drop payload format:', error);
+        }
+    };
 
     const moveLetter = (idx: number, direction: -1 | 1) => {
         setSelectedLetters(prev => {
@@ -1203,15 +1508,36 @@ const HebrewLettersAudioLab: React.FC = () => {
             <div className="grid gap-6 xl:grid-cols-2 xl:items-start">
                 <div className="space-y-6">
                     {/* ── WORD BUILDER (always visible at top) ── */}
-                    <div className="bg-gradient-to-r from-fuchsia-500 via-sky-500 to-emerald-500 p-[2px] rounded-[2rem] sticky top-20 md:top-[7rem] z-20">
+                    <div className={`bg-gradient-to-r from-fuchsia-500 via-sky-500 to-emerald-500 p-[2px] rounded-[2rem] z-20 ${builderSticky ? 'sticky top-20 md:top-[7rem]' : ''}`}>
                         <div className="bg-white rounded-[2rem] p-4 md:p-6">
                             <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Word Builder — {selectedLetters.length} letter{selectedLetters.length !== 1 ? 's' : ''} (unlimited)</p>
+                                    <div className="flex items-center justify-between gap-3 mb-2">
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Word Builder — {selectedLetters.length} letter{selectedLetters.length !== 1 ? 's' : ''} (unlimited)</p>
+                                        <button
+                                            onClick={() => setBuilderSticky((v) => !v)}
+                                            className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border transition-colors ${builderSticky ? 'bg-brand-50 text-brand-700 border-brand-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}
+                                        >
+                                            {builderSticky ? 'Sticky On' : 'Sticky Off'}
+                                        </button>
+                                    </div>
                                     {selectedLetters.length === 0 ? (
-                                        <p className="text-slate-300 text-sm italic">Tap letters below to build a word…</p>
+                                        <div
+                                            onDragOver={handleBuilderDragOver}
+                                            onDrop={handleBuilderDrop}
+                                            onDragLeave={() => setIsBuilderDragOver(false)}
+                                            className={`text-sm italic rounded-2xl border-2 border-dashed p-4 transition-colors ${isBuilderDragOver ? 'border-brand-400 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-300'}`}
+                                        >
+                                            Drag and drop letters here, or tap + Add below.
+                                        </div>
                                     ) : (
-                                        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 pr-1" dir="rtl">
+                                        <div
+                                            className={`flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 pr-1 rounded-xl transition-colors ${isBuilderDragOver ? 'bg-brand-50/70' : ''}`}
+                                            dir="rtl"
+                                            onDragOver={handleBuilderDragOver}
+                                            onDrop={handleBuilderDrop}
+                                            onDragLeave={() => setIsBuilderDragOver(false)}
+                                        >
                                             {selectedLetters.map((l, idx) => (
                                                 <div
                                                     key={l.key}
@@ -1412,7 +1738,7 @@ const HebrewLettersAudioLab: React.FC = () => {
                                 className="px-4 py-2 rounded-full bg-accent-500 text-brand-950 hover:bg-accent-400 font-bold text-xs flex items-center gap-2 disabled:opacity-50 transition-colors"
                             >
                                 {isExporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-                                Export PDF
+                                Download PDF
                             </button>
                             <button
                                 onClick={() => handleExportInsight('jpeg')}
@@ -1433,9 +1759,23 @@ const HebrewLettersAudioLab: React.FC = () => {
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                         {HEBREW_AUDIO_LETTERS.map((item, index) => (
                             <div key={item.letter} className={`rounded-3xl bg-gradient-to-br ${RAINBOW_GRADIENTS[index % RAINBOW_GRADIENTS.length]} p-[1px]`}>
-                                <div className="bg-white rounded-3xl p-4 h-full flex flex-col items-center text-center gap-2">
+                                <div
+                                    className="bg-white rounded-3xl p-4 h-full flex flex-col items-center text-center gap-2"
+                                    draggable
+                                    role="button"
+                                    tabIndex={0}
+                                    onDragStart={(e) => handleSourceLetterDragStart(e, item)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            addLetter(item);
+                                        }
+                                    }}
+                                    aria-label={`Add ${item.name}`}
+                                >
                                     <span className="text-4xl font-serif text-brand-950">{item.letter}</span>
                                     <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">{item.name}</span>
+                                    <span className="text-[9px] text-slate-400 font-bold">Drag & Drop</span>
                                     <div className="flex items-center gap-1 pt-1 w-full justify-center">
                                         <button
                                             onClick={() => addLetter(item)}
@@ -1492,25 +1832,26 @@ const HebrewLettersAudioLab: React.FC = () => {
 };
 
 interface HebrewResourcesProps {
-    initialTab?: 'numbers' | 'calendar' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio' | 'grammar';
+    initialTab?: 'numbers' | 'calendar' | 'clock' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio' | 'grammar';
     mode?: 'all' | 'content' | 'tools';
     currentUser?: User;
 }
 
-type HebrewResourceTab = 'numbers' | 'calendar' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio' | 'grammar';
+type HebrewResourceTab = 'numbers' | 'calendar' | 'clock' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio' | 'grammar';
 
 const HEBREW_RESOURCE_TABS: ReadonlyArray<{ id: HebrewResourceTab; label: string; icon: React.ReactNode }> = [
     { id: 'festivals', label: 'Festivals', icon: <Flame size={16} /> },
     { id: 'calendar', label: 'Hebrew Calendar', icon: <CalendarIcon size={16} /> },
+    { id: 'clock', label: 'Hebrew Clock', icon: <Clock size={16} /> },
     { id: 'reference', label: 'Month & Days', icon: <BookOpen size={16} /> },
     { id: 'grammar', label: 'Grammar', icon: <BookOpen size={16} /> },
     { id: 'words', label: 'Hebrew Word', icon: <Type size={16} /> },
-    { id: 'lettersaudio', label: 'Letters Audio', icon: <Volume2 size={16} /> },
+    { id: 'lettersaudio', label: 'Audio Lab', icon: <Volume2 size={16} /> },
     { id: 'numbers', label: 'Numbers', icon: <Hash size={16} /> },
     { id: 'gematria', label: 'Gematria Value', icon: <Calculator size={16} /> },
 ];
 
-const CONTENT_TAB_IDS: HebrewResourceTab[] = ['festivals', 'calendar', 'reference', 'grammar'];
+const CONTENT_TAB_IDS: HebrewResourceTab[] = ['festivals', 'calendar', 'clock', 'reference', 'grammar'];
 const TOOLS_TAB_IDS: HebrewResourceTab[] = ['words', 'lettersaudio', 'numbers', 'gematria'];
 
 export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mode = 'all', currentUser }) => {
@@ -1557,8 +1898,8 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
     };
 
     return (
-        <div className="min-h-screen pt-20 md:pt-28 pb-32 md:pb-20 container mx-auto px-6 font-sans bg-[#fffdf6]">
-            <div className="max-w-7xl mx-auto md:flex md:items-start md:gap-8">
+        <div className="min-h-screen pt-20 md:pt-28 pb-32 md:pb-20 w-full px-3 md:px-6 font-sans bg-[#fffdf6]">
+            <div className={`mx-auto md:flex md:items-start md:gap-8 ${tab === 'calendar' ? 'max-w-[96rem]' : 'max-w-7xl'}`}>
                 <aside className="hidden md:block md:w-64 md:shrink-0 md:sticky md:top-[110px]">
                     <div className="flex flex-col gap-3">
                         {availableTabs.map((t) => {
@@ -1587,7 +1928,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
                     </div>
                 </aside>
 
-                <div className="flex-1 space-y-12">
+                <div className={`flex-1 ${tab === 'calendar' ? 'space-y-8' : 'space-y-12'}`}>
                     <div className="text-center space-y-4 mb-4 md:mb-12">
                     <h1 className="text-4xl md:text-8xl font-serif font-bold text-brand-950 px-2">
                         {mode === 'tools' ? (
@@ -1602,7 +1943,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
                         {mode === 'tools'
                             ? 'Explore Hebrew learning tools: words, letters audio, numbers, and gematria.'
                             : mode === 'content'
-                                ? 'Explore Hebrew calendar, festivals, month/day reference, and complete grammar foundations.'
+                                ? 'Explore Hebrew calendar, live Chennai Hebrew clock, festivals, month/day reference, and complete grammar foundations.'
                                 : 'A sanctuary of divine knowledge. Explore the sacred calendar, biblical festivals, and spiritual mathematics.'}
                     </p>
                 </div>
@@ -1618,6 +1959,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
                         >
                             {tab === 'festivals' && <FestivalsView />}
                             {tab === 'calendar' && <HebrewCalendarView currentUser={currentUser} />}
+                            {tab === 'clock' && <HebrewClockView />}
                             {tab === 'words' && <HebrewWordHub />}
                             {tab === 'lettersaudio' && <HebrewLettersAudioLab />}
                             {tab === 'numbers' && <HebrewConverterNumbers />}
