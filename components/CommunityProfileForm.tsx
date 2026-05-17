@@ -41,7 +41,7 @@ export const CommunityProfileForm: React.FC<CommunityProfileFormProps> = ({ isOp
         'Syro-Malabar',
         'Syro-Malankara',
         'Brethren',
-        'Jehovah Witness',
+        "Jehovah's Witnesses",
         'Non-Denominational',
         'House Church',
         'New Believer / Seeker',
