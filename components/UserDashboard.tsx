@@ -57,18 +57,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [showCardPreview, setShowCardPreview] = useState(false);
     const [cardFlipped, setCardFlipped] = useState(false);
     const [showCommunityProfileForm, setShowCommunityProfileForm] = useState(false);
-    const [showDashboardIntro, setShowDashboardIntro] = useState(false);
-    const [dashboardTourStepIndex, setDashboardTourStepIndex] = useState<number | null>(null);
-    const [dashboardTourRect, setDashboardTourRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
     const [photoUpdateMode, setPhotoUpdateMode] = useState<'edit-existing' | 'add-new' | null>(null);
     const canAccessEntrustFeatures = user.status === 'Active';
-    const DASHBOARD_TOUR_STEPS = [
-        { selector: '#dashboard-edit-btn', title: 'Edit Details', text: 'Update your profile and submit changes for admin approval.' },
-        { selector: '#dashboard-testimony-btn', title: 'Write Testimony', text: 'Share your testimony and track approval in admin review.' },
-        { selector: '#dashboard-member-form-btn', title: 'User Book Member Form', text: 'Open the themed member form in the User Book column and submit your ministry profile details.' },
-        { selector: '#dashboard-share-btn', title: 'Share Profile', text: 'Send your secure profile login link to family members.' },
-        { selector: '#dashboard-login-btn', title: 'Profile Login', text: 'Quickly open login page to switch accounts.' },
-    ];
 
     useEffect(() => {
         if (!initialProfileId) {
@@ -80,91 +70,12 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         setActiveProfileId((isPrimary || isLinked) ? initialProfileId : user.id);
     }, [initialProfileId, user.id, user.linkedProfiles]);
 
-    useEffect(() => {
-        const key = `cot_dashboard_tour_seen_${user.id}`;
-        const seen = localStorage.getItem(key) === '1';
-        if (!seen) setShowDashboardIntro(true);
-    }, [user.id]);
-
-    useEffect(() => {
-        if (dashboardTourStepIndex === null) return;
-        const step = DASHBOARD_TOUR_STEPS[dashboardTourStepIndex];
-        const target = document.querySelector(step.selector) as HTMLElement | null;
-        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, [dashboardTourStepIndex]);
-
-    useEffect(() => {
-        if (dashboardTourStepIndex === null) return;
-        const updateRect = () => {
-            const step = DASHBOARD_TOUR_STEPS[dashboardTourStepIndex];
-            const target = document.querySelector(step.selector) as HTMLElement | null;
-            if (!target) {
-                setDashboardTourRect(null);
-                return;
-            }
-            const rect = target.getBoundingClientRect();
-            setDashboardTourRect({
-                top: rect.top - 8,
-                left: rect.left - 8,
-                width: rect.width + 16,
-                height: rect.height + 16
-            });
-        };
-        const timer = setTimeout(updateRect, 220);
-        window.addEventListener('resize', updateRect);
-        window.addEventListener('scroll', updateRect, true);
-        return () => {
-            clearTimeout(timer);
-            window.removeEventListener('resize', updateRect);
-            window.removeEventListener('scroll', updateRect, true);
-        };
-    }, [dashboardTourStepIndex]);
-
-    const markDashboardTourSeen = () => {
-        localStorage.setItem(`cot_dashboard_tour_seen_${user.id}`, '1');
-    };
-
-    const startDashboardTour = () => {
-        markDashboardTourSeen();
-        setShowDashboardIntro(false);
-        setDashboardTourStepIndex(0);
-    };
-
-    const skipDashboardTour = () => {
-        markDashboardTourSeen();
-        setShowDashboardIntro(false);
-        setDashboardTourStepIndex(null);
-        setDashboardTourRect(null);
-    };
 
     const getDisplayProfile = () => {
         if (activeProfileId === user.id) return user;
         const sub = user.linkedProfiles?.find(p => p.id === activeProfileId);
         if (sub) return { ...user, id: sub.id, name: sub.name, photo: sub.photo, bloodGroup: sub.bloodGroup, dob: sub.dob };
         return user;
-    };
-    const getSafePhotoSrc = (photo?: string) => {
-        const candidate = (photo || '').trim();
-        if (!candidate) return null;
-        if (/^data:image\/(?:png|jpe?g|webp|gif|bmp);base64,/i.test(candidate)) return candidate;
-        if (candidate.startsWith('blob:')) return candidate;
-        if (/^https?:\/\//i.test(candidate)) {
-            try {
-                const allowedHosts = new Set([
-                    'firebasestorage.googleapis.com',
-                    'lh3.googleusercontent.com',
-                    'avatars.githubusercontent.com',
-                    'user-attachments.githubusercontent.com',
-                    'raw.githubusercontent.com',
-                    'ui-avatars.com',
-                ]);
-                const parsed = new URL(candidate);
-                if (allowedHosts.has(parsed.hostname)) return candidate;
-            } catch {
-                return null;
-            }
-        }
-        return null;
     };
     const getAvatarInitials = (name?: string) => {
         const parts = (name || '').trim().split(/\s+/).filter(Boolean);
@@ -177,8 +88,30 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         initialClass = 'text-sm',
         gradientClass = 'from-brand-600 to-violet-700'
     ) => {
-        const safeSrc = getSafePhotoSrc(photo);
-        if (safeSrc) return <img src={safeSrc} alt="Profile photo" className="w-full h-full object-cover" loading="lazy" />;
+        const candidate = (photo || '').trim();
+        if (candidate) {
+            if (/^data:image\/(?:png|jpe?g|webp|gif|bmp);base64,/i.test(candidate) || candidate.startsWith('blob:')) {
+                return <img src={candidate} alt="Profile photo" className="w-full h-full object-cover" loading="lazy" />;
+            }
+            if (/^https?:\/\//i.test(candidate)) {
+                try {
+                    const parsed = new URL(candidate);
+                    const allowedHosts = new Set([
+                        'firebasestorage.googleapis.com',
+                        'lh3.googleusercontent.com',
+                        'avatars.githubusercontent.com',
+                        'user-attachments.githubusercontent.com',
+                        'raw.githubusercontent.com',
+                        'ui-avatars.com',
+                    ]);
+                    if (allowedHosts.has(parsed.hostname)) {
+                        return <img src={parsed.toString()} alt="Profile photo" className="w-full h-full object-cover" loading="lazy" />;
+                    }
+                } catch {
+                    // Fall back to initials when the URL is invalid.
+                }
+            }
+        }
         return (
             <div className={`w-full h-full bg-gradient-to-br ${gradientClass} flex items-center justify-center text-white ${initialClass} font-black tracking-[0.2em]`}>
                 {getAvatarInitials(name)}
@@ -336,8 +269,18 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
     const handleAddSubProfile = (e: React.FormEvent) => {
         e.preventDefault();
+        const trimmedName = (subProfileForm.name || '').trim();
+        const selectedRole = (subProfileForm.role || '').trim();
+        if (!trimmedName) {
+            alert('Please enter family member name.');
+            return;
+        }
+        if (!selectedRole) {
+            alert('Please select relationship.');
+            return;
+        }
         const newId = `${user.id}-${(user.linkedProfiles?.length || 0) + 1}`;
-        const newProfile: SubProfile = { id: newId, name: subProfileForm.name || '', role: subProfileForm.role || 'Family Member', dob: subProfileForm.dob, bloodGroup: subProfileForm.bloodGroup };
+        const newProfile: SubProfile = { id: newId, name: trimmedName, role: selectedRole, dob: subProfileForm.dob, bloodGroup: subProfileForm.bloodGroup };
         onUpdate({ ...user, linkedProfiles: [...(user.linkedProfiles || []), newProfile] } as User);
         setShowFamilyModal(false); setSubProfileForm({});
     };
@@ -745,7 +688,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="text-xs font-semibold text-slate-700 block mb-1.5">Relationship</label>
-                                            <select required value={subProfileForm.role || 'Spouse'} onChange={e => setSubProfileForm({ ...subProfileForm, role: e.target.value })} className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm appearance-none shadow-sm">
+                                            <select required value={subProfileForm.role || ''} onChange={e => setSubProfileForm({ ...subProfileForm, role: e.target.value })} className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm appearance-none shadow-sm">
+                                                <option value="">None</option>
                                                 <optgroup label="Immediate Family">
                                                     {FAMILY_RELATIONSHIP_OPTIONS.immediate.map(option => (
                                                         <option key={option} value={option}>{option}</option>
@@ -1322,85 +1266,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     </motion.div>
                 </div>
             )}
-
-            <AnimatePresence>
-                {showDashboardIntro && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[170] bg-black/45 backdrop-blur-sm flex items-center justify-center p-4"
-                    >
-                        <motion.div
-                            initial={{ y: 20, opacity: 0, scale: 0.96 }}
-                            animate={{ y: 0, opacity: 1, scale: 1 }}
-                            exit={{ y: 12, opacity: 0 }}
-                            className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-slate-100"
-                        >
-                            <div className="text-[11px] font-black uppercase tracking-widest text-brand-500 mb-2">Dashboard Tour</div>
-                            <h3 className="text-xl font-bold text-brand-950 mb-2">Quick Guide</h3>
-                            <p className="text-sm text-slate-600 mb-5">Get a short walkthrough of key dashboard options, including the new User Book member form column. You can skip anytime.</p>
-                            <div className="flex items-center justify-end gap-2">
-                                <button onClick={skipDashboardTour} className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100">Skip</button>
-                                <button onClick={startDashboardTour} className="px-4 py-2 rounded-xl text-sm font-bold bg-brand-600 text-white hover:bg-brand-700">Start Tour</button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            <AnimatePresence>
-                {dashboardTourStepIndex !== null && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[175] pointer-events-none"
-                    >
-                        <div className="absolute inset-0 bg-black/65" />
-                        {dashboardTourRect && (
-                            <div
-                                className="absolute rounded-2xl border-2 border-amber-300 shadow-[0_0_0_9999px_rgba(2,6,23,0.72)]"
-                                style={{
-                                    top: dashboardTourRect.top,
-                                    left: dashboardTourRect.left,
-                                    width: dashboardTourRect.width,
-                                    height: dashboardTourRect.height
-                                }}
-                            />
-                        )}
-                        <div className="absolute left-1/2 -translate-x-1/2 bottom-5 w-[calc(100%-1.5rem)] max-w-md bg-white rounded-3xl p-5 shadow-2xl pointer-events-auto">
-                            <div className="text-[11px] uppercase tracking-widest font-black text-brand-500 mb-2">
-                                Step {dashboardTourStepIndex + 1} of {DASHBOARD_TOUR_STEPS.length}
-                            </div>
-                            <h4 className="text-lg font-bold text-brand-950 mb-1">{DASHBOARD_TOUR_STEPS[dashboardTourStepIndex]?.title}</h4>
-                            <p className="text-sm text-slate-600 mb-4">{DASHBOARD_TOUR_STEPS[dashboardTourStepIndex]?.text}</p>
-                            <div className="flex items-center justify-between gap-2">
-                                <button
-                                    onClick={skipDashboardTour}
-                                    className="px-4 py-2 text-sm font-bold rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"
-                                >
-                                    Skip Tour
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        const isLastStep = dashboardTourStepIndex >= DASHBOARD_TOUR_STEPS.length - 1;
-                                        if (isLastStep) {
-                                            setDashboardTourStepIndex(null);
-                                            setDashboardTourRect(null);
-                                        } else {
-                                            setDashboardTourStepIndex(dashboardTourStepIndex + 1);
-                                        }
-                                    }}
-                                    className="px-4 py-2 text-sm font-bold rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors"
-                                >
-                                    {dashboardTourStepIndex >= DASHBOARD_TOUR_STEPS.length - 1 ? 'Done' : 'Next'}
-                                </button>
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
 
         </div>
     );

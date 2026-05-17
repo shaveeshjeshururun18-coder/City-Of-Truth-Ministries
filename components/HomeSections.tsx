@@ -129,6 +129,22 @@ export const HebrewSanctuaryIntro: React.FC<SectionProps> = ({ setView }) => {
 };
 
 export const HebrewPagesPreviewSection: React.FC<SectionProps> = ({ setView }) => {
+    type PreviewItem = {
+        name: string;
+        description: string;
+        view?: ViewState;
+        href?: string;
+    };
+
+    const openPreviewItem = (item: PreviewItem) => {
+        if (item.view) {
+            setView(item.view);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+        if (item.href) window.location.assign(item.href);
+    };
+
     const previewGroups = [
         {
             title: 'Hebrew Content',
@@ -176,6 +192,7 @@ export const HebrewPagesPreviewSection: React.FC<SectionProps> = ({ setView }) =
             accentClass: 'text-emerald-800',
             ctaView: ViewState.MINISTRIES,
             items: [
+                { name: 'Home', view: ViewState.HOME, description: 'Return to the main landing page' },
                 { name: 'Ministries', view: ViewState.MINISTRIES, description: 'See ministry areas and service focus' },
                 { name: 'Pastor Page', view: ViewState.PASTOR, description: 'Meet the shepherd and vision' },
                 { name: 'Valparai Sanctuary', view: ViewState.ABOUT_VALPARAI, description: 'Visit the hill-station presence' },
@@ -197,6 +214,10 @@ export const HebrewPagesPreviewSection: React.FC<SectionProps> = ({ setView }) =
                 { name: 'Entrust Card', view: ViewState.ID_CARD, description: 'Registration and digital identity card' },
                 { name: 'Contact Page', view: ViewState.CONTACT, description: 'Reach the ministry directly' },
                 { name: 'Verify ID', view: ViewState.VERIFY_ID, description: 'Member verification portal' },
+                { name: 'Login Page', href: '/auth?view=login', description: 'Open member login route' },
+                { name: 'Register Page', href: '/auth?view=register', description: 'Open member registration route' },
+                { name: 'Forgot ID Page', href: '/auth?view=forgot-id', description: 'Recover your member ID route' },
+                { name: 'Admin Dashboard', href: '/admin', description: 'Open protected admin dashboard route' },
             ],
         },
     ];
@@ -244,7 +265,7 @@ export const HebrewPagesPreviewSection: React.FC<SectionProps> = ({ setView }) =
                                 {group.items.map((item) => (
                                     <button
                                         key={item.name}
-                                        onClick={() => setView(item.view)}
+                                        onClick={() => openPreviewItem(item)}
                                         className={`bg-white border rounded-2xl px-4 py-4 text-left transition-all hover:-translate-y-0.5 ${group.itemClass}`}
                                     >
                                         <div className={`text-sm font-black ${group.accentClass}`}>{item.name}</div>
