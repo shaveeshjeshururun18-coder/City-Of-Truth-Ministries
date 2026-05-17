@@ -1097,6 +1097,26 @@ const App: React.FC = () => {
     { label: 'Gematria Value', view: ViewState.HEBREW_GEMATRIA },
   ];
 
+  const footerSubPartPages = [
+    { label: 'Login', action: () => navigate('/auth?view=login'), dotClass: 'bg-blue-400/70' },
+    { label: 'Register', action: () => navigate('/auth?view=register'), dotClass: 'bg-blue-300/70' },
+    { label: 'Forgot Member ID', action: () => navigate('/auth?view=forgot-id'), dotClass: 'bg-blue-200/80' },
+    { label: 'Verify ID Route', action: () => navigate('/verify-id'), dotClass: 'bg-violet-400/70' },
+    {
+      label: 'User Dashboard',
+      action: () => {
+        if (currentUser) {
+          setCurrentView(ViewState.USER_DASHBOARD);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+        navigate('/auth?view=login');
+      },
+      dotClass: 'bg-emerald-400/70'
+    },
+    { label: 'Admin Dashboard', action: () => navigate('/admin'), dotClass: 'bg-red-400/70' },
+  ];
+
   // If on admin route, show admin interface
   if (isAdminRoute) {
     if (!isAdminAuthenticated) {
@@ -1860,6 +1880,22 @@ const App: React.FC = () => {
                 )}
                 <li><a href="/admin" className="hover:text-white transition-colors flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-red-500/50"></div>Admin Dashboard</a></li>
               </ul>
+              <div className="mt-6">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-400 mb-3">Sub Part Pages</p>
+                <ul className="space-y-2 text-sm text-brand-100/60">
+                  {footerSubPartPages.map((item) => (
+                    <li key={item.label}>
+                      <button
+                        onClick={item.action}
+                        className="hover:text-white transition-colors flex items-center gap-2 text-left"
+                      >
+                        <div className={`w-1.5 h-1.5 rounded-full ${item.dotClass}`}></div>
+                        {item.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
 
             <div className="col-span-1">
