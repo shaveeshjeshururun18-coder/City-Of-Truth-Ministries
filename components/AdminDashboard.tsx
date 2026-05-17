@@ -149,14 +149,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'>('users');
     const [menuMode, setMenuMode] = useState<'horizontal' | 'vertical'>(() => {
-        const stored = localStorage.getItem('adminMenuMode');
-        return stored === 'vertical' ? 'vertical' : 'horizontal';
+        try {
+            const stored = localStorage.getItem('adminMenuMode');
+            return stored === 'vertical' ? 'vertical' : 'horizontal';
+        } catch {
+            return 'horizontal';
+        }
     });
 
     const toggleMenuMode = () => {
         const next = menuMode === 'horizontal' ? 'vertical' : 'horizontal';
         setMenuMode(next);
-        localStorage.setItem('adminMenuMode', next);
+        try {
+            localStorage.setItem('adminMenuMode', next);
+        } catch {
+            // Ignore storage write failures (e.g., private mode restrictions)
+        }
     };
     const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
     const [ministries, setMinistries] = useState<Ministry[]>([]);
@@ -342,12 +350,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     // Filtered users
     const filteredUsers = useMemo(() => {
+        const query = searchQuery.toLowerCase();
         const filtered = users.filter(user => {
+            const name = `${user.name ?? ''}`.toLowerCase();
+            const email = `${user.email ?? ''}`.toLowerCase();
+            const phone = `${user.phone ?? ''}`;
+            const id = `${user.id ?? ''}`.toLowerCase();
             const matchesSearch = searchQuery === '' ||
-                user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                user.phone.includes(searchQuery) ||
-                user.id.toLowerCase().includes(searchQuery.toLowerCase());
+                name.includes(query) ||
+                email.includes(query) ||
+                phone.includes(searchQuery) ||
+                id.includes(query);
 
             const matchesStatus = filterStatus === 'All' || user.status === filterStatus;
             const matchesRole = filterRole === 'All' || user.role === filterRole;
