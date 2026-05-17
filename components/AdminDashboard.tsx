@@ -87,6 +87,7 @@ const TAMIL_NADU_DISTRICTS = [
     'Tirupathur', 'Tiruppur', 'Tiruvallur', 'Tiruvannamalai', 'Tiruvarur',
     'Vellore', 'Villupuram', 'Virudhunagar'
 ];
+const MAX_SUGGESTED_COT_IDS = 200;
 
 const EMPTY_NEW_USER = {
     memberId: '',
@@ -359,7 +360,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     const suggestedCotIds = useMemo(() => {
         const ids: string[] = [];
-        for (let idNum = 1000; idNum <= 9999 && ids.length < 200; idNum += 1) {
+        for (let idNum = 1000; idNum <= 9999 && ids.length < MAX_SUGGESTED_COT_IDS; idNum += 1) {
             const candidate = `COT-${idNum}`;
             if (!existingCotIds.has(candidate)) {
                 ids.push(candidate);
@@ -429,7 +430,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             const normalizedIdBody = rawRequestedId.toUpperCase().replace(/^COT[-\s]*/i, '');
             let newId = normalizedIdBody ? `COT-${normalizedIdBody}` : '';
             if (newId && !/^COT-\d{4,}$/.test(newId)) {
-                alert('Enter a valid Member ID like COT-1960.');
+                alert('Enter a valid Member ID with at least 4 digits (example: COT-1960).');
                 setIsLoading(false);
                 return;
             }
@@ -440,7 +441,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             }
             if (!newId) {
                 const fallback = getRandomAvailableCotId();
-                newId = fallback || `COT-${Date.now()}`;
+                if (!fallback) {
+                    alert('No available COT IDs left in the current range. Please enter a manual ID.');
+                    setIsLoading(false);
+                    return;
+                }
+                newId = fallback;
             }
 
             const user: User = {
