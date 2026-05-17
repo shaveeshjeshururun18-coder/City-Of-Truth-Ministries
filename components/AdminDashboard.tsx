@@ -354,7 +354,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         const filtered = users.filter(user => {
             const name = `${user.name ?? ''}`.toLowerCase();
             const email = `${user.email ?? ''}`.toLowerCase();
-            const phone = `${user.phone ?? ''}`;
+            const phone = `${user.phone ?? ''}`.toLowerCase();
             const id = `${user.id ?? ''}`.toLowerCase();
             const matchesSearch = searchQuery === '' ||
                 name.includes(query) ||
