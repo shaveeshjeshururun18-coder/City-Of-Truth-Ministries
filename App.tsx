@@ -411,6 +411,15 @@ const App: React.FC = () => {
     subject: 'Prayer Request',
     message: ''
   });
+  // Load currentUser from localStorage on mount
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    try {
+      const saved = localStorage.getItem('cot_current_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
 
   const [navigationItems, setNavigationItems] = useState<NavItem[]>(withHebrewResourceSubmenu([
     { label: 'HOME', view: ViewState.HOME },
@@ -646,18 +655,6 @@ const App: React.FC = () => {
     };
     fetchNavLayout();
   }, []);
-
-
-  // Load currentUser from localStorage on mount
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    try {
-      const saved = localStorage.getItem('cot_current_user');
-      return saved ? JSON.parse(saved) : null;
-    } catch (e) {
-      return null;
-    }
-  });
-
   useEffect(() => {
     if (!currentUser) return;
     setContactForm(prev => ({
