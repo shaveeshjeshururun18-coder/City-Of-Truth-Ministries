@@ -89,6 +89,7 @@ const TAMIL_NADU_DISTRICTS = [
 ];
 
 const EMPTY_NEW_USER = {
+    memberId: '',
     name: '',
     phone: '',
     email: '',
@@ -348,6 +349,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString();
     };
 
+    const existingCotIds = useMemo(() => {
+        return new Set(
+            users
+                .map(user => `${user.id ?? ''}`.trim().toUpperCase())
+                .filter(Boolean)
+        );
+    }, [users]);
+
+    const suggestedCotIds = useMemo(() => {
+        const ids: string[] = [];
+        for (let idNum = 1000; idNum <= 9999 && ids.length < 200; idNum += 1) {
+            const candidate = `COT-${idNum}`;
+            if (!existingCotIds.has(candidate)) {
+                ids.push(candidate);
+            }
+        }
+        return ids;
+    }, [existingCotIds]);
+
     // Filtered users
     const filteredUsers = useMemo(() => {
         const query = searchQuery.toLowerCase();
@@ -395,7 +415,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         setIsLoading(true);
         try {
-            const newId = `COT-${Math.floor(1000 + Math.random() * 9000)}`;
+            const rawRequestedId = `${newUserData.memberId || ''}`.trim();
+            let newId = rawRequestedId
+                ? rawRequestedId.toUpperCase().replace(/^COT[-\s]*/i, 'COT-')
+                : '';
+
+            if (newId && !newId.startsWith('COT-')) {
+                newId = `COT-${newId.replace(/^COT[-\s]*/i, '')}`;
+            }
+            if (newId && !/^COT-\d{4,}$/.test(newId)) {
+                alert('Enter a valid Member ID like COT-1960.');
+                setIsLoading(false);
+                return;
+            }
+            if (newId && existingCotIds.has(newId)) {
+                alert(`Member ID ${newId} is already in use. Please choose another ID.`);
+                setIsLoading(false);
+                return;
+            }
+            if (!newId) {
+                const fallback = suggestedCotIds[Math.floor(Math.random() * Math.max(suggestedCotIds.length, 1))];
+                newId = fallback || `COT-${Date.now()}`;
+            }
+
             const user: User = {
                 id: newId,
                 name: newUserData.name.trim(),
@@ -2857,6 +2899,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 )}
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="space-y-1.5 sm:col-span-2">
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Member ID (Optional Manual)</label>
+                                        <div className="flex flex-col sm:flex-row gap-2">
+                                            <input
+                                                list="available-cot-ids"
+                                                type="text"
+                                                placeholder="Leave empty for random ID, or enter COT-1960"
+                                                value={newUserData.memberId}
+                                                onChange={(e) => setNewUserData(d => ({ ...d, memberId: e.target.value }))}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const pick = suggestedCotIds[Math.floor(Math.random() * Math.max(suggestedCotIds.length, 1))];
+                                                    if (!pick) {
+                                                        alert('No available COT IDs found.');
+                                                        return;
+                                                    }
+                                                    setNewUserData(d => ({ ...d, memberId: pick }));
+                                                }}
+                                                className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs whitespace-nowrap transition-colors"
+                                            >
+                                                Pick Random ID
+                                            </button>
+                                        </div>
+                                        <datalist id="available-cot-ids">
+                                            {suggestedCotIds.map(id => (
+                                                <option key={id} value={id} />
+                                            ))}
+                                        </datalist>
+                                        <p className="text-[10px] text-slate-400 font-medium">
+                                            Admin can manually choose a COT ID from available options.
+                                        </p>
+                                    </div>
                                     <div className="space-y-1.5 sm:col-span-2">
                                         <label className="text-xs font-bold text-slate-500 uppercase">Full Name *</label>
                                         <input

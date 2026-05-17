@@ -57,7 +57,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [showCardPreview, setShowCardPreview] = useState(false);
     const [cardFlipped, setCardFlipped] = useState(false);
     const [showCommunityProfileForm, setShowCommunityProfileForm] = useState(false);
-    const [photoUpdateMode, setPhotoUpdateMode] = useState<'edit-existing' | 'add-new' | null>(null);
     const canAccessEntrustFeatures = user.status === 'Active';
 
     useEffect(() => {
@@ -121,12 +120,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const displayProfile = getDisplayProfile();
 
 
-    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, mode: 'edit-existing' | 'add-new') => {
+    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             const reader = new FileReader();
             reader.onloadend = () => {
-                setPhotoUpdateMode(mode);
                 setCroppingImage(reader.result as string);
                 e.target.value = '';
             };
@@ -135,7 +133,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     };
 
     const handleCropComplete = (croppedImg: string) => {
-        if (photoUpdateMode === 'add-new' && activeProfileId === user.id) {
+        if (activeProfileId === user.id) {
             onUpdate({
                 ...user,
                 pendingProfileUpdate: {
@@ -143,20 +141,20 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     photo: croppedImg
                 }
             } as User);
-            alert('New photo submitted for admin approval.');
-        } else if (activeProfileId === user.id) {
-            onUpdate({ ...user, photo: croppedImg, pendingProfileUpdate: { ...(user.pendingProfileUpdate || {}), photo: undefined } } as User);
-            alert('Photo updated successfully.');
+            alert('Photo update submitted for admin approval.');
         } else {
             const updatedProfiles = user.linkedProfiles?.map(p => p.id === activeProfileId ? { ...p, photo: croppedImg } : p) || [];
             onUpdate({ ...user, linkedProfiles: updatedProfiles } as User);
             alert('Profile photo updated successfully.');
         }
-        setPhotoUpdateMode(null);
         setCroppingImage(null);
     };
 
     const handleDownloadPDF = async () => {
+        if (!canAccessEntrustFeatures) {
+            alert('Entrust card download is available only after admin approval.');
+            return;
+        }
         setIsProcessing(true);
         const frontNode = document.getElementById('capture-front');
         const backNode = document.getElementById('capture-back');
@@ -1187,7 +1185,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             alert('No existing photo to crop. Use "Add New Photo" first.');
                                             return;
                                         }
-                                        setPhotoUpdateMode('edit-existing');
                                         setCroppingImage(displayProfile.photo);
                                         setIsEditing(false);
                                     }}
@@ -1202,13 +1199,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         accept="image/*"
                                         className="hidden"
                                         onChange={(e) => {
-                                            handlePhotoUpload(e, 'add-new');
+                                            handlePhotoUpload(e);
                                             setIsEditing(false);
                                         }}
                                     />
                                 </label>
                             </div>
-                            <p className="text-slate-400 text-xs text-center">Crop edits are instant. New uploads are sent for admin approval.</p>
+                            <p className="text-slate-400 text-xs text-center">All photo changes are sent to admin for approval.</p>
                         </div>
 
                         <form onSubmit={(e) => {
