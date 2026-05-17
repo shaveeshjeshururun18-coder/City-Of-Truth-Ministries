@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flame, Calendar, Clock3, Type, Volume2, Hash, Calculator, BookOpen, LucideIcon } from 'lucide-react';
+import { Flame, Calendar, Clock3, Type, Volume2, Hash, Calculator, BookOpen, Languages, LucideIcon } from 'lucide-react';
 import { ViewState } from '../types';
 import { motion } from 'framer-motion';
 
@@ -26,7 +26,7 @@ const HEBREW_RESOURCE_ITEMS = [
     { id: 'festivals', label: 'Festivals', Icon: Flame, view: ViewState.HEBREW_FESTIVALS },
     { id: 'calendar', label: 'Calendar', Icon: Calendar, view: ViewState.HEBREW_CALENDAR },
     { id: 'clock', label: 'Clock', Icon: Clock3, view: ViewState.HEBREW_CLOCK },
-    { id: 'grammar', label: 'Grammar', Icon: BookOpen, view: ViewState.HEBREW_GRAMMAR },
+    { id: 'grammar', label: 'Grammar', Icon: Languages, view: ViewState.HEBREW_GRAMMAR },
     { id: 'reference', label: 'Guide', Icon: BookOpen, view: ViewState.HEBREW_REFERENCE },
 ] as const;
 

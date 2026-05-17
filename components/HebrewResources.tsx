@@ -654,7 +654,7 @@ const AnalogDial: React.FC<{
             {Array.from({ length: 12 }).map((_, i) => {
                 const value = i + 1;
                 const hebrewNumber = toHebrew(value);
-                const hebrewLetter = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'יא', 'יב'][i];
+                const hebrewLetter = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ', 'ל'][i];
                 return (
                     <span
                         key={value}
@@ -862,7 +862,8 @@ const GrammarView: React.FC = () => {
 
             const chars = core.split('');
             for (let i = 0; i < chars.length - 1; i += 1) {
-                if (finalToRegular[chars[i]]) chars[i] = finalToRegular[chars[i]];
+                const regularChar = finalToRegular[chars[i]];
+                if (regularChar) chars[i] = regularChar;
             }
             const lastIdx = chars.length - 1;
             if (regularToFinal[chars[lastIdx]]) chars[lastIdx] = regularToFinal[chars[lastIdx]];
@@ -903,7 +904,7 @@ const GrammarView: React.FC = () => {
                 img.src = image;
                 await new Promise<void>((resolve, reject) => {
                     img.onload = () => resolve();
-                    img.onerror = () => reject(new Error('Failed to render grammar export.'));
+                    img.onerror = () => reject(new Error('Failed to load grammar preview image for export.'));
                 });
                 const height = Math.min((img.height * width) / img.width, pdf.internal.pageSize.getHeight());
                 pdf.addImage(image, 'PNG', 0, 0, width, height);
@@ -1257,7 +1258,6 @@ const HebrewLettersAudioLab: React.FC = () => {
     const handleDragStart = (e: React.DragEvent, idx: number) => {
         setDraggingIdx(idx);
         e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', `${idx}`);
     };
 
     const handleDragOver = (e: React.DragEvent, idx: number) => {
@@ -1283,7 +1283,7 @@ const HebrewLettersAudioLab: React.FC = () => {
 
     const handleSourceLetterDragStart = (e: React.DragEvent, item: (typeof HEBREW_AUDIO_LETTERS)[number]) => {
         e.dataTransfer.effectAllowed = 'copy';
-        e.dataTransfer.setData('application/cot-hebrew-letter', JSON.stringify(item));
+        e.dataTransfer.setData('application/json', JSON.stringify({ type: 'cot-hebrew-letter', payload: item }));
     };
 
     const handleBuilderDragOver = (e: React.DragEvent) => {
@@ -1295,15 +1295,15 @@ const HebrewLettersAudioLab: React.FC = () => {
     const handleBuilderDrop = (e: React.DragEvent) => {
         e.preventDefault();
         setIsBuilderDragOver(false);
-        const payload = e.dataTransfer.getData('application/cot-hebrew-letter');
+        const payload = e.dataTransfer.getData('application/json');
         if (!payload) return;
         try {
-            const parsed = JSON.parse(payload) as { letter: string; name: string; hebrewName: string };
-            if (parsed?.letter && parsed?.name && parsed?.hebrewName) {
-                addLetter(parsed);
+            const parsed = JSON.parse(payload) as { type?: string; payload?: { letter: string; name: string; hebrewName: string } };
+            if (parsed?.type === 'cot-hebrew-letter' && parsed?.payload?.letter && parsed?.payload?.name && parsed?.payload?.hebrewName) {
+                addLetter(parsed.payload);
             }
         } catch (error) {
-            console.warn('Could not drop Hebrew letter:', error);
+            console.warn('Invalid Hebrew letter drop payload format:', error);
         }
     };
 
@@ -1604,7 +1604,20 @@ const HebrewLettersAudioLab: React.FC = () => {
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                         {HEBREW_AUDIO_LETTERS.map((item, index) => (
                             <div key={item.letter} className={`rounded-3xl bg-gradient-to-br ${RAINBOW_GRADIENTS[index % RAINBOW_GRADIENTS.length]} p-[1px]`}>
-                                <div className="bg-white rounded-3xl p-4 h-full flex flex-col items-center text-center gap-2" draggable onDragStart={(e) => handleSourceLetterDragStart(e, item)}>
+                                <div
+                                    className="bg-white rounded-3xl p-4 h-full flex flex-col items-center text-center gap-2"
+                                    draggable
+                                    role="button"
+                                    tabIndex={0}
+                                    onDragStart={(e) => handleSourceLetterDragStart(e, item)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            addLetter(item);
+                                        }
+                                    }}
+                                    aria-label={`Add ${item.name}`}
+                                >
                                     <span className="text-4xl font-serif text-brand-950">{item.letter}</span>
                                     <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">{item.name}</span>
                                     <span className="text-[9px] text-slate-400 font-bold">Drag & Drop</span>
