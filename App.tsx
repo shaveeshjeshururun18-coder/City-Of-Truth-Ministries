@@ -1658,10 +1658,21 @@ const App: React.FC = () => {
                 onGoToLogin={() => navigate('/auth?view=login')}
                 onOpenScanner={() => setCurrentView(ViewState.VERIFY_ID)}
                 onUpdate={async (updatedUser) => {
-                  await api.updateUser(updatedUser);
-                  setCurrentUser(updatedUser);
-                  setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
-                  if (updatedUser.pendingProfileUpdate) {
+                  const existingUserRecord = users.find(u => u.id === updatedUser.id) || currentUser;
+                  const safeUpdatedUser = existingUserRecord && updatedUser.pendingProfileUpdate
+                    ? {
+                      ...existingUserRecord,
+                      linkedProfiles: updatedUser.linkedProfiles ?? existingUserRecord.linkedProfiles,
+                      verificationDoc: updatedUser.verificationDoc ?? existingUserRecord.verificationDoc,
+                      communityProfile: updatedUser.communityProfile ?? existingUserRecord.communityProfile,
+                      pendingProfileUpdate: updatedUser.pendingProfileUpdate
+                    }
+                    : updatedUser;
+
+                  await api.updateUser(safeUpdatedUser);
+                  setCurrentUser(safeUpdatedUser);
+                  setUsers(prev => prev.map(u => u.id === safeUpdatedUser.id ? safeUpdatedUser : u));
+                  if (safeUpdatedUser.pendingProfileUpdate) {
                     alert("✅ Edit request submitted. Changes will be reflected after admin approval.");
                   } else {
                     alert("Profile Updated Successfully!");

@@ -2000,19 +2000,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                     {item.label.charAt(0)}
                                                 </div>
 
-                                                <div className="min-w-0">
-                                                    <h3 className="font-black text-brand-950 text-lg leading-tight uppercase tracking-tight">
+                                                <div className="min-w-0 flex-1">
+                                                    <h3 className="font-black text-brand-950 text-lg leading-tight uppercase tracking-tight break-words">
                                                         {item.label}
                                                     </h3>
                                                     {item.submenu && item.submenu.length > 0 && (
-                                                        <p className="text-slate-400 text-xs font-bold truncate pr-4 mt-0.5">
-                                                            {item.submenu.length} sub-links
+                                                        <p className="text-slate-400 text-xs font-bold pr-4 mt-1 leading-relaxed whitespace-normal break-words">
+                                                            {item.submenu.map((sub: any) => sub.label).join(' • ')}
                                                         </p>
                                                     )}
                                                 </div>
                                             </div>
 
-                                            <div className="text-slate-300 text-xs font-bold uppercase tracking-widest shrink-0 pr-4">
+                                            <div className="text-slate-300 text-xs font-bold uppercase tracking-widest shrink-0 pr-4 text-right">
                                                 {item.submenu && item.submenu.length > 0 ? 'Has submenu' : 'Direct link'}
                                             </div>
                                         </Reorder.Item>

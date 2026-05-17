@@ -335,6 +335,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
     const [previewPhoto, setPreviewPhoto] = useState('');
     const [showPhotoPreview, setShowPhotoPreview] = useState(false);
     const [croppingImage, setCroppingImage] = useState<string | null>(null);
+    const [cropTarget, setCropTarget] = useState<{ type: 'primary' | 'family'; memberId?: string } | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showEntrustIntro, setShowEntrustIntro] = useState(false);
@@ -431,6 +432,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
             const file = e.target.files[0];
             const reader = new FileReader();
             reader.onloadend = () => {
+                setCropTarget({ type: 'primary' });
                 // Open cropper immediately
                 setCroppingImage(reader.result as string);
                 // Reset input
@@ -441,8 +443,15 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
     };
 
     const handleCropComplete = (croppedImg: string) => {
+        if (cropTarget?.type === 'family' && cropTarget.memberId) {
+            updateFamilyMember(cropTarget.memberId, 'photo', croppedImg);
+            setCroppingImage(null);
+            setCropTarget(null);
+            return;
+        }
         setPreviewPhoto(croppedImg);
         setCroppingImage(null);
+        setCropTarget(null);
         setShowPhotoPreview(true);
     };
 
@@ -483,7 +492,8 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
         const file = e.target.files[0];
         const reader = new FileReader();
         reader.onloadend = () => {
-            updateFamilyMember(memberId, 'photo', typeof reader.result === 'string' ? reader.result : '');
+            setCropTarget({ type: 'family', memberId });
+            setCroppingImage(typeof reader.result === 'string' ? reader.result : '');
             e.target.value = '';
         };
         reader.readAsDataURL(file);
@@ -587,7 +597,10 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                 <ImageCropper
                     imageSrc={croppingImage}
                     onCropComplete={handleCropComplete}
-                    onCancel={() => setCroppingImage(null)}
+                    onCancel={() => {
+                        setCroppingImage(null);
+                        setCropTarget(null);
+                    }}
                 />
             )}
             {showPhotoPreview && (
@@ -776,7 +789,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                                                     <div className="w-12 h-12 rounded-lg bg-white border border-slate-200 overflow-hidden flex items-center justify-center text-slate-500">
                                                                         {member.photo ? <img src={member.photo} alt="member" className="w-full h-full object-cover" /> : <UploadCloud size={16} />}
                                                                     </div>
-                                                                    <span className="text-xs text-slate-600">{member.photo ? 'Photo selected' : 'Tap to upload'}</span>
+                                                                    <span className="text-xs text-slate-600">{member.photo ? 'Photo cropped and ready' : 'Tap to upload & crop'}</span>
                                                                 </div>
                                                             </div>
                                                         </div>
