@@ -359,7 +359,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             const matchesSearch = searchQuery === '' ||
                 name.includes(query) ||
                 email.includes(query) ||
-                phone.includes(searchQuery) ||
+                phone.includes(query) ||
                 id.includes(query);
 
             const matchesStatus = filterStatus === 'All' || user.status === filterStatus;
