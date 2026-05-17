@@ -978,7 +978,7 @@ const App: React.FC = () => {
         {
           email: 'faithfulfellowship8@gmail.com',
           subject: `✨ New Member Alert: ${savedUser.name}`,
-          message: `A new member has joined the ministry!\n\n👤 Name: ${savedUser.name}\n🆔 Member ID: ${savedUser.id}\n📞 Phone: ${savedUser.phone}\n📍 Location: ${savedUser.location}\n\nTo verify and approve this member, please visit the Admin Dashboard: https://city-of-truth-ministries.vercel.app/admin`,
+          message: `A new member has joined the ministry!\n\n👤 Name: ${savedUser.name}\n🆔 Registration Ref: ${savedUser.id}\n📞 Phone: ${savedUser.phone}\n📍 Location: ${savedUser.location}\n\nApprove this member to generate the final COT ID in Admin Dashboard: https://city-of-truth-ministries.vercel.app/admin`,
           from_name: 'City of Truth System'
         },
         EMAILJS_PUBLIC_KEY
@@ -993,7 +993,7 @@ const App: React.FC = () => {
           {
             email: savedUser.email,
             subject: 'Welcome to City of Truth Ministries! ✨',
-            message: `Dear ${savedUser.name},\n\nWe are so blessed to have you join our ministry family! Your account has been received and is currently in verification.\n\n🆔 Your Member ID: ${savedUser.id}\n\nYou can now log in to your dashboard using your phone number to check your status.\n\nBlessings,\nCity of Truth Team`,
+            message: `Dear ${savedUser.name},\n\nWe are so blessed to have you join our ministry family! Your account has been received and is currently in verification.\n\n🆔 Your COT ID will be assigned by admin after approval.\n\nYou can now log in to your dashboard using your phone number to check your status.\n\nBlessings,\nCity of Truth Team`,
             from_name: 'City of Truth Ministries'
           },
           EMAILJS_PUBLIC_KEY
@@ -1001,7 +1001,7 @@ const App: React.FC = () => {
           .catch(err => console.error('Failed to send welcome email', err));
       }
 
-      alert("Registration Successful! Your ID is " + savedUser.id + ". Welcome to the family!");
+      alert("Registration successful! Your COT ID will be generated after admin approval.");
       setCelebrationMode('welcome');
       setShowCelebration(true);
       setCurrentView(ViewState.HOME);
@@ -1018,6 +1018,18 @@ const App: React.FC = () => {
       const updated = { ...userToUpdate, status };
       await api.updateUser(updated);
       setUsers(users.map(u => u.id === userId ? updated : u));
+    }
+  };
+
+  const handleReassignUserId = async (oldUserId: string, newUserId: string, updatedUser: User) => {
+    const reassigned = await api.reassignUserId(oldUserId, newUserId, updatedUser);
+    setUsers(prev => {
+      const withoutOld = prev.filter(u => u.id !== oldUserId);
+      return [...withoutOld, reassigned];
+    });
+    if (currentUser?.id === oldUserId) {
+      setCurrentUser(reassigned);
+      setSelectedDashboardProfileId(reassigned.id);
     }
   };
 
@@ -1139,6 +1151,7 @@ const App: React.FC = () => {
           const created = await api.createUser(user);
           setUsers(prev => [...prev, created]);
         }}
+        onReassignUserId={handleReassignUserId}
         onDeleteUser={handleDeleteUser}
         onRestoreUser={handleRestoreDeletedUser}
         onBack={handleBackFromAdmin}
@@ -1613,6 +1626,7 @@ const App: React.FC = () => {
                 onDeleteUser={async (userId) => {
                   await handleDeleteUser(userId);
                 }}
+                onReassignUserId={handleReassignUserId}
                 onRestoreUser={handleRestoreDeletedUser}
                 homeSectionsOrder={homeSectionsOrder}
                 onUpdateHomeSectionsOrder={(newOrder) => {

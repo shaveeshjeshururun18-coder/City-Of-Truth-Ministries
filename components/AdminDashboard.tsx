@@ -39,6 +39,7 @@ interface AdminDashboardProps {
     onDeleteUser: (userId: string) => Promise<void>;
     onRestoreUser?: (userId: string) => Promise<void>;
     onCreateUser?: (user: User) => Promise<void>;
+    onReassignUserId?: (oldUserId: string, newUserId: string, updatedUser: User) => Promise<void>;
     onBack: () => void;
     homeSectionsOrder: string[];
     onUpdateHomeSectionsOrder: (newOrder: string[]) => Promise<void>;
@@ -121,6 +122,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     onDeleteUser,
     onRestoreUser,
     onCreateUser,
+    onReassignUserId,
     onBack,
     homeSectionsOrder,
     onUpdateHomeSectionsOrder,
@@ -379,6 +381,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         return suggestedCotIds[0];
     };
 
+    const isCotId = (id: string) => /^COT-\d{4,}$/i.test((id || '').trim());
+
+    const activateUserWithCotId = async (user: User) => {
+        const approvedUserBase: User = {
+            ...user,
+            ...(user.pendingProfileUpdate || {}),
+            pendingProfileUpdate: undefined,
+            status: 'Active'
+        };
+
+        if (isCotId(approvedUserBase.id)) {
+            await onUpdateUser(approvedUserBase);
+            return;
+        }
+
+        const generatedCotId = getRandomAvailableCotId();
+        if (!generatedCotId) {
+            throw new Error('No available COT IDs left. Please add more ID capacity.');
+        }
+
+        const approvedWithCotId: User = { ...approvedUserBase, id: generatedCotId };
+        if (onReassignUserId) {
+            await onReassignUserId(user.id, generatedCotId, approvedWithCotId);
+            return;
+        }
+
+        await onUpdateUser(approvedWithCotId);
+    };
+
     // Filtered users
     const filteredUsers = useMemo(() => {
         const query = searchQuery.toLowerCase();
@@ -536,13 +567,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             const updatePromises = Array.from(selectedUsers).map(userId => {
                 const user = users.find(u => u.id === userId);
                 if (!user) return Promise.resolve();
-                const approvedUser: User = {
-                    ...user,
-                    ...(user.pendingProfileUpdate || {}),
-                    pendingProfileUpdate: undefined,
-                    status: 'Active'
-                };
-                return onUpdateUser(approvedUser);
+                return activateUserWithCotId(user);
             });
             await Promise.all(updatePromises);
             setSelectedUsers(new Set());
@@ -590,13 +615,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     };
     const hasPendingProfileUpdate = (user: User) => !!user.pendingProfileUpdate && Object.keys(user.pendingProfileUpdate).length > 0;
     const approveUserOrPendingEdit = async (user: User) => {
-        const approvedUser: User = {
-            ...user,
-            ...(user.pendingProfileUpdate || {}),
-            pendingProfileUpdate: undefined,
-            status: 'Active'
-        };
-        await onUpdateUser(approvedUser);
+        await activateUserWithCotId(user);
     };
     const rejectPendingEdit = async (user: User) => {
         await onUpdateUser({ ...user, pendingProfileUpdate: undefined });
