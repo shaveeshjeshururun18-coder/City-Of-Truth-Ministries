@@ -850,7 +850,7 @@ const App: React.FC = () => {
       const isSwitchingToDifferentAccount = !!currentUser && currentUser.id !== user.id;
       if (isSwitchingToDifferentAccount && currentUser) {
         if (user.status !== 'Active') {
-          alert(`${user.name} is not approved yet. Only approved accounts can be added as linked profiles.`);
+          alert(`${user.name} is not active yet. Only active accounts can be added as linked profiles.`);
           return;
         }
         const existingLinkedProfiles = currentUser.linkedProfiles || [];

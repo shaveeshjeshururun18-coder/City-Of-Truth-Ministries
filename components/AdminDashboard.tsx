@@ -561,7 +561,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
     };
 
-    const handlePermanentDeleteDeletedUser = async (deletedUserId: string) => {
+    const handlePermanentlyDeleteDeletedUser = async (deletedUserId: string) => {
         if (!onPermanentlyDeleteUser) return;
         if (!window.confirm('Delete this user permanently from recycle bin? This cannot be undone.')) return;
         setIsLoading(true);
@@ -2148,7 +2148,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                                     Restore
                                                                 </button>
                                                                 <button
-                                                                    onClick={() => handlePermanentDeleteDeletedUser(user.id)}
+                                                                    onClick={() => handlePermanentlyDeleteDeletedUser(user.id)}
                                                                     disabled={isLoading || !onPermanentlyDeleteUser}
                                                                     className="inline-flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs font-bold hover:bg-red-100 transition-colors disabled:opacity-50"
                                                                 >
