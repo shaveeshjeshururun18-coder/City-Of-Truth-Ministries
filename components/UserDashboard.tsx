@@ -1015,6 +1015,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                     <p className={`text-[10px] mt-2 ${user.status === 'Rejected' ? 'text-red-500' : 'text-slate-400'}`}>
                                         {user.status === 'Rejected' ? 'Denied by admin. Please contact support.' : 'Pending admin verification'}
                                     </p>
+                                    </div>
                                 </div>
                             )}
                         </div>
