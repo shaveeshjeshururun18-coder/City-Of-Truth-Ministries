@@ -849,6 +849,10 @@ const App: React.FC = () => {
     if (user) {
       const isSwitchingToDifferentAccount = !!currentUser && currentUser.id !== user.id;
       if (isSwitchingToDifferentAccount && currentUser) {
+        if (user.status !== 'Active') {
+          alert(`${user.name} is not approved yet. Only approved accounts can be added as linked profiles.`);
+          return;
+        }
         const existingLinkedProfiles = currentUser.linkedProfiles || [];
         const alreadyLinked = existingLinkedProfiles.some(profile => profile.id === user.id);
         const linkedAccountProfile: SubProfile = {
@@ -1054,6 +1058,11 @@ const App: React.FC = () => {
     setDeletedUsers(removedUsers);
   };
 
+  const handlePermanentlyDeleteDeletedUser = async (userId: string) => {
+    await api.permanentlyDeleteDeletedUser(userId);
+    setDeletedUsers(await api.getDeletedUsers());
+  };
+
   const handleAdminAuthenticated = () => {
     setIsAdminAuthenticated(true);
   };
@@ -1154,6 +1163,7 @@ const App: React.FC = () => {
         onReassignUserId={handleReassignUserId}
         onDeleteUser={handleDeleteUser}
         onRestoreUser={handleRestoreDeletedUser}
+        onPermanentlyDeleteUser={handlePermanentlyDeleteDeletedUser}
         onBack={handleBackFromAdmin}
         homeSectionsOrder={homeSectionsOrder}
         onUpdateHomeSectionsOrder={async (newOrder) => {
@@ -1628,6 +1638,7 @@ const App: React.FC = () => {
                 }}
                 onReassignUserId={handleReassignUserId}
                 onRestoreUser={handleRestoreDeletedUser}
+                onPermanentlyDeleteUser={handlePermanentlyDeleteDeletedUser}
                 homeSectionsOrder={homeSectionsOrder}
                 onUpdateHomeSectionsOrder={(newOrder) => {
                   setHomeSectionsOrder(newOrder);

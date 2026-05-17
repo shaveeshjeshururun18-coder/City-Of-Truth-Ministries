@@ -38,6 +38,7 @@ interface AdminDashboardProps {
     onUpdateUser: (user: User) => Promise<void>;
     onDeleteUser: (userId: string) => Promise<void>;
     onRestoreUser?: (userId: string) => Promise<void>;
+    onPermanentlyDeleteUser?: (userId: string) => Promise<void>;
     onCreateUser?: (user: User) => Promise<void>;
     onReassignUserId?: (oldUserId: string, newUserId: string, updatedUser: User) => Promise<void>;
     onBack: () => void;
@@ -121,6 +122,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     onUpdateUser,
     onDeleteUser,
     onRestoreUser,
+    onPermanentlyDeleteUser,
     onCreateUser,
     onReassignUserId,
     onBack,
@@ -554,6 +556,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             await onRestoreUser(deletedUserId);
         } catch (error) {
             alert('Failed to restore user');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handlePermanentDeleteDeletedUser = async (deletedUserId: string) => {
+        if (!onPermanentlyDeleteUser) return;
+        if (!window.confirm('Delete this user permanently from recycle bin? This cannot be undone.')) return;
+        setIsLoading(true);
+        try {
+            await onPermanentlyDeleteUser(deletedUserId);
+        } catch (error) {
+            alert('Failed to permanently delete user');
         } finally {
             setIsLoading(false);
         }
@@ -1262,8 +1277,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                             }}
                                                             className="p-2 hover:bg-green-50 text-green-600 rounded-lg transition-colors"
                                                             title="Approve Again"
+                                                            >
+                                                                <CheckCircle size={16} />
+                                                            </button>
+                                                    )}
+                                                    {user.status === 'Active' && (
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (window.confirm(`Disapprove ${user.name}?`)) {
+                                                                    await onUpdateUser({ ...user, status: 'Rejected', pendingProfileUpdate: undefined });
+                                                                }
+                                                            }}
+                                                            className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+                                                            title="Disapprove User"
                                                         >
-                                                            <CheckCircle size={16} />
+                                                            <XCircle size={16} />
                                                         </button>
                                                     )}
                                                     {user.status !== 'Pending Verification' && hasPendingProfileUpdate(user) && (
@@ -1447,6 +1475,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         >
                                             <CheckCircle size={16} />
                                             Approve Again
+                                        </button>
+                                    </div>
+                                )}
+                                {user.status === 'Active' && (
+                                    <div className="pb-4 mb-4 border-b border-slate-100">
+                                        <button
+                                            onClick={async () => {
+                                                if (window.confirm(`Disapprove ${user.name}?`)) {
+                                                    await onUpdateUser({ ...user, status: 'Rejected', pendingProfileUpdate: undefined });
+                                                }
+                                            }}
+                                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl font-medium text-sm hover:bg-red-100 transition-colors"
+                                        >
+                                            <XCircle size={16} />
+                                            Disapprove
                                         </button>
                                     </div>
                                 )}
@@ -2092,14 +2135,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                             <div className="text-xs text-amber-600 font-bold">{daysLeft} day{daysLeft === 1 ? '' : 's'} left</div>
                                                         </td>
                                                         <td className="px-6 py-4 text-right">
-                                                            <button
-                                                                onClick={() => handleRestoreDeletedUser(user.id)}
-                                                                disabled={isLoading || !onRestoreUser}
-                                                                className="inline-flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 border border-green-200 rounded-xl text-xs font-bold hover:bg-green-100 transition-colors disabled:opacity-50"
-                                                            >
-                                                                <RotateCcw size={14} />
-                                                                Restore
-                                                            </button>
+                                                            <div className="flex items-center justify-end gap-2">
+                                                                <button
+                                                                    onClick={() => handleRestoreDeletedUser(user.id)}
+                                                                    disabled={isLoading || !onRestoreUser}
+                                                                    className="inline-flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 border border-green-200 rounded-xl text-xs font-bold hover:bg-green-100 transition-colors disabled:opacity-50"
+                                                                >
+                                                                    <RotateCcw size={14} />
+                                                                    Restore
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handlePermanentDeleteDeletedUser(user.id)}
+                                                                    disabled={isLoading || !onPermanentlyDeleteUser}
+                                                                    className="inline-flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs font-bold hover:bg-red-100 transition-colors disabled:opacity-50"
+                                                                >
+                                                                    <Trash2 size={14} />
+                                                                    Delete Permanently
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 );
