@@ -1181,7 +1181,7 @@ const App: React.FC = () => {
 
   // If on verify route (QR code scan)
   if (isVerifyRoute && verifyUserId) {
-    return <QRVerifyPage userId={verifyUserId} onBack={() => navigate('/')} />;
+    return <QRVerifyPage userId={verifyUserId} onBack={() => navigate('/')} onProceedToDashboard={handleLogin} />;
   }
 
   if (isAuthRoute) {
@@ -1209,7 +1209,7 @@ const App: React.FC = () => {
   }
 
   if (isVerifyScannerRoute) {
-    return <VerifyIDPage />;
+    return <VerifyIDPage onProceedToDashboard={handleLogin} />;
   }
 
   return (

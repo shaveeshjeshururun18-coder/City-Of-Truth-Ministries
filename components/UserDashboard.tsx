@@ -308,11 +308,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     };
 
     const handleShare = () => {
-        const url = `${window.location.origin}/auth?view=login&identifier=${encodeURIComponent(displayProfile.id)}`;
+        const url = `${window.location.origin}/verify/${encodeURIComponent(displayProfile.id)}`;
         if (navigator.share) {
             navigator.share({
                 title: `${displayProfile.name} — City of Truth Ministries`,
-                text: `Login with this unique member profile link: ${displayProfile.id}`,
+                text: `Open this verified member link: ${displayProfile.id}`,
                 url
             });
         } else {
