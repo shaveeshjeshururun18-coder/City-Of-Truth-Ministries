@@ -368,6 +368,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         return ids;
     }, [existingCotIds]);
 
+    const getRandomAvailableCotId = () => {
+        if (suggestedCotIds.length === 0) return null;
+        if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+            const randomBuffer = new Uint32Array(1);
+            crypto.getRandomValues(randomBuffer);
+            return suggestedCotIds[randomBuffer[0] % suggestedCotIds.length];
+        }
+        return suggestedCotIds[0];
+    };
+
     // Filtered users
     const filteredUsers = useMemo(() => {
         const query = searchQuery.toLowerCase();
@@ -416,13 +426,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         setIsLoading(true);
         try {
             const rawRequestedId = `${newUserData.memberId || ''}`.trim();
-            let newId = rawRequestedId
-                ? rawRequestedId.toUpperCase().replace(/^COT[-\s]*/i, 'COT-')
-                : '';
-
-            if (newId && !newId.startsWith('COT-')) {
-                newId = `COT-${newId.replace(/^COT[-\s]*/i, '')}`;
-            }
+            const normalizedIdBody = rawRequestedId.toUpperCase().replace(/^COT[-\s]*/i, '');
+            let newId = normalizedIdBody ? `COT-${normalizedIdBody}` : '';
             if (newId && !/^COT-\d{4,}$/.test(newId)) {
                 alert('Enter a valid Member ID like COT-1960.');
                 setIsLoading(false);
@@ -434,7 +439,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 return;
             }
             if (!newId) {
-                const fallback = suggestedCotIds[Math.floor(Math.random() * Math.max(suggestedCotIds.length, 1))];
+                const fallback = getRandomAvailableCotId();
                 newId = fallback || `COT-${Date.now()}`;
             }
 
@@ -2913,7 +2918,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <button
                                                 type="button"
                                                 onClick={() => {
-                                                    const pick = suggestedCotIds[Math.floor(Math.random() * Math.max(suggestedCotIds.length, 1))];
+                                                    const pick = getRandomAvailableCotId();
                                                     if (!pick) {
                                                         alert('No available COT IDs found.');
                                                         return;
