@@ -563,7 +563,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     const handlePermanentlyDeleteDeletedUser = async (deletedUserId: string) => {
         if (!onPermanentlyDeleteUser) return;
-        if (!window.confirm('Delete this user permanently from recycle bin? This cannot be undone.')) return;
+        if (!window.confirm('Delete this user permanently from recycle bin? This will permanently remove user profile data and cannot be undone.')) return;
         setIsLoading(true);
         try {
             await onPermanentlyDeleteUser(deletedUserId);
@@ -602,11 +602,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 const user = users.find(u => u.id === userId);
                 if (!user) return Promise.resolve();
                 const hasPendingEdit = !!user.pendingProfileUpdate && Object.keys(user.pendingProfileUpdate).length > 0;
-                if (user.status === 'Pending Verification' || user.status === 'Active') {
+                if (hasPendingEdit) {
                     return disapproveUser(user);
                 }
-                if (hasPendingEdit) {
-                    return onUpdateUser({ ...user, pendingProfileUpdate: undefined });
+                if (user.status === 'Pending Verification' || user.status === 'Active') {
+                    return disapproveUser(user);
                 }
                 return Promise.resolve();
             });

@@ -812,6 +812,7 @@ const App: React.FC = () => {
       }
       return normalized;
     };
+    const hasPermanentCotId = (value: string) => /^COT-\d{4,}$/.test((value || '').trim().toUpperCase());
 
     const searchText = normalizeText(identifier);
     const searchPhone = normalizePhone(identifier);
@@ -849,8 +850,8 @@ const App: React.FC = () => {
     if (user) {
       const isSwitchingToDifferentAccount = !!currentUser && currentUser.id !== user.id;
       if (isSwitchingToDifferentAccount && currentUser) {
-        if (user.status !== 'Active') {
-          alert(`${user.name} is not active yet. Only active accounts can be added as linked profiles.`);
+        if (user.status !== 'Active' || !hasPermanentCotId(user.id)) {
+          alert(`${user.name} is not fully approved yet. Only active accounts with permanent COT ID can be added as linked profiles.`);
           return;
         }
         const existingLinkedProfiles = currentUser.linkedProfiles || [];

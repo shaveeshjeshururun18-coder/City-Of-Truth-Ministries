@@ -58,7 +58,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [cardFlipped, setCardFlipped] = useState(false);
     const [showCommunityProfileForm, setShowCommunityProfileForm] = useState(false);
     const [cropTarget, setCropTarget] = useState<{ type: 'primary' | 'linked-profile' | 'new-family-member'; profileId?: string } | null>(null);
-    const hasPermanentCotId = /^COT-\d{4,}$/i.test((user.id || '').trim());
+    const hasPermanentCotId = /^COT-\d{4,}$/.test((user.id || '').trim());
     const canAccessEntrustFeatures = user.status === 'Active' && hasPermanentCotId;
 
     useEffect(() => {
@@ -635,7 +635,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     };
 
     const handleBlockedFeature = () => {
-        alert('This feature is locked until admin approval and permanent COT ID activation.');
+        alert('This feature requires admin approval and a permanent COT ID. Please contact support for assistance.');
     };
 
     const handleDownloadQrCode = async () => {
