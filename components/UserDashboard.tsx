@@ -983,6 +983,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         >
                             Send Reply
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => onSendReply?.('I request a new COT ID. Please review and reassign my ID.')}
+                            className="px-3 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold"
+                        >
+                            Request COT ID Change
+                        </button>
                     </div>
                 </div>
 

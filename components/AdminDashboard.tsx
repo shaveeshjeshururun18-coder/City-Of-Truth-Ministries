@@ -199,6 +199,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [bulkAdminMessage, setBulkAdminMessage] = useState('');
     const [cotManagerQuery, setCotManagerQuery] = useState('');
     const [cotDraftIds, setCotDraftIds] = useState<Record<string, string>>({});
+    const [cotManagerMode, setCotManagerMode] = useState<'manual' | 'random' | 'requests'>('manual');
+    const [diceRolling, setDiceRolling] = useState(false);
+    const [diceTargetUserId, setDiceTargetUserId] = useState('');
+    const [dicePickedCotId, setDicePickedCotId] = useState('');
 
     React.useEffect(() => {
         if (activeTab === 'messages') {
@@ -412,6 +416,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         [memberNotifications]
     );
 
+    const cotIdChangeRequests = useMemo(() => {
+        const idRequestPattern = /(change|new|different).*(cot|id)|(cot|id).*(change|new|different)|not.*like.*id/i;
+        return userReplies
+            .filter(note => idRequestPattern.test(note.message || ''))
+            .map(note => ({
+                ...note,
+                user: users.find(user => user.id === note.userId) || null
+            }));
+    }, [userReplies, users]);
+
     const markCotIdForMessage = (candidate: string) => {
         const normalized = (candidate || '').trim().toUpperCase();
         if (!isCotId(normalized)) return;
@@ -434,6 +448,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         onSendMessageToUsers(targetIds, bulkAdminMessage);
         setBulkAdminMessage('');
         setSelectedCotIds([]);
+    };
+
+    const handleRollRandomCotId = () => {
+        if (suggestedCotIds.length === 0) {
+            alert('No available COT IDs found.');
+            return;
+        }
+        setDiceRolling(true);
+        setDicePickedCotId('');
+        window.setTimeout(() => {
+            const pick = getRandomAvailableCotId();
+            if (pick) setDicePickedCotId(pick);
+            setDiceRolling(false);
+        }, 900);
+    };
+
+    const handleApplyDiceCotId = async () => {
+        if (!onReassignUserId) {
+            alert('ID reassignment is not available.');
+            return;
+        }
+        if (!diceTargetUserId || !dicePickedCotId) {
+            alert('Select user and roll a COT ID first.');
+            return;
+        }
+        const user = users.find(u => u.id === diceTargetUserId);
+        if (!user) {
+            alert('Selected user not found.');
+            return;
+        }
+        try {
+            await onReassignUserId(user.id, dicePickedCotId, { ...user, id: dicePickedCotId });
+            setDicePickedCotId('');
+        } catch (error) {
+            console.error('Failed to assign random COT ID', error);
+            alert('Failed to assign random COT ID.');
+        }
     };
 
     const activateUserWithCotId = async (user: User) => {
@@ -1652,79 +1703,165 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                                 <div>
                                     <h3 className="text-base font-black text-brand-950">COT ID Management</h3>
-                                    <p className="text-xs text-slate-500 mt-1">Used/available ID visibility with manual assignment controls.</p>
+                                    <p className="text-xs text-slate-500 mt-1">Manage COT IDs with manual selection, random dice assignment, and user request tracking.</p>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs font-bold">
                                     <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">Used: {existingCotIds.size}</span>
                                     <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">Available: {suggestedCotIds.length}+</span>
                                 </div>
                             </div>
-
-                            <div className="relative">
-                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                <input
-                                    type="text"
-                                    value={cotManagerQuery}
-                                    onChange={(e) => setCotManagerQuery(e.target.value)}
-                                    placeholder="Search by name, COT ID, or phone..."
-                                    className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 outline-none focus:border-brand-500 text-sm"
-                                />
+                            <div className="flex flex-wrap gap-2">
+                                {[
+                                    { id: 'manual', label: 'Manual Select' },
+                                    { id: 'random', label: 'Random Dice' },
+                                    { id: 'requests', label: `Requests (${cotIdChangeRequests.length})` }
+                                ].map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setCotManagerMode(tab.id as 'manual' | 'random' | 'requests')}
+                                        className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${cotManagerMode === tab.id ? 'bg-brand-600 text-white border-brand-600' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
                             </div>
 
-                            <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
-                                {cotManagerUsers.slice(0, 60).map((user) => {
-                                    const currentId = (user.id || '').toUpperCase();
-                                    const draftId = cotDraftIds[user.id] ?? currentId;
-                                    const normalizedDraft = draftId.trim().toUpperCase();
-                                    const duplicateId = normalizedDraft && normalizedDraft !== currentId && existingCotIds.has(normalizedDraft);
-                                    return (
-                                        <div key={user.id} className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_220px_auto] gap-2 items-center rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5">
+                            {cotManagerMode === 'manual' && (
+                                <>
+                                    <div className="relative">
+                                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                        <input
+                                            type="text"
+                                            value={cotManagerQuery}
+                                            onChange={(e) => setCotManagerQuery(e.target.value)}
+                                            placeholder="Search by name, COT ID, or phone..."
+                                            className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 outline-none focus:border-brand-500 text-sm"
+                                        />
+                                    </div>
+
+                                    <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
+                                        {cotManagerUsers.slice(0, 60).map((user) => {
+                                            const currentId = (user.id || '').toUpperCase();
+                                            const draftId = cotDraftIds[user.id] ?? currentId;
+                                            const normalizedDraft = draftId.trim().toUpperCase();
+                                            const duplicateId = normalizedDraft && normalizedDraft !== currentId && existingCotIds.has(normalizedDraft);
+                                            return (
+                                                <div key={user.id} className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_220px_auto] gap-2 items-center rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5">
+                                                    <div className="min-w-0">
+                                                        <p className="text-sm font-bold text-brand-950 truncate">{user.name}</p>
+                                                        <p className="text-[11px] font-mono text-slate-500 truncate">{currentId}</p>
+                                                    </div>
+                                                    <input
+                                                        list="manual-cot-id-options"
+                                                        value={draftId}
+                                                        onChange={(e) => setCotDraftIds(prev => ({ ...prev, [user.id]: e.target.value }))}
+                                                        className={`w-full px-3 py-2 rounded-lg border bg-white text-xs font-mono outline-none ${duplicateId ? 'border-red-300' : 'border-slate-200 focus:border-brand-500'}`}
+                                                        placeholder="COT-1960"
+                                                    />
+                                                    <button
+                                                        onClick={async () => {
+                                                            const nextId = normalizedDraft;
+                                                            if (!onReassignUserId) {
+                                                                alert('ID reassignment is not available in this environment.');
+                                                                return;
+                                                            }
+                                                            if (!isCotId(nextId)) {
+                                                                alert('Please enter a valid ID format like COT-1960.');
+                                                                return;
+                                                            }
+                                                            if (duplicateId) {
+                                                                alert('This COT ID is already used.');
+                                                                return;
+                                                            }
+                                                            if (nextId === currentId) return;
+                                                            try {
+                                                                await onReassignUserId(user.id, nextId, { ...user, id: nextId });
+                                                                setCotDraftIds(prev => ({ ...prev, [user.id]: nextId }));
+                                                            } catch (error) {
+                                                                console.error('Failed to reassign COT ID', error);
+                                                                alert('Failed to reassign COT ID.');
+                                                            }
+                                                        }}
+                                                        className="px-3 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold disabled:opacity-60"
+                                                        disabled={!onReassignUserId}
+                                                    >
+                                                        Save ID
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                        <datalist id="manual-cot-id-options">
+                                            {suggestedCotIds.slice(0, 500).map(id => <option key={id} value={id} />)}
+                                        </datalist>
+                                        {cotManagerUsers.length === 0 && (
+                                            <div className="text-sm text-slate-400 text-center py-4">No users found.</div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+
+                            {cotManagerMode === 'random' && (
+                                <div className="space-y-3">
+                                    <select
+                                        value={diceTargetUserId}
+                                        onChange={(e) => setDiceTargetUserId(e.target.value)}
+                                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium outline-none focus:border-brand-500"
+                                    >
+                                        <option value="">Select user for random COT ID assignment</option>
+                                        {cotManagerUsers.slice(0, 250).map(user => (
+                                            <option key={user.id} value={user.id}>
+                                                {user.name} • {(user.id || '').toUpperCase()}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <button
+                                            onClick={handleRollRandomCotId}
+                                            disabled={diceRolling}
+                                            className={`px-4 py-2 rounded-xl text-sm font-black text-white transition-transform ${diceRolling ? 'bg-amber-500 animate-pulse' : 'bg-indigo-600 hover:bg-indigo-700 hover:scale-[1.03]'}`}
+                                        >
+                                            🎲 {diceRolling ? 'Rolling...' : 'Roll Dice'}
+                                        </button>
+                                        <div className="px-4 py-2 rounded-xl border border-indigo-100 bg-indigo-50 text-indigo-700 text-sm font-mono min-w-[180px] text-center">
+                                            {dicePickedCotId || 'No COT ID picked yet'}
+                                        </div>
+                                        <button
+                                            onClick={handleApplyDiceCotId}
+                                            disabled={!dicePickedCotId || !diceTargetUserId || !onReassignUserId}
+                                            className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold disabled:opacity-60"
+                                        >
+                                            Use this COT ID
+                                        </button>
+                                    </div>
+                                    <p className="text-xs text-slate-500">Roll to generate a powerful random COT ID, then apply it to the selected user.</p>
+                                </div>
+                            )}
+
+                            {cotManagerMode === 'requests' && (
+                                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                                    {cotIdChangeRequests.map(note => (
+                                        <div key={note.id} className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 flex items-start justify-between gap-3">
                                             <div className="min-w-0">
-                                                <p className="text-sm font-bold text-brand-950 truncate">{user.name}</p>
-                                                <p className="text-[11px] font-mono text-slate-500 truncate">{currentId}</p>
+                                                <p className="text-xs font-black text-amber-900 truncate">{note.user?.name || note.userId}</p>
+                                                <p className="text-[11px] text-amber-900/90 whitespace-pre-wrap break-words">{note.message}</p>
+                                                <p className="text-[10px] text-amber-700 mt-1">{new Date(note.createdAt).toLocaleString()}</p>
                                             </div>
-                                            <input
-                                                value={draftId}
-                                                onChange={(e) => setCotDraftIds(prev => ({ ...prev, [user.id]: e.target.value }))}
-                                                className={`w-full px-3 py-2 rounded-lg border bg-white text-xs font-mono outline-none ${duplicateId ? 'border-red-300' : 'border-slate-200 focus:border-brand-500'}`}
-                                                placeholder="COT-1960"
-                                            />
                                             <button
-                                                onClick={async () => {
-                                                    const nextId = normalizedDraft;
-                                                    if (!onReassignUserId) {
-                                                        alert('ID reassignment is not available in this environment.');
-                                                        return;
-                                                    }
-                                                    if (!isCotId(nextId)) {
-                                                        alert('Please enter a valid ID format like COT-1960.');
-                                                        return;
-                                                    }
-                                                    if (duplicateId) {
-                                                        alert('This COT ID is already used.');
-                                                        return;
-                                                    }
-                                                    if (nextId === currentId) return;
-                                                    try {
-                                                        await onReassignUserId(user.id, nextId, { ...user, id: nextId });
-                                                        setCotDraftIds(prev => ({ ...prev, [user.id]: nextId }));
-                                                    } catch (error) {
-                                                        console.error('Failed to reassign COT ID', error);
-                                                        alert('Failed to reassign COT ID.');
-                                                    }
+                                                onClick={() => {
+                                                    setCotManagerMode('manual');
+                                                    setCotManagerQuery((note.user?.name || note.userId || '').trim());
                                                 }}
-                                                className="px-3 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold disabled:opacity-60"
-                                                disabled={!onReassignUserId}
+                                                className="shrink-0 px-2.5 py-1.5 rounded-lg bg-white border border-amber-200 text-amber-800 text-[11px] font-bold hover:bg-amber-100"
                                             >
-                                                Save ID
+                                                Open User
                                             </button>
                                         </div>
-                                    );
-                                })}
-                                {cotManagerUsers.length === 0 && (
-                                    <div className="text-sm text-slate-400 text-center py-4">No users found.</div>
-                                )}
-                            </div>
+                                    ))}
+                                    {cotIdChangeRequests.length === 0 && (
+                                        <div className="text-sm text-slate-400 text-center py-4">No COT ID change requests from users.</div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {/* Search and Filters (Reusing the same logic) */}
