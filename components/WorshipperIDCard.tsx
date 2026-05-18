@@ -7,6 +7,14 @@ import { jsPDF } from 'jspdf';
 import menorahBack from '/entrust-card-flag.png';
 import { ImageCropper } from './ImageCropper';
 
+type RegistrationType = 'individual' | 'family';
+
+interface FamilyCardMember {
+    name: string;
+    relationship: string;
+    photo?: string;
+}
+
 interface EntrustCardProps {
     name?: string;
     email?: string;
@@ -20,6 +28,8 @@ interface EntrustCardProps {
     className?: string;
     isBackSide?: boolean;
     isStatic?: boolean;
+    registrationType?: RegistrationType;
+    familyMembers?: FamilyCardMember[];
 }
 
 export const EntrustCard3D: React.FC<EntrustCardProps> = ({
@@ -34,7 +44,9 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
     status,
     className = "",
     isBackSide = false,
-    isStatic = false
+    isStatic = false,
+    registrationType = 'individual',
+    familyMembers = []
 }) => {
     const [isFlipped, setIsFlipped] = useState(isBackSide);
     const [showQrFullScreen, setShowQrFullScreen] = useState(false);
@@ -67,13 +79,18 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
         }
         return null;
     })();
-
     const fullDetails = `CITY OF TRUTH MINISTRIES\nID: ${uniqueId}\nName: ${name}\nLocation: ${location}\nPhone: ${emergency}\nMember Since: ${memberSince}`.trim();
     const appOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://city-of-truth-ministries.vercel.app';
     const verifyUrl = `${appOrigin}/verify/${uniqueId}`;
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(verifyUrl)}&bgcolor=ffffff&color=2c298c&margin=2&format=png&cb=${encodeURIComponent(uniqueId || 'COT-SAMPLE')}`;
+    const sanitizedFamilyMembers = familyMembers.filter(member => member.name.trim());
+    const memberCount = sanitizedFamilyMembers.length + 1;
+    const memberNames = sanitizedFamilyMembers
+        .map(member => member.name.trim().split(/\s+/)[0])
+        .slice(0, 6);
+    const familyBadge = `${memberCount} Members`;
 
-    const FrontFace = () => (
+    const IndividualFrontFace = () => (
         <div className="absolute inset-0 bg-white rounded-xl overflow-hidden border border-gray-200 shadow-2xl flex flex-col" style={{ backfaceVisibility: 'hidden' }}>
             {/* Header */}
             <div className="bg-brand-900 text-white px-3 py-2 flex items-center justify-between shrink-0 relative z-20">
@@ -174,17 +191,142 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
         </div>
     );
 
+    const FamilyFrontFace = () => (
+        <div className="absolute inset-0 bg-white rounded-xl overflow-hidden border border-gray-200 shadow-2xl flex flex-col" style={{ backfaceVisibility: 'hidden' }}>
+            <div className="bg-brand-900 text-white px-3 py-1.5 flex items-center justify-between shrink-0 relative z-20">
+                <div className="flex items-center gap-2">
+                    <img src="/brand-logo.png" alt="Logo" className="w-6 h-6 object-contain" />
+                    <div>
+                        <h2 className="font-bold text-[7px] uppercase tracking-wider leading-none">City of Truth Ministries</h2>
+                        <p className="text-[6px] text-accent-200 font-medium mt-0.5">சத்திய நகரம் ஊழியங்கள்</p>
+                    </div>
+                </div>
+                <div className="bg-accent-50 px-2 py-1 rounded-full">
+                    <p className="text-accent-700 font-bold text-[6px] uppercase tracking-wider whitespace-nowrap">Family Entrust Card</p>
+                </div>
+            </div>
+
+            <div className="bg-brand-50/90 py-1 text-center border-b border-brand-100">
+                <span className="text-[6px] font-bold text-brand-900 tracking-wider uppercase">We walk together in truth</span>
+            </div>
+
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/subtle-white-feathers.png')] opacity-20 pointer-events-none z-0"></div>
+
+            <div className="flex-1 p-2 relative z-10 flex gap-2">
+                <div className="w-[40%] flex flex-col">
+                    <div className="flex-1 min-h-0 rounded-lg border border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center">
+                        {safePhotoSrc ? <img src={safePhotoSrc} alt="Family Head" className="w-full h-full object-cover" /> : <User size={30} className="text-slate-300" />}
+                    </div>
+                    <div className="mt-1 bg-white/90 rounded-md border border-slate-200 px-1.5 py-1">
+                        <p className="text-[5px] uppercase tracking-wider text-slate-500 font-bold">Family Head</p>
+                        <p className="text-[8px] font-black text-brand-950 leading-tight truncate">{name || '—'}</p>
+                    </div>
+                </div>
+
+                <div className="w-[60%] min-w-0 flex flex-col justify-between">
+                    <div className="space-y-1">
+                        <div className="grid grid-cols-2 gap-1">
+                            <div className="bg-white/90 border border-slate-200 rounded-md px-1.5 py-1">
+                                <p className="text-[5px] uppercase tracking-wider text-slate-500 font-bold">Family ID</p>
+                                <p className="text-[7px] font-black text-brand-900 truncate">{uniqueId}</p>
+                            </div>
+                            <div className="bg-white/90 border border-slate-200 rounded-md px-1.5 py-1">
+                                <p className="text-[5px] uppercase tracking-wider text-slate-500 font-bold">District</p>
+                                <p className="text-[7px] font-bold text-slate-700 truncate">{location || '—'}</p>
+                            </div>
+                            <div className="bg-white/90 border border-slate-200 rounded-md px-1.5 py-1">
+                                <p className="text-[5px] uppercase tracking-wider text-slate-500 font-bold">Members</p>
+                                <p className="text-[7px] font-bold text-slate-700">{memberCount}</p>
+                            </div>
+                            <div className="bg-white/90 border border-slate-200 rounded-md px-1.5 py-1">
+                                <p className="text-[5px] uppercase tracking-wider text-slate-500 font-bold">Since</p>
+                                <p className="text-[7px] font-bold text-slate-700">{memberSince || '—'}</p>
+                            </div>
+                        </div>
+                        <div className="bg-white/90 border border-slate-200 rounded-md px-2 py-1">
+                            <p className="text-[5px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Family Members</p>
+                            {memberNames.length > 0 ? (
+                                <div className="space-y-0.5">
+                                    {memberNames.map((memberName, index) => (
+                                        <p key={`${uniqueId}-${memberName}-${index}`} className="text-[7px] text-slate-700 font-semibold truncate">• {memberName}</p>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-[7px] text-slate-500">No additional members</p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex items-end justify-between gap-2">
+                        <span className="text-[6px] font-bold text-brand-700 bg-brand-100 border border-brand-200 rounded-full px-2 py-0.5 whitespace-nowrap" aria-label={`${memberCount} family members`}>👨‍👩‍👧 {familyBadge}</span>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowQrFullScreen(true);
+                            }}
+                            className="bg-white p-1 border border-slate-200 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+                            aria-label="Open QR code"
+                        >
+                            <div className="relative inline-block w-12 h-12">
+                                <img src={qrCodeUrl} alt="QR" className="w-full h-full block" />
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <div className="bg-white rounded-full flex items-center justify-center p-0.5 shadow-sm" style={{ width: '14px', height: '14px' }}>
+                                        <img src="/logo.png" alt="COT" className="w-full h-full object-contain rounded-full" />
+                                    </div>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
+    const FrontFace = () => (registrationType === 'family' ? <FamilyFrontFace /> : <IndividualFrontFace />);
+
     const BackFace = () => (
         <div
             className="absolute inset-0 rounded-xl overflow-hidden border border-brand-900 shadow-2xl"
             style={{ backfaceVisibility: 'hidden', transform: isStatic ? 'none' : 'rotateY(180deg)' }}
         >
-            {/* Background Image Only - New Backside Image with Menorah */}
-            <img
-                src={menorahBack}
-                alt="Entrust Card Back"
-                className="absolute inset-0 w-full h-full object-cover"
-            />
+            {registrationType === 'family' ? (
+                <div className="absolute inset-0 bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800 text-white p-3 flex flex-col">
+                    <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-[8px] font-black uppercase tracking-widest">Family Members</h3>
+                        <span className="text-[6px] bg-white/15 border border-white/20 rounded-full px-2 py-0.5">{memberCount} Total</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 flex-1">
+                        {sanitizedFamilyMembers.slice(0, 4).map((member, index) => (
+                            <div key={index} className="bg-white/10 border border-white/20 rounded-lg p-1.5 backdrop-blur-sm">
+                                <div className="w-8 h-8 rounded-full bg-white/20 border border-white/30 overflow-hidden flex items-center justify-center text-white/70 mb-1">
+                                    {member.photo?.trim().startsWith('data:image/') ? <img src={member.photo} alt={member.name || 'member'} className="w-full h-full object-cover" /> : <User size={14} />}
+                                </div>
+                                <p className="text-[7px] font-bold truncate">{member.name || 'Member'}</p>
+                                <p className="text-[6px] text-white/75 truncate">{member.relationship || 'None'}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="mt-2 pt-2 border-t border-white/20 flex items-end justify-between gap-2">
+                        <div className="min-w-0">
+                            <p className="text-[6px] uppercase tracking-widest text-accent-200 font-bold">Vision</p>
+                            <p className="text-[6px] text-white/90 leading-tight">Households rooted in truth and grace.</p>
+                            <p className="text-[5px] text-white/70 mt-0.5">Support: +91 805625478</p>
+                        </div>
+                        <img src={qrCodeUrl} alt="Family QR" className="w-12 h-12 bg-white p-1 rounded-md border border-white/20 shrink-0" />
+                    </div>
+                </div>
+            ) : (
+                <>
+                    <img
+                        src={menorahBack}
+                        alt="Entrust Card Back"
+                        className="absolute inset-0 w-full h-full object-cover"
+                    />
+                </>
+            )}
         </div>
     );
 
@@ -285,8 +427,6 @@ interface WorshipperIDCardProps {
         status?: string;
     };
 }
-
-type RegistrationType = 'individual' | 'family';
 
 interface FamilyMemberForm {
     id: string;
@@ -612,7 +752,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                         </div>
                         <div className="p-8 bg-slate-50 flex justify-center">
                             <div className="transform scale-90">
-                                <EntrustCard3D {...formData} uniqueId={uniqueId} photo={previewPhoto} status="Pending" isStatic={true} isBackSide={false} />
+                                <EntrustCard3D {...formData} uniqueId={uniqueId} photo={previewPhoto} status="Pending" registrationType={registrationType} familyMembers={familyMembers} isStatic={true} isBackSide={false} />
                             </div>
                         </div>
                         <div className="p-6 bg-white border-t border-gray-100 flex gap-3">
@@ -629,10 +769,10 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
             {/* HIDDEN CAPTURE AREA */}
             <div className="fixed left-[-9999px] top-0 pointer-events-none">
                 <div id="capture-front" className="bg-white">
-                    <EntrustCard3D {...formData} uniqueId={uniqueId} photo={photo} status="Pending" isStatic={true} isBackSide={false} />
+                    <EntrustCard3D {...formData} uniqueId={uniqueId} photo={photo} status="Pending" registrationType={registrationType} familyMembers={familyMembers} isStatic={true} isBackSide={false} />
                 </div>
                 <div id="capture-back" className="bg-white">
-                    <EntrustCard3D {...formData} uniqueId={uniqueId} photo={photo} status="Pending" isStatic={true} isBackSide={true} />
+                    <EntrustCard3D {...formData} uniqueId={uniqueId} photo={photo} status="Pending" registrationType={registrationType} familyMembers={familyMembers} isStatic={true} isBackSide={true} />
                 </div>
             </div>
 
@@ -800,6 +940,8 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                                                     type="text"
                                                                     value={member.name}
                                                                     onChange={(e) => updateFamilyMember(member.id, 'name', e.target.value)}
+                                                                    required
+                                                                    aria-required="true"
                                                                     className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl outline-none text-sm text-brand-950 shadow-sm focus:ring-2 focus:ring-accent-500/20"
                                                                     placeholder="Enter member name"
                                                                 />
@@ -847,8 +989,11 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                     id="entrust-register-btn"
                                     onClick={() => {
                                         if (onRegister) {
+                                            const trimmedName = formData.name?.trim() || '';
+                                            const trimmedEmergency = formData.emergency?.trim() || '';
+                                            const trimmedLocation = formData.location?.trim() || '';
                                             // Validate all required fields (Email is now OPTIONAL, Password auto-set)
-                                            if (!formData.name || !formData.emergency || !formData.location) {
+                                            if (!trimmedName || !trimmedEmergency || !trimmedLocation) {
                                                 alert("Please fill in Name, Phone, and Location to register.");
                                                 return;
                                             }
@@ -864,10 +1009,10 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                                 }
                                             }
                                             // Set password to phone number if not provided
-                                            const finalPassword = formData.emergency;
+                                            const finalPassword = trimmedEmergency;
 
                                             // Validate phone number length
-                                            if (formData.emergency.length !== 10) {
+                                            if (trimmedEmergency.length !== 10) {
                                                 alert("Phone number must be exactly 10 digits.");
                                                 return;
                                             }
@@ -880,10 +1025,12 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
 
                                             onRegister({
                                                 ...formData,
+                                                name: trimmedName,
                                                 registrationType,
                                                 familyMembers,
-                                                emergency: `+91${formData.emergency}`,
-                                                phone: `+91${formData.emergency}`,
+                                                emergency: `+91${trimmedEmergency}`,
+                                                location: trimmedLocation,
+                                                phone: `+91${trimmedEmergency}`,
                                                 password: finalPassword,
                                                 uniqueId,
                                                 photo

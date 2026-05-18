@@ -26,7 +26,7 @@ interface UserDashboardProps {
 }
 
 const FAMILY_RELATIONSHIP_OPTIONS = {
-    immediate: ['Spouse', 'Son', 'Daughter', 'Father', 'Mother', 'Brother', 'Sister'],
+    immediate: ['None', 'Spouse', 'Son', 'Daughter', 'Father', 'Mother', 'Brother', 'Sister'],
     extended: ['Grandfather', 'Grandmother', 'Father-in-law', 'Mother-in-law', 'Uncle', 'Aunt', 'Cousin'],
     others: ['Guardian', 'Other']
 };
