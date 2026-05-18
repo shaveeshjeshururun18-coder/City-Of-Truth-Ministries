@@ -1261,7 +1261,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                             <button
                                                                 onClick={async () => {
                                                                     if (window.confirm(`Reject ${user.name}?`)) {
-                                                                        await onUpdateUser({ ...user, status: 'Rejected', pendingProfileUpdate: undefined });
+                                                                        await disapproveUser(user);
                                                                     }
                                                                 }}
                                                                 className="p-2 hover:bg-amber-50 text-amber-600 rounded-lg transition-colors"
@@ -1456,7 +1456,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <button
                                             onClick={async () => {
                                                 if (window.confirm(`Reject ${user.name}?`)) {
-                                                    await onUpdateUser({ ...user, status: 'Rejected', pendingProfileUpdate: undefined });
+                                                    await disapproveUser(user);
                                                 }
                                             }}
                                             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-amber-50 text-amber-600 rounded-xl font-medium text-sm hover:bg-amber-100 transition-colors"

@@ -906,14 +906,23 @@ const App: React.FC = () => {
 
   const handleRegister = async (data: any) => {
     const extractPhoneDigits = (value: string | undefined) => (value || '').replace(/\D/g, '');
-    const incomingPhoneDigits = extractPhoneDigits(data.phone || data.emergency);
-    const incomingEmail = (data.email || '').trim().toLowerCase();
+    const normalizeEmail = (value: string | undefined) => (value || '').trim().toLowerCase();
+    const incomingPhones = [data.phone, data.emergency]
+      .map(extractPhoneDigits)
+      .filter(Boolean);
+    const incomingEmails = [data.email]
+      .map(normalizeEmail)
+      .filter(Boolean);
 
     const existingByContact = users.find(u => {
-      const userPhoneDigits = extractPhoneDigits(u.phone || u.emergency);
-      const userEmail = (u.email || '').trim().toLowerCase();
-      const phoneMatch = !!incomingPhoneDigits && userPhoneDigits === incomingPhoneDigits;
-      const emailMatch = !!incomingEmail && userEmail === incomingEmail;
+      const userPhones = [u.phone, u.emergency]
+        .map(extractPhoneDigits)
+        .filter(Boolean);
+      const userEmails = [u.email]
+        .map(normalizeEmail)
+        .filter(Boolean);
+      const phoneMatch = incomingPhones.some(phone => userPhones.includes(phone));
+      const emailMatch = incomingEmails.some(email => userEmails.includes(email));
       return phoneMatch || emailMatch;
     });
 

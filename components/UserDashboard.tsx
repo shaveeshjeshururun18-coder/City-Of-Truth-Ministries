@@ -58,7 +58,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [cardFlipped, setCardFlipped] = useState(false);
     const [showCommunityProfileForm, setShowCommunityProfileForm] = useState(false);
     const [cropTarget, setCropTarget] = useState<{ type: 'primary' | 'linked-profile' | 'new-family-member'; profileId?: string } | null>(null);
-    const canAccessEntrustFeatures = user.status === 'Active';
+    const hasPermanentCotId = /^COT-\d{4,}$/i.test((user.id || '').trim());
+    const canAccessEntrustFeatures = user.status === 'Active' && hasPermanentCotId;
 
     useEffect(() => {
         if (!initialProfileId) {
@@ -634,7 +635,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     };
 
     const handleBlockedFeature = () => {
-        alert('This feature is locked until admin approval.');
+        alert('This feature is locked until admin approval and permanent COT ID activation.');
     };
 
     const handleDownloadQrCode = async () => {
@@ -967,7 +968,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                         {/* Right: Entrust card preview + QR download */}
                         <div className="w-full xl:w-2/5 flex flex-col items-center justify-center border-t xl:border-t-0 xl:border-l border-slate-100 pt-6 xl:pt-0 xl:pl-6">
-                            {user.status === 'Active' ? (
+                            {canAccessEntrustFeatures ? (
                                 <div className="flex flex-col items-center w-full">
                                     <div className="w-full max-w-[320px] rounded-[28px] border border-slate-200 bg-gradient-to-br from-slate-50 to-white shadow-md px-5 py-6 flex flex-col items-center text-center">
                                         <div className="inline-flex items-center gap-2 rounded-full bg-brand-50 border border-brand-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-brand-600 mb-4">
@@ -1013,7 +1014,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         </div>
                                     </div>
                                     <p className={`text-[10px] mt-2 ${user.status === 'Rejected' ? 'text-red-500' : 'text-slate-400'}`}>
-                                        {user.status === 'Rejected' ? 'Denied by admin. Please contact support.' : 'Pending admin verification'}
+                                        {user.status === 'Rejected'
+                                            ? 'Denied by admin. Please contact support.'
+                                            : hasPermanentCotId
+                                                ? 'Pending admin verification'
+                                                : 'Temporary account. COT ID activation pending.'}
                                     </p>
                                     </div>
                                 </div>
@@ -1029,7 +1034,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     </div>
 
                     {/* Action buttons row (mAadhaar style) */}
-                    {user.status === 'Active' && (
+                    {canAccessEntrustFeatures && (
                         <div className="grid grid-cols-5 gap-1 px-4 pb-5 pt-3">
                             {[
                                 { icon: <Share2 size={20} />, label: 'Share', action: handleShare, id: 'dashboard-share-top-btn' },
@@ -1053,7 +1058,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     <div className="grid grid-cols-2 gap-4 mb-5">
 
                     {/* Entrust ID Card — brown */}
-                    {user.status === 'Active' ? (
+                    {canAccessEntrustFeatures ? (
                         <button onClick={handleDownloadPDF} disabled={isProcessing}
                             className="bg-gradient-to-br from-[#7B3F00] to-[#C0652B] text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all disabled:opacity-70 relative overflow-hidden group">
                             <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><FileText size={18} /></div>
@@ -1068,7 +1073,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             <div className="w-9 h-9 bg-slate-200 rounded-xl flex items-center justify-center mb-3"><FileText size={18} className="text-slate-400" /></div>
                             <p className="font-bold text-sm text-slate-500 mb-1">Entrust ID Card</p>
                             <p className={`text-[10px] ${user.status === 'Rejected' ? 'text-red-500' : 'text-slate-400'}`}>
-                                {user.status === 'Rejected' ? 'Denied by admin' : 'Pending verification'}
+                                {user.status === 'Rejected'
+                                    ? 'Denied by admin'
+                                    : hasPermanentCotId
+                                        ? 'Pending verification'
+                                        : 'Temporary account'}
                             </p>
                             <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase bg-slate-200 rounded-lg px-2.5 py-1.5 text-slate-400">
                                 <AlertCircle size={11} /> Locked
