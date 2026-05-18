@@ -664,10 +664,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 const user = users.find(u => u.id === userId);
                 if (!user) return Promise.resolve();
                 const hasPendingEdit = !!user.pendingProfileUpdate && Object.keys(user.pendingProfileUpdate).length > 0;
-                if (hasPendingEdit) {
-                    return disapproveUser(user);
-                }
-                if (user.status === 'Pending Verification' || user.status === 'Active') {
+                if (hasPendingEdit || user.status === 'Pending Verification' || user.status === 'Active') {
                     return disapproveUser(user);
                 }
                 return Promise.resolve();
