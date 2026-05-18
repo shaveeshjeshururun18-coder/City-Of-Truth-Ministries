@@ -164,8 +164,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             setSubProfileForm(prev => ({ ...prev, photo: croppedImg }));
         } else if (cropTarget?.type === 'linked-profile' && cropTarget.profileId) {
             const updatedProfiles = user.linkedProfiles?.map(p => p.id === cropTarget.profileId ? { ...p, photo: croppedImg } : p) || [];
-            onUpdate({ ...user, linkedProfiles: updatedProfiles } as User);
-            alert('Profile photo updated successfully.');
+            onUpdate({
+                ...user,
+                pendingProfileUpdate: {
+                    ...(user.pendingProfileUpdate || {}),
+                    linkedProfiles: updatedProfiles
+                }
+            } as User);
+            alert('Linked profile photo update submitted for admin approval.');
         } else {
             onUpdate({
                 ...user,
