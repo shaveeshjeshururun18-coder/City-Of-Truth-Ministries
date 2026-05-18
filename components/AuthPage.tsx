@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X, UserCheck } from 'lucide-react';
+import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X, UserCheck, UserPlus } from 'lucide-react';
 import { Button } from './Button';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
@@ -14,6 +14,7 @@ interface AuthPageProps {
     onBack: () => void;
     users?: any[];
     initialView?: 'choice' | 'login' | 'register' | 'forgot-id';
+    initialIdentifier?: string;
 }
 
 export const AuthPage: React.FC<AuthPageProps> = ({
@@ -22,7 +23,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     onAdminClick,
     onBack,
     users = [],
-    initialView = 'login'
+    initialView = 'login',
+    initialIdentifier = ''
 }) => {
     const [view, setView] = useState<'choice' | 'login' | 'register' | 'forgot-id'>(initialView);
     const [identifier, setIdentifier] = useState('');
@@ -32,7 +34,16 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     const [notFound, setNotFound] = useState(false);
     const [showScanner, setShowScanner] = useState(false);
     const [scanningFile, setScanningFile] = useState(false);
+    const [showLoginIntro, setShowLoginIntro] = useState(false);
+    const [loginTourStepIndex, setLoginTourStepIndex] = useState<number | null>(null);
+    const [loginTourRect, setLoginTourRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
     const scannerRef = useRef<any>(null);
+    const LOGIN_TOUR_STEPS = [
+        { selector: '#auth-login-identifier', title: 'Enter Member Detail', text: 'Type Member ID, phone, name, or email to find your account.' },
+        { selector: '#auth-login-verify-btn', title: 'Verify Account', text: 'Click Verify to check your account quickly.' },
+        { selector: '#auth-login-qr-btn', title: 'QR Scanner', text: 'Use live scanner when you have an Entrust QR code.' },
+        { selector: '#auth-login-upload-btn', title: 'Upload Entrust Card', text: 'Upload an Entrust image/PDF and we will extract your details.' },
+    ];
     const searchableKeys = ['id', 'name', 'email', 'phone', 'emergency', 'location', 'role', 'status', 'dob', 'memberSince', 'gender', 'joinedDate', 'bloodGroup'] as const;
 
     const normalizeValue = (value: unknown) => String(value ?? '').trim().toLowerCase();
@@ -151,6 +162,61 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         };
     }, [showScanner]);
 
+    useEffect(() => {
+        const incoming = (initialIdentifier || '').trim();
+        if (!incoming) return;
+        setIdentifier(incoming);
+        handleSearch(incoming);
+    }, [initialIdentifier]);
+
+    useEffect(() => {
+        if (view !== 'login') return;
+        const seen = localStorage.getItem('cot_auth_login_tour_seen') === '1';
+        if (!seen) setShowLoginIntro(true);
+    }, [view]);
+
+    useEffect(() => {
+        if (loginTourStepIndex === null || view !== 'login') return;
+        const step = LOGIN_TOUR_STEPS[loginTourStepIndex];
+        const target = document.querySelector(step.selector) as HTMLElement | null;
+        target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, [loginTourStepIndex, view]);
+
+    useEffect(() => {
+        if (loginTourStepIndex === null || view !== 'login') return;
+        const updateRect = () => {
+            const step = LOGIN_TOUR_STEPS[loginTourStepIndex];
+            const target = document.querySelector(step.selector) as HTMLElement | null;
+            if (!target) {
+                setLoginTourRect(null);
+                return;
+            }
+            const rect = target.getBoundingClientRect();
+            setLoginTourRect({ top: rect.top - 8, left: rect.left - 8, width: rect.width + 16, height: rect.height + 16 });
+        };
+        const timer = setTimeout(updateRect, 220);
+        window.addEventListener('resize', updateRect);
+        window.addEventListener('scroll', updateRect, true);
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('resize', updateRect);
+            window.removeEventListener('scroll', updateRect, true);
+        };
+    }, [loginTourStepIndex, view]);
+
+    const markLoginTourSeen = () => localStorage.setItem('cot_auth_login_tour_seen', '1');
+    const startLoginTour = () => {
+        markLoginTourSeen();
+        setShowLoginIntro(false);
+        setLoginTourStepIndex(0);
+    };
+    const skipLoginTour = () => {
+        markLoginTourSeen();
+        setShowLoginIntro(false);
+        setLoginTourStepIndex(null);
+        setLoginTourRect(null);
+    };
+
     const handleFileQRScan = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         if (!files.length) return;
@@ -242,7 +308,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         }
     };
 
-    const handleSearch = (searchVal?: any) => {
+    const handleSearch = useCallback((searchVal?: any) => {
         const queryTerm = typeof searchVal === 'string' ? searchVal : identifier;
         if (!queryTerm.trim()) return;
 
@@ -263,7 +329,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             }
             setSearching(false);
         }, 400);
-    };
+    }, [identifier, users]);
 
     const handleProceed = () => {
         if (previewUser) {
@@ -317,8 +383,32 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             initial={{ opacity: 0, scale: 0.98 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, y: -20 }}
-                            className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10"
+                            className="space-y-6 md:space-y-8"
                         >
+                            <div className="bg-white border border-brand-100 rounded-[2rem] p-5 md:p-7 shadow-sm">
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-500 mb-2">New Here?</p>
+                                        <h3 className="text-xl md:text-2xl font-serif font-bold text-brand-950">Start with Entrust Registration</h3>
+                                        <p className="text-sm text-slate-600 mt-2">Create your profile, receive your member ID, and unlock dashboard access.</p>
+                                    </div>
+                                    <button
+                                        onClick={onNavigateToRegister}
+                                        className="shrink-0 px-5 py-3 rounded-2xl bg-brand-600 text-white font-black text-xs uppercase tracking-wider hover:bg-brand-700 transition-colors"
+                                    >
+                                        Open Registration Page
+                                    </button>
+                                </div>
+                                <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+                                    {['Digital Entrust Card', 'Dashboard Access', 'Ministry Updates'].map((benefit) => (
+                                        <div key={benefit} className="rounded-xl border border-brand-100 bg-brand-50/40 px-3 py-2 text-brand-800 font-semibold text-center">
+                                            {benefit}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10">
                             {[
                                 { id: 'login', icon: <UserIcon size={48} />, title: 'Member Login', desc: 'Access your personal dashboard\nand profile settings', color: 'blue' },
                                 { id: 'register', icon: <IdCard size={48} />, title: 'New Registration', desc: 'Apply for membership\nand Entrust Card', color: 'indigo' },
@@ -343,6 +433,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                     </div>
                                 </button>
                             ))}
+                            </div>
                         </motion.div>
                     )}
 
@@ -361,12 +452,21 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                 <p className="text-brand-50/95 mb-6 md:mb-10 text-sm sm:text-base md:text-lg font-semibold relative z-10">Login with any one detail: Member ID, Phone Number, Name, or Email.</p>
 
                                 <div className="mb-6 md:mb-12 z-10">
+                                    <div className="mb-4 rounded-2xl bg-white/10 border border-white/15 p-3 md:p-4 text-left">
+                                        <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.18em] text-white/85 mb-1 flex items-center gap-2">
+                                            <UserPlus size={14} /> Add Profile Support
+                                        </p>
+                                        <p className="text-[11px] md:text-sm text-white/85 font-semibold leading-relaxed">
+                                            If you login with another account while already signed in, that account will be added as an extra profile in your dashboard.
+                                        </p>
+                                    </div>
                                     <p className="text-left text-[10px] md:text-xs font-black uppercase tracking-[0.18em] text-white/90 mb-2">Enter Member Detail</p>
                                     <div className="relative">
                                         <div className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-white/80">
                                             <UserIcon size={20} className="md:w-7 md:h-7" />
                                         </div>
                                         <input
+                                            id="auth-login-identifier"
                                             type="text"
                                             placeholder="Try: COT ID, phone number, name, or email"
                                             className="w-full pl-12 md:pl-16 pr-28 sm:pr-36 md:pr-44 py-4 md:py-7 text-base md:text-xl bg-white/95 text-brand-950 border-2 border-white/50 rounded-2xl md:rounded-3xl outline-none focus:bg-white focus:ring-8 focus:ring-white/20 focus:border-white transition-all shadow-inner font-bold placeholder:text-brand-300"
@@ -388,6 +488,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                             onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
                                         />
                                         <button
+                                            id="auth-login-verify-btn"
                                             type="button"
                                             onClick={() => handleSearch()}
                                             disabled={!identifier.trim() || searching}
@@ -404,6 +505,23 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                     <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20">Email: john@mail.com</span>
                                 </div>
 
+                                <div className="mt-6 md:mt-8 bg-white/10 border border-white/15 rounded-2xl p-4 text-left">
+                                    <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.18em] text-white/80 mb-2">New Member Advantages</p>
+                                    <ul className="space-y-1.5 text-xs md:text-sm text-white/85 font-semibold">
+                                        <li>• Get your official Entrust card and unique member ID</li>
+                                        <li>• Access your user dashboard and account updates</li>
+                                        <li>• Receive approval/denial and ministry status notifications</li>
+                                    </ul>
+                                    <button
+                                        id="auth-login-qr-btn"
+                                        type="button"
+                                        onClick={onNavigateToRegister}
+                                        className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-brand-900 font-black text-[11px] uppercase tracking-wider hover:bg-brand-50 transition-colors"
+                                    >
+                                        Register Now <ArrowRight size={14} />
+                                    </button>
+                                </div>
+
                                 {/* Smart Auth Grid */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mt-6 md:mt-12 relative z-10">
                                     <button
@@ -418,7 +536,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                         <p className="text-[10px] text-brand-300 font-black uppercase tracking-widest">Verify via Digital ID</p>
                                     </button>
 
-                                    <label className="group flex flex-col items-center justify-center p-5 md:p-8 bg-white border-2 border-brand-50 hover:border-brand-200 rounded-[1.5rem] md:rounded-[2.5rem] shadow-sm hover:shadow-2xl transition-all duration-500 cursor-pointer">
+                                    <label id="auth-login-upload-btn" className="group flex flex-col items-center justify-center p-5 md:p-8 bg-white border-2 border-brand-50 hover:border-brand-200 rounded-[1.5rem] md:rounded-[2.5rem] shadow-sm hover:shadow-2xl transition-all duration-500 cursor-pointer">
                                         <div className="w-14 h-14 md:w-20 md:h-20 mb-4 md:mb-6 rounded-2xl md:rounded-3xl bg-brand-50 text-brand-400 group-hover:bg-brand-600 group-hover:text-white group-hover:-translate-y-1 transition-all duration-500 flex items-center justify-center">
                                             {scanningFile ? <div className="w-8 h-8 md:w-10 md:h-10 border-4 border-brand-400 border-t-transparent rounded-full animate-spin" /> : <UploadCloud size={28} className="md:w-9 md:h-9" />}
                                         </div>
@@ -583,6 +701,55 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     )}
                 </AnimatePresence>
             </main>
+
+            <AnimatePresence>
+                {showLoginIntro && view === 'login' && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[170] bg-black/45 backdrop-blur-sm flex items-center justify-center p-4">
+                        <motion.div initial={{ y: 20, opacity: 0, scale: 0.96 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 12, opacity: 0 }} className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-slate-100">
+                            <div className="text-[11px] font-black uppercase tracking-widest text-brand-500 mb-2">Login Tour</div>
+                            <h3 className="text-xl font-bold text-brand-950 mb-2">Soft Introduction</h3>
+                            <p className="text-sm text-slate-600 mb-5">We will highlight login options one by one. You can skip anytime.</p>
+                            <div className="flex items-center justify-end gap-2">
+                                <button onClick={skipLoginTour} className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100">Skip</button>
+                                <button onClick={startLoginTour} className="px-4 py-2 rounded-xl text-sm font-bold bg-brand-600 text-white hover:bg-brand-700">Take Tour</button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {loginTourStepIndex !== null && view === 'login' && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[175] pointer-events-none">
+                        <div className="absolute inset-0 bg-black/65" />
+                        {loginTourRect && (
+                            <div className="absolute rounded-2xl border-2 border-amber-300 shadow-[0_0_0_9999px_rgba(2,6,23,0.72)]" style={{ top: loginTourRect.top, left: loginTourRect.left, width: loginTourRect.width, height: loginTourRect.height }} />
+                        )}
+                        <div className="absolute left-1/2 -translate-x-1/2 bottom-5 w-[calc(100%-1.5rem)] max-w-md bg-white rounded-3xl p-5 shadow-2xl pointer-events-auto">
+                            <div className="text-[11px] uppercase tracking-widest font-black text-brand-500 mb-2">Step {loginTourStepIndex + 1} of {LOGIN_TOUR_STEPS.length}</div>
+                            <h4 className="text-lg font-bold text-brand-950 mb-1">{LOGIN_TOUR_STEPS[loginTourStepIndex]?.title}</h4>
+                            <p className="text-sm text-slate-600 mb-4">{LOGIN_TOUR_STEPS[loginTourStepIndex]?.text}</p>
+                            <div className="flex items-center justify-between gap-2">
+                                <button onClick={skipLoginTour} className="px-4 py-2 text-sm font-bold rounded-xl text-slate-600 hover:bg-slate-100 transition-colors">Skip Tour</button>
+                                <button
+                                    onClick={() => {
+                                        const isLastStep = loginTourStepIndex >= LOGIN_TOUR_STEPS.length - 1;
+                                        if (isLastStep) {
+                                            setLoginTourStepIndex(null);
+                                            setLoginTourRect(null);
+                                        } else {
+                                            setLoginTourStepIndex(loginTourStepIndex + 1);
+                                        }
+                                    }}
+                                    className="px-4 py-2 text-sm font-bold rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors"
+                                >
+                                    {loginTourStepIndex >= LOGIN_TOUR_STEPS.length - 1 ? 'Done' : 'Next'}
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <footer className="py-12 border-t border-brand-50 relative z-10 bg-brand-50/10">
                 <div className="max-w-5xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">

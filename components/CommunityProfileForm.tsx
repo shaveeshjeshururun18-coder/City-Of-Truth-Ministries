@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Church, User, Quote, Send, Sparkles, CheckCircle, ArrowRight } from 'lucide-react';
 import { Button } from './Button';
@@ -23,6 +23,39 @@ const OrnateCorner = ({ className }: { className?: string }) => (
 );
 
 export const CommunityProfileForm: React.FC<CommunityProfileFormProps> = ({ isOpen, onClose, onSave, initialData }) => {
+    const DENOMINATION_OPTIONS = useMemo(() => ([
+        'Assemblies of God (AG)',
+        'Pentecostal',
+        'Independent Pentecostal',
+        'Baptist',
+        'Roman Catholic',
+        'CSI (Church of South India)',
+        'CNI (Church of North India)',
+        'Lutheran',
+        'Methodist',
+        'Presbyterian',
+        'Evangelical',
+        'Seventh-day Adventist',
+        'Orthodox',
+        'Marthoma',
+        'Syro-Malabar',
+        'Syro-Malankara',
+        'Brethren',
+        'Jehovah Witness',
+        'Non-Denominational',
+        'House Church',
+        'New Believer / Seeker',
+        'Other',
+    ]), []);
+
+    const TOUR_STEPS: Array<{ id: 'denomination' | 'churchName' | 'role' | 'bio' | 'submit'; title: string; text: string }> = useMemo(() => ([
+        { id: 'denomination', title: 'Denomination', text: 'Select your denomination from the full list.' },
+        { id: 'churchName', title: 'Church Name', text: 'Enter your current church name clearly.' },
+        { id: 'role', title: 'Role in Ministry', text: 'Choose your role from the dropdown options.' },
+        { id: 'bio', title: 'Testimony / Bio', text: 'Add a short testimony or ministry background.' },
+        { id: 'submit', title: 'Submit Profile', text: 'Review details and submit your profile to save it.' },
+    ]), []);
+
     const [formData, setFormData] = useState({
         denomination: initialData?.denomination || '',
         churchName: initialData?.churchName || '',
@@ -31,6 +64,33 @@ export const CommunityProfileForm: React.FC<CommunityProfileFormProps> = ({ isOp
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showTour, setShowTour] = useState(false);
+    const [tourStepIndex, setTourStepIndex] = useState(0);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const key = 'cot_member_form_tour_seen';
+        const alreadySeen = localStorage.getItem(key) === '1';
+        if (!alreadySeen) {
+            setTourStepIndex(0);
+            setShowTour(true);
+        }
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen || !showTour) return;
+        const targetId = TOUR_STEPS[tourStepIndex]?.id;
+        const target = targetId ? document.getElementById(`community-${targetId}`) : null;
+        target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, [isOpen, showTour, tourStepIndex, TOUR_STEPS]);
+
+    const completeTour = () => {
+        localStorage.setItem('cot_member_form_tour_seen', '1');
+        setShowTour(false);
+    };
+
+    const activeTourId = showTour ? TOUR_STEPS[tourStepIndex]?.id : null;
+    const isTourActive = (id: string) => showTour && activeTourId === id;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -112,26 +172,31 @@ export const CommunityProfileForm: React.FC<CommunityProfileFormProps> = ({ isOp
                                             <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#d4a547] ml-4">
                                                 <Church size={14} /> Denomination
                                             </label>
-                                            <input 
+                                            <select
+                                                id="community-denomination"
                                                 required
                                                 value={formData.denomination}
                                                 onChange={e => setFormData({...formData, denomination: e.target.value})}
-                                                type="text" 
-                                                placeholder="e.g. Pentecostal, CSI, etc."
-                                                className="w-full px-6 py-4 md:px-7 md:py-5 bg-white border-2 border-slate-100 rounded-2xl md:rounded-[2rem] outline-none focus:ring-4 focus:ring-[#d4a547]/10 focus:border-[#d4a547] transition-all text-sm font-bold shadow-sm placeholder:text-slate-300"
-                                            />
+                                                className={`w-full px-6 py-4 md:px-7 md:py-5 bg-white border-2 border-slate-100 rounded-2xl md:rounded-[2rem] outline-none focus:ring-4 focus:ring-[#d4a547]/10 focus:border-[#d4a547] transition-all text-sm font-bold shadow-sm ${isTourActive('denomination') ? 'ring-4 ring-indigo-200 border-indigo-400' : ''}`}
+                                            >
+                                                <option value="">Select denomination</option>
+                                                {DENOMINATION_OPTIONS.map((option) => (
+                                                    <option key={option} value={option}>{option}</option>
+                                                ))}
+                                            </select>
                                         </div>
                                         <div className="space-y-2 md:space-y-3">
                                             <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#d4a547] ml-4">
                                                 <Sparkles size={14} /> Church Name
                                             </label>
                                             <input 
+                                                id="community-churchName"
                                                 required
                                                 value={formData.churchName}
                                                 onChange={e => setFormData({...formData, churchName: e.target.value})}
                                                 type="text" 
                                                 placeholder="Your current home church"
-                                                className="w-full px-6 py-4 md:px-7 md:py-5 bg-white border-2 border-slate-100 rounded-2xl md:rounded-[2rem] outline-none focus:ring-4 focus:ring-[#d4a547]/10 focus:border-[#d4a547] transition-all text-sm font-bold shadow-sm placeholder:text-slate-300"
+                                                className={`w-full px-6 py-4 md:px-7 md:py-5 bg-white border-2 border-slate-100 rounded-2xl md:rounded-[2rem] outline-none focus:ring-4 focus:ring-[#d4a547]/10 focus:border-[#d4a547] transition-all text-sm font-bold shadow-sm placeholder:text-slate-300 ${isTourActive('churchName') ? 'ring-4 ring-indigo-200 border-indigo-400' : ''}`}
                                             />
                                         </div>
                                     </div>
@@ -142,10 +207,11 @@ export const CommunityProfileForm: React.FC<CommunityProfileFormProps> = ({ isOp
                                         </label>
                                         <div className="relative">
                                             <select 
+                                                id="community-role"
                                                 required
                                                 value={formData.role}
                                                 onChange={e => setFormData({...formData, role: e.target.value})}
-                                                className="w-full px-6 py-4 md:px-7 md:py-5 bg-white border-2 border-slate-100 rounded-2xl md:rounded-[2rem] outline-none focus:ring-4 focus:ring-[#d4a547]/10 focus:border-[#d4a547] transition-all text-sm font-bold shadow-sm appearance-none cursor-pointer"
+                                                className={`w-full px-6 py-4 md:px-7 md:py-5 bg-white border-2 border-slate-100 rounded-2xl md:rounded-[2rem] outline-none focus:ring-4 focus:ring-[#d4a547]/10 focus:border-[#d4a547] transition-all text-sm font-bold shadow-sm appearance-none cursor-pointer ${isTourActive('role') ? 'ring-4 ring-indigo-200 border-indigo-400' : ''}`}
                                             >
                                                 <option value="">Select your role</option>
                                                 <option>Pastor / Leader</option>
@@ -166,19 +232,21 @@ export const CommunityProfileForm: React.FC<CommunityProfileFormProps> = ({ isOp
                                             <Quote size={14} /> Brief Testimony / Bio
                                         </label>
                                         <textarea 
+                                            id="community-bio"
                                             value={formData.bio}
                                             onChange={e => setFormData({...formData, bio: e.target.value})}
                                             rows={3}
                                             placeholder="Tell us a little about your journey with Christ..."
-                                            className="w-full px-6 py-4 md:px-7 md:py-6 bg-white border-2 border-slate-100 rounded-2xl md:rounded-[2.5rem] outline-none focus:ring-4 focus:ring-[#d4a547]/10 focus:border-[#d4a547] transition-all text-sm font-bold shadow-sm placeholder:text-slate-300"
+                                            className={`w-full px-6 py-4 md:px-7 md:py-6 bg-white border-2 border-slate-100 rounded-2xl md:rounded-[2.5rem] outline-none focus:ring-4 focus:ring-[#d4a547]/10 focus:border-[#d4a547] transition-all text-sm font-bold shadow-sm placeholder:text-slate-300 ${isTourActive('bio') ? 'ring-4 ring-indigo-200 border-indigo-400' : ''}`}
                                         />
                                     </div>
                                     
                                     <div className="pt-6 md:pt-8">
                                         <button 
+                                            id="community-submit"
                                             disabled={isSubmitting}
                                             type="submit"
-                                            className="w-full py-5 md:py-7 bg-gradient-to-r from-[#1a1b4b] to-[#2a2b6b] text-[#d4a547] rounded-2xl md:rounded-[2.5rem] font-black uppercase tracking-[0.25em] text-xs md:text-sm flex items-center justify-center gap-4 shadow-[0_20px_50px_rgba(26,27,75,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 border-b-4 border-[#d4a547]/30"
+                                            className={`w-full py-5 md:py-7 bg-gradient-to-r from-[#1a1b4b] to-[#2a2b6b] text-[#d4a547] rounded-2xl md:rounded-[2.5rem] font-black uppercase tracking-[0.25em] text-xs md:text-sm flex items-center justify-center gap-4 shadow-[0_20px_50px_rgba(26,27,75,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 border-b-4 border-[#d4a547]/30 ${isTourActive('submit') ? 'ring-4 ring-indigo-200 border-indigo-400' : ''}`}
                                         >
                                             {isSubmitting ? (
                                                 <div className="w-5 h-5 md:w-6 md:h-6 border-3 border-[#d4a547] border-t-transparent rounded-full animate-spin" />
@@ -194,6 +262,49 @@ export const CommunityProfileForm: React.FC<CommunityProfileFormProps> = ({ isOp
                                 <Sparkles size={14} className="text-[#d4a547] md:w-4 md:h-4" /> Dedicated for ministry use only
                             </p>
                         </div>
+
+                        {showTour && (
+                            <div className="sticky bottom-3 mx-4 mb-4 rounded-2xl border border-indigo-200 bg-white/95 backdrop-blur p-4 shadow-xl z-40">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 mb-1">Form Guide</p>
+                                <h4 className="text-sm font-bold text-brand-950">{TOUR_STEPS[tourStepIndex]?.title}</h4>
+                                <p className="text-xs text-slate-600 mt-1">{TOUR_STEPS[tourStepIndex]?.text}</p>
+                                <div className="mt-3 flex items-center justify-between">
+                                    <span className="text-[10px] font-bold text-slate-500">
+                                        Step {tourStepIndex + 1} / {TOUR_STEPS.length}
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={completeTour}
+                                            className="px-3 py-1.5 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-500 hover:bg-slate-50"
+                                        >
+                                            Skip
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setTourStepIndex((prev) => Math.max(0, prev - 1))}
+                                            disabled={tourStepIndex === 0}
+                                            className="px-3 py-1.5 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-600 disabled:opacity-40"
+                                        >
+                                            Back
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (tourStepIndex >= TOUR_STEPS.length - 1) {
+                                                    completeTour();
+                                                    return;
+                                                }
+                                                setTourStepIndex((prev) => prev + 1);
+                                            }}
+                                            className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-[11px] font-bold hover:bg-indigo-700"
+                                        >
+                                            {tourStepIndex >= TOUR_STEPS.length - 1 ? 'Done' : 'Next'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </motion.div>
                 </div>
             )}

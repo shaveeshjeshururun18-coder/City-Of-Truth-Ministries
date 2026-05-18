@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, SubProfile } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
-import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud } from 'lucide-react';
+import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag } from 'lucide-react';
 import { Button } from './Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TestimonialModal } from './TestimonialModal';
@@ -13,6 +13,7 @@ import { PrintableReferenceGuide } from './PrintableReferenceGuide';
 import { getCalendarData5786 } from './CalendarLogic';
 import { CalendarCustomizationModal, CalendarOptions } from './CalendarCustomizationModal';
 import { addCenteredCardPage, waitForNodeImages } from './pdfCardUtils';
+import { CommunityProfileForm } from './CommunityProfileForm';
 
 interface UserDashboardProps {
     user: User;
@@ -21,6 +22,7 @@ interface UserDashboardProps {
     onLogout: () => void;
     onOpenScanner?: () => void;
     initialProfileId?: string;
+    onGoToLogin?: () => void;
 }
 
 const FAMILY_RELATIONSHIP_OPTIONS = {
@@ -29,7 +31,15 @@ const FAMILY_RELATIONSHIP_OPTIONS = {
     others: ['Guardian', 'Other']
 };
 
-export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, onOpenScanner, initialProfileId }) => {
+const TAMIL_NADU_LOCATIONS = [
+    'Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli', 'Salem', 'Erode', 'Tirunelveli',
+    'Thoothukudi', 'Vellore', 'Dindigul', 'Thanjavur', 'Kancheepuram', 'Kanyakumari',
+    'Namakkal', 'Karur', 'Nagapattinam', 'Cuddalore', 'Villupuram', 'Dharmapuri', 'Krishnagiri',
+    'Sivaganga', 'Virudhunagar', 'Ramanathapuram', 'The Nilgiris', 'Tiruppur', 'Ariyalur',
+    'Pudukkottai', 'Perambalur', 'Tenkasi', 'Ranipet', 'Tirupattur', 'Mayiladuthurai', 'Valparai'
+];
+
+export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, onOpenScanner, initialProfileId, onGoToLogin }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [showTestimonialModal, setShowTestimonialModal] = useState(false);
     const [formData, setFormData] = useState<Partial<User>>({});
@@ -46,6 +56,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [idRevealed, setIdRevealed] = useState(false);
     const [showCardPreview, setShowCardPreview] = useState(false);
     const [cardFlipped, setCardFlipped] = useState(false);
+    const [showCommunityProfileForm, setShowCommunityProfileForm] = useState(false);
+    const [cropTarget, setCropTarget] = useState<{ type: 'primary' | 'linked-profile' | 'new-family-member'; profileId?: string } | null>(null);
+    const canAccessEntrustFeatures = user.status === 'Active';
 
     useEffect(() => {
         if (!initialProfileId) {
@@ -57,35 +70,101 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         setActiveProfileId((isPrimary || isLinked) ? initialProfileId : user.id);
     }, [initialProfileId, user.id, user.linkedProfiles]);
 
+
     const getDisplayProfile = () => {
         if (activeProfileId === user.id) return user;
         const sub = user.linkedProfiles?.find(p => p.id === activeProfileId);
         if (sub) return { ...user, id: sub.id, name: sub.name, photo: sub.photo, bloodGroup: sub.bloodGroup, dob: sub.dob };
         return user;
     };
+    const getAvatarInitials = (name?: string) => {
+        const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+        if (parts.length >= 2) return `${parts[0][0] || 'C'}${parts[1][0] || 'T'}`.toUpperCase();
+        return ((parts[0] || 'CT').slice(0, 2)).toUpperCase();
+    };
+    const renderAvatarContent = (
+        photo: string | undefined,
+        name: string,
+        initialClass = 'text-sm',
+        gradientClass = 'from-brand-600 to-violet-700'
+    ) => {
+        const candidate = (photo || '').trim();
+        if (candidate) {
+            if (/^data:image\/(?:png|jpe?g|webp|gif|bmp);base64,/i.test(candidate) || candidate.startsWith('blob:')) {
+                return <img src={candidate} alt="Profile photo" className="w-full h-full object-cover" loading="lazy" />;
+            }
+            if (/^https?:\/\//i.test(candidate)) {
+                try {
+                    const parsed = new URL(candidate);
+                    const allowedHosts = new Set([
+                        'firebasestorage.googleapis.com',
+                        'lh3.googleusercontent.com',
+                        'avatars.githubusercontent.com',
+                        'user-attachments.githubusercontent.com',
+                        'raw.githubusercontent.com',
+                        'ui-avatars.com',
+                    ]);
+                    if (allowedHosts.has(parsed.hostname)) {
+                        return <img src={parsed.toString()} alt="Profile photo" className="w-full h-full object-cover" loading="lazy" />;
+                    }
+                } catch {
+                    // Fall back to initials when the URL is invalid.
+                }
+            }
+        }
+        return (
+            <div className={`w-full h-full bg-gradient-to-br ${gradientClass} flex items-center justify-center text-white ${initialClass} font-black tracking-[0.2em]`}>
+                {getAvatarInitials(name)}
+            </div>
+        );
+    };
     const displayProfile = getDisplayProfile();
 
 
-    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handlePhotoUpload = (
+        e: React.ChangeEvent<HTMLInputElement>,
+        target: 'primary' | 'linked-profile' | 'new-family-member' = activeProfileId === user.id ? 'primary' : 'linked-profile'
+    ) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             const reader = new FileReader();
-            reader.onloadend = () => { setCroppingImage(reader.result as string); e.target.value = ''; };
+            reader.onloadend = () => {
+                setCropTarget(target === 'linked-profile'
+                    ? { type: target, profileId: activeProfileId }
+                    : { type: target });
+                setCroppingImage(reader.result as string);
+                e.target.value = '';
+            };
             reader.readAsDataURL(file);
         }
     };
 
     const handleCropComplete = (croppedImg: string) => {
-        if (activeProfileId === user.id) {
-            onUpdate({ ...user, photo: croppedImg } as User);
-        } else {
-            const updatedProfiles = user.linkedProfiles?.map(p => p.id === activeProfileId ? { ...p, photo: croppedImg } : p) || [];
+        if (cropTarget?.type === 'new-family-member') {
+            setSubProfileForm(prev => ({ ...prev, photo: croppedImg }));
+        } else if (cropTarget?.type === 'linked-profile' && cropTarget.profileId) {
+            const updatedProfiles = user.linkedProfiles?.map(p => p.id === cropTarget.profileId ? { ...p, photo: croppedImg } : p) || [];
             onUpdate({ ...user, linkedProfiles: updatedProfiles } as User);
+            alert('Profile photo updated successfully.');
+        } else {
+            onUpdate({
+                ...user,
+                pendingProfileUpdate: {
+                    ...(user.pendingProfileUpdate || {}),
+                    photo: croppedImg
+                }
+            } as User);
+            alert('Photo update submitted for admin approval.');
         }
         setCroppingImage(null);
+        setCropTarget(null);
     };
 
     const handleDownloadPDF = async () => {
+        if (!canAccessEntrustFeatures) {
+            alert('Entrust card download is available only after admin approval.');
+            return;
+        }
         setIsProcessing(true);
         const frontNode = document.getElementById('capture-front');
         const backNode = document.getElementById('capture-back');
@@ -181,19 +260,42 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         } finally { setCalendarRenderMode(null); setIsGeneratingCalendar(false); }
     };
 
-    const startEditing = () => { setFormData({ phone: user.phone, email: user.email, location: user.location, emergency: user.emergency, photo: user.photo }); setIsEditing(true); };
+    const startEditing = () => {
+        const pending = user.pendingProfileUpdate || {};
+        setFormData({
+            name: pending.name ?? user.name,
+            phone: pending.phone ?? user.phone,
+            email: pending.email ?? user.email,
+            location: pending.location ?? user.location,
+            emergency: pending.emergency ?? user.emergency,
+            photo: user.photo
+        });
+        setIsEditing(true);
+    };
     const cancelEditing = () => { setIsEditing(false); setFormData({}); };
     const saveChanges = (e: React.FormEvent) => { e.preventDefault(); onUpdate({ ...user, ...formData } as User); setIsEditing(false); };
 
     const handleAddSubProfile = (e: React.FormEvent) => {
         e.preventDefault();
         const trimmedName = (subProfileForm.name || '').trim();
+        const selectedRole = (subProfileForm.role || '').trim();
         if (!trimmedName) {
-            alert('Family member name is required.');
+            alert('Please enter family member name.');
+            return;
+        }
+        if (!selectedRole) {
+            alert('Please select relationship.');
             return;
         }
         const newId = `${user.id}-${(user.linkedProfiles?.length || 0) + 1}`;
-        const newProfile: SubProfile = { id: newId, name: trimmedName, role: subProfileForm.role || 'None', dob: subProfileForm.dob, bloodGroup: subProfileForm.bloodGroup };
+        const newProfile: SubProfile = {
+            id: newId,
+            name: trimmedName,
+            role: selectedRole,
+            photo: subProfileForm.photo,
+            dob: subProfileForm.dob,
+            bloodGroup: subProfileForm.bloodGroup
+        };
         onUpdate({ ...user, linkedProfiles: [...(user.linkedProfiles || []), newProfile] } as User);
         setShowFamilyModal(false); setSubProfileForm({});
     };
@@ -206,9 +308,355 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     };
 
     const handleShare = () => {
-        const url = `${window.location.origin}/verify/${displayProfile.id}`;
-        if (navigator.share) { navigator.share({ title: `${displayProfile.name} — City of Truth Ministries`, text: 'Check my Entrust ID Card', url }); }
-        else { navigator.clipboard.writeText(url); alert('Profile link copied!'); }
+        const url = `${window.location.origin}/verify/${encodeURIComponent(displayProfile.id)}`;
+        if (navigator.share) {
+            navigator.share({
+                title: `${displayProfile.name} — City of Truth Ministries`,
+                text: `Open this verified member link: ${displayProfile.id}`,
+                url
+            });
+        } else {
+            navigator.clipboard.writeText(url);
+            alert('Profile login link copied!');
+        }
+    };
+
+    const handleExportProfileDetailsPDF = () => {
+        try {
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const margin = 14;
+            const contentWidth = pageWidth - margin * 2;
+            const familyProfiles = user.linkedProfiles || [];
+            const generatedAt = new Date().toLocaleString();
+            const formatValue = (value?: string, fallback = 'Not provided') => {
+                const normalized = `${value || ''}`.trim();
+                return normalized || fallback;
+            };
+            const getInitials = (name?: string) => {
+                const parts = formatValue(name, 'City of Truth').split(/\s+/).filter(Boolean);
+                return (parts[0]?.[0] || 'C') + (parts[1]?.[0] || parts[0]?.[1] || 'T');
+            };
+
+            let y = 0;
+            let pageNumber = 1;
+
+            const drawPageShell = (variant: 'hero' | 'standard') => {
+                pdf.setFillColor(248, 250, 252);
+                pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+
+                if (variant === 'hero') {
+                    pdf.setFillColor(15, 23, 42);
+                    pdf.rect(0, 0, pageWidth, 52, 'F');
+                    pdf.setFillColor(79, 70, 229);
+                    pdf.roundedRect(margin, 12, contentWidth, 26, 6, 6, 'F');
+                    pdf.setFillColor(245, 158, 11);
+                    pdf.circle(pageWidth - 26, 18, 7, 'F');
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(20);
+                    pdf.text('Family Portfolio', margin + 6, 24);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(9.5);
+                    pdf.text('City of Truth Ministries • Professional family profile summary', margin + 6, 31);
+                    y = 60;
+                    return;
+                }
+
+                pdf.setFillColor(15, 23, 42);
+                pdf.rect(0, 0, pageWidth, 18, 'F');
+                pdf.setTextColor(255, 255, 255);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(11);
+                pdf.text('City of Truth Ministries', margin, 10.5);
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(8);
+                pdf.text(`Family Portfolio • ${user.id}`, margin, 15);
+                pdf.setTextColor(71, 85, 105);
+                y = 26;
+            };
+
+            const addNewPage = () => {
+                pdf.addPage();
+                pageNumber += 1;
+                drawPageShell('standard');
+            };
+
+            const ensureSpace = (requiredHeight: number) => {
+                if (y + requiredHeight <= pageHeight - 18) return;
+                addNewPage();
+            };
+
+            const drawChip = (x: number, top: number, width: number, label: string, value: string) => {
+                pdf.setFillColor(255, 255, 255);
+                pdf.setDrawColor(226, 232, 240);
+                pdf.roundedRect(x, top, width, 17, 4, 4, 'FD');
+                pdf.setTextColor(100, 116, 139);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(7);
+                pdf.text(label.toUpperCase(), x + 4, top + 5.2);
+                pdf.setTextColor(15, 23, 42);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(10.5);
+                pdf.text(pdf.splitTextToSize(value, width - 8), x + 4, top + 10.8);
+            };
+
+            const drawSectionTitle = (title: string, subtitle: string) => {
+                ensureSpace(16);
+                pdf.setTextColor(30, 41, 59);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(13);
+                pdf.text(title, margin, y);
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(8.5);
+                pdf.setTextColor(100, 116, 139);
+                pdf.text(subtitle, margin, y + 5);
+                y += 10;
+            };
+
+            const drawProfileCard = (
+                title: string,
+                subtitle: string,
+                accent: [number, number, number],
+                profile: { name?: string; id?: string; role?: string; email?: string; phone?: string; emergency?: string; location?: string; bloodGroup?: string; dob?: string; status?: string },
+                extraEntries: Array<[string, string]>
+            ) => {
+                const entries: Array<[string, string]> = [
+                    ['Member ID', formatValue(profile.id)],
+                    ['Role', formatValue(profile.role, 'Member')],
+                    ['Email', formatValue(profile.email)],
+                    ['Phone', formatValue(profile.phone)],
+                    ['Emergency', formatValue(profile.emergency)],
+                    ['Location', formatValue(profile.location)],
+                    ['Blood Group', formatValue(profile.bloodGroup)],
+                    ['Date of Birth', formatValue(profile.dob)],
+                    ...extraEntries,
+                ];
+                const columns = 2;
+                const columnGap = 8;
+                const innerX = margin + 7;
+                const colWidth = (contentWidth - 14 - columnGap) / columns;
+                const topPadding = 22;
+                const rowGap = 4;
+                const bottomPadding = 8;
+                const perColumn = Math.ceil(entries.length / columns);
+                const measureColumnHeight = (columnEntries: Array<[string, string]>) => columnEntries.reduce((height, [label, value]) => {
+                    const lines = pdf.splitTextToSize(value, colWidth);
+                    const labelHeight = 4;
+                    const valueHeight = Math.max(lines.length, 1) * 4.2;
+                    return height + labelHeight + valueHeight + rowGap;
+                }, 0);
+                const leftEntries = entries.slice(0, perColumn);
+                const rightEntries = entries.slice(perColumn);
+                const bodyHeight = Math.max(measureColumnHeight(leftEntries), measureColumnHeight(rightEntries));
+                const cardHeight = topPadding + bodyHeight + bottomPadding;
+
+                ensureSpace(cardHeight + 8);
+
+                pdf.setFillColor(255, 255, 255);
+                pdf.setDrawColor(226, 232, 240);
+                pdf.roundedRect(margin, y, contentWidth, cardHeight, 6, 6, 'FD');
+                pdf.setFillColor(accent[0], accent[1], accent[2]);
+                pdf.roundedRect(margin, y, contentWidth, 16, 6, 6, 'F');
+                pdf.setFillColor(255, 255, 255);
+                pdf.circle(margin + 11, y + 8, 5.5, 'F');
+                pdf.setTextColor(accent[0], accent[1], accent[2]);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(10);
+                pdf.text(getInitials(profile.name).toUpperCase(), margin + 8.2, y + 9.5);
+                pdf.setTextColor(255, 255, 255);
+                pdf.setFontSize(11);
+                pdf.text(title, margin + 20, y + 7);
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(8);
+                pdf.text(subtitle, margin + 20, y + 11.8);
+                pdf.setTextColor(15, 23, 42);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(13);
+                pdf.text(formatValue(profile.name), margin + 7, y + 24);
+
+                const drawColumn = (columnEntries: Array<[string, string]>, x: number) => {
+                    let columnY = y + 31;
+                    columnEntries.forEach(([label, value]) => {
+                        pdf.setTextColor(100, 116, 139);
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.setFontSize(7);
+                        pdf.text(label.toUpperCase(), x, columnY);
+                        columnY += 4;
+                        pdf.setTextColor(30, 41, 59);
+                        pdf.setFont('helvetica', 'normal');
+                        pdf.setFontSize(9);
+                        const valueLines = pdf.splitTextToSize(value, colWidth);
+                        pdf.text(valueLines, x, columnY);
+                        columnY += Math.max(valueLines.length, 1) * 4.2 + rowGap;
+                    });
+                };
+
+                drawColumn(leftEntries, innerX);
+                drawColumn(rightEntries, innerX + colWidth + columnGap);
+                y += cardHeight + 6;
+            };
+
+            const drawFamilyCards = () => {
+                if (familyProfiles.length === 0) {
+                    ensureSpace(28);
+                    pdf.setFillColor(255, 255, 255);
+                    pdf.setDrawColor(226, 232, 240);
+                    pdf.roundedRect(margin, y, contentWidth, 22, 6, 6, 'FD');
+                    pdf.setTextColor(71, 85, 105);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(11);
+                    pdf.text('No linked family profiles yet', margin + 8, y + 10);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(8.5);
+                    pdf.text('Add family members from the dashboard to include them in future portfolio exports.', margin + 8, y + 16);
+                    y += 28;
+                    return;
+                }
+
+                const gap = 6;
+                const cardWidth = (contentWidth - gap) / 2;
+                const drawFamilyCard = (profile: SubProfile, index: number, x: number, top: number) => {
+                    const entries: Array<[string, string]> = [
+                        ['Member ID', formatValue(profile.id)],
+                        ['Relation', formatValue(profile.role, 'Family Member')],
+                        ['Date of Birth', formatValue(profile.dob)],
+                        ['Blood Group', formatValue(profile.bloodGroup)],
+                    ];
+                    const bodyStart = top + 21;
+                    let localY = bodyStart;
+                    pdf.setFillColor(255, 255, 255);
+                    pdf.setDrawColor(226, 232, 240);
+                    pdf.roundedRect(x, top, cardWidth, 43, 6, 6, 'FD');
+                    pdf.setFillColor(59, 130, 246);
+                    pdf.roundedRect(x, top, cardWidth, 14, 6, 6, 'F');
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(10);
+                    pdf.text(`Family ${index + 1}`, x + 6, top + 7.5);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(7.5);
+                    pdf.text(formatValue(profile.role, 'Family Member'), x + 6, top + 11.5);
+                    pdf.setTextColor(15, 23, 42);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(11);
+                    pdf.text(formatValue(profile.name), x + 6, localY);
+                    localY += 5;
+                    entries.forEach(([label, value]) => {
+                        pdf.setTextColor(100, 116, 139);
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.setFontSize(6.8);
+                        pdf.text(label.toUpperCase(), x + 6, localY);
+                        localY += 3.5;
+                        pdf.setTextColor(30, 41, 59);
+                        pdf.setFont('helvetica', 'normal');
+                        pdf.setFontSize(8.5);
+                        pdf.text(pdf.splitTextToSize(value, cardWidth - 12), x + 6, localY);
+                        localY += 6;
+                    });
+                };
+
+                for (let i = 0; i < familyProfiles.length; i += 2) {
+                    ensureSpace(49);
+                    drawFamilyCard(familyProfiles[i], i, margin, y);
+                    if (familyProfiles[i + 1]) {
+                        drawFamilyCard(familyProfiles[i + 1], i + 1, margin + cardWidth + gap, y);
+                    }
+                    y += 49;
+                }
+            };
+
+            drawPageShell('hero');
+
+            const chipGap = 6;
+            const chipWidth = (contentWidth - chipGap) / 2;
+            drawChip(margin, y, chipWidth, 'Primary Member', user.id);
+            drawChip(margin + chipWidth + chipGap, y, chipWidth, 'Active Profile', `${displayProfile.name} • ${displayProfile.id}`);
+            y += 21;
+            drawChip(margin, y, chipWidth, 'Family Members', `${familyProfiles.length}`);
+            drawChip(margin + chipWidth + chipGap, y, chipWidth, 'Generated', generatedAt);
+            y += 26;
+
+            drawSectionTitle('Primary member profile', 'Core contact and ministry details for the main account holder.');
+            drawProfileCard('Primary Member', `Status • ${formatValue(user.status, 'Pending Verification')}`, [79, 70, 229], {
+                name: user.name,
+                id: user.id,
+                role: user.role,
+                email: user.email,
+                phone: user.phone || user.emergency,
+                emergency: user.emergency,
+                location: user.location,
+                bloodGroup: user.bloodGroup,
+                dob: user.dob,
+                status: user.status,
+            }, [
+                ['Member Since', formatValue(user.memberSince || user.joinedDate)],
+                ['Status', formatValue(user.status)],
+            ]);
+
+            drawSectionTitle('Active profile spotlight', 'The profile currently selected inside the dashboard at export time.');
+            drawProfileCard('Active Profile', displayProfile.id === user.id ? 'Primary account in focus' : 'Linked family account in focus', [14, 116, 144], {
+                name: displayProfile.name,
+                id: displayProfile.id,
+                role: displayProfile.role || 'Family Member',
+                phone: displayProfile.id === user.id ? (user.phone || user.emergency) : undefined,
+                emergency: displayProfile.id === user.id ? user.emergency : undefined,
+                location: displayProfile.id === user.id ? user.location : undefined,
+                bloodGroup: displayProfile.bloodGroup,
+                dob: displayProfile.dob,
+            }, [
+                ['Profile Type', displayProfile.id === user.id ? 'Primary Member' : 'Linked Family Profile'],
+            ]);
+
+            drawSectionTitle('Family member directory', 'Every linked family member included in this account.');
+            drawFamilyCards();
+
+            const footerText = `Confidential portfolio generated for ${user.name} • Page ${pageNumber}`;
+            pdf.setFont('helvetica', 'italic');
+            pdf.setFontSize(7.5);
+            pdf.setTextColor(148, 163, 184);
+            pdf.text(footerText, margin, pageHeight - 8);
+
+            pdf.save(`COT-Family-Portfolio-${user.id}.pdf`);
+        } catch (error) {
+            console.error('Profile details PDF export failed:', error);
+            alert('Unable to export profile details PDF. Please try again.');
+        }
+    };
+
+    const handleGoToLogin = () => {
+        if (onGoToLogin) {
+            onGoToLogin();
+            return;
+        }
+        window.location.href = '/auth?view=login';
+    };
+
+    const handleBlockedFeature = () => {
+        alert('This feature is locked until admin approval.');
+    };
+
+    const handleDownloadQrCode = async () => {
+        if (!canAccessEntrustFeatures) {
+            handleBlockedFeature();
+            return;
+        }
+        try {
+            const response = await fetch(qrImgSrc);
+            const blob = await response.blob();
+            const objectUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = objectUrl;
+            link.download = `COT-QR-${displayProfile.id}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(objectUrl);
+        } catch (error) {
+            console.error('QR download failed:', error);
+            alert('Unable to download QR code. Please try again.');
+        }
     };
 
     const handleVerificationDocUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -225,7 +673,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     };
 
     const qrUrl = `${window.location.origin}/verify/${displayProfile.id}`;
-    const qrImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(qrUrl)}&bgcolor=ffffff&color=1a237e&margin=5&format=png`;
+    const qrImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(qrUrl)}&bgcolor=ffffff&color=1a237e&margin=5&format=png&cb=${encodeURIComponent(`${displayProfile.id}-${user.status}`)}`;
 
     /* ─────────────────────────────────────────────── */
     return (
@@ -233,8 +681,17 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.06] pointer-events-none z-0" />
 
             {/* Off-screen capture nodes */}
-            {croppingImage && <div className="z-[100] relative"><ImageCropper imageSrc={croppingImage} onCropComplete={handleCropComplete} onCancel={() => setCroppingImage(null)} /></div>}
+            {croppingImage && <div className="z-[100] relative"><ImageCropper imageSrc={croppingImage} onCropComplete={handleCropComplete} onCancel={() => { setCroppingImage(null); setCropTarget(null); }} /></div>}
             <TestimonialModal isOpen={showTestimonialModal} onClose={() => setShowTestimonialModal(false)} user={user} />
+            <CommunityProfileForm
+                isOpen={showCommunityProfileForm}
+                onClose={() => setShowCommunityProfileForm(false)}
+                initialData={user.communityProfile}
+                onSave={(communityData) => {
+                    onUpdate({ ...user, communityProfile: communityData } as User);
+                    alert('Member form submitted successfully. Admin can view it in dashboard.');
+                }}
+            />
             <CalendarCustomizationModal isOpen={isCalendarModalOpen} onClose={() => setIsCalendarModalOpen(false)} onDownload={handleDownloadCalendar} />
 
             <div className="fixed left-[-9999px] top-0 pointer-events-none z-0">
@@ -266,13 +723,33 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 <p className="text-xs text-slate-500 mb-5">Keep it simple: name and relationship first. You can update profile details later.</p>
                                 <form onSubmit={handleAddSubProfile} className="space-y-4">
                                     <div>
+                                        <label className="text-xs font-semibold text-slate-700 block mb-1.5">Photo (optional)</label>
+                                        <label className="flex items-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 cursor-pointer hover:border-brand-400 hover:bg-brand-50 transition-colors">
+                                            <div className="w-14 h-14 rounded-xl overflow-hidden border border-slate-200 bg-white flex items-center justify-center text-slate-400 shrink-0">
+                                                {subProfileForm.photo
+                                                    ? <img src={subProfileForm.photo} alt="Family member" className="w-full h-full object-cover" />
+                                                    : <UploadCloud size={18} />}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-bold text-slate-700">
+                                                    {subProfileForm.photo ? 'Photo ready' : 'Upload and crop family photo'}
+                                                </p>
+                                                <p className="text-[11px] text-slate-500">
+                                                    {subProfileForm.photo ? 'You can still replace it before saving.' : 'Optional, but you can add it now instead of later.'}
+                                                </p>
+                                            </div>
+                                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoUpload(e, 'new-family-member')} />
+                                        </label>
+                                    </div>
+                                    <div>
                                         <label className="text-xs font-semibold text-slate-700 block mb-1.5">Full Name</label>
                                         <input required type="text" value={subProfileForm.name || ''} onChange={e => setSubProfileForm({ ...subProfileForm, name: e.target.value })} className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm font-medium shadow-sm placeholder:text-slate-500" placeholder="John Doe" />
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="text-xs font-semibold text-slate-700 block mb-1.5">Relationship</label>
-                                            <select required value={subProfileForm.role || 'None'} onChange={e => setSubProfileForm({ ...subProfileForm, role: e.target.value })} className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm appearance-none shadow-sm">
+                                            <select required value={subProfileForm.role || ''} onChange={e => setSubProfileForm({ ...subProfileForm, role: e.target.value })} className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 outline-none focus:border-brand-500 text-sm appearance-none shadow-sm">
+                                                <option value="">None</option>
                                                 <optgroup label="Immediate Family">
                                                     {FAMILY_RELATIONSHIP_OPTIONS.immediate.map(option => (
                                                         <option key={option} value={option}>{option}</option>
@@ -304,7 +781,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                     </div>
                                     <div className="pt-2">
                                         <Button type="submit" variant="primary" fullWidth className="py-3 shadow-lg shadow-brand-500/20"><UserPlus size={16} className="mr-2" /> Add Member</Button>
-                                        <p className="text-[10px] text-center text-slate-400 mt-2">Switch to their profile after creation to set a photo.</p>
+                                        <p className="text-[10px] text-center text-slate-400 mt-2">You can add the member with their photo already cropped and ready.</p>
                                     </div>
                                 </form>
                             </div>
@@ -324,21 +801,21 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     {/* Primary profile + family avatars */}
                     <div className="relative group shrink-0">
                         <div className="w-14 h-14 rounded-full overflow-hidden border-[3px] border-white shadow-lg bg-brand-100">
-                            <img src={displayProfile.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayProfile.name)}&background=1e1b4b&color=fff&bold=true&size=128`} alt={displayProfile.name} className="w-full h-full object-cover" />
+                            {renderAvatarContent(displayProfile.photo, displayProfile.name, 'text-sm', 'from-brand-600 to-violet-700')}
                         </div>
-                        <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-all">
+                        <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 cursor-pointer transition-all">
                             <Camera size={14} className="text-white" />
-                            <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoUpload(e)} />
                         </label>
                         {/* Active indicator */}
-                        <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white ${user.status === 'Active' ? 'bg-green-500' : 'bg-amber-400'}`} />
+                        <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white ${user.status === 'Active' ? 'bg-green-500' : user.status === 'Rejected' ? 'bg-red-500' : 'bg-amber-400'}`} />
                     </div>
 
                     {/* Family member avatars */}
                     {user.linkedProfiles?.map(pf => (
                         <button key={pf.id} onClick={() => setActiveProfileId(pf.id)} title={pf.name}
                             className={`relative shrink-0 w-10 h-10 rounded-full overflow-hidden border-2 transition-all ${activeProfileId === pf.id ? 'border-brand-500 shadow-lg scale-110' : 'border-white/70 opacity-70 hover:opacity-100 hover:scale-105'}`}>
-                            <img src={pf.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(pf.name)}&background=5b47d0&color=fff&bold=true&size=80`} alt={pf.name} className="w-full h-full object-cover" />
+                            {renderAvatarContent(pf.photo, pf.name, 'text-[10px]', 'from-violet-600 to-fuchsia-700')}
                         </button>
                     ))}
 
@@ -374,6 +851,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         ))}
                     </div>
                 )}
+                {activeProfileId === user.id && user.pendingProfileUpdate && (
+                    <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-4 py-3 text-xs font-semibold">
+                        Your profile update request is pending admin approval.
+                    </div>
+                )}
 
                 {/* ── FAMILY MEMBERS LIST ── */}
                 {user.linkedProfiles && user.linkedProfiles.length > 0 && (
@@ -387,7 +869,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         <div className="p-4 space-y-3 bg-slate-50">
                             <button onClick={() => setActiveProfileId(user.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all text-left ${activeProfileId === user.id ? 'bg-brand-50 border-brand-200' : 'bg-white border-slate-200 hover:border-brand-200'}`}>
                                 <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-brand-100 shrink-0">
-                                    <img src={user.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=1e1b4b&color=fff&bold=true&size=80`} alt={user.name} className="w-full h-full object-cover" />
+                                    {renderAvatarContent(user.photo, user.name, 'text-[10px]', 'from-brand-600 to-violet-700')}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="font-bold text-slate-900 text-sm truncate">{user.name}</p>
@@ -399,7 +881,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 <div key={pf.id} className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all group ${activeProfileId === pf.id ? 'bg-accent-50 border-accent-200' : 'bg-white border-slate-200 hover:border-accent-200'}`}>
                                     <button onClick={() => setActiveProfileId(pf.id)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
                                         <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-100 shrink-0">
-                                            <img src={pf.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(pf.name)}&background=5b47d0&color=fff&bold=true&size=80`} alt={pf.name} className="w-full h-full object-cover" />
+                                            {renderAvatarContent(pf.photo, pf.name, 'text-[10px]', 'from-violet-600 to-fuchsia-700')}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="font-bold text-slate-900 text-sm truncate">{pf.name}</p>
@@ -409,7 +891,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         </div>
                                         {activeProfileId === pf.id && <CheckCircle size={16} className="text-accent-500 shrink-0" />}
                                     </button>
-                                    <button onClick={() => handleDeleteSubProfile(pf.id)} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1.5 rounded-lg text-red-300 hover:text-red-500 hover:bg-red-50 transition-all ml-2 shrink-0">
+                                    <button onClick={() => handleDeleteSubProfile(pf.id)} aria-label={`Remove ${pf.name}`} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1.5 rounded-lg text-red-300 hover:text-red-500 hover:bg-red-50 transition-all ml-2 shrink-0">
                                         <Trash2 size={14} />
                                     </button>
                                 </div>
@@ -451,7 +933,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 <div className="relative bg-gradient-to-r from-[#1a237e] to-[#3949ab] rounded-2xl h-24 flex items-center justify-center overflow-hidden border border-white/20">
                                     <div className="absolute left-4 flex items-center gap-3">
                                         <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/50 bg-white/20 shrink-0">
-                                            <img src={displayProfile.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayProfile.name)}&background=1e1b4b&color=fff&bold=true&size=96`} alt={displayProfile.name} className="w-full h-full object-cover" />
+                                            {renderAvatarContent(displayProfile.photo, displayProfile.name, 'text-xs', 'from-brand-500 to-violet-700')}
                                         </div>
                                         <div>
                                             <p className="text-white font-bold text-sm leading-tight">{displayProfile.name}</p>
@@ -483,42 +965,57 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             </div>
                         </div>
 
-                        {/* Right: QR Code */}
+                        {/* Right: Entrust card preview + QR download */}
                         <div className="w-full xl:w-2/5 flex flex-col items-center justify-center border-t xl:border-t-0 xl:border-l border-slate-100 pt-6 xl:pt-0 xl:pl-6">
                             {user.status === 'Active' ? (
-                                <div className="flex flex-col items-center">
+                                <div className="flex flex-col items-center w-full">
+                                    <div className="w-full max-w-[320px] rounded-[28px] border border-slate-200 bg-gradient-to-br from-slate-50 to-white shadow-md px-5 py-6 flex flex-col items-center text-center">
+                                        <div className="inline-flex items-center gap-2 rounded-full bg-brand-50 border border-brand-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-brand-600 mb-4">
+                                            <QrCode size={12} />
+                                            Verify QR
+                                        </div>
+                                        <div className="rounded-[24px] border border-slate-200 bg-white p-3 shadow-inner">
+                                            <img
+                                                src={qrImgSrc}
+                                                alt={`QR code for ${displayProfile.id}`}
+                                                className="w-44 h-44 md:w-52 md:h-52 object-contain"
+                                            />
+                                        </div>
+                                        <p className="mt-4 text-sm font-bold text-brand-950">{displayProfile.name}</p>
+                                        <p className="text-[11px] text-slate-500 font-mono mt-1">{displayProfile.id.toUpperCase()}</p>
+                                        <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
+                                            Scan this code to open the official verification page for this Entrust profile.
+                                        </p>
+                                    </div>
                                     <button
                                         type="button"
-                                        onClick={() => onOpenScanner?.()}
-                                        className="relative inline-block bg-white rounded-3xl p-4 border border-slate-100 shadow-lg shadow-brand-900/5"
+                                        onClick={handleDownloadQrCode}
+                                        className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-black uppercase tracking-wider transition-colors"
                                     >
-                                        <img src={qrImgSrc} alt="QR Code" className="w-48 h-48 block mx-auto" crossOrigin="anonymous" />
+                                        <QrCode size={14} /> Download QR Code
                                     </button>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-4">Tap QR to open scanner</p>
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center text-center">
-                                    <div className="relative rounded-2xl overflow-hidden border border-slate-200 shadow-md">
-                                        <div className="blur-[3px] pointer-events-none select-none" style={{ transform: 'scale(0.72)', transformOrigin: 'top center', height: '155px', width: '245px' }}>
-                                            <EntrustCard3D
-                                                name={displayProfile.name}
-                                                email={user.email}
-                                                location={user.location}
-                                                emergency={user.emergency}
-                                                uniqueId={displayProfile.id}
-                                                memberSince={user.memberSince}
-                                                photo={displayProfile.photo}
-                                                status={user.status}
-                                                isStatic={true}
-                                                isBackSide={false}
-                                            />
+                                    <div className="w-full max-w-[320px] rounded-[28px] border border-slate-200 bg-slate-50 px-5 py-6">
+                                        <div className="mx-auto w-fit rounded-full bg-slate-200 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-slate-500 mb-4">
+                                            QR Locked
                                         </div>
+                                        <div className="relative mx-auto rounded-[24px] overflow-hidden border border-slate-200 shadow-md bg-white p-3 w-fit">
+                                            <img
+                                                src={qrImgSrc}
+                                                alt={`QR code for ${displayProfile.id}`}
+                                                className="w-44 h-44 md:w-52 md:h-52 object-contain blur-[3px] pointer-events-none select-none"
+                                            />
                                         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 gap-2">
                                             <ShieldCheck size={28} className="text-amber-300" />
                                             <p className="font-black text-white text-xs uppercase tracking-widest">Not Verified</p>
                                         </div>
                                     </div>
-                                    <p className="text-[10px] text-slate-400 mt-2">Pending admin verification</p>
+                                    <p className={`text-[10px] mt-2 ${user.status === 'Rejected' ? 'text-red-500' : 'text-slate-400'}`}>
+                                        {user.status === 'Rejected' ? 'Denied by admin. Please contact support.' : 'Pending admin verification'}
+                                    </p>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -526,25 +1023,22 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                     {/* Edit Details button below card + QR */}
                     <div className="flex justify-center pb-2">
-                        <button onClick={startEditing} className="flex items-center gap-2 cursor-pointer bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 text-slate-500 hover:text-brand-600 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all shadow-sm">
+                        <button id="dashboard-edit-btn" onClick={startEditing} className="flex items-center gap-2 cursor-pointer bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 text-slate-500 hover:text-brand-600 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all shadow-sm">
                             <Edit2 size={13} /> Edit Details
                         </button>
                     </div>
 
                     {/* Action buttons row (mAadhaar style) */}
                     {user.status === 'Active' && (
-                        <div className="grid grid-cols-4 gap-1 px-4 pb-5 pt-3">
+                        <div className="grid grid-cols-5 gap-1 px-4 pb-5 pt-3">
                             {[
-                                { icon: <Share2 size={20} />, label: 'Share', action: handleShare },
+                                { icon: <Share2 size={20} />, label: 'Share', action: handleShare, id: 'dashboard-share-top-btn' },
                                 { icon: <Download size={20} />, label: 'Download', action: handleDownloadPDF, loading: isProcessing },
-                                { icon: <QrCode size={20} />, label: 'Open Scanner', action: () => onOpenScanner?.() },
-                                { 
-                                    icon: <div className="relative"><CheckCircle size={20} className="text-amber-500" /><div className="absolute inset-0 bg-amber-400 blur-sm rounded-full -z-10 animate-pulse" /></div>, 
-                                    label: <span className="bg-gradient-to-r from-amber-500 to-amber-700 bg-clip-text text-transparent font-black shadow-sm">VERIFIED MEMBER</span>, 
-                                    action: () => {}
-                                },
-                            ].map(({ icon, label, action, loading }, i) => (
-                                <button key={i} onClick={action} disabled={loading}
+                                { icon: <FileText size={20} />, label: 'Details PDF', action: handleExportProfileDetailsPDF },
+                                { icon: <QrCode size={20} />, label: 'Download QR', action: handleDownloadQrCode, id: 'dashboard-scanner-btn' },
+                                { icon: <LogIn size={20} />, label: 'Profile Login', action: handleGoToLogin, id: 'dashboard-login-top-btn' },
+                            ].map(({ icon, label, action, loading, id }, i) => (
+                                <button id={id} key={i} onClick={action} disabled={loading}
                                     className="flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-2xl bg-slate-50 hover:bg-brand-50 hover:text-brand-700 text-slate-600 transition-all disabled:opacity-60 border border-transparent hover:border-brand-100">
                                     {loading ? <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" /> : icon}
                                     <span className="text-[9px] font-bold uppercase tracking-wide leading-tight text-center">{loading ? 'Wait…' : label}</span>
@@ -556,7 +1050,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 </div>
 
                 {/* ── ACTION CARDS GRID ── */}
-                <div className="grid grid-cols-2 gap-4 mb-5">
+                    <div className="grid grid-cols-2 gap-4 mb-5">
 
                     {/* Entrust ID Card — brown */}
                     {user.status === 'Active' ? (
@@ -573,7 +1067,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         <div className="bg-slate-100 rounded-[22px] p-4 border border-slate-200">
                             <div className="w-9 h-9 bg-slate-200 rounded-xl flex items-center justify-center mb-3"><FileText size={18} className="text-slate-400" /></div>
                             <p className="font-bold text-sm text-slate-500 mb-1">Entrust ID Card</p>
-                            <p className="text-slate-400 text-[10px]">Pending verification</p>
+                            <p className={`text-[10px] ${user.status === 'Rejected' ? 'text-red-500' : 'text-slate-400'}`}>
+                                {user.status === 'Rejected' ? 'Denied by admin' : 'Pending verification'}
+                            </p>
                             <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase bg-slate-200 rounded-lg px-2.5 py-1.5 text-slate-400">
                                 <AlertCircle size={11} /> Locked
                             </span>
@@ -581,26 +1077,62 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     )}
 
                     {/* Testimony */}
-                    <button onClick={() => setShowTestimonialModal(true)}
-                        className="bg-gradient-to-br from-brand-700 to-brand-900 text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
+                    <button id="dashboard-testimony-btn" onClick={canAccessEntrustFeatures ? () => setShowTestimonialModal(true) : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
+                        className={`rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-brand-700 to-brand-900 text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
                         <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><MessageSquare size={18} /></div>
                         <p className="font-bold text-sm leading-tight mb-1">Write Testimony</p>
-                        <p className="text-white/70 text-[10px]">Share what God has done</p>
-                        <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
-                            <MessageSquare size={11} /> Write Now
+                        <p className={`${canAccessEntrustFeatures ? 'text-white/70' : 'text-slate-400'} text-[10px]`}>Share what God has done</p>
+                        <span className={`mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest rounded-lg px-2.5 py-1.5 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
+                            <MessageSquare size={11} /> {canAccessEntrustFeatures ? 'Write Now' : 'Locked'}
+                        </span>
+                    </button>
+
+                    {/* Share Profile Link */}
+                    <button id="dashboard-share-btn" onClick={canAccessEntrustFeatures ? handleShare : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
+                        className={`rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-emerald-600 to-teal-700 text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                        <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Share2 size={18} /></div>
+                        <p className="font-bold text-sm leading-tight mb-1">Share Profile Link</p>
+                        <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[10px]`}>Share unique login URL for this profile</p>
+                        <span className={`mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest rounded-lg px-2.5 py-1.5 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
+                            <Share2 size={11} /> {canAccessEntrustFeatures ? 'Share' : 'Locked'}
+                        </span>
+                    </button>
+
+                    {/* Family Portfolio PDF */}
+                    <button onClick={canAccessEntrustFeatures ? handleExportProfileDetailsPDF : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
+                        className={`rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-indigo-700 to-violet-800 text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                        <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><FileText size={18} /></div>
+                        <p className="font-bold text-sm leading-tight mb-1">Family Portfolio PDF</p>
+                        <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[10px]`}>Download a polished member, family, and active-profile portfolio</p>
+                        <span className={`mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest rounded-lg px-2.5 py-1.5 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
+                            <Download size={11} /> {canAccessEntrustFeatures ? 'Download PDF' : 'Locked'}
+                        </span>
+                    </button>
+
+                    {/* Member Form */}
+                    <button id="dashboard-member-form-btn" onClick={canAccessEntrustFeatures ? () => setShowCommunityProfileForm(true) : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
+                        className={`col-span-2 rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] hover:brightness-110 border border-[#d4a547]/30' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                        <div className="absolute top-3 right-3 px-2 py-1 rounded-full bg-[#d4a547]/15 border border-[#d4a547]/40 text-[9px] font-black uppercase tracking-widest text-[#f8e7b0]">
+                            User Book
+                        </div>
+                        <div className="w-11 h-11 bg-white/15 rounded-xl flex items-center justify-center mb-3"><Users size={22} /></div>
+                        <p className="font-bold text-base leading-tight mb-1">Member Form Column</p>
+                        <p className={`${canAccessEntrustFeatures ? 'text-[#f8e7b0]' : 'text-slate-400'} text-[11px] mb-3`}>Professional themed profile form for User Book. Submission is visible in Admin Dashboard.</p>
+                        <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/20 rounded-xl px-4 py-2">
+                            <Edit2 size={12} /> {canAccessEntrustFeatures ? 'Open Form' : 'Locked'}
                         </span>
                     </button>
 
                     {/* Jewish Calendar — amber (full width row) */}
                     {activeProfileId === user.id && (
-                        <button onClick={() => setIsCalendarModalOpen(true)}
-                            className="col-span-2 bg-gradient-to-br from-[#8B4500] via-[#C07000] to-[#D97706] text-white rounded-[22px] p-5 text-left shadow-xl hover:brightness-110 transition-all relative overflow-hidden group">
+                        <button onClick={canAccessEntrustFeatures ? () => setIsCalendarModalOpen(true) : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
+                            className={`col-span-2 rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#8B4500] via-[#C07000] to-[#D97706] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
                             <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Calendar size={22} /></div>
                             <p className="font-bold text-base leading-tight mb-1">Jewish Calendar 5786</p>
-                            <p className="text-white/80 text-[11px] mb-0.5">Download the official City of Truth Ministries Jewish Calendar.</p>
-                            <p className="text-white/60 text-[10px] mb-3">Pro Max Quality Edition.</p>
-                            <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-[#fff8e8] text-[#7B3F00] rounded-xl px-4 py-2">
-                                <Download size={12} /> DOWNLOAD PDF
+                            <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-0.5`}>Download the official City of Truth Ministries Jewish Calendar.</p>
+                            <p className={`${canAccessEntrustFeatures ? 'text-white/60' : 'text-slate-400'} text-[10px] mb-3`}>Pro Max Quality Edition.</p>
+                            <span className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 ${canAccessEntrustFeatures ? 'bg-[#fff8e8] text-[#7B3F00]' : 'bg-slate-200 text-slate-500'}`}>
+                                <Download size={12} /> {canAccessEntrustFeatures ? 'DOWNLOAD PDF' : 'LOCKED'}
                             </span>
                             <div className="absolute right-4 bottom-4 opacity-10 group-hover:opacity-20 transition-opacity">
                                 <Calendar size={64} />
@@ -609,20 +1141,64 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     )}
 
                     {/* Mobile App — navy (full width row) */}
-                    <a href="/COT Ministries.apk" download
-                        className="col-span-2 bg-gradient-to-br from-[#1a237e] to-[#3949ab] text-white rounded-[22px] p-5 text-left shadow-xl hover:brightness-110 transition-all relative overflow-hidden group block">
+                    <button type="button" onClick={() => {
+                        if (!canAccessEntrustFeatures) {
+                            handleBlockedFeature();
+                            return;
+                        }
+                        const link = document.createElement('a');
+                        link.href = '/COT Ministries.apk';
+                        link.download = 'COT Ministries.apk';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }}
+                        className={`col-span-2 rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#1a237e] to-[#3949ab] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
                         <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3">
                             <svg viewBox="0 0 24 24" className="w-[22px] h-[22px] fill-white"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.38.07 2.33.76 3.13.8 1.18-.25 2.31-.94 3.56-.84 1.5.12 2.63.72 3.37 1.8-3.09 1.85-2.56 5.93.28 7.05-.55 1.5-1.27 2.98-2.34 4.07zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" /></svg>
                         </div>
                         <p className="font-bold text-base leading-tight mb-1">Get the Mobile App</p>
-                        <p className="text-white/80 text-[11px] mb-3">Access your ID card offline and get instant ministry updates on your Android device.</p>
-                        <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/20 rounded-xl px-4 py-2">
-                            <Download size={12} /> Download Our App
+                        <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-3`}>Access your ID card offline and get instant ministry updates on your Android device.</p>
+                        <span className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
+                            <Download size={12} /> {canAccessEntrustFeatures ? 'Download Our App' : 'Locked'}
                         </span>
                         <div className="absolute right-4 bottom-4 opacity-10 group-hover:opacity-20 transition-opacity text-[64px] font-bold">
                             📱
                         </div>
-                    </a>
+                    </button>
+
+                    {/* Menorah Flag Download */}
+                    <button type="button" onClick={() => {
+                        if (!canAccessEntrustFeatures) {
+                            handleBlockedFeature();
+                            return;
+                        }
+                        const link = document.createElement('a');
+                        link.href = '/menorah-flag-image.png';
+                        link.download = 'COT-Menorah-Flag.png';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }}
+                        className={`col-span-2 rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#7c4d00] to-[#f59e0b] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                        <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Flag size={22} /></div>
+                        <p className="font-bold text-base leading-tight mb-1">Download Menorah Flag</p>
+                        <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-3`}>Save the official ministry flag image to your device.</p>
+                        <span className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
+                            <Download size={12} /> {canAccessEntrustFeatures ? 'Download Flag' : 'Locked'}
+                        </span>
+                    </button>
+
+                    {/* Go To Login */}
+                    <button id="dashboard-login-btn" onClick={handleGoToLogin}
+                        className="col-span-2 bg-gradient-to-br from-slate-700 to-slate-900 text-white rounded-[22px] p-5 text-left shadow-xl hover:brightness-110 transition-all relative overflow-hidden group">
+                        <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><LogIn size={22} /></div>
+                        <p className="font-bold text-base leading-tight mb-1">Profile Login</p>
+                        <p className="text-white/80 text-[11px] mb-3">Open default login page to switch or sign in with another profile.</p>
+                        <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/20 rounded-xl px-4 py-2">
+                            <LogIn size={12} /> Open Login
+                        </span>
+                    </button>
                 </div>
 
                 </div>
@@ -651,9 +1227,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             </div>
                             {/* Action buttons */}
                             <div className="grid grid-cols-2 gap-4">
-                                <button onClick={() => { handleDownloadPDF(); setShowCardPreview(false); }} disabled={isProcessing}
+                                <button onClick={() => { handleDownloadPDF(); setShowCardPreview(false); }} disabled={isProcessing || !canAccessEntrustFeatures}
                                     className="flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-black uppercase tracking-widest text-sm py-4 rounded-2xl transition-all shadow-lg disabled:opacity-60">
-                                    <FileText size={18} /> {isProcessing ? 'Generating…' : 'Download Card'}
+                                    <FileText size={18} /> {!canAccessEntrustFeatures ? 'Awaiting Approval' : isProcessing ? 'Generating…' : 'Download Card'}
                                 </button>
                                 <button onClick={() => { startEditing(); setShowCardPreview(false); }}
                                     className="flex items-center justify-center gap-2 bg-white text-slate-700 hover:bg-slate-50 font-black uppercase tracking-widest text-sm py-4 rounded-2xl transition-all shadow-lg border border-slate-200">
@@ -693,30 +1269,56 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             <button onClick={cancelEditing} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
                         </div>
 
-                        {/* Photo section — no admin approval needed for crop/upload */}
+                        {/* Photo section */}
                         <div className="flex flex-col items-center gap-3 mb-6">
-                            <div className="relative group">
-                                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-slate-100 shadow-lg">
-                                    <img
-                                        src={displayProfile.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayProfile.name)}&background=1e1b4b&color=fff&bold=true&size=256`}
-                                        alt={displayProfile.name}
-                                        className="w-full h-full object-cover"
+                            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-slate-100 shadow-lg">
+                                {renderAvatarContent(displayProfile.photo, displayProfile.name, 'text-2xl', 'from-brand-600 via-brand-700 to-violet-800')}
+                            </div>
+                            <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (!displayProfile.photo) {
+                                            alert('No existing photo to crop. Use "Add New Photo" first.');
+                                            return;
+                                        }
+                                        setCropTarget(activeProfileId === user.id
+                                            ? { type: 'primary' }
+                                            : { type: 'linked-profile', profileId: activeProfileId });
+                                        setCroppingImage(displayProfile.photo);
+                                        setIsEditing(false);
+                                    }}
+                                    className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
+                                >
+                                    <Camera size={14} /> Edit/Crop Current Photo
+                                </button>
+                                <label className="flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100 cursor-pointer">
+                                    <UploadCloud size={14} /> Add New Photo (Approval)
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            handlePhotoUpload(e);
+                                            setIsEditing(false);
+                                        }}
                                     />
-                                </div>
-                                <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-all">
-                                    <Camera size={20} className="text-white" />
-                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { handlePhotoUpload(e); cancelEditing(); }} />
                                 </label>
                             </div>
-                            <p className="text-slate-400 text-xs text-center">Tap photo to update — no approval needed</p>
+                            <p className="text-slate-400 text-xs text-center">All photo changes are sent to admin for approval.</p>
                         </div>
 
                         <form onSubmit={(e) => {
                             e.preventDefault();
-                            // Flag that details edit requires admin approval
-                            onUpdate({ ...user, ...formData, _pendingApproval: true } as User);
+                            const requestedChanges = {
+                                name: (formData.name ?? user.name)?.trim(),
+                                phone: formData.phone ?? user.phone,
+                                email: (formData.email ?? user.email)?.trim(),
+                                location: (formData.location ?? user.location)?.trim(),
+                                emergency: formData.emergency ?? user.emergency,
+                            };
+                            onUpdate({ ...user, pendingProfileUpdate: requestedChanges } as User);
                             setIsEditing(false);
-                            alert("✅ Edit request submitted. Changes will be reflected after admin approval.");
                         }} className="space-y-4">
                             <div>
                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Full Name</label>
@@ -734,8 +1336,19 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 <input type="email" value={formData.email ?? user.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widests block mb-1">Location</label>
-                                <input type="text" value={formData.location ?? user.location} onChange={e => setFormData(p => ({ ...p, location: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Location</label>
+                                <select
+                                    value={formData.location ?? user.location}
+                                    onChange={e => setFormData(p => ({ ...p, location: e.target.value }))}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500"
+                                >
+                                    {!TAMIL_NADU_LOCATIONS.includes((formData.location ?? user.location) || '') && (
+                                        <option value={formData.location ?? user.location}>{formData.location ?? user.location}</option>
+                                    )}
+                                    {TAMIL_NADU_LOCATIONS.map(location => (
+                                        <option key={location} value={location}>{location}</option>
+                                    ))}
+                                </select>
                             </div>
 
                             <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700 font-medium">

@@ -4,12 +4,14 @@ import {
     Users, UserCheck, UserX, Clock, Search, Edit2, Trash2, X, User as UserIcon, ShieldAlert,
     ChevronLeft, ChevronRight, Filter, Mail, Phone, MapPin, Droplet,
     Calendar, Award, Shield, ShieldCheck, AlertCircle, CheckCircle, QrCode, Download,
-    Save, GripVertical, Globe, Plus, ImagePlus, Camera, Image as ImageIcon, MessageSquare, Check, XCircle,
-    PanelLeft, PanelTop
+    Save, GripVertical, Globe, Plus, ImagePlus, Camera, Image as ImageIcon, MessageSquare, Check, XCircle, FileText,
+    PanelLeft, PanelTop, Database, RotateCcw
 } from 'lucide-react';
-import { User, UserRole, UserStatus, Testimonial, Ministry } from '../types';
+import { User, UserRole, UserStatus, Testimonial, Ministry, DeletedUser } from '../types';
 import { Button } from './Button';
 import { api } from '../services/api';
+import { firebaseConfig, storage } from '../services/firebase';
+import { listAll, ref as storageRef } from 'firebase/storage';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { ImageCropper } from './ImageCropper';
@@ -24,14 +26,20 @@ interface ContactMessage {
     message: string;
     createdAt: string;
     source: 'hero-widget' | 'contact-form';
+    senderType?: 'Registered' | 'Non-Registered';
+    senderId?: string;
 }
 
 interface AdminDashboardProps {
     users: User[];
+    deletedUsers?: DeletedUser[];
     contactMessages?: ContactMessage[];
+    onDeleteContactMessage?: (messageId: string) => void;
     onUpdateUser: (user: User) => Promise<void>;
     onDeleteUser: (userId: string) => Promise<void>;
+    onRestoreUser?: (userId: string) => Promise<void>;
     onCreateUser?: (user: User) => Promise<void>;
+    onReassignUserId?: (oldUserId: string, newUserId: string, updatedUser: User) => Promise<void>;
     onBack: () => void;
     homeSectionsOrder: string[];
     onUpdateHomeSectionsOrder: (newOrder: string[]) => Promise<void>;
@@ -46,6 +54,8 @@ const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any
     highlights: { name: 'Ministry Moments', desc: 'Global highlights and focus', icon: ImagePlus, color: 'bg-sky-500' },
     leader: { name: 'Leader Message', desc: 'Direct word from ministry leadership', icon: ShieldCheck, color: 'bg-indigo-500' },
     hebrew: { name: 'Hebrew Sanctuary', desc: 'Language and spiritual resources', icon: Mail, color: 'bg-rose-500' },
+    hebrewPages: { name: 'All Page Previews', desc: 'Hebrew content, tools, and page preview cards', icon: Globe, color: 'bg-fuchsia-500' },
+    pastorBaruch: { name: 'Pastor & Baruch', desc: 'Pastor page and worship preview', icon: Award, color: 'bg-amber-600' },
     valparai: { name: 'Valparai Presence', desc: 'Local impact and community', icon: MapPin, color: 'bg-emerald-500' },
     testimonials: { name: 'Voices of Faith', desc: 'Member stories and testimonies', icon: MessageSquare, color: 'bg-teal-500' },
     members: { name: 'Member Initials', desc: 'Names with two-letter identity logos', icon: Users, color: 'bg-orange-500' },
@@ -56,8 +66,10 @@ const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any
 
 
 
-const TAB_ITEMS: { id: 'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor' | 'messages'; label: string; icon: React.ElementType }[] = [
+const TAB_ITEMS: { id: 'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'; label: string; icon: React.ElementType }[] = [
     { id: 'users', label: 'Users', icon: Users },
+    { id: 'recycle-bin', label: 'Recycle Bin', icon: RotateCcw },
+    { id: 'firebase', label: 'Firebase', icon: Database },
     { id: 'messages', label: 'Messages', icon: MessageSquare },
     { id: 'testimonials', label: 'Testimonials', icon: MessageSquare },
     { id: 'ministries', label: 'Ministries', icon: Globe },
@@ -76,8 +88,10 @@ const TAMIL_NADU_DISTRICTS = [
     'Tirupathur', 'Tiruppur', 'Tiruvallur', 'Tiruvannamalai', 'Tiruvarur',
     'Vellore', 'Villupuram', 'Virudhunagar'
 ];
+const MAX_SUGGESTED_COT_IDS = 200;
 
 const EMPTY_NEW_USER = {
+    memberId: '',
     name: '',
     phone: '',
     email: '',
@@ -86,14 +100,29 @@ const EMPTY_NEW_USER = {
     photo: '',
     emergency: '',
     memberSince: new Date().getFullYear().toString(),
+    joinedDate: new Date().toISOString().split('T')[0],
 };
+
+type UserQuickViewMode = 'photos' | 'ids' | 'cards' | 'locations' | 'join-dates';
+
+const USER_QUICK_VIEW_OPTIONS: { id: UserQuickViewMode; label: string; description: string; icon: React.ElementType; accent: string; bg: string }[] = [
+    { id: 'photos', label: 'Images', description: 'Show only member photos', icon: ImageIcon, accent: 'text-pink-600', bg: 'bg-pink-50' },
+    { id: 'ids', label: 'COT IDs', description: 'Show only member IDs', icon: Shield, accent: 'text-indigo-600', bg: 'bg-indigo-50' },
+    { id: 'cards', label: 'Entrust Cards', description: 'Show member entrust cards', icon: QrCode, accent: 'text-purple-600', bg: 'bg-purple-50' },
+    { id: 'locations', label: 'Locations', description: 'Show member locations', icon: MapPin, accent: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { id: 'join-dates', label: 'Join Dates', description: 'Show all member join dates', icon: Calendar, accent: 'text-amber-600', bg: 'bg-amber-50' },
+];
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     users,
+    deletedUsers = [],
     contactMessages = [],
+    onDeleteContactMessage,
     onUpdateUser,
     onDeleteUser,
+    onRestoreUser,
     onCreateUser,
+    onReassignUserId,
     onBack,
     homeSectionsOrder,
     onUpdateHomeSectionsOrder,
@@ -119,17 +148,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
     const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
     const [downloadingCardUserId, setDownloadingCardUserId] = useState<string | null>(null);
+    const [downloadingProfilePdfUserId, setDownloadingProfilePdfUserId] = useState<string | null>(null);
+    const [userQuickViewMode, setUserQuickViewMode] = useState<UserQuickViewMode | null>(null);
 
-    const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor' | 'messages'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'>('users');
     const [menuMode, setMenuMode] = useState<'horizontal' | 'vertical'>(() => {
-        const stored = localStorage.getItem('adminMenuMode');
-        return stored === 'vertical' ? 'vertical' : 'horizontal';
+        try {
+            const stored = localStorage.getItem('adminMenuMode');
+            return stored === 'vertical' ? 'vertical' : 'horizontal';
+        } catch {
+            return 'horizontal';
+        }
     });
 
     const toggleMenuMode = () => {
         const next = menuMode === 'horizontal' ? 'vertical' : 'horizontal';
         setMenuMode(next);
-        localStorage.setItem('adminMenuMode', next);
+        try {
+            localStorage.setItem('adminMenuMode', next);
+        } catch {
+            // Ignore storage write failures (e.g., private mode restrictions)
+        }
     };
     const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
     const [ministries, setMinistries] = useState<Ministry[]>([]);
@@ -138,6 +177,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [isCropping, setIsCropping] = useState(false);
     const [cropImage, setCropImage] = useState<string | null>(null);
     const [croppingType, setCroppingType] = useState<'user' | 'ministry' | null>(null);
+    const [storageFiles, setStorageFiles] = useState<string[]>([]);
+    const [isLoadingStorage, setIsLoadingStorage] = useState(false);
+    const [isStorageListTruncated, setIsStorageListTruncated] = useState(false);
 
     React.useEffect(() => {
         if (activeTab === 'testimonials') {
@@ -145,6 +187,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         } else if (activeTab === 'ministries') {
             api.getMinistries().then(setMinistries);
         }
+    }, [activeTab]);
+
+    React.useEffect(() => {
+        if (activeTab !== 'firebase') return;
+
+        const loadStorageFiles = async () => {
+            setIsLoadingStorage(true);
+            try {
+                const MAX_FILES = 120;
+                const files: string[] = [];
+                let truncated = false;
+
+                const walk = async (folder: ReturnType<typeof storageRef>) => {
+                    if (files.length >= MAX_FILES) {
+                        truncated = true;
+                        return;
+                    }
+                    const result = await listAll(folder);
+                    for (const item of result.items) {
+                        files.push(item.fullPath);
+                        if (files.length >= MAX_FILES) {
+                            truncated = true;
+                            break;
+                        }
+                    }
+                    if (files.length >= MAX_FILES) return;
+                    for (const childFolder of result.prefixes) {
+                        await walk(childFolder);
+                        if (files.length >= MAX_FILES) {
+                            truncated = true;
+                            return;
+                        }
+                    }
+                };
+
+                await walk(storageRef(storage, '/'));
+                setStorageFiles(files);
+                setIsStorageListTruncated(truncated);
+            } catch (error) {
+                console.error('Failed to list Firebase storage files', error);
+                setStorageFiles([]);
+                setIsStorageListTruncated(false);
+            } finally {
+                setIsLoadingStorage(false);
+            }
+        };
+
+        loadStorageFiles();
     }, [activeTab]);
 
     const handleUpdateTestimonialStatus = async (testimonial: Testimonial, status: 'Approved' | 'Rejected') => {
@@ -239,14 +329,100 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         rejected: users.filter(u => u.status === 'Rejected').length,
     }), [users]);
 
+    const locationStats = useMemo(() => {
+        const counts = users.reduce<Record<string, number>>((acc, user) => {
+            const key = user.location?.trim() || 'Unknown';
+            acc[key] = (acc[key] || 0) + 1;
+            return acc;
+        }, {});
+
+        return Object.entries(counts)
+            .map(([location, count]) => ({ location, count }))
+            .sort((a, b) => b.count - a.count || a.location.localeCompare(b.location));
+    }, [users]);
+
+    const selectedQuickView = useMemo(
+        () => USER_QUICK_VIEW_OPTIONS.find(option => option.id === userQuickViewMode) || null,
+        [userQuickViewMode]
+    );
+
+    const formatDateValue = (value?: string) => {
+        if (!value) return 'Not provided';
+        const parsed = new Date(value);
+        return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString();
+    };
+
+    const existingCotIds = useMemo(() => {
+        return new Set(
+            users
+                .map(user => `${user.id ?? ''}`.trim().toUpperCase())
+                .filter(Boolean)
+        );
+    }, [users]);
+
+    const suggestedCotIds = useMemo(() => {
+        const ids: string[] = [];
+        for (let idNum = 1000; idNum <= 9999 && ids.length < MAX_SUGGESTED_COT_IDS; idNum += 1) {
+            const candidate = `COT-${idNum}`;
+            if (!existingCotIds.has(candidate)) {
+                ids.push(candidate);
+            }
+        }
+        return ids;
+    }, [existingCotIds]);
+
+    const getRandomAvailableCotId = () => {
+        if (suggestedCotIds.length === 0) return null;
+        if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+            const randomBuffer = new Uint32Array(1);
+            crypto.getRandomValues(randomBuffer);
+            return suggestedCotIds[randomBuffer[0] % suggestedCotIds.length];
+        }
+        return suggestedCotIds[0];
+    };
+
+    const isCotId = (id: string) => /^COT-\d{4,}$/i.test((id || '').trim());
+
+    const activateUserWithCotId = async (user: User) => {
+        const approvedUserBase: User = {
+            ...user,
+            ...(user.pendingProfileUpdate || {}),
+            pendingProfileUpdate: undefined,
+            status: 'Active'
+        };
+
+        if (isCotId(approvedUserBase.id)) {
+            await onUpdateUser(approvedUserBase);
+            return;
+        }
+
+        const generatedCotId = getRandomAvailableCotId();
+        if (!generatedCotId) {
+            throw new Error('No available COT IDs left. Please add more ID capacity.');
+        }
+
+        const approvedWithCotId: User = { ...approvedUserBase, id: generatedCotId };
+        if (onReassignUserId) {
+            await onReassignUserId(user.id, generatedCotId, approvedWithCotId);
+            return;
+        }
+
+        await onUpdateUser(approvedWithCotId);
+    };
+
     // Filtered users
     const filteredUsers = useMemo(() => {
+        const query = searchQuery.toLowerCase();
         const filtered = users.filter(user => {
+            const name = `${user.name ?? ''}`.toLowerCase();
+            const email = `${user.email ?? ''}`.toLowerCase();
+            const phone = `${user.phone ?? ''}`.toLowerCase();
+            const id = `${user.id ?? ''}`.toLowerCase();
             const matchesSearch = searchQuery === '' ||
-                user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                user.phone.includes(searchQuery) ||
-                user.id.toLowerCase().includes(searchQuery.toLowerCase());
+                name.includes(query) ||
+                email.includes(query) ||
+                phone.includes(query) ||
+                id.includes(query);
 
             const matchesStatus = filterStatus === 'All' || user.status === filterStatus;
             const matchesRole = filterRole === 'All' || user.role === filterRole;
@@ -281,7 +457,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         setIsLoading(true);
         try {
-            const newId = `COT-${Math.floor(1000 + Math.random() * 9000)}`;
+            const rawRequestedId = `${newUserData.memberId || ''}`.trim();
+            const normalizedIdBody = rawRequestedId.toUpperCase().replace(/^COT[-\s]*/i, '');
+            let newId = normalizedIdBody ? `COT-${normalizedIdBody}` : '';
+            if (newId && !/^COT-\d{4,}$/.test(newId)) {
+                alert('Enter a valid Member ID with at least 4 digits (example: COT-1960).');
+                setIsLoading(false);
+                return;
+            }
+            if (newId && existingCotIds.has(newId)) {
+                alert(`Member ID ${newId} is already in use. Please choose another ID.`);
+                setIsLoading(false);
+                return;
+            }
+            if (!newId) {
+                const fallback = getRandomAvailableCotId();
+                if (!fallback) {
+                    alert('No available COT IDs left in the current range. Please enter a manual ID.');
+                    setIsLoading(false);
+                    return;
+                }
+                newId = fallback;
+            }
+
             const user: User = {
                 id: newId,
                 name: newUserData.name.trim(),
@@ -293,7 +491,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 status: 'Active',
                 photo: newUserData.photo || '',
                 memberSince: newUserData.memberSince,
-                joinedDate: new Date().toISOString().split('T')[0],
+                joinedDate: newUserData.joinedDate || new Date().toISOString().split('T')[0],
             };
             if (onCreateUser) {
                 await onCreateUser(user);
@@ -349,6 +547,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
     };
 
+    const handleRestoreDeletedUser = async (deletedUserId: string) => {
+        if (!onRestoreUser) return;
+        setIsLoading(true);
+        try {
+            await onRestoreUser(deletedUserId);
+        } catch (error) {
+            alert('Failed to restore user');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const handleBulkApprove = async () => {
         if (selectedUsers.size === 0) return;
         if (!window.confirm(`Approve ${selectedUsers.size} selected user(s)?`)) return;
@@ -356,7 +566,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         try {
             const updatePromises = Array.from(selectedUsers).map(userId => {
                 const user = users.find(u => u.id === userId);
-                return user ? onUpdateUser({ ...user, status: 'Active' }) : Promise.resolve();
+                if (!user) return Promise.resolve();
+                return activateUserWithCotId(user);
             });
             await Promise.all(updatePromises);
             setSelectedUsers(new Set());
@@ -374,7 +585,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         try {
             const updatePromises = Array.from(selectedUsers).map(userId => {
                 const user = users.find(u => u.id === userId);
-                return user ? onUpdateUser({ ...user, status: 'Rejected' }) : Promise.resolve();
+                if (!user) return Promise.resolve();
+                const hasPendingEdit = !!user.pendingProfileUpdate && Object.keys(user.pendingProfileUpdate).length > 0;
+                if (user.status === 'Pending Verification') {
+                    return onUpdateUser({ ...user, status: 'Rejected', pendingProfileUpdate: undefined });
+                }
+                if (hasPendingEdit) {
+                    return onUpdateUser({ ...user, pendingProfileUpdate: undefined });
+                }
+                return Promise.resolve();
             });
             await Promise.all(updatePromises);
             setSelectedUsers(new Set());
@@ -393,6 +612,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             newSelected.add(userId);
         }
         setSelectedUsers(newSelected);
+    };
+    const hasPendingProfileUpdate = (user: User) => !!user.pendingProfileUpdate && Object.keys(user.pendingProfileUpdate).length > 0;
+    const approveUserOrPendingEdit = async (user: User) => {
+        await activateUserWithCotId(user);
+    };
+    const rejectPendingEdit = async (user: User) => {
+        await onUpdateUser({ ...user, pendingProfileUpdate: undefined });
     };
 
     const toggleSelectAll = () => {
@@ -435,6 +661,126 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             }
         }
         setDownloadingCardUserId(null);
+    };
+
+    const handleDownloadUserDetailsPdf = async (member: User) => {
+        setDownloadingProfilePdfUserId(member.id);
+        try {
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const margin = 12;
+            const contentWidth = pageWidth - margin * 2;
+            let y = 18;
+
+            pdf.setFillColor(15, 23, 42);
+            pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+
+            pdf.setFillColor(30, 41, 59);
+            pdf.roundedRect(margin, y, contentWidth, 40, 6, 6, 'F');
+            pdf.setFillColor(245, 158, 11);
+            pdf.circle(pageWidth - 24, y + 12, 5, 'F');
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(17);
+            pdf.text('Professional Member Portfolio', margin + 5, y + 12);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(9);
+            pdf.text('City of Truth Ministries • Admin Generated Profile PDF', margin + 5, y + 19);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(`Card ID: ${member.id}`, margin + 5, y + 27);
+            pdf.text(`Generated: ${new Date().toLocaleString()}`, margin + 5, y + 33);
+
+            if (member.photo) {
+                try {
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.src = member.photo;
+                    await new Promise<void>((resolve, reject) => {
+                        img.onload = () => resolve();
+                        img.onerror = () => reject(new Error('photo-load-failed'));
+                    });
+                    pdf.addImage(member.photo, 'JPEG', pageWidth - 44, y + 4, 26, 30, undefined, 'FAST');
+                    pdf.setDrawColor(255, 255, 255);
+                    pdf.roundedRect(pageWidth - 44, y + 4, 26, 30, 4, 4, 'S');
+                } catch {
+                    // Keep PDF generation resilient when image loading fails.
+                }
+            }
+
+            y += 50;
+            const drawField = (label: string, value?: string) => {
+                pdf.setFillColor(248, 250, 252);
+                pdf.roundedRect(margin, y, contentWidth, 12, 3, 3, 'F');
+                pdf.setTextColor(100, 116, 139);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(8);
+                pdf.text(label.toUpperCase(), margin + 3, y + 4);
+                pdf.setTextColor(15, 23, 42);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(10);
+                const normalized = `${value || ''}`.trim() || 'Not provided';
+                pdf.text(pdf.splitTextToSize(normalized, contentWidth - 6), margin + 3, y + 9);
+                y += 15;
+            };
+
+            drawField('Member Name', member.name);
+            drawField('Member ID / Card ID', member.id);
+            drawField('Status', member.status);
+            drawField('Role', member.role);
+            drawField('Email', member.email);
+            drawField('Phone', member.phone);
+            drawField('Location', member.location);
+            drawField('Emergency Contact', member.emergency);
+            drawField('Member Since', member.memberSince);
+            drawField('Joined Date', member.joinedDate ? new Date(member.joinedDate).toLocaleDateString() : '');
+
+            if (member.communityProfile) {
+                y += 2;
+                pdf.setFillColor(79, 70, 229);
+                pdf.roundedRect(margin, y, contentWidth, 10, 3, 3, 'F');
+                pdf.setTextColor(255, 255, 255);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(9);
+                pdf.text('MEMBER FORM DETAILS', margin + 3, y + 6.8);
+                y += 13;
+                drawField('Denomination', member.communityProfile.denomination);
+                drawField('Church Name', member.communityProfile.churchName);
+                drawField('Role in Ministry', member.communityProfile.role);
+
+                const bio = `${member.communityProfile.bio || ''}`.trim() || 'Not provided';
+                const bioLines = pdf.splitTextToSize(bio, contentWidth - 6);
+                const bioHeight = Math.max(18, bioLines.length * 4 + 7);
+                if (y + bioHeight > pageHeight - 20) {
+                    pdf.addPage();
+                    pdf.setFillColor(15, 23, 42);
+                    pdf.rect(0, 0, pageWidth, 14, 'F');
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(10);
+                    pdf.text(`Member Form Details • ${member.id}`, margin, 9.5);
+                    y = 22;
+                }
+                pdf.setFillColor(248, 250, 252);
+                pdf.roundedRect(margin, y, contentWidth, bioHeight, 3, 3, 'F');
+                pdf.setTextColor(100, 116, 139);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(8);
+                pdf.text('TESTIMONY / BIO', margin + 3, y + 4);
+                pdf.setTextColor(15, 23, 42);
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(10);
+                pdf.text(bioLines, margin + 3, y + 9);
+                y += bioHeight + 4;
+            }
+
+            pdf.save(`COT-PROFILE-DETAILS-${member.id}.pdf`);
+        } catch (error) {
+            console.error('Profile PDF generation failed', error);
+            alert('Failed to generate profile PDF. Please try again.');
+        } finally {
+            setDownloadingProfilePdfUserId(null);
+        }
     };
 
     const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -492,6 +838,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
     };
 
+    const appOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://city-of-truth-ministries.vercel.app';
+    const getVerificationUrl = (memberId: string) => `${appOrigin}/verify/${encodeURIComponent(memberId)}`;
+    const getQrImageUrl = (memberId: string, size = 220) =>
+        `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(getVerificationUrl(memberId))}&bgcolor=ffffff&color=1a237e&margin=2&format=png&cb=${encodeURIComponent(memberId)}`;
+
     return (
         <div className="min-h-screen bg-slate-50 pt-20 pb-24">
             {/* HIDDEN CARD RENDER AREA FOR PDF GENERATION */}
@@ -540,7 +891,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </button>
                         <div className="flex-1 min-w-0">
                             <h1 className="text-xl md:text-3xl lg:text-4xl font-serif font-bold text-brand-950 truncate">Admin Dashboard</h1>
-                            <p className="text-slate-500 mt-0.5 text-xs md:text-sm">Manage users and testimonials</p>
+                            <p className="text-slate-500 mt-0.5 text-xs md:text-sm">Manage users, Firebase, approvals, and recycle bin</p>
                         </div>
                         <button
                             onClick={toggleMenuMode}
@@ -628,6 +979,62 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <div className="text-xs md:text-sm text-slate-500 font-medium">{stat.label}</div>
                             </motion.div>
                         ))}
+                    </div>
+                )}
+
+                {activeTab === 'users' && (
+                    <div className="grid grid-cols-2 xl:grid-cols-5 gap-3 md:gap-4 mb-6">
+                        {USER_QUICK_VIEW_OPTIONS.map(option => {
+                            const Icon = option.icon;
+                            return (
+                                <button
+                                    key={option.id}
+                                    onClick={() => setUserQuickViewMode(option.id)}
+                                    className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-brand-200 transition-all text-left"
+                                >
+                                    <div className={`w-11 h-11 rounded-2xl ${option.bg} ${option.accent} flex items-center justify-center mb-3`}>
+                                        <Icon size={20} />
+                                    </div>
+                                    <div className="text-sm font-black text-brand-950">{option.label}</div>
+                                    <div className="text-xs text-slate-500 mt-1">{option.description}</div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {activeTab === 'users' && (
+                    <div className="bg-white p-4 md:p-6 rounded-3xl border border-slate-100 shadow-sm mb-6">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
+                            <div>
+                                <h3 className="font-bold text-brand-950 text-sm md:text-base">Location Registration Overview</h3>
+                                <p className="text-xs text-slate-500 mt-1">Static state-wise count of how many members are registered in each location.</p>
+                            </div>
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-brand-50 text-brand-700 rounded-full text-xs font-bold border border-brand-100">
+                                <MapPin size={13} />
+                                {locationStats.length} Locations
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            {locationStats.map(stat => {
+                                const maxCount = locationStats[0]?.count || 1;
+                                const barWidth = `${Math.max((stat.count / maxCount) * 100, 10)}%`;
+
+                                return (
+                                    <div key={stat.location} className="grid grid-cols-[minmax(0,140px)_1fr_auto] items-center gap-3">
+                                        <div className="text-sm font-semibold text-slate-700 truncate">{stat.location}</div>
+                                        <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                                            <div className="h-full rounded-full bg-gradient-to-r from-brand-500 to-accent-500" style={{ width: barWidth }} />
+                                        </div>
+                                        <div className="min-w-[2.5rem] text-right text-sm font-black text-brand-950">{stat.count}</div>
+                                    </div>
+                                );
+                            })}
+                            {locationStats.length === 0 && (
+                                <div className="text-sm text-slate-400 text-center py-4">No location data available yet.</div>
+                            )}
+                        </div>
                     </div>
                 )}
 
@@ -800,12 +1207,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(user.status)}`}>
-                                                    {user.status === 'Active' && <CheckCircle size={12} />}
-                                                    {user.status === 'Pending Verification' && <Clock size={12} />}
-                                                    {user.status === 'Rejected' && <AlertCircle size={12} />}
-                                                    {user.status}
-                                                </span>
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(user.status)}`}>
+                                                        {user.status === 'Active' && <CheckCircle size={12} />}
+                                                        {user.status === 'Pending Verification' && <Clock size={12} />}
+                                                        {user.status === 'Rejected' && <AlertCircle size={12} />}
+                                                        {user.status}
+                                                    </span>
+                                                    {hasPendingProfileUpdate(user) && (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase bg-amber-100 text-amber-700 border border-amber-200">
+                                                            <Clock size={10} />
+                                                            Edit Pending
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="px-6 py-4 text-sm text-slate-600">
                                                 {new Date(user.joinedDate).toLocaleDateString()}
@@ -817,7 +1232,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                             <button
                                                                 onClick={async () => {
                                                                     if (window.confirm(`Approve ${user.name}?`)) {
-                                                                        await onUpdateUser({ ...user, status: 'Active' });
+                                                                        await approveUserOrPendingEdit(user);
                                                                     }
                                                                 }}
                                                                 className="p-2 hover:bg-green-50 text-green-600 rounded-lg transition-colors"
@@ -828,11 +1243,50 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                             <button
                                                                 onClick={async () => {
                                                                     if (window.confirm(`Reject ${user.name}?`)) {
-                                                                        await onUpdateUser({ ...user, status: 'Rejected' });
+                                                                        await onUpdateUser({ ...user, status: 'Rejected', pendingProfileUpdate: undefined });
                                                                     }
                                                                 }}
                                                                 className="p-2 hover:bg-amber-50 text-amber-600 rounded-lg transition-colors"
                                                                 title="Reject User"
+                                                            >
+                                                                <XCircle size={16} />
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    {user.status === 'Rejected' && (
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (window.confirm(`Approve ${user.name} again?`)) {
+                                                                    await onUpdateUser({ ...user, status: 'Active' });
+                                                                }
+                                                            }}
+                                                            className="p-2 hover:bg-green-50 text-green-600 rounded-lg transition-colors"
+                                                            title="Approve Again"
+                                                        >
+                                                            <CheckCircle size={16} />
+                                                        </button>
+                                                    )}
+                                                    {user.status !== 'Pending Verification' && hasPendingProfileUpdate(user) && (
+                                                        <>
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (window.confirm(`Approve pending profile edits for ${user.name}?`)) {
+                                                                        await approveUserOrPendingEdit(user);
+                                                                    }
+                                                                }}
+                                                                className="p-2 hover:bg-emerald-50 text-emerald-600 rounded-lg transition-colors"
+                                                                title="Approve Pending Edit"
+                                                            >
+                                                                <CheckCircle size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (window.confirm(`Reject pending profile edits for ${user.name}?`)) {
+                                                                        await rejectPendingEdit(user);
+                                                                    }
+                                                                }}
+                                                                className="p-2 hover:bg-orange-50 text-orange-600 rounded-lg transition-colors"
+                                                                title="Reject Pending Edit"
                                                             >
                                                                 <XCircle size={16} />
                                                             </button>
@@ -848,6 +1302,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                             <div className="animate-spin">⏳</div>
                                                         ) : (
                                                             <Download size={16} />
+                                                        )}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDownloadUserDetailsPdf(user)}
+                                                        className="p-2 hover:bg-teal-50 text-teal-600 rounded-lg transition-colors"
+                                                        title="Download Profile Details PDF"
+                                                        disabled={downloadingProfilePdfUserId === user.id}
+                                                    >
+                                                        {downloadingProfilePdfUserId === user.id ? (
+                                                            <div className="animate-spin">⏳</div>
+                                                        ) : (
+                                                            <FileText size={16} />
                                                         )}
                                                     </button>
                                                     <button
@@ -897,15 +1363,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.05 }}
-                                className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm"
+                                className="bg-white p-4 sm:p-6 rounded-3xl border border-slate-100 shadow-sm"
                             >
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="flex items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingUser(user)}
+                                    className="w-full flex items-start justify-between mb-3 text-left"
+                                >
+                                    <div className="flex items-center gap-3 min-w-0">
                                         <div className="w-12 h-12 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold">
                                             {user.name.charAt(0)}
                                         </div>
-                                        <div>
-                                            <div className="font-bold text-brand-950">{user.name}</div>
+                                        <div className="min-w-0">
+                                            <div className="font-bold text-brand-950 truncate">{user.name}</div>
                                             <div className="text-xs text-slate-500 font-mono">{user.id}</div>
                                         </div>
                                     </div>
@@ -913,7 +1383,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         {user.status === 'Active' && <CheckCircle size={10} />}
                                         {user.status}
                                     </span>
-                                </div>
+                                </button>
+                                <p className="text-[10px] text-slate-400 font-semibold mb-4">Tap name/photo to edit details & photo</p>
+                                {hasPendingProfileUpdate(user) && (
+                                    <div className="mb-4">
+                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase bg-amber-100 text-amber-700 border border-amber-200">
+                                            <Clock size={10} />
+                                            Pending Profile Edit
+                                        </span>
+                                    </div>
+                                )}
 
                                 <div className="space-y-2 mb-4">
                                     <div className="flex items-center gap-2 text-sm text-slate-600">
@@ -935,7 +1414,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <button
                                             onClick={async () => {
                                                 if (window.confirm(`Approve ${user.name}?`)) {
-                                                    await onUpdateUser({ ...user, status: 'Active' });
+                                                    await approveUserOrPendingEdit(user);
                                                 }
                                             }}
                                             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-50 text-green-600 rounded-xl font-medium text-sm hover:bg-green-100 transition-colors"
@@ -946,7 +1425,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <button
                                             onClick={async () => {
                                                 if (window.confirm(`Reject ${user.name}?`)) {
-                                                    await onUpdateUser({ ...user, status: 'Rejected' });
+                                                    await onUpdateUser({ ...user, status: 'Rejected', pendingProfileUpdate: undefined });
                                                 }
                                             }}
                                             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-amber-50 text-amber-600 rounded-xl font-medium text-sm hover:bg-amber-100 transition-colors"
@@ -956,23 +1435,64 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         </button>
                                     </div>
                                 )}
-                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-4 border-t border-slate-100">
+                                {user.status === 'Rejected' && (
+                                    <div className="pb-4 mb-4 border-b border-slate-100">
+                                        <button
+                                            onClick={async () => {
+                                                if (window.confirm(`Approve ${user.name} again?`)) {
+                                                    await onUpdateUser({ ...user, status: 'Active' });
+                                                }
+                                            }}
+                                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-50 text-green-600 rounded-xl font-medium text-sm hover:bg-green-100 transition-colors"
+                                        >
+                                            <CheckCircle size={16} />
+                                            Approve Again
+                                        </button>
+                                    </div>
+                                )}
+                                {user.status !== 'Pending Verification' && hasPendingProfileUpdate(user) && (
+                                    <div className="flex gap-2 pb-4 mb-4 border-b border-slate-100">
+                                        <button
+                                            onClick={async () => {
+                                                if (window.confirm(`Approve pending profile edits for ${user.name}?`)) {
+                                                    await approveUserOrPendingEdit(user);
+                                                }
+                                            }}
+                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl font-medium text-sm hover:bg-emerald-100 transition-colors"
+                                        >
+                                            <CheckCircle size={16} />
+                                            Approve Edit
+                                        </button>
+                                        <button
+                                            onClick={async () => {
+                                                if (window.confirm(`Reject pending profile edits for ${user.name}?`)) {
+                                                    await rejectPendingEdit(user);
+                                                }
+                                            }}
+                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-orange-50 text-orange-600 rounded-xl font-medium text-sm hover:bg-orange-100 transition-colors"
+                                        >
+                                            <XCircle size={16} />
+                                            Reject Edit
+                                        </button>
+                                    </div>
+                                )}
+                                <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 pt-4 border-t border-slate-100">
                                     <button
-                                        onClick={() => setViewingDetailsUser(user)}
+                                        onClick={(e) => { e.stopPropagation(); setViewingDetailsUser(user); }}
                                         className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-green-50 text-green-600 rounded-xl font-medium text-sm hover:bg-green-100 transition-colors"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
                                         View
                                     </button>
                                     <button
-                                        onClick={() => setViewingQrUser(user)}
+                                        onClick={(e) => { e.stopPropagation(); setViewingQrUser(user); }}
                                         className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-medium text-sm hover:bg-indigo-100 transition-colors"
                                     >
                                         <QrCode size={16} />
                                         QR
                                     </button>
                                     <button
-                                        onClick={() => handleDownloadUserCard(user)}
+                                        onClick={(e) => { e.stopPropagation(); handleDownloadUserCard(user); }}
                                         className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-purple-50 text-purple-600 rounded-xl font-medium text-sm hover:bg-purple-100 transition-colors"
                                         disabled={downloadingCardUserId === user.id}
                                     >
@@ -983,14 +1503,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         )}
                                     </button>
                                     <button
-                                        onClick={() => setEditingUser(user)}
+                                        onClick={(e) => { e.stopPropagation(); handleDownloadUserDetailsPdf(user); }}
+                                        className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-teal-50 text-teal-600 rounded-xl font-medium text-sm hover:bg-teal-100 transition-colors"
+                                        disabled={downloadingProfilePdfUserId === user.id}
+                                    >
+                                        {downloadingProfilePdfUserId === user.id ? (
+                                            <div className="animate-spin">⏳</div>
+                                        ) : (
+                                            <><FileText size={16} /> PDF</>
+                                        )}
+                                    </button>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setEditingUser(user); }}
                                         className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-xl font-medium text-sm hover:bg-blue-100 transition-colors"
                                     >
                                         <Edit2 size={16} />
                                         Edit
                                     </button>
                                     <button
-                                        onClick={() => setDeletingUser(user)}
+                                        onClick={(e) => { e.stopPropagation(); setDeletingUser(user); }}
                                         className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-xl font-medium text-sm hover:bg-red-100 transition-colors"
                                     >
                                         <Trash2 size={16} />
@@ -1139,9 +1670,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 {msg.source === 'hero-widget' ? 'Hero' : 'Form'}
                                             </span>
                                         </div>
+                                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
+                                            <span className={`px-2 py-0.5 rounded-full border ${msg.senderType === 'Registered' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                                                {msg.senderType || 'Non-Registered'}
+                                            </span>
+                                            {msg.senderId && <span className="text-slate-500 font-mono">{msg.senderId}</span>}
+                                        </div>
                                         <p className="text-xs font-semibold text-brand-700 bg-brand-50 px-2 py-1 rounded-lg truncate">{msg.subject}</p>
                                         <p className="text-sm text-slate-700 whitespace-pre-wrap break-words flex-1">{msg.message}</p>
-                                        <p className="text-[10px] text-slate-400 text-right mt-1">{new Date(msg.createdAt).toLocaleString()}</p>
+                                        <div className="flex items-center justify-between mt-1">
+                                            <p className="text-[10px] text-slate-400">{new Date(msg.createdAt).toLocaleString()}</p>
+                                            <button
+                                                onClick={() => onDeleteContactMessage?.(msg.id)}
+                                                className="text-[10px] font-bold text-red-600 hover:text-red-700 bg-red-50 border border-red-100 rounded-lg px-2 py-1"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -1169,6 +1714,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             }`}>
                                             {t.status}
                                         </span>
+                                    </div>
+                                    <div className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
+                                        <span className={`px-2 py-0.5 rounded-full border ${t.senderType === 'Registered' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                                            {t.senderType || 'Registered'}
+                                        </span>
+                                        {t.userId && <span className="text-slate-400 font-mono normal-case">{t.userId}</span>}
                                     </div>
 
                                     <p className="text-slate-600 text-sm italic mb-6">"{t.content}"</p>
@@ -1322,7 +1873,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <button 
                                         onClick={() => {
                                             if (window.confirm("Absolutely sure? This resets the home page for EVERYONE.")) {
-                                                onUpdateHomeSectionsOrder(['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'valparai', 'testimonials', 'members', 'preview', 'verify']);
+                                                onUpdateHomeSectionsOrder(['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'hebrewPages', 'pastorBaruch', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'verify']);
                                             }
                                         }}
                                         className="px-6 py-2.5 text-[10px] font-black uppercase tracking-[2px] text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-2xl transition-all border border-transparent hover:border-brand-100"
@@ -1449,19 +2000,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                     {item.label.charAt(0)}
                                                 </div>
 
-                                                <div className="min-w-0">
-                                                    <h3 className="font-black text-brand-950 text-lg leading-tight uppercase tracking-tight">
+                                                <div className="min-w-0 flex-1">
+                                                    <h3 className="font-black text-brand-950 text-lg leading-tight uppercase tracking-tight break-words">
                                                         {item.label}
                                                     </h3>
                                                     {item.submenu && item.submenu.length > 0 && (
-                                                        <p className="text-slate-400 text-xs font-bold truncate pr-4 mt-0.5">
-                                                            {item.submenu.length} sub-links
+                                                        <p className="text-slate-400 text-xs font-bold pr-4 mt-1 leading-relaxed whitespace-normal break-words">
+                                                            {item.submenu.map((sub: any) => sub.label).join(' • ')}
                                                         </p>
                                                     )}
                                                 </div>
                                             </div>
 
-                                            <div className="text-slate-300 text-xs font-bold uppercase tracking-widest shrink-0 pr-4">
+                                            <div className="text-slate-300 text-xs font-bold uppercase tracking-widest shrink-0 pr-4 text-right">
                                                 {item.submenu && item.submenu.length > 0 ? 'Has submenu' : 'Direct link'}
                                             </div>
                                         </Reorder.Item>
@@ -1491,6 +2042,130 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </div>
                             </div>
                         </motion.div>
+                    </div>
+                )}
+
+                {activeTab === 'recycle-bin' && (
+                    <div className="space-y-6">
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 flex items-center justify-between">
+                            <div>
+                                <h2 className="text-2xl font-serif font-black text-brand-950">User Recycle Bin</h2>
+                                <p className="text-slate-500 text-sm mt-1">Deleted users can be restored within 30 days. After that, they are removed automatically.</p>
+                            </div>
+                            <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest bg-brand-50 text-brand-600 border border-brand-100">
+                                {deletedUsers.length} in bin
+                            </span>
+                        </div>
+
+                        {deletedUsers.length === 0 ? (
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-16 text-center">
+                                <RotateCcw size={48} className="mx-auto text-slate-300 mb-4" />
+                                <p className="text-slate-500 font-medium">Recycle bin is empty.</p>
+                            </div>
+                        ) : (
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-slate-50 border-b border-slate-100">
+                                            <tr>
+                                                <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">User</th>
+                                                <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Deleted At</th>
+                                                <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Auto Delete</th>
+                                                <th className="text-right px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {deletedUsers.map((user) => {
+                                                const daysLeft = Math.max(
+                                                    0,
+                                                    Math.ceil((new Date(user.autoDeleteAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+                                                );
+                                                return (
+                                                    <tr key={user.id} className="hover:bg-slate-50">
+                                                        <td className="px-6 py-4">
+                                                            <p className="font-bold text-brand-950">{user.name}</p>
+                                                            <p className="text-xs text-slate-500 font-mono">{user.id}</p>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-sm text-slate-600">{new Date(user.deletedAt).toLocaleString()}</td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="text-sm text-slate-600">{new Date(user.autoDeleteAt).toLocaleDateString()}</div>
+                                                            <div className="text-xs text-amber-600 font-bold">{daysLeft} day{daysLeft === 1 ? '' : 's'} left</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            <button
+                                                                onClick={() => handleRestoreDeletedUser(user.id)}
+                                                                disabled={isLoading || !onRestoreUser}
+                                                                className="inline-flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 border border-green-200 rounded-xl text-xs font-bold hover:bg-green-100 transition-colors disabled:opacity-50"
+                                                            >
+                                                                <RotateCcw size={14} />
+                                                                Restore
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'firebase' && (
+                    <div className="space-y-6 max-w-4xl mx-auto">
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+                            <h2 className="text-2xl font-serif font-black text-brand-950 flex items-center gap-2 mb-2">
+                                <Database size={24} className="text-brand-600" /> Firebase Details
+                            </h2>
+                            <p className="text-slate-500 text-sm">Live Firebase project and storage configuration used by this admin dashboard.</p>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+                                <h3 className="text-sm font-black uppercase tracking-widest text-brand-600 mb-4">Project</h3>
+                                <div className="space-y-2 text-sm">
+                                    <p><span className="font-bold text-slate-700">Project ID:</span> <span className="text-slate-600">{firebaseConfig.projectId}</span></p>
+                                    <p><span className="font-bold text-slate-700">Auth Domain:</span> <span className="text-slate-600 break-all">{firebaseConfig.authDomain}</span></p>
+                                    <p><span className="font-bold text-slate-700">App ID:</span> <span className="text-slate-600 break-all">{firebaseConfig.appId}</span></p>
+                                    <p><span className="font-bold text-slate-700">Sender ID:</span> <span className="text-slate-600">{firebaseConfig.messagingSenderId}</span></p>
+                                </div>
+                            </div>
+
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+                                <h3 className="text-sm font-black uppercase tracking-widest text-brand-600 mb-4">Storage & Collections</h3>
+                                <div className="space-y-2 text-sm">
+                                    <p><span className="font-bold text-slate-700">Storage Bucket:</span> <span className="text-slate-600 break-all">{firebaseConfig.storageBucket}</span></p>
+                                    <p><span className="font-bold text-slate-700">Storage Files Loaded:</span> <span className="text-slate-600">{isLoadingStorage ? 'Loading...' : storageFiles.length}</span></p>
+                                    <p><span className="font-bold text-slate-700">Active Users:</span> <span className="text-slate-600">{users.length}</span></p>
+                                    <p><span className="font-bold text-slate-700">Deleted Users:</span> <span className="text-slate-600">{deletedUsers.length}</span></p>
+                                    <p><span className="font-bold text-slate-700">Testimonials Loaded:</span> <span className="text-slate-600">{testimonials.length}</span></p>
+                                    <p><span className="font-bold text-slate-700">Ministry Items Loaded:</span> <span className="text-slate-600">{ministries.length}</span></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+                            <h3 className="text-sm font-black uppercase tracking-widest text-brand-600 mb-4">Firebase Storage File Details</h3>
+                            {isLoadingStorage ? (
+                                <p className="text-sm text-slate-500">Loading storage details...</p>
+                            ) : storageFiles.length === 0 ? (
+                                <p className="text-sm text-slate-500">No files found or storage listing not accessible from this session.</p>
+                            ) : (
+                                <div className="max-h-72 overflow-auto border border-slate-100 rounded-2xl divide-y divide-slate-100">
+                                    {storageFiles.map((filePath) => (
+                                        <div key={filePath} className="px-4 py-2 text-xs text-slate-600 font-mono break-all">
+                                            {filePath}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {isStorageListTruncated && (
+                                <p className="text-xs text-amber-600 font-bold mt-3">
+                                    Showing first 120 files only.
+                                </p>
+                            )}
+                        </div>
                     </div>
                 )}
 
@@ -1629,6 +2304,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         />
                                     </div>
                                     <div className="space-y-2">
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Joined Date</label>
+                                        <input
+                                            type="date"
+                                            value={(editingUser.joinedDate || '').slice(0, 10)}
+                                            onChange={(e) => setEditingUser({ ...editingUser, joinedDate: e.target.value })}
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
                                         <label className="text-xs font-bold text-slate-500 uppercase">Role</label>
                                         <select
                                             value={editingUser.role}
@@ -1694,7 +2378,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </div>
                                 <h3 className="text-2xl font-bold text-brand-950 mb-2">Delete User?</h3>
                                 <p className="text-slate-600">
-                                    Are you sure you want to delete <strong>{deletingUser.name}</strong>? This action cannot be undone.
+                                    Move <strong>{deletingUser.name}</strong> to recycle bin? You can restore within 30 days.
                                 </p>
                             </div>
 
@@ -1744,16 +2428,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                             <div className="bg-white p-4 rounded-xl border-2 border-dashed border-slate-200 mb-6 flex justify-center">
                                 <img
-                                    src={`https://quickchart.io/qr?text=${encodeURIComponent(JSON.stringify({
-                                        id: viewingQrUser.id,
-                                        name: viewingQrUser.name,
-                                        email: viewingQrUser.email,
-                                        phone: viewingQrUser.phone,
-                                        location: viewingQrUser.location,
-                                        emergency: viewingQrUser.emergency || 'N/A',
-                                        role: viewingQrUser.role,
-                                        status: viewingQrUser.status
-                                    }))}&dark=4c51f7&size=200`}
+                                    src={getQrImageUrl(viewingQrUser.id, 220)}
                                     alt="User QR Code"
                                     className="w-48 h-48"
                                 />
@@ -1761,16 +2436,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                             <div className="flex gap-2">
                                 <button
-                                    onClick={() => window.open(`https://quickchart.io/qr?text=${encodeURIComponent(JSON.stringify({
-                                        id: viewingQrUser.id,
-                                        name: viewingQrUser.name,
-                                        email: viewingQrUser.email,
-                                        phone: viewingQrUser.phone,
-                                        location: viewingQrUser.location,
-                                        emergency: viewingQrUser.emergency || 'N/A',
-                                        role: viewingQrUser.role,
-                                        status: viewingQrUser.status
-                                    }))}&dark=4c51f7&size=400`, '_blank')}
+                                    onClick={() => window.open(getQrImageUrl(viewingQrUser.id, 400), '_blank')}
                                     className="flex-1 py-3 bg-brand-600 text-white rounded-xl font-bold text-sm hover:bg-brand-700 transition-colors"
                                 >
                                     Download
@@ -1803,7 +2469,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </div>
                                 <h3 className="text-2xl font-bold text-brand-950 mb-2">Delete {selectedUsers.size} Users?</h3>
                                 <p className="text-slate-600">
-                                    Are you sure you want to delete {selectedUsers.size} selected user{selectedUsers.size > 1 ? 's' : ''}? This action cannot be undone.
+                                    Move {selectedUsers.size} selected user{selectedUsers.size > 1 ? 's' : ''} to recycle bin? You can restore within 30 days.
                                 </p>
                             </div>
 
@@ -1907,8 +2573,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     </div>
                                 </div>
 
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Joined Date</label>
+                                    <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                        <Calendar size={16} className="text-slate-400" />
+                                        <span className="text-sm text-slate-700">{formatDateValue(viewingDetailsUser.joinedDate)}</span>
+                                    </div>
+                                </div>
+
 
                             </div>
+
+                            {/* Member Form (Community Profile) */}
+                            {viewingDetailsUser.communityProfile && (
+                                <div className="mt-8 pt-6 border-t border-slate-200">
+                                    <h4 className="text-sm font-bold text-brand-950 mb-4 uppercase tracking-wider">Member Form Submission</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Denomination</p>
+                                            <p className="text-sm font-semibold text-slate-700">{viewingDetailsUser.communityProfile.denomination || 'N/A'}</p>
+                                        </div>
+                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Church Name</p>
+                                            <p className="text-sm font-semibold text-slate-700">{viewingDetailsUser.communityProfile.churchName || 'N/A'}</p>
+                                        </div>
+                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 md:col-span-2">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Role in Ministry</p>
+                                            <p className="text-sm font-semibold text-slate-700">{viewingDetailsUser.communityProfile.role || 'N/A'}</p>
+                                        </div>
+                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 md:col-span-2">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Testimony / Bio</p>
+                                            <p className="text-sm text-slate-700 whitespace-pre-wrap">{viewingDetailsUser.communityProfile.bio || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* QR Code Section in Details */}
                             <div className="mt-8 pt-6 border-t border-slate-200">
@@ -1916,30 +2615,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <div className="flex flex-col md:flex-row items-center gap-6 bg-slate-50 p-6 rounded-3xl border border-slate-100">
                                     <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
                                         <img
-                                            src={`https://quickchart.io/qr?text=${encodeURIComponent(JSON.stringify({
-                                                id: viewingDetailsUser.id,
-                                                name: viewingDetailsUser.name,
-                                                role: viewingDetailsUser.role
-                                            }))}&dark=4c51f7&size=150`}
+                                            src={getQrImageUrl(viewingDetailsUser.id, 180)}
                                             alt="User QR Code"
                                             className="w-32 h-32"
                                         />
                                     </div>
                                     <div className="flex-1 text-center md:text-left">
                                         <p className="text-xs text-slate-500 mb-4">
-                                            Scan this code at the sanctuary entrance for digital verification and attendance marking.
+                                            Scan this code to open the current live verification page for this member ID.
                                         </p>
                                         <button
-                                            onClick={() => window.open(`https://quickchart.io/qr?text=${encodeURIComponent(JSON.stringify({
-                                                id: viewingDetailsUser.id,
-                                                name: viewingDetailsUser.name,
-                                                email: viewingDetailsUser.email,
-                                                phone: viewingDetailsUser.phone,
-                                                location: viewingDetailsUser.location,
-                                                emergency: viewingDetailsUser.emergency || 'N/A',
-                                                role: viewingDetailsUser.role,
-                                                status: viewingDetailsUser.status
-                                            }))}&dark=4c51f7&size=400`, '_blank')}
+                                            onClick={() => window.open(getQrImageUrl(viewingDetailsUser.id, 400), '_blank')}
                                             className="inline-flex items-center gap-2 px-4 py-2 bg-brand-100 text-brand-700 rounded-xl font-bold text-xs hover:bg-brand-200 transition-colors"
                                         >
                                             <Download size={14} /> Download HQ QR
@@ -1951,12 +2637,145 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             {/* Close Button */}
                             <div className="mt-8 pt-6 border-t border-slate-200">
                                 <button
+                                    onClick={() => handleDownloadUserDetailsPdf(viewingDetailsUser)}
+                                    className="w-full mb-3 px-6 py-3 bg-teal-600 text-white rounded-xl font-bold hover:bg-teal-700 transition-colors flex items-center justify-center gap-2"
+                                    disabled={downloadingProfilePdfUserId === viewingDetailsUser.id}
+                                >
+                                    {downloadingProfilePdfUserId === viewingDetailsUser.id ? (
+                                        <><span className="animate-spin">⏳</span> Generating Profile PDF...</>
+                                    ) : (
+                                        <><FileText size={16} /> Download Professional Profile PDF</>
+                                    )}
+                                </button>
+                                <button
                                     onClick={() => setViewingDetailsUser(null)}
                                     className="w-full px-6 py-3 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 transition-colors"
                                 >
                                     Close
                                 </button>
                             </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* User Quick View Modal */}
+            <AnimatePresence>
+                {userQuickViewMode && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-3xl p-6 md:p-8 max-w-6xl w-full max-h-[90vh] overflow-y-auto"
+                        >
+                            <div className="flex items-start justify-between gap-4 mb-6">
+                                <div>
+                                    <h3 className="text-2xl font-bold text-brand-950">{selectedQuickView?.label}</h3>
+                                    <p className="text-sm text-slate-500 mt-1">
+                                        {selectedQuickView?.description} • {filteredUsers.length} user{filteredUsers.length === 1 ? '' : 's'}
+                                    </p>
+                                </div>
+                                <button onClick={() => setUserQuickViewMode(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors shrink-0">
+                                    <X size={20} className="text-slate-500" />
+                                </button>
+                            </div>
+
+                            {userQuickViewMode === 'photos' && (
+                                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                                    {filteredUsers.map(user => (
+                                        <div key={user.id} className="rounded-3xl overflow-hidden border border-slate-100 bg-slate-50">
+                                            <div className="aspect-square bg-slate-100">
+                                                {user.photo ? (
+                                                    <img src={user.photo} alt={user.name} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-4xl font-black text-slate-300 bg-gradient-to-br from-slate-100 to-slate-200">
+                                                        {user.name.charAt(0)}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="px-4 py-3">
+                                                <div className="font-bold text-sm text-brand-950 truncate">{user.name}</div>
+                                                <div className="text-[11px] text-slate-500 font-mono">{user.id}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {userQuickViewMode === 'ids' && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {filteredUsers.map(user => (
+                                        <div key={user.id} className="px-4 py-4 rounded-2xl border border-slate-100 bg-slate-50">
+                                            <div className="text-lg font-black text-brand-950 font-mono">{user.id}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {userQuickViewMode === 'cards' && (
+                                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                    {filteredUsers.map(user => (
+                                        <div key={user.id} className="bg-slate-50 border border-slate-100 rounded-3xl p-4">
+                                            <div className="mb-3">
+                                                <div className="font-bold text-brand-950">{user.name}</div>
+                                                <div className="text-xs font-mono text-slate-500">{user.id}</div>
+                                            </div>
+                                            <div className="overflow-x-auto">
+                                                <div className="min-w-[340px]">
+                                                    <EntrustCard3D
+                                                        name={user.name}
+                                                        email={user.email}
+                                                        location={user.location}
+                                                        emergency={user.emergency}
+                                                        uniqueId={user.id}
+                                                        memberSince={user.memberSince}
+                                                        photo={user.photo}
+                                                        status={user.status}
+                                                        isStatic={true}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {userQuickViewMode === 'locations' && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                    {filteredUsers.map(user => (
+                                        <div key={user.id} className="p-4 rounded-2xl border border-slate-100 bg-slate-50">
+                                            <div className="flex items-center gap-2 text-emerald-600 font-bold mb-2">
+                                                <MapPin size={16} />
+                                                <span>{user.location || 'Unknown'}</span>
+                                            </div>
+                                            <div className="text-sm font-semibold text-brand-950">{user.name}</div>
+                                            <div className="text-[11px] font-mono text-slate-500 mt-1">{user.id}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {userQuickViewMode === 'join-dates' && (
+                                <div className="space-y-3">
+                                    {filteredUsers.map(user => (
+                                        <div key={user.id} className="flex items-center justify-between gap-3 p-4 rounded-2xl border border-slate-100 bg-slate-50">
+                                            <div>
+                                                <div className="font-bold text-brand-950">{user.name}</div>
+                                                <div className="text-[11px] font-mono text-slate-500">{user.id}</div>
+                                            </div>
+                                            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-700">
+                                                <Calendar size={14} className="text-slate-400" />
+                                                {formatDateValue(user.joinedDate)}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {filteredUsers.length === 0 && (
+                                <div className="text-center text-slate-400 py-10">No users found for this view.</div>
+                            )}
                         </motion.div>
                     </div>
                 )}
@@ -2111,6 +2930,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="space-y-1.5 sm:col-span-2">
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Member ID (Optional Manual)</label>
+                                        <div className="flex flex-col sm:flex-row gap-2">
+                                            <input
+                                                list="available-cot-ids"
+                                                type="text"
+                                                placeholder="Leave empty for random ID, or enter COT-1960"
+                                                value={newUserData.memberId}
+                                                onChange={(e) => setNewUserData(d => ({ ...d, memberId: e.target.value }))}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const pick = getRandomAvailableCotId();
+                                                    if (!pick) {
+                                                        alert('No available COT IDs found.');
+                                                        return;
+                                                    }
+                                                    setNewUserData(d => ({ ...d, memberId: pick }));
+                                                }}
+                                                className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs whitespace-nowrap transition-colors"
+                                            >
+                                                Pick Random ID
+                                            </button>
+                                        </div>
+                                        <datalist id="available-cot-ids">
+                                            {suggestedCotIds.map(id => (
+                                                <option key={id} value={id} />
+                                            ))}
+                                        </datalist>
+                                        <p className="text-[10px] text-slate-400 font-medium">
+                                            Admin can manually choose a COT ID from available options.
+                                        </p>
+                                    </div>
+                                    <div className="space-y-1.5 sm:col-span-2">
                                         <label className="text-xs font-bold text-slate-500 uppercase">Full Name *</label>
                                         <input
                                             type="text"
@@ -2162,6 +3016,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <option value="Member">Member</option>
                                             <option value="Admin">Admin</option>
                                         </select>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Joined Date</label>
+                                        <input
+                                            type="date"
+                                            value={newUserData.joinedDate}
+                                            onChange={(e) => setNewUserData(d => ({ ...d, joinedDate: e.target.value }))}
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
+                                        />
                                     </div>
                                 </div>
 

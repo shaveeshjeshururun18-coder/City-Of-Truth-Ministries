@@ -129,49 +129,152 @@ export const HebrewSanctuaryIntro: React.FC<SectionProps> = ({ setView }) => {
 };
 
 export const HebrewPagesPreviewSection: React.FC<SectionProps> = ({ setView }) => {
-    const contentItems = ['Calendar', 'Festivals', 'Months & Days', 'Grammar'];
-    const toolItems = ['Word Hub', 'Letters Audio', 'Numbers', 'Gematria'];
+    type PreviewItem = {
+        name: string;
+        description: string;
+        view?: ViewState;
+        href?: string;
+    };
+
+    const openPreviewItem = (item: PreviewItem) => {
+        if (item.view) {
+            setView(item.view);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+        if (item.href) window.location.assign(item.href);
+    };
+
+    const previewGroups = [
+        {
+            title: 'Hebrew Content',
+            icon: <BookOpen size={18} />,
+            wrapperClass: 'bg-gradient-to-br from-brand-50 to-white border-brand-100',
+            titleClass: 'text-brand-950',
+            actionClass: 'text-brand-600 hover:text-brand-700',
+            itemClass: 'border-brand-100 hover:border-brand-300 hover:bg-brand-50/60',
+            accentClass: 'text-brand-700',
+            ctaView: ViewState.ABOUT,
+            items: [
+                { name: 'Hebrew Hub', view: ViewState.ABOUT, description: 'Main Hebrew learning landing page' },
+                { name: 'Biblical Calendar', view: ViewState.HEBREW_CALENDAR, description: 'Holy dates and month flow' },
+                { name: 'Hebrew Clock', view: ViewState.HEBREW_CLOCK, description: 'Sacred time preview' },
+                { name: 'Festivals & Holy Days', view: ViewState.HEBREW_FESTIVALS, description: 'Feasts and appointed times' },
+                { name: 'Month/Year Reference', view: ViewState.HEBREW_REFERENCE, description: 'Months, years, and mappings' },
+                { name: 'Hebrew Grammar', view: ViewState.HEBREW_GRAMMAR, description: 'Study core grammar patterns' },
+            ],
+        },
+        {
+            title: 'Hebrew Tools',
+            icon: <Sparkles size={18} />,
+            wrapperClass: 'bg-gradient-to-br from-amber-50 to-white border-amber-100',
+            titleClass: 'text-brand-950',
+            actionClass: 'text-amber-700 hover:text-amber-800',
+            itemClass: 'border-amber-100 hover:border-amber-300 hover:bg-amber-50/70',
+            accentClass: 'text-amber-800',
+            ctaView: ViewState.HEBREW_TOOLS,
+            items: [
+                { name: 'Tools Hub', view: ViewState.HEBREW_TOOLS, description: 'Launch all Hebrew study tools' },
+                { name: 'Alphabet Page', view: ViewState.HEBREW, description: 'Letters and character learning' },
+                { name: 'Hebrew Words', view: ViewState.HEBREW_WORDS, description: 'Search meaningful words' },
+                { name: 'Letters Audio Lab', view: ViewState.HEBREW_LETTERS_AUDIO, description: 'Hear the sounds clearly' },
+                { name: 'Hebrew Numbers', view: ViewState.HEBREW_NUMBERS, description: 'Number forms and values' },
+                { name: 'Gematria Value', view: ViewState.HEBREW_GEMATRIA, description: 'Explore word values' },
+            ],
+        },
+        {
+            title: 'Ministry Pages',
+            icon: <Globe size={18} />,
+            wrapperClass: 'bg-gradient-to-br from-emerald-50 to-white border-emerald-100',
+            titleClass: 'text-brand-950',
+            actionClass: 'text-emerald-700 hover:text-emerald-800',
+            itemClass: 'border-emerald-100 hover:border-emerald-300 hover:bg-emerald-50/70',
+            accentClass: 'text-emerald-800',
+            ctaView: ViewState.MINISTRIES,
+            items: [
+                { name: 'Home', view: ViewState.HOME, description: 'Return to the main landing page' },
+                { name: 'Ministries', view: ViewState.MINISTRIES, description: 'See ministry areas and service focus' },
+                { name: 'Pastor Page', view: ViewState.PASTOR, description: 'Meet the shepherd and vision' },
+                { name: 'Valparai Sanctuary', view: ViewState.ABOUT_VALPARAI, description: 'Visit the hill-station presence' },
+                { name: 'Golden Menorah', view: ViewState.GOLDEN_MENORAH, description: 'Symbolism and sacred design' },
+                { name: 'Baruch Hashem', view: ViewState.BARUCH_HASHEM, description: 'Praise-centered visual worship page' },
+                { name: 'AI Assistance', view: ViewState.AI, description: 'Ask ministry and Bible questions' },
+            ],
+        },
+        {
+            title: 'Connect & Access',
+            icon: <Users size={18} />,
+            wrapperClass: 'bg-gradient-to-br from-violet-50 to-white border-violet-100',
+            titleClass: 'text-brand-950',
+            actionClass: 'text-violet-700 hover:text-violet-800',
+            itemClass: 'border-violet-100 hover:border-violet-300 hover:bg-violet-50/70',
+            accentClass: 'text-violet-800',
+            ctaView: ViewState.ID_CARD,
+            items: [
+                { name: 'Entrust Card', view: ViewState.ID_CARD, description: 'Registration and digital identity card' },
+                { name: 'Contact Page', view: ViewState.CONTACT, description: 'Reach the ministry directly' },
+                { name: 'Verify ID', view: ViewState.VERIFY_ID, description: 'Member verification portal' },
+                { name: 'Login Page', href: '/auth?view=login', description: 'Open member login route' },
+                { name: 'Register Page', href: '/auth?view=register', description: 'Open member registration route' },
+                { name: 'Forgot ID Page', href: '/auth?view=forgot-id', description: 'Recover your member ID route' },
+                { name: 'Admin Dashboard', href: '/admin', description: 'Open protected admin dashboard route' },
+            ],
+        },
+    ];
 
     return (
         <section className="py-24 bg-white">
             <div className="container mx-auto px-6">
                 <div className="text-center mb-14">
                     <span className="inline-flex items-center gap-2 bg-brand-50 text-brand-700 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em]">
-                        <BookOpen size={12} /> Hebrew Hub Preview
+                        <BookOpen size={12} /> All Page Previews
                     </span>
                     <h2 className="mt-5 text-4xl md:text-6xl font-serif font-black text-brand-950 tracking-tight">
-                        Hebrew <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-accent-500 italic font-light">Content & Tools</span>
+                        Every <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-accent-500 italic font-light">Page Preview</span> on Home
                     </h2>
+                    <p className="mt-5 max-w-3xl mx-auto text-slate-500 text-base md:text-lg leading-relaxed">
+                        Browse Hebrew content, Hebrew tools, ministry highlights, and community access pages directly from the home section before opening the full page.
+                    </p>
                 </div>
 
-                <div className="grid lg:grid-cols-2 gap-8">
-                    <div className="rounded-[2.5rem] bg-gradient-to-br from-brand-50 to-white border border-brand-100 p-8">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-2xl font-bold text-brand-950">Hebrew Content</h3>
-                            <button onClick={() => setView(ViewState.ABOUT)} className="text-xs font-black uppercase tracking-wider text-brand-600 hover:text-brand-700">
-                                Open <ArrowRight size={14} className="inline ml-1" />
-                            </button>
-                        </div>
-                        <div className="grid sm:grid-cols-2 gap-3">
-                            {contentItems.map(item => (
-                                <div key={item} className="bg-white border border-brand-100 rounded-2xl px-4 py-3 text-sm font-bold text-brand-800">{item}</div>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="rounded-[2.5rem] bg-gradient-to-br from-amber-50 to-white border border-amber-100 p-8">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-2xl font-bold text-brand-950">Hebrew Tools</h3>
-                            <button onClick={() => setView(ViewState.HEBREW_TOOLS)} className="text-xs font-black uppercase tracking-wider text-amber-700 hover:text-amber-800">
-                                Open <ArrowRight size={14} className="inline ml-1" />
-                            </button>
-                        </div>
-                        <div className="grid sm:grid-cols-2 gap-3">
-                            {toolItems.map(item => (
-                                <div key={item} className="bg-white border border-amber-100 rounded-2xl px-4 py-3 text-sm font-bold text-amber-900">{item}</div>
-                            ))}
-                        </div>
-                    </div>
+                <div className="grid xl:grid-cols-2 gap-8">
+                    {previewGroups.map((group, groupIndex) => (
+                        <motion.div
+                            key={group.title}
+                            initial={{ opacity: 0, y: 18 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: groupIndex * 0.08 }}
+                            className={`rounded-[2.5rem] border p-8 ${group.wrapperClass}`}
+                        >
+                            <div className="flex items-center justify-between gap-4 mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-11 h-11 rounded-2xl bg-white shadow-sm border border-white/80 flex items-center justify-center text-brand-700">
+                                        {group.icon}
+                                    </div>
+                                    <div>
+                                        <h3 className={`text-2xl font-bold ${group.titleClass}`}>{group.title}</h3>
+                                        <p className="text-xs font-medium text-slate-500 mt-1">Preview the pages available from this section.</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setView(group.ctaView)} className={`shrink-0 text-xs font-black uppercase tracking-wider ${group.actionClass}`}>
+                                    Open <ArrowRight size={14} className="inline ml-1" />
+                                </button>
+                            </div>
+                            <div className="grid sm:grid-cols-2 gap-3">
+                                {group.items.map((item) => (
+                                    <button
+                                        key={item.name}
+                                        onClick={() => openPreviewItem(item)}
+                                        className={`bg-white border rounded-2xl px-4 py-4 text-left transition-all hover:-translate-y-0.5 ${group.itemClass}`}
+                                    >
+                                        <div className={`text-sm font-black ${group.accentClass}`}>{item.name}</div>
+                                        <div className="mt-1 text-xs leading-relaxed text-slate-500">{item.description}</div>
+                                    </button>
+                                ))}
+                            </div>
+                        </motion.div>
+                    ))}
                 </div>
             </div>
         </section>

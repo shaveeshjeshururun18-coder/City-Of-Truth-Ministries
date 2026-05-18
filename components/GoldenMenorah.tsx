@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Flame, Sparkles, Book } from 'lucide-react';
+import { Flame, Sparkles, Book, Download } from 'lucide-react';
 
 
 import { InteractiveMenorah } from './InteractiveMenorah';
@@ -12,6 +12,18 @@ interface GoldenMenorahProps {
 }
 
 export const GoldenMenorah: React.FC<GoldenMenorahProps> = ({ onPreviewClick }) => {
+  const [flagImageSrc, setFlagImageSrc] = React.useState('/menorah-flag-image.png');
+
+  const handleFlagError = () => {
+    if (flagImageSrc === '/menorah-flag-image.png') {
+      setFlagImageSrc('/menorah-flag.png');
+      return;
+    }
+    if (flagImageSrc === '/menorah-flag.png') {
+      setFlagImageSrc('/sacred-menorah.png');
+    }
+  };
+
   return (
     <section className="min-h-screen bg-brand-950 pt-32 pb-20 relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent pointer-events-none"></div>
@@ -76,9 +88,10 @@ export const GoldenMenorah: React.FC<GoldenMenorahProps> = ({ onPreviewClick }) 
                 onClick={onPreviewClick}
               >
                 <img
-                  src="/menorah-flag-image.png"
+                  src={flagImageSrc}
                   alt="Sacred Menorah Flag"
                   className="w-full h-full object-contain p-4"
+                  onError={handleFlagError}
                 />
 
                 {/* Hover Overlay */}
@@ -89,6 +102,21 @@ export const GoldenMenorah: React.FC<GoldenMenorahProps> = ({ onPreviewClick }) 
                     </div>
                   </div>
                 </div>
+              </div>
+              <div className="mt-4 flex justify-center">
+                <motion.a
+                  href={flagImageSrc}
+                  download="COT-Menorah-Flag.png"
+                  whileHover={{ y: -2, scale: 1.03 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="group relative inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-400 text-[#2f2200] font-black text-xs uppercase tracking-[0.18em] border border-amber-100/80 shadow-[0_10px_28px_-12px_rgba(251,191,36,0.95)] hover:shadow-[0_14px_32px_-12px_rgba(251,191,36,1)] transition-all duration-500 overflow-hidden"
+                >
+                  <span className="pointer-events-none absolute -inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/95 to-transparent opacity-80 group-hover:animate-pulse" />
+                  <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(255,255,255,0.7),transparent_35%),radial-gradient(circle_at_85%_80%,rgba(255,255,255,0.5),transparent_30%)] opacity-55 group-hover:opacity-85 transition-opacity duration-500" />
+                  <Sparkles size={14} className="text-amber-700 relative z-10 animate-pulse" />
+                  <Download size={14} className="text-amber-900 relative z-10" />
+                  <span className="relative z-10">Download Flag</span>
+                </motion.a>
               </div>
             </motion.div>
           </div>

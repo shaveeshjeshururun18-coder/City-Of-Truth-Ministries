@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, CheckCircle, XCircle, Search, ScanLine, X, Loader2 } from 'lucide-react';
+import { Camera, CheckCircle, XCircle, Search, ScanLine, X, Loader2, LogIn } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
 import { User } from '../types';
@@ -11,7 +11,11 @@ import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 GlobalWorkerOptions.workerSrc = pdfWorker;
 
-const VerifyIDPage = () => {
+interface VerifyIDPageProps {
+    onProceedToDashboard?: (identifier: string) => void;
+}
+
+const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => {
     const [scannedId, setScannedId] = useState<string | null>(null);
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(false);
@@ -19,21 +23,19 @@ const VerifyIDPage = () => {
     const [isScanning, setIsScanning] = useState(false);
     const [scannerInitialized, setScannerInitialized] = useState(false);
     const scannerRef = useRef<any>(null);
+    const isApprovedUser = user?.status === 'Active';
 
-    const normalizeCotId = (value: string) => value.toUpperCase().replace(/^COT(?!-)/, 'COT-');
+    const normalizeCotId = (value: string) => value.trim().toUpperCase().replace(/^COT(?!-)/, 'COT-');
+    const extractIdFromPath = (value: string) => value.match(/\/(?:verify|card)\/([A-Za-z0-9]+(?:-[A-Za-z0-9]+)*)/i)?.[1] || null;
 
     const extractMemberId = (payload: string): string | null => {
         if (!payload) return null;
         const trimmed = payload.trim();
-        if (trimmed.includes('/verify/')) {
-            return trimmed.split('/verify/')[1]?.split('?')[0]?.trim() || null;
-        }
-        if (trimmed.includes('/card/')) {
-            return trimmed.split('/card/')[1]?.split('?')[0]?.trim() || null;
-        }
+        const fromPath = extractIdFromPath(trimmed);
+        if (fromPath) return normalizeCotId(fromPath);
         try {
             const parsed = JSON.parse(trimmed);
-            if (parsed?.id && typeof parsed.id === 'string') return parsed.id.trim();
+            if (parsed?.id && typeof parsed.id === 'string') return normalizeCotId(parsed.id);
         } catch (_e) {}
         if (/^COT-[A-Z0-9-]+$/i.test(trimmed)) return normalizeCotId(trimmed);
         return null;
@@ -41,8 +43,8 @@ const VerifyIDPage = () => {
 
     const extractMemberIdFromText = (text: string): string | null => {
         if (!text) return null;
-        const fromPath = text.match(/\/(verify|card)\/([A-Za-z0-9-]+)/i)?.[2];
-        if (fromPath) return fromPath;
+        const fromPath = extractIdFromPath(text);
+        if (fromPath) return normalizeCotId(fromPath);
         const cotMatch = text.match(/\bCOT-?[A-Za-z0-9-]{3,}\b/i)?.[0];
         if (cotMatch) return normalizeCotId(cotMatch);
         return null;
@@ -69,9 +71,10 @@ const VerifyIDPage = () => {
     }, []);
 
     const verifyID = async (idToVerify: string) => {
+        const normalizedId = normalizeCotId(idToVerify);
         setLoading(true); setError(null); setUser(null);
         try {
-            const userRef = doc(db, 'users', idToVerify);
+            const userRef = doc(db, 'users', normalizedId);
             const userSnap = await getDoc(userRef);
             if (userSnap.exists()) {
                 setUser({ ...userSnap.data(), id: userSnap.id } as User);
@@ -79,9 +82,9 @@ const VerifyIDPage = () => {
                 const allUsers = await api.getUsers();
                 let foundMatch = null;
                 for (const u of allUsers) {
-                    if (u.id === idToVerify) { foundMatch = u; break; }
+                    if (normalizeCotId(u.id) === normalizedId) { foundMatch = u; break; }
                     if (u.linkedProfiles) {
-                        const subMatch = u.linkedProfiles.find(sp => sp.id === idToVerify);
+                        const subMatch = u.linkedProfiles.find(sp => normalizeCotId(sp.id) === normalizedId);
                         if (subMatch) {
                             foundMatch = { ...u, id: subMatch.id, name: subMatch.name, role: subMatch.role, photo: subMatch.photo || u.photo } as User;
                             break;
@@ -108,7 +111,12 @@ const VerifyIDPage = () => {
                 (decodedText: string) => {
                     const extractedId = extractMemberId(decodedText);
                     if (extractedId) {
-                        html5Qrcode.stop().then(() => { setIsScanning(false); setScannedId(extractedId); verifyID(extractedId); });
+                        html5Qrcode.stop().then(() => {
+                            const normalized = normalizeCotId(extractedId);
+                            setIsScanning(false);
+                            setScannedId(normalized);
+                            verifyID(normalized);
+                        });
                     }
                 },
                 (_errorMessage: string) => {}
@@ -188,8 +196,9 @@ const VerifyIDPage = () => {
 
         scanTask()
             .then((extractedId: string) => {
-                setScannedId(extractedId);
-                verifyID(extractedId);
+                const normalized = normalizeCotId(extractedId);
+                setScannedId(normalized);
+                verifyID(normalized);
             })
             .catch((err: any) => {
                 setError(err?.message || 'No valid QR code found in the uploaded file.');
@@ -200,7 +209,11 @@ const VerifyIDPage = () => {
 
     const handleManualCheck = (e: React.FormEvent) => {
         e.preventDefault();
-        if (scannedId) verifyID(scannedId.trim());
+        if (scannedId) {
+            const normalized = normalizeCotId(scannedId);
+            setScannedId(normalized);
+            verifyID(normalized);
+        }
     };
 
     return (
@@ -294,24 +307,83 @@ const VerifyIDPage = () => {
                         </motion.div>
                     )}
                     {!loading && user && (
-                        <motion.div initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -20, scale: 0.95 }} className="bg-gradient-to-br from-green-50 to-emerald-50 p-10 rounded-[2.5rem] shadow-2xl shadow-green-900/10 border-2 border-green-200 relative overflow-hidden max-w-3xl mx-auto">
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-green-400 rounded-full blur-[100px] opacity-20 pointer-events-none" />
+                        <motion.div
+                            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                            className={`p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden max-w-3xl mx-auto border-2 ${
+                                user.status === 'Active'
+                                    ? 'bg-gradient-to-br from-green-50 to-emerald-50 shadow-green-900/10 border-green-200'
+                                    : user.status === 'Rejected'
+                                        ? 'bg-gradient-to-br from-red-50 to-rose-50 shadow-red-900/10 border-red-200'
+                                        : 'bg-gradient-to-br from-amber-50 to-yellow-50 shadow-amber-900/10 border-amber-200'
+                            }`}
+                        >
+                            <div className={`absolute top-0 right-0 w-64 h-64 rounded-full blur-[100px] opacity-20 pointer-events-none ${
+                                user.status === 'Active'
+                                    ? 'bg-green-400'
+                                    : user.status === 'Rejected'
+                                        ? 'bg-red-400'
+                                        : 'bg-amber-400'
+                            }`} />
                             <div className="flex flex-col md:flex-row items-center gap-10 relative z-10">
                                 <div className="w-48 h-48 md:w-56 md:h-56 shrink-0 relative">
-                                    <div className="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-20" />
+                                    <div className={`absolute inset-0 rounded-full animate-ping opacity-20 ${
+                                        user.status === 'Active'
+                                            ? 'bg-green-400'
+                                            : user.status === 'Rejected'
+                                                ? 'bg-red-400'
+                                                : 'bg-amber-400'
+                                    }`} />
                                     {user.photo ? (
                                         <img src={user.photo} alt={user.name} className="w-full h-full object-cover rounded-full border-8 border-white shadow-2xl relative z-10" />
                                     ) : (
                                         <div className="w-full h-full bg-slate-200 rounded-full border-8 border-white shadow-2xl relative z-10 flex items-center justify-center text-6xl font-black text-slate-400">{user.name.charAt(0).toUpperCase()}</div>
                                     )}
-                                    <div className="absolute -bottom-2 -right-2 bg-green-500 text-white p-3 rounded-full shadow-lg border-4 border-white z-20"><CheckCircle className="w-8 h-8" /></div>
+                                    <div className={`absolute -bottom-2 -right-2 text-white p-3 rounded-full shadow-lg border-4 border-white z-20 ${
+                                        user.status === 'Active'
+                                            ? 'bg-green-500'
+                                            : user.status === 'Rejected'
+                                                ? 'bg-red-500'
+                                                : 'bg-amber-500'
+                                    }`}>
+                                        {user.status === 'Active' ? <CheckCircle className="w-8 h-8" /> : <XCircle className="w-8 h-8" />}
+                                    </div>
                                 </div>
                                 <div className="text-center md:text-left flex-1">
-                                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-200/50 text-green-800 rounded-full text-sm font-bold uppercase tracking-widest mb-4 border border-green-300/50">
-                                        <span className="w-2 h-2 rounded-full bg-green-600 opacity-75" /> Valid Member
+                                    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold uppercase tracking-widest mb-4 border ${
+                                        user.status === 'Active'
+                                            ? 'bg-green-200/50 text-green-800 border-green-300/50'
+                                            : user.status === 'Rejected'
+                                                ? 'bg-red-200/50 text-red-800 border-red-300/50'
+                                                : 'bg-amber-200/60 text-amber-800 border-amber-300/50'
+                                    }`}>
+                                        <span className={`w-2 h-2 rounded-full opacity-75 ${
+                                            user.status === 'Active'
+                                                ? 'bg-green-600'
+                                                : user.status === 'Rejected'
+                                                    ? 'bg-red-600'
+                                                    : 'bg-amber-600'
+                                        }`} />
+                                        {user.status === 'Active' ? 'Valid Member' : user.status === 'Rejected' ? 'Rejected Member' : 'Pending Approval'}
                                     </div>
                                     <h4 className="text-4xl font-black text-slate-900 mb-2 tracking-tight">{user.name}</h4>
-                                    <p className="text-green-700 font-bold text-xl mb-6">{user.role || 'Worshipper'}</p>
+                                    <p className={`font-bold text-xl mb-4 ${
+                                        user.status === 'Active'
+                                            ? 'text-green-700'
+                                            : user.status === 'Rejected'
+                                                ? 'text-red-700'
+                                                : 'text-amber-700'
+                                    }`}>{user.role || 'Worshipper'}</p>
+                                    {!isApprovedUser && (
+                                        <p className={`text-sm font-medium mb-6 ${
+                                            user.status === 'Rejected' ? 'text-red-700' : 'text-amber-700'
+                                        }`}>
+                                            {user.status === 'Rejected'
+                                                ? 'This member is not approved. Entrust card access remains blocked.'
+                                                : 'This member is awaiting admin approval. Entrust card access remains blocked.'}
+                                        </p>
+                                    )}
                                     <div className="grid grid-cols-2 gap-4 text-left">
                                         <div className="bg-white/80 backdrop-blur-sm p-4 rounded-2xl border border-green-100 shadow-sm">
                                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-1">Member ID</span>
@@ -330,7 +402,18 @@ const VerifyIDPage = () => {
                                             </div>
                                         )}
                                     </div>
-                                    <button onClick={() => { setUser(null); setScannedId(null); }} className="mt-8 px-6 py-3 w-full bg-white text-slate-700 font-bold rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors">Scan Another ID</button>
+                                    <div className="mt-8 space-y-3">
+                                        {onProceedToDashboard && (
+                                            <button
+                                                onClick={() => onProceedToDashboard(user.id)}
+                                                className="px-6 py-3 w-full bg-brand-600 text-white font-bold rounded-xl border border-brand-600 hover:bg-brand-700 transition-colors flex items-center justify-center gap-2"
+                                            >
+                                                <LogIn size={18} />
+                                                Proceed to Dashboard
+                                            </button>
+                                        )}
+                                        <button onClick={() => { setUser(null); setScannedId(null); }} className="px-6 py-3 w-full bg-white text-slate-700 font-bold rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors">Scan Another ID</button>
+                                    </div>
                                 </div>
                             </div>
                         </motion.div>

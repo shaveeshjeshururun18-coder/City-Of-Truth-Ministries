@@ -37,7 +37,9 @@ export const TestimonialModal: React.FC<TestimonialModalProps> = ({ isOpen, onCl
                 rating: rating,
                 userPhoto: user.photo,
                 location: user.location,
-                role: user.role
+                role: user.role,
+                senderType: 'Registered',
+                senderStatus: user.status
             });
             setSubmitted(true);
             setTimeout(() => {

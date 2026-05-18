@@ -10,6 +10,7 @@ export enum ViewState {
   HEBREW = 'HEBREW',
   HEBREW_TOOLS = 'HEBREW_TOOLS',
   HEBREW_CALENDAR = 'HEBREW_CALENDAR',
+  HEBREW_CLOCK = 'HEBREW_CLOCK',
   HEBREW_NUMBERS = 'HEBREW_NUMBERS',
   HEBREW_WORDS = 'HEBREW_WORDS',
   HEBREW_LETTERS_AUDIO = 'HEBREW_LETTERS_AUDIO',
@@ -37,6 +38,15 @@ export interface NavItem {
 export type UserStatus = 'Pending Verification' | 'Active' | 'Rejected';
 export type UserRole = 'Member' | 'Admin';
 
+export interface PendingProfileUpdate {
+  name?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  emergency?: string;
+  photo?: string;
+}
+
 export interface User {
   id: string; // COT-xxxx
   phone: string;
@@ -52,12 +62,18 @@ export interface User {
   joinedDate: string;
   linkedProfiles?: SubProfile[];
   verificationDoc?: { name: string; uploadedAt: string };
+  pendingProfileUpdate?: PendingProfileUpdate;
   communityProfile?: {
     denomination?: string;
     churchName?: string;
     role?: string;
     bio?: string;
   };
+}
+
+export interface DeletedUser extends User {
+  deletedAt: string;
+  autoDeleteAt: string;
 }
 
 export interface SubProfile {
@@ -88,6 +104,8 @@ export interface Testimonial {
   userPhoto?: string;
   location?: string;
   role?: string;
+  senderType?: 'Registered' | 'Non-Registered';
+  senderStatus?: UserStatus | 'Guest';
 }
 export interface Ministry {
   id: string;

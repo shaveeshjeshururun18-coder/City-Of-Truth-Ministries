@@ -56,8 +56,34 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
         if (isStatic) setIsFlipped(isBackSide);
     }, [isBackSide, isStatic]);
 
-    const safeHeadPhoto = photo?.trim().startsWith('data:image/') ? photo : '';
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`https://city-of-truth-ministries.vercel.app/verify/${uniqueId}`)}&bgcolor=ffffff&color=2c298c&margin=2`;
+    const safePhotoSrc = (() => {
+        const candidate = (photo || '').trim();
+        if (!candidate) return null;
+        if (/^data:image\/(?:png|jpe?g|webp|gif|bmp);base64,/i.test(candidate)) return candidate;
+        if (candidate.startsWith('blob:')) return candidate;
+        if (/^https?:\/\//i.test(candidate)) {
+            try {
+                const parsed = new URL(candidate);
+                const allowedHosts = new Set([
+                    'firebasestorage.googleapis.com',
+                    'lh3.googleusercontent.com',
+                    'avatars.githubusercontent.com',
+                    'user-attachments.githubusercontent.com',
+                    'raw.githubusercontent.com',
+                    'ui-avatars.com',
+                ]);
+                if (allowedHosts.has(parsed.hostname)) return parsed.toString();
+            } catch {
+                return null;
+            }
+        }
+        return null;
+    })();
+
+    const fullDetails = `CITY OF TRUTH MINISTRIES\nID: ${uniqueId}\nName: ${name}\nLocation: ${location}\nPhone: ${emergency}\nMember Since: ${memberSince}`.trim();
+    const appOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://city-of-truth-ministries.vercel.app';
+    const verifyUrl = `${appOrigin}/verify/${uniqueId}`;
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(verifyUrl)}&bgcolor=ffffff&color=2c298c&margin=2&format=png&cb=${encodeURIComponent(uniqueId || 'COT-SAMPLE')}`;
     const sanitizedFamilyMembers = familyMembers.filter(member => member.name.trim());
     const memberCount = sanitizedFamilyMembers.length + 1;
     const memberNames = sanitizedFamilyMembers
@@ -90,7 +116,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
             <div className="flex-1 flex p-2 gap-2 relative z-10">
                 {/* Left: Photo */}
                 <div className="w-24 h-28 bg-slate-50 rounded-lg border-2 border-slate-100 flex items-center justify-center text-slate-300 overflow-hidden shadow-sm shrink-0">
-                    {safeHeadPhoto ? <img src={safeHeadPhoto} alt="P" className="w-full h-full object-cover" /> : <User size={32} />}
+                    {safePhotoSrc ? <img src={safePhotoSrc} alt="P" className="w-full h-full object-cover" /> : <User size={32} />}
                 </div>
 
                 {/* Right: Details */}
@@ -190,7 +216,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
             <div className="flex-1 p-2 relative z-10 flex gap-2">
                 <div className="w-[40%] flex flex-col">
                     <div className="flex-1 min-h-0 rounded-lg border border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center">
-                        {safeHeadPhoto ? <img src={safeHeadPhoto} alt="Family Head" className="w-full h-full object-cover" /> : <User size={30} className="text-slate-300" />}
+                        {safePhotoSrc ? <img src={safePhotoSrc} alt="Family Head" className="w-full h-full object-cover" /> : <User size={30} className="text-slate-300" />}
                     </div>
                     <div className="mt-1 bg-white/90 rounded-md border border-slate-200 px-1.5 py-1">
                         <p className="text-[5px] uppercase tracking-wider text-slate-500 font-bold">Family Head</p>
@@ -450,12 +476,76 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
     const [previewPhoto, setPreviewPhoto] = useState('');
     const [showPhotoPreview, setShowPhotoPreview] = useState(false);
     const [croppingImage, setCroppingImage] = useState<string | null>(null);
+    const [cropTarget, setCropTarget] = useState<{ type: 'primary' | 'family'; memberId?: string } | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [showEntrustIntro, setShowEntrustIntro] = useState(false);
+    const [entrustTourStepIndex, setEntrustTourStepIndex] = useState<number | null>(null);
+    const [entrustTourRect, setEntrustTourRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
+    const ENTRUST_TOUR_STEPS = [
+        { selector: '#entrust-name-field', title: 'Enter Full Name', text: 'Start by entering your name exactly as you want it on the Entrust card.' },
+        { selector: '#entrust-phone-field', title: 'Enter WhatsApp Number', text: 'Use a valid 10-digit number to receive updates and login access.' },
+        { selector: '#entrust-location-field', title: 'Choose District', text: 'Select your district from Tamil Nadu for registration records.' },
+        { selector: '#entrust-register-btn', title: 'Complete Registration', text: 'Tap register to submit details and get your member ID.' },
+    ];
+    const secureRandomInt = (min: number, max: number) => {
+        const range = max - min + 1;
+        const values = new Uint32Array(1);
+        window.crypto.getRandomValues(values);
+        return min + (values[0] % range);
+    };
 
     useEffect(() => {
-        setUniqueId(`COT-${Math.floor(1000 + Math.random() * 9000)}`);
+        setUniqueId(`TEMP-${Date.now()}-${secureRandomInt(100, 999)}`);
     }, []);
+
+    useEffect(() => {
+        if (currentUser) return;
+        const seen = localStorage.getItem('cot_entrust_tour_seen') === '1';
+        if (!seen) setShowEntrustIntro(true);
+    }, [currentUser]);
+
+    useEffect(() => {
+        if (entrustTourStepIndex === null) return;
+        const step = ENTRUST_TOUR_STEPS[entrustTourStepIndex];
+        const target = document.querySelector(step.selector) as HTMLElement | null;
+        target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, [entrustTourStepIndex]);
+
+    useEffect(() => {
+        if (entrustTourStepIndex === null) return;
+        const updateRect = () => {
+            const step = ENTRUST_TOUR_STEPS[entrustTourStepIndex];
+            const target = document.querySelector(step.selector) as HTMLElement | null;
+            if (!target) {
+                setEntrustTourRect(null);
+                return;
+            }
+            const rect = target.getBoundingClientRect();
+            setEntrustTourRect({ top: rect.top - 8, left: rect.left - 8, width: rect.width + 16, height: rect.height + 16 });
+        };
+        const timer = setTimeout(updateRect, 220);
+        window.addEventListener('resize', updateRect);
+        window.addEventListener('scroll', updateRect, true);
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('resize', updateRect);
+            window.removeEventListener('scroll', updateRect, true);
+        };
+    }, [entrustTourStepIndex]);
+
+    const markEntrustTourSeen = () => localStorage.setItem('cot_entrust_tour_seen', '1');
+    const startEntrustTour = () => {
+        markEntrustTourSeen();
+        setShowEntrustIntro(false);
+        setEntrustTourStepIndex(0);
+    };
+    const skipEntrustTour = () => {
+        markEntrustTourSeen();
+        setShowEntrustIntro(false);
+        setEntrustTourStepIndex(null);
+        setEntrustTourRect(null);
+    };
 
     // Helper for cropping logic could go here, but for now relying on basic photo upload as per user request flow adjustment
     // The user mentioned "able to crop and edit their photo", so we might need a library or just a simple preview with scale.
@@ -483,6 +573,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
             const file = e.target.files[0];
             const reader = new FileReader();
             reader.onloadend = () => {
+                setCropTarget({ type: 'primary' });
                 // Open cropper immediately
                 setCroppingImage(reader.result as string);
                 // Reset input
@@ -493,8 +584,15 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
     };
 
     const handleCropComplete = (croppedImg: string) => {
+        if (cropTarget?.type === 'family' && cropTarget.memberId) {
+            updateFamilyMember(cropTarget.memberId, 'photo', croppedImg);
+            setCroppingImage(null);
+            setCropTarget(null);
+            return;
+        }
         setPreviewPhoto(croppedImg);
         setCroppingImage(null);
+        setCropTarget(null);
         setShowPhotoPreview(true);
     };
 
@@ -509,7 +607,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
     };
 
     const createFamilyMember = (): FamilyMemberForm => ({
-        id: `FM-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        id: `FM-${Date.now()}-${secureRandomInt(100, 999)}`,
         name: '',
         relationship: 'None',
         photo: '',
@@ -535,7 +633,8 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
         const file = e.target.files[0];
         const reader = new FileReader();
         reader.onloadend = () => {
-            updateFamilyMember(memberId, 'photo', typeof reader.result === 'string' ? reader.result : '');
+            setCropTarget({ type: 'family', memberId });
+            setCroppingImage(typeof reader.result === 'string' ? reader.result : '');
             e.target.value = '';
         };
         reader.readAsDataURL(file);
@@ -639,7 +738,10 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                 <ImageCropper
                     imageSrc={croppingImage}
                     onCropComplete={handleCropComplete}
-                    onCancel={() => setCroppingImage(null)}
+                    onCancel={() => {
+                        setCroppingImage(null);
+                        setCropTarget(null);
+                    }}
                 />
             )}
             {showPhotoPreview && (
@@ -752,14 +854,14 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                                 <div className="space-y-2">
                                     <label className="text-xs font-semibold text-slate-700 ml-1">Full Name</label>
-                                    <input required aria-required="true" name="name" value={formData.name} onChange={handleInputChange} type="text" className="w-full px-4 md:px-6 py-3 md:py-4 bg-white border border-slate-300 rounded-xl md:rounded-2xl outline-none transition-all text-sm font-semibold text-brand-950 placeholder:text-slate-500 shadow-sm focus:ring-2 focus:ring-accent-500/20" />
+                                    <input id="entrust-name-field" required name="name" value={formData.name} onChange={handleInputChange} type="text" className="w-full px-4 md:px-6 py-3 md:py-4 bg-white border border-slate-300 rounded-xl md:rounded-2xl outline-none transition-all text-sm font-semibold text-brand-950 placeholder:text-slate-500 shadow-sm focus:ring-2 focus:ring-accent-500/20" />
                                 </div>
 
                                 <div className="space-y-2">
                                     <label className="text-xs font-semibold text-slate-700 ml-1">WhatsApp Number</label>
                                     <div className="flex items-center w-full bg-white border border-slate-300 rounded-xl md:rounded-2xl overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-accent-500/20">
                                         <span className="px-3 py-3 md:py-4 text-sm font-bold text-slate-700 bg-slate-100 border-r border-slate-200 shrink-0">+91</span>
-                                        <input name="emergency" value={formData.emergency} onChange={handleInputChange} type="tel" placeholder="10-digit number" className="flex-1 px-3 md:px-4 py-3 md:py-4 bg-transparent outline-none text-sm font-semibold text-brand-950 placeholder:text-slate-500" />
+                                        <input id="entrust-phone-field" name="emergency" value={formData.emergency} onChange={handleInputChange} type="tel" placeholder="10-digit number" className="flex-1 px-3 md:px-4 py-3 md:py-4 bg-transparent outline-none text-sm font-semibold text-brand-950 placeholder:text-slate-500" />
                                     </div>
                                 </div>
 
@@ -770,6 +872,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                 <div className="space-y-2">
                                     <label className="text-xs font-semibold text-slate-700 ml-1">Tamil Nadu District</label>
                                     <select
+                                        id="entrust-location-field"
                                         name="location"
                                         value={formData.location}
                                         onChange={handleInputChange}
@@ -827,13 +930,13 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                                                     <div className="w-12 h-12 rounded-lg bg-white border border-slate-200 overflow-hidden flex items-center justify-center text-slate-500">
                                                                         {member.photo ? <img src={member.photo} alt="member" className="w-full h-full object-cover" /> : <UploadCloud size={16} />}
                                                                     </div>
-                                                                    <span className="text-xs text-slate-600">{member.photo ? 'Photo selected' : 'Tap to upload'}</span>
+                                                                    <span className="text-xs text-slate-600">{member.photo ? 'Photo cropped and ready' : 'Tap to upload & crop'}</span>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                             <div className="space-y-1.5">
-                                                                <label className="text-xs font-semibold text-slate-700">Name *</label>
+                                                                <label className="text-xs font-semibold text-slate-700">Name</label>
                                                                 <input
                                                                     type="text"
                                                                     value={member.name}
@@ -884,6 +987,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                             <div className="space-y-4">
                                 {/* Primary Registration Button */}
                                 <Button
+                                    id="entrust-register-btn"
                                     onClick={() => {
                                         if (onRegister) {
                                             const trimmedName = formData.name?.trim() || '';
@@ -898,9 +1002,12 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                                 alert("Please upload Family Head photo to continue.");
                                                 return;
                                             }
-                                            if (registrationType === 'family' && familyMembers.some(member => !member.name.trim())) {
-                                                alert("Please enter a name for every added family member.");
-                                                return;
+                                            if (registrationType === 'family') {
+                                                const invalidMember = familyMembers.find(member => !member.name.trim() || member.relationship === 'None');
+                                                if (invalidMember) {
+                                                    alert("Please fill family member Name and Relationship.");
+                                                    return;
+                                                }
                                             }
                                             // Set password to phone number if not provided
                                             const finalPassword = trimmedEmergency;
@@ -992,6 +1099,54 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                         </div>
                     </motion.div>
                 </div >
+                <AnimatePresence>
+                    {showEntrustIntro && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[170] bg-black/45 backdrop-blur-sm flex items-center justify-center p-4">
+                            <motion.div initial={{ y: 20, opacity: 0, scale: 0.96 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 12, opacity: 0 }} className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-slate-100">
+                                <div className="text-[11px] font-black uppercase tracking-widest text-brand-500 mb-2">Entrust Tour</div>
+                                <h3 className="text-xl font-bold text-brand-950 mb-2">Quick Introduction</h3>
+                                <p className="text-sm text-slate-600 mb-5">We will highlight each required field one by one. You can skip anytime.</p>
+                                <div className="flex items-center justify-end gap-2">
+                                    <button onClick={skipEntrustTour} className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100">Skip</button>
+                                    <button onClick={startEntrustTour} className="px-4 py-2 rounded-xl text-sm font-bold bg-brand-600 text-white hover:bg-brand-700">Take Tour</button>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                    {entrustTourStepIndex !== null && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[175] pointer-events-none">
+                            <div className="absolute inset-0 bg-black/65" />
+                            {entrustTourRect && (
+                                <div className="absolute rounded-2xl border-2 border-amber-300 shadow-[0_0_0_9999px_rgba(2,6,23,0.72)]" style={{ top: entrustTourRect.top, left: entrustTourRect.left, width: entrustTourRect.width, height: entrustTourRect.height }} />
+                            )}
+                            <div className="absolute left-1/2 -translate-x-1/2 bottom-5 w-[calc(100%-1.5rem)] max-w-md bg-white rounded-3xl p-5 shadow-2xl pointer-events-auto">
+                                <div className="text-[11px] uppercase tracking-widest font-black text-brand-500 mb-2">Step {entrustTourStepIndex + 1} of {ENTRUST_TOUR_STEPS.length}</div>
+                                <h4 className="text-lg font-bold text-brand-950 mb-1">{ENTRUST_TOUR_STEPS[entrustTourStepIndex]?.title}</h4>
+                                <p className="text-sm text-slate-600 mb-4">{ENTRUST_TOUR_STEPS[entrustTourStepIndex]?.text}</p>
+                                <div className="flex items-center justify-between gap-2">
+                                    <button onClick={skipEntrustTour} className="px-4 py-2 text-sm font-bold rounded-xl text-slate-600 hover:bg-slate-100 transition-colors">Skip Tour</button>
+                                    <button
+                                        onClick={() => {
+                                            const isLastStep = entrustTourStepIndex >= ENTRUST_TOUR_STEPS.length - 1;
+                                            if (isLastStep) {
+                                                setEntrustTourStepIndex(null);
+                                                setEntrustTourRect(null);
+                                            } else {
+                                                setEntrustTourStepIndex(entrustTourStepIndex + 1);
+                                            }
+                                        }}
+                                        className="px-4 py-2 text-sm font-bold rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors"
+                                    >
+                                        {entrustTourStepIndex >= ENTRUST_TOUR_STEPS.length - 1 ? 'Done' : 'Next'}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div >
         </section >
     );

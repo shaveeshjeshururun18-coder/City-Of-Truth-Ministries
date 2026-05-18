@@ -8,12 +8,14 @@ import {
     updateDoc,
     deleteDoc,
     query,
-    where
+    where,
+    writeBatch
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { User, Testimonial } from '../types';
+import { User, Testimonial, DeletedUser } from '../types';
 
 const USERS_COLLECTION = 'users';
+const DELETED_USERS_COLLECTION = 'deleted_users';
 const TESTIMONIALS_COLLECTION = 'testimonials';
 
 export const api = {
@@ -84,13 +86,130 @@ export const api = {
         }
     },
 
+    // Reassign user document ID (e.g., TEMP-* -> COT-xxxx) while preserving data
+    reassignUserId: async (oldUserId: string, newUserId: string, userDataOverride?: User): Promise<User> => {
+        try {
+            if (!oldUserId || !newUserId) {
+                throw new Error('Both old and new user IDs are required.');
+            }
+            if (oldUserId === newUserId) {
+                const existing = await api.getUserById(oldUserId);
+                if (!existing) throw new Error('User not found.');
+                return existing;
+            }
+
+            const oldUserDoc = doc(db, USERS_COLLECTION, oldUserId);
+            const newUserDoc = doc(db, USERS_COLLECTION, newUserId);
+
+            const [oldSnapshot, newSnapshot] = await Promise.all([
+                getDoc(oldUserDoc),
+                getDoc(newUserDoc)
+            ]);
+
+            if (!oldSnapshot.exists()) {
+                throw new Error(`User ${oldUserId} not found.`);
+            }
+            if (newSnapshot.exists()) {
+                throw new Error(`Target ID ${newUserId} is already in use.`);
+            }
+
+            const oldUserData = oldSnapshot.data() as Omit<User, 'id'>;
+            const mergedUserData = userDataOverride
+                ? ((() => {
+                    const { id, ...rest } = userDataOverride;
+                    return rest;
+                })())
+                : oldUserData;
+
+            const batch = writeBatch(db);
+            batch.set(newUserDoc, mergedUserData);
+            batch.delete(oldUserDoc);
+            await batch.commit();
+
+            return {
+                ...mergedUserData,
+                id: newUserId
+            } as User;
+        } catch (error) {
+            console.error('Error reassigning user ID:', error);
+            throw error;
+        }
+    },
+
     // Delete a user
     deleteUser: async (userId: string): Promise<void> => {
         try {
             const userDoc = doc(db, USERS_COLLECTION, userId);
-            await deleteDoc(userDoc);
+            const deletedUserDoc = doc(db, DELETED_USERS_COLLECTION, userId);
+            const snapshot = await getDoc(userDoc);
+            const now = new Date();
+            const autoDeleteAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+            const batch = writeBatch(db);
+
+            if (snapshot.exists()) {
+                const userData = snapshot.data() as Omit<User, 'id'>;
+                batch.set(deletedUserDoc, {
+                    ...userData,
+                    id: userId,
+                    deletedAt: now.toISOString(),
+                    autoDeleteAt: autoDeleteAt.toISOString()
+                });
+            }
+
+            batch.delete(userDoc);
+            await batch.commit();
         } catch (error) {
             console.error('Error deleting user:', error);
+            throw error;
+        }
+    },
+
+    // Fetch deleted users and auto-purge expired items
+    getDeletedUsers: async (): Promise<DeletedUser[]> => {
+        try {
+            const nowIso = new Date().toISOString();
+            const deletedUsersCollection = collection(db, DELETED_USERS_COLLECTION);
+
+            const expiredQuery = query(deletedUsersCollection, where('autoDeleteAt', '<=', nowIso));
+            const expiredSnapshot = await getDocs(expiredQuery);
+            if (!expiredSnapshot.empty) {
+                const batch = writeBatch(db);
+                expiredSnapshot.docs.forEach((expiredDoc) => {
+                    batch.delete(doc(db, DELETED_USERS_COLLECTION, expiredDoc.id));
+                });
+                await batch.commit();
+            }
+
+            const snapshot = await getDocs(deletedUsersCollection);
+            return snapshot.docs
+                .map(doc => ({
+                    ...doc.data(),
+                    id: doc.id
+                } as DeletedUser))
+                .sort((a, b) => (b.deletedAt || '').localeCompare(a.deletedAt || ''));
+        } catch (error) {
+            console.error('Error fetching deleted users:', error);
+            return [];
+        }
+    },
+
+    // Restore user from recycle bin
+    restoreDeletedUser: async (userId: string): Promise<void> => {
+        try {
+            const deletedUserDoc = doc(db, DELETED_USERS_COLLECTION, userId);
+            const userDoc = doc(db, USERS_COLLECTION, userId);
+            const snapshot = await getDoc(deletedUserDoc);
+            if (!snapshot.exists()) return;
+
+            const data = snapshot.data() as DeletedUser;
+            const { deletedAt, autoDeleteAt, id, ...userData } = data;
+
+            const batch = writeBatch(db);
+            batch.set(userDoc, userData);
+            batch.delete(deletedUserDoc);
+            await batch.commit();
+        } catch (error) {
+            console.error('Error restoring deleted user:', error);
             throw error;
         }
     },
@@ -364,4 +483,3 @@ export const api = {
         }
     }
 };
-
