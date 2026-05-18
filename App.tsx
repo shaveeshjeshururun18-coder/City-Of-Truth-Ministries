@@ -169,6 +169,15 @@ interface ContactMessage {
   senderId?: string;
 }
 
+interface MemberNotification {
+  id: string;
+  userId: string;
+  from: 'admin' | 'user';
+  message: string;
+  createdAt: string;
+  read?: boolean;
+}
+
 const HEBREW_RESOURCE_SUBMENU: NavItem[] = [
   { label: 'Festivals & Holy Days', view: ViewState.HEBREW_FESTIVALS },
   { label: 'Biblical Calendar', view: ViewState.HEBREW_CALENDAR },
@@ -229,6 +238,21 @@ const normalizeNavItems = (items: unknown): NavItem[] => {
         : undefined;
       return { label, view, submenu };
     });
+};
+
+const ensureHebrewNavItems = (items: NavItem[]): NavItem[] => {
+  const normalizedItems = withHebrewResourceSubmenu(items);
+  const hasHebrewResources = normalizedItems.some(item => item.label === 'HEBREW RESOURCES' || item.label === 'HEBREW CONTENT' || item.label === 'HEBREW');
+  const hasHebrewTools = normalizedItems.some(item => item.label === 'HEBREW TOOLS');
+
+  const next = [...normalizedItems];
+  if (!hasHebrewResources) {
+    next.splice(1, 0, { label: 'HEBREW RESOURCES', view: ViewState.ABOUT, submenu: HEBREW_RESOURCE_SUBMENU });
+  }
+  if (!hasHebrewTools) {
+    next.splice(2, 0, { label: 'HEBREW TOOLS', view: ViewState.HEBREW_TOOLS, submenu: HEBREW_TOOLS_SUBMENU });
+  }
+  return withHebrewResourceSubmenu(next);
 };
 
 const DEFAULT_HOME_SECTIONS_ORDER = ['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'hebrewPages', 'pastorBaruch', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'verify'];
@@ -421,7 +445,7 @@ const App: React.FC = () => {
     }
   });
 
-  const [navigationItems, setNavigationItems] = useState<NavItem[]>(withHebrewResourceSubmenu([
+  const [navigationItems, setNavigationItems] = useState<NavItem[]>(ensureHebrewNavItems([
     { label: 'HOME', view: ViewState.HOME },
     {
       label: 'HEBREW RESOURCES',
@@ -443,6 +467,15 @@ const App: React.FC = () => {
     { label: 'ENTRUST CARD', view: ViewState.ID_CARD },
     { label: 'CONTACT', view: ViewState.CONTACT },
   ]));
+  const [memberNotifications, setMemberNotifications] = useState<MemberNotification[]>(() => {
+    try {
+      const saved = localStorage.getItem('cot_member_notifications');
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
 
   const [homeSectionsOrder, setHomeSectionsOrder] = useState<string[]>(() => {
     try {
@@ -469,6 +502,10 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('cot_contact_messages', JSON.stringify(contactMessages));
   }, [contactMessages]);
+
+  useEffect(() => {
+    localStorage.setItem('cot_member_notifications', JSON.stringify(memberNotifications));
+  }, [memberNotifications]);
 
   const TOUR_STEPS = [
     { selector: '#tour-register-btn', title: 'Start Here', text: 'Tap Register Now to create your member profile.' },
@@ -511,6 +548,45 @@ const App: React.FC = () => {
 
   const handleDeleteContactMessage = (messageId: string) => {
     setContactMessages(prev => prev.filter(msg => msg.id !== messageId));
+  };
+
+  const handleAdminSendMessageToUsers = (targetUserIds: string[], message: string) => {
+    const trimmed = message.trim();
+    if (!trimmed || targetUserIds.length === 0) return;
+
+    const createdAt = new Date().toISOString();
+    const nextNotifications: MemberNotification[] = targetUserIds.map((userId, index) => ({
+      id: `NTF-${Date.now()}-${index}-${userId}`,
+      userId,
+      from: 'admin',
+      message: trimmed,
+      createdAt,
+      read: false
+    }));
+
+    setMemberNotifications(prev => [...nextNotifications, ...prev].slice(0, 1000));
+  };
+
+  const handleUserReplyToAdmin = (userId: string, message: string) => {
+    const trimmed = message.trim();
+    if (!trimmed) return;
+    const reply: MemberNotification = {
+      id: `RPLY-${Date.now()}-${userId}`,
+      userId,
+      from: 'user',
+      message: trimmed,
+      createdAt: new Date().toISOString(),
+      read: false
+    };
+    setMemberNotifications(prev => [reply, ...prev].slice(0, 1000));
+  };
+
+  const handleMarkUserNotificationsRead = (userId: string) => {
+    setMemberNotifications(prev => prev.map(note => (
+      note.userId === userId && note.from === 'admin' && !note.read
+        ? { ...note, read: true }
+        : note
+    )));
   };
 
   const getContactSenderMeta = (fallbackName = '', fallbackEmail = '') => {
@@ -647,7 +723,7 @@ const App: React.FC = () => {
       try {
         const remoteNav = await api.getNavigationLayout();
         if (remoteNav && remoteNav.length > 0) {
-          setNavigationItems(withHebrewResourceSubmenu(normalizeNavItems(remoteNav)));
+          setNavigationItems(ensureHebrewNavItems(normalizeNavItems(remoteNav)));
         }
       } catch (error) {
         console.error('Failed to fetch remote navigation layout:', error);
@@ -1161,6 +1237,8 @@ const App: React.FC = () => {
         users={users}
         deletedUsers={deletedUsers}
         contactMessages={contactMessages}
+        memberNotifications={memberNotifications}
+        onSendMessageToUsers={handleAdminSendMessageToUsers}
         onDeleteContactMessage={handleDeleteContactMessage}
         onUpdateUser={async (user) => {
           await api.updateUser(user);
@@ -1187,7 +1265,7 @@ const App: React.FC = () => {
         }}
         navItems={navigationItems}
         onUpdateNavItems={async (newItems) => {
-          const updatedNav = withHebrewResourceSubmenu(normalizeNavItems(newItems));
+          const updatedNav = ensureHebrewNavItems(normalizeNavItems(newItems));
           setNavigationItems(updatedNav);
           try {
             await api.updateNavigationLayout(updatedNav);
@@ -1637,6 +1715,8 @@ const App: React.FC = () => {
                 users={users}
                 deletedUsers={deletedUsers}
                 contactMessages={contactMessages}
+                memberNotifications={memberNotifications}
+                onSendMessageToUsers={handleAdminSendMessageToUsers}
                 onDeleteContactMessage={handleDeleteContactMessage}
                 onUpdateUser={async (user) => {
                   await api.updateUser(user);
@@ -1656,7 +1736,7 @@ const App: React.FC = () => {
                 }}
                 navItems={navigationItems}
                 onUpdateNavItems={async (newItems) => {
-                  const updatedNav = withHebrewResourceSubmenu(normalizeNavItems(newItems));
+                  const updatedNav = ensureHebrewNavItems(normalizeNavItems(newItems));
                   setNavigationItems(updatedNav);
                   try {
                     await api.updateNavigationLayout(updatedNav);
@@ -1678,6 +1758,9 @@ const App: React.FC = () => {
                 onLogout={handleLogout}
                 onGoToLogin={() => navigate('/auth?view=login')}
                 onOpenScanner={() => setCurrentView(ViewState.VERIFY_ID)}
+                notifications={memberNotifications.filter(note => note.userId === currentUser.id && note.from === 'admin')}
+                onSendReply={(message) => handleUserReplyToAdmin(currentUser.id, message)}
+                onMarkNotificationsRead={() => handleMarkUserNotificationsRead(currentUser.id)}
                 onUpdate={async (updatedUser) => {
                   const existingUserRecord = users.find(u => u.id === updatedUser.id) || currentUser;
                   const safeUpdatedUser = existingUserRecord && updatedUser.pendingProfileUpdate

@@ -23,6 +23,9 @@ interface UserDashboardProps {
     onOpenScanner?: () => void;
     initialProfileId?: string;
     onGoToLogin?: () => void;
+    notifications?: { id: string; message: string; createdAt: string; read?: boolean }[];
+    onSendReply?: (message: string) => void;
+    onMarkNotificationsRead?: () => void;
 }
 
 const FAMILY_RELATIONSHIP_OPTIONS = {
@@ -39,7 +42,7 @@ const TAMIL_NADU_LOCATIONS = [
     'Pudukkottai', 'Perambalur', 'Tenkasi', 'Ranipet', 'Tirupattur', 'Mayiladuthurai', 'Valparai'
 ];
 
-export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, onOpenScanner, initialProfileId, onGoToLogin }) => {
+export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, onOpenScanner, initialProfileId, onGoToLogin, notifications = [], onSendReply, onMarkNotificationsRead }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [showTestimonialModal, setShowTestimonialModal] = useState(false);
     const [formData, setFormData] = useState<Partial<User>>({});
@@ -58,6 +61,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [cardFlipped, setCardFlipped] = useState(false);
     const [showCommunityProfileForm, setShowCommunityProfileForm] = useState(false);
     const [cropTarget, setCropTarget] = useState<{ type: 'primary' | 'linked-profile' | 'new-family-member'; profileId?: string } | null>(null);
+    const [adminReply, setAdminReply] = useState('');
+    const [showDashboardGuide, setShowDashboardGuide] = useState(false);
     const hasPermanentCotId = /^COT-\d{4,}$/.test((user.id || '').trim());
     const canAccessEntrustFeatures = user.status === 'Active' && hasPermanentCotId;
 
@@ -70,6 +75,20 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         const isLinked = !!user.linkedProfiles?.some(p => p.id === initialProfileId);
         setActiveProfileId((isPrimary || isLinked) ? initialProfileId : user.id);
     }, [initialProfileId, user.id, user.linkedProfiles]);
+
+    useEffect(() => {
+        try {
+            const seen = localStorage.getItem(`cot_dashboard_tour_seen_${user.id}`) === '1';
+            setShowDashboardGuide(!seen);
+        } catch {
+            setShowDashboardGuide(true);
+        }
+    }, [user.id]);
+
+    useEffect(() => {
+        if (!notifications.some(note => !note.read)) return;
+        onMarkNotificationsRead?.();
+    }, [notifications, onMarkNotificationsRead]);
 
 
     const getDisplayProfile = () => {
@@ -909,6 +928,63 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                 {/* ── RIGHT COLUMN (Wallet Card & Content on Desktop) ── */}
                 <div className={`${user.linkedProfiles && user.linkedProfiles.length > 0 ? 'lg:col-span-8' : 'lg:col-span-7'} flex flex-col gap-5`}>
+                {showDashboardGuide && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 shadow-sm">
+                        <div className="flex items-start justify-between gap-3">
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-amber-700 mb-1">Dashboard Guide</p>
+                                <p className="text-xs text-amber-900">Start with <span className="font-bold">Download QR</span>, then complete <span className="font-bold">Member Form</span>, then use Share/Testimony actions.</p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setShowDashboardGuide(false);
+                                    try { localStorage.setItem(`cot_dashboard_tour_seen_${user.id}`, '1'); } catch { }
+                                }}
+                                className="text-[10px] font-bold text-amber-700 hover:text-amber-900"
+                            >
+                                Got it
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-black text-brand-950">Notifications</h3>
+                        <span className="text-[10px] font-bold text-brand-600 bg-brand-50 border border-brand-100 px-2 py-0.5 rounded-full">{notifications.length}</span>
+                    </div>
+                    {notifications.length === 0 ? (
+                        <p className="text-xs text-slate-400">No admin notifications yet.</p>
+                    ) : (
+                        <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                            {notifications.slice(0, 8).map(note => (
+                                <div key={note.id} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                                    <p className="text-xs text-slate-700 whitespace-pre-wrap break-words">{note.message}</p>
+                                    <p className="text-[10px] text-slate-400 mt-1">{new Date(note.createdAt).toLocaleString()}</p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                        <input
+                            value={adminReply}
+                            onChange={(e) => setAdminReply(e.target.value)}
+                            placeholder="Reply to admin..."
+                            className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs outline-none focus:border-brand-500"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (!adminReply.trim()) return;
+                                onSendReply?.(adminReply.trim());
+                                setAdminReply('');
+                            }}
+                            className="px-3 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold"
+                        >
+                            Send Reply
+                        </button>
+                    </div>
+                </div>
 
                 {/* ════════════════════════════════════
                     mAadhaar-Style Wallet Card
@@ -1057,21 +1133,21 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 {/* ── ACTION CARDS GRID ── */}
                     <div className="grid grid-cols-2 gap-4 mb-5">
 
-                    {/* Entrust ID Card — brown */}
+                    {/* QR Card (Mobile priority #1) */}
                     {canAccessEntrustFeatures ? (
-                        <button onClick={handleDownloadPDF} disabled={isProcessing}
-                            className="bg-gradient-to-br from-[#7B3F00] to-[#C0652B] text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all disabled:opacity-70 relative overflow-hidden group">
-                            <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><FileText size={18} /></div>
-                            <p className="font-bold text-sm leading-tight mb-1">Entrust ID Card</p>
-                            <p className="text-white/70 text-[10px] leading-snug">Official COT identity card</p>
+                        <button onClick={handleDownloadQrCode}
+                            className="bg-gradient-to-br from-[#1a237e] to-[#3949ab] text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
+                            <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><QrCode size={18} /></div>
+                            <p className="font-bold text-sm leading-tight mb-1">Download QR</p>
+                            <p className="text-white/70 text-[10px] leading-snug">Official verification QR for your profile</p>
                             <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
-                                <Download size={11} /> {isProcessing ? 'Wait…' : 'Download PDF'}
+                                <QrCode size={11} /> Download QR
                             </span>
                         </button>
                     ) : (
                         <div className="bg-slate-100 rounded-[22px] p-4 border border-slate-200">
-                            <div className="w-9 h-9 bg-slate-200 rounded-xl flex items-center justify-center mb-3"><FileText size={18} className="text-slate-400" /></div>
-                            <p className="font-bold text-sm text-slate-500 mb-1">Entrust ID Card</p>
+                            <div className="w-9 h-9 bg-slate-200 rounded-xl flex items-center justify-center mb-3"><QrCode size={18} className="text-slate-400" /></div>
+                            <p className="font-bold text-sm text-slate-500 mb-1">Download QR</p>
                             <p className={`text-[10px] ${user.status === 'Rejected' ? 'text-red-500' : 'text-slate-400'}`}>
                                 {user.status === 'Rejected'
                                     ? 'Denied by admin'
@@ -1084,6 +1160,17 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             </span>
                         </div>
                     )}
+
+                    {/* Interest / Member Form (Mobile priority #2) */}
+                    <button id="dashboard-member-form-btn" onClick={canAccessEntrustFeatures ? () => setShowCommunityProfileForm(true) : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
+                        className={`rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] hover:brightness-110 border border-[#d4a547]/30' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                        <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center mb-3"><Users size={18} /></div>
+                        <p className="font-bold text-sm leading-tight mb-1">Member Form Column</p>
+                        <p className={`${canAccessEntrustFeatures ? 'text-[#f8e7b0]' : 'text-slate-400'} text-[10px]`}>Professional themed profile form for User Book.</p>
+                        <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
+                            <Edit2 size={11} /> {canAccessEntrustFeatures ? 'Open Form' : 'Locked'}
+                        </span>
+                    </button>
 
                     {/* Testimony */}
                     <button id="dashboard-testimony-btn" onClick={canAccessEntrustFeatures ? () => setShowTestimonialModal(true) : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
@@ -1115,20 +1202,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[10px]`}>Download a polished member, family, and active-profile portfolio</p>
                         <span className={`mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest rounded-lg px-2.5 py-1.5 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
                             <Download size={11} /> {canAccessEntrustFeatures ? 'Download PDF' : 'Locked'}
-                        </span>
-                    </button>
-
-                    {/* Member Form */}
-                    <button id="dashboard-member-form-btn" onClick={canAccessEntrustFeatures ? () => setShowCommunityProfileForm(true) : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
-                        className={`col-span-2 rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] hover:brightness-110 border border-[#d4a547]/30' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
-                        <div className="absolute top-3 right-3 px-2 py-1 rounded-full bg-[#d4a547]/15 border border-[#d4a547]/40 text-[9px] font-black uppercase tracking-widest text-[#f8e7b0]">
-                            User Book
-                        </div>
-                        <div className="w-11 h-11 bg-white/15 rounded-xl flex items-center justify-center mb-3"><Users size={22} /></div>
-                        <p className="font-bold text-base leading-tight mb-1">Member Form Column</p>
-                        <p className={`${canAccessEntrustFeatures ? 'text-[#f8e7b0]' : 'text-slate-400'} text-[11px] mb-3`}>Professional themed profile form for User Book. Submission is visible in Admin Dashboard.</p>
-                        <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/20 rounded-xl px-4 py-2">
-                            <Edit2 size={12} /> {canAccessEntrustFeatures ? 'Open Form' : 'Locked'}
                         </span>
                     </button>
 

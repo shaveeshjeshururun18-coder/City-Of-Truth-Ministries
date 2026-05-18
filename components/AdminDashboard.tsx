@@ -30,10 +30,21 @@ interface ContactMessage {
     senderId?: string;
 }
 
+interface MemberNotification {
+    id: string;
+    userId: string;
+    from: 'admin' | 'user';
+    message: string;
+    createdAt: string;
+    read?: boolean;
+}
+
 interface AdminDashboardProps {
     users: User[];
     deletedUsers?: DeletedUser[];
     contactMessages?: ContactMessage[];
+    memberNotifications?: MemberNotification[];
+    onSendMessageToUsers?: (targetUserIds: string[], message: string) => void;
     onDeleteContactMessage?: (messageId: string) => void;
     onUpdateUser: (user: User) => Promise<void>;
     onDeleteUser: (userId: string) => Promise<void>;
@@ -72,7 +83,6 @@ const TAB_ITEMS: { id: 'users' | 'testimonials' | 'ministries' | 'id-cards' | 'h
     { id: 'recycle-bin', label: 'Recycle Bin', icon: RotateCcw },
     { id: 'firebase', label: 'Firebase', icon: Database },
     { id: 'messages', label: 'Messages', icon: MessageSquare },
-    { id: 'testimonials', label: 'Testimonials', icon: MessageSquare },
     { id: 'ministries', label: 'Ministries', icon: Globe },
     { id: 'id-cards', label: 'ID Cards', icon: QrCode },
     { id: 'home-layout', label: 'Home Layout', icon: GripVertical },
@@ -118,6 +128,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     users,
     deletedUsers = [],
     contactMessages = [],
+    memberNotifications = [],
+    onSendMessageToUsers,
     onDeleteContactMessage,
     onUpdateUser,
     onDeleteUser,
@@ -182,9 +194,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [storageFiles, setStorageFiles] = useState<string[]>([]);
     const [isLoadingStorage, setIsLoadingStorage] = useState(false);
     const [isStorageListTruncated, setIsStorageListTruncated] = useState(false);
+    const [targetCotIdInput, setTargetCotIdInput] = useState('');
+    const [selectedCotIds, setSelectedCotIds] = useState<string[]>([]);
+    const [bulkAdminMessage, setBulkAdminMessage] = useState('');
+    const [cotManagerQuery, setCotManagerQuery] = useState('');
+    const [cotDraftIds, setCotDraftIds] = useState<Record<string, string>>({});
 
     React.useEffect(() => {
-        if (activeTab === 'testimonials') {
+        if (activeTab === 'messages' || activeTab === 'testimonials') {
             api.getTestimonials().then(setTestimonials);
         } else if (activeTab === 'ministries') {
             api.getMinistries().then(setMinistries);
@@ -385,6 +402,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     const isCotId = (id: string) => /^COT-\d{4,}$/i.test((id || '').trim());
 
+    const cotUsers = useMemo(
+        () => users.filter(user => isCotId(user.id)),
+        [users]
+    );
+
+    const userReplies = useMemo(
+        () => memberNotifications.filter(note => note.from === 'user').sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+        [memberNotifications]
+    );
+
+    const markCotIdForMessage = (candidate: string) => {
+        const normalized = (candidate || '').trim().toUpperCase();
+        if (!isCotId(normalized)) return;
+        if (!users.some(user => user.id.toUpperCase() === normalized)) return;
+        setSelectedCotIds(prev => (prev.includes(normalized) ? prev : [...prev, normalized]));
+        setTargetCotIdInput('');
+    };
+
+    const handleSendAdminMessage = () => {
+        const targetIds = selectedCotIds.length > 0 ? selectedCotIds : cotUsers.map(user => user.id.toUpperCase());
+        if (!onSendMessageToUsers) return;
+        if (targetIds.length === 0) {
+            alert('No COT users available to receive this message.');
+            return;
+        }
+        if (!bulkAdminMessage.trim()) {
+            alert('Please type a message first.');
+            return;
+        }
+        onSendMessageToUsers(targetIds, bulkAdminMessage);
+        setBulkAdminMessage('');
+        setSelectedCotIds([]);
+    };
+
     const activateUserWithCotId = async (user: User) => {
         const approvedUserBase: User = {
             ...user,
@@ -438,6 +489,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             return statusOrder[a.status] - statusOrder[b.status];
         });
     }, [users, searchQuery, filterStatus, filterRole]);
+
+    const cotManagerUsers = useMemo(() => {
+        const query = cotManagerQuery.trim().toLowerCase();
+        const ordered = [...users].sort((a, b) => a.name.localeCompare(b.name));
+        if (!query) return ordered;
+        return ordered.filter(user =>
+            user.name.toLowerCase().includes(query) ||
+            user.id.toLowerCase().includes(query) ||
+            (user.phone || '').toLowerCase().includes(query)
+        );
+    }, [users, cotManagerQuery]);
 
     const handleSaveEdit = async () => {
         if (!editingUser) return;
@@ -1000,7 +1062,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                 )}
 
-                {activeTab === 'users' && (
+                {activeTab === 'id-cards' && (
                     <div className="grid grid-cols-2 xl:grid-cols-5 gap-3 md:gap-4 mb-6">
                         {USER_QUICK_VIEW_OPTIONS.map(option => {
                             const Icon = option.icon;
@@ -1021,7 +1083,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                 )}
 
-                {activeTab === 'users' && (
+                {activeTab === 'id-cards' && (
                     <div className="bg-white p-4 md:p-6 rounded-3xl border border-slate-100 shadow-sm mb-6">
                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
                             <div>
@@ -1589,6 +1651,85 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 {/* ID Cards Section */}
                 {activeTab === 'id-cards' && (
                     <div className="space-y-8">
+                        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                                <div>
+                                    <h3 className="text-base font-black text-brand-950">COT ID Management</h3>
+                                    <p className="text-xs text-slate-500 mt-1">Used/available ID visibility with manual assignment controls.</p>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs font-bold">
+                                    <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">Used: {existingCotIds.size}</span>
+                                    <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">Available: {suggestedCotIds.length}+</span>
+                                </div>
+                            </div>
+
+                            <div className="relative">
+                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <input
+                                    type="text"
+                                    value={cotManagerQuery}
+                                    onChange={(e) => setCotManagerQuery(e.target.value)}
+                                    placeholder="Search by name, COT ID, or phone..."
+                                    className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 outline-none focus:border-brand-500 text-sm"
+                                />
+                            </div>
+
+                            <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
+                                {cotManagerUsers.slice(0, 60).map((user) => {
+                                    const currentId = (user.id || '').toUpperCase();
+                                    const draftId = cotDraftIds[user.id] ?? currentId;
+                                    const normalizedDraft = draftId.trim().toUpperCase();
+                                    const duplicateId = normalizedDraft && normalizedDraft !== currentId && existingCotIds.has(normalizedDraft);
+                                    return (
+                                        <div key={user.id} className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_220px_auto] gap-2 items-center rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5">
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-bold text-brand-950 truncate">{user.name}</p>
+                                                <p className="text-[11px] font-mono text-slate-500 truncate">{currentId}</p>
+                                            </div>
+                                            <input
+                                                value={draftId}
+                                                onChange={(e) => setCotDraftIds(prev => ({ ...prev, [user.id]: e.target.value }))}
+                                                className={`w-full px-3 py-2 rounded-lg border bg-white text-xs font-mono outline-none ${duplicateId ? 'border-red-300' : 'border-slate-200 focus:border-brand-500'}`}
+                                                placeholder="COT-1960"
+                                            />
+                                            <button
+                                                onClick={async () => {
+                                                    const nextId = normalizedDraft;
+                                                    if (!onReassignUserId) {
+                                                        alert('ID reassignment is not available in this environment.');
+                                                        return;
+                                                    }
+                                                    if (!isCotId(nextId)) {
+                                                        alert('Please enter a valid ID format like COT-1960.');
+                                                        return;
+                                                    }
+                                                    if (duplicateId) {
+                                                        alert('This COT ID is already used.');
+                                                        return;
+                                                    }
+                                                    if (nextId === currentId) return;
+                                                    try {
+                                                        await onReassignUserId(user.id, nextId, { ...user, id: nextId });
+                                                        setCotDraftIds(prev => ({ ...prev, [user.id]: nextId }));
+                                                    } catch (error) {
+                                                        console.error('Failed to reassign COT ID', error);
+                                                        alert('Failed to reassign COT ID.');
+                                                    }
+                                                }}
+                                                className="px-3 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold disabled:opacity-60"
+                                                disabled={!onReassignUserId}
+                                            >
+                                                Save ID
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                                {cotManagerUsers.length === 0 && (
+                                    <div className="text-sm text-slate-400 text-center py-4">No users found.</div>
+                                )}
+                            </div>
+                        </div>
+
                         {/* Search and Filters (Reusing the same logic) */}
                         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
                             <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -1684,124 +1825,122 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 )}
                 {activeTab === 'messages' && (
                     <div className="space-y-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <h2 className="text-lg font-bold text-brand-950 flex items-center gap-2">
-                                <MessageSquare size={18} className="text-brand-500" /> Contact Messages
-                            </h2>
-                            <span className="text-xs font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full border border-brand-100">
-                                {contactMessages.length} Total
-                            </span>
-                        </div>
-                        {contactMessages.length === 0 ? (
-                            <div className="bg-white rounded-3xl border border-slate-100 p-12 text-center shadow-sm">
-                                <MessageSquare size={40} className="mx-auto text-slate-200 mb-4" />
-                                <p className="text-slate-400 font-medium">No messages yet.</p>
-                                <p className="text-slate-300 text-sm mt-1">Messages from the landing page and contact form will appear here in real time.</p>
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 space-y-3">
+                            <h3 className="text-sm font-black text-brand-950">Send message by COT ID (single or bulk)</h3>
+                            <div className="flex flex-col sm:flex-row gap-2">
+                                <input
+                                    list="cot-id-targets"
+                                    value={targetCotIdInput}
+                                    onChange={(e) => setTargetCotIdInput(e.target.value)}
+                                    placeholder="Enter COT ID and click Add"
+                                    className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
+                                />
+                                <button
+                                    onClick={() => markCotIdForMessage(targetCotIdInput)}
+                                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold"
+                                >
+                                    Add ID
+                                </button>
+                                <button
+                                    onClick={() => setSelectedCotIds(cotUsers.map(user => user.id.toUpperCase()))}
+                                    className="px-4 py-2 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-bold"
+                                >
+                                    Select All
+                                </button>
                             </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                                {contactMessages.map((msg) => (
-                                    <div key={msg.id} className="bg-white rounded-[1.5rem] border border-slate-100 shadow-sm p-5 flex flex-col gap-2">
-                                        <div className="flex items-start justify-between gap-2">
-                                            <div className="flex items-center gap-2 min-w-0">
-                                                <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-xs shrink-0">
-                                                    {(msg.name || 'V').charAt(0).toUpperCase()}
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <p className="text-sm font-bold text-brand-950 truncate">{msg.name || 'Website Visitor'}</p>
-                                                    {!!msg.email && <p className="text-[10px] text-slate-500 truncate">{msg.email}</p>}
-                                                </div>
-                                            </div>
-                                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase shrink-0 ${msg.source === 'hero-widget' ? 'bg-sky-100 text-sky-700' : 'bg-brand-50 text-brand-600'}`}>
-                                                {msg.source === 'hero-widget' ? 'Hero' : 'Form'}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
-                                            <span className={`px-2 py-0.5 rounded-full border ${msg.senderType === 'Registered' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                                                {msg.senderType || 'Non-Registered'}
-                                            </span>
-                                            {msg.senderId && <span className="text-slate-500 font-mono">{msg.senderId}</span>}
-                                        </div>
-                                        <p className="text-xs font-semibold text-brand-700 bg-brand-50 px-2 py-1 rounded-lg truncate">{msg.subject}</p>
-                                        <p className="text-sm text-slate-700 whitespace-pre-wrap break-words flex-1">{msg.message}</p>
-                                        <div className="flex items-center justify-between mt-1">
-                                            <p className="text-[10px] text-slate-400">{new Date(msg.createdAt).toLocaleString()}</p>
-                                            <button
-                                                onClick={() => onDeleteContactMessage?.(msg.id)}
-                                                className="text-[10px] font-bold text-red-600 hover:text-red-700 bg-red-50 border border-red-100 rounded-lg px-2 py-1"
-                                            >
-                                                Delete
-                                            </button>
-                                        </div>
-                                    </div>
+                            <datalist id="cot-id-targets">
+                                {cotUsers.map(user => (
+                                    <option key={user.id} value={user.id.toUpperCase()} />
                                 ))}
+                            </datalist>
+                            <div className="flex flex-wrap gap-2">
+                                {selectedCotIds.map(id => (
+                                    <button
+                                        key={id}
+                                        onClick={() => setSelectedCotIds(prev => prev.filter(item => item !== id))}
+                                        className="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 text-[11px] font-bold"
+                                    >
+                                        {id} ✕
+                                    </button>
+                                ))}
+                                {selectedCotIds.length === 0 && (
+                                    <span className="text-xs text-slate-400">No ID selected. Message will be sent to all COT IDs.</span>
+                                )}
                             </div>
-                        )}
-                    </div>
-                )}
-                {activeTab === 'testimonials' && (
-                    <div className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {testimonials.map((t) => (
-                                <div key={t.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-xs">
-                                                {t.userName.charAt(0)}
+                            <textarea
+                                value={bulkAdminMessage}
+                                onChange={(e) => setBulkAdminMessage(e.target.value)}
+                                rows={3}
+                                placeholder="Type your admin message..."
+                                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
+                            />
+                            <button
+                                onClick={handleSendAdminMessage}
+                                className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-black uppercase tracking-wide"
+                            >
+                                Send Message
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-sm font-black text-brand-950">Contact Messages</h2>
+                                    <span className="text-xs font-bold text-brand-600 bg-brand-50 px-2.5 py-1 rounded-full border border-brand-100">{contactMessages.length}</span>
+                                </div>
+                                {contactMessages.length === 0 ? (
+                                    <p className="text-sm text-slate-400">No contact messages yet.</p>
+                                ) : (
+                                    <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                                        {contactMessages.map((msg) => (
+                                            <div key={msg.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                                                <div className="flex items-center justify-between gap-2 mb-1">
+                                                    <p className="text-xs font-black text-brand-950 truncate">{msg.name || 'Website Visitor'}</p>
+                                                    <span className="text-[10px] text-slate-400">{new Date(msg.createdAt).toLocaleDateString()}</span>
+                                                </div>
+                                                <p className="text-[11px] font-bold text-brand-700">{msg.subject}</p>
+                                                <p className="text-xs text-slate-600 mt-1 whitespace-pre-wrap break-words">{msg.message}</p>
                                             </div>
-                                            <div>
-                                                <div className="font-bold text-sm text-brand-950">{t.userName}</div>
-                                                <div className="text-[10px] text-slate-400">{new Date(t.date).toLocaleDateString()}</div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-sm font-black text-brand-950">Testimonials + User Replies</h2>
+                                    <span className="text-xs font-bold text-brand-600 bg-brand-50 px-2.5 py-1 rounded-full border border-brand-100">{testimonials.length + userReplies.length}</span>
+                                </div>
+                                <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                                    {testimonials.map((t) => (
+                                        <div key={t.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                                            <div className="flex items-center justify-between gap-2 mb-1">
+                                                <p className="text-xs font-black text-brand-950 truncate">{t.userName}</p>
+                                                <span className="text-[10px] text-slate-400">{new Date(t.date).toLocaleDateString()}</span>
                                             </div>
+                                            <p className="text-xs text-slate-600 italic">"{t.content}"</p>
+                                            {t.status === 'Pending' && (
+                                                <div className="flex gap-2 mt-2">
+                                                    <button onClick={() => handleUpdateTestimonialStatus(t, 'Approved')} className="px-2 py-1 text-[10px] font-bold rounded bg-green-50 text-green-700">Approve</button>
+                                                    <button onClick={() => handleUpdateTestimonialStatus(t, 'Rejected')} className="px-2 py-1 text-[10px] font-bold rounded bg-amber-50 text-amber-700">Reject</button>
+                                                </div>
+                                            )}
                                         </div>
-                                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${t.status === 'Approved' ? 'bg-green-100 text-green-700' :
-                                            t.status === 'Rejected' ? 'bg-red-100 text-red-700' :
-                                                'bg-amber-100 text-amber-700'
-                                            }`}>
-                                            {t.status}
-                                        </span>
-                                    </div>
-                                    <div className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
-                                        <span className={`px-2 py-0.5 rounded-full border ${t.senderType === 'Registered' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                                            {t.senderType || 'Registered'}
-                                        </span>
-                                        {t.userId && <span className="text-slate-400 font-mono normal-case">{t.userId}</span>}
-                                    </div>
-
-                                    <p className="text-slate-600 text-sm italic mb-6">"{t.content}"</p>
-
-                                    <div className="flex gap-2 border-t border-slate-50 pt-4">
-                                        {t.status === 'Pending' && (
-                                            <>
-                                                <button
-                                                    onClick={() => handleUpdateTestimonialStatus(t, 'Approved')}
-                                                    className="flex-1 py-2 bg-green-50 text-green-600 rounded-lg text-xs font-bold hover:bg-green-100 transition-colors flex items-center justify-center gap-1"
-                                                >
-                                                    <Check size={14} /> Approve
-                                                </button>
-                                                <button
-                                                    onClick={() => handleUpdateTestimonialStatus(t, 'Rejected')}
-                                                    className="flex-1 py-2 bg-amber-50 text-amber-600 rounded-lg text-xs font-bold hover:bg-amber-100 transition-colors flex items-center justify-center gap-1"
-                                                >
-                                                    <XCircle size={14} /> Reject
-                                                </button>
-                                            </>
-                                        )}
-                                        <button
-                                            onClick={() => handleDeleteTestimonial(t.id)}
-                                            className="px-3 py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors ml-auto"
-                                            title="Delete"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
+                                    ))}
+                                    {userReplies.map((note) => (
+                                        <div key={note.id} className="rounded-2xl border border-blue-100 bg-blue-50/50 p-3">
+                                            <div className="flex items-center justify-between gap-2 mb-1">
+                                                <p className="text-xs font-black text-blue-900">Reply from {note.userId}</p>
+                                                <span className="text-[10px] text-blue-700/60">{new Date(note.createdAt).toLocaleString()}</span>
+                                            </div>
+                                            <p className="text-xs text-blue-900 whitespace-pre-wrap break-words">{note.message}</p>
+                                        </div>
+                                    ))}
+                                    {testimonials.length === 0 && userReplies.length === 0 && (
+                                        <p className="text-sm text-slate-400">No testimonials or replies yet.</p>
+                                    )}
                                 </div>
-                            ))}
-                            {testimonials.length === 0 && (
-                                <div className="col-span-full text-center py-12 text-slate-500">
-                                    No testimonials found.
-                                </div>
-                            )}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -2991,25 +3130,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <input
                                                 list="available-cot-ids"
                                                 type="text"
-                                                placeholder="Leave empty for random ID, or enter COT-1960"
+                                                placeholder="Leave empty for auto-generated ID, or enter COT-1960"
                                                 value={newUserData.memberId}
                                                 onChange={(e) => setNewUserData(d => ({ ...d, memberId: e.target.value }))}
                                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
                                             />
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    const pick = getRandomAvailableCotId();
-                                                    if (!pick) {
-                                                        alert('No available COT IDs found.');
-                                                        return;
-                                                    }
-                                                    setNewUserData(d => ({ ...d, memberId: pick }));
-                                                }}
-                                                className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs whitespace-nowrap transition-colors"
-                                            >
-                                                Pick Random ID
-                                            </button>
                                         </div>
                                         <datalist id="available-cot-ids">
                                             {suggestedCotIds.map(id => (
@@ -3017,7 +3142,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             ))}
                                         </datalist>
                                         <p className="text-[10px] text-slate-400 font-medium">
-                                            Admin can manually choose a COT ID from available options.
+                                            Admin can manually choose a COT ID from available options, or leave it empty for automatic assignment.
                                         </p>
                                     </div>
                                     <div className="space-y-1.5 sm:col-span-2">
