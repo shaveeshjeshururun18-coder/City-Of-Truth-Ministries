@@ -214,6 +214,17 @@ export const api = {
         }
     },
 
+    // Permanently delete user from recycle bin
+    permanentlyDeleteDeletedUser: async (userId: string): Promise<void> => {
+        try {
+            const deletedUserDoc = doc(db, DELETED_USERS_COLLECTION, userId);
+            await deleteDoc(deletedUserDoc);
+        } catch (error) {
+            console.error('Error permanently deleting user from recycle bin:', error);
+            throw error;
+        }
+    },
+
     // Find user by phone (for login)
     findUserByPhone: async (phone: string): Promise<User | null> => {
         try {
