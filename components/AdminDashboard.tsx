@@ -2495,6 +2495,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </p>
                             )}
                         </div>
+
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+                            <div className="flex items-center justify-between gap-3 mb-4">
+                                <h3 className="text-sm font-black uppercase tracking-widest text-brand-600">Firebase Raw Data (JSON)</h3>
+                                <span className="text-[10px] px-2 py-1 rounded-full bg-brand-50 text-brand-700 font-black uppercase tracking-wider">
+                                    Live Snapshot
+                                </span>
+                            </div>
+                            <pre className="max-h-96 overflow-auto rounded-2xl border border-slate-100 bg-slate-950 text-slate-100 text-[11px] leading-relaxed p-4 font-mono whitespace-pre-wrap break-words">
+                                {JSON.stringify({
+                                    firebaseConfig,
+                                    storageFiles,
+                                    storageSummary: {
+                                        isLoadingStorage,
+                                        isStorageListTruncated,
+                                        loadedFileCount: storageFiles.length
+                                    },
+                                    collections: {
+                                        users,
+                                        deletedUsers,
+                                        testimonials,
+                                        ministries
+                                    }
+                                }, null, 2)}
+                            </pre>
+                        </div>
                     </div>
                 )}
 
