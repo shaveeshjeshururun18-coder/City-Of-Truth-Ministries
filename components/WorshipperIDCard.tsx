@@ -79,7 +79,6 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
         }
         return null;
     })();
-
     const fullDetails = `CITY OF TRUTH MINISTRIES\nID: ${uniqueId}\nName: ${name}\nLocation: ${location}\nPhone: ${emergency}\nMember Since: ${memberSince}`.trim();
     const appOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://city-of-truth-ministries.vercel.app';
     const verifyUrl = `${appOrigin}/verify/${uniqueId}`;

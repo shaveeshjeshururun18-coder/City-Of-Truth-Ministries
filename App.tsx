@@ -1563,12 +1563,6 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {currentView === ViewState.HEBREW_GRAMMAR && (
-            <div key="hebrew-grammar">
-              <HebrewResources mode="content" initialTab="grammar" />
-            </div>
-          )}
-
           {currentView === ViewState.HEBREW && (
             <div key="alphabet">
               <HebrewAlphabetPage />
