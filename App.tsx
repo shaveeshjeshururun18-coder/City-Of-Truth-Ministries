@@ -926,8 +926,12 @@ const App: React.FC = () => {
     if (user) {
       const isSwitchingToDifferentAccount = !!currentUser && currentUser.id !== user.id;
       if (isSwitchingToDifferentAccount && currentUser) {
-        if (user.status !== 'Active' || !hasPermanentCotId(user.id)) {
-          alert(`${user.name || 'This user'} is not fully approved yet. Only active accounts with permanent COT ID can be added as linked profiles.`);
+        if (user.status !== 'Active') {
+          alert(`${user.name || 'This user'} is not fully approved yet. Only active accounts can be added as linked profiles.`);
+          return;
+        }
+        if (!hasPermanentCotId(user.id)) {
+          alert(`${user.name || 'This user'} does not yet have a permanent COT ID. Only active accounts with permanent COT ID can be added as linked profiles.`);
           return;
         }
         const existingLinkedProfiles = currentUser.linkedProfiles || [];

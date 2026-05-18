@@ -201,7 +201,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [cotDraftIds, setCotDraftIds] = useState<Record<string, string>>({});
 
     React.useEffect(() => {
-        if (activeTab === 'messages' || activeTab === 'testimonials') {
+        if (activeTab === 'messages') {
             api.getTestimonials().then(setTestimonials);
         } else if (activeTab === 'ministries') {
             api.getMinistries().then(setMinistries);
