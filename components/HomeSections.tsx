@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Star, ArrowRight, BookOpen, MapPin, Globe, Sparkles, MessageSquare, QrCode, Heart, Users } from 'lucide-react';
 import { ViewState, User } from '../types';
@@ -129,6 +130,8 @@ export const HebrewSanctuaryIntro: React.FC<SectionProps> = ({ setView }) => {
 };
 
 export const HebrewPagesPreviewSection: React.FC<SectionProps> = ({ setView }) => {
+    const navigate = useNavigate();
+
     type PreviewItem = {
         name: string;
         description: string;
@@ -142,7 +145,13 @@ export const HebrewPagesPreviewSection: React.FC<SectionProps> = ({ setView }) =
             window.scrollTo({ top: 0, behavior: 'smooth' });
             return;
         }
-        if (item.href) window.location.assign(item.href);
+        if (item.href) {
+            if (item.href.startsWith('/')) {
+                navigate(item.href);
+                return;
+            }
+            window.location.assign(item.href);
+        }
     };
 
     const previewGroups = [
