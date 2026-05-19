@@ -860,7 +860,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                     <label className="text-xs font-semibold text-slate-700 ml-1">WhatsApp Number</label>
                                     <div className="flex items-center w-full bg-white border border-slate-300 rounded-xl md:rounded-2xl overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-accent-500/20">
                                         <span className="px-3 py-3 md:py-4 text-sm font-bold text-slate-700 bg-slate-100 border-r border-slate-200 shrink-0">+91</span>
-                                        <input id="entrust-phone-field" name="emergency" value={formData.emergency} onChange={handleInputChange} type="tel" placeholder="10-digit number" className="flex-1 px-3 md:px-4 py-3 md:py-4 bg-transparent outline-none text-sm font-semibold text-brand-950 placeholder:text-slate-500" />
+                                        <input id="entrust-phone-field" name="emergency" value={formData.emergency} onChange={handleInputChange} type="tel" inputMode="numeric" pattern="[0-9]{10}" maxLength={10} placeholder="10-digit number" className="flex-1 px-3 md:px-4 py-3 md:py-4 bg-transparent outline-none text-sm font-semibold text-brand-950 placeholder:text-slate-500" />
                                     </div>
                                 </div>
 

@@ -305,7 +305,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             email: pending.email ?? user.email,
             location: pending.location ?? user.location,
             emergency: pending.emergency ?? user.emergency,
-            photo: user.photo
+            photo: user.photo,
+            dob: (pending as any).dob ?? (user as any).dob ?? '',
+            memberSince: (pending as any).memberSince ?? user.memberSince ?? '',
+            joinedDate: (pending as any).joinedDate ?? user.joinedDate ?? ''
         });
         setIsEditing(true);
     };
@@ -1043,7 +1046,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             <div className="md:hidden relative cursor-pointer" onClick={() => setShowCardPreview(true)}>
                                 <div className="absolute inset-x-4 top-2 h-10 bg-gradient-to-r from-brand-200 to-accent-200 rounded-2xl opacity-40 blur-sm" />
                                 <div className="absolute inset-x-2 top-1 h-10 bg-gradient-to-r from-brand-300 to-accent-300 rounded-2xl opacity-30" />
-                                <div className="relative bg-gradient-to-r from-[#1a237e] to-[#3949ab] rounded-2xl h-24 flex items-center justify-center overflow-hidden border border-white/20">
+                                <div className={`relative bg-gradient-to-r from-[#1a237e] to-[#3949ab] rounded-2xl h-24 flex items-center justify-center overflow-hidden border border-white/20 ${!canAccessEntrustFeatures ? 'blur-[2px]' : ''}`}>
                                     <div className="absolute left-4 flex items-center gap-3">
                                         <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/50 bg-white/20 shrink-0">
                                             {renderAvatarContent(displayProfile.photo, displayProfile.name, 'text-xs', 'from-brand-500 to-violet-700')}
@@ -1055,24 +1058,36 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                     </div>
                                     <div className="absolute right-4 text-white/30"><ScanLine size={32} /></div>
                                 </div>
+                                {!canAccessEntrustFeatures && (
+                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                        <span className="bg-black/55 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">Awaiting Approval</span>
+                                    </div>
+                                )}
                                 <p className="text-center text-slate-500 text-xs font-semibold mt-3 mb-1">Tap to preview your Entrust Card ↗</p>
                             </div>
 
                             {/* Real EntrustCard3D Preview (DESKTOP ONLY) */}
                             <div className="hidden md:block w-full cursor-pointer hover:scale-[1.01] transition-transform duration-300" onClick={() => setShowCardPreview(true)}>
-                                <div className="w-full flex justify-center origin-center">
-                                    <EntrustCard3D
-                                        name={displayProfile.name}
-                                        email={user.email}
-                                        location={user.location}
-                                        emergency={user.emergency}
-                                        uniqueId={displayProfile.id}
-                                        memberSince={user.memberSince}
-                                        photo={displayProfile.photo}
-                                        status={user.status}
-                                        isStatic={true}
-                                        isBackSide={cardFlipped}
-                                    />
+                                <div className="w-full flex justify-center origin-center relative">
+                                    <div className={!canAccessEntrustFeatures ? 'blur-[2px]' : ''}>
+                                        <EntrustCard3D
+                                            name={displayProfile.name}
+                                            email={user.email}
+                                            location={user.location}
+                                            emergency={user.emergency}
+                                            uniqueId={displayProfile.id}
+                                            memberSince={user.memberSince}
+                                            photo={displayProfile.photo}
+                                            status={user.status}
+                                            isStatic={true}
+                                            isBackSide={cardFlipped}
+                                        />
+                                    </div>
+                                    {!canAccessEntrustFeatures && (
+                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                            <span className="bg-black/55 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">Awaiting Approval</span>
+                                        </div>
+                                    )}
                                 </div>
                                 <p className="text-center text-slate-500 text-xs font-bold uppercase tracking-widest mt-3">✨ Click card to Expand / Download ✨</p>
                             </div>
@@ -1378,21 +1393,21 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
             {/* ── EDIT DETAILS MODAL ── */}
             {isEditing && (
-                <div className="fixed inset-0 z-[70] flex flex-col justify-end sm:justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white rounded-[2rem] p-7 max-w-md w-full mx-auto shadow-2xl overflow-y-auto max-h-[90vh]">
-                        <div className="flex items-center justify-between mb-5">
-                            <h3 className="text-lg font-serif font-bold flex items-center gap-2 text-brand-950">
-                                <Edit2 size={18} className="text-brand-500" /> Edit Details
+                <div className="fixed inset-0 z-[70] bg-slate-950/55 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto">
+                    <motion.div initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white rounded-[2rem] p-5 sm:p-7 md:p-8 max-w-4xl w-full mx-auto shadow-2xl min-h-[calc(100vh-1rem)] sm:min-h-0 sm:max-h-[94vh] overflow-y-auto">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-xl md:text-2xl font-serif font-bold flex items-center gap-2 text-brand-950">
+                                <Edit2 size={20} className="text-brand-500" /> Edit Profile Page
                             </h3>
                             <button onClick={cancelEditing} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
                         </div>
 
                         {/* Photo section */}
-                        <div className="flex flex-col items-center gap-3 mb-6">
-                            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-slate-100 shadow-lg">
+                        <div className="flex flex-col items-center gap-3 mb-7">
+                            <div className="w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-slate-100 shadow-lg">
                                 {renderAvatarContent(displayProfile.photo, displayProfile.name, 'text-2xl', 'from-brand-600 via-brand-700 to-violet-800')}
                             </div>
-                            <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -1423,7 +1438,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                     />
                                 </label>
                             </div>
-                            <p className="text-slate-400 text-xs text-center">All photo changes are sent to admin for approval.</p>
+                            <p className="text-slate-400 text-xs text-center">All photo and profile changes are sent to admin for approval.</p>
                         </div>
 
                         <form onSubmit={(e) => {
@@ -1434,10 +1449,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 email: (formData.email ?? user.email)?.trim(),
                                 location: (formData.location ?? user.location)?.trim(),
                                 emergency: formData.emergency ?? user.emergency,
+                                dob: (formData as any).dob || '',
+                                memberSince: (formData as any).memberSince || '',
+                                joinedDate: (formData as any).joinedDate || '',
                             };
                             onUpdate({ ...user, pendingProfileUpdate: requestedChanges } as User);
                             setIsEditing(false);
                         }} className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Full Name</label>
                                 <input type="text" value={formData.name ?? user.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
@@ -1454,6 +1473,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 <input type="email" value={formData.email ?? user.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
                             </div>
                             <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Date of Birth</label>
+                                <input type="date" value={(formData as any).dob ?? (user as any).dob ?? ''} onChange={e => setFormData(p => ({ ...p, dob: e.target.value } as any))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                            </div>
+                            <div>
                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Location</label>
                                 <select
                                     value={formData.location ?? user.location}
@@ -1467,6 +1490,15 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         <option key={location} value={location}>{location}</option>
                                     ))}
                                 </select>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Member Since</label>
+                                <input type="text" value={(formData as any).memberSince ?? user.memberSince ?? ''} onChange={e => setFormData(p => ({ ...p, memberSince: e.target.value } as any))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Joined Date</label>
+                                <input type="date" value={(formData as any).joinedDate ?? user.joinedDate ?? ''} onChange={e => setFormData(p => ({ ...p, joinedDate: e.target.value } as any))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                            </div>
                             </div>
 
                             <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700 font-medium">

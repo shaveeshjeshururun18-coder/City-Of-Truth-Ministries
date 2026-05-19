@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion';
 import {
     Users, UserCheck, UserX, Clock, Search, Edit2, Trash2, X, User as UserIcon, ShieldAlert,
     ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Filter, Mail, Phone, MapPin, Droplet,
@@ -145,6 +145,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     navItems = [],
     onUpdateNavItems,
 }) => {
+    const homeLayoutDragControls = useDragControls();
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState<UserStatus | 'All'>('All');
     const [filterRole, setFilterRole] = useState<UserRole | 'All'>('All');
@@ -2324,11 +2325,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 )}
 
                 {activeTab === 'home-layout' && (
-                    <div className="max-w-3xl mx-auto">
+                    <div className="max-w-5xl mx-auto">
                         <motion.div 
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl border-b-8 border-b-brand-600"
+                            className="bg-white p-6 md:p-10 rounded-[3rem] border border-slate-100 shadow-xl border-b-8 border-b-brand-600"
                         >
                             <div className="flex items-center justify-between mb-10">
                                 <div>
@@ -2366,16 +2367,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <Reorder.Item
                                             key={sectionId}
                                             value={sectionId}
-                                            dragListener={true}
+                                            dragListener={false}
+                                            dragControls={homeLayoutDragControls}
                                             whileDrag={{ scale: 1.02, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)" }}
                                             className="bg-white p-5 rounded-[2rem] border border-slate-100 flex items-center gap-6 group hover:border-brand-300 hover:shadow-lg transition-all cursor-grab active:cursor-grabbing relative overflow-hidden"
                                         >
                                             <div className="absolute top-0 right-0 w-24 h-24 bg-brand-50/30 rounded-full -mr-12 -mt-12 transition-all group-hover:scale-150 pointer-events-none" />
                                             
                                             <div className="flex items-center gap-5 flex-1 relative z-10">
-                                                <div className="text-slate-300 group-hover:text-brand-500 transition-colors shrink-0">
+                                                <button
+                                                    type="button"
+                                                    onPointerDown={(event) => homeLayoutDragControls.start(event)}
+                                                    className="text-slate-300 group-hover:text-brand-500 transition-colors shrink-0 cursor-grab active:cursor-grabbing"
+                                                    aria-label={`Drag to reorder ${info.name}`}
+                                                >
                                                     <GripVertical size={24} />
-                                                </div>
+                                                </button>
                                                 
                                                 <div className={`w-14 h-14 ${info.color} rounded-2xl flex items-center justify-center text-white shadow-lg`}>
                                                     <Icon size={24} strokeWidth={2.5} />
@@ -2392,7 +2399,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             </div>
 
                                             <div className="flex items-center gap-3 relative z-10">
-                                                <div className="flex sm:hidden items-center gap-1">
+                                                <div className="flex items-center gap-1">
                                                     <button
                                                         type="button"
                                                         onClick={(e) => {

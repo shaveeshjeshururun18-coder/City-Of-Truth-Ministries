@@ -1002,6 +1002,11 @@ const App: React.FC = () => {
   const handleRegister = async (data: any) => {
     const extractPhoneDigits = (value: string | undefined) => (value || '').replace(/\D/g, '');
     const normalizeEmail = (value: string | undefined) => (value || '').trim().toLowerCase();
+    const primaryPhoneDigits = extractPhoneDigits(data.emergency || data.phone);
+    if (primaryPhoneDigits.length !== 10) {
+      alert('Phone number must be exactly 10 digits.');
+      return;
+    }
     const incomingPhones = [data.phone, data.emergency]
       .map(extractPhoneDigits)
       .filter(Boolean);
