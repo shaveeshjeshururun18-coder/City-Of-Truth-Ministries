@@ -86,6 +86,56 @@ export const api = {
         }
     },
 
+    // Reassign user document ID (e.g., TEMP-* -> COT-xxxx) while preserving data
+    reassignUserId: async (oldUserId: string, newUserId: string, userDataOverride?: User): Promise<User> => {
+        try {
+            if (!oldUserId || !newUserId) {
+                throw new Error('Both old and new user IDs are required.');
+            }
+            if (oldUserId === newUserId) {
+                const existing = await api.getUserById(oldUserId);
+                if (!existing) throw new Error('User not found.');
+                return existing;
+            }
+
+            const oldUserDoc = doc(db, USERS_COLLECTION, oldUserId);
+            const newUserDoc = doc(db, USERS_COLLECTION, newUserId);
+
+            const [oldSnapshot, newSnapshot] = await Promise.all([
+                getDoc(oldUserDoc),
+                getDoc(newUserDoc)
+            ]);
+
+            if (!oldSnapshot.exists()) {
+                throw new Error(`User ${oldUserId} not found.`);
+            }
+            if (newSnapshot.exists()) {
+                throw new Error(`Target ID ${newUserId} is already in use.`);
+            }
+
+            const oldUserData = oldSnapshot.data() as Omit<User, 'id'>;
+            const mergedUserData = userDataOverride
+                ? ((() => {
+                    const { id, ...rest } = userDataOverride;
+                    return rest;
+                })())
+                : oldUserData;
+
+            const batch = writeBatch(db);
+            batch.set(newUserDoc, mergedUserData);
+            batch.delete(oldUserDoc);
+            await batch.commit();
+
+            return {
+                ...mergedUserData,
+                id: newUserId
+            } as User;
+        } catch (error) {
+            console.error('Error reassigning user ID:', error);
+            throw error;
+        }
+    },
+
     // Delete a user
     deleteUser: async (userId: string): Promise<void> => {
         try {
@@ -160,6 +210,17 @@ export const api = {
             await batch.commit();
         } catch (error) {
             console.error('Error restoring deleted user:', error);
+            throw error;
+        }
+    },
+
+    // Permanently delete user from recycle bin
+    permanentlyDeleteDeletedUser: async (userId: string): Promise<void> => {
+        try {
+            const deletedUserDoc = doc(db, DELETED_USERS_COLLECTION, userId);
+            await deleteDoc(deletedUserDoc);
+        } catch (error) {
+            console.error('Error permanently deleting user from recycle bin:', error);
             throw error;
         }
     },
