@@ -205,6 +205,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [cotDraftIds, setCotDraftIds] = useState<Record<string, string>>({});
     const [cotManagerMode, setCotManagerMode] = useState<'manual' | 'random' | 'requests'>('manual');
     const [cotManagerSelectedUserId, setCotManagerSelectedUserId] = useState('');
+    const [cotIdSearchInput, setCotIdSearchInput] = useState('');
+    const [cotIdSearchFeedback, setCotIdSearchFeedback] = useState<{ type: 'occupied' | 'available' | 'invalid'; message: string } | null>(null);
     const [diceRolling, setDiceRolling] = useState(false);
     const [diceTargetUserId, setDiceTargetUserId] = useState('');
     const [dicePickedCotId, setDicePickedCotId] = useState('');
@@ -380,33 +382,83 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString();
     };
 
+    const formatCotId = (num: number) => `COT-${String(num).padStart(4, '0')}`;
+    const normalizeCotIdInput = (value: string) => {
+        const raw = (value || '').trim().toUpperCase();
+        if (!raw) return '';
+        if (/^COT-\d{1,}$/i.test(raw)) {
+            const numeric = raw.replace(/^COT-/i, '');
+            return formatCotId(Number(numeric));
+        }
+        const digits = raw.replace(/\D/g, '');
+        if (!digits) return raw;
+        return formatCotId(Number(digits));
+    };
+    const parseCotNumber = (id: string): number | null => {
+        const match = /^COT-(\d{1,})$/i.exec((id || '').trim());
+        if (!match) return null;
+        const num = Number(match[1]);
+        return Number.isFinite(num) && num > 0 ? num : null;
+    };
+
     const existingCotIds = useMemo(() => {
         return new Set(
             users
                 .map(user => `${user.id ?? ''}`.trim().toUpperCase())
-                .filter(Boolean)
+                .filter(id => /^COT-\d{4,}$/i.test(id))
         );
     }, [users]);
 
-    const suggestedCotIds = useMemo(() => {
+    const maxOccupiedCotNumber = useMemo(() => {
+        const max = users.reduce((acc, user) => {
+            const parsed = parseCotNumber(user.id);
+            return parsed && parsed > acc ? parsed : acc;
+        }, 0);
+        return Math.max(max, 0);
+    }, [users]);
+
+    const cotIdInventoryUpperBound = useMemo(
+        () => Math.max(maxOccupiedCotNumber + 200, 1000),
+        [maxOccupiedCotNumber]
+    );
+
+    const allAvailableCotIds = useMemo(() => {
         const ids: string[] = [];
-        for (let idNum = 3000; idNum <= 9999 && ids.length < MAX_SUGGESTED_COT_IDS; idNum += 1) {
-            const candidate = `COT-${idNum}`;
-            if (!existingCotIds.has(candidate)) {
-                ids.push(candidate);
-            }
+        for (let idNum = 1; idNum <= cotIdInventoryUpperBound; idNum += 1) {
+            const candidate = formatCotId(idNum);
+            if (!existingCotIds.has(candidate)) ids.push(candidate);
         }
         return ids;
-    }, [existingCotIds]);
+    }, [cotIdInventoryUpperBound, existingCotIds]);
+
+    const suggestedCotIds = useMemo(() => {
+        const shuffled = [...allAvailableCotIds];
+        for (let i = shuffled.length - 1; i > 0; i -= 1) {
+            const buffer = new Uint32Array(1);
+            if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+                crypto.getRandomValues(buffer);
+            } else {
+                buffer[0] = i;
+            }
+            const j = buffer[0] % (i + 1);
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled.slice(0, MAX_SUGGESTED_COT_IDS);
+    }, [allAvailableCotIds]);
+
+    const cotIdInventory = useMemo(
+        () => Array.from({ length: maxOccupiedCotNumber }, (_, index) => formatCotId(index + 1)),
+        [maxOccupiedCotNumber]
+    );
 
     const getRandomAvailableCotId = () => {
-        if (suggestedCotIds.length === 0) return null;
+        if (allAvailableCotIds.length === 0) return null;
         if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
             const randomBuffer = new Uint32Array(1);
             crypto.getRandomValues(randomBuffer);
-            return suggestedCotIds[randomBuffer[0] % suggestedCotIds.length];
+            return allAvailableCotIds[randomBuffer[0] % allAvailableCotIds.length];
         }
-        return suggestedCotIds[0];
+        return allAvailableCotIds[0];
     };
 
     const isCotId = (id: string) => /^COT-\d{4,}$/i.test((id || '').trim());
@@ -500,7 +552,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         const approvedUserBase: User = {
             ...user,
             ...(user.pendingProfileUpdate || {}),
-            pendingProfileUpdate: undefined,
+            pendingProfileUpdate: {},
             status: 'Active'
         };
 
@@ -566,6 +618,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         () => cotManagerUsers.filter(user => user.status === 'Active'),
         [cotManagerUsers]
     );
+
+    const handleSearchCotId = () => {
+        const normalized = normalizeCotIdInput(cotIdSearchInput);
+        if (!isCotId(normalized)) {
+            setCotIdSearchFeedback({ type: 'invalid', message: 'Enter a valid COT ID (example: COT-0001).' });
+            return;
+        }
+        const foundUser = users.find(user => user.id.toUpperCase() === normalized);
+        if (!foundUser) {
+            setCotManagerSelectedUserId('');
+            setCotIdSearchFeedback({ type: 'available', message: `${normalized} is available.` });
+            return;
+        }
+        setCotManagerSelectedUserId(foundUser.id);
+        setCotManagerQuery(foundUser.name);
+        setCotIdSearchFeedback({ type: 'occupied', message: `${normalized} is occupied by ${foundUser.name}.` });
+    };
 
     const moveArrayItem = <T,>(arr: T[], from: number, to: number): T[] => {
         if (from === to || from < 0 || to < 0 || from >= arr.length || to >= arr.length) return arr;
@@ -822,10 +891,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         await runUserAction(() => activateUserWithCotId(user), 'Failed to approve user');
     };
     const disapproveUser = async (user: User) => {
-        await runUserAction(() => onUpdateUser({ ...user, status: 'Rejected', pendingProfileUpdate: undefined }), 'Failed to disapprove user');
+        await runUserAction(() => onUpdateUser({ ...user, status: 'Rejected', pendingProfileUpdate: {} }), 'Failed to disapprove user');
     };
     const rejectPendingEdit = async (user: User) => {
-        await runUserAction(() => onUpdateUser({ ...user, pendingProfileUpdate: undefined }), 'Failed to reject pending edit');
+        await runUserAction(() => onUpdateUser({ ...user, pendingProfileUpdate: {} }), 'Failed to reject pending edit');
     };
 
     const toggleSelectAll = () => {
@@ -1823,6 +1892,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                             {cotManagerMode === 'manual' && (
                                 <>
+                                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-3">
+                                        <p className="text-xs font-bold text-slate-700">Search COT ID and check occupancy</p>
+                                        <div className="flex flex-col sm:flex-row gap-2">
+                                            <input
+                                                value={cotIdSearchInput}
+                                                onChange={(e) => {
+                                                    setCotIdSearchInput(e.target.value);
+                                                    setCotIdSearchFeedback(null);
+                                                }}
+                                                placeholder="Type COT ID (e.g. COT-0001 or 1)"
+                                                className="flex-1 px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-mono outline-none focus:border-brand-500"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={handleSearchCotId}
+                                                className="px-3 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold"
+                                            >
+                                                Search COT ID
+                                            </button>
+                                        </div>
+                                        {cotIdSearchFeedback && (
+                                            <p className={`text-xs font-semibold ${cotIdSearchFeedback.type === 'occupied' ? 'text-amber-700' : cotIdSearchFeedback.type === 'available' ? 'text-emerald-700' : 'text-red-600'}`}>
+                                                {cotIdSearchFeedback.message}
+                                            </p>
+                                        )}
+                                    </div>
+
                                     <div className="relative">
                                         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                         <input
@@ -1834,15 +1930,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         />
                                     </div>
 
+                                    <details className="rounded-xl border border-slate-200 bg-white p-3">
+                                        <summary className="cursor-pointer text-xs font-bold text-slate-700">
+                                            COT ID inventory list (COT-0001 to {formatCotId(Math.max(maxOccupiedCotNumber, 1))})
+                                        </summary>
+                                        <div className="mt-3 max-h-40 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pr-1">
+                                            {cotIdInventory.length === 0 && (
+                                                <p className="text-xs text-slate-400">No occupied COT IDs yet.</p>
+                                            )}
+                                            {cotIdInventory.map((id) => {
+                                                const occupied = existingCotIds.has(id);
+                                                return (
+                                                    <div key={id} className={`px-2 py-1.5 rounded-lg border text-[11px] font-mono ${occupied ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
+                                                        {id} • {occupied ? 'Occupied' : 'Free'}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </details>
+
                                     <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
                                         {cotManagerUsers.slice(0, 60).map((user) => {
                                             const currentId = (user.id || '').toUpperCase();
                                             const draftId = cotDraftIds[user.id] ?? currentId;
-                                            const normalizedDraft = draftId.trim().toUpperCase();
+                                            const normalizedDraft = normalizeCotIdInput(draftId);
                                             const duplicateId = normalizedDraft && normalizedDraft !== currentId && existingCotIds.has(normalizedDraft);
                                             const isAssignable = user.status === 'Active';
                                             return (
-                                                <div key={user.id} className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_220px_auto] gap-2 items-center rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5">
+                                                <div key={user.id} className={`grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_220px_auto] gap-2 items-center rounded-xl border px-3 py-2.5 ${cotManagerSelectedUserId === user.id ? 'border-brand-300 bg-brand-50/70' : 'border-slate-100 bg-slate-50'}`}>
                                                     <div className="min-w-0">
                                                         <p className="text-sm font-bold text-brand-950 truncate">{user.name}</p>
                                                         <p className="text-[11px] font-mono text-slate-500 truncate">{currentId}</p>
@@ -1887,6 +2002,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                     >
                                                         {isAssignable ? 'Save ID' : 'Approve First'}
                                                     </button>
+                                                    {duplicateId && (
+                                                        <p className="xl:col-span-3 text-[11px] text-red-600 font-semibold">
+                                                            {normalizedDraft} is already occupied. Choose a different COT ID.
+                                                        </p>
+                                                    )}
                                                 </div>
                                             );
                                         })}
