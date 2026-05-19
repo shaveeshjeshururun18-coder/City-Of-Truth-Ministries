@@ -1445,7 +1445,7 @@ const HebrewLettersAudioLab: React.FC = () => {
                                         </div>
                                     )}
                                     {selectedLetters.length > 0 && (
-                                        <div className="text-3xl md:text-4xl font-serif text-brand-950 mt-2 max-h-12 overflow-hidden leading-tight" dir="rtl">{combinedWord}</div>
+                                        <div className="text-3xl md:text-4xl font-serif text-brand-950 mt-2 max-h-12 max-w-full overflow-x-auto overflow-y-hidden no-scrollbar leading-tight whitespace-nowrap" dir="rtl">{combinedWord}</div>
                                     )}
                                 </div>
                                 <div className="flex gap-2 shrink-0 flex-wrap">

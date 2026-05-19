@@ -505,7 +505,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                     <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20">Email: john@mail.com</span>
                                 </div>
 
-                                <div className="mt-6 md:mt-8 bg-white/10 border border-white/15 rounded-2xl p-4 text-left">
+                                <div className="hidden md:block mt-6 md:mt-8 bg-white/10 border border-white/15 rounded-2xl p-4 text-left">
                                     <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.18em] text-white/80 mb-2">New Member Advantages</p>
                                     <ul className="space-y-1.5 text-xs md:text-sm text-white/85 font-semibold">
                                         <li>• Get your official Entrust card and unique member ID</li>

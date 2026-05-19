@@ -403,6 +403,15 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
                                         )}
                                     </div>
                                     <div className="mt-8 space-y-3">
+                                        <button
+                                            onClick={() => {
+                                                if (!user?.id) return;
+                                                window.location.href = `/verify/${encodeURIComponent(user.id)}`;
+                                            }}
+                                            className="px-6 py-3 w-full bg-white text-brand-700 font-bold rounded-xl border border-brand-200 hover:bg-brand-50 transition-colors"
+                                        >
+                                            Open Full Verify Page
+                                        </button>
                                         {onProceedToDashboard && (
                                             <button
                                                 onClick={() => onProceedToDashboard(user.id)}
