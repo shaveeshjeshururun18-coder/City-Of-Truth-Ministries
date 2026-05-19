@@ -26,6 +26,8 @@ interface UserDashboardProps {
     notifications?: { id: string; message: string; createdAt: string; read?: boolean }[];
     onSendReply?: (message: string) => void;
     onMarkNotificationsRead?: () => void;
+    onDeleteNotification?: (notificationId: string) => void;
+    focusSection?: 'notifications' | null;
 }
 
 const FAMILY_RELATIONSHIP_OPTIONS = {
@@ -42,7 +44,7 @@ const TAMIL_NADU_LOCATIONS = [
     'Pudukkottai', 'Perambalur', 'Tenkasi', 'Ranipet', 'Tirupattur', 'Mayiladuthurai', 'Valparai'
 ];
 
-export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, onOpenScanner, initialProfileId, onGoToLogin, notifications = [], onSendReply, onMarkNotificationsRead }) => {
+export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, onOpenScanner, initialProfileId, onGoToLogin, notifications = [], onSendReply, onMarkNotificationsRead, onDeleteNotification, focusSection = null }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [showTestimonialModal, setShowTestimonialModal] = useState(false);
     const [formData, setFormData] = useState<Partial<User>>({});
@@ -63,6 +65,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [cropTarget, setCropTarget] = useState<{ type: 'primary' | 'linked-profile' | 'new-family-member'; profileId?: string } | null>(null);
     const [adminReply, setAdminReply] = useState('');
     const [showDashboardGuide, setShowDashboardGuide] = useState(false);
+    const notificationsSectionRef = React.useRef<HTMLDivElement | null>(null);
     const hasPermanentCotId = /^COT-\d{4,}$/.test((user.id || '').trim());
     const canAccessEntrustFeatures = user.status === 'Active' && hasPermanentCotId;
 
@@ -89,6 +92,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         if (!notifications.some(note => !note.read)) return;
         onMarkNotificationsRead?.();
     }, [notifications, onMarkNotificationsRead]);
+
+    useEffect(() => {
+        if (focusSection !== 'notifications') return;
+        const timer = window.setTimeout(() => {
+            notificationsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 200);
+        return () => window.clearTimeout(timer);
+    }, [focusSection]);
 
 
     const getDisplayProfile = () => {
@@ -954,7 +965,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     </div>
                 )}
 
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                <div id="dashboard-notifications-card" ref={notificationsSectionRef} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
                     <div className="flex items-center justify-between mb-2">
                         <h3 className="text-sm font-black text-brand-950">Notifications</h3>
                         <span className="text-[10px] font-bold text-brand-600 bg-brand-50 border border-brand-100 px-2 py-0.5 rounded-full">{notifications.length}</span>
@@ -965,7 +976,19 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
                             {notifications.slice(0, 8).map(note => (
                                 <div key={note.id} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
-                                    <p className="text-xs text-slate-700 whitespace-pre-wrap break-words">{note.message}</p>
+                                    <div className="flex items-start justify-between gap-2">
+                                        <p className="text-xs text-slate-700 whitespace-pre-wrap break-words">{note.message}</p>
+                                        {onDeleteNotification && (
+                                            <button
+                                                type="button"
+                                                onClick={() => onDeleteNotification(note.id)}
+                                                className="shrink-0 p-1 rounded-lg text-red-600 hover:bg-red-100"
+                                                title="Delete notification"
+                                            >
+                                                <Trash2 size={12} />
+                                            </button>
+                                        )}
+                                    </div>
                                     <p className="text-[10px] text-slate-400 mt-1">{new Date(note.createdAt).toLocaleString()}</p>
                                 </div>
                             ))}

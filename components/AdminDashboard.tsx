@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import {
     Users, UserCheck, UserX, Clock, Search, Edit2, Trash2, X, User as UserIcon, ShieldAlert,
-    ChevronLeft, ChevronRight, Filter, Mail, Phone, MapPin, Droplet,
+    ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Filter, Mail, Phone, MapPin, Droplet,
     Calendar, Award, Shield, ShieldCheck, AlertCircle, CheckCircle, QrCode, Download,
     Save, GripVertical, Globe, Plus, ImagePlus, Camera, Image as ImageIcon, MessageSquare, Check, XCircle, FileText,
     PanelLeft, PanelTop, Database, RotateCcw
@@ -46,6 +46,7 @@ interface AdminDashboardProps {
     memberNotifications?: MemberNotification[];
     onSendMessageToUsers?: (targetUserIds: string[], message: string) => void;
     onDeleteContactMessage?: (messageId: string) => void;
+    onDeleteMemberNotification?: (notificationId: string) => void;
     onUpdateUser: (user: User) => Promise<void>;
     onDeleteUser: (userId: string) => Promise<void>;
     onRestoreUser?: (userId: string) => Promise<void>;
@@ -131,6 +132,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     memberNotifications = [],
     onSendMessageToUsers,
     onDeleteContactMessage,
+    onDeleteMemberNotification,
     onUpdateUser,
     onDeleteUser,
     onRestoreUser,
@@ -160,6 +162,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     // Bulk delete state
     const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+    const [selectedDeletedUsers, setSelectedDeletedUsers] = useState<Set<string>>(new Set());
     const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
     const [downloadingCardUserId, setDownloadingCardUserId] = useState<string | null>(null);
     const [downloadingProfilePdfUserId, setDownloadingProfilePdfUserId] = useState<string | null>(null);
@@ -200,6 +203,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [cotManagerQuery, setCotManagerQuery] = useState('');
     const [cotDraftIds, setCotDraftIds] = useState<Record<string, string>>({});
     const [cotManagerMode, setCotManagerMode] = useState<'manual' | 'random' | 'requests'>('manual');
+    const [cotManagerSelectedUserId, setCotManagerSelectedUserId] = useState('');
     const [diceRolling, setDiceRolling] = useState(false);
     const [diceTargetUserId, setDiceTargetUserId] = useState('');
     const [dicePickedCotId, setDicePickedCotId] = useState('');
@@ -385,7 +389,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     const suggestedCotIds = useMemo(() => {
         const ids: string[] = [];
-        for (let idNum = 1000; idNum <= 9999 && ids.length < MAX_SUGGESTED_COT_IDS; idNum += 1) {
+        for (let idNum = 3000; idNum <= 9999 && ids.length < MAX_SUGGESTED_COT_IDS; idNum += 1) {
             const candidate = `COT-${idNum}`;
             if (!existingCotIds.has(candidate)) {
                 ids.push(candidate);
@@ -478,6 +482,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             alert('Selected user not found.');
             return;
         }
+        if (user.status !== 'Active') {
+            alert('Random COT ID assignment is allowed only for approved users.');
+            return;
+        }
         try {
             await onReassignUserId(user.id, dicePickedCotId, { ...user, id: dicePickedCotId });
             setDicePickedCotId('');
@@ -544,13 +552,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const cotManagerUsers = useMemo(() => {
         const query = cotManagerQuery.trim().toLowerCase();
         const ordered = [...users].sort((a, b) => a.name.localeCompare(b.name));
-        if (!query) return ordered;
-        return ordered.filter(user =>
+        const filtered = !query ? ordered : ordered.filter(user =>
             user.name.toLowerCase().includes(query) ||
             user.id.toLowerCase().includes(query) ||
             (user.phone || '').toLowerCase().includes(query)
         );
-    }, [users, cotManagerQuery]);
+        if (!cotManagerSelectedUserId) return filtered;
+        return filtered.filter(user => user.id === cotManagerSelectedUserId);
+    }, [users, cotManagerQuery, cotManagerSelectedUserId]);
+
+    const cotManagerAssignableUsers = useMemo(
+        () => cotManagerUsers.filter(user => user.status === 'Active'),
+        [cotManagerUsers]
+    );
+
+    const moveArrayItem = <T,>(arr: T[], from: number, to: number): T[] => {
+        if (from === to || from < 0 || to < 0 || from >= arr.length || to >= arr.length) return arr;
+        const next = [...arr];
+        const [item] = next.splice(from, 1);
+        next.splice(to, 0, item);
+        return next;
+    };
 
     const handleSaveEdit = async () => {
         if (!editingUser) return;
@@ -560,6 +582,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             setEditingUser(null);
         } catch (error) {
             alert('Failed to update user');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const runUserAction = async (task: () => Promise<void>, failMessage: string) => {
+        setIsLoading(true);
+        try {
+            await task();
+            return true;
+        } catch (error) {
+            console.error(failMessage, error);
+            alert(failMessage);
+            return false;
         } finally {
             setIsLoading(false);
         }
@@ -674,6 +710,48 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
     };
 
+    const toggleSelectDeletedUser = (userId: string) => {
+        const next = new Set(selectedDeletedUsers);
+        if (next.has(userId)) next.delete(userId);
+        else next.add(userId);
+        setSelectedDeletedUsers(next);
+    };
+
+    const toggleSelectAllDeletedUsers = () => {
+        if (selectedDeletedUsers.size === deletedUsers.length) {
+            setSelectedDeletedUsers(new Set());
+            return;
+        }
+        setSelectedDeletedUsers(new Set(deletedUsers.map(user => user.id)));
+    };
+
+    const handleBulkRestoreDeletedUsers = async () => {
+        if (!onRestoreUser || selectedDeletedUsers.size === 0) return;
+        setIsLoading(true);
+        try {
+            await Promise.all(Array.from(selectedDeletedUsers).map(userId => onRestoreUser(userId)));
+            setSelectedDeletedUsers(new Set());
+        } catch (error) {
+            alert('Failed to restore some selected users');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleBulkPermanentlyDeleteDeletedUsers = async () => {
+        if (!onPermanentlyDeleteUser || selectedDeletedUsers.size === 0) return;
+        if (!window.confirm(`Permanently delete ${selectedDeletedUsers.size} selected user(s)? This cannot be undone.`)) return;
+        setIsLoading(true);
+        try {
+            await Promise.all(Array.from(selectedDeletedUsers).map(userId => onPermanentlyDeleteUser(userId)));
+            setSelectedDeletedUsers(new Set());
+        } catch (error) {
+            alert('Failed to permanently delete some selected users');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const handlePermanentlyDeleteDeletedUser = async (deletedUserId: string) => {
         if (!onPermanentlyDeleteUser) return;
         if (!window.confirm('Delete this user permanently from recycle bin? This will permanently remove user profile data and cannot be undone.')) return;
@@ -740,13 +818,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     };
     const hasPendingProfileUpdate = (user: User) => !!user.pendingProfileUpdate && Object.keys(user.pendingProfileUpdate).length > 0;
     const approveUserOrPendingEdit = async (user: User) => {
-        await activateUserWithCotId(user);
+        await runUserAction(() => activateUserWithCotId(user), 'Failed to approve user');
     };
     const disapproveUser = async (user: User) => {
-        await onUpdateUser({ ...user, status: 'Rejected', pendingProfileUpdate: undefined });
+        await runUserAction(() => onUpdateUser({ ...user, status: 'Rejected', pendingProfileUpdate: undefined }), 'Failed to disapprove user');
     };
     const rejectPendingEdit = async (user: User) => {
-        await onUpdateUser({ ...user, pendingProfileUpdate: undefined });
+        await runUserAction(() => onUpdateUser({ ...user, pendingProfileUpdate: undefined }), 'Failed to reject pending edit');
     };
 
     const toggleSelectAll = () => {
@@ -758,6 +836,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     };
 
     const handleDownloadUserCard = async (user: User) => {
+        if (user.status !== 'Active') {
+            alert('Entrust card PDF is available only for approved users.');
+            return;
+        }
         setDownloadingCardUserId(user.id);
         const frontNode = document.getElementById(`admin-card-front-${user.id}`);
         const backNode = document.getElementById(`admin-card-back-${user.id}`);
@@ -791,7 +873,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         setDownloadingCardUserId(null);
     };
 
+    const handleOpenQrPreview = (user: User) => {
+        if (user.status !== 'Active') {
+            alert('QR code is available only for approved users.');
+            return;
+        }
+        setViewingQrUser(user);
+    };
+
     const handleDownloadUserDetailsPdf = async (member: User) => {
+        if (member.status !== 'Active') {
+            alert('Profile PDF is available only for approved users.');
+            return;
+        }
         setDownloadingProfilePdfUserId(member.id);
         try {
             const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
@@ -1034,8 +1128,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </button>
                     </div>
 
-                    {menuMode === 'horizontal' && (
-                        <div className="flex gap-1.5 flex-nowrap overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
+                    {(menuMode === 'horizontal' || menuMode === 'vertical') && (
+                        <div className={`flex gap-1.5 flex-nowrap overflow-x-auto pb-1 scrollbar-none -mx-1 px-1 ${menuMode === 'vertical' ? 'lg:hidden' : ''}`}>
                             {TAB_ITEMS.map(tab => (
                                 <button
                                     key={tab.id}
@@ -1058,7 +1152,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div className={menuMode === 'vertical' ? 'flex gap-6 items-start' : ''}>
                     {/* Vertical Sidebar */}
                     {menuMode === 'vertical' && (
-                        <aside className="w-56 shrink-0 sticky top-28">
+                        <aside className="hidden lg:block w-56 shrink-0 sticky top-28">
                             <nav className="bg-white rounded-3xl border border-slate-100 shadow-sm p-3 space-y-1">
                                 {TAB_ITEMS.map(tab => (
                                     <button
@@ -1458,7 +1552,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                         )}
                                                     </button>
                                                     <button
-                                                        onClick={() => setViewingQrUser(user)}
+                                                        onClick={() => handleOpenQrPreview(user)}
                                                         className="p-2 hover:bg-indigo-50 text-indigo-600 rounded-lg transition-colors"
                                                         title="View QR Code"
                                                     >
@@ -1641,7 +1735,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         View
                                     </button>
                                     <button
-                                        onClick={(e) => { e.stopPropagation(); setViewingQrUser(user); }}
+                                        onClick={(e) => { e.stopPropagation(); handleOpenQrPreview(user); }}
                                         className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-medium text-sm hover:bg-indigo-100 transition-colors"
                                     >
                                         <QrCode size={16} />
@@ -1745,6 +1839,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             const draftId = cotDraftIds[user.id] ?? currentId;
                                             const normalizedDraft = draftId.trim().toUpperCase();
                                             const duplicateId = normalizedDraft && normalizedDraft !== currentId && existingCotIds.has(normalizedDraft);
+                                            const isAssignable = user.status === 'Active';
                                             return (
                                                 <div key={user.id} className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_220px_auto] gap-2 items-center rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5">
                                                     <div className="min-w-0">
@@ -1774,6 +1869,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                                 return;
                                                             }
                                                             if (nextId === currentId) return;
+                                                            if (!isAssignable) {
+                                                                alert('COT ID assignment is allowed only for approved users.');
+                                                                return;
+                                                            }
                                                             try {
                                                                 await onReassignUserId(user.id, nextId, { ...user, id: nextId });
                                                                 setCotDraftIds(prev => ({ ...prev, [user.id]: nextId }));
@@ -1783,9 +1882,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                             }
                                                         }}
                                                         className="px-3 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold disabled:opacity-60"
-                                                        disabled={!onReassignUserId}
+                                                        disabled={!onReassignUserId || !isAssignable}
                                                     >
-                                                        Save ID
+                                                        {isAssignable ? 'Save ID' : 'Approve First'}
                                                     </button>
                                                 </div>
                                             );
@@ -1808,7 +1907,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium outline-none focus:border-brand-500"
                                     >
                                         <option value="">Select user for random COT ID assignment</option>
-                                        {cotManagerUsers.slice(0, 250).map(user => (
+                                        {cotManagerAssignableUsers.slice(0, 250).map(user => (
                                             <option key={user.id} value={user.id}>
                                                 {user.name} • {(user.id || '').toUpperCase()}
                                             </option>
@@ -1850,6 +1949,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 onClick={() => {
                                                     setCotManagerMode('manual');
                                                     setCotManagerQuery((note.user?.name || note.userId || '').trim());
+                                                    if (note.user?.id) setCotManagerSelectedUserId(note.user.id);
                                                 }}
                                                 className="shrink-0 px-2.5 py-1.5 rounded-lg bg-white border border-amber-200 text-amber-800 text-[11px] font-bold hover:bg-amber-100"
                                             >
@@ -1862,6 +1962,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     )}
                                 </div>
                             )}
+                            <div className="flex flex-wrap items-center gap-2 pt-1">
+                                <select
+                                    value={cotManagerSelectedUserId}
+                                    onChange={(e) => setCotManagerSelectedUserId(e.target.value)}
+                                    className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-medium"
+                                >
+                                    <option value="">All users</option>
+                                    {users
+                                        .slice()
+                                        .sort((a, b) => a.name.localeCompare(b.name))
+                                        .map(user => (
+                                            <option key={user.id} value={user.id}>
+                                                {user.name} • {user.id}
+                                            </option>
+                                        ))}
+                                </select>
+                                {cotManagerSelectedUserId && (
+                                    <button
+                                        onClick={() => setCotManagerSelectedUserId('')}
+                                        className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                                    >
+                                        Clear selection
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
                         {/* Search and Filters (Reusing the same logic) */}
@@ -2030,7 +2155,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <div key={msg.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
                                                 <div className="flex items-center justify-between gap-2 mb-1">
                                                     <p className="text-xs font-black text-brand-950 truncate">{msg.name || 'Website Visitor'}</p>
-                                                    <span className="text-[10px] text-slate-400">{new Date(msg.createdAt).toLocaleDateString()}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] text-slate-400">{new Date(msg.createdAt).toLocaleDateString()}</span>
+                                                        {onDeleteContactMessage && (
+                                                            <button
+                                                                onClick={() => onDeleteContactMessage(msg.id)}
+                                                                className="p-1 rounded-lg text-red-600 hover:bg-red-50"
+                                                                title="Delete message"
+                                                            >
+                                                                <Trash2 size={12} />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 <p className="text-[11px] font-bold text-brand-700">{msg.subject}</p>
                                                 <p className="text-xs text-slate-600 mt-1 whitespace-pre-wrap break-words">{msg.message}</p>
@@ -2065,7 +2201,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <div key={note.id} className="rounded-2xl border border-blue-100 bg-blue-50/50 p-3">
                                             <div className="flex items-center justify-between gap-2 mb-1">
                                                 <p className="text-xs font-black text-blue-900">Reply from {note.userId}</p>
-                                                <span className="text-[10px] text-blue-700/60">{new Date(note.createdAt).toLocaleString()}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] text-blue-700/60">{new Date(note.createdAt).toLocaleString()}</span>
+                                                    {onDeleteMemberNotification && (
+                                                        <button
+                                                            onClick={() => onDeleteMemberNotification(note.id)}
+                                                            className="p-1 rounded-lg text-red-600 hover:bg-red-100"
+                                                            title="Delete reply"
+                                                        >
+                                                            <Trash2 size={12} />
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                             <p className="text-xs text-blue-900 whitespace-pre-wrap break-words">{note.message}</p>
                                         </div>
@@ -2245,6 +2392,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             </div>
 
                                             <div className="flex items-center gap-3 relative z-10">
+                                                <div className="flex sm:hidden items-center gap-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const idx = homeSectionsOrder.findIndex(item => item === sectionId);
+                                                            if (idx <= 0) return;
+                                                            onUpdateHomeSectionsOrder(moveArrayItem(homeSectionsOrder, idx, idx - 1));
+                                                        }}
+                                                        className="w-8 h-8 rounded-full border border-slate-200 text-slate-600 flex items-center justify-center"
+                                                        aria-label="Move up"
+                                                    >
+                                                        <ChevronUp size={14} />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const idx = homeSectionsOrder.findIndex(item => item === sectionId);
+                                                            if (idx < 0 || idx >= homeSectionsOrder.length - 1) return;
+                                                            onUpdateHomeSectionsOrder(moveArrayItem(homeSectionsOrder, idx, idx + 1));
+                                                        }}
+                                                        className="w-8 h-8 rounded-full border border-slate-200 text-slate-600 flex items-center justify-center"
+                                                        aria-label="Move down"
+                                                    >
+                                                        <ChevronDown size={14} />
+                                                    </button>
+                                                </div>
                                                 <div className="hidden sm:block text-[9px] font-black uppercase tracking-widest text-slate-300 group-hover:text-brand-400 transition-colors bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
                                                     {sectionId === 'hero' ? 'Top Section' : 'Live Section'}
                                                 </div>
@@ -2332,7 +2507,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             </div>
 
                                             <div className="text-slate-300 text-xs font-bold uppercase tracking-widest shrink-0 pr-4 text-right">
-                                                {item.submenu && item.submenu.length > 0 ? 'Has submenu' : 'Direct link'}
+                                                <div className="hidden sm:block">
+                                                    {item.submenu && item.submenu.length > 0 ? 'Has submenu' : 'Direct link'}
+                                                </div>
+                                                <div className="flex sm:hidden items-center gap-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (!onUpdateNavItems || !navItems) return;
+                                                            const idx = navItems.findIndex(nav => nav.label === item.label);
+                                                            if (idx <= 0) return;
+                                                            onUpdateNavItems(moveArrayItem(navItems, idx, idx - 1));
+                                                        }}
+                                                        className="w-7 h-7 rounded-full border border-slate-200 text-slate-600 flex items-center justify-center"
+                                                        aria-label="Move up"
+                                                    >
+                                                        <ChevronUp size={12} />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (!onUpdateNavItems || !navItems) return;
+                                                            const idx = navItems.findIndex(nav => nav.label === item.label);
+                                                            if (idx < 0 || idx >= navItems.length - 1) return;
+                                                            onUpdateNavItems(moveArrayItem(navItems, idx, idx + 1));
+                                                        }}
+                                                        className="w-7 h-7 rounded-full border border-slate-200 text-slate-600 flex items-center justify-center"
+                                                        aria-label="Move down"
+                                                    >
+                                                        <ChevronDown size={12} />
+                                                    </button>
+                                                </div>
                                             </div>
                                         </Reorder.Item>
                                     ))}
@@ -2371,9 +2578,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <h2 className="text-2xl font-serif font-black text-brand-950">User Recycle Bin</h2>
                                 <p className="text-slate-500 text-sm mt-1">Deleted users can be restored within 30 days. After that, they are removed automatically.</p>
                             </div>
-                            <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest bg-brand-50 text-brand-600 border border-brand-100">
-                                {deletedUsers.length} in bin
-                            </span>
+                            <div className="flex items-center gap-2">
+                                <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest bg-brand-50 text-brand-600 border border-brand-100">
+                                    {deletedUsers.length} in bin
+                                </span>
+                                <button
+                                    onClick={toggleSelectAllDeletedUsers}
+                                    className="px-3 py-1 rounded-xl text-xs font-bold border border-slate-200 text-slate-700 hover:bg-slate-50"
+                                >
+                                    {selectedDeletedUsers.size === deletedUsers.length && deletedUsers.length > 0 ? 'Clear all' : 'Select all'}
+                                </button>
+                                <button
+                                    onClick={handleBulkRestoreDeletedUsers}
+                                    disabled={!onRestoreUser || selectedDeletedUsers.size === 0 || isLoading}
+                                    className="px-3 py-1 rounded-xl text-xs font-bold border border-green-200 text-green-700 bg-green-50 hover:bg-green-100 disabled:opacity-50"
+                                >
+                                    Restore selected
+                                </button>
+                                <button
+                                    onClick={handleBulkPermanentlyDeleteDeletedUsers}
+                                    disabled={!onPermanentlyDeleteUser || selectedDeletedUsers.size === 0 || isLoading}
+                                    className="px-3 py-1 rounded-xl text-xs font-bold border border-red-200 text-red-700 bg-red-50 hover:bg-red-100 disabled:opacity-50"
+                                >
+                                    Delete selected
+                                </button>
+                            </div>
                         </div>
 
                         {deletedUsers.length === 0 ? (
@@ -2387,6 +2616,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <table className="w-full">
                                         <thead className="bg-slate-50 border-b border-slate-100">
                                             <tr>
+                                                <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Select</th>
                                                 <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">User</th>
                                                 <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Deleted At</th>
                                                 <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Auto Delete</th>
@@ -2401,6 +2631,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 );
                                                 return (
                                                     <tr key={user.id} className="hover:bg-slate-50">
+                                                        <td className="px-6 py-4">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedDeletedUsers.has(user.id)}
+                                                                onChange={() => toggleSelectDeletedUser(user.id)}
+                                                            />
+                                                        </td>
                                                         <td className="px-6 py-4">
                                                             <p className="font-bold text-brand-950">{user.name}</p>
                                                             <p className="text-xs text-slate-500 font-mono">{user.id}</p>
@@ -2503,23 +2740,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     Live Snapshot
                                 </span>
                             </div>
-                            <pre className="max-h-96 overflow-auto rounded-2xl border border-slate-100 bg-slate-950 text-slate-100 text-[11px] leading-relaxed p-4 font-mono whitespace-pre-wrap break-words">
-                                {JSON.stringify({
-                                    firebaseConfig,
-                                    storageFiles,
-                                    storageSummary: {
-                                        isLoadingStorage,
-                                        isStorageListTruncated,
-                                        loadedFileCount: storageFiles.length
-                                    },
-                                    collections: {
-                                        users,
-                                        deletedUsers,
-                                        testimonials,
-                                        ministries
-                                    }
-                                }, null, 2)}
-                            </pre>
+                            <div className="space-y-2">
+                                {[
+                                    { label: 'Config', value: firebaseConfig },
+                                    { label: 'Storage Summary', value: { isLoadingStorage, isStorageListTruncated, loadedFileCount: storageFiles.length } },
+                                    { label: 'Storage Files', value: storageFiles },
+                                    { label: 'Users', value: users },
+                                    { label: 'Deleted Users', value: deletedUsers },
+                                    { label: 'Testimonials', value: testimonials },
+                                    { label: 'Ministries', value: ministries },
+                                ].map(section => (
+                                    <details key={section.label} className="rounded-2xl border border-slate-100 bg-slate-950/95">
+                                        <summary className="cursor-pointer px-4 py-3 text-xs font-black uppercase tracking-wider text-amber-300">
+                                            {section.label}
+                                        </summary>
+                                        <pre className="max-h-80 overflow-auto border-t border-slate-800 text-slate-100 text-[11px] leading-relaxed p-4 font-mono whitespace-pre-wrap break-words">
+                                            {JSON.stringify(section.value, null, 2)}
+                                        </pre>
+                                    </details>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 )}

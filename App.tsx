@@ -506,6 +506,12 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('cot_member_notifications', JSON.stringify(memberNotifications));
   }, [memberNotifications]);
+  const [dashboardFocusSection, setDashboardFocusSection] = useState<'notifications' | null>(null);
+  useEffect(() => {
+    if (currentView !== ViewState.USER_DASHBOARD && dashboardFocusSection) {
+      setDashboardFocusSection(null);
+    }
+  }, [currentView, dashboardFocusSection]);
 
   const TOUR_STEPS = [
     { selector: '#tour-register-btn', title: 'Start Here', text: 'Tap Register Now to create your member profile.' },
@@ -587,6 +593,14 @@ const App: React.FC = () => {
         ? { ...note, read: true }
         : note
     )));
+  };
+
+  const handleDeleteMemberNotification = (notificationId: string) => {
+    setMemberNotifications(prev => prev.filter(note => note.id !== notificationId));
+  };
+
+  const handleDeleteUserNotification = (userId: string, notificationId: string) => {
+    setMemberNotifications(prev => prev.filter(note => !(note.id === notificationId && note.userId === userId && note.from === 'admin')));
   };
 
   const getContactSenderMeta = (fallbackName = '', fallbackEmail = '') => {
@@ -1244,9 +1258,10 @@ const App: React.FC = () => {
         memberNotifications={memberNotifications}
         onSendMessageToUsers={handleAdminSendMessageToUsers}
         onDeleteContactMessage={handleDeleteContactMessage}
+        onDeleteMemberNotification={handleDeleteMemberNotification}
         onUpdateUser={async (user) => {
           await api.updateUser(user);
-          setUsers(users.map(u => u.id === user.id ? user : u));
+          setUsers(prev => prev.map(u => u.id === user.id ? user : u));
         }}
         onCreateUser={async (user) => {
           const created = await api.createUser(user);
@@ -1482,6 +1497,32 @@ const App: React.FC = () => {
                     </div>
                     <p className="text-[10px] tracking-wide" style={{ color: "rgba(251,191,36,0.25)" }}>Your message will reach our Admin directly.</p>
                   </motion.div>
+                  {currentUser && (() => {
+                    const userNotes = memberNotifications.filter(note => note.userId === currentUser.id && note.from === 'admin');
+                    const unreadCount = userNotes.filter(note => !note.read).length;
+                    if (userNotes.length === 0) return null;
+                    return (
+                      <motion.button
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 1.05 }}
+                        onClick={() => {
+                          setDashboardFocusSection('notifications');
+                          setCurrentView(ViewState.USER_DASHBOARD);
+                        }}
+                        className="mt-4 w-full max-w-sm rounded-2xl border border-yellow-300/40 bg-yellow-500/10 backdrop-blur-xl px-4 py-3 text-left hover:bg-yellow-500/20 transition-colors"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-xs sm:text-sm font-black text-yellow-100">Admin Notification{userNotes.length > 1 ? 's' : ''}</p>
+                          <span className="px-2 py-0.5 rounded-full bg-yellow-300 text-brand-950 text-[10px] font-black">
+                            {unreadCount > 0 ? `${unreadCount} New` : `${userNotes.length} Total`}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-[11px] text-yellow-50/90 line-clamp-2">{userNotes[0]?.message}</p>
+                        <p className="mt-2 text-[10px] uppercase tracking-[0.14em] text-yellow-200/80">Tap to open dashboard messages</p>
+                      </motion.button>
+                    );
+                  })()}
                 </div>
               </section>
             );
@@ -1722,10 +1763,11 @@ const App: React.FC = () => {
                 memberNotifications={memberNotifications}
                 onSendMessageToUsers={handleAdminSendMessageToUsers}
                 onDeleteContactMessage={handleDeleteContactMessage}
+                onDeleteMemberNotification={handleDeleteMemberNotification}
                 onUpdateUser={async (user) => {
                   await api.updateUser(user);
-                  setUsers(users.map(u => u.id === user.id ? user : u));
-                  if (currentUser.id === user.id) setCurrentUser(user);
+                  setUsers(prev => prev.map(u => u.id === user.id ? user : u));
+                  setCurrentUser(prev => prev && prev.id === user.id ? user : prev);
                 }}
                 onDeleteUser={async (userId) => {
                   await handleDeleteUser(userId);
@@ -1763,8 +1805,10 @@ const App: React.FC = () => {
                 onGoToLogin={() => navigate('/auth?view=login')}
                 onOpenScanner={() => setCurrentView(ViewState.VERIFY_ID)}
                 notifications={memberNotifications.filter(note => note.userId === currentUser.id && note.from === 'admin')}
+                focusSection={dashboardFocusSection}
                 onSendReply={(message) => handleUserReplyToAdmin(currentUser.id, message)}
                 onMarkNotificationsRead={() => handleMarkUserNotificationsRead(currentUser.id)}
+                onDeleteNotification={(notificationId) => handleDeleteUserNotification(currentUser.id, notificationId)}
                 onUpdate={async (updatedUser) => {
                   const existingUserRecord = users.find(u => u.id === updatedUser.id) || currentUser;
                   const safeUpdatedUser = existingUserRecord && updatedUser.pendingProfileUpdate
@@ -1785,6 +1829,7 @@ const App: React.FC = () => {
                   } else {
                     alert("Profile Updated Successfully!");
                   }
+                  setDashboardFocusSection(null);
                 }}
               />
             </motion.div>
