@@ -1570,12 +1570,21 @@ const App: React.FC = () => {
                         <span className="text-brand-600 font-bold uppercase tracking-wider text-sm">Who We Are</span>
                       </div>
                       <h2 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-slate-900 mb-6 leading-[1.1]">
-                        Walking in <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-brand-400">Truth</span> & <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-500 to-accent-400">Love</span>
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-brand-400">You</span> to Part <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-500 to-accent-400">Ministries</span>
                       </h2>
                       <p className="text-gray-600 text-lg leading-relaxed mb-8">
                         City of Truth Ministries is more than just a building—it's a family. We are dedicated to creating a space where lives are transformed by the power of the Gospel.
                       </p>
-                      <Button onClick={() => setCurrentView(ViewState.ABOUT)} variant="primary" className="shadow-brand-500/30 px-8 py-4 text-base">Read Our Story</Button>
+                      <div className="flex flex-wrap gap-3">
+                        <Button onClick={() => setCurrentView(ViewState.ABOUT)} variant="primary" className="shadow-brand-500/30 px-8 py-4 text-base">Read Our Story</Button>
+                        <button
+                          onClick={() => window.open(youtubeLink, '_blank', 'noopener,noreferrer')}
+                          className="group flex items-center gap-2 px-8 py-4 rounded-full border-2 border-brand-200 text-brand-700 font-bold text-base hover:bg-brand-50 hover:border-brand-400 transition-all"
+                        >
+                          Visit COT YouTube
+                          <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                        </button>
+                      </div>
                     </motion.div>
                   </div>
                 </div>
