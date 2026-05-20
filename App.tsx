@@ -406,7 +406,7 @@ const App: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.HOME);
-  const [authInitialView, setAuthInitialView] = useState<'choice' | 'login' | 'register' | 'forgot-id'>('choice');
+  const [authInitialView] = useState<'choice' | 'login' | 'register' | 'forgot-id'>('login');
   const [selectedDashboardProfileId, setSelectedDashboardProfileId] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [deletedUsers, setDeletedUsers] = useState<DeletedUser[]>([]);
@@ -656,7 +656,13 @@ const App: React.FC = () => {
   };
 
   const handleDeleteUserNotification = (userId: string, notificationId: string) => {
-    setMemberNotifications(prev => prev.filter(note => !(note.id === notificationId && note.userId === userId && note.from === 'admin')));
+    setMemberNotifications(prev => {
+      const target = prev.find(note => note.id === notificationId && note.userId === userId && note.from === 'admin');
+      if (target) {
+        setDeletedMemberNotifications(old => [target, ...old.filter(item => item.id !== notificationId)].slice(0, 1000));
+      }
+      return prev.filter(note => !(note.id === notificationId && note.userId === userId && note.from === 'admin'));
+    });
   };
 
   const getContactSenderMeta = (fallbackName = '', fallbackEmail = '') => {
@@ -1370,7 +1376,7 @@ const App: React.FC = () => {
     const params = new URLSearchParams(location.search);
     const routeInitial = params.get('view');
     const routeIdentifier = params.get('identifier') || '';
-    const initialView = routeInitial === 'login' || routeInitial === 'register' || routeInitial === 'forgot-id' || routeInitial === 'choice'
+    const initialView = routeInitial === 'login' || routeInitial === 'register' || routeInitial === 'forgot-id'
       ? routeInitial
       : 'login';
 
