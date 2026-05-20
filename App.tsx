@@ -476,6 +476,24 @@ const App: React.FC = () => {
       return [];
     }
   });
+  const [deletedContactMessages, setDeletedContactMessages] = useState<ContactMessage[]>(() => {
+    try {
+      const saved = localStorage.getItem('cot_deleted_contact_messages');
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+  const [deletedMemberNotifications, setDeletedMemberNotifications] = useState<MemberNotification[]>(() => {
+    try {
+      const saved = localStorage.getItem('cot_deleted_member_notifications');
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
 
   const [homeSectionsOrder, setHomeSectionsOrder] = useState<string[]>(() => {
     try {
@@ -506,6 +524,12 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('cot_member_notifications', JSON.stringify(memberNotifications));
   }, [memberNotifications]);
+  useEffect(() => {
+    localStorage.setItem('cot_deleted_contact_messages', JSON.stringify(deletedContactMessages));
+  }, [deletedContactMessages]);
+  useEffect(() => {
+    localStorage.setItem('cot_deleted_member_notifications', JSON.stringify(deletedMemberNotifications));
+  }, [deletedMemberNotifications]);
   const [dashboardFocusSection, setDashboardFocusSection] = useState<'notifications' | null>(null);
   useEffect(() => {
     if (currentView !== ViewState.USER_DASHBOARD && dashboardFocusSection) {
@@ -553,7 +577,23 @@ const App: React.FC = () => {
   };
 
   const handleDeleteContactMessage = (messageId: string) => {
-    setContactMessages(prev => prev.filter(msg => msg.id !== messageId));
+    setContactMessages(prev => {
+      const target = prev.find(msg => msg.id === messageId);
+      if (target) {
+        setDeletedContactMessages(old => [target, ...old.filter(item => item.id !== messageId)].slice(0, MAX_STORED_CONTACT_MESSAGES));
+      }
+      return prev.filter(msg => msg.id !== messageId);
+    });
+  };
+
+  const handleRestoreContactMessage = (messageId: string) => {
+    setDeletedContactMessages(prev => {
+      const target = prev.find(msg => msg.id === messageId);
+      if (target) {
+        setContactMessages(old => [target, ...old.filter(item => item.id !== messageId)].slice(0, MAX_STORED_CONTACT_MESSAGES));
+      }
+      return prev.filter(msg => msg.id !== messageId);
+    });
   };
 
   const handleAdminSendMessageToUsers = (targetUserIds: string[], message: string) => {
@@ -596,7 +636,23 @@ const App: React.FC = () => {
   };
 
   const handleDeleteMemberNotification = (notificationId: string) => {
-    setMemberNotifications(prev => prev.filter(note => note.id !== notificationId));
+    setMemberNotifications(prev => {
+      const target = prev.find(note => note.id === notificationId);
+      if (target) {
+        setDeletedMemberNotifications(old => [target, ...old.filter(item => item.id !== notificationId)].slice(0, 1000));
+      }
+      return prev.filter(note => note.id !== notificationId);
+    });
+  };
+
+  const handleRestoreMemberNotification = (notificationId: string) => {
+    setDeletedMemberNotifications(prev => {
+      const target = prev.find(note => note.id === notificationId);
+      if (target) {
+        setMemberNotifications(old => [target, ...old.filter(item => item.id !== notificationId)].slice(0, 1000));
+      }
+      return prev.filter(note => note.id !== notificationId);
+    });
   };
 
   const handleDeleteUserNotification = (userId: string, notificationId: string) => {
@@ -1002,6 +1058,11 @@ const App: React.FC = () => {
   const handleRegister = async (data: any) => {
     const extractPhoneDigits = (value: string | undefined) => (value || '').replace(/\D/g, '');
     const normalizeEmail = (value: string | undefined) => (value || '').trim().toLowerCase();
+    const primaryPhoneDigits = extractPhoneDigits(data.emergency || data.phone);
+    if (primaryPhoneDigits.length !== 10) {
+      alert('Phone number must be exactly 10 digits.');
+      return;
+    }
     const incomingPhones = [data.phone, data.emergency]
       .map(extractPhoneDigits)
       .filter(Boolean);
@@ -1255,10 +1316,14 @@ const App: React.FC = () => {
         users={users}
         deletedUsers={deletedUsers}
         contactMessages={contactMessages}
+        deletedContactMessages={deletedContactMessages}
         memberNotifications={memberNotifications}
+        deletedMemberNotifications={deletedMemberNotifications}
         onSendMessageToUsers={handleAdminSendMessageToUsers}
         onDeleteContactMessage={handleDeleteContactMessage}
+        onRestoreContactMessage={handleRestoreContactMessage}
         onDeleteMemberNotification={handleDeleteMemberNotification}
+        onRestoreMemberNotification={handleRestoreMemberNotification}
         onUpdateUser={async (user) => {
           await api.updateUser(user);
           setUsers(prev => prev.map(u => u.id === user.id ? user : u));
@@ -1565,12 +1630,21 @@ const App: React.FC = () => {
                         <span className="text-brand-600 font-bold uppercase tracking-wider text-sm">Who We Are</span>
                       </div>
                       <h2 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-slate-900 mb-6 leading-[1.1]">
-                        Walking in <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-brand-400">Truth</span> & <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-500 to-accent-400">Love</span>
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-brand-400">You</span> to Part <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-500 to-accent-400">Ministries</span>
                       </h2>
                       <p className="text-gray-600 text-lg leading-relaxed mb-8">
                         City of Truth Ministries is more than just a building—it's a family. We are dedicated to creating a space where lives are transformed by the power of the Gospel.
                       </p>
-                      <Button onClick={() => setCurrentView(ViewState.ABOUT)} variant="primary" className="shadow-brand-500/30 px-8 py-4 text-base">Read Our Story</Button>
+                      <div className="flex flex-wrap gap-3">
+                        <Button onClick={() => setCurrentView(ViewState.ABOUT)} variant="primary" className="shadow-brand-500/30 px-8 py-4 text-base">Read Our Story</Button>
+                        <button
+                          onClick={() => window.open(youtubeLink, '_blank', 'noopener,noreferrer')}
+                          className="group flex items-center gap-2 px-8 py-4 rounded-full border-2 border-brand-200 text-brand-700 font-bold text-base hover:bg-brand-50 hover:border-brand-400 transition-all"
+                        >
+                          Visit COT YouTube
+                          <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                        </button>
+                      </div>
                     </motion.div>
                   </div>
                 </div>
@@ -1760,10 +1834,14 @@ const App: React.FC = () => {
                 users={users}
                 deletedUsers={deletedUsers}
                 contactMessages={contactMessages}
+                deletedContactMessages={deletedContactMessages}
                 memberNotifications={memberNotifications}
+                deletedMemberNotifications={deletedMemberNotifications}
                 onSendMessageToUsers={handleAdminSendMessageToUsers}
                 onDeleteContactMessage={handleDeleteContactMessage}
+                onRestoreContactMessage={handleRestoreContactMessage}
                 onDeleteMemberNotification={handleDeleteMemberNotification}
+                onRestoreMemberNotification={handleRestoreMemberNotification}
                 onUpdateUser={async (user) => {
                   await api.updateUser(user);
                   setUsers(prev => prev.map(u => u.id === user.id ? user : u));

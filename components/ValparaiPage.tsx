@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Mountain, History, Leaf, TrendingUp, CloudRain, Plane, Navigation, Sparkles, Scroll, ArrowRight, Video, Camera, Compass } from 'lucide-react';
+import { MapPin, Mountain, History, Leaf, TrendingUp, CloudRain, Plane, Navigation, Sparkles, Scroll, ArrowRight, Video, Camera, Compass, Globe } from 'lucide-react';
 
 const letterContainer = {
     hidden: { opacity: 0 },
@@ -147,6 +147,48 @@ export const ValparaiPage: React.FC = () => {
                             </div>
                         </motion.div>
                     ))}
+                </motion.div>
+            </div>
+
+            <div className="container mx-auto px-6 max-w-5xl">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    className="bg-white rounded-[2rem] border border-slate-200 shadow-lg p-8 md:p-10"
+                >
+                    <div className="text-center mb-8">
+                        <h3 className="text-3xl md:text-4xl font-serif font-bold text-brand-950">Valparai Preview Links</h3>
+                        <p className="text-slate-600 mt-2">Open City of Truth Ministries YouTube and Tamil Wikipedia from Valparai page.</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <a
+                            href="https://youtube.com/@cotministries?si=A6179oNRuuJ9snjM"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group rounded-2xl border border-red-100 bg-red-50 p-5 hover:bg-red-100 transition-colors"
+                        >
+                            <div className="flex items-center gap-3 mb-2 text-red-700">
+                                <Video size={20} />
+                                <h4 className="font-black text-lg">COT Ministries YouTube</h4>
+                            </div>
+                            <p className="text-sm text-red-900/80">Watch COT ministries updates, worship content, and community highlights.</p>
+                            <span className="inline-flex items-center gap-2 mt-3 text-xs font-black uppercase tracking-wider text-red-700">Open Channel <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" /></span>
+                        </a>
+                        <a
+                            href="https://ta.wikipedia.org/wiki/%E0%AE%B5%E0%AE%BE%E0%AE%B2%E0%AF%8D%E0%AE%AA%E0%AE%BE%E0%AE%B1%E0%AF%88"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group rounded-2xl border border-blue-100 bg-blue-50 p-5 hover:bg-blue-100 transition-colors"
+                        >
+                            <div className="flex items-center gap-3 mb-2 text-blue-700">
+                                <Globe size={20} />
+                                <h4 className="font-black text-lg">Valparai Tamil Wikipedia</h4>
+                            </div>
+                            <p className="text-sm text-blue-900/80">Preview Valparai (வால்பாறை / வால்பாரை) information in Tamil language.</p>
+                            <span className="inline-flex items-center gap-2 mt-3 text-xs font-black uppercase tracking-wider text-blue-700">Open Tamil Wiki <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" /></span>
+                        </a>
+                    </div>
                 </motion.div>
             </div>
         </motion.div>

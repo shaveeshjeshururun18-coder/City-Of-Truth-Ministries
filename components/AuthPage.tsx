@@ -579,17 +579,17 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                             animate={{ opacity: 1, y: 0, scale: 1 }}
                                             exit={{ opacity: 0, y: 20, scale: 0.95 }}
                                             onClick={(e) => e.stopPropagation()}
-                                            className="max-w-2xl mx-auto bg-gradient-to-br from-brand-50 via-white to-brand-100 border-2 border-brand-100 rounded-[1.8rem] md:rounded-[2.2rem] p-5 sm:p-6 md:p-7 shadow-2xl relative overflow-hidden group"
+                                            className="max-w-3xl mx-auto bg-gradient-to-br from-brand-50 via-white to-brand-100 border-2 border-brand-100 rounded-[1.8rem] md:rounded-[2.2rem] p-5 sm:p-7 md:p-8 shadow-2xl relative overflow-hidden group"
                                         >
                                             <button type="button" onClick={() => { setPreviewUser(null); setPreviewProfileId(null); }} className="absolute top-4 right-4 md:top-5 md:right-5 w-9 h-9 rounded-full bg-white border border-brand-100 text-brand-500 hover:text-brand-700 shadow-sm flex items-center justify-center">
                                                 <X size={18} />
                                             </button>
                                             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-brand-400/10 to-transparent opacity-50" />
 
-                                            <div className="relative z-10 rounded-2xl bg-white/90 border border-brand-100 p-4 md:p-5">
+                                            <div className="relative z-10 rounded-2xl bg-white/90 border border-brand-100 p-4 md:p-6">
                                                 <div className="flex items-center gap-4">
                                                     <div className="relative shrink-0">
-                                                        <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden border-2 border-white shadow-lg bg-brand-100">
+                                                        <div className={`w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden border-2 border-white shadow-lg bg-brand-100 ${(previewUser.status || '') !== 'Active' ? 'blur-[2px]' : ''}`}>
                                                         {previewUser.photo ? (
                                                             <img src={previewUser.photo} alt={previewUser.name} className="w-full h-full object-cover" />
                                                         ) : (
@@ -598,13 +598,21 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                                             </div>
                                                         )}
                                                     </div>
-                                                        <div className="absolute -bottom-2 -right-2 bg-brand-500 text-white p-1.5 rounded-xl shadow border-2 border-white">
-                                                            <CheckCircle size={14} className="md:w-4 md:h-4" />
-                                                        </div>
+                                                        {(previewUser.status || '') === 'Active' ? (
+                                                            <div className="absolute -bottom-2 -right-2 bg-brand-500 text-white p-1.5 rounded-xl shadow border-2 border-white">
+                                                                <CheckCircle size={14} className="md:w-4 md:h-4" />
+                                                            </div>
+                                                        ) : (
+                                                            <div className="absolute -bottom-2 -right-2 bg-amber-500 text-white px-2 py-1 rounded-xl shadow border-2 border-white text-[9px] font-black uppercase tracking-wider">
+                                                                Pending
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div className="min-w-0 flex-1">
                                                         <div className="flex flex-wrap items-center gap-2 mb-2">
-                                                            <span className="bg-brand-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.15em]">Verified Member</span>
+                                                            <span className={`${(previewUser.status || '') === 'Active' ? 'bg-brand-600 text-white' : 'bg-amber-100 text-amber-800'} px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.15em]`}>
+                                                                {(previewUser.status || '') === 'Active' ? 'Verified Member' : 'Pending Approval'}
+                                                            </span>
                                                             <span className="bg-white/90 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.15em] text-brand-500 border border-brand-100">{previewUser.role || 'Member'}</span>
                                                         {previewProfileId && previewProfileId !== previewUser.id && (
                                                                 <span className="bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.15em] border border-amber-200 flex items-center gap-1">

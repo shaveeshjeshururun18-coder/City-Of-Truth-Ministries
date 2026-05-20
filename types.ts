@@ -45,6 +45,9 @@ export interface PendingProfileUpdate {
   location?: string;
   emergency?: string;
   photo?: string;
+  dob?: string;
+  memberSince?: string;
+  joinedDate?: string;
 }
 
 export interface User {

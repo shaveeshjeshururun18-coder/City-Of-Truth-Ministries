@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion';
 import {
     Users, UserCheck, UserX, Clock, Search, Edit2, Trash2, X, User as UserIcon, ShieldAlert,
     ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Filter, Mail, Phone, MapPin, Droplet,
     Calendar, Award, Shield, ShieldCheck, AlertCircle, CheckCircle, QrCode, Download,
     Save, GripVertical, Globe, Plus, ImagePlus, Camera, Image as ImageIcon, MessageSquare, Check, XCircle, FileText,
-    PanelLeft, PanelTop, Database, RotateCcw
+    PanelLeft, PanelTop, Database, RotateCcw, Dice6
 } from 'lucide-react';
 import { User, UserRole, UserStatus, Testimonial, Ministry, DeletedUser } from '../types';
 import { Button } from './Button';
@@ -43,10 +43,14 @@ interface AdminDashboardProps {
     users: User[];
     deletedUsers?: DeletedUser[];
     contactMessages?: ContactMessage[];
+    deletedContactMessages?: ContactMessage[];
     memberNotifications?: MemberNotification[];
+    deletedMemberNotifications?: MemberNotification[];
     onSendMessageToUsers?: (targetUserIds: string[], message: string) => void;
     onDeleteContactMessage?: (messageId: string) => void;
+    onRestoreContactMessage?: (messageId: string) => void;
     onDeleteMemberNotification?: (notificationId: string) => void;
+    onRestoreMemberNotification?: (notificationId: string) => void;
     onUpdateUser: (user: User) => Promise<void>;
     onDeleteUser: (userId: string) => Promise<void>;
     onRestoreUser?: (userId: string) => Promise<void>;
@@ -79,13 +83,15 @@ const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any
 
 
 
-const TAB_ITEMS: { id: 'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'; label: string; icon: React.ElementType }[] = [
+const TAB_ITEMS: { id: 'users' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'; label: string; icon: React.ElementType }[] = [
     { id: 'users', label: 'Users', icon: Users },
     { id: 'recycle-bin', label: 'Recycle Bin', icon: RotateCcw },
     { id: 'firebase', label: 'Firebase', icon: Database },
     { id: 'messages', label: 'Messages', icon: MessageSquare },
     { id: 'ministries', label: 'Ministries', icon: Globe },
     { id: 'id-cards', label: 'ID Cards', icon: QrCode },
+    { id: 'cot-id-manager', label: 'COT ID Manager', icon: Dice6 },
+    { id: 'reports', label: 'Monthly Reports', icon: FileText },
     { id: 'home-layout', label: 'Home Layout', icon: GripVertical },
     { id: 'menu-editor', label: 'Menu Editor', icon: Filter },
 ];
@@ -101,6 +107,21 @@ const TAMIL_NADU_DISTRICTS = [
     'Vellore', 'Villupuram', 'Virudhunagar'
 ];
 const MAX_SUGGESTED_COT_IDS = 200;
+type WebsiteChangeItem = { date: string; type: string; detail: string };
+
+const toMonthKey = (value?: string) => {
+    if (!value) return '';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return '';
+    return parsed.toISOString().slice(0, 7);
+};
+
+const formatMonthLabel = (monthKey: string) => {
+    if (!monthKey) return 'Unknown Month';
+    const [year, month] = monthKey.split('-');
+    const parsed = new Date(Number(year), Number(month) - 1, 1);
+    return parsed.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+};
 
 const EMPTY_NEW_USER = {
     memberId: '',
@@ -129,10 +150,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     users,
     deletedUsers = [],
     contactMessages = [],
+    deletedContactMessages = [],
     memberNotifications = [],
+    deletedMemberNotifications = [],
     onSendMessageToUsers,
     onDeleteContactMessage,
+    onRestoreContactMessage,
     onDeleteMemberNotification,
+    onRestoreMemberNotification,
     onUpdateUser,
     onDeleteUser,
     onRestoreUser,
@@ -145,9 +170,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     navItems = [],
     onUpdateNavItems,
 }) => {
+    const homeLayoutDragControls = useDragControls();
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState<UserStatus | 'All'>('All');
     const [filterRole, setFilterRole] = useState<UserRole | 'All'>('All');
+    const [filterLocation, setFilterLocation] = useState<string>('All');
+    const [userSortMode, setUserSortMode] = useState<'status' | 'cot-id' | 'member-since'>('status');
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [deletingUser, setDeletingUser] = useState<User | null>(null);
     const [viewingQrUser, setViewingQrUser] = useState<User | null>(null);
@@ -168,7 +196,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [downloadingProfilePdfUserId, setDownloadingProfilePdfUserId] = useState<string | null>(null);
     const [userQuickViewMode, setUserQuickViewMode] = useState<UserQuickViewMode | null>(null);
 
-    const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'>('users');
     const [menuMode, setMenuMode] = useState<'horizontal' | 'vertical'>(() => {
         try {
             const stored = localStorage.getItem('adminMenuMode');
@@ -204,9 +232,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [cotDraftIds, setCotDraftIds] = useState<Record<string, string>>({});
     const [cotManagerMode, setCotManagerMode] = useState<'manual' | 'random' | 'requests'>('manual');
     const [cotManagerSelectedUserId, setCotManagerSelectedUserId] = useState('');
+    const [cotIdSearchInput, setCotIdSearchInput] = useState('');
+    const [cotIdSearchFeedback, setCotIdSearchFeedback] = useState<{ type: 'occupied' | 'available' | 'invalid'; message: string } | null>(null);
     const [diceRolling, setDiceRolling] = useState(false);
     const [diceTargetUserId, setDiceTargetUserId] = useState('');
     const [dicePickedCotId, setDicePickedCotId] = useState('');
+    const [diceManualInput, setDiceManualInput] = useState('');
+    const [messageRestoreUserFilter, setMessageRestoreUserFilter] = useState('');
+    const [messageLocationFilter, setMessageLocationFilter] = useState<string>('All');
+    const [isMessageComposerMinimized, setIsMessageComposerMinimized] = useState(false);
+    const [isMessageComposerClosed, setIsMessageComposerClosed] = useState(false);
+    const [selectedReportMonth, setSelectedReportMonth] = useState(() => new Date().toISOString().slice(0, 7));
 
     React.useEffect(() => {
         if (activeTab === 'messages') {
@@ -367,6 +403,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             .map(([location, count]) => ({ location, count }))
             .sort((a, b) => b.count - a.count || a.location.localeCompare(b.location));
     }, [users]);
+    const userLocationOptions = useMemo(
+        () => Array.from(new Set(users.map(user => (user.location || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
+        [users]
+    );
 
     const selectedQuickView = useMemo(
         () => USER_QUICK_VIEW_OPTIONS.find(option => option.id === userQuickViewMode) || null,
@@ -379,33 +419,83 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString();
     };
 
+    const formatCotId = (num: number) => `COT-${String(num).padStart(4, '0')}`;
+    const normalizeCotIdInput = (value: string) => {
+        const raw = (value || '').trim().toUpperCase();
+        if (!raw) return '';
+        if (/^COT-\d{1,}$/i.test(raw)) {
+            const numeric = raw.replace(/^COT-/i, '');
+            return formatCotId(Number(numeric));
+        }
+        const digits = raw.replace(/\D/g, '');
+        if (!digits) return raw;
+        return formatCotId(Number(digits));
+    };
+    const parseCotNumber = (id: string): number | null => {
+        const match = /^COT-(\d{1,})$/i.exec((id || '').trim());
+        if (!match) return null;
+        const num = Number(match[1]);
+        return Number.isFinite(num) && num > 0 ? num : null;
+    };
+
     const existingCotIds = useMemo(() => {
         return new Set(
             users
                 .map(user => `${user.id ?? ''}`.trim().toUpperCase())
-                .filter(Boolean)
+                .filter(id => /^COT-\d{4,}$/i.test(id))
         );
     }, [users]);
 
-    const suggestedCotIds = useMemo(() => {
+    const maxOccupiedCotNumber = useMemo(() => {
+        const max = users.reduce((acc, user) => {
+            const parsed = parseCotNumber(user.id);
+            return parsed && parsed > acc ? parsed : acc;
+        }, 0);
+        return Math.max(max, 0);
+    }, [users]);
+
+    const cotIdInventoryUpperBound = useMemo(
+        () => Math.max(maxOccupiedCotNumber + 200, 1000),
+        [maxOccupiedCotNumber]
+    );
+
+    const allAvailableCotIds = useMemo(() => {
         const ids: string[] = [];
-        for (let idNum = 3000; idNum <= 9999 && ids.length < MAX_SUGGESTED_COT_IDS; idNum += 1) {
-            const candidate = `COT-${idNum}`;
-            if (!existingCotIds.has(candidate)) {
-                ids.push(candidate);
-            }
+        for (let idNum = 1; idNum <= cotIdInventoryUpperBound; idNum += 1) {
+            const candidate = formatCotId(idNum);
+            if (!existingCotIds.has(candidate)) ids.push(candidate);
         }
         return ids;
-    }, [existingCotIds]);
+    }, [cotIdInventoryUpperBound, existingCotIds]);
+
+    const suggestedCotIds = useMemo(() => {
+        const shuffled = [...allAvailableCotIds];
+        for (let i = shuffled.length - 1; i > 0; i -= 1) {
+            const buffer = new Uint32Array(1);
+            if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+                crypto.getRandomValues(buffer);
+            } else {
+                buffer[0] = i;
+            }
+            const j = buffer[0] % (i + 1);
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled.slice(0, MAX_SUGGESTED_COT_IDS);
+    }, [allAvailableCotIds]);
+
+    const cotIdInventory = useMemo(
+        () => Array.from({ length: maxOccupiedCotNumber }, (_, index) => formatCotId(index + 1)),
+        [maxOccupiedCotNumber]
+    );
 
     const getRandomAvailableCotId = () => {
-        if (suggestedCotIds.length === 0) return null;
+        if (allAvailableCotIds.length === 0) return null;
         if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
             const randomBuffer = new Uint32Array(1);
             crypto.getRandomValues(randomBuffer);
-            return suggestedCotIds[randomBuffer[0] % suggestedCotIds.length];
+            return allAvailableCotIds[randomBuffer[0] % allAvailableCotIds.length];
         }
-        return suggestedCotIds[0];
+        return allAvailableCotIds[0];
     };
 
     const isCotId = (id: string) => /^COT-\d{4,}$/i.test((id || '').trim());
@@ -430,19 +520,119 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             }));
     }, [userReplies, users]);
 
+    const cotIdRequestInsights = useMemo(() => {
+        const todayKey = new Date().toISOString().slice(0, 10);
+        const classifyRequest = (message: string) => {
+            const value = (message || '').toLowerCase();
+            if (/not.*like|dislike|don'?t.*like|change/.test(value)) return 'Dislike Current ID';
+            if (/new|different|another|reassign/.test(value)) return 'Need New ID';
+            return 'General ID Help';
+        };
+        const enhanced = cotIdChangeRequests.map(request => ({
+            ...request,
+            category: classifyRequest(request.message || ''),
+            isToday: (request.createdAt || '').slice(0, 10) === todayKey,
+            isPendingUser: request.user?.status === 'Pending Verification'
+        }));
+        return {
+            total: enhanced.length,
+            today: enhanced.filter(item => item.isToday).length,
+            todayNotPending: enhanced.filter(item => item.isToday && !item.isPendingUser).length,
+            pendingUsers: enhanced.filter(item => item.isPendingUser).length,
+            categories: {
+                dislike: enhanced.filter(item => item.category === 'Dislike Current ID').length,
+                newId: enhanced.filter(item => item.category === 'Need New ID').length,
+                help: enhanced.filter(item => item.category === 'General ID Help').length
+            },
+            items: enhanced
+        };
+    }, [cotIdChangeRequests]);
+
+    const deletedMessageUserOptions = useMemo(() => {
+        const userIds = new Set<string>();
+        deletedContactMessages.forEach(msg => {
+            if (msg.senderId) userIds.add(msg.senderId);
+        });
+        deletedMemberNotifications.forEach(note => {
+            if (note.userId) userIds.add(note.userId);
+        });
+        return Array.from(userIds).sort();
+    }, [deletedContactMessages, deletedMemberNotifications]);
+
+    const filteredDeletedContactMessages = useMemo(
+        () => deletedContactMessages.filter(msg => !messageRestoreUserFilter || msg.senderId === messageRestoreUserFilter),
+        [deletedContactMessages, messageRestoreUserFilter]
+    );
+
+    const filteredDeletedMemberReplies = useMemo(
+        () => deletedMemberNotifications.filter(note => note.from === 'user' && (!messageRestoreUserFilter || note.userId === messageRestoreUserFilter)),
+        [deletedMemberNotifications, messageRestoreUserFilter]
+    );
+
+    const resolveCotUserFromInput = (candidate: string) => {
+        const raw = (candidate || '').trim();
+        if (!raw) return null;
+        const exactId = normalizeCotIdInput(raw);
+        if (exactId) {
+            const byId = cotUsers.find(user => (user.id || '').toUpperCase() === exactId);
+            if (byId) return byId;
+        }
+        const normalizedRaw = raw.toLowerCase();
+        return cotUsers.find(user => {
+            const userId = (user.id || '').toUpperCase();
+            const userName = (user.name || '').toLowerCase();
+            return (
+                userName === normalizedRaw ||
+                userId === raw.toUpperCase() ||
+                `${user.name} • ${userId}`.toLowerCase() === normalizedRaw
+            );
+        }) || null;
+    };
+
+    const cotRecipientSuggestions = useMemo(() => {
+        const q = targetCotIdInput.trim().toLowerCase();
+        if (!q) return [];
+        return cotUsers
+            .filter(user => {
+                const userId = (user.id || '').toLowerCase();
+                const userName = (user.name || '').toLowerCase();
+                const userPhone = (user.phone || '').toLowerCase();
+                return userId.includes(q) || userName.includes(q) || userPhone.includes(q);
+            })
+            .slice(0, 6);
+    }, [cotUsers, targetCotIdInput]);
+
+    const selectedCotUsers = useMemo(
+        () => selectedCotIds
+            .map(id => cotUsers.find(user => (user.id || '').toUpperCase() === id))
+            .filter(Boolean) as User[],
+        [selectedCotIds, cotUsers]
+    );
+
+    const highlightedMessageTarget = useMemo(
+        () => resolveCotUserFromInput(targetCotIdInput) || cotRecipientSuggestions[0] || null,
+        [targetCotIdInput, cotRecipientSuggestions]
+    );
+
     const markCotIdForMessage = (candidate: string) => {
-        const normalized = (candidate || '').trim().toUpperCase();
+        const user = resolveCotUserFromInput(candidate);
+        if (!user) return;
+        const normalized = (user.id || '').toUpperCase();
         if (!isCotId(normalized)) return;
-        if (!users.some(user => user.id.toUpperCase() === normalized)) return;
         setSelectedCotIds(prev => (prev.includes(normalized) ? prev : [...prev, normalized]));
         setTargetCotIdInput('');
     };
 
     const handleSendAdminMessage = () => {
-        const targetIds = selectedCotIds.length > 0 ? selectedCotIds : cotUsers.map(user => user.id.toUpperCase());
+        const locationScopedCotUsers = messageLocationFilter === 'All'
+            ? cotUsers
+            : cotUsers.filter(user => (user.location || '').trim() === messageLocationFilter);
+        const targetIds = selectedCotIds.length > 0 ? selectedCotIds : locationScopedCotUsers.map(user => user.id.toUpperCase());
         if (!onSendMessageToUsers) return;
         if (targetIds.length === 0) {
-            alert('No COT users available to receive this message.');
+            alert(messageLocationFilter === 'All'
+                ? 'No COT users available to receive this message.'
+                : `No COT users found in ${messageLocationFilter}.`);
             return;
         }
         if (!bulkAdminMessage.trim()) {
@@ -452,6 +642,167 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         onSendMessageToUsers(targetIds, bulkAdminMessage);
         setBulkAdminMessage('');
         setSelectedCotIds([]);
+    };
+
+    const getMessageUser = (message: ContactMessage) => {
+        const senderId = (message.senderId || '').trim().toUpperCase();
+        const senderEmail = (message.email || '').trim().toLowerCase();
+        const senderName = (message.name || '').trim().toLowerCase();
+        return users.find(user =>
+            (senderId && (user.id || '').toUpperCase() === senderId) ||
+            (senderEmail && (user.email || '').trim().toLowerCase() === senderEmail) ||
+            (senderName && (user.name || '').trim().toLowerCase() === senderName)
+        ) || null;
+    };
+
+    const reportMonthOptions = useMemo(() => {
+        const keys = new Set<string>();
+        keys.add(new Date().toISOString().slice(0, 7));
+        users.forEach(user => keys.add(toMonthKey(user.joinedDate || user.memberSince)));
+        deletedUsers.forEach(user => keys.add(toMonthKey(user.deletedAt)));
+        memberNotifications.forEach(note => keys.add(toMonthKey(note.createdAt)));
+        ministries.forEach(item => keys.add(toMonthKey(item.date)));
+        testimonials.forEach(item => keys.add(toMonthKey(item.date)));
+        contactMessages.forEach(msg => keys.add(toMonthKey(msg.createdAt)));
+        return Array.from(keys).filter(Boolean).sort((a, b) => b.localeCompare(a));
+    }, [users, deletedUsers, memberNotifications, ministries, testimonials, contactMessages]);
+
+    React.useEffect(() => {
+        if (!reportMonthOptions.includes(selectedReportMonth) && reportMonthOptions.length > 0) {
+            setSelectedReportMonth(reportMonthOptions[0]);
+        }
+    }, [reportMonthOptions, selectedReportMonth]);
+
+    const monthlyReportData = useMemo(() => {
+        const month = selectedReportMonth;
+        const monthlyRegisteredUsers = users.filter(user => toMonthKey(user.joinedDate || user.memberSince) === month);
+        const monthlyAdxNotes = memberNotifications.filter(note => note.from === 'user' && toMonthKey(note.createdAt) === month && /adx/i.test(note.message || ''));
+        const monthlyDisapprovedUsers = users.filter(user => user.status === 'Rejected' && toMonthKey(user.joinedDate || user.memberSince) === month);
+        const monthlyDeletedUsers = deletedUsers.filter(user => toMonthKey(user.deletedAt) === month);
+
+        const websiteChanges: WebsiteChangeItem[] = [
+            ...ministries
+                .filter(item => toMonthKey(item.date) === month)
+                .map(item => ({
+                    date: item.date,
+                    type: 'Ministry Content Update',
+                    detail: item.name ? `Ministry item: ${item.name}` : 'Ministry image/content updated'
+                })),
+            ...testimonials
+                .filter(item => toMonthKey(item.date) === month)
+                .map(item => ({
+                    date: item.date,
+                    type: `Testimonial ${item.status}`,
+                    detail: `${item.userName}: "${item.content.slice(0, 80)}${item.content.length > 80 ? '…' : ''}"`
+                })),
+            ...contactMessages
+                .filter(msg => toMonthKey(msg.createdAt) === month)
+                .map(msg => ({
+                    date: msg.createdAt,
+                    type: 'Contact Interaction',
+                    detail: `${msg.name || 'Visitor'} sent "${msg.subject || 'No subject'}"`
+                }))
+        ].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+        return {
+            month,
+            monthlyRegisteredUsers,
+            monthlyAdxNotes,
+            monthlyDisapprovedUsers,
+            monthlyDeletedUsers,
+            websiteChanges,
+        };
+    }, [selectedReportMonth, users, memberNotifications, deletedUsers, ministries, testimonials, contactMessages]);
+
+    const handleDownloadMonthlyReport = (month: string) => {
+        const monthLabel = formatMonthLabel(month);
+        const reportData = month === selectedReportMonth
+            ? monthlyReportData
+            : (() => {
+                const monthlyRegisteredUsers = users.filter(user => toMonthKey(user.joinedDate || user.memberSince) === month);
+                const monthlyAdxNotes = memberNotifications.filter(note => note.from === 'user' && toMonthKey(note.createdAt) === month && /adx/i.test(note.message || ''));
+                const monthlyDisapprovedUsers = users.filter(user => user.status === 'Rejected' && toMonthKey(user.joinedDate || user.memberSince) === month);
+                const monthlyDeletedUsers = deletedUsers.filter(user => toMonthKey(user.deletedAt) === month);
+                const websiteChanges: WebsiteChangeItem[] = [
+                    ...ministries.filter(item => toMonthKey(item.date) === month).map(item => ({ date: item.date, type: 'Ministry Content Update', detail: item.name ? `Ministry item: ${item.name}` : 'Ministry image/content updated' })),
+                    ...testimonials.filter(item => toMonthKey(item.date) === month).map(item => ({ date: item.date, type: `Testimonial ${item.status}`, detail: `${item.userName}: "${item.content.slice(0, 80)}${item.content.length > 80 ? '…' : ''}"` })),
+                    ...contactMessages.filter(msg => toMonthKey(msg.createdAt) === month).map(msg => ({ date: msg.createdAt, type: 'Contact Interaction', detail: `${msg.name || 'Visitor'} sent "${msg.subject || 'No subject'}"` })),
+                ].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+                return { month, monthlyRegisteredUsers, monthlyAdxNotes, monthlyDisapprovedUsers, monthlyDeletedUsers, websiteChanges };
+            })();
+
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const margin = 14;
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const contentWidth = pageWidth - margin * 2;
+        let y = 18;
+        const addSectionHeader = (title: string) => {
+            if (y > 270) {
+                pdf.addPage();
+                y = 18;
+            }
+            pdf.setFillColor(36, 92, 191);
+            pdf.roundedRect(margin, y, contentWidth, 9, 2, 2, 'F');
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(10);
+            pdf.text(title, margin + 3, y + 6);
+            y += 12;
+        };
+        const addBodyLine = (text: string) => {
+            if (y > 282) {
+                pdf.addPage();
+                y = 18;
+            }
+            pdf.setTextColor(20, 20, 20);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(9);
+            const lines = pdf.splitTextToSize(text, contentWidth);
+            pdf.text(lines, margin, y);
+            y += lines.length * 4.3 + 1;
+        };
+
+        pdf.setFillColor(18, 35, 66);
+        pdf.rect(0, 0, pageWidth, 32, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(15);
+        pdf.text('City of Truth Ministries', margin, 14);
+        pdf.setFontSize(11);
+        pdf.text(`Professional Monthly Admin Report • ${monthLabel}`, margin, 22);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8);
+        pdf.text(`Generated on ${new Date().toLocaleString()}`, margin, 28);
+        y = 38;
+
+        addSectionHeader('Executive Summary');
+        addBodyLine(`Users Registered: ${reportData.monthlyRegisteredUsers.length}`);
+        addBodyLine(`Users Sent ADX: ${reportData.monthlyAdxNotes.length}`);
+        addBodyLine(`Users Disapproved: ${reportData.monthlyDisapprovedUsers.length}`);
+        addBodyLine(`Users Deleted: ${reportData.monthlyDeletedUsers.length}`);
+        addBodyLine(`Website Changes Tracked: ${reportData.websiteChanges.length}`);
+
+        addSectionHeader('Registered Users');
+        if (reportData.monthlyRegisteredUsers.length === 0) addBodyLine('No users were registered in this month.');
+        reportData.monthlyRegisteredUsers.forEach(user => addBodyLine(`${user.id} • ${user.name} • ${user.phone} • ${user.location} • ${user.status}`));
+
+        addSectionHeader('Users Who Sent ADX');
+        if (reportData.monthlyAdxNotes.length === 0) addBodyLine('No ADX messages were found for this month.');
+        reportData.monthlyAdxNotes.forEach(note => addBodyLine(`${note.userId} • ${new Date(note.createdAt).toLocaleString()} • ${note.message}`));
+
+        addSectionHeader('Disapproved Users');
+        if (reportData.monthlyDisapprovedUsers.length === 0) addBodyLine('No disapproved users tracked in this month.');
+        reportData.monthlyDisapprovedUsers.forEach(user => addBodyLine(`${user.id} • ${user.name} • ${user.phone} • Joined ${user.joinedDate || user.memberSince}`));
+
+        addSectionHeader('Deleted Users');
+        if (reportData.monthlyDeletedUsers.length === 0) addBodyLine('No users were deleted in this month.');
+        reportData.monthlyDeletedUsers.forEach(user => addBodyLine(`${user.id} • ${user.name} • Deleted ${new Date(user.deletedAt).toLocaleString()}`));
+
+        addSectionHeader('Website Changes / Activity');
+        if (reportData.websiteChanges.length === 0) addBodyLine('No tracked website changes found for this month in the available datasets.');
+        reportData.websiteChanges.slice(0, 150).forEach(change => addBodyLine(`${new Date(change.date).toLocaleString()} • ${change.type} • ${change.detail}`));
+
+        pdf.save(`COT-Monthly-Admin-Report-${month}.pdf`);
     };
 
     const handleRollRandomCotId = () => {
@@ -468,13 +819,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }, 900);
     };
 
-    const handleApplyDiceCotId = async () => {
+    const applyCotIdToSelectedUser = async (candidateId: string) => {
         if (!onReassignUserId) {
             alert('ID reassignment is not available.');
             return;
         }
-        if (!diceTargetUserId || !dicePickedCotId) {
-            alert('Select user and roll a COT ID first.');
+        const nextCotId = normalizeCotIdInput(candidateId);
+        if (!diceTargetUserId || !nextCotId) {
+            alert('Select user and provide a COT ID first.');
             return;
         }
         const user = users.find(u => u.id === diceTargetUserId);
@@ -486,20 +838,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             alert('Random COT ID assignment is allowed only for approved users.');
             return;
         }
-        try {
-            await onReassignUserId(user.id, dicePickedCotId, { ...user, id: dicePickedCotId });
-            setDicePickedCotId('');
-        } catch (error) {
-            console.error('Failed to assign random COT ID', error);
-            alert('Failed to assign random COT ID.');
+        if (!isCotId(nextCotId)) {
+            alert('Enter a valid COT ID format like COT-1960.');
+            return;
         }
+        if (nextCotId !== user.id.toUpperCase() && existingCotIds.has(nextCotId)) {
+            alert('This COT ID is already used.');
+            return;
+        }
+        try {
+            await onReassignUserId(user.id, nextCotId, { ...user, id: nextCotId });
+            setDicePickedCotId('');
+            setDiceManualInput('');
+        } catch (error) {
+            console.error('Failed to assign COT ID', error);
+            alert('Failed to assign COT ID.');
+        }
+    };
+
+    const handleApplyDiceCotId = async () => {
+        await applyCotIdToSelectedUser(dicePickedCotId);
     };
 
     const activateUserWithCotId = async (user: User) => {
         const approvedUserBase: User = {
             ...user,
             ...(user.pendingProfileUpdate || {}),
-            pendingProfileUpdate: undefined,
+            pendingProfileUpdate: {},
             status: 'Active'
         };
 
@@ -538,16 +903,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             const matchesStatus = filterStatus === 'All' || user.status === filterStatus;
             const matchesRole = filterRole === 'All' || user.role === filterRole;
+            const matchesLocation = filterLocation === 'All' || (user.location || '').trim() === filterLocation;
 
-            return matchesSearch && matchesStatus && matchesRole;
+            return matchesSearch && matchesStatus && matchesRole && matchesLocation;
         });
 
-        // Sort by status: Pending first, then Active, then Rejected
+        if (userSortMode === 'cot-id') {
+            return filtered.sort((a, b) => (a.id || '').localeCompare((b.id || ''), undefined, { numeric: true, sensitivity: 'base' }));
+        }
+        if (userSortMode === 'member-since') {
+            return filtered.sort((a, b) => {
+                const aDate = new Date(a.memberSince || a.joinedDate || '').getTime();
+                const bDate = new Date(b.memberSince || b.joinedDate || '').getTime();
+                const safeA = Number.isNaN(aDate) ? 0 : aDate;
+                const safeB = Number.isNaN(bDate) ? 0 : bDate;
+                return safeB - safeA;
+            });
+        }
+
         return filtered.sort((a, b) => {
             const statusOrder = { 'Pending Verification': 0, 'Active': 1, 'Rejected': 2 };
             return statusOrder[a.status] - statusOrder[b.status];
         });
-    }, [users, searchQuery, filterStatus, filterRole]);
+    }, [users, searchQuery, filterStatus, filterRole, filterLocation, userSortMode]);
 
     const cotManagerUsers = useMemo(() => {
         const query = cotManagerQuery.trim().toLowerCase();
@@ -565,6 +943,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         () => cotManagerUsers.filter(user => user.status === 'Active'),
         [cotManagerUsers]
     );
+
+    const handleSearchCotId = () => {
+        const normalized = normalizeCotIdInput(cotIdSearchInput);
+        if (!isCotId(normalized)) {
+            setCotIdSearchFeedback({ type: 'invalid', message: 'Enter a valid COT ID (example: COT-0001).' });
+            return;
+        }
+        const foundUser = users.find(user => user.id.toUpperCase() === normalized);
+        if (!foundUser) {
+            setCotManagerSelectedUserId('');
+            setCotIdSearchFeedback({ type: 'available', message: `${normalized} is available.` });
+            return;
+        }
+        setCotManagerSelectedUserId(foundUser.id);
+        setCotManagerQuery(foundUser.name);
+        setCotIdSearchFeedback({ type: 'occupied', message: `${normalized} is occupied by ${foundUser.name}.` });
+    };
 
     const moveArrayItem = <T,>(arr: T[], from: number, to: number): T[] => {
         if (from === to || from < 0 || to < 0 || from >= arr.length || to >= arr.length) return arr;
@@ -821,10 +1216,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         await runUserAction(() => activateUserWithCotId(user), 'Failed to approve user');
     };
     const disapproveUser = async (user: User) => {
-        await runUserAction(() => onUpdateUser({ ...user, status: 'Rejected', pendingProfileUpdate: undefined }), 'Failed to disapprove user');
+        await runUserAction(() => onUpdateUser({ ...user, status: 'Rejected', pendingProfileUpdate: {} }), 'Failed to disapprove user');
     };
     const rejectPendingEdit = async (user: User) => {
-        await runUserAction(() => onUpdateUser({ ...user, pendingProfileUpdate: undefined }), 'Failed to reject pending edit');
+        await runUserAction(() => onUpdateUser({ ...user, pendingProfileUpdate: {} }), 'Failed to reject pending edit');
     };
 
     const toggleSelectAll = () => {
@@ -1312,6 +1707,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <option value="Choir">Choir</option>
                                     <option value="Media Team">Media Team</option>
                                 </select>
+                                <select
+                                    value={filterLocation}
+                                    onChange={(e) => setFilterLocation(e.target.value)}
+                                    className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors text-sm"
+                                >
+                                    <option value="All">All Locations</option>
+                                    {userLocationOptions.map(location => (
+                                        <option key={location} value={location}>{location}</option>
+                                    ))}
+                                </select>
+                                <select
+                                    value={userSortMode}
+                                    onChange={(e) => setUserSortMode(e.target.value as 'status' | 'cot-id' | 'member-since')}
+                                    className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors text-sm"
+                                >
+                                    <option value="status">Sort: Status</option>
+                                    <option value="cot-id">Sort: COT ID</option>
+                                    <option value="member-since">Sort: Member Since</option>
+                                </select>
                             </div>
 
                             {/* Results count and bulk actions */}
@@ -1374,8 +1788,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">User</th>
                                         <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Contact</th>
                                         <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Role</th>
+                                        <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Location</th>
                                         <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                                        <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Joined</th>
+                                        <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Member Since</th>
                                         <th className="text-right px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
@@ -1428,6 +1843,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                     {user.role}
                                                 </span>
                                             </td>
+                                            <td className="px-6 py-4 text-sm text-slate-600">
+                                                {user.location || '—'}
+                                            </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-wrap items-center gap-2">
                                                     <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(user.status)}`}>
@@ -1445,7 +1863,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-sm text-slate-600">
-                                                {new Date(user.joinedDate).toLocaleDateString()}
+                                                {new Date(user.memberSince || user.joinedDate).toLocaleDateString()}
                                             </td>
                                             <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                                                 <div className="flex items-center justify-end gap-2">
@@ -1642,6 +2060,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <Award size={14} className="text-slate-400" />
                                         {user.role}
                                     </div>
+                                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                                        <MapPin size={14} className="text-slate-400" />
+                                        {user.location || 'Unknown location'}
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                                        <Calendar size={14} className="text-slate-400" />
+                                        Member since {new Date(user.memberSince || user.joinedDate).toLocaleDateString()}
+                                    </div>
                                 </div>
 
                                 {user.status === 'Pending Verification' && (
@@ -1791,8 +2217,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 )}
 
                 {/* ID Cards Section */}
-                {activeTab === 'id-cards' && (
+                {(activeTab === 'id-cards' || activeTab === 'cot-id-manager') && (
                     <div className="space-y-8">
+                        {activeTab === 'cot-id-manager' && (
                         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
                             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                                 <div>
@@ -1819,9 +2246,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     </button>
                                 ))}
                             </div>
+                            <div className="flex flex-wrap gap-2">
+                                <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100 text-[11px] font-bold">Today Requests: {cotIdRequestInsights.today}</span>
+                                <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 text-[11px] font-bold">Today Not Pending: {cotIdRequestInsights.todayNotPending}</span>
+                                <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100 text-[11px] font-bold">Pending Users: {cotIdRequestInsights.pendingUsers}</span>
+                                <span className="px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-100 text-[11px] font-bold">Dislike ID: {cotIdRequestInsights.categories.dislike}</span>
+                            </div>
 
                             {cotManagerMode === 'manual' && (
                                 <>
+                                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-3">
+                                        <p className="text-xs font-bold text-slate-700">Search COT ID and check occupancy</p>
+                                        <div className="flex flex-col sm:flex-row gap-2">
+                                            <input
+                                                value={cotIdSearchInput}
+                                                onChange={(e) => {
+                                                    setCotIdSearchInput(e.target.value);
+                                                    setCotIdSearchFeedback(null);
+                                                }}
+                                                placeholder="Type COT ID (e.g. COT-0001 or 1)"
+                                                className="flex-1 px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-mono outline-none focus:border-brand-500"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={handleSearchCotId}
+                                                className="px-3 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold"
+                                            >
+                                                Search COT ID
+                                            </button>
+                                        </div>
+                                        {cotIdSearchFeedback && (
+                                            <p className={`text-xs font-semibold ${cotIdSearchFeedback.type === 'occupied' ? 'text-amber-700' : cotIdSearchFeedback.type === 'available' ? 'text-emerald-700' : 'text-red-600'}`}>
+                                                {cotIdSearchFeedback.message}
+                                            </p>
+                                        )}
+                                    </div>
+
                                     <div className="relative">
                                         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                         <input
@@ -1833,15 +2293,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         />
                                     </div>
 
+                                    <details className="rounded-xl border border-slate-200 bg-white p-3">
+                                        <summary className="cursor-pointer text-xs font-bold text-slate-700">
+                                            COT ID inventory list (COT-0001 to {formatCotId(Math.max(maxOccupiedCotNumber, 1))})
+                                        </summary>
+                                        <div className="mt-3 max-h-40 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pr-1">
+                                            {cotIdInventory.length === 0 && (
+                                                <p className="text-xs text-slate-400">No occupied COT IDs yet.</p>
+                                            )}
+                                            {cotIdInventory.map((id) => {
+                                                const occupied = existingCotIds.has(id);
+                                                return (
+                                                    <div key={id} className={`px-2 py-1.5 rounded-lg border text-[11px] font-mono ${occupied ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
+                                                        {id} • {occupied ? 'Occupied' : 'Free'}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </details>
+
                                     <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
                                         {cotManagerUsers.slice(0, 60).map((user) => {
                                             const currentId = (user.id || '').toUpperCase();
                                             const draftId = cotDraftIds[user.id] ?? currentId;
-                                            const normalizedDraft = draftId.trim().toUpperCase();
+                                            const normalizedDraft = normalizeCotIdInput(draftId);
                                             const duplicateId = normalizedDraft && normalizedDraft !== currentId && existingCotIds.has(normalizedDraft);
                                             const isAssignable = user.status === 'Active';
                                             return (
-                                                <div key={user.id} className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_220px_auto] gap-2 items-center rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5">
+                                                <div key={user.id} className={`grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_220px_auto] gap-2 items-center rounded-xl border px-3 py-2.5 ${cotManagerSelectedUserId === user.id ? 'border-brand-300 bg-brand-50/70' : 'border-slate-100 bg-slate-50'}`}>
                                                     <div className="min-w-0">
                                                         <p className="text-sm font-bold text-brand-950 truncate">{user.name}</p>
                                                         <p className="text-[11px] font-mono text-slate-500 truncate">{currentId}</p>
@@ -1886,6 +2365,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                     >
                                                         {isAssignable ? 'Save ID' : 'Approve First'}
                                                     </button>
+                                                    {duplicateId && (
+                                                        <p className="xl:col-span-3 text-[11px] text-red-600 font-semibold">
+                                                            {normalizedDraft} is already occupied. Choose a different COT ID.
+                                                        </p>
+                                                    )}
                                                 </div>
                                             );
                                         })}
@@ -1921,8 +2405,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         >
                                             🎲 {diceRolling ? 'Rolling...' : 'Roll Dice'}
                                         </button>
-                                        <div className="px-4 py-2 rounded-xl border border-indigo-100 bg-indigo-50 text-indigo-700 text-sm font-mono min-w-[180px] text-center">
-                                            {dicePickedCotId || 'No COT ID picked yet'}
+                                        <div className="relative min-w-[220px] h-[92px] [perspective:1000px]">
+                                            <div className={`absolute inset-0 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-700 text-white flex flex-col items-center justify-center shadow-xl transition-transform duration-500 ${diceRolling ? 'animate-spin' : ''}`} style={{ transformStyle: 'preserve-3d' }}>
+                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-100">3D Dice Pick</span>
+                                                <span className="font-mono text-xl md:text-2xl font-black">{dicePickedCotId || '— — — —'}</span>
+                                            </div>
                                         </div>
                                         <button
                                             onClick={handleApplyDiceCotId}
@@ -1932,16 +2419,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             Use this COT ID
                                         </button>
                                     </div>
+                                    <div className="flex flex-col sm:flex-row gap-2">
+                                        <input
+                                            list="manual-cot-id-options"
+                                            value={diceManualInput}
+                                            onChange={(e) => setDiceManualInput(e.target.value)}
+                                            placeholder="Type COT ID manually (example: COT-1960)"
+                                            className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm font-mono outline-none focus:border-brand-500"
+                                        />
+                                        <button
+                                            onClick={() => applyCotIdToSelectedUser(diceManualInput)}
+                                            disabled={!diceTargetUserId || !diceManualInput.trim() || !onReassignUserId}
+                                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold disabled:opacity-60"
+                                        >
+                                            Apply Typed ID
+                                        </button>
+                                    </div>
                                     <p className="text-xs text-slate-500">Roll to generate a powerful random COT ID, then apply it to the selected user.</p>
                                 </div>
                             )}
 
                             {cotManagerMode === 'requests' && (
                                 <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                                    {cotIdChangeRequests.map(note => (
+                                    {cotIdRequestInsights.items.map(note => (
                                         <div key={note.id} className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 flex items-start justify-between gap-3">
                                             <div className="min-w-0">
-                                                <p className="text-xs font-black text-amber-900 truncate">{note.user?.name || note.userId}</p>
+                                                <div className="flex flex-wrap items-center gap-2 mb-1">
+                                                    <p className="text-xs font-black text-amber-900 truncate">{note.user?.name || note.userId}</p>
+                                                    <span className="px-2 py-0.5 rounded-full bg-white border border-amber-200 text-[10px] font-black text-amber-800">{note.category}</span>
+                                                    {note.isToday && <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-[10px] font-black text-emerald-700">Today</span>}
+                                                </div>
                                                 <p className="text-[11px] text-amber-900/90 whitespace-pre-wrap break-words">{note.message}</p>
                                                 <p className="text-[10px] text-amber-700 mt-1">{new Date(note.createdAt).toLocaleString()}</p>
                                             </div>
@@ -1988,8 +2495,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 )}
                             </div>
                         </div>
+                        )}
 
                         {/* Search and Filters (Reusing the same logic) */}
+                        {activeTab === 'id-cards' && (
                         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
                             <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
                                 <div className="flex-1 w-full relative">
@@ -2012,14 +2521,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <option value="Active">Active</option>
                                         <option value="Pending Verification">Pending</option>
                                     </select>
+                                    <select
+                                        value={filterLocation}
+                                        onChange={(e) => setFilterLocation(e.target.value)}
+                                        className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 text-sm font-bold"
+                                    >
+                                        <option value="All">All Locations</option>
+                                        {userLocationOptions.map(location => (
+                                            <option key={location} value={location}>{location}</option>
+                                        ))}
+                                    </select>
+                                    <select
+                                        value={userSortMode}
+                                        onChange={(e) => setUserSortMode(e.target.value as 'status' | 'cot-id' | 'member-since')}
+                                        className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 text-sm font-bold"
+                                    >
+                                        <option value="status">Status</option>
+                                        <option value="cot-id">COT ID</option>
+                                        <option value="member-since">Member Since</option>
+                                    </select>
                                     <div className="px-4 py-3 bg-brand-50 text-brand-700 rounded-xl flex items-center gap-2 font-black text-xs uppercase tracking-widest whitespace-nowrap">
                                         <Users size={14} /> {filteredUsers.length} Cards
                                     </div>
                                 </div>
                             </div>
                         </div>
+                        )}
 
                         {/* ID Cards Grid */}
+                        {activeTab === 'id-cards' && (
+                        <>
                         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-8">
                             <AnimatePresence mode='popLayout'>
                                 {filteredUsers.map((user, index) => (
@@ -2080,65 +2611,171 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <p className="text-slate-400 text-sm mt-2 font-light">Try adjusting your search or filters to see more results.</p>
                             </div>
                         )}
+                        </>
+                        )}
                     </div>
                 )}
                 {activeTab === 'messages' && (
                     <div className="space-y-4">
                         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 space-y-3">
-                            <h3 className="text-sm font-black text-brand-950">Send message by COT ID (single or bulk)</h3>
-                            <div className="flex flex-col sm:flex-row gap-2">
-                                <input
-                                    list="cot-id-targets"
-                                    value={targetCotIdInput}
-                                    onChange={(e) => setTargetCotIdInput(e.target.value)}
-                                    placeholder="Enter COT ID and click Add"
-                                    className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
-                                />
-                                <button
-                                    onClick={() => markCotIdForMessage(targetCotIdInput)}
-                                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold"
-                                >
-                                    Add ID
-                                </button>
-                                <button
-                                    onClick={() => setSelectedCotIds(cotUsers.map(user => user.id.toUpperCase()))}
-                                    className="px-4 py-2 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-bold"
-                                >
-                                    Select All
-                                </button>
-                            </div>
-                            <datalist id="cot-id-targets">
-                                {cotUsers.map(user => (
-                                    <option key={user.id} value={user.id.toUpperCase()} />
-                                ))}
-                            </datalist>
-                            <div className="flex flex-wrap gap-2">
-                                {selectedCotIds.map(id => (
+                            <div className="flex items-center justify-between gap-2">
+                                <h3 className="text-sm font-black text-brand-950">Send message by user name or COT/card ID</h3>
+                                <div className="flex items-center gap-2">
                                     <button
-                                        key={id}
-                                        onClick={() => setSelectedCotIds(prev => prev.filter(item => item !== id))}
-                                        className="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 text-[11px] font-bold"
+                                        onClick={() => setIsMessageComposerMinimized(prev => !prev)}
+                                        className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-600 hover:bg-slate-50"
                                     >
-                                        {id} ✕
+                                        {isMessageComposerMinimized ? 'Expand' : 'Minimize'}
                                     </button>
-                                ))}
-                                {selectedCotIds.length === 0 && (
-                                    <span className="text-xs text-slate-400">No ID selected. Message will be sent to all COT IDs.</span>
-                                )}
+                                    <button
+                                        onClick={() => setIsMessageComposerClosed(prev => !prev)}
+                                        className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-600 hover:bg-slate-50"
+                                    >
+                                        {isMessageComposerClosed ? 'Open' : 'Close'}
+                                    </button>
+                                </div>
                             </div>
-                            <textarea
-                                value={bulkAdminMessage}
-                                onChange={(e) => setBulkAdminMessage(e.target.value)}
-                                rows={3}
-                                placeholder="Type your admin message..."
-                                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
-                            />
-                            <button
-                                onClick={handleSendAdminMessage}
-                                className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-black uppercase tracking-wide"
-                            >
-                                Send Message
-                            </button>
+
+                            {!isMessageComposerClosed && (
+                                <>
+                                    {!isMessageComposerMinimized && (
+                                        <>
+                                            <div className="flex flex-col sm:flex-row gap-2">
+                                                <select
+                                                    value={messageLocationFilter}
+                                                    onChange={(e) => setMessageLocationFilter(e.target.value)}
+                                                    className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
+                                                >
+                                                    <option value="All">All Locations</option>
+                                                    {userLocationOptions.map(location => (
+                                                        <option key={location} value={location}>{location}</option>
+                                                    ))}
+                                                </select>
+                                                <p className="text-xs text-slate-500 self-center">
+                                                    When no specific users are selected, location is used for bulk send.
+                                                </p>
+                                            </div>
+                                            <div className="flex flex-col sm:flex-row gap-2">
+                                                <input
+                                                    list="cot-id-targets"
+                                                    value={targetCotIdInput}
+                                                    onChange={(e) => setTargetCotIdInput(e.target.value)}
+                                                    placeholder="Type user name or COT/card ID"
+                                                    className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
+                                                />
+                                                <button
+                                                    onClick={() => markCotIdForMessage(targetCotIdInput)}
+                                                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold"
+                                                >
+                                                    Add User
+                                                </button>
+                                                <button
+                                                    onClick={() => setSelectedCotIds(
+                                                        (messageLocationFilter === 'All'
+                                                            ? cotUsers
+                                                            : cotUsers.filter(user => (user.location || '').trim() === messageLocationFilter)
+                                                        ).map(user => user.id.toUpperCase())
+                                                    )}
+                                                    className="px-4 py-2 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-bold"
+                                                >
+                                                    Select All
+                                                </button>
+                                            </div>
+                                            <datalist id="cot-id-targets">
+                                                {cotUsers.map(user => (
+                                                    <option key={user.id} value={`${user.name} • ${user.id.toUpperCase()}`} />
+                                                ))}
+                                            </datalist>
+
+                                            {highlightedMessageTarget && (
+                                                <div className="rounded-2xl border border-indigo-100 bg-indigo-50 px-3 py-2 flex items-center justify-between gap-3">
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        <div className="w-9 h-9 rounded-full bg-white border border-indigo-100 overflow-hidden flex items-center justify-center text-[11px] font-black text-indigo-700 shrink-0">
+                                                            {highlightedMessageTarget.photo ? (
+                                                                <img src={highlightedMessageTarget.photo} alt={highlightedMessageTarget.name} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                (highlightedMessageTarget.name || 'U').slice(0, 1).toUpperCase()
+                                                            )}
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <p className="text-xs font-black text-indigo-900 truncate">{highlightedMessageTarget.name}</p>
+                                                            <p className="text-[11px] font-mono text-indigo-700/80 truncate">{highlightedMessageTarget.id}</p>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => markCotIdForMessage(highlightedMessageTarget.id)}
+                                                        className="px-2.5 py-1.5 rounded-lg bg-indigo-600 text-white text-[11px] font-bold hover:bg-indigo-700"
+                                                    >
+                                                        Add
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {cotRecipientSuggestions.length > 1 && (
+                                                <div className="space-y-1">
+                                                    {cotRecipientSuggestions.slice(0, 4).map(user => (
+                                                        <button
+                                                            key={user.id}
+                                                            onClick={() => markCotIdForMessage(user.id)}
+                                                            className="w-full text-left px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100"
+                                                        >
+                                                            <p className="text-xs font-bold text-slate-700 truncate">{user.name}</p>
+                                                            <p className="text-[11px] font-mono text-slate-500">{user.id}</p>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            <div className="flex flex-wrap gap-2">
+                                                {selectedCotUsers.map(user => (
+                                                    <div
+                                                        key={user.id}
+                                                        className="px-2.5 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100 text-[11px] font-bold flex items-center gap-2"
+                                                    >
+                                                        <span className="w-5 h-5 rounded-full bg-white border border-indigo-100 overflow-hidden flex items-center justify-center text-[10px] font-black">
+                                                            {user.photo ? (
+                                                                <img src={user.photo} alt={user.name} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                (user.name || 'U').slice(0, 1).toUpperCase()
+                                                            )}
+                                                        </span>
+                                                        <span className="max-w-[140px] truncate">{user.name} • {user.id}</span>
+                                                        <button
+                                                            onClick={() => setSelectedCotIds(prev => prev.filter(item => item !== user.id.toUpperCase()))}
+                                                            className="w-4 h-4 rounded-full border border-indigo-200 bg-white text-[9px] leading-none hover:bg-indigo-100"
+                                                            title="Remove recipient"
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                {selectedCotIds.length === 0 && (
+                                                    <span className="text-xs text-slate-400">No user selected. Message will be sent by location/all-user scope.</span>
+                                                )}
+                                            </div>
+                                            <textarea
+                                                value={bulkAdminMessage}
+                                                onChange={(e) => setBulkAdminMessage(e.target.value)}
+                                                rows={3}
+                                                placeholder="Type custom admin message..."
+                                                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
+                                            />
+                                            <button
+                                                onClick={handleSendAdminMessage}
+                                                className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-black uppercase tracking-wide"
+                                            >
+                                                Send Message
+                                            </button>
+                                        </>
+                                    )}
+                                    {isMessageComposerMinimized && (
+                                        <p className="text-xs text-slate-500">Composer minimized. Click Expand to continue typing and sending.</p>
+                                    )}
+                                </>
+                            )}
+                            {isMessageComposerClosed && (
+                                <p className="text-xs text-slate-500">Composer is closed. Click Open to continue sending messages.</p>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -2151,12 +2788,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <p className="text-sm text-slate-400">No contact messages yet.</p>
                                 ) : (
                                     <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-                                        {contactMessages.map((msg) => (
+                                        {contactMessages.map((msg) => {
+                                            const matchedUser = getMessageUser(msg);
+                                            return (
                                             <div key={msg.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
                                                 <div className="flex items-center justify-between gap-2 mb-1">
                                                     <p className="text-xs font-black text-brand-950 truncate">{msg.name || 'Website Visitor'}</p>
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-[10px] text-slate-400">{new Date(msg.createdAt).toLocaleDateString()}</span>
+                                                        {matchedUser && (
+                                                            <button
+                                                                onClick={() => setEditingUser(matchedUser)}
+                                                                className="px-2 py-1 rounded-lg text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100"
+                                                                title="Open user profile for edit/crop"
+                                                            >
+                                                                Open Profile
+                                                            </button>
+                                                        )}
                                                         {onDeleteContactMessage && (
                                                             <button
                                                                 onClick={() => onDeleteContactMessage(msg.id)}
@@ -2171,7 +2819,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 <p className="text-[11px] font-bold text-brand-700">{msg.subject}</p>
                                                 <p className="text-xs text-slate-600 mt-1 whitespace-pre-wrap break-words">{msg.message}</p>
                                             </div>
-                                        ))}
+                                        )})}
                                     </div>
                                 )}
                             </div>
@@ -2203,6 +2851,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 <p className="text-xs font-black text-blue-900">Reply from {note.userId}</p>
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-[10px] text-blue-700/60">{new Date(note.createdAt).toLocaleString()}</span>
+                                                    {users.find(user => user.id === note.userId) && (
+                                                        <button
+                                                            onClick={() => {
+                                                                const matched = users.find(user => user.id === note.userId);
+                                                                if (matched) setEditingUser(matched);
+                                                            }}
+                                                            className="px-2 py-1 rounded-lg text-[10px] font-bold text-blue-700 bg-white border border-blue-200 hover:bg-blue-100"
+                                                            title="Open user profile for edit/crop"
+                                                        >
+                                                            Open Profile
+                                                        </button>
+                                                    )}
                                                     {onDeleteMemberNotification && (
                                                         <button
                                                             onClick={() => onDeleteMemberNotification(note.id)}
@@ -2221,6 +2881,205 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <p className="text-sm text-slate-400">No testimonials or replies yet.</p>
                                     )}
                                 </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 space-y-3">
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                                <div className="flex items-center gap-2">
+                                    <h2 className="text-sm font-black text-brand-950">Deleted Messages Recovery</h2>
+                                    <span className="text-xs font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-100">{deletedContactMessages.length + filteredDeletedMemberReplies.length}</span>
+                                </div>
+                                <select
+                                    value={messageRestoreUserFilter}
+                                    onChange={(e) => setMessageRestoreUserFilter(e.target.value)}
+                                    className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold outline-none focus:border-brand-500"
+                                >
+                                    <option value="">All users</option>
+                                    {deletedMessageUserOptions.map(userId => (
+                                        <option key={userId} value={userId}>{userId}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                                    <p className="text-xs font-black text-slate-700">Deleted Contact Messages</p>
+                                    {filteredDeletedContactMessages.length === 0 && <p className="text-xs text-slate-400">No deleted contact messages.</p>}
+                                    {filteredDeletedContactMessages.map(msg => (
+                                        <div key={msg.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                                            <p className="text-[11px] font-black text-brand-900 truncate">{msg.name || 'Website Visitor'} {msg.senderId ? `• ${msg.senderId}` : ''}</p>
+                                            <p className="text-[11px] text-slate-600 mt-1 line-clamp-2">{msg.message}</p>
+                                            {onRestoreContactMessage && (
+                                                <button
+                                                    onClick={() => onRestoreContactMessage(msg.id)}
+                                                    className="mt-2 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold hover:bg-emerald-100"
+                                                >
+                                                    Restore
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                                    <p className="text-xs font-black text-slate-700">Deleted User Replies</p>
+                                    {filteredDeletedMemberReplies.length === 0 && <p className="text-xs text-slate-400">No deleted user replies.</p>}
+                                    {filteredDeletedMemberReplies.map(note => (
+                                        <div key={note.id} className="rounded-xl border border-blue-100 bg-blue-50 p-3">
+                                            <p className="text-[11px] font-black text-blue-900 truncate">{note.userId}</p>
+                                            <p className="text-[11px] text-blue-900 mt-1 line-clamp-2">{note.message}</p>
+                                            {onRestoreMemberNotification && (
+                                                <button
+                                                    onClick={() => onRestoreMemberNotification(note.id)}
+                                                    className="mt-2 px-2.5 py-1.5 rounded-lg bg-white text-blue-700 border border-blue-200 text-[11px] font-bold hover:bg-blue-100"
+                                                >
+                                                    Restore
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'reports' && (
+                    <div className="space-y-6">
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-4">
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                                <div>
+                                    <h3 className="text-xl font-black text-brand-950">Monthly Admin Reports</h3>
+                                    <p className="text-xs text-slate-500 mt-1">Professional monthly report with registrations, ADX senders, disapproved users, deleted users, and tracked website changes.</p>
+                                </div>
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                    <select
+                                        value={selectedReportMonth}
+                                        onChange={(e) => setSelectedReportMonth(e.target.value)}
+                                        className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold outline-none focus:border-brand-500"
+                                    >
+                                        {reportMonthOptions.map(monthKey => (
+                                            <option key={monthKey} value={monthKey}>{formatMonthLabel(monthKey)}</option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        onClick={() => handleDownloadMonthlyReport(selectedReportMonth)}
+                                        className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-black uppercase tracking-wide"
+                                    >
+                                        Download This Month Report
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
+                                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3">
+                                    <p className="text-[11px] text-emerald-700 font-bold uppercase tracking-wide">Users Registered</p>
+                                    <p className="text-2xl font-black text-emerald-900 mt-1">{monthlyReportData.monthlyRegisteredUsers.length}</p>
+                                </div>
+                                <div className="rounded-2xl border border-sky-100 bg-sky-50 p-3">
+                                    <p className="text-[11px] text-sky-700 font-bold uppercase tracking-wide">Users Sent ADX</p>
+                                    <p className="text-2xl font-black text-sky-900 mt-1">{monthlyReportData.monthlyAdxNotes.length}</p>
+                                </div>
+                                <div className="rounded-2xl border border-amber-100 bg-amber-50 p-3">
+                                    <p className="text-[11px] text-amber-700 font-bold uppercase tracking-wide">Disapproved Users</p>
+                                    <p className="text-2xl font-black text-amber-900 mt-1">{monthlyReportData.monthlyDisapprovedUsers.length}</p>
+                                </div>
+                                <div className="rounded-2xl border border-rose-100 bg-rose-50 p-3">
+                                    <p className="text-[11px] text-rose-700 font-bold uppercase tracking-wide">Deleted Users</p>
+                                    <p className="text-2xl font-black text-rose-900 mt-1">{monthlyReportData.monthlyDeletedUsers.length}</p>
+                                </div>
+                                <div className="rounded-2xl border border-violet-100 bg-violet-50 p-3">
+                                    <p className="text-[11px] text-violet-700 font-bold uppercase tracking-wide">Website Changes</p>
+                                    <p className="text-2xl font-black text-violet-900 mt-1">{monthlyReportData.websiteChanges.length}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5">
+                                <h4 className="text-sm font-black text-brand-950 mb-3">Registered Users ({monthlyReportData.monthlyRegisteredUsers.length})</h4>
+                                <div className="max-h-[320px] overflow-y-auto pr-1 space-y-2">
+                                    {monthlyReportData.monthlyRegisteredUsers.length === 0 && <p className="text-xs text-slate-400">No registered users in this month.</p>}
+                                    {monthlyReportData.monthlyRegisteredUsers.map(user => (
+                                        <div key={user.id} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                                            <p className="text-xs font-black text-brand-900">{user.name}</p>
+                                            <p className="text-[11px] text-slate-600 font-mono">{user.id} • {user.phone} • {user.location}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5">
+                                <h4 className="text-sm font-black text-brand-950 mb-3">Users Who Sent ADX ({monthlyReportData.monthlyAdxNotes.length})</h4>
+                                <div className="max-h-[320px] overflow-y-auto pr-1 space-y-2">
+                                    {monthlyReportData.monthlyAdxNotes.length === 0 && <p className="text-xs text-slate-400">No ADX messages in this month.</p>}
+                                    {monthlyReportData.monthlyAdxNotes.map(note => (
+                                        <div key={note.id} className="rounded-xl border border-sky-100 bg-sky-50 px-3 py-2">
+                                            <p className="text-xs font-black text-sky-900">{note.userId}</p>
+                                            <p className="text-[11px] text-sky-900 whitespace-pre-wrap break-words">{note.message}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5">
+                                <h4 className="text-sm font-black text-brand-950 mb-3">Disapproved Users ({monthlyReportData.monthlyDisapprovedUsers.length})</h4>
+                                <div className="max-h-[260px] overflow-y-auto pr-1 space-y-2">
+                                    {monthlyReportData.monthlyDisapprovedUsers.length === 0 && <p className="text-xs text-slate-400">No disapproved users in this month.</p>}
+                                    {monthlyReportData.monthlyDisapprovedUsers.map(user => (
+                                        <div key={user.id} className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2">
+                                            <p className="text-xs font-black text-amber-900">{user.name}</p>
+                                            <p className="text-[11px] text-amber-900">{user.id} • {user.phone}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5">
+                                <h4 className="text-sm font-black text-brand-950 mb-3">Deleted Users ({monthlyReportData.monthlyDeletedUsers.length})</h4>
+                                <div className="max-h-[260px] overflow-y-auto pr-1 space-y-2">
+                                    {monthlyReportData.monthlyDeletedUsers.length === 0 && <p className="text-xs text-slate-400">No deleted users in this month.</p>}
+                                    {monthlyReportData.monthlyDeletedUsers.map(user => (
+                                        <div key={user.id} className="rounded-xl border border-rose-100 bg-rose-50 px-3 py-2">
+                                            <p className="text-xs font-black text-rose-900">{user.name}</p>
+                                            <p className="text-[11px] text-rose-900">{user.id} • {new Date(user.deletedAt).toLocaleString()}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5">
+                            <h4 className="text-sm font-black text-brand-950 mb-3">Website Changes / Activity ({monthlyReportData.websiteChanges.length})</h4>
+                            <div className="max-h-[340px] overflow-y-auto pr-1 space-y-2">
+                                {monthlyReportData.websiteChanges.length === 0 && (
+                                    <p className="text-xs text-slate-400">No tracked website changes in this month from available data sources.</p>
+                                )}
+                                {monthlyReportData.websiteChanges.map((item, index) => (
+                                    <div key={`${item.type}-${index}-${item.date}`} className="rounded-xl border border-violet-100 bg-violet-50 px-3 py-2">
+                                        <p className="text-xs font-black text-violet-900">{item.type}</p>
+                                        <p className="text-[11px] text-violet-900 whitespace-pre-wrap break-words">{item.detail}</p>
+                                        <p className="text-[10px] text-violet-700/80 mt-1">{new Date(item.date).toLocaleString()}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5">
+                            <div className="flex items-center justify-between">
+                                <h4 className="text-sm font-black text-brand-950">Previous Reports</h4>
+                                <span className="text-xs text-slate-500">{reportMonthOptions.length} months available</span>
+                            </div>
+                            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                {reportMonthOptions.map(monthKey => (
+                                    <button
+                                        key={monthKey}
+                                        onClick={() => handleDownloadMonthlyReport(monthKey)}
+                                        className="text-left px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100"
+                                    >
+                                        <p className="text-xs font-black text-slate-800">{formatMonthLabel(monthKey)}</p>
+                                        <p className="text-[11px] text-slate-500 mt-1">Download detailed PDF report</p>
+                                    </button>
+                                ))}
                             </div>
                         </div>
                     </div>
@@ -2277,7 +3136,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     {/* Sync Overlay with MinistryGallery.tsx */}
                                     <div className="absolute inset-0 bg-gradient-to-t from-brand-950/90 via-brand-950/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-500" />
 
-                                    <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0 duration-300 z-20">
+                                    <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all md:translate-x-4 md:group-hover:translate-x-0 duration-300 z-20">
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setEditingMinistry(m); }}
                                             className="w-10 h-10 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white hover:text-brand-950 transition-all shadow-lg"
@@ -2305,7 +3164,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     </div>
 
                                     {/* Reorder Grip - Top Left */}
-                                    <div className="absolute top-4 left-4 w-10 h-10 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center text-white/60 opacity-0 group-hover:opacity-100 transition-all border border-white/20 hover:bg-white hover:text-brand-950 shadow-lg cursor-grab active:cursor-grabbing z-20">
+                                    <div className="absolute top-4 left-4 w-10 h-10 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center text-white/60 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all border border-white/20 hover:bg-white hover:text-brand-950 shadow-lg cursor-grab active:cursor-grabbing z-20">
                                         <GripVertical size={18} />
                                     </div>
 
@@ -2324,11 +3183,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 )}
 
                 {activeTab === 'home-layout' && (
-                    <div className="max-w-3xl mx-auto">
+                    <div className="max-w-5xl mx-auto">
                         <motion.div 
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl border-b-8 border-b-brand-600"
+                            className="bg-white p-6 md:p-10 rounded-[3rem] border border-slate-100 shadow-xl border-b-8 border-b-brand-600"
                         >
                             <div className="flex items-center justify-between mb-10">
                                 <div>
@@ -2366,16 +3225,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <Reorder.Item
                                             key={sectionId}
                                             value={sectionId}
-                                            dragListener={true}
+                                            dragListener={false}
+                                            dragControls={homeLayoutDragControls}
                                             whileDrag={{ scale: 1.02, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)" }}
                                             className="bg-white p-5 rounded-[2rem] border border-slate-100 flex items-center gap-6 group hover:border-brand-300 hover:shadow-lg transition-all cursor-grab active:cursor-grabbing relative overflow-hidden"
                                         >
                                             <div className="absolute top-0 right-0 w-24 h-24 bg-brand-50/30 rounded-full -mr-12 -mt-12 transition-all group-hover:scale-150 pointer-events-none" />
                                             
                                             <div className="flex items-center gap-5 flex-1 relative z-10">
-                                                <div className="text-slate-300 group-hover:text-brand-500 transition-colors shrink-0">
+                                                <button
+                                                    type="button"
+                                                    onPointerDown={(event) => homeLayoutDragControls.start(event)}
+                                                    className="text-slate-300 group-hover:text-brand-500 transition-colors shrink-0 cursor-grab active:cursor-grabbing"
+                                                    aria-label={`Drag to reorder ${info.name}`}
+                                                >
                                                     <GripVertical size={24} />
-                                                </div>
+                                                </button>
                                                 
                                                 <div className={`w-14 h-14 ${info.color} rounded-2xl flex items-center justify-center text-white shadow-lg`}>
                                                     <Icon size={24} strokeWidth={2.5} />
@@ -2392,7 +3257,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             </div>
 
                                             <div className="flex items-center gap-3 relative z-10">
-                                                <div className="flex sm:hidden items-center gap-1">
+                                                <div className="flex items-center gap-1">
                                                     <button
                                                         type="button"
                                                         onClick={(e) => {
