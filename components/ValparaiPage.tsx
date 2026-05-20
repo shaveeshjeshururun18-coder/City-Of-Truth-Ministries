@@ -172,7 +172,7 @@ export const ValparaiPage: React.FC = () => {
                                 <Video size={20} />
                                 <h4 className="font-black text-lg">COT Ministries YouTube</h4>
                             </div>
-                            <p className="text-sm text-red-900/80">Watch court ministries updates, worship content, and community highlights.</p>
+                            <p className="text-sm text-red-900/80">Watch COT ministries updates, worship content, and community highlights.</p>
                             <span className="inline-flex items-center gap-2 mt-3 text-xs font-black uppercase tracking-wider text-red-700">Open Channel <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" /></span>
                         </a>
                         <a
