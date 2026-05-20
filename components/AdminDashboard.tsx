@@ -2324,6 +2324,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                         {/* ID Cards Grid */}
                         {activeTab === 'id-cards' && (
+                        <>
                         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-8">
                             <AnimatePresence mode='popLayout'>
                                 {filteredUsers.map((user, index) => (
@@ -2384,6 +2385,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <p className="text-slate-400 text-sm mt-2 font-light">Try adjusting your search or filters to see more results.</p>
                             </div>
                         )}
+                        </>
                         )}
                     </div>
                 )}

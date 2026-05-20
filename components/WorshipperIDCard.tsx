@@ -60,7 +60,6 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
         const candidate = (photo || '').trim();
         if (!candidate) return null;
         if (/^data:image\/(?:png|jpe?g|webp|gif|bmp);base64,/i.test(candidate)) return candidate;
-        if (candidate.startsWith('blob:')) return candidate;
         if (/^https?:\/\//i.test(candidate)) {
             try {
                 const parsed = new URL(candidate);

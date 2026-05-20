@@ -143,7 +143,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     ) => {
         const candidate = (photo || '').trim();
         if (candidate) {
-            if (/^data:image\/(?:png|jpe?g|webp|gif|bmp);base64,/i.test(candidate) || candidate.startsWith('blob:')) {
+            if (/^data:image\/(?:png|jpe?g|webp|gif|bmp);base64,/i.test(candidate)) {
                 return <img src={candidate} alt="Profile photo" className="w-full h-full object-cover" loading="lazy" />;
             }
             if (/^https?:\/\//i.test(candidate)) {
