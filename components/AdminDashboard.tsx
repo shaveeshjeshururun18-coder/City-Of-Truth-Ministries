@@ -83,7 +83,7 @@ const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any
 
 
 
-const TAB_ITEMS: { id: 'users' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'; label: string; icon: React.ElementType }[] = [
+const TAB_ITEMS: { id: 'users' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'; label: string; icon: React.ElementType }[] = [
     { id: 'users', label: 'Users', icon: Users },
     { id: 'recycle-bin', label: 'Recycle Bin', icon: RotateCcw },
     { id: 'firebase', label: 'Firebase', icon: Database },
@@ -91,6 +91,7 @@ const TAB_ITEMS: { id: 'users' | 'testimonials' | 'ministries' | 'id-cards' | 'c
     { id: 'ministries', label: 'Ministries', icon: Globe },
     { id: 'id-cards', label: 'ID Cards', icon: QrCode },
     { id: 'cot-id-manager', label: 'COT ID Manager', icon: Dice6 },
+    { id: 'reports', label: 'Monthly Reports', icon: FileText },
     { id: 'home-layout', label: 'Home Layout', icon: GripVertical },
     { id: 'menu-editor', label: 'Menu Editor', icon: Filter },
 ];
@@ -106,6 +107,21 @@ const TAMIL_NADU_DISTRICTS = [
     'Vellore', 'Villupuram', 'Virudhunagar'
 ];
 const MAX_SUGGESTED_COT_IDS = 200;
+type WebsiteChangeItem = { date: string; type: string; detail: string };
+
+const toMonthKey = (value?: string) => {
+    if (!value) return '';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return '';
+    return parsed.toISOString().slice(0, 7);
+};
+
+const formatMonthLabel = (monthKey: string) => {
+    if (!monthKey) return 'Unknown Month';
+    const [year, month] = monthKey.split('-');
+    const parsed = new Date(Number(year), Number(month) - 1, 1);
+    return parsed.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+};
 
 const EMPTY_NEW_USER = {
     memberId: '',
@@ -180,7 +196,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [downloadingProfilePdfUserId, setDownloadingProfilePdfUserId] = useState<string | null>(null);
     const [userQuickViewMode, setUserQuickViewMode] = useState<UserQuickViewMode | null>(null);
 
-    const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'>('users');
     const [menuMode, setMenuMode] = useState<'horizontal' | 'vertical'>(() => {
         try {
             const stored = localStorage.getItem('adminMenuMode');
@@ -226,6 +242,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [messageLocationFilter, setMessageLocationFilter] = useState<string>('All');
     const [isMessageComposerMinimized, setIsMessageComposerMinimized] = useState(false);
     const [isMessageComposerClosed, setIsMessageComposerClosed] = useState(false);
+    const [selectedReportMonth, setSelectedReportMonth] = useState(() => new Date().toISOString().slice(0, 7));
 
     React.useEffect(() => {
         if (activeTab === 'messages') {
@@ -636,6 +653,156 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             (senderEmail && (user.email || '').trim().toLowerCase() === senderEmail) ||
             (senderName && (user.name || '').trim().toLowerCase() === senderName)
         ) || null;
+    };
+
+    const reportMonthOptions = useMemo(() => {
+        const keys = new Set<string>();
+        keys.add(new Date().toISOString().slice(0, 7));
+        users.forEach(user => keys.add(toMonthKey(user.joinedDate || user.memberSince)));
+        deletedUsers.forEach(user => keys.add(toMonthKey(user.deletedAt)));
+        memberNotifications.forEach(note => keys.add(toMonthKey(note.createdAt)));
+        ministries.forEach(item => keys.add(toMonthKey(item.date)));
+        testimonials.forEach(item => keys.add(toMonthKey(item.date)));
+        contactMessages.forEach(msg => keys.add(toMonthKey(msg.createdAt)));
+        return Array.from(keys).filter(Boolean).sort((a, b) => b.localeCompare(a));
+    }, [users, deletedUsers, memberNotifications, ministries, testimonials, contactMessages]);
+
+    React.useEffect(() => {
+        if (!reportMonthOptions.includes(selectedReportMonth) && reportMonthOptions.length > 0) {
+            setSelectedReportMonth(reportMonthOptions[0]);
+        }
+    }, [reportMonthOptions, selectedReportMonth]);
+
+    const monthlyReportData = useMemo(() => {
+        const month = selectedReportMonth;
+        const monthlyRegisteredUsers = users.filter(user => toMonthKey(user.joinedDate || user.memberSince) === month);
+        const monthlyAdxNotes = memberNotifications.filter(note => note.from === 'user' && toMonthKey(note.createdAt) === month && /adx/i.test(note.message || ''));
+        const monthlyDisapprovedUsers = users.filter(user => user.status === 'Rejected' && toMonthKey(user.joinedDate || user.memberSince) === month);
+        const monthlyDeletedUsers = deletedUsers.filter(user => toMonthKey(user.deletedAt) === month);
+
+        const websiteChanges: WebsiteChangeItem[] = [
+            ...ministries
+                .filter(item => toMonthKey(item.date) === month)
+                .map(item => ({
+                    date: item.date,
+                    type: 'Ministry Content Update',
+                    detail: item.name ? `Ministry item: ${item.name}` : 'Ministry image/content updated'
+                })),
+            ...testimonials
+                .filter(item => toMonthKey(item.date) === month)
+                .map(item => ({
+                    date: item.date,
+                    type: `Testimonial ${item.status}`,
+                    detail: `${item.userName}: "${item.content.slice(0, 80)}${item.content.length > 80 ? '…' : ''}"`
+                })),
+            ...contactMessages
+                .filter(msg => toMonthKey(msg.createdAt) === month)
+                .map(msg => ({
+                    date: msg.createdAt,
+                    type: 'Contact Interaction',
+                    detail: `${msg.name || 'Visitor'} sent "${msg.subject || 'No subject'}"`
+                }))
+        ].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+        return {
+            month,
+            monthlyRegisteredUsers,
+            monthlyAdxNotes,
+            monthlyDisapprovedUsers,
+            monthlyDeletedUsers,
+            websiteChanges,
+        };
+    }, [selectedReportMonth, users, memberNotifications, deletedUsers, ministries, testimonials, contactMessages]);
+
+    const handleDownloadMonthlyReport = (month: string) => {
+        const monthLabel = formatMonthLabel(month);
+        const reportData = month === selectedReportMonth
+            ? monthlyReportData
+            : (() => {
+                const monthlyRegisteredUsers = users.filter(user => toMonthKey(user.joinedDate || user.memberSince) === month);
+                const monthlyAdxNotes = memberNotifications.filter(note => note.from === 'user' && toMonthKey(note.createdAt) === month && /adx/i.test(note.message || ''));
+                const monthlyDisapprovedUsers = users.filter(user => user.status === 'Rejected' && toMonthKey(user.joinedDate || user.memberSince) === month);
+                const monthlyDeletedUsers = deletedUsers.filter(user => toMonthKey(user.deletedAt) === month);
+                const websiteChanges: WebsiteChangeItem[] = [
+                    ...ministries.filter(item => toMonthKey(item.date) === month).map(item => ({ date: item.date, type: 'Ministry Content Update', detail: item.name ? `Ministry item: ${item.name}` : 'Ministry image/content updated' })),
+                    ...testimonials.filter(item => toMonthKey(item.date) === month).map(item => ({ date: item.date, type: `Testimonial ${item.status}`, detail: `${item.userName}: "${item.content.slice(0, 80)}${item.content.length > 80 ? '…' : ''}"` })),
+                    ...contactMessages.filter(msg => toMonthKey(msg.createdAt) === month).map(msg => ({ date: msg.createdAt, type: 'Contact Interaction', detail: `${msg.name || 'Visitor'} sent "${msg.subject || 'No subject'}"` })),
+                ].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+                return { month, monthlyRegisteredUsers, monthlyAdxNotes, monthlyDisapprovedUsers, monthlyDeletedUsers, websiteChanges };
+            })();
+
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const margin = 14;
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const contentWidth = pageWidth - margin * 2;
+        let y = 18;
+        const addSectionHeader = (title: string) => {
+            if (y > 270) {
+                pdf.addPage();
+                y = 18;
+            }
+            pdf.setFillColor(36, 92, 191);
+            pdf.roundedRect(margin, y, contentWidth, 9, 2, 2, 'F');
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(10);
+            pdf.text(title, margin + 3, y + 6);
+            y += 12;
+        };
+        const addBodyLine = (text: string) => {
+            if (y > 282) {
+                pdf.addPage();
+                y = 18;
+            }
+            pdf.setTextColor(20, 20, 20);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(9);
+            const lines = pdf.splitTextToSize(text, contentWidth);
+            pdf.text(lines, margin, y);
+            y += lines.length * 4.3 + 1;
+        };
+
+        pdf.setFillColor(18, 35, 66);
+        pdf.rect(0, 0, pageWidth, 32, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(15);
+        pdf.text('City of Truth Ministries', margin, 14);
+        pdf.setFontSize(11);
+        pdf.text(`Professional Monthly Admin Report • ${monthLabel}`, margin, 22);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8);
+        pdf.text(`Generated on ${new Date().toLocaleString()}`, margin, 28);
+        y = 38;
+
+        addSectionHeader('Executive Summary');
+        addBodyLine(`Users Registered: ${reportData.monthlyRegisteredUsers.length}`);
+        addBodyLine(`Users Sent ADX: ${reportData.monthlyAdxNotes.length}`);
+        addBodyLine(`Users Disapproved: ${reportData.monthlyDisapprovedUsers.length}`);
+        addBodyLine(`Users Deleted: ${reportData.monthlyDeletedUsers.length}`);
+        addBodyLine(`Website Changes Tracked: ${reportData.websiteChanges.length}`);
+
+        addSectionHeader('Registered Users');
+        if (reportData.monthlyRegisteredUsers.length === 0) addBodyLine('No users were registered in this month.');
+        reportData.monthlyRegisteredUsers.forEach(user => addBodyLine(`${user.id} • ${user.name} • ${user.phone} • ${user.location} • ${user.status}`));
+
+        addSectionHeader('Users Who Sent ADX');
+        if (reportData.monthlyAdxNotes.length === 0) addBodyLine('No ADX messages were found for this month.');
+        reportData.monthlyAdxNotes.forEach(note => addBodyLine(`${note.userId} • ${new Date(note.createdAt).toLocaleString()} • ${note.message}`));
+
+        addSectionHeader('Disapproved Users');
+        if (reportData.monthlyDisapprovedUsers.length === 0) addBodyLine('No disapproved users tracked in this month.');
+        reportData.monthlyDisapprovedUsers.forEach(user => addBodyLine(`${user.id} • ${user.name} • ${user.phone} • Joined ${user.joinedDate || user.memberSince}`));
+
+        addSectionHeader('Deleted Users');
+        if (reportData.monthlyDeletedUsers.length === 0) addBodyLine('No users were deleted in this month.');
+        reportData.monthlyDeletedUsers.forEach(user => addBodyLine(`${user.id} • ${user.name} • Deleted ${new Date(user.deletedAt).toLocaleString()}`));
+
+        addSectionHeader('Website Changes / Activity');
+        if (reportData.websiteChanges.length === 0) addBodyLine('No tracked website changes found for this month in the available datasets.');
+        reportData.websiteChanges.slice(0, 150).forEach(change => addBodyLine(`${new Date(change.date).toLocaleString()} • ${change.type} • ${change.detail}`));
+
+        pdf.save(`COT-Monthly-Admin-Report-${month}.pdf`);
     };
 
     const handleRollRandomCotId = () => {
@@ -2771,6 +2938,148 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         </div>
                                     ))}
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'reports' && (
+                    <div className="space-y-6">
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-4">
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                                <div>
+                                    <h3 className="text-xl font-black text-brand-950">Monthly Admin Reports</h3>
+                                    <p className="text-xs text-slate-500 mt-1">Professional monthly report with registrations, ADX senders, disapproved users, deleted users, and tracked website changes.</p>
+                                </div>
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                    <select
+                                        value={selectedReportMonth}
+                                        onChange={(e) => setSelectedReportMonth(e.target.value)}
+                                        className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold outline-none focus:border-brand-500"
+                                    >
+                                        {reportMonthOptions.map(monthKey => (
+                                            <option key={monthKey} value={monthKey}>{formatMonthLabel(monthKey)}</option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        onClick={() => handleDownloadMonthlyReport(selectedReportMonth)}
+                                        className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-black uppercase tracking-wide"
+                                    >
+                                        Download This Month Report
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
+                                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3">
+                                    <p className="text-[11px] text-emerald-700 font-bold uppercase tracking-wide">Users Registered</p>
+                                    <p className="text-2xl font-black text-emerald-900 mt-1">{monthlyReportData.monthlyRegisteredUsers.length}</p>
+                                </div>
+                                <div className="rounded-2xl border border-sky-100 bg-sky-50 p-3">
+                                    <p className="text-[11px] text-sky-700 font-bold uppercase tracking-wide">Users Sent ADX</p>
+                                    <p className="text-2xl font-black text-sky-900 mt-1">{monthlyReportData.monthlyAdxNotes.length}</p>
+                                </div>
+                                <div className="rounded-2xl border border-amber-100 bg-amber-50 p-3">
+                                    <p className="text-[11px] text-amber-700 font-bold uppercase tracking-wide">Disapproved Users</p>
+                                    <p className="text-2xl font-black text-amber-900 mt-1">{monthlyReportData.monthlyDisapprovedUsers.length}</p>
+                                </div>
+                                <div className="rounded-2xl border border-rose-100 bg-rose-50 p-3">
+                                    <p className="text-[11px] text-rose-700 font-bold uppercase tracking-wide">Deleted Users</p>
+                                    <p className="text-2xl font-black text-rose-900 mt-1">{monthlyReportData.monthlyDeletedUsers.length}</p>
+                                </div>
+                                <div className="rounded-2xl border border-violet-100 bg-violet-50 p-3">
+                                    <p className="text-[11px] text-violet-700 font-bold uppercase tracking-wide">Website Changes</p>
+                                    <p className="text-2xl font-black text-violet-900 mt-1">{monthlyReportData.websiteChanges.length}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5">
+                                <h4 className="text-sm font-black text-brand-950 mb-3">Registered Users ({monthlyReportData.monthlyRegisteredUsers.length})</h4>
+                                <div className="max-h-[320px] overflow-y-auto pr-1 space-y-2">
+                                    {monthlyReportData.monthlyRegisteredUsers.length === 0 && <p className="text-xs text-slate-400">No registered users in this month.</p>}
+                                    {monthlyReportData.monthlyRegisteredUsers.map(user => (
+                                        <div key={user.id} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                                            <p className="text-xs font-black text-brand-900">{user.name}</p>
+                                            <p className="text-[11px] text-slate-600 font-mono">{user.id} • {user.phone} • {user.location}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5">
+                                <h4 className="text-sm font-black text-brand-950 mb-3">Users Who Sent ADX ({monthlyReportData.monthlyAdxNotes.length})</h4>
+                                <div className="max-h-[320px] overflow-y-auto pr-1 space-y-2">
+                                    {monthlyReportData.monthlyAdxNotes.length === 0 && <p className="text-xs text-slate-400">No ADX messages in this month.</p>}
+                                    {monthlyReportData.monthlyAdxNotes.map(note => (
+                                        <div key={note.id} className="rounded-xl border border-sky-100 bg-sky-50 px-3 py-2">
+                                            <p className="text-xs font-black text-sky-900">{note.userId}</p>
+                                            <p className="text-[11px] text-sky-900 whitespace-pre-wrap break-words">{note.message}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5">
+                                <h4 className="text-sm font-black text-brand-950 mb-3">Disapproved Users ({monthlyReportData.monthlyDisapprovedUsers.length})</h4>
+                                <div className="max-h-[260px] overflow-y-auto pr-1 space-y-2">
+                                    {monthlyReportData.monthlyDisapprovedUsers.length === 0 && <p className="text-xs text-slate-400">No disapproved users in this month.</p>}
+                                    {monthlyReportData.monthlyDisapprovedUsers.map(user => (
+                                        <div key={user.id} className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2">
+                                            <p className="text-xs font-black text-amber-900">{user.name}</p>
+                                            <p className="text-[11px] text-amber-900">{user.id} • {user.phone}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5">
+                                <h4 className="text-sm font-black text-brand-950 mb-3">Deleted Users ({monthlyReportData.monthlyDeletedUsers.length})</h4>
+                                <div className="max-h-[260px] overflow-y-auto pr-1 space-y-2">
+                                    {monthlyReportData.monthlyDeletedUsers.length === 0 && <p className="text-xs text-slate-400">No deleted users in this month.</p>}
+                                    {monthlyReportData.monthlyDeletedUsers.map(user => (
+                                        <div key={user.id} className="rounded-xl border border-rose-100 bg-rose-50 px-3 py-2">
+                                            <p className="text-xs font-black text-rose-900">{user.name}</p>
+                                            <p className="text-[11px] text-rose-900">{user.id} • {new Date(user.deletedAt).toLocaleString()}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5">
+                            <h4 className="text-sm font-black text-brand-950 mb-3">Website Changes / Activity ({monthlyReportData.websiteChanges.length})</h4>
+                            <div className="max-h-[340px] overflow-y-auto pr-1 space-y-2">
+                                {monthlyReportData.websiteChanges.length === 0 && (
+                                    <p className="text-xs text-slate-400">No tracked website changes in this month from available data sources.</p>
+                                )}
+                                {monthlyReportData.websiteChanges.map((item, index) => (
+                                    <div key={`${item.type}-${index}-${item.date}`} className="rounded-xl border border-violet-100 bg-violet-50 px-3 py-2">
+                                        <p className="text-xs font-black text-violet-900">{item.type}</p>
+                                        <p className="text-[11px] text-violet-900 whitespace-pre-wrap break-words">{item.detail}</p>
+                                        <p className="text-[10px] text-violet-700/80 mt-1">{new Date(item.date).toLocaleString()}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5">
+                            <div className="flex items-center justify-between">
+                                <h4 className="text-sm font-black text-brand-950">Previous Reports</h4>
+                                <span className="text-xs text-slate-500">{reportMonthOptions.length} months available</span>
+                            </div>
+                            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                {reportMonthOptions.map(monthKey => (
+                                    <button
+                                        key={monthKey}
+                                        onClick={() => handleDownloadMonthlyReport(monthKey)}
+                                        className="text-left px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100"
+                                    >
+                                        <p className="text-xs font-black text-slate-800">{formatMonthLabel(monthKey)}</p>
+                                        <p className="text-[11px] text-slate-500 mt-1">Download detailed PDF report</p>
+                                    </button>
+                                ))}
                             </div>
                         </div>
                     </div>
