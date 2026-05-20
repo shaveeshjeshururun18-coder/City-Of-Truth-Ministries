@@ -224,6 +224,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [diceManualInput, setDiceManualInput] = useState('');
     const [messageRestoreUserFilter, setMessageRestoreUserFilter] = useState('');
     const [messageLocationFilter, setMessageLocationFilter] = useState<string>('All');
+    const [isMessageComposerMinimized, setIsMessageComposerMinimized] = useState(false);
+    const [isMessageComposerClosed, setIsMessageComposerClosed] = useState(false);
 
     React.useEffect(() => {
         if (activeTab === 'messages') {
@@ -550,10 +552,56 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         [deletedMemberNotifications, messageRestoreUserFilter]
     );
 
+    const resolveCotUserFromInput = (candidate: string) => {
+        const raw = (candidate || '').trim();
+        if (!raw) return null;
+        const exactId = normalizeCotIdInput(raw);
+        if (exactId) {
+            const byId = cotUsers.find(user => (user.id || '').toUpperCase() === exactId);
+            if (byId) return byId;
+        }
+        const normalizedRaw = raw.toLowerCase();
+        return cotUsers.find(user => {
+            const userId = (user.id || '').toUpperCase();
+            const userName = (user.name || '').toLowerCase();
+            return (
+                userName === normalizedRaw ||
+                userId === raw.toUpperCase() ||
+                `${user.name} • ${userId}`.toLowerCase() === normalizedRaw
+            );
+        }) || null;
+    };
+
+    const cotRecipientSuggestions = useMemo(() => {
+        const q = targetCotIdInput.trim().toLowerCase();
+        if (!q) return [];
+        return cotUsers
+            .filter(user => {
+                const userId = (user.id || '').toLowerCase();
+                const userName = (user.name || '').toLowerCase();
+                const userPhone = (user.phone || '').toLowerCase();
+                return userId.includes(q) || userName.includes(q) || userPhone.includes(q);
+            })
+            .slice(0, 6);
+    }, [cotUsers, targetCotIdInput]);
+
+    const selectedCotUsers = useMemo(
+        () => selectedCotIds
+            .map(id => cotUsers.find(user => (user.id || '').toUpperCase() === id))
+            .filter(Boolean) as User[],
+        [selectedCotIds, cotUsers]
+    );
+
+    const highlightedMessageTarget = useMemo(
+        () => resolveCotUserFromInput(targetCotIdInput) || cotRecipientSuggestions[0] || null,
+        [targetCotIdInput, cotRecipientSuggestions]
+    );
+
     const markCotIdForMessage = (candidate: string) => {
-        const normalized = (candidate || '').trim().toUpperCase();
+        const user = resolveCotUserFromInput(candidate);
+        if (!user) return;
+        const normalized = (user.id || '').toUpperCase();
         if (!isCotId(normalized)) return;
-        if (!users.some(user => user.id.toUpperCase() === normalized)) return;
         setSelectedCotIds(prev => (prev.includes(normalized) ? prev : [...prev, normalized]));
         setTargetCotIdInput('');
     };
@@ -577,6 +625,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         onSendMessageToUsers(targetIds, bulkAdminMessage);
         setBulkAdminMessage('');
         setSelectedCotIds([]);
+    };
+
+    const getMessageUser = (message: ContactMessage) => {
+        const senderId = (message.senderId || '').trim().toUpperCase();
+        const senderEmail = (message.email || '').trim().toLowerCase();
+        const senderName = (message.name || '').trim().toLowerCase();
+        return users.find(user =>
+            (senderId && (user.id || '').toUpperCase() === senderId) ||
+            (senderEmail && (user.email || '').trim().toLowerCase() === senderEmail) ||
+            (senderName && (user.name || '').trim().toLowerCase() === senderName)
+        ) || null;
     };
 
     const handleRollRandomCotId = () => {
@@ -2392,80 +2451,164 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 {activeTab === 'messages' && (
                     <div className="space-y-4">
                         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 space-y-3">
-                            <h3 className="text-sm font-black text-brand-950">Send message by COT ID (single or bulk)</h3>
-                            <div className="flex flex-col sm:flex-row gap-2">
-                                <select
-                                    value={messageLocationFilter}
-                                    onChange={(e) => setMessageLocationFilter(e.target.value)}
-                                    className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
-                                >
-                                    <option value="All">All Locations</option>
-                                    {userLocationOptions.map(location => (
-                                        <option key={location} value={location}>{location}</option>
-                                    ))}
-                                </select>
-                                <p className="text-xs text-slate-500 self-center">
-                                    Location-based targeting is applied when no specific IDs are selected.
-                                </p>
-                            </div>
-                            <div className="flex flex-col sm:flex-row gap-2">
-                                <input
-                                    list="cot-id-targets"
-                                    value={targetCotIdInput}
-                                    onChange={(e) => setTargetCotIdInput(e.target.value)}
-                                    placeholder="Enter COT ID and click Add"
-                                    className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
-                                />
-                                <button
-                                    onClick={() => markCotIdForMessage(targetCotIdInput)}
-                                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold"
-                                >
-                                    Add ID
-                                </button>
-                                <button
-                                    onClick={() => setSelectedCotIds(
-                                        (messageLocationFilter === 'All'
-                                            ? cotUsers
-                                            : cotUsers.filter(user => (user.location || '').trim() === messageLocationFilter)
-                                        ).map(user => user.id.toUpperCase())
-                                    )}
-                                    className="px-4 py-2 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-bold"
-                                >
-                                    Select All
-                                </button>
-                            </div>
-                            <datalist id="cot-id-targets">
-                                {cotUsers.map(user => (
-                                    <option key={user.id} value={user.id.toUpperCase()} />
-                                ))}
-                            </datalist>
-                            <div className="flex flex-wrap gap-2">
-                                {selectedCotIds.map(id => (
+                            <div className="flex items-center justify-between gap-2">
+                                <h3 className="text-sm font-black text-brand-950">Send message by user name or COT/card ID</h3>
+                                <div className="flex items-center gap-2">
                                     <button
-                                        key={id}
-                                        onClick={() => setSelectedCotIds(prev => prev.filter(item => item !== id))}
-                                        className="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 text-[11px] font-bold"
+                                        onClick={() => setIsMessageComposerMinimized(prev => !prev)}
+                                        className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-600 hover:bg-slate-50"
                                     >
-                                        {id} ✕
+                                        {isMessageComposerMinimized ? 'Expand' : 'Minimize'}
                                     </button>
-                                ))}
-                                {selectedCotIds.length === 0 && (
-                                    <span className="text-xs text-slate-400">No ID selected. Message will be sent to all COT IDs.</span>
-                                )}
+                                    <button
+                                        onClick={() => setIsMessageComposerClosed(prev => !prev)}
+                                        className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-600 hover:bg-slate-50"
+                                    >
+                                        {isMessageComposerClosed ? 'Open' : 'Close'}
+                                    </button>
+                                </div>
                             </div>
-                            <textarea
-                                value={bulkAdminMessage}
-                                onChange={(e) => setBulkAdminMessage(e.target.value)}
-                                rows={3}
-                                placeholder="Type your admin message..."
-                                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
-                            />
-                            <button
-                                onClick={handleSendAdminMessage}
-                                className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-black uppercase tracking-wide"
-                            >
-                                Send Message
-                            </button>
+
+                            {!isMessageComposerClosed && (
+                                <>
+                                    {!isMessageComposerMinimized && (
+                                        <>
+                                            <div className="flex flex-col sm:flex-row gap-2">
+                                                <select
+                                                    value={messageLocationFilter}
+                                                    onChange={(e) => setMessageLocationFilter(e.target.value)}
+                                                    className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
+                                                >
+                                                    <option value="All">All Locations</option>
+                                                    {userLocationOptions.map(location => (
+                                                        <option key={location} value={location}>{location}</option>
+                                                    ))}
+                                                </select>
+                                                <p className="text-xs text-slate-500 self-center">
+                                                    When no specific users are selected, location is used for bulk send.
+                                                </p>
+                                            </div>
+                                            <div className="flex flex-col sm:flex-row gap-2">
+                                                <input
+                                                    list="cot-id-targets"
+                                                    value={targetCotIdInput}
+                                                    onChange={(e) => setTargetCotIdInput(e.target.value)}
+                                                    placeholder="Type user name or COT/card ID"
+                                                    className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
+                                                />
+                                                <button
+                                                    onClick={() => markCotIdForMessage(targetCotIdInput)}
+                                                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold"
+                                                >
+                                                    Add User
+                                                </button>
+                                                <button
+                                                    onClick={() => setSelectedCotIds(
+                                                        (messageLocationFilter === 'All'
+                                                            ? cotUsers
+                                                            : cotUsers.filter(user => (user.location || '').trim() === messageLocationFilter)
+                                                        ).map(user => user.id.toUpperCase())
+                                                    )}
+                                                    className="px-4 py-2 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-bold"
+                                                >
+                                                    Select All
+                                                </button>
+                                            </div>
+                                            <datalist id="cot-id-targets">
+                                                {cotUsers.map(user => (
+                                                    <option key={user.id} value={`${user.name} • ${user.id.toUpperCase()}`} />
+                                                ))}
+                                            </datalist>
+
+                                            {highlightedMessageTarget && (
+                                                <div className="rounded-2xl border border-indigo-100 bg-indigo-50 px-3 py-2 flex items-center justify-between gap-3">
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        <div className="w-9 h-9 rounded-full bg-white border border-indigo-100 overflow-hidden flex items-center justify-center text-[11px] font-black text-indigo-700 shrink-0">
+                                                            {highlightedMessageTarget.photo ? (
+                                                                <img src={highlightedMessageTarget.photo} alt={highlightedMessageTarget.name} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                (highlightedMessageTarget.name || 'U').slice(0, 1).toUpperCase()
+                                                            )}
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <p className="text-xs font-black text-indigo-900 truncate">{highlightedMessageTarget.name}</p>
+                                                            <p className="text-[11px] font-mono text-indigo-700/80 truncate">{highlightedMessageTarget.id}</p>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => markCotIdForMessage(highlightedMessageTarget.id)}
+                                                        className="px-2.5 py-1.5 rounded-lg bg-indigo-600 text-white text-[11px] font-bold hover:bg-indigo-700"
+                                                    >
+                                                        Add
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {cotRecipientSuggestions.length > 1 && (
+                                                <div className="space-y-1">
+                                                    {cotRecipientSuggestions.slice(0, 4).map(user => (
+                                                        <button
+                                                            key={user.id}
+                                                            onClick={() => markCotIdForMessage(user.id)}
+                                                            className="w-full text-left px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100"
+                                                        >
+                                                            <p className="text-xs font-bold text-slate-700 truncate">{user.name}</p>
+                                                            <p className="text-[11px] font-mono text-slate-500">{user.id}</p>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            <div className="flex flex-wrap gap-2">
+                                                {selectedCotUsers.map(user => (
+                                                    <div
+                                                        key={user.id}
+                                                        className="px-2.5 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100 text-[11px] font-bold flex items-center gap-2"
+                                                    >
+                                                        <span className="w-5 h-5 rounded-full bg-white border border-indigo-100 overflow-hidden flex items-center justify-center text-[10px] font-black">
+                                                            {user.photo ? (
+                                                                <img src={user.photo} alt={user.name} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                (user.name || 'U').slice(0, 1).toUpperCase()
+                                                            )}
+                                                        </span>
+                                                        <span className="max-w-[140px] truncate">{user.name} • {user.id}</span>
+                                                        <button
+                                                            onClick={() => setSelectedCotIds(prev => prev.filter(item => item !== user.id.toUpperCase()))}
+                                                            className="w-4 h-4 rounded-full border border-indigo-200 bg-white text-[9px] leading-none hover:bg-indigo-100"
+                                                            title="Remove recipient"
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                {selectedCotIds.length === 0 && (
+                                                    <span className="text-xs text-slate-400">No user selected. Message will be sent by location/all-user scope.</span>
+                                                )}
+                                            </div>
+                                            <textarea
+                                                value={bulkAdminMessage}
+                                                onChange={(e) => setBulkAdminMessage(e.target.value)}
+                                                rows={3}
+                                                placeholder="Type custom admin message..."
+                                                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
+                                            />
+                                            <button
+                                                onClick={handleSendAdminMessage}
+                                                className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-black uppercase tracking-wide"
+                                            >
+                                                Send Message
+                                            </button>
+                                        </>
+                                    )}
+                                    {isMessageComposerMinimized && (
+                                        <p className="text-xs text-slate-500">Composer minimized. Click Expand to continue typing and sending.</p>
+                                    )}
+                                </>
+                            )}
+                            {isMessageComposerClosed && (
+                                <p className="text-xs text-slate-500">Composer is closed. Click Open to continue sending messages.</p>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -2478,12 +2621,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <p className="text-sm text-slate-400">No contact messages yet.</p>
                                 ) : (
                                     <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-                                        {contactMessages.map((msg) => (
+                                        {contactMessages.map((msg) => {
+                                            const matchedUser = getMessageUser(msg);
+                                            return (
                                             <div key={msg.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
                                                 <div className="flex items-center justify-between gap-2 mb-1">
                                                     <p className="text-xs font-black text-brand-950 truncate">{msg.name || 'Website Visitor'}</p>
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-[10px] text-slate-400">{new Date(msg.createdAt).toLocaleDateString()}</span>
+                                                        {matchedUser && (
+                                                            <button
+                                                                onClick={() => setEditingUser(matchedUser)}
+                                                                className="px-2 py-1 rounded-lg text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100"
+                                                                title="Open user profile for edit/crop"
+                                                            >
+                                                                Open Profile
+                                                            </button>
+                                                        )}
                                                         {onDeleteContactMessage && (
                                                             <button
                                                                 onClick={() => onDeleteContactMessage(msg.id)}
@@ -2498,7 +2652,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 <p className="text-[11px] font-bold text-brand-700">{msg.subject}</p>
                                                 <p className="text-xs text-slate-600 mt-1 whitespace-pre-wrap break-words">{msg.message}</p>
                                             </div>
-                                        ))}
+                                        )})}
                                     </div>
                                 )}
                             </div>
@@ -2530,6 +2684,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 <p className="text-xs font-black text-blue-900">Reply from {note.userId}</p>
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-[10px] text-blue-700/60">{new Date(note.createdAt).toLocaleString()}</span>
+                                                    {users.find(user => user.id === note.userId) && (
+                                                        <button
+                                                            onClick={() => {
+                                                                const matched = users.find(user => user.id === note.userId);
+                                                                if (matched) setEditingUser(matched);
+                                                            }}
+                                                            className="px-2 py-1 rounded-lg text-[10px] font-bold text-blue-700 bg-white border border-blue-200 hover:bg-blue-100"
+                                                            title="Open user profile for edit/crop"
+                                                        >
+                                                            Open Profile
+                                                        </button>
+                                                    )}
                                                     {onDeleteMemberNotification && (
                                                         <button
                                                             onClick={() => onDeleteMemberNotification(note.id)}
