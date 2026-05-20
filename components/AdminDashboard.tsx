@@ -43,10 +43,14 @@ interface AdminDashboardProps {
     users: User[];
     deletedUsers?: DeletedUser[];
     contactMessages?: ContactMessage[];
+    deletedContactMessages?: ContactMessage[];
     memberNotifications?: MemberNotification[];
+    deletedMemberNotifications?: MemberNotification[];
     onSendMessageToUsers?: (targetUserIds: string[], message: string) => void;
     onDeleteContactMessage?: (messageId: string) => void;
+    onRestoreContactMessage?: (messageId: string) => void;
     onDeleteMemberNotification?: (notificationId: string) => void;
+    onRestoreMemberNotification?: (notificationId: string) => void;
     onUpdateUser: (user: User) => Promise<void>;
     onDeleteUser: (userId: string) => Promise<void>;
     onRestoreUser?: (userId: string) => Promise<void>;
@@ -129,10 +133,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     users,
     deletedUsers = [],
     contactMessages = [],
+    deletedContactMessages = [],
     memberNotifications = [],
+    deletedMemberNotifications = [],
     onSendMessageToUsers,
     onDeleteContactMessage,
+    onRestoreContactMessage,
     onDeleteMemberNotification,
+    onRestoreMemberNotification,
     onUpdateUser,
     onDeleteUser,
     onRestoreUser,
@@ -210,6 +218,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [diceRolling, setDiceRolling] = useState(false);
     const [diceTargetUserId, setDiceTargetUserId] = useState('');
     const [dicePickedCotId, setDicePickedCotId] = useState('');
+    const [diceManualInput, setDiceManualInput] = useState('');
+    const [messageRestoreUserFilter, setMessageRestoreUserFilter] = useState('');
 
     React.useEffect(() => {
         if (activeTab === 'messages') {
@@ -483,6 +493,55 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             }));
     }, [userReplies, users]);
 
+    const cotIdRequestInsights = useMemo(() => {
+        const todayKey = new Date().toISOString().slice(0, 10);
+        const classifyRequest = (message: string) => {
+            const value = (message || '').toLowerCase();
+            if (/not.*like|dislike|don'?t.*like|change/.test(value)) return 'Dislike Current ID';
+            if (/new|different|another|reassign/.test(value)) return 'Need New ID';
+            return 'General ID Help';
+        };
+        const enhanced = cotIdChangeRequests.map(request => ({
+            ...request,
+            category: classifyRequest(request.message || ''),
+            isToday: (request.createdAt || '').slice(0, 10) === todayKey,
+            isPendingUser: request.user?.status === 'Pending Verification'
+        }));
+        return {
+            total: enhanced.length,
+            today: enhanced.filter(item => item.isToday).length,
+            todayNotPending: enhanced.filter(item => item.isToday && !item.isPendingUser).length,
+            pendingUsers: enhanced.filter(item => item.isPendingUser).length,
+            categories: {
+                dislike: enhanced.filter(item => item.category === 'Dislike Current ID').length,
+                newId: enhanced.filter(item => item.category === 'Need New ID').length,
+                help: enhanced.filter(item => item.category === 'General ID Help').length
+            },
+            items: enhanced
+        };
+    }, [cotIdChangeRequests]);
+
+    const deletedMessageUserOptions = useMemo(() => {
+        const userIds = new Set<string>();
+        deletedContactMessages.forEach(msg => {
+            if (msg.senderId) userIds.add(msg.senderId);
+        });
+        deletedMemberNotifications.forEach(note => {
+            if (note.userId) userIds.add(note.userId);
+        });
+        return Array.from(userIds).sort();
+    }, [deletedContactMessages, deletedMemberNotifications]);
+
+    const filteredDeletedContactMessages = useMemo(
+        () => deletedContactMessages.filter(msg => !messageRestoreUserFilter || msg.senderId === messageRestoreUserFilter),
+        [deletedContactMessages, messageRestoreUserFilter]
+    );
+
+    const filteredDeletedMemberReplies = useMemo(
+        () => deletedMemberNotifications.filter(note => note.from === 'user' && (!messageRestoreUserFilter || note.userId === messageRestoreUserFilter)),
+        [deletedMemberNotifications, messageRestoreUserFilter]
+    );
+
     const markCotIdForMessage = (candidate: string) => {
         const normalized = (candidate || '').trim().toUpperCase();
         if (!isCotId(normalized)) return;
@@ -521,13 +580,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }, 900);
     };
 
-    const handleApplyDiceCotId = async () => {
+    const applyCotIdToSelectedUser = async (candidateId: string) => {
         if (!onReassignUserId) {
             alert('ID reassignment is not available.');
             return;
         }
-        if (!diceTargetUserId || !dicePickedCotId) {
-            alert('Select user and roll a COT ID first.');
+        const nextCotId = normalizeCotIdInput(candidateId);
+        if (!diceTargetUserId || !nextCotId) {
+            alert('Select user and provide a COT ID first.');
             return;
         }
         const user = users.find(u => u.id === diceTargetUserId);
@@ -539,13 +599,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             alert('Random COT ID assignment is allowed only for approved users.');
             return;
         }
-        try {
-            await onReassignUserId(user.id, dicePickedCotId, { ...user, id: dicePickedCotId });
-            setDicePickedCotId('');
-        } catch (error) {
-            console.error('Failed to assign random COT ID', error);
-            alert('Failed to assign random COT ID.');
+        if (!isCotId(nextCotId)) {
+            alert('Enter a valid COT ID format like COT-1960.');
+            return;
         }
+        if (nextCotId !== user.id.toUpperCase() && existingCotIds.has(nextCotId)) {
+            alert('This COT ID is already used.');
+            return;
+        }
+        try {
+            await onReassignUserId(user.id, nextCotId, { ...user, id: nextCotId });
+            setDicePickedCotId('');
+            setDiceManualInput('');
+        } catch (error) {
+            console.error('Failed to assign COT ID', error);
+            alert('Failed to assign COT ID.');
+        }
+    };
+
+    const handleApplyDiceCotId = async () => {
+        await applyCotIdToSelectedUser(dicePickedCotId);
     };
 
     const activateUserWithCotId = async (user: User) => {
@@ -1889,6 +1962,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     </button>
                                 ))}
                             </div>
+                            <div className="flex flex-wrap gap-2">
+                                <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100 text-[11px] font-bold">Today Requests: {cotIdRequestInsights.today}</span>
+                                <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 text-[11px] font-bold">Today Not Pending: {cotIdRequestInsights.todayNotPending}</span>
+                                <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100 text-[11px] font-bold">Pending Users: {cotIdRequestInsights.pendingUsers}</span>
+                                <span className="px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-100 text-[11px] font-bold">Dislike ID: {cotIdRequestInsights.categories.dislike}</span>
+                            </div>
 
                             {cotManagerMode === 'manual' && (
                                 <>
@@ -2053,16 +2132,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             Use this COT ID
                                         </button>
                                     </div>
+                                    <div className="flex flex-col sm:flex-row gap-2">
+                                        <input
+                                            list="manual-cot-id-options"
+                                            value={diceManualInput}
+                                            onChange={(e) => setDiceManualInput(e.target.value)}
+                                            placeholder="Type COT ID manually (example: COT-1960)"
+                                            className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm font-mono outline-none focus:border-brand-500"
+                                        />
+                                        <button
+                                            onClick={() => applyCotIdToSelectedUser(diceManualInput)}
+                                            disabled={!diceTargetUserId || !diceManualInput.trim() || !onReassignUserId}
+                                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold disabled:opacity-60"
+                                        >
+                                            Apply Typed ID
+                                        </button>
+                                    </div>
                                     <p className="text-xs text-slate-500">Roll to generate a powerful random COT ID, then apply it to the selected user.</p>
                                 </div>
                             )}
 
                             {cotManagerMode === 'requests' && (
                                 <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                                    {cotIdChangeRequests.map(note => (
+                                    {cotIdRequestInsights.items.map(note => (
                                         <div key={note.id} className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 flex items-start justify-between gap-3">
                                             <div className="min-w-0">
-                                                <p className="text-xs font-black text-amber-900 truncate">{note.user?.name || note.userId}</p>
+                                                <div className="flex flex-wrap items-center gap-2 mb-1">
+                                                    <p className="text-xs font-black text-amber-900 truncate">{note.user?.name || note.userId}</p>
+                                                    <span className="px-2 py-0.5 rounded-full bg-white border border-amber-200 text-[10px] font-black text-amber-800">{note.category}</span>
+                                                    {note.isToday && <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-[10px] font-black text-emerald-700">Today</span>}
+                                                </div>
                                                 <p className="text-[11px] text-amber-900/90 whitespace-pre-wrap break-words">{note.message}</p>
                                                 <p className="text-[10px] text-amber-700 mt-1">{new Date(note.createdAt).toLocaleString()}</p>
                                             </div>
@@ -2341,6 +2440,63 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     {testimonials.length === 0 && userReplies.length === 0 && (
                                         <p className="text-sm text-slate-400">No testimonials or replies yet.</p>
                                     )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 space-y-3">
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                                <div className="flex items-center gap-2">
+                                    <h2 className="text-sm font-black text-brand-950">Deleted Messages Recovery</h2>
+                                    <span className="text-xs font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-100">{deletedContactMessages.length + filteredDeletedMemberReplies.length}</span>
+                                </div>
+                                <select
+                                    value={messageRestoreUserFilter}
+                                    onChange={(e) => setMessageRestoreUserFilter(e.target.value)}
+                                    className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold outline-none focus:border-brand-500"
+                                >
+                                    <option value="">All users</option>
+                                    {deletedMessageUserOptions.map(userId => (
+                                        <option key={userId} value={userId}>{userId}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                                    <p className="text-xs font-black text-slate-700">Deleted Contact Messages</p>
+                                    {filteredDeletedContactMessages.length === 0 && <p className="text-xs text-slate-400">No deleted contact messages.</p>}
+                                    {filteredDeletedContactMessages.map(msg => (
+                                        <div key={msg.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                                            <p className="text-[11px] font-black text-brand-900 truncate">{msg.name || 'Website Visitor'} {msg.senderId ? `• ${msg.senderId}` : ''}</p>
+                                            <p className="text-[11px] text-slate-600 mt-1 line-clamp-2">{msg.message}</p>
+                                            {onRestoreContactMessage && (
+                                                <button
+                                                    onClick={() => onRestoreContactMessage(msg.id)}
+                                                    className="mt-2 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold hover:bg-emerald-100"
+                                                >
+                                                    Restore
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                                    <p className="text-xs font-black text-slate-700">Deleted User Replies</p>
+                                    {filteredDeletedMemberReplies.length === 0 && <p className="text-xs text-slate-400">No deleted user replies.</p>}
+                                    {filteredDeletedMemberReplies.map(note => (
+                                        <div key={note.id} className="rounded-xl border border-blue-100 bg-blue-50 p-3">
+                                            <p className="text-[11px] font-black text-blue-900 truncate">{note.userId}</p>
+                                            <p className="text-[11px] text-blue-900 mt-1 line-clamp-2">{note.message}</p>
+                                            {onRestoreMemberNotification && (
+                                                <button
+                                                    onClick={() => onRestoreMemberNotification(note.id)}
+                                                    className="mt-2 px-2.5 py-1.5 rounded-lg bg-white text-blue-700 border border-blue-200 text-[11px] font-bold hover:bg-blue-100"
+                                                >
+                                                    Restore
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>

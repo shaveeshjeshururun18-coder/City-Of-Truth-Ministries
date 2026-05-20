@@ -476,6 +476,24 @@ const App: React.FC = () => {
       return [];
     }
   });
+  const [deletedContactMessages, setDeletedContactMessages] = useState<ContactMessage[]>(() => {
+    try {
+      const saved = localStorage.getItem('cot_deleted_contact_messages');
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+  const [deletedMemberNotifications, setDeletedMemberNotifications] = useState<MemberNotification[]>(() => {
+    try {
+      const saved = localStorage.getItem('cot_deleted_member_notifications');
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
 
   const [homeSectionsOrder, setHomeSectionsOrder] = useState<string[]>(() => {
     try {
@@ -506,6 +524,12 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('cot_member_notifications', JSON.stringify(memberNotifications));
   }, [memberNotifications]);
+  useEffect(() => {
+    localStorage.setItem('cot_deleted_contact_messages', JSON.stringify(deletedContactMessages));
+  }, [deletedContactMessages]);
+  useEffect(() => {
+    localStorage.setItem('cot_deleted_member_notifications', JSON.stringify(deletedMemberNotifications));
+  }, [deletedMemberNotifications]);
   const [dashboardFocusSection, setDashboardFocusSection] = useState<'notifications' | null>(null);
   useEffect(() => {
     if (currentView !== ViewState.USER_DASHBOARD && dashboardFocusSection) {
@@ -553,7 +577,23 @@ const App: React.FC = () => {
   };
 
   const handleDeleteContactMessage = (messageId: string) => {
-    setContactMessages(prev => prev.filter(msg => msg.id !== messageId));
+    setContactMessages(prev => {
+      const target = prev.find(msg => msg.id === messageId);
+      if (target) {
+        setDeletedContactMessages(old => [target, ...old.filter(item => item.id !== messageId)].slice(0, MAX_STORED_CONTACT_MESSAGES));
+      }
+      return prev.filter(msg => msg.id !== messageId);
+    });
+  };
+
+  const handleRestoreContactMessage = (messageId: string) => {
+    setDeletedContactMessages(prev => {
+      const target = prev.find(msg => msg.id === messageId);
+      if (target) {
+        setContactMessages(old => [target, ...old.filter(item => item.id !== messageId)].slice(0, MAX_STORED_CONTACT_MESSAGES));
+      }
+      return prev.filter(msg => msg.id !== messageId);
+    });
   };
 
   const handleAdminSendMessageToUsers = (targetUserIds: string[], message: string) => {
@@ -596,7 +636,23 @@ const App: React.FC = () => {
   };
 
   const handleDeleteMemberNotification = (notificationId: string) => {
-    setMemberNotifications(prev => prev.filter(note => note.id !== notificationId));
+    setMemberNotifications(prev => {
+      const target = prev.find(note => note.id === notificationId);
+      if (target) {
+        setDeletedMemberNotifications(old => [target, ...old.filter(item => item.id !== notificationId)].slice(0, 1000));
+      }
+      return prev.filter(note => note.id !== notificationId);
+    });
+  };
+
+  const handleRestoreMemberNotification = (notificationId: string) => {
+    setDeletedMemberNotifications(prev => {
+      const target = prev.find(note => note.id === notificationId);
+      if (target) {
+        setMemberNotifications(old => [target, ...old.filter(item => item.id !== notificationId)].slice(0, 1000));
+      }
+      return prev.filter(note => note.id !== notificationId);
+    });
   };
 
   const handleDeleteUserNotification = (userId: string, notificationId: string) => {
@@ -1260,10 +1316,14 @@ const App: React.FC = () => {
         users={users}
         deletedUsers={deletedUsers}
         contactMessages={contactMessages}
+        deletedContactMessages={deletedContactMessages}
         memberNotifications={memberNotifications}
+        deletedMemberNotifications={deletedMemberNotifications}
         onSendMessageToUsers={handleAdminSendMessageToUsers}
         onDeleteContactMessage={handleDeleteContactMessage}
+        onRestoreContactMessage={handleRestoreContactMessage}
         onDeleteMemberNotification={handleDeleteMemberNotification}
+        onRestoreMemberNotification={handleRestoreMemberNotification}
         onUpdateUser={async (user) => {
           await api.updateUser(user);
           setUsers(prev => prev.map(u => u.id === user.id ? user : u));
@@ -1774,10 +1834,14 @@ const App: React.FC = () => {
                 users={users}
                 deletedUsers={deletedUsers}
                 contactMessages={contactMessages}
+                deletedContactMessages={deletedContactMessages}
                 memberNotifications={memberNotifications}
+                deletedMemberNotifications={deletedMemberNotifications}
                 onSendMessageToUsers={handleAdminSendMessageToUsers}
                 onDeleteContactMessage={handleDeleteContactMessage}
+                onRestoreContactMessage={handleRestoreContactMessage}
                 onDeleteMemberNotification={handleDeleteMemberNotification}
+                onRestoreMemberNotification={handleRestoreMemberNotification}
                 onUpdateUser={async (user) => {
                   await api.updateUser(user);
                   setUsers(prev => prev.map(u => u.id === user.id ? user : u));
