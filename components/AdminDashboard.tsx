@@ -5,7 +5,7 @@ import {
     ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Filter, Mail, Phone, MapPin, Droplet,
     Calendar, Award, Shield, ShieldCheck, AlertCircle, CheckCircle, QrCode, Download,
     Save, GripVertical, Globe, Plus, ImagePlus, Camera, Image as ImageIcon, MessageSquare, Check, XCircle, FileText,
-    PanelLeft, PanelTop, Database, RotateCcw
+    PanelLeft, PanelTop, Database, RotateCcw, Dice6
 } from 'lucide-react';
 import { User, UserRole, UserStatus, Testimonial, Ministry, DeletedUser } from '../types';
 import { Button } from './Button';
@@ -83,13 +83,14 @@ const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any
 
 
 
-const TAB_ITEMS: { id: 'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'; label: string; icon: React.ElementType }[] = [
+const TAB_ITEMS: { id: 'users' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'; label: string; icon: React.ElementType }[] = [
     { id: 'users', label: 'Users', icon: Users },
     { id: 'recycle-bin', label: 'Recycle Bin', icon: RotateCcw },
     { id: 'firebase', label: 'Firebase', icon: Database },
     { id: 'messages', label: 'Messages', icon: MessageSquare },
     { id: 'ministries', label: 'Ministries', icon: Globe },
     { id: 'id-cards', label: 'ID Cards', icon: QrCode },
+    { id: 'cot-id-manager', label: 'COT ID Manager', icon: Dice6 },
     { id: 'home-layout', label: 'Home Layout', icon: GripVertical },
     { id: 'menu-editor', label: 'Menu Editor', icon: Filter },
 ];
@@ -157,6 +158,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState<UserStatus | 'All'>('All');
     const [filterRole, setFilterRole] = useState<UserRole | 'All'>('All');
+    const [filterLocation, setFilterLocation] = useState<string>('All');
+    const [userSortMode, setUserSortMode] = useState<'status' | 'cot-id' | 'member-since'>('status');
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [deletingUser, setDeletingUser] = useState<User | null>(null);
     const [viewingQrUser, setViewingQrUser] = useState<User | null>(null);
@@ -177,7 +180,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [downloadingProfilePdfUserId, setDownloadingProfilePdfUserId] = useState<string | null>(null);
     const [userQuickViewMode, setUserQuickViewMode] = useState<UserQuickViewMode | null>(null);
 
-    const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'>('users');
     const [menuMode, setMenuMode] = useState<'horizontal' | 'vertical'>(() => {
         try {
             const stored = localStorage.getItem('adminMenuMode');
@@ -220,6 +223,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [dicePickedCotId, setDicePickedCotId] = useState('');
     const [diceManualInput, setDiceManualInput] = useState('');
     const [messageRestoreUserFilter, setMessageRestoreUserFilter] = useState('');
+    const [messageLocationFilter, setMessageLocationFilter] = useState<string>('All');
 
     React.useEffect(() => {
         if (activeTab === 'messages') {
@@ -380,6 +384,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             .map(([location, count]) => ({ location, count }))
             .sort((a, b) => b.count - a.count || a.location.localeCompare(b.location));
     }, [users]);
+    const userLocationOptions = useMemo(
+        () => Array.from(new Set(users.map(user => (user.location || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
+        [users]
+    );
 
     const selectedQuickView = useMemo(
         () => USER_QUICK_VIEW_OPTIONS.find(option => option.id === userQuickViewMode) || null,
@@ -551,10 +559,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     };
 
     const handleSendAdminMessage = () => {
-        const targetIds = selectedCotIds.length > 0 ? selectedCotIds : cotUsers.map(user => user.id.toUpperCase());
+        const locationScopedCotUsers = messageLocationFilter === 'All'
+            ? cotUsers
+            : cotUsers.filter(user => (user.location || '').trim() === messageLocationFilter);
+        const targetIds = selectedCotIds.length > 0 ? selectedCotIds : locationScopedCotUsers.map(user => user.id.toUpperCase());
         if (!onSendMessageToUsers) return;
         if (targetIds.length === 0) {
-            alert('No COT users available to receive this message.');
+            alert(messageLocationFilter === 'All'
+                ? 'No COT users available to receive this message.'
+                : `No COT users found in ${messageLocationFilter}.`);
             return;
         }
         if (!bulkAdminMessage.trim()) {
@@ -664,16 +677,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             const matchesStatus = filterStatus === 'All' || user.status === filterStatus;
             const matchesRole = filterRole === 'All' || user.role === filterRole;
+            const matchesLocation = filterLocation === 'All' || (user.location || '').trim() === filterLocation;
 
-            return matchesSearch && matchesStatus && matchesRole;
+            return matchesSearch && matchesStatus && matchesRole && matchesLocation;
         });
 
-        // Sort by status: Pending first, then Active, then Rejected
+        if (userSortMode === 'cot-id') {
+            return filtered.sort((a, b) => (a.id || '').localeCompare((b.id || ''), undefined, { numeric: true, sensitivity: 'base' }));
+        }
+        if (userSortMode === 'member-since') {
+            return filtered.sort((a, b) => {
+                const aDate = new Date(a.memberSince || a.joinedDate || '').getTime();
+                const bDate = new Date(b.memberSince || b.joinedDate || '').getTime();
+                const safeA = Number.isNaN(aDate) ? 0 : aDate;
+                const safeB = Number.isNaN(bDate) ? 0 : bDate;
+                return safeB - safeA;
+            });
+        }
+
         return filtered.sort((a, b) => {
             const statusOrder = { 'Pending Verification': 0, 'Active': 1, 'Rejected': 2 };
             return statusOrder[a.status] - statusOrder[b.status];
         });
-    }, [users, searchQuery, filterStatus, filterRole]);
+    }, [users, searchQuery, filterStatus, filterRole, filterLocation, userSortMode]);
 
     const cotManagerUsers = useMemo(() => {
         const query = cotManagerQuery.trim().toLowerCase();
@@ -1455,6 +1481,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <option value="Choir">Choir</option>
                                     <option value="Media Team">Media Team</option>
                                 </select>
+                                <select
+                                    value={filterLocation}
+                                    onChange={(e) => setFilterLocation(e.target.value)}
+                                    className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors text-sm"
+                                >
+                                    <option value="All">All Locations</option>
+                                    {userLocationOptions.map(location => (
+                                        <option key={location} value={location}>{location}</option>
+                                    ))}
+                                </select>
+                                <select
+                                    value={userSortMode}
+                                    onChange={(e) => setUserSortMode(e.target.value as 'status' | 'cot-id' | 'member-since')}
+                                    className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors text-sm"
+                                >
+                                    <option value="status">Sort: Status</option>
+                                    <option value="cot-id">Sort: COT ID</option>
+                                    <option value="member-since">Sort: Member Since</option>
+                                </select>
                             </div>
 
                             {/* Results count and bulk actions */}
@@ -1517,8 +1562,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">User</th>
                                         <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Contact</th>
                                         <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Role</th>
+                                        <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Location</th>
                                         <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                                        <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Joined</th>
+                                        <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Member Since</th>
                                         <th className="text-right px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
@@ -1571,6 +1617,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                     {user.role}
                                                 </span>
                                             </td>
+                                            <td className="px-6 py-4 text-sm text-slate-600">
+                                                {user.location || '—'}
+                                            </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-wrap items-center gap-2">
                                                     <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(user.status)}`}>
@@ -1588,7 +1637,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-sm text-slate-600">
-                                                {new Date(user.joinedDate).toLocaleDateString()}
+                                                {new Date(user.memberSince || user.joinedDate).toLocaleDateString()}
                                             </td>
                                             <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                                                 <div className="flex items-center justify-end gap-2">
@@ -1785,6 +1834,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <Award size={14} className="text-slate-400" />
                                         {user.role}
                                     </div>
+                                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                                        <MapPin size={14} className="text-slate-400" />
+                                        {user.location || 'Unknown location'}
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                                        <Calendar size={14} className="text-slate-400" />
+                                        Member since {new Date(user.memberSince || user.joinedDate).toLocaleDateString()}
+                                    </div>
                                 </div>
 
                                 {user.status === 'Pending Verification' && (
@@ -1934,8 +1991,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 )}
 
                 {/* ID Cards Section */}
-                {activeTab === 'id-cards' && (
+                {(activeTab === 'id-cards' || activeTab === 'cot-id-manager') && (
                     <div className="space-y-8">
+                        {activeTab === 'cot-id-manager' && (
                         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
                             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                                 <div>
@@ -2121,8 +2179,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         >
                                             🎲 {diceRolling ? 'Rolling...' : 'Roll Dice'}
                                         </button>
-                                        <div className="px-4 py-2 rounded-xl border border-indigo-100 bg-indigo-50 text-indigo-700 text-sm font-mono min-w-[180px] text-center">
-                                            {dicePickedCotId || 'No COT ID picked yet'}
+                                        <div className="relative min-w-[220px] h-[92px] [perspective:1000px]">
+                                            <div className={`absolute inset-0 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-700 text-white flex flex-col items-center justify-center shadow-xl transition-transform duration-500 ${diceRolling ? 'animate-spin' : ''}`} style={{ transformStyle: 'preserve-3d' }}>
+                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-100">3D Dice Pick</span>
+                                                <span className="font-mono text-xl md:text-2xl font-black">{dicePickedCotId || '— — — —'}</span>
+                                            </div>
                                         </div>
                                         <button
                                             onClick={handleApplyDiceCotId}
@@ -2208,8 +2269,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 )}
                             </div>
                         </div>
+                        )}
 
                         {/* Search and Filters (Reusing the same logic) */}
+                        {activeTab === 'id-cards' && (
                         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
                             <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
                                 <div className="flex-1 w-full relative">
@@ -2232,14 +2295,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <option value="Active">Active</option>
                                         <option value="Pending Verification">Pending</option>
                                     </select>
+                                    <select
+                                        value={filterLocation}
+                                        onChange={(e) => setFilterLocation(e.target.value)}
+                                        className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 text-sm font-bold"
+                                    >
+                                        <option value="All">All Locations</option>
+                                        {userLocationOptions.map(location => (
+                                            <option key={location} value={location}>{location}</option>
+                                        ))}
+                                    </select>
+                                    <select
+                                        value={userSortMode}
+                                        onChange={(e) => setUserSortMode(e.target.value as 'status' | 'cot-id' | 'member-since')}
+                                        className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 text-sm font-bold"
+                                    >
+                                        <option value="status">Status</option>
+                                        <option value="cot-id">COT ID</option>
+                                        <option value="member-since">Member Since</option>
+                                    </select>
                                     <div className="px-4 py-3 bg-brand-50 text-brand-700 rounded-xl flex items-center gap-2 font-black text-xs uppercase tracking-widest whitespace-nowrap">
                                         <Users size={14} /> {filteredUsers.length} Cards
                                     </div>
                                 </div>
                             </div>
                         </div>
+                        )}
 
                         {/* ID Cards Grid */}
+                        {activeTab === 'id-cards' && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-8">
                             <AnimatePresence mode='popLayout'>
                                 {filteredUsers.map((user, index) => (
@@ -2300,12 +2384,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <p className="text-slate-400 text-sm mt-2 font-light">Try adjusting your search or filters to see more results.</p>
                             </div>
                         )}
+                        )}
                     </div>
                 )}
                 {activeTab === 'messages' && (
                     <div className="space-y-4">
                         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 space-y-3">
                             <h3 className="text-sm font-black text-brand-950">Send message by COT ID (single or bulk)</h3>
+                            <div className="flex flex-col sm:flex-row gap-2">
+                                <select
+                                    value={messageLocationFilter}
+                                    onChange={(e) => setMessageLocationFilter(e.target.value)}
+                                    className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
+                                >
+                                    <option value="All">All Locations</option>
+                                    {userLocationOptions.map(location => (
+                                        <option key={location} value={location}>{location}</option>
+                                    ))}
+                                </select>
+                                <p className="text-xs text-slate-500 self-center">
+                                    Location-based targeting is applied when no specific IDs are selected.
+                                </p>
+                            </div>
                             <div className="flex flex-col sm:flex-row gap-2">
                                 <input
                                     list="cot-id-targets"
@@ -2321,7 +2421,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     Add ID
                                 </button>
                                 <button
-                                    onClick={() => setSelectedCotIds(cotUsers.map(user => user.id.toUpperCase()))}
+                                    onClick={() => setSelectedCotIds(
+                                        (messageLocationFilter === 'All'
+                                            ? cotUsers
+                                            : cotUsers.filter(user => (user.location || '').trim() === messageLocationFilter)
+                                        ).map(user => user.id.toUpperCase())
+                                    )}
                                     className="px-4 py-2 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-bold"
                                 >
                                     Select All
@@ -2554,7 +2659,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     {/* Sync Overlay with MinistryGallery.tsx */}
                                     <div className="absolute inset-0 bg-gradient-to-t from-brand-950/90 via-brand-950/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-500" />
 
-                                    <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0 duration-300 z-20">
+                                    <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all md:translate-x-4 md:group-hover:translate-x-0 duration-300 z-20">
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setEditingMinistry(m); }}
                                             className="w-10 h-10 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white hover:text-brand-950 transition-all shadow-lg"
@@ -2582,7 +2687,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     </div>
 
                                     {/* Reorder Grip - Top Left */}
-                                    <div className="absolute top-4 left-4 w-10 h-10 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center text-white/60 opacity-0 group-hover:opacity-100 transition-all border border-white/20 hover:bg-white hover:text-brand-950 shadow-lg cursor-grab active:cursor-grabbing z-20">
+                                    <div className="absolute top-4 left-4 w-10 h-10 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center text-white/60 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all border border-white/20 hover:bg-white hover:text-brand-950 shadow-lg cursor-grab active:cursor-grabbing z-20">
                                         <GripVertical size={18} />
                                     </div>
 

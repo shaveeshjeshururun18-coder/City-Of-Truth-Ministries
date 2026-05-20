@@ -65,6 +65,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [cropTarget, setCropTarget] = useState<{ type: 'primary' | 'linked-profile' | 'new-family-member'; profileId?: string } | null>(null);
     const [adminReply, setAdminReply] = useState('');
     const [showDashboardGuide, setShowDashboardGuide] = useState(false);
+    const [dismissedTopNotificationId, setDismissedTopNotificationId] = useState<string | null>(null);
     const notificationsSectionRef = React.useRef<HTMLDivElement | null>(null);
     const hasPermanentCotId = /^COT-\d{4,}$/.test((user.id || '').trim());
     const canAccessEntrustFeatures = user.status === 'Active' && hasPermanentCotId;
@@ -100,6 +101,27 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         }, 200);
         return () => window.clearTimeout(timer);
     }, [focusSection]);
+
+    const topNotification = notifications.length > 0 ? notifications[0] : null;
+
+    useEffect(() => {
+        if (!topNotification) {
+            setDismissedTopNotificationId(null);
+            return;
+        }
+        if (dismissedTopNotificationId && dismissedTopNotificationId !== topNotification.id) {
+            setDismissedTopNotificationId(null);
+        }
+    }, [topNotification, dismissedTopNotificationId]);
+
+    useEffect(() => {
+        if (!topNotification) return;
+        if (dismissedTopNotificationId === topNotification.id) return;
+        const timer = window.setTimeout(() => {
+            setDismissedTopNotificationId(topNotification.id);
+        }, 60000);
+        return () => window.clearTimeout(timer);
+    }, [topNotification, dismissedTopNotificationId]);
 
 
     const getDisplayProfile = () => {
@@ -719,6 +741,28 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     return (
         <div className="min-h-screen pt-28 pb-20 bg-[#f0f2f5] text-slate-900 relative flex flex-col items-center overflow-x-hidden px-3 sm:px-5">
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.06] pointer-events-none z-0" />
+            {topNotification && dismissedTopNotificationId !== topNotification.id && (
+                <div className="sticky top-20 z-50 w-full max-w-6xl mb-3">
+                    <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 via-white to-orange-50 shadow-lg px-4 py-3 flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                            <MessageSquare size={16} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[10px] font-black uppercase tracking-wider text-amber-700">New Admin Notification</p>
+                            <p className="text-sm text-slate-700 whitespace-pre-wrap break-words">{topNotification.message}</p>
+                            <p className="text-[10px] text-slate-400 mt-1">Auto closes in 1 minute</p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setDismissedTopNotificationId(topNotification.id)}
+                            className="p-1.5 rounded-lg text-slate-500 hover:bg-white border border-slate-200"
+                            title="Dismiss notification"
+                        >
+                            <X size={14} />
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Off-screen capture nodes */}
             {croppingImage && <div className="z-[100] relative"><ImageCropper imageSrc={croppingImage} onCropComplete={handleCropComplete} onCancel={() => { setCroppingImage(null); setCropTarget(null); }} /></div>}

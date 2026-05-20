@@ -76,6 +76,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const triggerTamilOnlyMode = () => {
+    setLanguage('ta');
+    const currentUrl = window.location.href;
+    if (currentUrl.includes('translate.google.com/translate')) return;
+    window.location.href = `https://translate.google.com/translate?sl=auto&tl=ta&u=${encodeURIComponent(currentUrl)}`;
+  };
+
   return (
     <>
       {/* Import Montserrat font directly for exactness */}
@@ -173,7 +180,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
         <div className="flex items-center gap-1.5 sm:gap-2 ml-1 sm:ml-2">
           {/* Language Toggle */}
           <button
-            onClick={() => setLanguage(language === 'en' ? 'ta' : 'en')}
+            onClick={() => {
+              if (language === 'en') triggerTamilOnlyMode();
+              else setLanguage('en');
+            }}
             className={`hidden sm:flex items-center gap-1 px-2.5 h-9 rounded-xl text-[11px] font-bold transition-all whitespace-nowrap ${currentView === ViewState.HOME && !isScrolled ? 'border border-white/20 bg-white/10 text-white hover:bg-white/20' : 'border border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50'}`}
             title={language === 'en' ? 'Current mode: Bilingual' : 'Current mode: Tamil only'}
             aria-label="Toggle language"
@@ -460,7 +470,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                       Bilingual
                     </button>
                     <button
-                      onClick={() => setLanguage('ta')}
+                      onClick={triggerTamilOnlyMode}
                       className={`p-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
                         language === 'ta'
                           ? 'bg-brand-600 text-white'
