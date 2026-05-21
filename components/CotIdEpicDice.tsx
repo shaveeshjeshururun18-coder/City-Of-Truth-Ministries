@@ -7,10 +7,10 @@ interface CotIdEpicDiceProps {
 
 interface Particle {
     id: number;
-    tx: number;
-    ty: number;
+    translateX: number;
+    translateY: number;
     size: number;
-    rot: number;
+    rotation: number;
     type: number;
 }
 
@@ -31,10 +31,10 @@ export const CotIdEpicDice: React.FC<CotIdEpicDiceProps> = ({ isRolling, result 
             const velocity = MIN_VELOCITY + Math.random() * VELOCITY_RANGE;
             return {
                 id: i,
-                tx: Math.cos(angle) * velocity,
-                ty: Math.sin(angle) * velocity,
+                translateX: Math.cos(angle) * velocity,
+                translateY: Math.sin(angle) * velocity,
                 size: MIN_PARTICLE_SIZE + Math.random() * PARTICLE_SIZE_RANGE,
-                rot: Math.random() * MAX_ROTATION_DEGREES,
+                rotation: Math.random() * MAX_ROTATION_DEGREES,
                 type: Math.floor(Math.random() * 3)
             };
         });
@@ -90,9 +90,9 @@ export const CotIdEpicDice: React.FC<CotIdEpicDiceProps> = ({ isRolling, result 
                                     p.type === 1 ? 'linear-gradient(135deg, #ffffff, #cbd5e1)' : '#e9d5ff',
                                 borderRadius: p.type === 2 ? '50%' : '2px',
                                 clipPath: p.type !== 2 ? 'polygon(50% 0%, 100% 30%, 80% 100%, 20% 100%, 0% 30%)' : 'none',
-                                ['--tx' as string]: `${p.tx}px`,
-                                ['--ty' as string]: `${p.ty}px`,
-                                ['--rot' as string]: `${p.rot}deg`,
+                                ['--tx' as string]: `${p.translateX}px`,
+                                ['--ty' as string]: `${p.translateY}px`,
+                                ['--rot' as string]: `${p.rotation}deg`,
                                 animation: 'explode-out 1.15s cubic-bezier(0.1, 1, 0.3, 1) forwards'
                             }}
                         />
