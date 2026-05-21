@@ -28,6 +28,8 @@ interface ContactMessage {
     source: 'hero-widget' | 'contact-form';
     senderType?: 'Registered' | 'Non-Registered';
     senderId?: string;
+    deletedAt?: string;
+    autoDeleteAt?: string;
 }
 
 interface MemberNotification {
@@ -37,6 +39,8 @@ interface MemberNotification {
     message: string;
     createdAt: string;
     read?: boolean;
+    deletedAt?: string;
+    autoDeleteAt?: string;
 }
 
 interface AdminDashboardProps {
@@ -237,6 +241,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [cotIdSearchInput, setCotIdSearchInput] = useState('');
     const [cotIdSearchFeedback, setCotIdSearchFeedback] = useState<{ type: 'occupied' | 'available' | 'invalid'; message: string } | null>(null);
     const [diceRolling, setDiceRolling] = useState(false);
+    const [diceUserQuery, setDiceUserQuery] = useState('');
     const [diceTargetUserId, setDiceTargetUserId] = useState('');
     const [dicePickedCotId, setDicePickedCotId] = useState('');
     const [diceManualInput, setDiceManualInput] = useState('');
@@ -500,6 +505,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         () => Array.from({ length: maxOccupiedCotNumber }, (_, index) => formatCotId(index + 1)),
         [maxOccupiedCotNumber]
     );
+    const cotIdOwnerById = useMemo(() => {
+        const map = new Map<string, User>();
+        users.forEach((user) => {
+            const key = (user.id || '').toUpperCase();
+            if (/^COT-\d{4,}$/.test(key)) map.set(key, user);
+        });
+        return map;
+    }, [users]);
+    const shuffledCotIdInventory = useMemo(() => {
+        const items = [...cotIdInventory];
+        for (let i = items.length - 1; i > 0; i -= 1) {
+            const rand = Math.floor(Math.random() * (i + 1));
+            [items[i], items[rand]] = [items[rand], items[i]];
+        }
+        return items;
+    }, [cotIdInventory]);
 
     const getRandomAvailableCotId = () => {
         if (allAvailableCotIds.length === 0) return null;
@@ -876,10 +897,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             alert('Selected user not found.');
             return;
         }
-        if (user.status !== 'Active') {
-            alert('Random COT ID assignment is allowed only for approved users.');
-            return;
-        }
         if (!isCotId(nextCotId)) {
             alert('Enter a valid COT ID format like COT-1960.');
             return;
@@ -981,10 +998,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         return filtered.filter(user => user.id === cotManagerSelectedUserId);
     }, [users, cotManagerQuery, cotManagerSelectedUserId]);
 
-    const cotManagerAssignableUsers = useMemo(
-        () => cotManagerUsers.filter(user => user.status === 'Active'),
-        [cotManagerUsers]
-    );
+    const cotManagerAssignableUsers = useMemo(() => cotManagerUsers, [cotManagerUsers]);
+    const randomDiceUsers = useMemo(() => {
+        const query = diceUserQuery.trim().toLowerCase();
+        if (!query) return cotManagerAssignableUsers;
+        return cotManagerAssignableUsers.filter((user) => {
+            const haystack = `${user.name} ${user.id} ${user.phone || ''} ${user.email || ''} ${user.location || ''}`.toLowerCase();
+            return haystack.includes(query);
+        });
+    }, [cotManagerAssignableUsers, diceUserQuery]);
 
     const handleSearchCotId = () => {
         const normalized = normalizeCotIdInput(cotIdSearchInput);
@@ -1009,6 +1031,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         const [item] = next.splice(from, 1);
         next.splice(to, 0, item);
         return next;
+    };
+    const moveNavItemByLabel = (label: string, direction: 'up' | 'down') => {
+        if (!onUpdateNavItems || !navItems || navItems.length === 0) return;
+        const idx = navItems.findIndex((nav: any) => nav.label === label);
+        if (idx < 0) return;
+        const target = direction === 'up' ? idx - 1 : idx + 1;
+        if (target < 0 || target >= navItems.length) return;
+        onUpdateNavItems(moveArrayItem(navItems, idx, target));
     };
 
     const handleSaveEdit = async () => {
@@ -2520,32 +2550,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         />
                                     </div>
 
-                                    <details className="rounded-xl border border-slate-200 bg-white p-3">
-                                        <summary className="cursor-pointer text-xs font-bold text-slate-700">
-                                            COT ID inventory list (COT-0001 to {formatCotId(Math.max(maxOccupiedCotNumber, 1))})
-                                        </summary>
-                                        <div className="mt-3 max-h-40 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pr-1">
-                                            {cotIdInventory.length === 0 && (
-                                                <p className="text-xs text-slate-400">No occupied COT IDs yet.</p>
-                                            )}
-                                            {cotIdInventory.map((id) => {
-                                                const occupied = existingCotIds.has(id);
-                                                return (
-                                                    <div key={id} className={`px-2 py-1.5 rounded-lg border text-[11px] font-mono ${occupied ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
-                                                        {id} • {occupied ? 'Occupied' : 'Free'}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </details>
-
                                     <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
                                         {cotManagerUsers.map((user) => {
                                             const currentId = (user.id || '').toUpperCase();
                                             const draftId = cotDraftIds[user.id] ?? currentId;
                                             const normalizedDraft = normalizeCotIdInput(draftId);
                                             const duplicateId = normalizedDraft && normalizedDraft !== currentId && existingCotIds.has(normalizedDraft);
-                                            const isAssignable = user.status === 'Active';
+                                            const isAssignable = true;
                                             return (
                                                 <div key={user.id} className={`grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_220px_auto] gap-2 items-center rounded-xl border px-3 py-2.5 ${cotManagerSelectedUserId === user.id ? 'border-brand-300 bg-brand-50/70' : 'border-slate-100 bg-slate-50'}`}>
                                                     <div className="min-w-0">
@@ -2575,10 +2586,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                                 return;
                                                             }
                                                             if (nextId === currentId) return;
-                                                            if (!isAssignable) {
-                                                                alert('COT ID assignment is allowed only for approved users.');
-                                                                return;
-                                                            }
                                                             try {
                                                                 await onReassignUserId(user.id, nextId, { ...user, id: nextId });
                                                                 setCotDraftIds(prev => ({ ...prev, [user.id]: nextId }));
@@ -2590,7 +2597,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                         className="px-3 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold disabled:opacity-60"
                                                         disabled={!onReassignUserId || !isAssignable}
                                                     >
-                                                        {isAssignable ? 'Save ID' : 'Approve First'}
+                                                        Save ID
                                                     </button>
                                                     {duplicateId && (
                                                         <p className="xl:col-span-3 text-[11px] text-red-600 font-semibold">
@@ -2607,20 +2614,63 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <div className="text-sm text-slate-400 text-center py-4">No users found.</div>
                                         )}
                                     </div>
+                                    <details className="rounded-xl border border-slate-200 bg-white p-3 mt-2">
+                                        <summary className="cursor-pointer text-xs font-bold text-slate-700">
+                                            COT ID inventory (random sequence) • click occupied IDs to view profile
+                                        </summary>
+                                        <div className="mt-3 max-h-44 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pr-1">
+                                            {shuffledCotIdInventory.length === 0 && (
+                                                <p className="text-xs text-slate-400">No occupied COT IDs yet.</p>
+                                            )}
+                                            {shuffledCotIdInventory.map((id) => {
+                                                const owner = cotIdOwnerById.get(id);
+                                                const occupied = !!owner;
+                                                return (
+                                                    <button
+                                                        key={id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setCotIdSearchInput(id);
+                                                            setCotManagerSelectedUserId(owner?.id || '');
+                                                            if (owner) {
+                                                                setViewingDetailsUser(owner);
+                                                                setCotIdSearchFeedback({ type: 'occupied', message: `${id} is occupied by ${owner.name}.` });
+                                                            } else {
+                                                                setCotIdSearchFeedback({ type: 'available', message: `${id} is available.` });
+                                                            }
+                                                        }}
+                                                        className={`text-left px-2 py-1.5 rounded-lg border text-[11px] font-mono transition-colors ${occupied ? 'border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100' : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}
+                                                    >
+                                                        {id} • {occupied ? 'Occupied' : 'Free'}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </details>
                                 </>
                             )}
 
                             {cotManagerMode === 'random' && (
                                 <div className="space-y-3">
+                                    <div className="relative">
+                                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                        <input
+                                            type="text"
+                                            value={diceUserQuery}
+                                            onChange={(e) => setDiceUserQuery(e.target.value)}
+                                            placeholder="Search user by name, ID, phone, email, or location..."
+                                            className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
+                                        />
+                                    </div>
                                     <select
                                         value={diceTargetUserId}
                                         onChange={(e) => setDiceTargetUserId(e.target.value)}
                                         className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium outline-none focus:border-brand-500"
                                     >
                                         <option value="">Select user for random COT ID assignment</option>
-                                        {cotManagerAssignableUsers.slice(0, 250).map(user => (
+                                        {randomDiceUsers.slice(0, 500).map(user => (
                                             <option key={user.id} value={user.id}>
-                                                {user.name} • {(user.id || '').toUpperCase()}
+                                                {user.name} • {(user.id || '').toUpperCase()} • {user.status}
                                             </option>
                                         ))}
                                     </select>
@@ -2662,11 +2712,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             Apply Typed ID
                                         </button>
                                     </div>
-                                    <p className="text-xs text-slate-500">Roll to generate a powerful random COT ID, then apply it to the selected user.</p>
+                                    <p className="text-xs text-slate-500">Roll to generate a random COT ID, then apply it to the selected user (active, pending, or rejected).</p>
                                 </div>
                             )}
 
                             {cotManagerMode === 'requests' && (
+                                <div className="space-y-3">
+                                    <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-2.5 flex flex-wrap items-center gap-2 text-[11px] font-bold text-amber-900">
+                                        <span className="px-2 py-1 rounded-full bg-white border border-amber-200">Total: {cotIdRequestInsights.total}</span>
+                                        <span className="px-2 py-1 rounded-full bg-white border border-amber-200">Today: {cotIdRequestInsights.today}</span>
+                                        <span className="px-2 py-1 rounded-full bg-white border border-amber-200">Need New ID: {cotIdRequestInsights.categories.newId}</span>
+                                        <span className="px-2 py-1 rounded-full bg-white border border-amber-200">Dislike ID: {cotIdRequestInsights.categories.dislike}</span>
+                                    </div>
                                 <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                                     {cotIdRequestInsights.items.map(note => (
                                         <div key={note.id} className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 flex items-start justify-between gap-3">
@@ -2689,11 +2746,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             >
                                                 Open User
                                             </button>
+                                            {note.user && (
+                                                <button
+                                                    onClick={() => setViewingDetailsUser(note.user as User)}
+                                                    className="shrink-0 px-2.5 py-1.5 rounded-lg bg-white border border-amber-200 text-brand-700 text-[11px] font-bold hover:bg-brand-50"
+                                                >
+                                                    View Profile
+                                                </button>
+                                            )}
                                         </div>
                                     ))}
                                     {cotIdRequestInsights.items.length === 0 && (
                                         <div className="text-sm text-slate-400 text-center py-4">No COT ID change requests from users.</div>
                                     )}
+                                </div>
                                 </div>
                             )}
                             <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -3183,6 +3249,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <div key={msg.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
                                             <p className="text-[11px] font-black text-brand-900 truncate">{msg.name || 'Website Visitor'} {msg.senderId ? `• ${msg.senderId}` : ''}</p>
                                             <p className="text-[11px] text-slate-600 mt-1 line-clamp-2">{msg.message}</p>
+                                            <p className="text-[10px] text-slate-500 mt-1">
+                                                Auto delete: {msg.autoDeleteAt ? new Date(msg.autoDeleteAt).toLocaleDateString() : 'Not set'} •
+                                                {` ${Math.max(0, Math.ceil(((msg.autoDeleteAt ? new Date(msg.autoDeleteAt).getTime() : Date.now()) - Date.now()) / (24 * 60 * 60 * 1000)))} day(s) left`}
+                                            </p>
                                             {onRestoreContactMessage && (
                                                 <button
                                                     onClick={() => onRestoreContactMessage(msg.id)}
@@ -3206,6 +3276,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 </span>
                                             </div>
                                             <p className={`text-[11px] mt-1 line-clamp-2 ${note.from === 'admin' ? 'text-indigo-900' : 'text-blue-900'}`}>{note.message}</p>
+                                            <p className={`text-[10px] mt-1 ${note.from === 'admin' ? 'text-indigo-700/70' : 'text-blue-700/70'}`}>
+                                                Auto delete: {note.autoDeleteAt ? new Date(note.autoDeleteAt).toLocaleDateString() : 'Not set'} •
+                                                {` ${Math.max(0, Math.ceil(((note.autoDeleteAt ? new Date(note.autoDeleteAt).getTime() : Date.now()) - Date.now()) / (24 * 60 * 60 * 1000)))} day(s) left`}
+                                            </p>
                                             {onRestoreMemberNotification && (
                                                 <button
                                                     onClick={() => onRestoreMemberNotification(note.id)}
@@ -3623,6 +3697,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </div>
                                 <div className="w-14 h-14 bg-brand-50 text-brand-600 rounded-[1.25rem] flex items-center justify-center shadow-inner border border-brand-100">
                                     <Filter size={26} />
+                                </div>
+                            </div>
+
+                            <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                                <p className="text-xs font-black text-amber-900 mb-3">Quick position controls for Hebrew menus</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {['HEBREW RESOURCES', 'HEBREW TOOLS'].map((label) => (
+                                        <div key={label} className="rounded-xl border border-amber-200 bg-white p-3">
+                                            <p className="text-xs font-black text-brand-950 mb-2">{label}</p>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => moveNavItemByLabel(label, 'up')}
+                                                    className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-700 hover:bg-slate-50"
+                                                >
+                                                    Move Up
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => moveNavItemByLabel(label, 'down')}
+                                                    className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-700 hover:bg-slate-50"
+                                                >
+                                                    Move Down
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
 

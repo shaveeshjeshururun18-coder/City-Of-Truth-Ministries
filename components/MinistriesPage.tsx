@@ -17,7 +17,15 @@ const generateAssets = () => {
             date: 'December 30, 2023'
         });
     }
-    const videos = ['VID-20231226-WA0002.mp4', 'VID-20231226-WA0005.mp4', 'VID-20231230-WA0104.mp4', 'VID-20231230-WA0105.mp4'];
+    const videos = [
+        'VID-20231226-WA0002.mp4',
+        'VID-20231226-WA0005.mp4',
+        'VID-20231230-WA0104.mp4',
+        'VID-20231230-WA0105.mp4',
+        'VID-20231230-WA0107.mp4',
+        'VID-20231230-WA0112.mp4',
+        'VID-20231230-WA0122.mp4'
+    ];
     videos.forEach((vid, i) => {
         const dateStr = vid.split('-')[1];
         const y = dateStr.substring(0, 4);

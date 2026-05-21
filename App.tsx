@@ -83,6 +83,8 @@ import { api } from './services/api';
 
 const youtubeLink = "https://youtube.com/@cotministries?si=A6179oNRuuJ9snjM";
 const MAX_STORED_CONTACT_MESSAGES = 200;
+const MESSAGE_RECYCLE_RETENTION_DAYS = 30;
+const MESSAGE_RECYCLE_RETENTION_MS = MESSAGE_RECYCLE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 
 const RevealText: React.FC<{ text: string; className?: string; delay?: number }> = ({ text, className = "", delay = 0 }) => {
   return (
@@ -167,6 +169,8 @@ interface ContactMessage {
   source: 'hero-widget' | 'contact-form';
   senderType: 'Registered' | 'Non-Registered';
   senderId?: string;
+  deletedAt?: string;
+  autoDeleteAt?: string;
 }
 
 interface MemberNotification {
@@ -176,7 +180,24 @@ interface MemberNotification {
   message: string;
   createdAt: string;
   read?: boolean;
+  deletedAt?: string;
+  autoDeleteAt?: string;
 }
+
+const normalizeDeletedMessageMeta = <T extends { createdAt?: string; deletedAt?: string; autoDeleteAt?: string }>(item: T): T => {
+  const deletedAt = item.deletedAt || new Date().toISOString();
+  const autoDeleteAt = item.autoDeleteAt || new Date(new Date(deletedAt).getTime() + MESSAGE_RECYCLE_RETENTION_MS).toISOString();
+  return {
+    ...item,
+    deletedAt,
+    autoDeleteAt
+  };
+};
+
+const isRecycleMessageAlive = (item: { autoDeleteAt?: string }) => {
+  const expiresAt = item.autoDeleteAt ? new Date(item.autoDeleteAt).getTime() : Number.POSITIVE_INFINITY;
+  return Number.isFinite(expiresAt) ? expiresAt > Date.now() : true;
+};
 
 const HEBREW_RESOURCE_SUBMENU: NavItem[] = [
   { label: 'Festivals & Holy Days', view: ViewState.HEBREW_FESTIVALS },
@@ -480,7 +501,9 @@ const App: React.FC = () => {
     try {
       const saved = localStorage.getItem('cot_deleted_contact_messages');
       const parsed = saved ? JSON.parse(saved) : [];
-      return Array.isArray(parsed) ? parsed : [];
+      return Array.isArray(parsed)
+        ? parsed.map((item) => normalizeDeletedMessageMeta(item)).filter(isRecycleMessageAlive)
+        : [];
     } catch {
       return [];
     }
@@ -489,7 +512,9 @@ const App: React.FC = () => {
     try {
       const saved = localStorage.getItem('cot_deleted_member_notifications');
       const parsed = saved ? JSON.parse(saved) : [];
-      return Array.isArray(parsed) ? parsed : [];
+      return Array.isArray(parsed)
+        ? parsed.map((item) => normalizeDeletedMessageMeta(item)).filter(isRecycleMessageAlive)
+        : [];
     } catch {
       return [];
     }
@@ -530,6 +555,15 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('cot_deleted_member_notifications', JSON.stringify(deletedMemberNotifications));
   }, [deletedMemberNotifications]);
+  useEffect(() => {
+    const purgeExpiredDeletedMessages = () => {
+      setDeletedContactMessages(prev => prev.filter(isRecycleMessageAlive));
+      setDeletedMemberNotifications(prev => prev.filter(isRecycleMessageAlive));
+    };
+    purgeExpiredDeletedMessages();
+    const intervalId = window.setInterval(purgeExpiredDeletedMessages, 60 * 60 * 1000);
+    return () => window.clearInterval(intervalId);
+  }, []);
   const [dashboardFocusSection, setDashboardFocusSection] = useState<'notifications' | null>(null);
   useEffect(() => {
     if (currentView !== ViewState.USER_DASHBOARD && dashboardFocusSection) {
@@ -541,6 +575,8 @@ const App: React.FC = () => {
     { selector: '#tour-register-btn', title: 'Start Here', text: 'Tap Register Now to create your member profile.' },
     { selector: '#tour-login-btn', title: 'Returning Member Login', text: 'Use Login if you already have an account.' },
     { selector: '#tour-verify-login-card', title: 'Verification Hub', text: 'Use this section to login and verify membership access.' },
+    { selector: '#tour-hebrew-content-open', title: 'Hebrew Content', text: 'Open Hebrew content hub previews and learning pages from this card.' },
+    { selector: '#tour-hebrew-tools-open', title: 'Hebrew Tools', text: 'Open Hebrew tools previews and jump into study tools directly.' },
   ];
 
   const markVisitorAsSeen = () => {
@@ -580,7 +616,7 @@ const App: React.FC = () => {
     setContactMessages(prev => {
       const target = prev.find(msg => msg.id === messageId);
       if (target) {
-        setDeletedContactMessages(old => [target, ...old.filter(item => item.id !== messageId)].slice(0, MAX_STORED_CONTACT_MESSAGES));
+        setDeletedContactMessages(old => [normalizeDeletedMessageMeta(target), ...old.filter(item => item.id !== messageId)].slice(0, MAX_STORED_CONTACT_MESSAGES));
       }
       return prev.filter(msg => msg.id !== messageId);
     });
@@ -590,7 +626,8 @@ const App: React.FC = () => {
     setDeletedContactMessages(prev => {
       const target = prev.find(msg => msg.id === messageId);
       if (target) {
-        setContactMessages(old => [target, ...old.filter(item => item.id !== messageId)].slice(0, MAX_STORED_CONTACT_MESSAGES));
+        const { deletedAt, autoDeleteAt, ...restored } = target;
+        setContactMessages(old => [restored, ...old.filter(item => item.id !== messageId)].slice(0, MAX_STORED_CONTACT_MESSAGES));
       }
       return prev.filter(msg => msg.id !== messageId);
     });
@@ -639,7 +676,7 @@ const App: React.FC = () => {
     setMemberNotifications(prev => {
       const target = prev.find(note => note.id === notificationId);
       if (target) {
-        setDeletedMemberNotifications(old => [target, ...old.filter(item => item.id !== notificationId)].slice(0, 1000));
+        setDeletedMemberNotifications(old => [normalizeDeletedMessageMeta(target), ...old.filter(item => item.id !== notificationId)].slice(0, 1000));
       }
       return prev.filter(note => note.id !== notificationId);
     });
@@ -649,7 +686,8 @@ const App: React.FC = () => {
     setDeletedMemberNotifications(prev => {
       const target = prev.find(note => note.id === notificationId);
       if (target) {
-        setMemberNotifications(old => [target, ...old.filter(item => item.id !== notificationId)].slice(0, 1000));
+        const { deletedAt, autoDeleteAt, ...restored } = target;
+        setMemberNotifications(old => [restored, ...old.filter(item => item.id !== notificationId)].slice(0, 1000));
       }
       return prev.filter(note => note.id !== notificationId);
     });
@@ -659,7 +697,7 @@ const App: React.FC = () => {
     setMemberNotifications(prev => {
       const target = prev.find(note => note.id === notificationId && note.userId === userId && note.from === 'admin');
       if (target) {
-        setDeletedMemberNotifications(old => [target, ...old.filter(item => item.id !== notificationId)].slice(0, 1000));
+        setDeletedMemberNotifications(old => [normalizeDeletedMessageMeta(target), ...old.filter(item => item.id !== notificationId)].slice(0, 1000));
       }
       return prev.filter(note => !(note.id === notificationId && note.userId === userId && note.from === 'admin'));
     });
@@ -2337,15 +2375,30 @@ const App: React.FC = () => {
             <div className="absolute inset-0 bg-black/65" />
 
             {tourRect && (
-              <div
-                className="absolute rounded-2xl border-2 border-amber-300 shadow-[0_0_0_9999px_rgba(2,6,23,0.72)]"
-                style={{
-                  top: tourRect.top,
-                  left: tourRect.left,
-                  width: tourRect.width,
-                  height: tourRect.height
-                }}
-              />
+              <>
+                <div
+                  className="absolute rounded-2xl border-2 border-amber-300 shadow-[0_0_0_9999px_rgba(2,6,23,0.72)]"
+                  style={{
+                    top: tourRect.top,
+                    left: tourRect.left,
+                    width: tourRect.width,
+                    height: tourRect.height
+                  }}
+                />
+                <motion.div
+                  initial={{ opacity: 0.75, y: -4 }}
+                  animate={{ opacity: 1, y: 4 }}
+                  transition={{ repeat: Infinity, repeatType: 'reverse', duration: 0.8 }}
+                  className="absolute px-2.5 py-1 rounded-full bg-amber-400 text-brand-950 text-[10px] font-black uppercase tracking-wider shadow-lg flex items-center gap-1.5"
+                  style={{
+                    top: Math.max(8, tourRect.top - 34),
+                    left: tourRect.left + Math.max(8, tourRect.width / 2 - 62),
+                  }}
+                >
+                  <ArrowRight size={12} className="rotate-90" />
+                  Focus here
+                </motion.div>
+              </>
             )}
 
             <div className="absolute left-1/2 -translate-x-1/2 bottom-5 w-[calc(100%-1.5rem)] max-w-md bg-white rounded-3xl p-5 shadow-2xl pointer-events-auto">
