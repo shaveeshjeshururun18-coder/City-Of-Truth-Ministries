@@ -195,6 +195,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [downloadingCardUserId, setDownloadingCardUserId] = useState<string | null>(null);
     const [downloadingProfilePdfUserId, setDownloadingProfilePdfUserId] = useState<string | null>(null);
     const [downloadingMemberFormPdfUserId, setDownloadingMemberFormPdfUserId] = useState<string | null>(null);
+    const [failedMinistryImages, setFailedMinistryImages] = useState<Record<string, boolean>>({});
     const [userQuickViewMode, setUserQuickViewMode] = useState<UserQuickViewMode | null>(null);
 
     const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'>('users');
@@ -327,6 +328,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         const match = filename.match(/(\d{4})[-_]?(\d{2})[-_]?(\d{2})/);
         if (match) {
             return `${match[1]}-${match[2]}-${match[3]}`;
+        }
+        const compact = filename.match(/\b(\d{8})\b/);
+        if (compact) {
+            const value = compact[1];
+            return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
         }
         return new Date().toISOString().split('T')[0];
     };
@@ -1517,7 +1523,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     };
 
     const handleMinistryImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
+        const files = Array.from(e.target.files || []);
+        if (files.length > 1) {
+            const readOne = (file: File) =>
+                new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve((reader.result as string) || '');
+                    reader.onerror = () => reject(new Error(`Failed reading ${file.name}`));
+                    reader.readAsDataURL(file);
+                });
+            (async () => {
+                setIsLoading(true);
+                try {
+                    for (const file of files) {
+                        const image = await readOne(file);
+                        if (!image) continue;
+                        const payload = {
+                            image,
+                            date: detectDate(file.name),
+                            name: file.name.replace(/\.[^/.]+$/, ''),
+                            description: ''
+                        };
+                        const newMinistry = await api.createMinistry(payload as Omit<Ministry, 'id'>);
+                        setMinistries(prev => [...prev, newMinistry]);
+                    }
+                } catch (error) {
+                    console.error('Failed bulk upload for ministry images', error);
+                    alert('Some ministry images failed to upload. Please retry.');
+                } finally {
+                    setIsLoading(false);
+                }
+            })();
+            return;
+        }
+        const file = files[0];
         if (file) {
             const reader = new FileReader();
             reader.onload = () => {
@@ -3348,6 +3387,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         type="file"
                                         className="hidden"
                                         accept="image/*"
+                                        multiple
                                         onChange={handleMinistryImageUpload}
                                     />
                                 </label>
@@ -3371,7 +3411,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     dragControls={undefined}
                                     className="group relative aspect-square rounded-2xl md:rounded-[2.5rem] overflow-hidden bg-white border border-slate-100 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-2xl transition-all duration-700"
                                 >
-                                    <img src={m.image} alt={m.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                                    {m.image && !failedMinistryImages[m.id] ? (
+                                        <img
+                                            src={m.image}
+                                            alt={m.name}
+                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                                            onError={() => setFailedMinistryImages(prev => ({ ...prev, [m.id]: true }))}
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-500 text-center px-3">
+                                            <ImageIcon size={22} className="mb-2" />
+                                            <p className="text-[10px] font-bold uppercase tracking-wide">Image unavailable</p>
+                                        </div>
+                                    )}
 
                                     {/* Sync Overlay with MinistryGallery.tsx */}
                                     <div className="absolute inset-0 bg-gradient-to-t from-brand-950/90 via-brand-950/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-500" />
@@ -4521,7 +4573,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <div className="relative aspect-square bg-slate-100 rounded-[2rem] overflow-hidden group border-2 border-slate-100 shadow-inner">
                                         {editingMinistry.image ? (
                                             <>
-                                                <img src={editingMinistry.image} className="w-full h-full object-cover" />
+                                                <img
+                                                    src={editingMinistry.image}
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => {
+                                                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                                                    }}
+                                                />
                                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-3">
                                                     <label className="w-12 h-12 bg-brand-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-brand-700 transition-colors shadow-lg">
                                                         <Camera size={24} />

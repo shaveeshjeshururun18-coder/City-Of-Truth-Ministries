@@ -15,6 +15,7 @@ interface MinistryGalleryProps {
 
 export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items }) => {
     const [hoveredId, setHoveredId] = useState<string | null>(null);
+    const [failedMedia, setFailedMedia] = useState<Record<string, boolean>>({});
 
     return (
         <div className="relative w-full py-8 group">
@@ -36,15 +37,16 @@ export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items }) => {
                         <div className={`relative overflow-hidden rounded-2xl md:rounded-[2.5rem] shadow-sm transition-all duration-700 bg-white border border-slate-100/50 ${hoveredId === item.id ? 'scale-[1.02] shadow-2xl ring-1 ring-accent-400/30' : 'scale-100'
                             } aspect-square w-full md:size-80`}>
 
-                            {item.type === 'image' ? (
+                            {item.type === 'image' && !failedMedia[item.id] ? (
                                 <img
                                     src={item.src}
                                     alt="Ministry Moment"
                                     className={`w-full h-full object-cover transition-all duration-1000 ${hoveredId === item.id ? 'scale-110' : 'scale-100'
                                         }`}
                                     loading="lazy"
+                                    onError={() => setFailedMedia(prev => ({ ...prev, [item.id]: true }))}
                                 />
-                            ) : (
+                            ) : item.type === 'video' && !failedMedia[item.id] ? (
                                 <video
                                     src={item.src}
                                     className="w-full h-full object-cover"
@@ -53,7 +55,14 @@ export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items }) => {
                                     loop
                                     autoPlay
                                     playsInline
+                                    onError={() => setFailedMedia(prev => ({ ...prev, [item.id]: true }))}
                                 />
+                            ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center text-center bg-slate-100 text-slate-500 px-4">
+                                    <ImageIcon size={24} className="mb-2" />
+                                    <p className="text-xs font-bold uppercase tracking-wide">Media unavailable</p>
+                                    <p className="text-[10px] mt-1">{item.date || 'Ministry Moment'}</p>
+                                </div>
                             )}
 
                             {/* Refined Overlay */}

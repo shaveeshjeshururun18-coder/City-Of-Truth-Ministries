@@ -687,6 +687,74 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         }
     };
 
+    const handleExportMemberFormPDF = () => {
+        if (!canAccessEntrustFeatures) {
+            handleBlockedFeature();
+            return;
+        }
+        try {
+            const profile = user.communityProfile || {};
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const margin = 14;
+            const contentWidth = pageWidth - margin * 2;
+            let y = 16;
+
+            const drawHeader = () => {
+                pdf.setFillColor(26, 27, 75);
+                pdf.rect(0, 0, pageWidth, 30, 'F');
+                pdf.setTextColor(255, 255, 255);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(14);
+                pdf.text('Member Form PDF', margin, 13);
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(9);
+                pdf.text('City of Truth Ministries • User Download', margin, 19);
+                pdf.text(`Generated: ${new Date().toLocaleString()}`, margin, 24.5);
+                y = 36;
+            };
+
+            const drawField = (label: string, value: string) => {
+                const text = `${value || 'Not provided'}`.trim() || 'Not provided';
+                const lines = pdf.splitTextToSize(text, contentWidth - 8);
+                const blockHeight = Math.max(12, lines.length * 4 + 7);
+                if (y + blockHeight > pageHeight - 14) {
+                    pdf.addPage();
+                    drawHeader();
+                }
+                pdf.setFillColor(248, 250, 252);
+                pdf.roundedRect(margin, y, contentWidth, blockHeight, 3, 3, 'F');
+                pdf.setTextColor(100, 116, 139);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(8);
+                pdf.text(label, margin + 4, y + 4.2);
+                pdf.setTextColor(15, 23, 42);
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(10);
+                pdf.text(lines, margin + 4, y + 8.8);
+                y += blockHeight + 3;
+            };
+
+            drawHeader();
+            drawField('Member ID', user.id);
+            drawField('Name', user.name);
+            drawField('Phone', user.phone || user.emergency);
+            drawField('Email', user.email);
+            drawField('Location', user.location);
+            drawField('Member Since', user.memberSince || user.joinedDate);
+            drawField('Denomination', profile.denomination || '');
+            drawField('Church Name', profile.churchName || '');
+            drawField('Role in Ministry', profile.role || '');
+            drawField('Testimony / Bio', profile.bio || '');
+
+            pdf.save(`COT-MEMBER-FORM-${user.id}.pdf`);
+        } catch (error) {
+            console.error('Member form PDF generation failed', error);
+            alert('Unable to generate Member Form PDF right now. Please try again.');
+        }
+    };
+
     const handleGoToLogin = () => {
         if (onGoToLogin) {
             onGoToLogin();
@@ -1212,7 +1280,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 { icon: <Download size={20} />, label: 'Download', action: handleDownloadPDF, loading: isProcessing },
                                 { icon: <FileText size={20} />, label: 'Details PDF', action: handleExportProfileDetailsPDF },
                                 { icon: <QrCode size={20} />, label: 'Download QR', action: handleDownloadQrCode, id: 'dashboard-scanner-btn' },
-                                { icon: <LogIn size={20} />, label: 'Profile Login', action: handleGoToLogin, id: 'dashboard-login-top-btn' },
+                                { icon: <FileText size={20} />, label: 'Member Form PDF', action: handleExportMemberFormPDF },
                             ].map(({ icon, label, action, loading, id }, i) => (
                                 <button id={id} key={i} onClick={action} disabled={loading}
                                     className="flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-2xl bg-slate-50 hover:bg-brand-50 hover:text-brand-700 text-slate-600 transition-all disabled:opacity-60 border border-transparent hover:border-brand-100">
@@ -1286,6 +1354,17 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[10px]`}>Share unique login URL for this profile</p>
                         <span className={`mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest rounded-lg px-2.5 py-1.5 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
                             <Share2 size={11} /> {canAccessEntrustFeatures ? 'Share' : 'Locked'}
+                        </span>
+                    </button>
+
+                    {/* Member Form PDF */}
+                    <button onClick={canAccessEntrustFeatures ? handleExportMemberFormPDF : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
+                        className={`rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] hover:brightness-110 border border-[#d4a547]/30' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                        <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center mb-3"><FileText size={18} /></div>
+                        <p className="font-bold text-sm leading-tight mb-1">Member Form PDF</p>
+                        <p className={`${canAccessEntrustFeatures ? 'text-[#f8e7b0]' : 'text-slate-400'} text-[10px]`}>Download your submitted member form details in themed PDF format.</p>
+                        <span className={`mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest rounded-lg px-2.5 py-1.5 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
+                            <Download size={11} /> {canAccessEntrustFeatures ? 'Download PDF' : 'Locked'}
                         </span>
                     </button>
 
