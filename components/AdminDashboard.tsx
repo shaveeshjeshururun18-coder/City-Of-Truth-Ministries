@@ -84,8 +84,9 @@ const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any
 
 
 
-const TAB_ITEMS: { id: 'users' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'; label: string; icon: React.ElementType }[] = [
+const TAB_ITEMS: { id: 'users' | 'edit-page' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'; label: string; icon: React.ElementType }[] = [
     { id: 'users', label: 'Users', icon: Users },
+    { id: 'edit-page', label: 'Edit Page', icon: Edit2 },
     { id: 'recycle-bin', label: 'Recycle Bin', icon: RotateCcw },
     { id: 'firebase', label: 'Firebase', icon: Database },
     { id: 'messages', label: 'Messages', icon: MessageSquare },
@@ -108,6 +109,17 @@ const TAMIL_NADU_DISTRICTS = [
     'Vellore', 'Villupuram', 'Virudhunagar'
 ];
 const MAX_SUGGESTED_COT_IDS = 200;
+const ADMIN_PASSWORD_OVERRIDE_KEY = 'cot_admin_password_override';
+const EDIT_PAGE_FIELDS: Array<{ key: keyof User; label: string }> = [
+    { key: 'name', label: 'Name' },
+    { key: 'email', label: 'Email' },
+    { key: 'phone', label: 'Phone' },
+    { key: 'location', label: 'Location' },
+    { key: 'emergency', label: 'Emergency Contact' },
+    { key: 'memberSince', label: 'Member Since' },
+    { key: 'joinedDate', label: 'Joined Date' },
+    { key: 'photo', label: 'Profile Photo' },
+];
 type WebsiteChangeItem = { date: string; type: string; detail: string };
 
 const toMonthKey = (value?: string) => {
@@ -197,7 +209,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [downloadingProfilePdfUserId, setDownloadingProfilePdfUserId] = useState<string | null>(null);
     const [userQuickViewMode, setUserQuickViewMode] = useState<UserQuickViewMode | null>(null);
 
-    const [activeTab, setActiveTab] = useState<'users' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'edit-page' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'>('users');
     const [menuMode, setMenuMode] = useState<'horizontal' | 'vertical'>(() => {
         try {
             const stored = localStorage.getItem('adminMenuMode');
@@ -244,6 +256,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [isMessageComposerMinimized, setIsMessageComposerMinimized] = useState(false);
     const [isMessageComposerClosed, setIsMessageComposerClosed] = useState(false);
     const [selectedReportMonth, setSelectedReportMonth] = useState(() => new Date().toISOString().slice(0, 7));
+    const [adminPasswordDraft, setAdminPasswordDraft] = useState('');
+    const [adminPasswordConfirm, setAdminPasswordConfirm] = useState('');
+    const [adminPasswordMessage, setAdminPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [hasAdminPasswordOverride, setHasAdminPasswordOverride] = useState(() => {
+        try {
+            return !!localStorage.getItem(ADMIN_PASSWORD_OVERRIDE_KEY);
+        } catch {
+            return false;
+        }
+    });
 
     React.useEffect(() => {
         if (activeTab === 'messages') {
@@ -928,6 +950,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         });
     }, [users, searchQuery, filterStatus, filterRole, filterLocation, userSortMode]);
 
+    const pendingEditUsers = useMemo(
+        () => users.filter(user => !!user.pendingProfileUpdate && Object.keys(user.pendingProfileUpdate).length > 0),
+        [users]
+    );
+
     const cotManagerUsers = useMemo(() => {
         const query = cotManagerQuery.trim().toLowerCase();
         const ordered = [...users].sort((a, b) => a.name.localeCompare(b.name));
@@ -968,6 +995,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         const [item] = next.splice(from, 1);
         next.splice(to, 0, item);
         return next;
+    };
+
+    const handleSaveAdminPassword = () => {
+        const nextPassword = adminPasswordDraft.trim();
+        if (!nextPassword) {
+            setAdminPasswordMessage({ type: 'error', text: 'Please enter a new password.' });
+            return;
+        }
+        if (nextPassword.length < 6) {
+            setAdminPasswordMessage({ type: 'error', text: 'Password should be at least 6 characters.' });
+            return;
+        }
+        if (nextPassword !== adminPasswordConfirm.trim()) {
+            setAdminPasswordMessage({ type: 'error', text: 'Password confirmation does not match.' });
+            return;
+        }
+        try {
+            localStorage.setItem(ADMIN_PASSWORD_OVERRIDE_KEY, nextPassword);
+            setHasAdminPasswordOverride(true);
+            setAdminPasswordDraft('');
+            setAdminPasswordConfirm('');
+            setAdminPasswordMessage({ type: 'success', text: 'Admin dashboard password updated successfully.' });
+        } catch {
+            setAdminPasswordMessage({ type: 'error', text: 'Unable to save password in this browser/session.' });
+        }
+    };
+
+    const handleResetAdminPassword = () => {
+        try {
+            localStorage.removeItem(ADMIN_PASSWORD_OVERRIDE_KEY);
+            setHasAdminPasswordOverride(false);
+            setAdminPasswordDraft('');
+            setAdminPasswordConfirm('');
+            setAdminPasswordMessage({ type: 'success', text: 'Custom admin password removed. Default password is active.' });
+        } catch {
+            setAdminPasswordMessage({ type: 'error', text: 'Unable to reset password in this browser/session.' });
+        }
     };
 
     const handleSaveEdit = async () => {
@@ -1653,6 +1717,131 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <div className="text-sm text-slate-400 text-center py-4">No location data available yet.</div>
                             )}
                         </div>
+                    </div>
+                )}
+
+                {activeTab === 'edit-page' && (
+                    <div className="space-y-5 mb-8">
+                        <div className="bg-white p-5 md:p-6 rounded-3xl border border-slate-100 shadow-sm">
+                            <h3 className="text-lg md:text-xl font-black text-brand-950">Edit Page</h3>
+                            <p className="text-sm text-slate-500 mt-1">
+                                Review user edit requests with original vs edited values and user profile details.
+                            </p>
+                            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">
+                                <Clock size={13} />
+                                Pending Edit Requests: {pendingEditUsers.length}
+                            </div>
+                        </div>
+
+                        {pendingEditUsers.length === 0 ? (
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-10 text-center">
+                                <CheckCircle size={42} className="mx-auto text-emerald-500 mb-3" />
+                                <p className="font-bold text-slate-700">No pending edit requests right now.</p>
+                            </div>
+                        ) : pendingEditUsers.map((user) => (
+                            <div key={`edit-page-${user.id}`} className="bg-white rounded-3xl border border-slate-100 shadow-sm p-4 md:p-6">
+                                <div className="flex flex-col lg:flex-row lg:items-start gap-5">
+                                    <div className="lg:w-72 shrink-0">
+                                        <div className="rounded-2xl border border-slate-200 p-4 bg-slate-50">
+                                            <div className="flex items-center gap-3">
+                                                {user.photo ? (
+                                                    <img src={user.photo} alt={user.name} className="w-14 h-14 rounded-2xl object-cover border border-slate-200" />
+                                                ) : (
+                                                    <div className="w-14 h-14 rounded-2xl bg-brand-100 text-brand-700 flex items-center justify-center text-lg font-black">
+                                                        {user.name?.slice(0, 1)?.toUpperCase() || 'U'}
+                                                    </div>
+                                                )}
+                                                <div className="min-w-0">
+                                                    <p className="font-black text-brand-950 truncate">{user.name}</p>
+                                                    <p className="text-xs text-slate-500 font-mono truncate">{user.id}</p>
+                                                </div>
+                                            </div>
+                                            <div className="mt-4 space-y-1.5 text-xs">
+                                                <p><span className="font-bold text-slate-600">Email:</span> <span className="text-slate-700 break-all">{user.email || '—'}</span></p>
+                                                <p><span className="font-bold text-slate-600">Phone:</span> <span className="text-slate-700">{user.phone || '—'}</span></p>
+                                                <p><span className="font-bold text-slate-600">Status:</span> <span className="text-slate-700">{user.status}</span></p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setViewingDetailsUser(user)}
+                                                className="mt-4 w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-green-50 text-green-700 border border-green-200 text-xs font-black hover:bg-green-100 transition-colors"
+                                            >
+                                                <UserIcon size={14} />
+                                                View Full Profile
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex-1 min-w-0">
+                                        <div className="overflow-x-auto rounded-2xl border border-slate-100">
+                                            <table className="w-full text-xs md:text-sm">
+                                                <thead className="bg-slate-50">
+                                                    <tr>
+                                                        <th className="px-3 py-2 text-left font-black text-slate-700">Field</th>
+                                                        <th className="px-3 py-2 text-left font-black text-slate-700">Original</th>
+                                                        <th className="px-3 py-2 text-left font-black text-slate-700">Edited</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {EDIT_PAGE_FIELDS
+                                                        .filter(({ key }) => Object.prototype.hasOwnProperty.call(user.pendingProfileUpdate || {}, key))
+                                                        .map(({ key, label }) => {
+                                                            const originalRaw = `${(user as any)[key] ?? ''}`.trim();
+                                                            const editedRaw = `${(user.pendingProfileUpdate as any)?.[key] ?? ''}`.trim();
+                                                            if (editedRaw === '' || originalRaw === editedRaw) return null;
+                                                            const isPhotoField = key === 'photo';
+                                                            return (
+                                                                <tr key={`${user.id}-${String(key)}`} className="border-t border-slate-100 align-top">
+                                                                    <td className="px-3 py-2.5 font-bold text-slate-700">{label}</td>
+                                                                    <td className="px-3 py-2.5 text-slate-600">
+                                                                        {isPhotoField ? (
+                                                                            originalRaw
+                                                                                ? <img src={originalRaw} alt="Original profile" className="w-14 h-14 rounded-xl object-cover border border-slate-200" />
+                                                                                : <span>—</span>
+                                                                        ) : (originalRaw || '—')}
+                                                                    </td>
+                                                                    <td className="px-3 py-2.5 text-brand-700 font-semibold">
+                                                                        {isPhotoField ? (
+                                                                            editedRaw
+                                                                                ? <img src={editedRaw} alt="Edited profile" className="w-14 h-14 rounded-xl object-cover border border-brand-200" />
+                                                                                : <span>—</span>
+                                                                        ) : (editedRaw || '—')}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <div className="mt-4 flex flex-wrap gap-2">
+                                            <button
+                                                onClick={async () => {
+                                                    if (window.confirm(`Approve pending profile edits for ${user.name}?`)) {
+                                                        await approveUserOrPendingEdit(user);
+                                                    }
+                                                }}
+                                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black"
+                                            >
+                                                <CheckCircle size={14} />
+                                                Approve Edit
+                                            </button>
+                                            <button
+                                                onClick={async () => {
+                                                    if (window.confirm(`Reject pending profile edits for ${user.name}?`)) {
+                                                        await rejectPendingEdit(user);
+                                                    }
+                                                }}
+                                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-black"
+                                            >
+                                                <XCircle size={14} />
+                                                Reject Edit
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 )}
 
@@ -3546,6 +3735,63 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <Database size={24} className="text-brand-600" /> Firebase Details
                             </h2>
                             <p className="text-slate-500 text-sm">Live Firebase project and storage configuration used by this admin dashboard.</p>
+                        </div>
+
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+                            <div className="flex items-center justify-between gap-3 mb-4">
+                                <h3 className="text-sm font-black uppercase tracking-widest text-brand-600">Admin Dashboard Password</h3>
+                                <span className={`text-[10px] px-2 py-1 rounded-full font-black uppercase tracking-wider ${hasAdminPasswordOverride ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                                    {hasAdminPasswordOverride ? 'Custom Password Active' : 'Default Password Active'}
+                                </span>
+                            </div>
+                            <p className="text-xs text-slate-500 mb-4">
+                                Set a custom admin password for this browser/device. This updates access for the admin login modal.
+                            </p>
+                            <div className="grid md:grid-cols-2 gap-3">
+                                <input
+                                    type="password"
+                                    placeholder="New admin password"
+                                    value={adminPasswordDraft}
+                                    onChange={(e) => {
+                                        setAdminPasswordDraft(e.target.value);
+                                        setAdminPasswordMessage(null);
+                                    }}
+                                    className="px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
+                                />
+                                <input
+                                    type="password"
+                                    placeholder="Confirm new password"
+                                    value={adminPasswordConfirm}
+                                    onChange={(e) => {
+                                        setAdminPasswordConfirm(e.target.value);
+                                        setAdminPasswordMessage(null);
+                                    }}
+                                    className="px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
+                                />
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 mt-3">
+                                <button
+                                    type="button"
+                                    onClick={handleSaveAdminPassword}
+                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-black"
+                                >
+                                    <Save size={14} />
+                                    Save Password
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleResetAdminPassword}
+                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black"
+                                >
+                                    <RotateCcw size={14} />
+                                    Reset to Default
+                                </button>
+                            </div>
+                            {adminPasswordMessage && (
+                                <p className={`mt-3 text-xs font-bold ${adminPasswordMessage.type === 'success' ? 'text-emerald-700' : 'text-red-600'}`}>
+                                    {adminPasswordMessage.text}
+                                </p>
+                            )}
                         </div>
 
                         <div className="grid md:grid-cols-2 gap-4">
