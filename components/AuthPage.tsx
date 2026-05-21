@@ -667,7 +667,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             <div className="flex items-center justify-between px-10">
                                 <button onClick={() => setView('forgot-id')} className="text-brand-600 hover:text-brand-800 font-black text-xs uppercase tracking-widest bg-brand-50/50 hover:bg-brand-100 px-6 py-3 rounded-2xl transition-all shadow-sm">Forgot Member ID?</button>
                                 <div className="h-px flex-1 bg-brand-100/50 mx-10 hidden sm:block" />
-                                <button onClick={() => setView('choice')} className="text-brand-300 hover:text-brand-600 font-black text-xs uppercase tracking-widest transition-colors flex items-center gap-2">← Principal Menu</button>
+                                <button onClick={onNavigateToRegister} className="text-brand-300 hover:text-brand-600 font-black text-xs uppercase tracking-widest transition-colors flex items-center gap-2">Open Registration</button>
                             </div>
                         </motion.div>
                     )}
@@ -683,7 +683,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             <Button fullWidth onClick={onNavigateToRegister} className="py-7 rounded-[2rem] text-sm shadow-2xl shadow-brand-500/20 bg-brand-600 hover:bg-brand-700">
                                 Start Digital Registration <ArrowRight size={20} className="ml-3" />
                             </Button>
-                            <button onClick={() => setView('choice')} className="text-brand-400 font-black uppercase tracking-widest text-xs hover:text-brand-600 transition-colors">Back to Options</button>
+                            <button onClick={() => setView('login')} className="text-brand-400 font-black uppercase tracking-widest text-xs hover:text-brand-600 transition-colors">Back to Login</button>
                         </motion.div>
                     )}
 

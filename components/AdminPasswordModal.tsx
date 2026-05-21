@@ -7,7 +7,7 @@ interface AdminPasswordModalProps {
     onSuccess: () => void;
 }
 
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'ssj18';
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'king steve harrington';
 
 export const AdminPasswordModal: React.FC<AdminPasswordModalProps> = ({ onSuccess }) => {
     const [password, setPassword] = useState('');
@@ -18,7 +18,7 @@ export const AdminPasswordModal: React.FC<AdminPasswordModalProps> = ({ onSucces
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (password === ADMIN_PASSWORD) {
+        if (password.trim().toLowerCase() === ADMIN_PASSWORD.trim().toLowerCase()) {
             setError('');
             onSuccess();
         } else {
