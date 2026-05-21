@@ -100,6 +100,13 @@ const TAB_ITEMS: { id: 'users' | 'testimonials' | 'ministries' | 'id-cards' | 'c
     { id: 'menu-editor', label: 'Menu Editor', icon: Filter },
 ];
 
+const COMMON_DISAPPROVE_REASONS = [
+    'Incomplete or invalid profile information',
+    'Entrust/verification document is unclear',
+    'Duplicate account or conflicting member details',
+    'Manual ministry review required before approval',
+];
+
 const TAMIL_NADU_DISTRICTS = [
     'Ariyalur', 'Chengalpattu', 'Chennai', 'Coimbatore', 'Cuddalore',
     'Dharmapuri', 'Dindigul', 'Erode', 'Kallakurichi', 'Kancheepuram',
@@ -530,6 +537,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             return allAvailableCotIds[randomBuffer[0] % allAvailableCotIds.length];
         }
         return allAvailableCotIds[0];
+    };
+
+    const getDayOfYear = (date: Date) => {
+        const start = new Date(date.getFullYear(), 0, 0);
+        const diff = date.getTime() - start.getTime();
+        return Math.floor(diff / (24 * 60 * 60 * 1000));
+    };
+
+    const getUserSignature = (value: string) =>
+        (value || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+
+    const getDayMethodCotId = (userId: string) => {
+        if (allAvailableCotIds.length === 0) return null;
+        const now = new Date();
+        const day = getDayOfYear(now);
+        const year = now.getFullYear() % 100;
+        const signature = getUserSignature(userId || 'COT');
+        const preferredNumber = Number(`${year.toString().padStart(2, '0')}${(day % 366).toString().padStart(3, '0')}`) + (signature % 997);
+        const preferredCotId = formatCotId(preferredNumber);
+        if (!existingCotIds.has(preferredCotId)) return preferredCotId;
+        const sortedAvailable = [...allAvailableCotIds].sort();
+        const fallback = sortedAvailable.find((id) => parseCotNumber(id) && (parseCotNumber(id)! + signature + day) % 7 === 0);
+        return fallback || getRandomAvailableCotId();
     };
 
     const isCotId = (id: string) => /^COT-\d{4,}$/i.test((id || '').trim());
