@@ -629,6 +629,63 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 }
             };
 
+            const drawMemberFormThemeCard = () => {
+                const memberForm = user.communityProfile;
+                const entries: Array<[string, string]> = [
+                    ['Denomination', formatValue(memberForm?.denomination)],
+                    ['Church Name', formatValue(memberForm?.churchName)],
+                    ['Role in Ministry', formatValue(memberForm?.role)],
+                    ['Testimony / Bio', formatValue(memberForm?.bio, 'No testimony submitted yet.')],
+                ];
+                const textWidth = contentWidth - 20;
+                const bioLines = pdf.splitTextToSize(entries[3][1], textWidth);
+                const dynamicBioHeight = Math.max(bioLines.length * 4.2, 12);
+                const cardHeight = 64 + dynamicBioHeight;
+
+                ensureSpace(cardHeight + 10);
+
+                // Outer frame
+                pdf.setFillColor(255, 255, 255);
+                pdf.setDrawColor(212, 165, 71);
+                pdf.roundedRect(margin, y, contentWidth, cardHeight, 7, 7, 'FD');
+
+                // Hero band
+                pdf.setFillColor(26, 27, 75);
+                pdf.roundedRect(margin, y, contentWidth, 18, 7, 7, 'F');
+                pdf.setFillColor(212, 165, 71);
+                pdf.rect(margin, y + 15.5, contentWidth, 2.5, 'F');
+                pdf.setTextColor(255, 255, 255);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(12);
+                pdf.text('Member Form Submission', margin + 8, y + 8);
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(8);
+                pdf.text('Styled portfolio theme for submitted member form details', margin + 8, y + 12.6);
+
+                // Primary detail rows
+                let localY = y + 26;
+                const drawEntry = (label: string, value: string) => {
+                    pdf.setTextColor(148, 163, 184);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(7);
+                    pdf.text(label.toUpperCase(), margin + 8, localY);
+                    localY += 3.8;
+                    pdf.setTextColor(15, 23, 42);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(10);
+                    const valueLines = pdf.splitTextToSize(value, textWidth);
+                    pdf.text(valueLines, margin + 8, localY);
+                    localY += Math.max(valueLines.length, 1) * 4.3 + 2.3;
+                };
+
+                drawEntry(entries[0][0], entries[0][1]);
+                drawEntry(entries[1][0], entries[1][1]);
+                drawEntry(entries[2][0], entries[2][1]);
+                drawEntry(entries[3][0], entries[3][1]);
+
+                y += cardHeight + 7;
+            };
+
             drawPageShell('hero');
 
             const chipGap = 6;
@@ -670,6 +727,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             }, [
                 ['Profile Type', displayProfile.id === user.id ? 'Primary Member' : 'Linked Family Profile'],
             ]);
+
+            drawSectionTitle('Member form theme', 'Attractive PDF layout of the submitted member form details.');
+            drawMemberFormThemeCard();
 
             drawSectionTitle('Family member directory', 'Every linked family member included in this account.');
             drawFamilyCards();
