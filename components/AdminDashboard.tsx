@@ -110,6 +110,14 @@ const TAMIL_NADU_DISTRICTS = [
 ];
 const MAX_SUGGESTED_COT_IDS = 200;
 const ADMIN_PASSWORD_OVERRIDE_KEY = 'cot_admin_password_override';
+const SAFE_IMAGE_HOSTS = new Set([
+    'firebasestorage.googleapis.com',
+    'lh3.googleusercontent.com',
+    'avatars.githubusercontent.com',
+    'user-attachments.githubusercontent.com',
+    'raw.githubusercontent.com',
+    'ui-avatars.com',
+]);
 const EDIT_PAGE_FIELDS: Array<{ key: keyof User; label: string }> = [
     { key: 'name', label: 'Name' },
     { key: 'email', label: 'Email' },
@@ -121,6 +129,22 @@ const EDIT_PAGE_FIELDS: Array<{ key: keyof User; label: string }> = [
     { key: 'photo', label: 'Profile Photo' },
 ];
 type WebsiteChangeItem = { date: string; type: string; detail: string };
+
+const getSafeImageSrc = (candidate?: string): string | null => {
+    const value = `${candidate || ''}`.trim();
+    if (!value) return null;
+    if (/^data:image\/(?:png|jpe?g|webp|gif|bmp);base64,/i.test(value)) return value;
+    if (!/^https?:\/\//i.test(value)) return null;
+    try {
+        const parsed = new URL(value);
+        if ((parsed.protocol === 'https:' || parsed.protocol === 'http:') && SAFE_IMAGE_HOSTS.has(parsed.hostname)) {
+            return parsed.toString();
+        }
+        return null;
+    } catch {
+        return null;
+    }
+};
 
 const toMonthKey = (value?: string) => {
     if (!value) return '';
@@ -1744,8 +1768,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <div className="lg:w-72 shrink-0">
                                         <div className="rounded-2xl border border-slate-200 p-4 bg-slate-50">
                                             <div className="flex items-center gap-3">
-                                                {user.photo ? (
-                                                    <img src={user.photo} alt={user.name} className="w-14 h-14 rounded-2xl object-cover border border-slate-200" />
+                                                {getSafeImageSrc(user.photo) ? (
+                                                    <img src={getSafeImageSrc(user.photo)!} alt={user.name} className="w-14 h-14 rounded-2xl object-cover border border-slate-200" />
                                                 ) : (
                                                     <div className="w-14 h-14 rounded-2xl bg-brand-100 text-brand-700 flex items-center justify-center text-lg font-black">
                                                         {user.name?.slice(0, 1)?.toUpperCase() || 'U'}
@@ -1790,21 +1814,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                             const editedRaw = `${(user.pendingProfileUpdate as any)?.[key] ?? ''}`.trim();
                                                             if (editedRaw === '' || originalRaw === editedRaw) return null;
                                                             const isPhotoField = key === 'photo';
+                                                            const safeOriginalPhoto = isPhotoField ? getSafeImageSrc(originalRaw) : null;
+                                                            const safeEditedPhoto = isPhotoField ? getSafeImageSrc(editedRaw) : null;
                                                             return (
                                                                 <tr key={`${user.id}-${String(key)}`} className="border-t border-slate-100 align-top">
                                                                     <td className="px-3 py-2.5 font-bold text-slate-700">{label}</td>
                                                                     <td className="px-3 py-2.5 text-slate-600">
                                                                         {isPhotoField ? (
-                                                                            originalRaw
-                                                                                ? <img src={originalRaw} alt="Original profile" className="w-14 h-14 rounded-xl object-cover border border-slate-200" />
-                                                                                : <span>—</span>
+                                                                            safeOriginalPhoto
+                                                                                ? <img src={safeOriginalPhoto} alt="Original profile" className="w-14 h-14 rounded-xl object-cover border border-slate-200" />
+                                                                                : <span>{originalRaw ? 'Invalid image source' : '—'}</span>
                                                                         ) : (originalRaw || '—')}
                                                                     </td>
                                                                     <td className="px-3 py-2.5 text-brand-700 font-semibold">
                                                                         {isPhotoField ? (
-                                                                            editedRaw
-                                                                                ? <img src={editedRaw} alt="Edited profile" className="w-14 h-14 rounded-xl object-cover border border-brand-200" />
-                                                                                : <span>—</span>
+                                                                            safeEditedPhoto
+                                                                                ? <img src={safeEditedPhoto} alt="Edited profile" className="w-14 h-14 rounded-xl object-cover border border-brand-200" />
+                                                                                : <span>{editedRaw ? 'Invalid image source' : '—'}</span>
                                                                         ) : (editedRaw || '—')}
                                                                     </td>
                                                                 </tr>
