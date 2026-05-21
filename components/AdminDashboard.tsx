@@ -1768,13 +1768,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <div className="lg:w-72 shrink-0">
                                         <div className="rounded-2xl border border-slate-200 p-4 bg-slate-50">
                                             <div className="flex items-center gap-3">
-                                                {getSafeImageSrc(user.photo) ? (
-                                                    <img src={getSafeImageSrc(user.photo)!} alt={user.name} className="w-14 h-14 rounded-2xl object-cover border border-slate-200" />
-                                                ) : (
-                                                    <div className="w-14 h-14 rounded-2xl bg-brand-100 text-brand-700 flex items-center justify-center text-lg font-black">
-                                                        {user.name?.slice(0, 1)?.toUpperCase() || 'U'}
-                                                    </div>
-                                                )}
+                                                <div className="w-14 h-14 rounded-2xl bg-brand-100 text-brand-700 flex items-center justify-center text-lg font-black">
+                                                    {user.name?.slice(0, 1)?.toUpperCase() || 'U'}
+                                                </div>
                                                 <div className="min-w-0">
                                                     <p className="font-black text-brand-950 truncate">{user.name}</p>
                                                     <p className="text-xs text-slate-500 font-mono truncate">{user.id}</p>
@@ -1821,16 +1817,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                                     <td className="px-3 py-2.5 font-bold text-slate-700">{label}</td>
                                                                     <td className="px-3 py-2.5 text-slate-600">
                                                                         {isPhotoField ? (
-                                                                            safeOriginalPhoto
-                                                                                ? <img src={safeOriginalPhoto} alt="Original profile" className="w-14 h-14 rounded-xl object-cover border border-slate-200" />
-                                                                                : <span>{originalRaw ? 'Invalid image source' : '—'}</span>
+                                                                            <span>{safeOriginalPhoto ? 'Photo available' : (originalRaw ? 'Invalid image source' : '—')}</span>
                                                                         ) : (originalRaw || '—')}
                                                                     </td>
                                                                     <td className="px-3 py-2.5 text-brand-700 font-semibold">
                                                                         {isPhotoField ? (
-                                                                            safeEditedPhoto
-                                                                                ? <img src={safeEditedPhoto} alt="Edited profile" className="w-14 h-14 rounded-xl object-cover border border-brand-200" />
-                                                                                : <span>{editedRaw ? 'Invalid image source' : '—'}</span>
+                                                                            <span>{safeEditedPhoto ? 'Photo update submitted' : (editedRaw ? 'Invalid image source' : '—')}</span>
                                                                         ) : (editedRaw || '—')}
                                                                     </td>
                                                                 </tr>
