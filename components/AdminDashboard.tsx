@@ -17,6 +17,7 @@ import { jsPDF } from 'jspdf';
 import { ImageCropper } from './ImageCropper';
 import { EntrustCard3D } from './WorshipperIDCard';
 import { AdminIDCard } from './AdminIDCard';
+import { CotIdEpicDice } from './CotIdEpicDice';
 
 interface ContactMessage {
     id: string;
@@ -2405,12 +2406,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         >
                                             🎲 {diceRolling ? 'Rolling...' : 'Roll Dice'}
                                         </button>
-                                        <div className="relative min-w-[220px] h-[92px] [perspective:1000px]">
-                                            <div className={`absolute inset-0 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-700 text-white flex flex-col items-center justify-center shadow-xl transition-transform duration-500 ${diceRolling ? 'animate-spin' : ''}`} style={{ transformStyle: 'preserve-3d' }}>
-                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-100">3D Dice Pick</span>
-                                                <span className="font-mono text-xl md:text-2xl font-black">{dicePickedCotId || '— — — —'}</span>
-                                            </div>
-                                        </div>
+                                        <CotIdEpicDice isRolling={diceRolling} result={dicePickedCotId || '— — — —'} />
                                         <button
                                             onClick={handleApplyDiceCotId}
                                             disabled={!dicePickedCotId || !diceTargetUserId || !onReassignUserId}
