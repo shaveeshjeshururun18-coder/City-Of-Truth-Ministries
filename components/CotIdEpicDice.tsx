@@ -14,20 +14,27 @@ interface Particle {
     type: number;
 }
 
+const PARTICLE_COUNT = 30;
+const MIN_VELOCITY = 45;
+const VELOCITY_RANGE = 90;
+const MIN_PARTICLE_SIZE = 4;
+const PARTICLE_SIZE_RANGE = 10;
+const MAX_ROTATION_DEGREES = 1080;
+
 export const CotIdEpicDice: React.FC<CotIdEpicDiceProps> = ({ isRolling, result }) => {
     const [showResult, setShowResult] = useState(false);
     const [particles, setParticles] = useState<Particle[]>([]);
 
     const generateParticles = useCallback(() => {
-        const newParticles = Array.from({ length: 30 }).map((_, i) => {
+        const newParticles = Array.from({ length: PARTICLE_COUNT }).map((_, i) => {
             const angle = Math.random() * Math.PI * 2;
-            const velocity = 45 + Math.random() * 90;
+            const velocity = MIN_VELOCITY + Math.random() * VELOCITY_RANGE;
             return {
                 id: i,
                 tx: Math.cos(angle) * velocity,
                 ty: Math.sin(angle) * velocity,
-                size: 4 + Math.random() * 10,
-                rot: Math.random() * 1080,
+                size: MIN_PARTICLE_SIZE + Math.random() * PARTICLE_SIZE_RANGE,
+                rot: Math.random() * MAX_ROTATION_DEGREES,
                 type: Math.floor(Math.random() * 3)
             };
         });
