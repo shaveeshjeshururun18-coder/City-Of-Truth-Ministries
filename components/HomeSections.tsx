@@ -266,7 +266,11 @@ export const HebrewPagesPreviewSection: React.FC<SectionProps> = ({ setView }) =
                                         <p className="text-xs font-medium text-slate-500 mt-1">Preview the pages available from this section.</p>
                                     </div>
                                 </div>
-                                <button onClick={() => setView(group.ctaView)} className={`shrink-0 text-xs font-black uppercase tracking-wider ${group.actionClass}`}>
+                                <button
+                                    id={group.title === 'Hebrew Content' ? 'tour-hebrew-content-open' : group.title === 'Hebrew Tools' ? 'tour-hebrew-tools-open' : undefined}
+                                    onClick={() => setView(group.ctaView)}
+                                    className={`shrink-0 text-xs font-black uppercase tracking-wider ${group.actionClass}`}
+                                >
                                     Open <ArrowRight size={14} className="inline ml-1" />
                                 </button>
                             </div>

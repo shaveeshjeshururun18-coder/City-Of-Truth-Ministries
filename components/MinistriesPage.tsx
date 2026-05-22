@@ -17,7 +17,15 @@ const generateAssets = () => {
             date: 'December 30, 2023'
         });
     }
-    const videos = ['VID-20231226-WA0002.mp4', 'VID-20231226-WA0005.mp4', 'VID-20231230-WA0104.mp4', 'VID-20231230-WA0105.mp4'];
+    const videos = [
+        'VID-20231226-WA0002.mp4',
+        'VID-20231226-WA0005.mp4',
+        'VID-20231230-WA0104.mp4',
+        'VID-20231230-WA0105.mp4',
+        'VID-20231230-WA0107.mp4',
+        'VID-20231230-WA0112.mp4',
+        'VID-20231230-WA0122.mp4'
+    ];
     videos.forEach((vid, i) => {
         const dateStr = vid.split('-')[1];
         const y = dateStr.substring(0, 4);
@@ -32,6 +40,7 @@ const generateAssets = () => {
 
 export const MinistriesPage: React.FC = () => {
     const [dynamicMinistries, setDynamicMinistries] = useState<Ministry[]>([]);
+    const [failedDynamicImages, setFailedDynamicImages] = useState<Record<string, boolean>>({});
     const assets = useMemo(() => generateAssets(), []);
 
     useEffect(() => {
@@ -77,7 +86,20 @@ export const MinistriesPage: React.FC = () => {
                                 transition={{ delay: (i % 4) * 0.1 }}
                                 className="group relative aspect-square rounded-[2.5rem] overflow-hidden bg-white border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-700"
                             >
-                                <img src={m.image} alt={m.name || 'Ministry Moment'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                                {m.image && !failedDynamicImages[m.id] ? (
+                                    <img
+                                        src={m.image}
+                                        alt={m.name || 'Ministry Moment'}
+                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                                        onError={() => setFailedDynamicImages(prev => ({ ...prev, [m.id]: true }))}
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-500 px-4 text-center">
+                                        <Sparkles size={26} className="mb-2" />
+                                        <p className="text-xs font-bold uppercase tracking-wide">Image unavailable</p>
+                                        <p className="text-[10px] mt-1">{m.date ? new Date(m.date).toLocaleDateString() : 'Recent Moment'}</p>
+                                    </div>
+                                )}
                                 <div className="absolute inset-0 bg-gradient-to-t from-brand-950/90 via-brand-950/20 to-transparent opacity-60 group-hover:opacity-90 transition-opacity duration-500" />
 
                                 <div className="absolute bottom-0 left-0 right-0 p-8 transform group-hover:translate-y-0 transition-transform duration-500">
