@@ -1087,6 +1087,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }, [users, cotManagerQuery, cotManagerSelectedUserId]);
 
     const cotManagerAssignableUsers = useMemo(() => cotManagerUsers, [cotManagerUsers]);
+    const takenUserIds = useMemo(
+        () => new Set(users.map(item => `${item.id || ''}`.trim().toUpperCase())),
+        [users]
+    );
     const randomDiceUsers = useMemo(() => {
         const query = diceUserQuery.trim().toLowerCase();
         if (!query) return cotManagerAssignableUsers;
@@ -1436,8 +1440,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         verificationDoc: undefined,
         communityProfile: undefined
     });
-    const generateTemporaryUserId = () => {
-        const takenIds = new Set(users.map(item => `${item.id || ''}`.trim().toUpperCase()));
+    const generateTemporaryUserId = (takenIds: Set<string>) => {
         const stamp = Date.now().toString(36).toUpperCase();
         let suffix = 1;
         let candidate = `TEMP-${stamp}-${suffix}`;
@@ -1445,12 +1448,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             suffix += 1;
             candidate = `TEMP-${stamp}-${suffix}`;
         }
-        return candidate;
+        return candidate.toUpperCase();
     };
     const disapproveUser = async (user: User) => {
         await runUserAction(async () => {
             if (isCotId(user.id) && onReassignUserId) {
-                const temporaryId = generateTemporaryUserId();
+                const takenIds = new Set(takenUserIds);
+                const temporaryId = generateTemporaryUserId(takenIds);
                 await onReassignUserId(user.id, temporaryId, createDisapprovedUserPayload(user, temporaryId));
                 return;
             }

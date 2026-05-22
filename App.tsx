@@ -85,6 +85,7 @@ const youtubeLink = "https://youtube.com/@cotministries?si=A6179oNRuuJ9snjM";
 const MAX_STORED_CONTACT_MESSAGES = 200;
 const MESSAGE_RECYCLE_RETENTION_DAYS = 30;
 const MESSAGE_RECYCLE_RETENTION_MS = MESSAGE_RECYCLE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+const REJECTED_ACCESS_ALERT = 'Your account was rejected. Dashboard access is blocked. Please contact admin.';
 
 const RevealText: React.FC<{ text: string; className?: string; delay?: number }> = ({ text, className = "", delay = 0 }) => {
   return (
@@ -926,6 +927,7 @@ const App: React.FC = () => {
   }, [users, currentUser]);
   useEffect(() => {
     if (currentView === ViewState.USER_DASHBOARD && currentUser?.status === 'Rejected') {
+      // Keep this redirect silent to avoid repeated alert popups while status polling effects run.
       setCurrentView(ViewState.HOME);
     }
   }, [currentView, currentUser?.status]);
@@ -1044,7 +1046,7 @@ const App: React.FC = () => {
 
     if (user) {
       if (user.status === 'Rejected') {
-        alert('Your account is disapproved. Dashboard access is blocked. Please contact admin.');
+        alert(REJECTED_ACCESS_ALERT);
         setCurrentView(ViewState.HOME);
         navigate('/');
         return;
@@ -1351,7 +1353,7 @@ const App: React.FC = () => {
       action: () => {
         if (currentUser) {
           if (currentUser.status === 'Rejected') {
-            alert('Your account is disapproved. Dashboard access is blocked. Please contact admin.');
+            alert(REJECTED_ACCESS_ALERT);
             navigate('/auth?view=login');
             return;
           }
@@ -1633,7 +1635,7 @@ const App: React.FC = () => {
                         transition={{ duration: 0.6, delay: 1.05 }}
                         onClick={() => {
                           if (currentUser.status === 'Rejected') {
-                            alert('Your account is disapproved. Dashboard access is blocked. Please contact admin.');
+                            alert(REJECTED_ACCESS_ALERT);
                             return;
                           }
                           setDashboardFocusSection('notifications');
@@ -2200,7 +2202,7 @@ const App: React.FC = () => {
                     <button
                       onClick={() => {
                         if (currentUser.status === 'Rejected') {
-                          alert('Your account is disapproved. Dashboard access is blocked. Please contact admin.');
+                          alert(REJECTED_ACCESS_ALERT);
                           return;
                         }
                         setCurrentView(ViewState.USER_DASHBOARD);
