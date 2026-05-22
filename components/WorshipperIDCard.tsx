@@ -50,6 +50,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
 }) => {
     const [isFlipped, setIsFlipped] = useState(isBackSide);
     const [showQrFullScreen, setShowQrFullScreen] = useState(false);
+    const [showPhotoDetailsTiles, setShowPhotoDetailsTiles] = useState(false);
     const qrModalTitle = 'Scan Entrust QR';
     const formatIndianPhoneForCard = (value?: string) => {
         const raw = `${value || ''}`.trim();
@@ -125,8 +126,38 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
             {/* Main Content - Horizontal Layout */}
             <div className="flex-1 flex p-2 gap-2 relative z-10">
                 {/* Left: Photo */}
-                <div className="w-24 h-28 bg-slate-50 rounded-lg border-2 border-slate-100 flex items-center justify-center text-slate-300 overflow-hidden shadow-sm shrink-0">
-                    {safePhotoSrc ? <img src={safePhotoSrc} alt="P" className="w-full h-full object-cover" /> : <User size={32} />}
+                <div
+                    className="w-24 h-28 bg-slate-50 rounded-lg border-2 border-slate-100 overflow-hidden shadow-sm shrink-0 cursor-pointer"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setShowPhotoDetailsTiles((prev) => !prev);
+                    }}
+                    title={showPhotoDetailsTiles ? 'Show profile image' : 'Show ID details tiles'}
+                >
+                    {showPhotoDetailsTiles ? (
+                        <div className="w-full h-full bg-gradient-to-br from-brand-900 to-brand-700 text-white p-1.5 grid grid-cols-1 gap-1">
+                            <div className="rounded bg-white/15 border border-white/20 px-1 py-0.5">
+                                <p className="text-[5px] uppercase tracking-wide text-accent-100">Card ID</p>
+                                <p className="text-[6px] font-black truncate">{uniqueId || '—'}</p>
+                            </div>
+                            <div className="rounded bg-white/15 border border-white/20 px-1 py-0.5">
+                                <p className="text-[5px] uppercase tracking-wide text-accent-100">Entrust</p>
+                                <p className="text-[6px] font-black truncate">{registrationType === 'family' ? 'Family Card' : 'Member Card'}</p>
+                            </div>
+                            <div className="rounded bg-white/15 border border-white/20 px-1 py-0.5">
+                                <p className="text-[5px] uppercase tracking-wide text-accent-100">Location</p>
+                                <p className="text-[6px] font-black truncate">{location || '—'}</p>
+                            </div>
+                            <div className="rounded bg-white/15 border border-white/20 px-1 py-0.5">
+                                <p className="text-[5px] uppercase tracking-wide text-accent-100">Join Date</p>
+                                <p className="text-[6px] font-black truncate">{memberSince || '—'}</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-300">
+                            {safePhotoSrc ? <img src={safePhotoSrc} alt="P" className="w-full h-full object-cover" /> : <User size={32} />}
+                        </div>
+                    )}
                 </div>
 
                 {/* Right: Details */}
