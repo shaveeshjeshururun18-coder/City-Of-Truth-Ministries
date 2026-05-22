@@ -729,9 +729,15 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 ['Profile Type', displayProfile.id === user.id ? 'Primary Member' : 'Linked Family Profile'],
             ]);
 
+            if (y > 26) {
+                addNewPage();
+            }
             drawSectionTitle('Member form theme', 'Attractive PDF layout of the submitted member form details.');
             drawMemberFormThemeCard();
 
+            if (y > pageHeight - 120) {
+                addNewPage();
+            }
             drawSectionTitle('Family member directory', 'Every linked family member included in this account.');
             drawFamilyCards();
 
