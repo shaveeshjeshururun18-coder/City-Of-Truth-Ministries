@@ -7,18 +7,28 @@ interface AdminPasswordModalProps {
     onSuccess: () => void;
 }
 
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'king steve harrington';
+const ADMIN_PASSWORD_OVERRIDE_KEY = 'cot_admin_password_override';
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'ssj18';
 
 export const AdminPasswordModal: React.FC<AdminPasswordModalProps> = ({ onSuccess }) => {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [isShaking, setIsShaking] = useState(false);
+    const effectiveAdminPassword = React.useMemo(() => {
+        try {
+            const override = (localStorage.getItem(ADMIN_PASSWORD_OVERRIDE_KEY) || '').trim();
+            if (override) return override;
+        } catch {
+            // Ignore localStorage access issues.
+        }
+        return ADMIN_PASSWORD;
+    }, []);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (password.trim().toLowerCase() === ADMIN_PASSWORD.trim().toLowerCase()) {
+        if (password.trim().toLowerCase() === effectiveAdminPassword.trim().toLowerCase()) {
             setError('');
             onSuccess();
         } else {
