@@ -760,20 +760,30 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             const pageHeight = pdf.internal.pageSize.getHeight();
             const margin = 14;
             const contentWidth = pageWidth - margin * 2;
-            let y = 16;
+            let y = 38;
 
             const drawHeader = () => {
                 pdf.setFillColor(26, 27, 75);
-                pdf.rect(0, 0, pageWidth, 30, 'F');
+                pdf.rect(0, 0, pageWidth, 34, 'F');
+                pdf.setFillColor(212, 165, 71);
+                pdf.rect(0, 31, pageWidth, 3, 'F');
                 pdf.setTextColor(255, 255, 255);
                 pdf.setFont('helvetica', 'bold');
                 pdf.setFontSize(14);
-                pdf.text('Member Form PDF', margin, 13);
+                pdf.text('Member Form Submission', margin, 13.5);
                 pdf.setFont('helvetica', 'normal');
                 pdf.setFontSize(9);
-                pdf.text('City of Truth Ministries • User Download', margin, 19);
+                pdf.text('Themed ministry style • User Download', margin, 19.5);
                 pdf.text(`Generated: ${new Date().toLocaleString()}`, margin, 24.5);
+                pdf.text(`Member: ${user.name} • ${user.id}`, margin, 29.5);
                 y = 36;
+            };
+            const phoneWithCountryCode = (value?: string) => {
+                const digits = `${value || ''}`.replace(/\D/g, '');
+                if (!digits) return '';
+                if (digits.startsWith('91') && digits.length === 12) return `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`;
+                if (digits.length === 10) return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
+                return value || '';
             };
 
             const drawField = (label: string, value: string) => {
@@ -800,7 +810,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             drawHeader();
             drawField('Member ID', user.id);
             drawField('Name', user.name);
-            drawField('Phone', user.phone || user.emergency);
+            drawField('Phone', phoneWithCountryCode(user.phone || user.emergency));
             drawField('Email', user.email);
             drawField('Location', user.location);
             drawField('Member Since', user.memberSince || user.joinedDate);

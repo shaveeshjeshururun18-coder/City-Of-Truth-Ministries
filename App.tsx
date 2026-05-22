@@ -1898,9 +1898,14 @@ const App: React.FC = () => {
                 onRestoreUser={handleRestoreDeletedUser}
                 onPermanentlyDeleteUser={handlePermanentlyDeleteDeletedUser}
                 homeSectionsOrder={homeSectionsOrder}
-                onUpdateHomeSectionsOrder={(newOrder) => {
+                onUpdateHomeSectionsOrder={async (newOrder) => {
                   setHomeSectionsOrder(newOrder);
-                  localStorage.setItem('home_section_order', JSON.stringify(newOrder));
+                  localStorage.setItem('cot_home_sections_order', JSON.stringify(newOrder));
+                  try {
+                    await api.updateHomeLayout(newOrder);
+                  } catch (error) {
+                    console.error('Failed to save layout to cloud:', error);
+                  }
                 }}
                 navItems={navigationItems}
                 onUpdateNavItems={async (newItems) => {

@@ -51,6 +51,18 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
     const [isFlipped, setIsFlipped] = useState(isBackSide);
     const [showQrFullScreen, setShowQrFullScreen] = useState(false);
     const qrModalTitle = 'Scan Entrust QR';
+    const formatIndianPhoneForCard = (value?: string) => {
+        const raw = `${value || ''}`.trim();
+        const digits = raw.replace(/\D/g, '');
+        const local = digits.startsWith('91') && digits.length >= 12
+            ? digits.slice(2, 12)
+            : (digits.length >= 10 ? digits.slice(-10) : '');
+        if (local.length === 10) {
+            return `+91 ${local.slice(0, 5)} ${local.slice(5)}`;
+        }
+        return raw || '—';
+    };
+    const formattedEmergency = formatIndianPhoneForCard(emergency);
 
     useEffect(() => {
         if (isStatic) setIsFlipped(isBackSide);
@@ -78,7 +90,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
         }
         return null;
     })();
-    const fullDetails = `CITY OF TRUTH MINISTRIES\nID: ${uniqueId}\nName: ${name}\nLocation: ${location}\nPhone: ${emergency}\nMember Since: ${memberSince}`.trim();
+    const fullDetails = `CITY OF TRUTH MINISTRIES\nID: ${uniqueId}\nName: ${name}\nLocation: ${location}\nPhone: ${formattedEmergency}\nMember Since: ${memberSince}`.trim();
     const appOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://city-of-truth-ministries.vercel.app';
     const verifyUrl = `${appOrigin}/verify/${uniqueId}`;
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(verifyUrl)}&bgcolor=ffffff&color=2c298c&margin=2&format=png&cb=${encodeURIComponent(uniqueId || 'COT-SAMPLE')}`;
@@ -143,7 +155,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
 
                     <div>
                         <label className="text-[6px] font-bold text-slate-400 uppercase block">Phone Number</label>
-                        <p className="text-[9px] font-semibold text-slate-700">{emergency || '—'}</p>
+                        <p className="text-[9px] font-semibold text-slate-700">{formattedEmergency}</p>
                     </div>
                 </div>
 
