@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, SubProfile } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
-import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag, ArrowRight } from 'lucide-react';
+import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag } from 'lucide-react';
 import { Button } from './Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TestimonialModal } from './TestimonialModal';
@@ -64,10 +64,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [showCommunityProfileForm, setShowCommunityProfileForm] = useState(false);
     const [cropTarget, setCropTarget] = useState<{ type: 'primary' | 'linked-profile' | 'new-family-member'; profileId?: string } | null>(null);
     const [adminReply, setAdminReply] = useState('');
-    const [showDashboardGuide, setShowDashboardGuide] = useState(false);
     const [dismissedTopNotificationId, setDismissedTopNotificationId] = useState<string | null>(null);
     const notificationsSectionRef = React.useRef<HTMLDivElement | null>(null);
-    const dashboardGuideTargets = new Set(['dashboard-scanner-btn', 'dashboard-member-form-btn', 'dashboard-testimony-btn', 'dashboard-share-btn']);
     const hasPermanentCotId = /^COT-\d{4,}$/.test((user.id || '').trim());
     const canAccessEntrustFeatures = user.status === 'Active' && hasPermanentCotId;
 
@@ -80,15 +78,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         const isLinked = !!user.linkedProfiles?.some(p => p.id === initialProfileId);
         setActiveProfileId((isPrimary || isLinked) ? initialProfileId : user.id);
     }, [initialProfileId, user.id, user.linkedProfiles]);
-
-    useEffect(() => {
-        try {
-            const seen = localStorage.getItem(`cot_dashboard_tour_seen_${user.id}`) === '1';
-            setShowDashboardGuide(!seen);
-        } catch {
-            setShowDashboardGuide(true);
-        }
-    }, [user.id]);
 
     useEffect(() => {
         if (!notifications.some(note => !note.read)) return;
@@ -1137,33 +1126,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                 {/* ── RIGHT COLUMN (Wallet Card & Content on Desktop) ── */}
                 <div className={`${user.linkedProfiles && user.linkedProfiles.length > 0 ? 'lg:col-span-8' : 'lg:col-span-7'} flex flex-col gap-5`}>
-                {showDashboardGuide && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 shadow-sm">
-                        <div className="flex items-start justify-between gap-3">
-                            <div>
-                                <p className="text-[10px] font-black uppercase tracking-widest text-amber-700 mb-1">Dashboard Guide</p>
-                                <p className="text-xs text-amber-900 mb-2">Follow the highlighted arrow-box actions below.</p>
-                                <div className="space-y-1.5">
-                                    {['Download QR first', 'Open Member Form', 'Write Testimony', 'Share your profile link'].map((item) => (
-                                        <div key={item} className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-900">
-                                            <ArrowRight size={12} className="text-amber-700" /> {item}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => {
-                                    setShowDashboardGuide(false);
-                                    try { localStorage.setItem(`cot_dashboard_tour_seen_${user.id}`, '1'); } catch { }
-                                }}
-                                className="text-[10px] font-bold text-amber-700 hover:text-amber-900"
-                            >
-                                Got it
-                            </button>
-                        </div>
-                    </div>
-                )}
-
                 <div id="dashboard-notifications-card" ref={notificationsSectionRef} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
                     <div className="flex items-center justify-between mb-2">
                         <h3 className="text-sm font-black text-brand-950">Notifications</h3>
@@ -1230,7 +1192,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         <span className="font-black text-[#3d2500] text-xl tracking-[3px] font-mono">
                             {displayProfile.id.toUpperCase()}
                         </span>
-                        <span className="text-[#5a3500]/60 text-[10px] font-bold uppercase tracking-widest">Member ID</span>
+                        <span className="text-[#5a3500]/60 text-[10px] font-bold uppercase tracking-widest">COT ID</span>
                     </div>
 
                     {/* Desktop Content Row: 3D Preview + QR */}
@@ -1367,7 +1329,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 { icon: <FileText size={20} />, label: 'Member Form PDF', action: handleExportMemberFormPDF },
                             ].map(({ icon, label, action, loading, id }, i) => (
                                 <button id={id} key={i} onClick={action} disabled={loading}
-                                    className={`flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-2xl bg-slate-50 hover:bg-brand-50 hover:text-brand-700 text-slate-600 transition-all disabled:opacity-60 border border-transparent hover:border-brand-100 ${showDashboardGuide && id && dashboardGuideTargets.has(id) ? 'ring-2 ring-amber-300 border-amber-200 relative' : ''}`}>
+                                    className="flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-2xl bg-slate-50 hover:bg-brand-50 hover:text-brand-700 text-slate-600 transition-all disabled:opacity-60 border border-transparent hover:border-brand-100">
                                     {loading ? <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" /> : icon}
                                     <span className="text-[9px] font-bold uppercase tracking-wide leading-tight text-center">{loading ? 'Wait…' : label}</span>
                                 </button>
@@ -1410,7 +1372,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                     {/* Interest / Member Form (Mobile priority #2) */}
                     <button id="dashboard-member-form-btn" onClick={canAccessEntrustFeatures ? () => setShowCommunityProfileForm(true) : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
-                        className={`rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] hover:brightness-110 border border-[#d4a547]/30' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'} ${showDashboardGuide ? 'ring-2 ring-amber-300' : ''}`}>
+                        className={`rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] hover:brightness-110 border border-[#d4a547]/30' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
                         <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center mb-3"><Users size={18} /></div>
                         <p className="font-bold text-sm leading-tight mb-1">Member Form Column</p>
                         <p className={`${canAccessEntrustFeatures ? 'text-[#f8e7b0]' : 'text-slate-400'} text-[10px]`}>Professional themed profile form for User Book.</p>
@@ -1421,7 +1383,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                     {/* Testimony */}
                     <button id="dashboard-testimony-btn" onClick={canAccessEntrustFeatures ? () => setShowTestimonialModal(true) : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
-                        className={`rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-brand-700 to-brand-900 text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'} ${showDashboardGuide ? 'ring-2 ring-amber-300' : ''}`}>
+                        className={`rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-brand-700 to-brand-900 text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
                         <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><MessageSquare size={18} /></div>
                         <p className="font-bold text-sm leading-tight mb-1">Write Testimony</p>
                         <p className={`${canAccessEntrustFeatures ? 'text-white/70' : 'text-slate-400'} text-[10px]`}>Share what God has done</p>
@@ -1432,7 +1394,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                     {/* Share Profile Link */}
                     <button id="dashboard-share-btn" onClick={canAccessEntrustFeatures ? handleShare : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
-                        className={`rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-emerald-600 to-teal-700 text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'} ${showDashboardGuide ? 'ring-2 ring-amber-300' : ''}`}>
+                        className={`rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-emerald-600 to-teal-700 text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
                         <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Share2 size={18} /></div>
                         <p className="font-bold text-sm leading-tight mb-1">Share Profile Link</p>
                         <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[10px]`}>Share unique login URL for this profile</p>

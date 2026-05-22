@@ -924,6 +924,11 @@ const App: React.FC = () => {
       }
     }
   }, [users, currentUser]);
+  useEffect(() => {
+    if (currentView === ViewState.USER_DASHBOARD && currentUser?.status === 'Rejected') {
+      setCurrentView(ViewState.HOME);
+    }
+  }, [currentView, currentUser?.status]);
 
   // Load users from backend on mount
   useEffect(() => {
@@ -1038,6 +1043,12 @@ const App: React.FC = () => {
     const user = match?.user;
 
     if (user) {
+      if (user.status === 'Rejected') {
+        alert('Your account is disapproved. Dashboard access is blocked. Please contact admin.');
+        setCurrentView(ViewState.HOME);
+        navigate('/');
+        return;
+      }
       const isSwitchingToDifferentAccount = !!currentUser && currentUser.id !== user.id;
       if (isSwitchingToDifferentAccount && currentUser) {
         if (user.status !== 'Active') {
@@ -1339,6 +1350,11 @@ const App: React.FC = () => {
       label: 'User Dashboard',
       action: () => {
         if (currentUser) {
+          if (currentUser.status === 'Rejected') {
+            alert('Your account is disapproved. Dashboard access is blocked. Please contact admin.');
+            navigate('/auth?view=login');
+            return;
+          }
           setCurrentView(ViewState.USER_DASHBOARD);
           window.scrollTo({ top: 0, behavior: 'smooth' });
           return;
@@ -1616,6 +1632,10 @@ const App: React.FC = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 1.05 }}
                         onClick={() => {
+                          if (currentUser.status === 'Rejected') {
+                            alert('Your account is disapproved. Dashboard access is blocked. Please contact admin.');
+                            return;
+                          }
                           setDashboardFocusSection('notifications');
                           setCurrentView(ViewState.USER_DASHBOARD);
                         }}
@@ -1922,7 +1942,7 @@ const App: React.FC = () => {
             </motion.div>
           )}
 
-          {currentView === ViewState.USER_DASHBOARD && currentUser && (
+          {currentView === ViewState.USER_DASHBOARD && currentUser && currentUser.status !== 'Rejected' && (
             <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <UserDashboard
                 user={currentUser}
@@ -2178,7 +2198,14 @@ const App: React.FC = () => {
                 {currentUser && (
                   <li>
                     <button
-                      onClick={() => { setCurrentView(ViewState.USER_DASHBOARD); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                      onClick={() => {
+                        if (currentUser.status === 'Rejected') {
+                          alert('Your account is disapproved. Dashboard access is blocked. Please contact admin.');
+                          return;
+                        }
+                        setCurrentView(ViewState.USER_DASHBOARD);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
                       className="hover:text-white transition-colors flex items-center gap-2 text-left"
                     >
                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/60"></div>
