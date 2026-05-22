@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion';
+import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import {
     Users, UserCheck, UserX, Clock, Search, Edit2, Trash2, X, User as UserIcon, ShieldAlert,
     ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Filter, Mail, Phone, MapPin, Droplet,
     Calendar, Award, Shield, ShieldCheck, AlertCircle, CheckCircle, QrCode, Download,
     Save, GripVertical, Globe, Plus, ImagePlus, Camera, Image as ImageIcon, MessageSquare, Check, XCircle, FileText,
-    PanelLeft, PanelTop, Database, RotateCcw, Dice6
+    PanelLeft, PanelTop, Database, RotateCcw, Dice6, Eye, EyeOff
 } from 'lucide-react';
 import { User, UserRole, UserStatus, Testimonial, Ministry, DeletedUser } from '../types';
 import { Button } from './Button';
@@ -121,6 +121,7 @@ const TAMIL_NADU_DISTRICTS = [
 ];
 const MAX_SUGGESTED_COT_IDS = 200;
 const ADMIN_PASSWORD_OVERRIDE_KEY = 'cot_admin_password_override';
+const ADMIN_PASSWORD_CHANGE_PHRASE = 'king steve harrington';
 const SAFE_IMAGE_HOSTS = new Set([
     'firebasestorage.googleapis.com',
     'lh3.googleusercontent.com',
@@ -218,7 +219,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     navItems = [],
     onUpdateNavItems,
 }) => {
-    const homeLayoutDragControls = useDragControls();
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState<UserStatus | 'All'>('All');
     const [filterRole, setFilterRole] = useState<UserRole | 'All'>('All');
@@ -291,14 +291,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [diceManualInput, setDiceManualInput] = useState('');
     const [messageRestoreUserFilter, setMessageRestoreUserFilter] = useState('');
     const [selectedMessageLocations, setSelectedMessageLocations] = useState<string[]>([]);
-    const [messageYearFilter, setMessageYearFilter] = useState<string>('All');
-    const [messageCategoryFilter, setMessageCategoryFilter] = useState<'All' | UserStatus>('All');
+    const [selectedMessageYears, setSelectedMessageYears] = useState<string[]>([]);
+    const [selectedMessageCategories, setSelectedMessageCategories] = useState<UserStatus[]>([]);
     const [isMessageComposerMinimized, setIsMessageComposerMinimized] = useState(false);
     const [isMessageComposerClosed, setIsMessageComposerClosed] = useState(false);
     const [selectedReportMonth, setSelectedReportMonth] = useState(() => new Date().toISOString().slice(0, 7));
     const [adminPasswordDraft, setAdminPasswordDraft] = useState('');
     const [adminPasswordConfirm, setAdminPasswordConfirm] = useState('');
+    const [adminPasswordPhrase, setAdminPasswordPhrase] = useState('');
+    const [showAdminPasswordDraft, setShowAdminPasswordDraft] = useState(false);
+    const [showAdminPasswordConfirm, setShowAdminPasswordConfirm] = useState(false);
+    const [showAdminPasswordPhrase, setShowAdminPasswordPhrase] = useState(false);
     const [adminPasswordMessage, setAdminPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [memberFormPageUser, setMemberFormPageUser] = useState<User | null>(null);
     const [hasAdminPasswordOverride, setHasAdminPasswordOverride] = useState(() => {
         try {
             return !!localStorage.getItem(ADMIN_PASSWORD_OVERRIDE_KEY);
@@ -750,21 +755,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             prev.includes(location) ? prev.filter(item => item !== location) : [...prev, location]
         );
     };
+    const toggleMessageYear = (year: string) => {
+        setSelectedMessageYears(prev => prev.includes(year) ? prev.filter(item => item !== year) : [...prev, year]);
+    };
+    const toggleMessageCategory = (status: UserStatus) => {
+        setSelectedMessageCategories(prev => prev.includes(status) ? prev.filter(item => item !== status) : [...prev, status]);
+    };
 
     const handleSendAdminMessage = () => {
         const locationScopedCotUsers = selectedMessageLocations.length === 0
             ? cotUsers
             : cotUsers.filter(user => selectedMessageLocations.includes((user.location || '').trim()));
-        const yearScopedCotUsers = messageYearFilter === 'All'
+        const yearScopedCotUsers = selectedMessageYears.length === 0
             ? locationScopedCotUsers
             : locationScopedCotUsers.filter(user => {
                 const joinedYear = `${user.joinedDate || ''}`.slice(0, 4);
                 const memberSinceYear = `${user.memberSince || ''}`.trim();
-                return joinedYear === messageYearFilter || memberSinceYear === messageYearFilter;
+                return selectedMessageYears.includes(joinedYear) || selectedMessageYears.includes(memberSinceYear);
             });
-        const statusScopedCotUsers = messageCategoryFilter === 'All'
+        const statusScopedCotUsers = selectedMessageCategories.length === 0
             ? yearScopedCotUsers
-            : yearScopedCotUsers.filter(user => user.status === messageCategoryFilter);
+            : yearScopedCotUsers.filter(user => selectedMessageCategories.includes(user.status));
         const targetIds = selectedCotIds.length > 0 ? selectedCotIds : statusScopedCotUsers.map(user => user.id.toUpperCase());
         if (!onSendMessageToUsers) return;
         if (targetIds.length === 0) {
@@ -1109,17 +1120,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         next.splice(to, 0, item);
         return next;
     };
-    const moveNavItemByLabel = (label: string, direction: 'up' | 'down') => {
+    const moveNavItemByView = (view: string, direction: 'up' | 'down') => {
         if (!onUpdateNavItems || !navItems || navItems.length === 0) return;
-        const idx = navItems.findIndex((nav: any) => nav.label === label);
+        const idx = navItems.findIndex((nav: any) => nav.view === view);
         if (idx < 0) return;
         const target = direction === 'up' ? idx - 1 : idx + 1;
         if (target < 0 || target >= navItems.length) return;
         onUpdateNavItems(moveArrayItem(navItems, idx, target));
     };
+    const renameNavItem = (index: number, nextLabel: string) => {
+        if (!onUpdateNavItems || !navItems) return;
+        const cleaned = nextLabel.trim();
+        if (!cleaned) return;
+        const next = navItems.map((item, idx) => idx === index ? { ...item, label: cleaned } : item);
+        onUpdateNavItems(next);
+    };
 
     const handleSaveAdminPassword = () => {
         const nextPassword = adminPasswordDraft.trim();
+        const authPhrase = adminPasswordPhrase.trim().toLowerCase();
+        if (authPhrase !== ADMIN_PASSWORD_CHANGE_PHRASE) {
+            setAdminPasswordMessage({ type: 'error', text: 'Password change phrase is incorrect.' });
+            return;
+        }
         if (!nextPassword) {
             setAdminPasswordMessage({ type: 'error', text: 'Please enter a new password.' });
             return;
@@ -1137,6 +1160,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             setHasAdminPasswordOverride(true);
             setAdminPasswordDraft('');
             setAdminPasswordConfirm('');
+            setAdminPasswordPhrase('');
             setAdminPasswordMessage({ type: 'success', text: 'Admin dashboard password updated successfully.' });
         } catch {
             setAdminPasswordMessage({ type: 'error', text: 'Unable to save password in this browser/session.' });
@@ -1149,6 +1173,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             setHasAdminPasswordOverride(false);
             setAdminPasswordDraft('');
             setAdminPasswordConfirm('');
+            setAdminPasswordPhrase('');
             setAdminPasswordMessage({ type: 'success', text: 'Custom admin password removed. Default password is active.' });
         } catch {
             setAdminPasswordMessage({ type: 'error', text: 'Unable to reset password in this browser/session.' });
@@ -1596,17 +1621,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             const profile = member.communityProfile || {};
             const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
             const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
             const margin = 14;
             const contentWidth = pageWidth - margin * 2;
-            let y = 16;
+            let y = 38;
 
             const addBlock = (label: string, value: string) => {
                 const text = `${value || 'Not provided'}`.trim() || 'Not provided';
                 const lines = pdf.splitTextToSize(text, contentWidth - 8);
                 const blockHeight = Math.max(12, lines.length * 4 + 7);
-                if (y + blockHeight > pdf.internal.pageSize.getHeight() - 14) {
+                if (y + blockHeight > pageHeight - 14) {
                     pdf.addPage();
-                    y = 16;
+                    y = 20;
                 }
                 pdf.setFillColor(248, 250, 252);
                 pdf.roundedRect(margin, y, contentWidth, blockHeight, 3, 3, 'F');
@@ -1621,21 +1647,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 y += blockHeight + 3;
             };
 
-            pdf.setFillColor(17, 24, 39);
-            pdf.rect(0, 0, pageWidth, 28, 'F');
+            const phoneWithCountryCode = (value?: string) => {
+                const digits = `${value || ''}`.replace(/\D/g, '');
+                if (!digits) return '';
+                if (digits.startsWith('91') && digits.length === 12) return `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`;
+                if (digits.length === 10) return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
+                return value || '';
+            };
+
+            pdf.setFillColor(26, 27, 75);
+            pdf.rect(0, 0, pageWidth, 34, 'F');
+            pdf.setFillColor(212, 165, 71);
+            pdf.rect(0, 31, pageWidth, 3, 'F');
             pdf.setTextColor(255, 255, 255);
             pdf.setFont('helvetica', 'bold');
             pdf.setFontSize(14);
-            pdf.text('Member Form PDF', margin, 12.5);
+            pdf.text('Member Form Submission', margin, 13.5);
             pdf.setFont('helvetica', 'normal');
             pdf.setFontSize(9);
-            pdf.text('City of Truth Ministries • Admin Download', margin, 18.5);
-            pdf.text(`Generated: ${new Date().toLocaleString()}`, margin, 23.5);
-            y = 34;
+            pdf.text('Themed ministry style • Admin Download', margin, 19.5);
+            pdf.text(`Generated: ${new Date().toLocaleString()}`, margin, 24.5);
+            pdf.text(`Member: ${member.name} • ${member.id}`, margin, 29.5);
 
             addBlock('Member ID', member.id);
             addBlock('Name', member.name);
-            addBlock('Phone', member.phone || member.emergency);
+            addBlock('Phone', phoneWithCountryCode(member.phone || member.emergency));
             addBlock('Email', member.email);
             addBlock('Location', member.location);
             addBlock('Member Since', member.memberSince || member.joinedDate);
@@ -3161,29 +3197,75 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <>
                                     {!isMessageComposerMinimized && (
                                         <>
-                                            <div className="flex flex-col sm:flex-row gap-2">
-                                                <select
-                                                    value={messageYearFilter}
-                                                    onChange={(e) => setMessageYearFilter(e.target.value)}
-                                                    className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
-                                                >
-                                                    <option value="All">All Years</option>
-                                                    {messageYearOptions.map(year => (
-                                                        <option key={year} value={year}>{year}</option>
-                                                    ))}
-                                                </select>
-                                                <select
-                                                    value={messageCategoryFilter}
-                                                    onChange={(e) => setMessageCategoryFilter(e.target.value as 'All' | UserStatus)}
-                                                    className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
-                                                >
-                                                    <option value="All">All Categories</option>
-                                                    <option value="Active">Active</option>
-                                                    <option value="Pending Verification">Pending Verification</option>
-                                                    <option value="Rejected">Rejected</option>
-                                                </select>
-                                                <p className="text-xs text-slate-500 self-center">
-                                                    Pick one/multiple locations, year, and category. If no users are selected manually, these filters are used for bulk send.
+                                            <div className="space-y-2">
+                                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 space-y-2">
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <p className="text-[11px] font-black text-slate-700 uppercase tracking-wide">Years</p>
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                onClick={() => setSelectedMessageYears(messageYearOptions)}
+                                                                className="px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-100"
+                                                            >
+                                                                Select all
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setSelectedMessageYears([])}
+                                                                className="px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-100"
+                                                            >
+                                                                All years
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {messageYearOptions.map(year => {
+                                                            const selected = selectedMessageYears.includes(year);
+                                                            return (
+                                                                <button
+                                                                    key={year}
+                                                                    onClick={() => toggleMessageYear(year)}
+                                                                    className={`px-2.5 py-1 rounded-full border text-[10px] font-bold transition-colors ${selected ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'}`}
+                                                                >
+                                                                    {year}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 space-y-2">
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <p className="text-[11px] font-black text-slate-700 uppercase tracking-wide">Categories</p>
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                onClick={() => setSelectedMessageCategories(['Active', 'Pending Verification', 'Rejected'])}
+                                                                className="px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-100"
+                                                            >
+                                                                Select all
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setSelectedMessageCategories([])}
+                                                                className="px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-100"
+                                                            >
+                                                                All categories
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {(['Active', 'Pending Verification', 'Rejected'] as UserStatus[]).map(status => {
+                                                            const selected = selectedMessageCategories.includes(status);
+                                                            return (
+                                                                <button
+                                                                    key={status}
+                                                                    onClick={() => toggleMessageCategory(status)}
+                                                                    className={`px-2.5 py-1 rounded-full border text-[10px] font-bold transition-colors ${selected ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'}`}
+                                                                >
+                                                                    {status}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                                <p className="text-xs text-slate-500">
+                                                    Pick one or more locations, years, and categories. Leave any group unselected to include all from that group.
                                                 </p>
                                             </div>
                                             <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 space-y-2">
@@ -3240,8 +3322,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                     onClick={() => setSelectedCotIds(
                                                         cotUsers
                                                             .filter(user => selectedMessageLocations.length === 0 || selectedMessageLocations.includes((user.location || '').trim()))
-                                                            .filter(user => messageYearFilter === 'All' || `${user.joinedDate || ''}`.slice(0, 4) === messageYearFilter || `${user.memberSince || ''}`.trim() === messageYearFilter)
-                                                            .filter(user => messageCategoryFilter === 'All' || user.status === messageCategoryFilter)
+                                                            .filter(user => selectedMessageYears.length === 0 || selectedMessageYears.includes(`${user.joinedDate || ''}`.slice(0, 4)) || selectedMessageYears.includes(`${user.memberSince || ''}`.trim()))
+                                                            .filter(user => selectedMessageCategories.length === 0 || selectedMessageCategories.includes(user.status))
                                                             .map(user => user.id.toUpperCase())
                                                     )}
                                                     className="px-4 py-2 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-bold"
@@ -3819,22 +3901,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <Reorder.Item
                                             key={sectionId}
                                             value={sectionId}
-                                            dragListener={false}
-                                            dragControls={homeLayoutDragControls}
+                                            dragListener={true}
                                             whileDrag={{ scale: 1.02, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)" }}
                                             className="bg-white p-5 rounded-[2rem] border border-slate-100 flex items-center gap-6 group hover:border-brand-300 hover:shadow-lg transition-all cursor-grab active:cursor-grabbing relative overflow-hidden"
                                         >
                                             <div className="absolute top-0 right-0 w-24 h-24 bg-brand-50/30 rounded-full -mr-12 -mt-12 transition-all group-hover:scale-150 pointer-events-none" />
                                             
                                             <div className="flex items-center gap-5 flex-1 relative z-10">
-                                                <button
-                                                    type="button"
-                                                    onPointerDown={(event) => homeLayoutDragControls.start(event)}
+                                                <div
                                                     className="text-slate-300 group-hover:text-brand-500 transition-colors shrink-0 cursor-grab active:cursor-grabbing"
                                                     aria-label={`Drag to reorder ${info.name}`}
                                                 >
                                                     <GripVertical size={24} />
-                                                </button>
+                                                </div>
                                                 
                                                 <div className={`w-14 h-14 ${info.color} rounded-2xl flex items-center justify-center text-white shadow-lg`}>
                                                     <Icon size={24} strokeWidth={2.5} />
@@ -3931,20 +4010,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
                                 <p className="text-xs font-black text-amber-900 mb-3">Quick position controls for Hebrew menus</p>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {['HEBREW RESOURCES', 'HEBREW TOOLS'].map((label) => (
-                                        <div key={label} className="rounded-xl border border-amber-200 bg-white p-3">
-                                            <p className="text-xs font-black text-brand-950 mb-2">{label}</p>
+                                    {[{ label: 'HEBREW RESOURCES', view: 'ABOUT' }, { label: 'HEBREW TOOLS', view: 'HEBREW_TOOLS' }].map((item) => (
+                                        <div key={item.view} className="rounded-xl border border-amber-200 bg-white p-3">
+                                            <p className="text-xs font-black text-brand-950 mb-2">{item.label}</p>
                                             <div className="flex items-center gap-2">
                                                 <button
                                                     type="button"
-                                                    onClick={() => moveNavItemByLabel(label, 'up')}
+                                                    onClick={() => moveNavItemByView(item.view, 'up')}
                                                     className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-700 hover:bg-slate-50"
                                                 >
                                                     Move Up
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    onClick={() => moveNavItemByLabel(label, 'down')}
+                                                    onClick={() => moveNavItemByView(item.view, 'down')}
                                                     className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-700 hover:bg-slate-50"
                                                 >
                                                     Move Down
@@ -3962,9 +4041,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     onReorder={(newOrder) => onUpdateNavItems && onUpdateNavItems(newOrder)}
                                     className="space-y-4"
                                 >
-                                    {navItems.map((item) => (
+                                    {navItems.map((item, index) => (
                                         <Reorder.Item
-                                            key={item.label}
+                                            key={`${item.view || item.label}-${index}`}
                                             value={item}
                                             whileDrag={{ scale: 1.02, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)" }}
                                             className="bg-white p-5 rounded-[2rem] border border-slate-100 flex items-center gap-6 group hover:border-brand-300 hover:shadow-lg transition-all cursor-grab active:cursor-grabbing relative overflow-hidden"
@@ -3981,9 +4060,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 </div>
 
                                                 <div className="min-w-0 flex-1">
-                                                    <h3 className="font-black text-brand-950 text-lg leading-tight uppercase tracking-tight break-words">
-                                                        {item.label}
-                                                    </h3>
+                                                    <input
+                                                        type="text"
+                                                        value={item.label}
+                                                        onChange={(e) => renameNavItem(index, e.target.value)}
+                                                        onBlur={(e) => renameNavItem(index, e.target.value)}
+                                                        className="w-full font-black text-brand-950 text-lg leading-tight uppercase tracking-tight break-words bg-transparent border border-slate-200 rounded-xl px-3 py-1.5 outline-none focus:border-brand-500"
+                                                    />
                                                     {item.submenu && item.submenu.length > 0 && (
                                                         <p className="text-slate-400 text-xs font-bold pr-4 mt-1 leading-relaxed whitespace-normal break-words">
                                                             {item.submenu.map((sub: any) => sub.label).join(' • ')}
@@ -4002,7 +4085,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             if (!onUpdateNavItems || !navItems) return;
-                                                            const idx = navItems.findIndex(nav => nav.label === item.label);
+                                                            const idx = index;
                                                             if (idx <= 0) return;
                                                             onUpdateNavItems(moveArrayItem(navItems, idx, idx - 1));
                                                         }}
@@ -4016,7 +4099,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             if (!onUpdateNavItems || !navItems) return;
-                                                            const idx = navItems.findIndex(nav => nav.label === item.label);
+                                                            const idx = index;
                                                             if (idx < 0 || idx >= navItems.length - 1) return;
                                                             onUpdateNavItems(moveArrayItem(navItems, idx, idx + 1));
                                                         }}
@@ -4184,27 +4267,65 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 Set a custom admin password for this browser/device. This updates access for the admin login modal.
                             </p>
                             <div className="grid md:grid-cols-2 gap-3">
-                                <input
-                                    type="password"
-                                    placeholder="New admin password"
-                                    value={adminPasswordDraft}
-                                    onChange={(e) => {
-                                        setAdminPasswordDraft(e.target.value);
-                                        setAdminPasswordMessage(null);
-                                    }}
-                                    className="px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
-                                />
-                                <input
-                                    type="password"
-                                    placeholder="Confirm new password"
-                                    value={adminPasswordConfirm}
-                                    onChange={(e) => {
-                                        setAdminPasswordConfirm(e.target.value);
-                                        setAdminPasswordMessage(null);
-                                    }}
-                                    className="px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
-                                />
+                                <div className="relative">
+                                    <input
+                                        type={showAdminPasswordDraft ? 'text' : 'password'}
+                                        placeholder="New admin password"
+                                        value={adminPasswordDraft}
+                                        onChange={(e) => {
+                                            setAdminPasswordDraft(e.target.value);
+                                            setAdminPasswordMessage(null);
+                                        }}
+                                        className="w-full px-3 pr-10 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowAdminPasswordDraft(prev => !prev)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800"
+                                    >
+                                        {showAdminPasswordDraft ? <EyeOff size={16} /> : <Eye size={16} />}
+                                    </button>
+                                </div>
+                                <div className="relative">
+                                    <input
+                                        type={showAdminPasswordConfirm ? 'text' : 'password'}
+                                        placeholder="Confirm new password"
+                                        value={adminPasswordConfirm}
+                                        onChange={(e) => {
+                                            setAdminPasswordConfirm(e.target.value);
+                                            setAdminPasswordMessage(null);
+                                        }}
+                                        className="w-full px-3 pr-10 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowAdminPasswordConfirm(prev => !prev)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800"
+                                    >
+                                        {showAdminPasswordConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                                    </button>
+                                </div>
                             </div>
+                            <div className="relative mt-3">
+                                <input
+                                    type={showAdminPasswordPhrase ? 'text' : 'password'}
+                                    placeholder="Enter password-change phrase"
+                                    value={adminPasswordPhrase}
+                                    onChange={(e) => {
+                                        setAdminPasswordPhrase(e.target.value);
+                                        setAdminPasswordMessage(null);
+                                    }}
+                                    className="w-full px-3 pr-10 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAdminPasswordPhrase(prev => !prev)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800"
+                                >
+                                    {showAdminPasswordPhrase ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                            </div>
+                            <p className="text-[11px] text-slate-500 mt-2">Password-change phrase is required before saving.</p>
                             <div className="flex flex-wrap items-center gap-2 mt-3">
                                 <button
                                     type="button"
@@ -4632,6 +4753,61 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 )}
             </AnimatePresence>
 
+            <AnimatePresence>
+                {memberFormPageUser && (
+                    <div className="fixed inset-0 bg-slate-100 z-50 overflow-y-auto">
+                        <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
+                            <div className="bg-[#fffdf9] rounded-[2rem] md:rounded-[3rem] border-2 border-[#d4a547]/30 shadow-xl overflow-hidden">
+                                <div className="bg-[#1a1b4b] text-white px-6 md:px-8 py-5 border-b-4 border-[#d4a547]">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#d4a547]">Member Form Page</p>
+                                            <h3 className="text-xl md:text-2xl font-black">{memberFormPageUser.name}</h3>
+                                            <p className="text-xs text-white/80 mt-1">{memberFormPageUser.id}</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setMemberFormPageUser(null)}
+                                            className="px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-black"
+                                        >
+                                            Back
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="p-6 md:p-8 space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="p-4 bg-white rounded-2xl border border-[#d4a547]/20">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-[#d4a547] mb-1">Denomination</p>
+                                            <p className="text-sm font-semibold text-slate-700">{memberFormPageUser.communityProfile?.denomination || 'N/A'}</p>
+                                        </div>
+                                        <div className="p-4 bg-white rounded-2xl border border-[#d4a547]/20">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-[#d4a547] mb-1">Church Name</p>
+                                            <p className="text-sm font-semibold text-slate-700">{memberFormPageUser.communityProfile?.churchName || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                    <div className="p-4 bg-white rounded-2xl border border-[#d4a547]/20">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-[#d4a547] mb-1">Role in Ministry</p>
+                                        <p className="text-sm font-semibold text-slate-700">{memberFormPageUser.communityProfile?.role || 'N/A'}</p>
+                                    </div>
+                                    <div className="p-4 bg-white rounded-2xl border border-[#d4a547]/20">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-[#d4a547] mb-1">Testimony / Bio</p>
+                                        <p className="text-sm text-slate-700 whitespace-pre-wrap">{memberFormPageUser.communityProfile?.bio || 'N/A'}</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDownloadMemberFormPdf(memberFormPageUser)}
+                                        disabled={downloadingMemberFormPdfUserId === memberFormPageUser.id}
+                                        className="w-full mt-2 px-5 py-3 rounded-2xl bg-amber-600 text-white font-black hover:bg-amber-700 transition-colors"
+                                    >
+                                        {downloadingMemberFormPdfUserId === memberFormPageUser.id ? 'Generating Member Form PDF...' : 'Download Member Form PDF'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </AnimatePresence>
+
             {/* View Details Modal */}
             <AnimatePresence>
                 {viewingDetailsUser && (
@@ -4722,28 +4898,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                             </div>
 
-                            {/* Member Form (Community Profile) */}
                             {viewingDetailsUser.communityProfile && (
                                 <div className="mt-8 pt-6 border-t border-slate-200">
-                                    <h4 className="text-sm font-bold text-brand-950 mb-4 uppercase tracking-wider">Member Form Submission</h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Denomination</p>
-                                            <p className="text-sm font-semibold text-slate-700">{viewingDetailsUser.communityProfile.denomination || 'N/A'}</p>
-                                        </div>
-                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Church Name</p>
-                                            <p className="text-sm font-semibold text-slate-700">{viewingDetailsUser.communityProfile.churchName || 'N/A'}</p>
-                                        </div>
-                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 md:col-span-2">
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Role in Ministry</p>
-                                            <p className="text-sm font-semibold text-slate-700">{viewingDetailsUser.communityProfile.role || 'N/A'}</p>
-                                        </div>
-                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 md:col-span-2">
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Testimony / Bio</p>
-                                            <p className="text-sm text-slate-700 whitespace-pre-wrap">{viewingDetailsUser.communityProfile.bio || 'N/A'}</p>
-                                        </div>
-                                    </div>
+                                    <h4 className="text-sm font-bold text-brand-950 mb-3 uppercase tracking-wider">Member Form Submission</h4>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setMemberFormPageUser(viewingDetailsUser);
+                                            setViewingDetailsUser(null);
+                                        }}
+                                        className="w-full px-4 py-3 rounded-2xl bg-amber-50 text-amber-800 border border-amber-200 text-sm font-black hover:bg-amber-100 transition-colors"
+                                    >
+                                        Open Member Form on Separate Page
+                                    </button>
                                 </div>
                             )}
 
