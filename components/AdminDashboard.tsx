@@ -5,7 +5,7 @@ import {
     ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Filter, Mail, Phone, MapPin, Droplet,
     Calendar, Award, Shield, ShieldCheck, AlertCircle, CheckCircle, QrCode, Download,
     Save, GripVertical, Globe, Plus, ImagePlus, Camera, Image as ImageIcon, MessageSquare, Check, XCircle, FileText,
-    PanelLeft, PanelTop, Database, RotateCcw, Dice6, Eye, EyeOff
+    PanelLeft, PanelTop, Database, RotateCcw, Dice6, Eye, EyeOff, Play
 } from 'lucide-react';
 import { User, UserRole, UserStatus, Testimonial, Ministry, DeletedUser } from '../types';
 import { Button } from './Button';
@@ -412,6 +412,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
         return new Date().toISOString().split('T')[0];
     };
+    const inferMinistryMediaType = (media?: Pick<Ministry, 'mediaType' | 'image'>): 'image' | 'video' => {
+        if (media?.mediaType === 'video' || media?.mediaType === 'image') return media.mediaType;
+        const src = `${media?.image || ''}`.trim().toLowerCase();
+        if (!src) return 'image';
+        if (src.startsWith('data:video/')) return 'video';
+        if (/\.(mp4|mov|webm|ogg|m4v)(\?.*)?$/.test(src)) return 'video';
+        return 'image';
+    };
+    const formatMediaDuration = (seconds: number) => {
+        if (!Number.isFinite(seconds) || seconds <= 0) return '';
+        const rounded = Math.round(seconds);
+        const hrs = Math.floor(rounded / 3600);
+        const mins = Math.floor((rounded % 3600) / 60);
+        const secs = rounded % 60;
+        if (hrs > 0) return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        return `${mins}:${String(secs).padStart(2, '0')}`;
+    };
+    const detectVideoDuration = (file: File): Promise<string> => new Promise((resolve) => {
+        const objectUrl = URL.createObjectURL(file);
+        const video = document.createElement('video');
+        video.preload = 'metadata';
+        video.onloadedmetadata = () => {
+            const formatted = formatMediaDuration(video.duration);
+            URL.revokeObjectURL(objectUrl);
+            resolve(formatted);
+        };
+        video.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            resolve('');
+        };
+        video.src = objectUrl;
+    });
 
 
     const handleSaveMinistry = async () => {
@@ -425,7 +457,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 ...editingMinistry,
                 date: editingMinistry.date || new Date().toISOString().split('T')[0],
                 name: editingMinistry.name || '',
-                description: editingMinistry.description || ''
+                description: editingMinistry.description || '',
+                mediaType: inferMinistryMediaType(editingMinistry as Pick<Ministry, 'mediaType' | 'image'>),
+                duration: (editingMinistry.duration || '').trim()
             };
 
             if (editingMinistry.id) {
@@ -1793,11 +1827,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     for (const file of files) {
                         const image = await readOne(file);
                         if (!image) continue;
+                        const mediaType: 'image' | 'video' = file.type.startsWith('video/') ? 'video' : 'image';
+                        const duration = mediaType === 'video' ? await detectVideoDuration(file) : '';
                         const payload = {
                             image,
                             date: detectDate(file.name),
                             name: file.name.replace(/\.[^/.]+$/, ''),
-                            description: ''
+                            description: '',
+                            mediaType,
+                            duration
                         };
                         const newMinistry = await api.createMinistry(payload as Omit<Ministry, 'id'>);
                         setMinistries(prev => [...prev, newMinistry]);
@@ -1818,20 +1856,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
         const file = files[0];
         if (file) {
+            const mediaType: 'image' | 'video' = file.type.startsWith('video/') ? 'video' : 'image';
+            const detectedDate = detectDate(file.name);
+            const detectedName = file.name.split('.')[0];
+
+            setEditingMinistry(prev => ({
+                ...prev,
+                date: prev?.date?.trim() || detectedDate,
+                name: prev?.name?.trim() || detectedName,
+                mediaType
+            }));
+
+            if (mediaType === 'video') {
+                const reader = new FileReader();
+                reader.onload = async () => {
+                    const duration = await detectVideoDuration(file);
+                    setEditingMinistry(prev => ({
+                        ...prev,
+                        image: (reader.result as string) || '',
+                        mediaType: 'video',
+                        duration: prev?.duration?.trim() || duration
+                    }));
+                };
+                reader.readAsDataURL(file);
+                return;
+            }
             const reader = new FileReader();
             reader.onload = () => {
                 setCropImage(reader.result as string);
                 setCroppingType('ministry');
                 setIsCropping(true);
-
-                // Pre-detect date from filename
-                const detectedDate = detectDate(file.name);
-                const detectedName = file.name.split('.')[0];
-                setEditingMinistry(prev => ({
-                    ...prev,
-                    date: prev?.date?.trim() || detectedDate,
-                    name: prev?.name?.trim() || detectedName
-                }));
             };
             reader.readAsDataURL(file);
         }
@@ -3801,7 +3855,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         date: new Date().toISOString().split('T')[0],
                                         name: '',
                                         description: '',
-                                        image: ''
+                                        image: '',
+                                        mediaType: 'image',
+                                        duration: ''
                                     })}
                                     className="flex items-center gap-2 px-5 py-2.5 bg-white text-brand-700 rounded-full font-black text-xs uppercase tracking-widest border border-brand-200 hover:bg-brand-50 transition-all"
                                 >
@@ -3812,7 +3868,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <input
                                         type="file"
                                         className="hidden"
-                                        accept="image/*"
+                                        accept="image/*,video/*"
                                         multiple
                                         onChange={handleMinistryImageUpload}
                                     />
@@ -3838,16 +3894,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     className="group relative aspect-square rounded-2xl md:rounded-[2.5rem] overflow-hidden bg-white border border-slate-100 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-2xl transition-all duration-700"
                                 >
                                     {m.image && !failedMinistryImages[m.id] ? (
-                                        <img
-                                            src={m.image}
-                                            alt={m.name}
-                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
-                                            onError={() => setFailedMinistryImages(prev => ({ ...prev, [m.id]: true }))}
-                                        />
+                                        inferMinistryMediaType(m) === 'video' ? (
+                                            <video
+                                                src={m.image}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                                                muted
+                                                loop
+                                                autoPlay
+                                                playsInline
+                                                onError={() => setFailedMinistryImages(prev => ({ ...prev, [m.id]: true }))}
+                                            />
+                                        ) : (
+                                            <img
+                                                src={m.image}
+                                                alt={m.name}
+                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                                                onError={() => setFailedMinistryImages(prev => ({ ...prev, [m.id]: true }))}
+                                            />
+                                        )
                                     ) : (
                                         <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-500 text-center px-3">
                                             <ImageIcon size={22} className="mb-2" />
-                                            <p className="text-[10px] font-bold uppercase tracking-wide">Image unavailable</p>
+                                            <p className="text-[10px] font-bold uppercase tracking-wide">Media unavailable</p>
                                         </div>
                                     )}
 
@@ -3900,11 +3968,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <div className="absolute bottom-4 md:bottom-8 left-4 md:left-8 right-4 md:right-8 pointer-events-none group-hover:translate-y-[-4px] transition-transform duration-500">
                                         <div className="flex items-center gap-2 text-accent-400 mb-1 md:mb-2">
                                             <div className="w-4 h-[1px] bg-accent-400" />
-                                            <span className="text-[8px] md:text-[10px] font-black tracking-[0.2em] uppercase">Ministry Moment</span>
+                                            <span className="text-[8px] md:text-[10px] font-black tracking-[0.2em] uppercase">{inferMinistryMediaType(m) === 'video' ? 'Video Moment' : 'Ministry Moment'}</span>
                                         </div>
                                         <h3 className="text-white font-serif font-bold text-sm md:text-lg leading-tight drop-shadow-xl">
                                             {m.date ? new Date(m.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Nov 25, 2026'}
                                         </h3>
+                                        {inferMinistryMediaType(m) === 'video' && m.duration && (
+                                            <p className="text-[10px] md:text-xs text-white/80 mt-1 inline-flex items-center gap-1">
+                                                <Play size={10} /> {m.duration}
+                                            </p>
+                                        )}
                                     </div>
 
                                     {/* Reorder Grip - Top Left */}
@@ -5291,21 +5364,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <div className="space-y-6">
                                 {/* Image Preview or Upload */}
                                 <div className="space-y-2">
-                                    <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Moment Photo</label>
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Moment Media</label>
                                     <div className="relative aspect-square bg-slate-100 rounded-[2rem] overflow-hidden group border-2 border-slate-100 shadow-inner">
                                         {editingMinistry.image ? (
                                             <>
-                                                <img
-                                                    src={editingMinistry.image}
-                                                    className="w-full h-full object-cover"
-                                                    onError={(e) => {
-                                                        (e.currentTarget as HTMLImageElement).style.display = 'none';
-                                                    }}
-                                                />
+                                                {inferMinistryMediaType(editingMinistry as Pick<Ministry, 'mediaType' | 'image'>) === 'video' ? (
+                                                    <video
+                                                        src={editingMinistry.image}
+                                                        className="w-full h-full object-cover"
+                                                        controls
+                                                        playsInline
+                                                    />
+                                                ) : (
+                                                    <img
+                                                        src={editingMinistry.image}
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e) => {
+                                                            (e.currentTarget as HTMLImageElement).style.display = 'none';
+                                                        }}
+                                                    />
+                                                )}
                                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-3">
                                                     <label className="w-12 h-12 bg-brand-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-brand-700 transition-colors shadow-lg">
                                                         <Camera size={24} />
-                                                        <input type="file" className="hidden" accept="image/*" onChange={handleMinistryImageUpload} />
+                                                        <input type="file" className="hidden" accept="image/*,video/*" onChange={handleMinistryImageUpload} />
                                                     </label>
                                                     <span className="text-xs font-bold uppercase tracking-widest">Change / Crop</span>
                                                 </div>
@@ -5314,11 +5396,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <label className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:bg-slate-200 transition-all border-2 border-dashed border-slate-300 rounded-[2rem]">
                                                 <ImagePlus size={48} className="mb-2" />
                                                 <span className="font-bold">Select Photo</span>
-                                                <input type="file" className="hidden" accept="image/*" onChange={handleMinistryImageUpload} />
+                                                <input type="file" className="hidden" accept="image/*,video/*" onChange={handleMinistryImageUpload} />
                                             </label>
                                         )}
                                     </div>
-                                    <p className="text-[10px] text-slate-400 italic text-center">Tip: Square photos look best in the gallery.</p>
+                                    <p className="text-[10px] text-slate-400 italic text-center">Upload image or video. For images, you can crop before saving.</p>
                                 </div>
 
                                 <div className="space-y-2">
@@ -5341,6 +5423,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         rows={3}
                                         className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-brand-500 focus:bg-white transition-all text-brand-950 font-medium resize-none"
                                     />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Duration</label>
+                                    <input
+                                        type="text"
+                                        value={editingMinistry.duration || ''}
+                                        onChange={(e) => setEditingMinistry({ ...editingMinistry, duration: e.target.value })}
+                                        placeholder="e.g. 2:35"
+                                        className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-brand-500 focus:bg-white transition-all text-brand-950 font-medium"
+                                    />
+                                    <p className="text-[10px] text-slate-400 italic">Useful for videos; auto-filled on upload and editable here.</p>
                                 </div>
 
                                 <div className="space-y-2">

@@ -42,6 +42,13 @@ export const MinistriesPage: React.FC = () => {
     const [dynamicMinistries, setDynamicMinistries] = useState<Ministry[]>([]);
     const [failedDynamicImages, setFailedDynamicImages] = useState<Record<string, boolean>>({});
     const assets = useMemo(() => generateAssets(), []);
+    const inferMediaType = (item: Ministry): 'image' | 'video' => {
+        if (item.mediaType === 'video' || item.mediaType === 'image') return item.mediaType;
+        const src = `${item.image || ''}`.trim().toLowerCase();
+        if (src.startsWith('data:video/')) return 'video';
+        if (/\.(mp4|mov|webm|ogg|m4v)(\?.*)?$/.test(src)) return 'video';
+        return 'image';
+    };
 
     useEffect(() => {
         api.getMinistries().then(setDynamicMinistries);
@@ -87,16 +94,28 @@ export const MinistriesPage: React.FC = () => {
                                 className="group relative aspect-square rounded-[2.5rem] overflow-hidden bg-white border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-700"
                             >
                                 {m.image && !failedDynamicImages[m.id] ? (
-                                    <img
-                                        src={m.image}
-                                        alt={m.name || 'Ministry Moment'}
-                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
-                                        onError={() => setFailedDynamicImages(prev => ({ ...prev, [m.id]: true }))}
-                                    />
+                                    inferMediaType(m) === 'video' ? (
+                                        <video
+                                            src={m.image}
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                                            muted
+                                            loop
+                                            autoPlay
+                                            playsInline
+                                            onError={() => setFailedDynamicImages(prev => ({ ...prev, [m.id]: true }))}
+                                        />
+                                    ) : (
+                                        <img
+                                            src={m.image}
+                                            alt={m.name || 'Ministry Moment'}
+                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                                            onError={() => setFailedDynamicImages(prev => ({ ...prev, [m.id]: true }))}
+                                        />
+                                    )
                                 ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-500 px-4 text-center">
                                         <Sparkles size={26} className="mb-2" />
-                                        <p className="text-xs font-bold uppercase tracking-wide">Image unavailable</p>
+                                        <p className="text-xs font-bold uppercase tracking-wide">Media unavailable</p>
                                         <p className="text-[10px] mt-1">{m.date ? new Date(m.date).toLocaleDateString() : 'Recent Moment'}</p>
                                     </div>
                                 )}
@@ -112,6 +131,9 @@ export const MinistriesPage: React.FC = () => {
                                     </h3>
                                     {m.name && m.name !== m.date && (
                                         <p className="text-white/60 text-xs mt-2 font-medium tracking-wide uppercase">{m.name}</p>
+                                    )}
+                                    {inferMediaType(m) === 'video' && m.duration && (
+                                        <p className="text-white/70 text-[11px] mt-1 font-medium">Duration: {m.duration}</p>
                                     )}
                                 </div>
                             </motion.div>
