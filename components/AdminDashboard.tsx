@@ -1087,6 +1087,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }, [users, cotManagerQuery, cotManagerSelectedUserId]);
 
     const cotManagerAssignableUsers = useMemo(() => cotManagerUsers, [cotManagerUsers]);
+    const takenUserIds = useMemo(
+        () => new Set(users.map(item => `${item.id || ''}`.trim().toUpperCase())),
+        [users]
+    );
     const randomDiceUsers = useMemo(() => {
         const query = diceUserQuery.trim().toLowerCase();
         if (!query) return cotManagerAssignableUsers;
@@ -1426,8 +1430,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const approveUserOrPendingEdit = async (user: User) => {
         await runUserAction(() => activateUserWithCotId(user), 'Failed to approve user');
     };
+    const createDisapprovedUserPayload = (user: User, nextId?: string): User => ({
+        ...user,
+        id: nextId ?? user.id,
+        status: 'Rejected',
+        pendingProfileUpdate: {},
+        photo: '',
+        linkedProfiles: [],
+        verificationDoc: undefined,
+        communityProfile: undefined
+    });
+    const generateTemporaryUserId = (takenIds: Set<string>) => {
+        const stamp = Date.now().toString(36).toUpperCase();
+        let suffix = 1;
+        let candidate = `TEMP-${stamp}-${suffix}`;
+        while (takenIds.has(candidate)) {
+            suffix += 1;
+            candidate = `TEMP-${stamp}-${suffix}`;
+        }
+        return candidate;
+    };
     const disapproveUser = async (user: User) => {
-        await runUserAction(() => onUpdateUser({ ...user, status: 'Rejected', pendingProfileUpdate: {} }), 'Failed to disapprove user');
+        await runUserAction(async () => {
+            if (isCotId(user.id) && onReassignUserId) {
+                const temporaryId = generateTemporaryUserId(takenUserIds);
+                await onReassignUserId(user.id, temporaryId, createDisapprovedUserPayload(user, temporaryId));
+                return;
+            }
+            await onUpdateUser(createDisapprovedUserPayload(user));
+        }, 'Failed to disapprove user');
     };
     const rejectPendingEdit = async (user: User) => {
         await runUserAction(() => onUpdateUser({ ...user, pendingProfileUpdate: {} }), 'Failed to reject pending edit');
