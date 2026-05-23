@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, CheckCircle, XCircle, Search, ScanLine, X, LogIn } from 'lucide-react';
+import { Camera, CheckCircle, XCircle, Search, ScanLine, X, LogIn, Flashlight, FlashlightOff, Maximize2, Minimize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
 import { User } from '../types';
@@ -21,6 +21,9 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
     const [error, setError] = useState<string | null>(null);
     const [isScanning, setIsScanning] = useState(false);
     const [scannerInitialized, setScannerInitialized] = useState(false);
+    const [torchSupported, setTorchSupported] = useState(false);
+    const [torchOn, setTorchOn] = useState(false);
+    const [scannerExpanded, setScannerExpanded] = useState(true);
     const scannerRef = useRef<any>(null);
     const isApprovedUser = user?.status === 'Active';
 
@@ -100,10 +103,38 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
 
     const startScanner = () => {
         if (!window.Html5Qrcode || !scannerInitialized) return;
-        setIsScanning(true); setError(null); setScannedId(null); setUser(null);
+        setIsScanning(true); setError(null); setScannedId(null); setUser(null); setScannerExpanded(true);
         setTimeout(() => {
             const html5Qrcode = new window.Html5Qrcode('qr-reader');
             scannerRef.current = html5Qrcode;
+
+            const getActiveVideoTrack = (): MediaStreamTrack | null => {
+                const videoElement = document.querySelector<HTMLVideoElement>('#qr-reader video');
+                const stream = videoElement?.srcObject as MediaStream | null;
+                return stream?.getVideoTracks?.()[0] || null;
+            };
+
+            const detectTorchSupport = () => {
+                const track = getActiveVideoTrack();
+                const capabilities = ((track as any)?.getCapabilities?.() as any) || {};
+                const supported = !!capabilities.torch;
+                setTorchSupported(supported);
+                return supported;
+            };
+
+            const setTrackTorch = async (enabled: boolean) => {
+                const track = getActiveVideoTrack();
+                if (!track) return false;
+                try {
+                    await track.applyConstraints({ advanced: [{ torch: enabled } as any] });
+                    setTorchOn(enabled);
+                    return true;
+                } catch (_e) {
+                    if (!enabled) setTorchOn(false);
+                    return false;
+                }
+            };
+
             html5Qrcode.start(
                 { facingMode: 'environment' },
                 { fps: 10, qrbox: { width: 250, height: 250 } },
@@ -119,18 +150,78 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
                     }
                 },
                 (_errorMessage: string) => {}
-            ).catch((err: any) => {
+            ).then(() => {
+                const hasTorch = detectTorchSupport();
+                if (hasTorch) setTrackTorch(true);
+            }).catch((err: any) => {
                 console.error('Scanner Error:', err);
                 setError('Could not access camera. Please allow camera permissions or upload a picture.');
                 setIsScanning(false);
+                setTorchOn(false);
+                setTorchSupported(false);
             });
         }, 300);
     };
 
     const stopScanner = () => {
+        const clearScannerState = () => {
+            setIsScanning(false);
+            setTorchOn(false);
+            setTorchSupported(false);
+            setScannerExpanded(true);
+            scannerRef.current = null;
+        };
+
+        const disableTorchIfPossible = async () => {
+            const videoElement = document.querySelector<HTMLVideoElement>('#qr-reader video');
+            const stream = videoElement?.srcObject as MediaStream | null;
+            const track = stream?.getVideoTracks?.()[0];
+            if (!track) return;
+            try {
+                await track.applyConstraints({ advanced: [{ torch: false } as any] });
+            } catch (_e) {}
+        };
+
         if (scannerRef.current) {
-            scannerRef.current.stop().then(() => { setIsScanning(false); scannerRef.current = null; }).catch(console.error);
-        } else { setIsScanning(false); }
+            disableTorchIfPossible()
+                .finally(() => scannerRef.current.stop())
+                .then(clearScannerState)
+                .catch((e: any) => {
+                    console.error(e);
+                    clearScannerState();
+                });
+        } else {
+            clearScannerState();
+        }
+    };
+
+    const handleTorchToggle = async () => {
+        if (!isScanning || !torchSupported) return;
+        const videoElement = document.querySelector<HTMLVideoElement>('#qr-reader video');
+        const stream = videoElement?.srcObject as MediaStream | null;
+        const track = stream?.getVideoTracks?.()[0];
+        if (!track) return;
+        const next = !torchOn;
+        try {
+            await track.applyConstraints({ advanced: [{ torch: next } as any] });
+            setTorchOn(next);
+        } catch (_e) {
+            if (next) setError('Flashlight control is not supported on this device/browser.');
+        }
+    };
+
+    const handleScannerSizeToggle = async () => {
+        const nextExpanded = !scannerExpanded;
+        setScannerExpanded(nextExpanded);
+        if (!isScanning || !torchSupported) return;
+        const videoElement = document.querySelector<HTMLVideoElement>('#qr-reader video');
+        const stream = videoElement?.srcObject as MediaStream | null;
+        const track = stream?.getVideoTracks?.()[0];
+        if (!track) return;
+        try {
+            await track.applyConstraints({ advanced: [{ torch: nextExpanded } as any] });
+            setTorchOn(nextExpanded);
+        } catch (_e) {}
     };
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -300,19 +391,36 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
                                 </div>
                             ) : (
                                 <div className="w-full flex flex-col gap-3">
-                                    <div className="flex items-center justify-between">
+                                    <div className="flex items-center justify-between gap-2">
                                         <span className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-red-400">
                                             <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" /> Live Scanning
                                         </span>
-                                        <button
-                                            onClick={stopScanner}
-                                            className="p-2 rounded-xl bg-white/10 border border-white/10 text-white/60 hover:bg-white/20 hover:text-white transition-all"
-                                        >
-                                            <X size={16} />
-                                        </button>
+                                        <div className="flex items-center gap-1.5">
+                                            <button
+                                                onClick={handleScannerSizeToggle}
+                                                className="p-2 rounded-xl bg-white/10 border border-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-all"
+                                                title={scannerExpanded ? 'Minimize scanner' : 'Maximize scanner'}
+                                            >
+                                                {scannerExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+                                            </button>
+                                            <button
+                                                onClick={handleTorchToggle}
+                                                disabled={!torchSupported}
+                                                className="p-2 rounded-xl bg-white/10 border border-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-all disabled:opacity-35 disabled:cursor-not-allowed"
+                                                title={torchSupported ? (torchOn ? 'Turn flashlight off' : 'Turn flashlight on') : 'Flashlight not supported on this device'}
+                                            >
+                                                {torchOn ? <Flashlight size={15} /> : <FlashlightOff size={15} />}
+                                            </button>
+                                            <button
+                                                onClick={stopScanner}
+                                                className="p-2 rounded-xl bg-white/10 border border-white/10 text-white/60 hover:bg-white/20 hover:text-white transition-all"
+                                            >
+                                                <X size={16} />
+                                            </button>
+                                        </div>
                                     </div>
                                     {/* QR reader element with framed overlay */}
-                                    <div className="relative rounded-2xl overflow-hidden bg-black aspect-square w-full max-w-[280px] mx-auto">
+                                    <div className={`relative rounded-2xl overflow-hidden bg-black aspect-square w-full mx-auto transition-all duration-300 ${scannerExpanded ? 'max-w-[280px]' : 'max-w-[170px]'}`}>
                                         <div id="qr-reader" className="absolute inset-0 w-full h-full" />
                                         {/* Corner brackets overlay */}
                                         <div className="absolute inset-0 pointer-events-none">
@@ -327,7 +435,9 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
                                             />
                                         </div>
                                     </div>
-                                    <p className="text-center text-white/60 text-xs font-bold uppercase tracking-wider">Align QR code within the frame</p>
+                                    <p className="text-center text-white/60 text-xs font-bold uppercase tracking-wider">
+                                        {scannerExpanded ? 'Align QR code within the frame' : 'Scanner minimized · maximize to auto-enable flashlight'}
+                                    </p>
                                 </div>
                             )}
                         </div>

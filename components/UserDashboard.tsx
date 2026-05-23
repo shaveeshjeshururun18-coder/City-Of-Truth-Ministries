@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, SubProfile } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
-import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag } from 'lucide-react';
+import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag, Copy, ExternalLink } from 'lucide-react';
 import { Button } from './Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TestimonialModal } from './TestimonialModal';
@@ -60,6 +60,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [calendarRenderMode, setCalendarRenderMode] = useState<{ mode: 'cover' | 'month'; monthData?: any } | null>(null);
     const [idRevealed, setIdRevealed] = useState(false);
     const [showCardPreview, setShowCardPreview] = useState(false);
+    const [showQrPreview, setShowQrPreview] = useState(false);
+    const [qrLinkCopied, setQrLinkCopied] = useState(false);
     const [cardFlipped, setCardFlipped] = useState(false);
     const [showCommunityProfileForm, setShowCommunityProfileForm] = useState(false);
     const [cropTarget, setCropTarget] = useState<{ type: 'primary' | 'linked-profile' | 'new-family-member'; profileId?: string } | null>(null);
@@ -871,6 +873,25 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const qrUrl = `${window.location.origin}/verify/${displayProfile.id}`;
     const qrImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(qrUrl)}&bgcolor=ffffff&color=1a237e&margin=5&format=png&cb=${encodeURIComponent(`${displayProfile.id}-${user.status}`)}`;
 
+    const handleOpenQrPreview = () => {
+        if (!canAccessEntrustFeatures) {
+            handleBlockedFeature();
+            return;
+        }
+        setQrLinkCopied(false);
+        setShowQrPreview(true);
+    };
+
+    const handleCopyQrLink = async () => {
+        try {
+            await navigator.clipboard.writeText(qrUrl);
+            setQrLinkCopied(true);
+            window.setTimeout(() => setQrLinkCopied(false), 1800);
+        } catch (_e) {
+            alert('Unable to copy verification link. Please copy it manually.');
+        }
+    };
+
     /* ─────────────────────────────────────────────── */
     return (
         <div className="min-h-screen pt-28 pb-20 bg-[#f0f2f5] text-slate-900 relative flex flex-col items-center overflow-x-hidden px-3 sm:px-5">
@@ -1260,18 +1281,30 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             <QrCode size={12} />
                                             Verify QR
                                         </div>
-                                        <div className="rounded-[24px] border border-slate-200 bg-white p-3 shadow-inner">
+                                        <button
+                                            type="button"
+                                            onClick={handleOpenQrPreview}
+                                            className="rounded-[24px] border border-slate-200 bg-white p-3 shadow-inner cursor-zoom-in hover:scale-[1.01] transition-transform"
+                                            title="Click to view QR code with link"
+                                        >
                                             <img
                                                 src={qrImgSrc}
                                                 alt={`QR code for ${displayProfile.id}`}
                                                 className="w-44 h-44 md:w-52 md:h-52 object-contain"
                                             />
-                                        </div>
+                                        </button>
                                         <p className="mt-4 text-sm font-bold text-brand-950">{displayProfile.name}</p>
                                         <p className="text-[11px] text-slate-500 font-mono mt-1">{displayProfile.id.toUpperCase()}</p>
                                         <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
                                             Scan this code to open the official verification page for this Entrust profile.
                                         </p>
+                                        <button
+                                            type="button"
+                                            onClick={handleOpenQrPreview}
+                                            className="mt-3 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-brand-700 hover:text-brand-900 transition-colors"
+                                        >
+                                            <ExternalLink size={12} /> Click QR to view link + copy
+                                        </button>
                                     </div>
                                     <button
                                         type="button"
@@ -1508,6 +1541,34 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
             {/* ── CARD PREVIEW MODAL (Screenshot 3 style) ── */}
             <AnimatePresence>
+                {showQrPreview && (
+                    <div className="fixed inset-0 z-[82] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-black text-slate-900">My Entrust QR</h3>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowQrPreview(false)}
+                                    className="p-2 rounded-lg text-slate-500 hover:bg-slate-100"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 mb-4">
+                                <img src={qrImgSrc} alt={`QR preview for ${displayProfile.id}`} className="w-full max-w-[300px] mx-auto object-contain" />
+                            </div>
+                            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Verification Link</p>
+                            <p className="text-xs text-slate-700 break-all bg-slate-50 border border-slate-200 rounded-xl p-3 mb-4">{qrUrl}</p>
+                            <button
+                                type="button"
+                                onClick={handleCopyQrLink}
+                                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-black uppercase tracking-wider transition-colors"
+                            >
+                                <Copy size={14} /> {qrLinkCopied ? 'Copied' : 'Copy Link'}
+                            </button>
+                        </motion.div>
+                    </div>
+                )}
                 {showCardPreview && (
                     <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center bg-black/70 backdrop-blur-md p-4">
                         <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="w-full max-w-2xl">
