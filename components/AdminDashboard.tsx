@@ -316,7 +316,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         if (activeTab === 'messages') {
             api.getTestimonials().then(setTestimonials);
         } else if (activeTab === 'ministries') {
-            api.getMinistries().then(setMinistries);
+            api.getMinistries().then((items) => {
+                setMinistries(items);
+                setFailedMinistryImages({});
+            });
         }
     }, [activeTab]);
 
@@ -398,6 +401,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             const value = compact[1];
             return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
         }
+        const dayMonthYear = filename.match(/\b(\d{2})[-_](\d{2})[-_](\d{4})\b/);
+        if (dayMonthYear) {
+            const day = dayMonthYear[1];
+            const month = dayMonthYear[2];
+            const year = dayMonthYear[3];
+            return `${year}-${month}-${day}`;
+        }
         return new Date().toISOString().split('T')[0];
     };
 
@@ -419,9 +429,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             if (editingMinistry.id) {
                 await api.updateMinistry(ministryData as Ministry);
                 setMinistries(prev => prev.map(m => m.id === editingMinistry.id ? (ministryData as Ministry) : m));
+                setFailedMinistryImages(prev => {
+                    const next = { ...prev };
+                    delete next[editingMinistry.id as string];
+                    return next;
+                });
             } else {
                 const newMin = await api.createMinistry(ministryData as Omit<Ministry, 'id'>);
                 setMinistries(prev => [...prev, newMin]);
+                setFailedMinistryImages(prev => {
+                    const next = { ...prev };
+                    delete next[newMin.id];
+                    return next;
+                });
             }
             setEditingMinistry(null);
         } catch (error) {
@@ -1076,7 +1096,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         });
     }, [users, searchQuery, filterStatus, filterRole, filterLocation, userSortMode]);
 
-    const cotManagerUsers = useMemo(() => {
+    const cotManagerBaseUsers = useMemo(() => {
         const query = cotManagerQuery.trim().toLowerCase();
         const requestPriorityByUser = new Map<string, { priority: number; createdAt: string }>();
         cotIdRequestInsights.items.forEach((item) => {
@@ -1107,11 +1127,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             user.id.toLowerCase().includes(query) ||
             (user.phone || '').toLowerCase().includes(query)
         );
-        if (!cotManagerSelectedUserId) return filtered;
-        return filtered.filter(user => user.id === cotManagerSelectedUserId);
-    }, [users, cotManagerQuery, cotManagerSelectedUserId, cotIdRequestInsights.items]);
+        return filtered;
+    }, [users, cotManagerQuery, cotIdRequestInsights.items]);
+    const cotManagerUsers = useMemo(() => {
+        if (!cotManagerSelectedUserId) return cotManagerBaseUsers;
+        return cotManagerBaseUsers.filter(user => user.id === cotManagerSelectedUserId);
+    }, [cotManagerBaseUsers, cotManagerSelectedUserId]);
 
-    const cotManagerAssignableUsers = useMemo(() => cotManagerUsers, [cotManagerUsers]);
+    const cotManagerAssignableUsers = useMemo(() => cotManagerBaseUsers, [cotManagerBaseUsers]);
     const randomDiceUsers = useMemo(() => {
         const query = diceUserQuery.trim().toLowerCase();
         if (!query) return cotManagerAssignableUsers;
@@ -1776,6 +1799,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         };
                         const newMinistry = await api.createMinistry(payload as Omit<Ministry, 'id'>);
                         setMinistries(prev => [...prev, newMinistry]);
+                        setFailedMinistryImages(prev => {
+                            const next = { ...prev };
+                            delete next[newMinistry.id];
+                            return next;
+                        });
                     }
                 } catch (error) {
                     console.error('Failed bulk upload for ministry images', error);
@@ -1795,13 +1823,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 setIsCropping(true);
 
                 // Pre-detect date from filename
-                if (!editingMinistry?.id) {
-                    setEditingMinistry(prev => ({
-                        ...prev,
-                        date: detectDate(file.name),
-                        name: file.name.split('.')[0]
-                    }));
-                }
+                const detectedDate = detectDate(file.name);
+                const detectedName = file.name.split('.')[0];
+                setEditingMinistry(prev => ({
+                    ...prev,
+                    date: prev?.date || detectedDate,
+                    name: prev?.name || detectedName
+                }));
             };
             reader.readAsDataURL(file);
         }
@@ -1812,6 +1840,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             setEditingUser({ ...editingUser, photo: croppedImageUrl });
         } else if (croppingType === 'ministry') {
             setEditingMinistry(prev => ({ ...prev, image: croppedImageUrl }));
+            if (editingMinistry?.id) {
+                setFailedMinistryImages(prev => {
+                    const next = { ...prev };
+                    delete next[editingMinistry.id as string];
+                    return next;
+                });
+            }
         }
         setIsCropping(false);
         setCropImage(null);
@@ -2822,7 +2857,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 ].map(tab => (
                                     <button
                                         key={tab.id}
-                                        onClick={() => setCotManagerMode(tab.id as 'manual' | 'random' | 'requests')}
+                                        onClick={() => {
+                                            const nextMode = tab.id as 'manual' | 'random' | 'requests';
+                                            setCotManagerMode(nextMode);
+                                            if (nextMode === 'random') {
+                                                setCotManagerSelectedUserId('');
+                                                setCotIdSearchFeedback(null);
+                                            }
+                                        }}
                                         className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${cotManagerMode === tab.id ? 'bg-brand-600 text-white border-brand-600' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}
                                     >
                                         {tab.label}
@@ -3738,7 +3780,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 {activeTab === 'ministries' && (
                     <div className="space-y-8">
                         <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-4 flex-wrap">
                                 <h2 className="text-2xl font-black text-brand-950 tracking-tight">Ministry Gallery</h2>
                                 {hasOrderChanges && (
                                     <motion.button
@@ -3751,6 +3793,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <Save size={16} /> Save Order
                                     </motion.button>
                                 )}
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingMinistry({
+                                        date: new Date().toISOString().split('T')[0],
+                                        name: '',
+                                        description: '',
+                                        image: ''
+                                    })}
+                                    className="flex items-center gap-2 px-5 py-2.5 bg-white text-brand-700 rounded-full font-black text-xs uppercase tracking-widest border border-brand-200 hover:bg-brand-50 transition-all"
+                                >
+                                    <Plus size={16} /> Add Moment
+                                </button>
                                 <label className="flex items-center gap-2 px-8 py-4 bg-brand-950 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-brand-900 transition-all cursor-pointer shadow-xl shadow-brand-950/20 active:scale-95 group">
                                     <ImagePlus size={20} className="group-hover:scale-110 transition-transform" /> Upload Photo
                                     <input
@@ -3812,6 +3866,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             title="Delete"
                                         >
                                             <Trash2 size={16} />
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                const idx = ministries.findIndex(item => item.id === m.id);
+                                                if (idx <= 0) return;
+                                                setMinistries(prev => moveArrayItem(prev, idx, idx - 1));
+                                                setHasOrderChanges(true);
+                                            }}
+                                            className="w-10 h-10 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white hover:text-brand-950 transition-all shadow-lg"
+                                            title="Move Up"
+                                        >
+                                            <ChevronUp size={16} />
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                const idx = ministries.findIndex(item => item.id === m.id);
+                                                if (idx < 0 || idx >= ministries.length - 1) return;
+                                                setMinistries(prev => moveArrayItem(prev, idx, idx + 1));
+                                                setHasOrderChanges(true);
+                                            }}
+                                            className="w-10 h-10 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white hover:text-brand-950 transition-all shadow-lg"
+                                            title="Move Down"
+                                        >
+                                            <ChevronDown size={16} />
                                         </button>
                                     </div>
 
@@ -5237,6 +5317,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         )}
                                     </div>
                                     <p className="text-[10px] text-slate-400 italic text-center">Tip: Square photos look best in the gallery.</p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Moment Name</label>
+                                    <input
+                                        type="text"
+                                        value={editingMinistry.name || ''}
+                                        onChange={(e) => setEditingMinistry({ ...editingMinistry, name: e.target.value })}
+                                        placeholder="Enter ministry moment title"
+                                        className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-brand-500 focus:bg-white transition-all text-brand-950 font-medium"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Description</label>
+                                    <textarea
+                                        value={editingMinistry.description || ''}
+                                        onChange={(e) => setEditingMinistry({ ...editingMinistry, description: e.target.value })}
+                                        placeholder="Optional notes for this image"
+                                        rows={3}
+                                        className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-brand-500 focus:bg-white transition-all text-brand-950 font-medium resize-none"
+                                    />
                                 </div>
 
                                 <div className="space-y-2">
