@@ -239,11 +239,11 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
                         </div>
                         <div>
                             <p className="text-white font-black text-sm leading-none tracking-wide">City of Truth</p>
-                            <p className="text-[#d4a547] text-[9px] font-bold uppercase tracking-[0.22em]">Ministries</p>
+                            <p className="text-[#d4a547] text-xs font-bold uppercase tracking-[0.22em]">Ministries</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#d4a547]/15 border border-[#d4a547]/30 text-[#d4a547] text-[10px] font-black uppercase tracking-[0.2em]">
+                        <span className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#d4a547]/15 border border-[#d4a547]/30 text-[#d4a547] text-xs font-black uppercase tracking-[0.2em]">
                             <ScanLine size={12} /> Verify Entrust ID
                         </span>
                     </div>
@@ -254,7 +254,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
 
                 {/* ── PAGE TITLE ── */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/50 text-[10px] font-black uppercase tracking-[0.22em] mb-4">
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/60 text-xs font-black uppercase tracking-[0.22em] mb-4">
                         <ScanLine size={11} /> QR Scanner
                     </div>
                     <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-2">
@@ -327,7 +327,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
                                             />
                                         </div>
                                     </div>
-                                    <p className="text-center text-white/40 text-[10px] font-bold uppercase tracking-wider">Align QR code within the frame</p>
+                                    <p className="text-center text-white/60 text-xs font-bold uppercase tracking-wider">Align QR code within the frame</p>
                                 </div>
                             )}
                         </div>
@@ -336,7 +336,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
                         <div className="p-6 flex flex-col justify-center gap-5">
                             {/* Upload */}
                             <div>
-                                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#d4a547] mb-3 flex items-center gap-2">
+                                <p className="text-xs font-black uppercase tracking-[0.22em] text-[#d4a547] mb-3 flex items-center gap-2">
                                     <Camera size={11} /> Upload QR / PDF
                                 </p>
                                 <label className="flex items-center gap-4 w-full p-4 border border-dashed border-white/15 rounded-2xl cursor-pointer hover:bg-white/8 hover:border-[#d4a547]/50 transition-all group bg-white/3">
@@ -345,7 +345,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <span className="block text-white font-bold text-sm mb-0.5">Select Screenshot or File</span>
-                                        <span className="block text-white/40 text-[10px]">QR image, PDF, or any file with a COT ID</span>
+                                        <span className="block text-white/60 text-xs">QR image, PDF, or any file with a COT ID</span>
                                     </div>
                                     <input type="file" className="hidden" onChange={handleFileUpload} />
                                 </label>
@@ -353,13 +353,13 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
 
                             <div className="flex items-center gap-3">
                                 <div className="h-px bg-white/10 flex-1" />
-                                <span className="text-[9px] font-black text-white/25 uppercase tracking-[0.28em]">or</span>
+                                <span className="text-xs font-black text-white/60 uppercase tracking-[0.28em]">or</span>
                                 <div className="h-px bg-white/10 flex-1" />
                             </div>
 
                             {/* Manual entry */}
                             <div>
-                                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#d4a547] mb-3 flex items-center gap-2">
+                                <p className="text-xs font-black uppercase tracking-[0.22em] text-[#d4a547] mb-3 flex items-center gap-2">
                                     <Search size={11} /> Type COT ID
                                 </p>
                                 <form onSubmit={handleManualCheck} className="flex gap-2">
@@ -368,7 +368,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
                                         placeholder="e.g. COT-1234"
                                         value={scannedId || ''}
                                         onChange={(e) => setScannedId(e.target.value)}
-                                        className="flex-1 px-4 py-3 bg-white/5 border border-white/12 rounded-xl outline-none focus:border-[#d4a547]/60 focus:bg-white/8 transition-all font-mono text-white placeholder:text-white/25 text-sm"
+                                        className="flex-1 px-4 py-3 bg-white/5 border border-white/12 rounded-xl outline-none focus:border-[#d4a547]/60 focus:bg-white/8 transition-all font-mono text-white placeholder:text-white/40 text-sm"
                                     />
                                     <button
                                         type="submit"
@@ -505,24 +505,24 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
 
                                     <div className="grid grid-cols-2 gap-3 mb-5">
                                         <div className="bg-white/5 border border-white/8 rounded-2xl p-3">
-                                            <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em] mb-0.5">COT ID</p>
+                                            <p className="text-xs font-black text-white/60 uppercase tracking-[0.2em] mb-0.5">COT ID</p>
                                             <p className="font-black text-white font-mono text-sm">{user.id}</p>
                                         </div>
                                         {user.location && (
                                             <div className="bg-white/5 border border-white/8 rounded-2xl p-3">
-                                                <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em] mb-0.5">Location</p>
+                                                <p className="text-xs font-black text-white/60 uppercase tracking-[0.2em] mb-0.5">Location</p>
                                                 <p className="font-bold text-white text-sm truncate">{user.location}</p>
                                             </div>
                                         )}
                                         {user.memberSince && (
                                             <div className="bg-white/5 border border-white/8 rounded-2xl p-3">
-                                                <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em] mb-0.5">Member Since</p>
+                                                <p className="text-xs font-black text-white/60 uppercase tracking-[0.2em] mb-0.5">Member Since</p>
                                                 <p className="font-bold text-white text-sm">{user.memberSince}</p>
                                             </div>
                                         )}
                                         {user.phone && (
                                             <div className="bg-white/5 border border-white/8 rounded-2xl p-3">
-                                                <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em] mb-0.5">Phone</p>
+                                                <p className="text-xs font-black text-white/60 uppercase tracking-[0.2em] mb-0.5">Phone</p>
                                                 <p className="font-bold text-white text-sm">{user.phone}</p>
                                             </div>
                                         )}
@@ -564,7 +564,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
                     )}
                 </AnimatePresence>
 
-                <p className="text-center text-white/25 text-[10px] font-bold uppercase tracking-[0.2em] pt-10 pb-4">
+                <p className="text-center text-white/60 text-xs font-bold uppercase tracking-[0.2em] pt-10 pb-4">
                     City of Truth Ministries · Secure Identity Verification
                 </p>
             </div>

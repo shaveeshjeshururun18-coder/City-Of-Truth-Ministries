@@ -85,7 +85,7 @@ const youtubeLink = "https://youtube.com/@cotministries?si=A6179oNRuuJ9snjM";
 const MAX_STORED_CONTACT_MESSAGES = 200;
 const MESSAGE_RECYCLE_RETENTION_DAYS = 30;
 const MESSAGE_RECYCLE_RETENTION_MS = MESSAGE_RECYCLE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
-const REJECTED_ACCESS_ALERT = 'Your account was rejected. Dashboard access is blocked. Please contact admin.';
+const REJECTED_ACCESS_MESSAGE = 'Your account was rejected. Dashboard access is blocked. Please contact admin.';
 
 const RevealText: React.FC<{ text: string; className?: string; delay?: number }> = ({ text, className = "", delay = 0 }) => {
   return (
@@ -1046,7 +1046,7 @@ const App: React.FC = () => {
 
     if (user) {
       if (user.status === 'Rejected') {
-        alert(REJECTED_ACCESS_ALERT);
+        alert(REJECTED_ACCESS_MESSAGE);
         setCurrentView(ViewState.HOME);
         navigate('/');
         return;
@@ -1353,7 +1353,7 @@ const App: React.FC = () => {
       action: () => {
         if (currentUser) {
           if (currentUser.status === 'Rejected') {
-            alert(REJECTED_ACCESS_ALERT);
+            alert(REJECTED_ACCESS_MESSAGE);
             navigate('/auth?view=login');
             return;
           }
@@ -1635,7 +1635,7 @@ const App: React.FC = () => {
                         transition={{ duration: 0.6, delay: 1.05 }}
                         onClick={() => {
                           if (currentUser.status === 'Rejected') {
-                            alert(REJECTED_ACCESS_ALERT);
+                            alert(REJECTED_ACCESS_MESSAGE);
                             return;
                           }
                           setDashboardFocusSection('notifications');
@@ -2202,7 +2202,7 @@ const App: React.FC = () => {
                     <button
                       onClick={() => {
                         if (currentUser.status === 'Rejected') {
-                          alert(REJECTED_ACCESS_ALERT);
+                          alert(REJECTED_ACCESS_MESSAGE);
                           return;
                         }
                         setCurrentView(ViewState.USER_DASHBOARD);

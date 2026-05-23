@@ -1444,17 +1444,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         const stamp = Date.now().toString(36).toUpperCase();
         let suffix = 1;
         let candidate = `TEMP-${stamp}-${suffix}`;
-        while (takenIds.has(candidate.toUpperCase())) {
+        while (takenIds.has(candidate)) {
             suffix += 1;
             candidate = `TEMP-${stamp}-${suffix}`;
         }
-        return candidate.toUpperCase();
+        return candidate;
     };
     const disapproveUser = async (user: User) => {
         await runUserAction(async () => {
             if (isCotId(user.id) && onReassignUserId) {
-                const takenIds = new Set(takenUserIds);
-                const temporaryId = generateTemporaryUserId(takenIds);
+                const temporaryId = generateTemporaryUserId(takenUserIds);
                 await onReassignUserId(user.id, temporaryId, createDisapprovedUserPayload(user, temporaryId));
                 return;
             }
