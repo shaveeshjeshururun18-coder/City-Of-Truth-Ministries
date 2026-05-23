@@ -1826,6 +1826,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             default: return 'bg-gray-100 text-gray-700 border-gray-200';
         }
     };
+    const getStatusLabel = (status: UserStatus) => {
+        switch (status) {
+            case 'Active': return 'Approved';
+            case 'Pending Verification': return 'Pending Approval';
+            case 'Rejected': return 'Disapproved';
+            default: return status;
+        }
+    };
 
     const appOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://city-of-truth-ministries.vercel.app';
     const getVerificationUrl = (memberId: string) => `${appOrigin}/verify/${encodeURIComponent(memberId)}`;
@@ -2404,7 +2412,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                         {user.status === 'Active' && <CheckCircle size={12} />}
                                                         {user.status === 'Pending Verification' && <Clock size={12} />}
                                                         {user.status === 'Rejected' && <AlertCircle size={12} />}
-                                                        {user.status}
+                                                        {getStatusLabel(user.status)}
                                                     </span>
                                                     {hasPendingProfileUpdate(user) && (
                                                         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase bg-amber-100 text-amber-700 border border-amber-200">
@@ -2434,12 +2442,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                             </button>
                                                             <button
                                                                 onClick={async () => {
-                                                                    if (window.confirm(`Reject ${user.name}?`)) {
+                                                                    if (window.confirm(`Disapprove ${user.name}?`)) {
                                                                         await disapproveUser(user);
                                                                     }
                                                                 }}
                                                                 className="p-2 hover:bg-amber-50 text-amber-600 rounded-lg transition-colors"
-                                                                title="Reject User"
+                                                                title="Disapprove User"
                                                             >
                                                                 <XCircle size={16} />
                                                             </button>
@@ -2598,7 +2606,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     </div>
                                     <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold border ${getStatusColor(user.status)}`}>
                                         {user.status === 'Active' && <CheckCircle size={10} />}
-                                        {user.status}
+                                        {getStatusLabel(user.status)}
                                     </span>
                                 </button>
                                 <p className="text-[10px] text-slate-400 font-semibold mb-4">Tap name/photo to edit details & photo</p>
