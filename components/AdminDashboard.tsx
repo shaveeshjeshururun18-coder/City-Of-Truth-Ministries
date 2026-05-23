@@ -403,10 +403,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
         const dayMonthYear = filename.match(/\b(\d{2})[-_](\d{2})[-_](\d{4})\b/);
         if (dayMonthYear) {
-            const day = dayMonthYear[1];
-            const month = dayMonthYear[2];
+            const day = Number(dayMonthYear[1]);
+            const month = Number(dayMonthYear[2]);
             const year = dayMonthYear[3];
-            return `${year}-${month}-${day}`;
+            if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+                return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            }
         }
         return new Date().toISOString().split('T')[0];
     };
@@ -1827,8 +1829,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 const detectedName = file.name.split('.')[0];
                 setEditingMinistry(prev => ({
                     ...prev,
-                    date: prev?.date || detectedDate,
-                    name: prev?.name || detectedName
+                    date: prev?.date?.trim() || detectedDate,
+                    name: prev?.name?.trim() || detectedName
                 }));
             };
             reader.readAsDataURL(file);
