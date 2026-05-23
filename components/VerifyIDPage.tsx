@@ -103,7 +103,11 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
 
     const startScanner = () => {
         if (!window.Html5Qrcode || !scannerInitialized) return;
-        setIsScanning(true); setError(null); setScannedId(null); setUser(null); setScannerExpanded(true);
+        setIsScanning(true);
+        setError(null);
+        setScannedId(null);
+        setUser(null);
+        setScannerExpanded(true);
         setTimeout(() => {
             const html5Qrcode = new window.Html5Qrcode('qr-reader');
             scannerRef.current = html5Qrcode;
@@ -213,7 +217,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
     const handleScannerSizeToggle = async () => {
         const nextExpanded = !scannerExpanded;
         setScannerExpanded(nextExpanded);
-        if (!isScanning || !torchSupported) return;
+        if (!isScanning || !torchSupported || !nextExpanded) return;
         const videoElement = document.querySelector<HTMLVideoElement>('#qr-reader video');
         const stream = videoElement?.srcObject as MediaStream | null;
         const track = stream?.getVideoTracks?.()[0];
@@ -436,7 +440,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
                                         </div>
                                     </div>
                                     <p className="text-center text-white/60 text-xs font-bold uppercase tracking-wider">
-                                        {scannerExpanded ? 'Align QR code within the frame' : 'Scanner minimized · maximize to auto-enable flashlight'}
+                                        {scannerExpanded ? 'Align QR code within the frame' : 'Scanner minimized · maximize to expand view'}
                                     </p>
                                 </div>
                             )}

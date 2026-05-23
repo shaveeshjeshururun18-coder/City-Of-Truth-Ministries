@@ -62,6 +62,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [showCardPreview, setShowCardPreview] = useState(false);
     const [showQrPreview, setShowQrPreview] = useState(false);
     const [qrLinkCopied, setQrLinkCopied] = useState(false);
+    const [qrImageUnavailable, setQrImageUnavailable] = useState(false);
     const [cardFlipped, setCardFlipped] = useState(false);
     const [showCommunityProfileForm, setShowCommunityProfileForm] = useState(false);
     const [cropTarget, setCropTarget] = useState<{ type: 'primary' | 'linked-profile' | 'new-family-member'; profileId?: string } | null>(null);
@@ -873,6 +874,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const qrUrl = `${window.location.origin}/verify/${displayProfile.id}`;
     const qrImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(qrUrl)}&bgcolor=ffffff&color=1a237e&margin=5&format=png&cb=${encodeURIComponent(`${displayProfile.id}-${user.status}`)}`;
 
+    useEffect(() => {
+        setQrImageUnavailable(false);
+    }, [displayProfile.id, user.status]);
+
     const handleOpenQrPreview = () => {
         if (!canAccessEntrustFeatures) {
             handleBlockedFeature();
@@ -1281,30 +1286,48 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             <QrCode size={12} />
                                             Verify QR
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={handleOpenQrPreview}
-                                            className="rounded-[24px] border border-slate-200 bg-white p-3 shadow-inner cursor-zoom-in hover:scale-[1.01] transition-transform"
-                                            title="Click to view QR code with link"
-                                        >
-                                            <img
-                                                src={qrImgSrc}
-                                                alt={`QR code for ${displayProfile.id}`}
-                                                className="w-44 h-44 md:w-52 md:h-52 object-contain"
-                                            />
-                                        </button>
+                                        {qrImageUnavailable ? (
+                                            <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-inner w-full">
+                                                <p className="text-xs font-black text-slate-600 uppercase tracking-wider">QR unavailable</p>
+                                                <p className="text-[11px] text-slate-500 mt-2 break-all">{qrUrl}</p>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={handleOpenQrPreview}
+                                                className="rounded-[24px] border border-slate-200 bg-white p-3 shadow-inner cursor-zoom-in hover:scale-[1.01] transition-transform"
+                                                title="Click to view QR code with link"
+                                            >
+                                                <img
+                                                    src={qrImgSrc}
+                                                    alt={`QR code for ${displayProfile.id}`}
+                                                    className="w-44 h-44 md:w-52 md:h-52 object-contain"
+                                                    onError={() => setQrImageUnavailable(true)}
+                                                />
+                                            </button>
+                                        )}
                                         <p className="mt-4 text-sm font-bold text-brand-950">{displayProfile.name}</p>
                                         <p className="text-[11px] text-slate-500 font-mono mt-1">{displayProfile.id.toUpperCase()}</p>
                                         <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
                                             Scan this code to open the official verification page for this Entrust profile.
                                         </p>
+                                        <p className="mt-3 text-[10px] text-slate-500 break-all">{qrUrl}</p>
                                         <button
                                             type="button"
-                                            onClick={handleOpenQrPreview}
-                                            className="mt-3 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-brand-700 hover:text-brand-900 transition-colors"
+                                            onClick={handleCopyQrLink}
+                                            className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-brand-700 hover:text-brand-900 transition-colors"
                                         >
-                                            <ExternalLink size={12} /> Click QR to view link + copy
+                                            <Copy size={12} /> {qrLinkCopied ? 'Copied' : 'Copy Website Link'}
                                         </button>
+                                        {!qrImageUnavailable && (
+                                            <button
+                                                type="button"
+                                                onClick={handleOpenQrPreview}
+                                                className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-brand-700 hover:text-brand-900 transition-colors"
+                                            >
+                                                <ExternalLink size={12} /> Click QR to view link + copy
+                                            </button>
+                                        )}
                                     </div>
                                     <button
                                         type="button"
@@ -1338,6 +1361,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                                 ? 'Pending admin verification'
                                                 : 'Temporary account. COT ID activation pending.'}
                                     </p>
+                                    <p className="text-[10px] mt-2 text-slate-500 break-all">{qrUrl}</p>
+                                    <button
+                                        type="button"
+                                        onClick={handleCopyQrLink}
+                                        className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-brand-700 hover:text-brand-900 transition-colors"
+                                    >
+                                        <Copy size={12} /> {qrLinkCopied ? 'Copied' : 'Copy Website Link'}
+                                    </button>
                                     </div>
                                 </div>
                             )}
@@ -1555,7 +1586,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 </button>
                             </div>
                             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 mb-4">
-                                <img src={qrImgSrc} alt={`QR preview for ${displayProfile.id}`} className="w-full max-w-[300px] mx-auto object-contain" />
+                                {qrImageUnavailable ? (
+                                    <div className="w-full max-w-[300px] mx-auto px-3 py-8 text-center">
+                                        <p className="text-xs font-black text-slate-600 uppercase tracking-wider">QR unavailable</p>
+                                        <p className="text-[11px] text-slate-500 mt-2 break-all">{qrUrl}</p>
+                                    </div>
+                                ) : (
+                                    <img src={qrImgSrc} alt={`QR preview for ${displayProfile.id}`} className="w-full max-w-[300px] mx-auto object-contain" onError={() => setQrImageUnavailable(true)} />
+                                )}
                             </div>
                             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Verification Link</p>
                             <p className="text-xs text-slate-700 break-all bg-slate-50 border border-slate-200 rounded-xl p-3 mb-4">{qrUrl}</p>
