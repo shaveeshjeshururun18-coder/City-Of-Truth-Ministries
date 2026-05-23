@@ -214,18 +214,8 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
         }
     };
 
-    const handleScannerSizeToggle = async () => {
-        const nextExpanded = !scannerExpanded;
-        setScannerExpanded(nextExpanded);
-        if (!isScanning || !torchSupported || !nextExpanded) return;
-        const videoElement = document.querySelector<HTMLVideoElement>('#qr-reader video');
-        const stream = videoElement?.srcObject as MediaStream | null;
-        const track = stream?.getVideoTracks?.()[0];
-        if (!track) return;
-        try {
-            await track.applyConstraints({ advanced: [{ torch: nextExpanded } as any] });
-            setTorchOn(nextExpanded);
-        } catch (_e) {}
+    const handleScannerSizeToggle = () => {
+        setScannerExpanded(prev => !prev);
     };
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -440,7 +430,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
                                         </div>
                                     </div>
                                     <p className="text-center text-white/60 text-xs font-bold uppercase tracking-wider">
-                                        {scannerExpanded ? 'Align QR code within the frame' : 'Scanner minimized · maximize to expand view'}
+                                        {scannerExpanded ? 'Align QR code within the frame' : 'Scanner minimized — maximize to expand view'}
                                     </p>
                                 </div>
                             )}
