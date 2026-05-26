@@ -3892,7 +3892,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <Plus size={16} /> Add Moment
                                 </button>
                                 <label className="flex items-center gap-2 px-8 py-4 bg-brand-950 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-brand-900 transition-all cursor-pointer shadow-xl shadow-brand-950/20 active:scale-95 group">
-                                    <ImagePlus size={20} className="group-hover:scale-110 transition-transform" /> Upload Photo
+                                    <ImagePlus size={20} className="group-hover:scale-110 transition-transform" /> Upload Media
                                     <input
                                         type="file"
                                         className="hidden"
@@ -4031,7 +4031,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         {ministries.length === 0 && (
                             <div className="text-center py-32 bg-slate-50 rounded-[3.5rem] border-2 border-dashed border-slate-200">
                                 <ImageIcon size={48} className="mx-auto text-slate-300 mb-4" />
-                                <p className="text-slate-400 font-medium">No ministry photos yet. Upload your first moment!</p>
+                                <p className="text-slate-400 font-medium">No ministry media yet. Upload your first image or video moment!</p>
                             </div>
                         )}
                     </div>
@@ -5433,7 +5433,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         ) : (
                                             <label className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:bg-slate-200 transition-all border-2 border-dashed border-slate-300 rounded-[2rem]">
                                                 <ImagePlus size={48} className="mb-2" />
-                                                <span className="font-bold">Select Photo</span>
+                                                <span className="font-bold">Select Media</span>
                                                 <input type="file" className="hidden" accept="image/*,video/*" onChange={handleMinistryImageUpload} />
                                             </label>
                                         )}
@@ -5457,7 +5457,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <textarea
                                         value={editingMinistry.description || ''}
                                         onChange={(e) => setEditingMinistry({ ...editingMinistry, description: e.target.value })}
-                                        placeholder="Optional notes for this image"
+                                        placeholder="Optional notes for this media"
                                         rows={3}
                                         className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-brand-500 focus:bg-white transition-all text-brand-950 font-medium resize-none"
                                     />
