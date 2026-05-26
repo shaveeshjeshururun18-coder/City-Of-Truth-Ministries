@@ -42,6 +42,10 @@ export const MinistriesPage: React.FC = () => {
     const [dynamicMinistries, setDynamicMinistries] = useState<Ministry[]>([]);
     const [failedDynamicImages, setFailedDynamicImages] = useState<Record<string, boolean>>({});
     const assets = useMemo(() => generateAssets(), []);
+    const visibleDynamicMinistries = useMemo(
+        () => dynamicMinistries.filter((m) => !m.hidden),
+        [dynamicMinistries]
+    );
     const inferMediaType = (item: Ministry): 'image' | 'video' => {
         if (item.mediaType === 'video' || item.mediaType === 'image') return item.mediaType;
         const src = `${item.image || ''}`.trim().toLowerCase();
@@ -78,14 +82,14 @@ export const MinistriesPage: React.FC = () => {
             </div>
 
             {/* Dynamic Ministries Section */}
-            {dynamicMinistries.length > 0 && (
+            {visibleDynamicMinistries.length > 0 && (
                 <div className="container mx-auto px-6 mb-32">
                     <div className="flex items-center gap-4 mb-16">
                         <div className="w-12 h-px bg-brand-950/20" />
                         <span className="text-xs font-bold text-brand-950 uppercase tracking-widest font-sans">Recent Moments</span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                        {dynamicMinistries.map((m, i) => (
+                        {visibleDynamicMinistries.map((m, i) => (
                             <motion.div
                                 key={m.id}
                                 initial={{ opacity: 0, y: 30 }}

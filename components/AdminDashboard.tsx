@@ -459,7 +459,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 name: editingMinistry.name || '',
                 description: editingMinistry.description || '',
                 mediaType: inferMinistryMediaType(editingMinistry as Pick<Ministry, 'mediaType' | 'image'>),
-                duration: (editingMinistry.duration || '').trim()
+                duration: (editingMinistry.duration || '').trim(),
+                hidden: !!editingMinistry.hidden
             };
 
             if (editingMinistry.id) {
@@ -496,6 +497,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             setHasOrderChanges(false); // Reset on delete
         } catch (error) {
             console.error('Failed to delete ministry', error);
+        }
+    };
+    const handleToggleMinistryHidden = async (ministry: Ministry) => {
+        try {
+            const updated = { ...ministry, hidden: !ministry.hidden };
+            await api.updateMinistry(updated);
+            setMinistries(prev => prev.map(m => (m.id === ministry.id ? updated : m)));
+        } catch (error) {
+            console.error('Failed to toggle ministry hidden state', error);
+            alert('Failed to update hidden state.');
         }
     };
 
@@ -1835,7 +1846,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             name: file.name.replace(/\.[^/.]+$/, ''),
                             description: '',
                             mediaType,
-                            duration
+                            duration,
+                            hidden: false
                         };
                         const newMinistry = await api.createMinistry(payload as Omit<Ministry, 'id'>);
                         setMinistries(prev => [...prev, newMinistry]);
@@ -1862,7 +1874,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             setEditingMinistry(prev => ({
                 ...prev,
-                date: prev?.date?.trim() || detectedDate,
+                date: detectedDate,
                 name: prev?.name?.trim() || detectedName,
                 mediaType
             }));
@@ -1875,7 +1887,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         ...prev,
                         image: (reader.result as string) || '',
                         mediaType: 'video',
-                        duration: prev?.duration?.trim() || duration
+                        duration
                     }));
                 };
                 reader.readAsDataURL(file);
@@ -3857,7 +3869,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         description: '',
                                         image: '',
                                         mediaType: 'image',
-                                        duration: ''
+                                        duration: '',
+                                        hidden: false
                                     })}
                                     className="flex items-center gap-2 px-5 py-2.5 bg-white text-brand-700 rounded-full font-black text-xs uppercase tracking-widest border border-brand-200 hover:bg-brand-50 transition-all"
                                 >
@@ -3891,7 +3904,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     value={m}
                                     dragListener={true}
                                     dragControls={undefined}
-                                    className="group relative aspect-square rounded-2xl md:rounded-[2.5rem] overflow-hidden bg-white border border-slate-100 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-2xl transition-all duration-700"
+                                    className={`group relative aspect-square rounded-2xl md:rounded-[2.5rem] overflow-hidden bg-white border border-slate-100 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-2xl transition-all duration-700 ${m.hidden ? 'opacity-75 saturate-50' : ''}`}
                                 >
                                     {m.image && !failedMinistryImages[m.id] ? (
                                         inferMinistryMediaType(m) === 'video' ? (
@@ -3923,6 +3936,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <div className="absolute inset-0 bg-gradient-to-t from-brand-950/90 via-brand-950/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-500" />
 
                                     <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all md:translate-x-4 md:group-hover:translate-x-0 duration-300 z-20">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleToggleMinistryHidden(m); }}
+                                            className="w-10 h-10 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white hover:text-brand-950 transition-all shadow-lg"
+                                            title={m.hidden ? 'Unhide' : 'Hide'}
+                                        >
+                                            {m.hidden ? <Eye size={16} /> : <EyeOff size={16} />}
+                                        </button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setEditingMinistry(m); }}
                                             className="w-10 h-10 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white hover:text-brand-950 transition-all shadow-lg"
@@ -3977,6 +3997,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <p className="text-[10px] md:text-xs text-white/80 mt-1 inline-flex items-center gap-1">
                                                 <Play size={10} /> {m.duration}
                                             </p>
+                                        )}
+                                        {m.hidden && (
+                                            <p className="text-[10px] md:text-xs text-amber-300 mt-1 font-black uppercase tracking-wider">Hidden</p>
                                         )}
                                     </div>
 
@@ -5449,6 +5472,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     </div>
                                     <p className="text-[10px] text-slate-400 italic">Dates are automatically detected from the filename if possible.</p>
                                 </div>
+                                <label className="flex items-center justify-between gap-4 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                                    <span>
+                                        <span className="block text-xs font-black text-slate-500 uppercase tracking-[0.2em]">Hiding</span>
+                                        <span className="block text-[10px] text-slate-400 mt-1">Hidden moments stay in admin but are not shown on the Ministries page.</span>
+                                    </span>
+                                    <input
+                                        type="checkbox"
+                                        checked={!!editingMinistry.hidden}
+                                        onChange={(e) => setEditingMinistry({ ...editingMinistry, hidden: e.target.checked })}
+                                        className="w-5 h-5 accent-brand-600"
+                                    />
+                                </label>
                             </div>
 
                             <div className="flex gap-4 mt-10">
