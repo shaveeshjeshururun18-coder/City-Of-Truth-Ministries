@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, CheckCircle, XCircle, Search, ScanLine, X, Loader2, LogIn } from 'lucide-react';
+import { Camera, CheckCircle, XCircle, Search, ScanLine, X, Loader2, LogIn, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
 import { User } from '../types';
@@ -22,6 +22,9 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
     const [error, setError] = useState<string | null>(null);
     const [isScanning, setIsScanning] = useState(false);
     const [scannerInitialized, setScannerInitialized] = useState(false);
+    const [torchSupported, setTorchSupported] = useState(false);
+    const [torchEnabled, setTorchEnabled] = useState(false);
+    const [isTogglingTorch, setIsTogglingTorch] = useState(false);
     const scannerRef = useRef<any>(null);
     const isApprovedUser = user?.status === 'Active';
 
@@ -70,6 +73,43 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
         };
     }, []);
 
+    useEffect(() => {
+        if (!isScanning) return;
+        const { body, documentElement } = document;
+        const prevBodyOverflow = body.style.overflow;
+        const prevBodyTouchAction = body.style.touchAction;
+        const prevBodyOverscroll = body.style.overscrollBehavior;
+        const prevHtmlOverflow = documentElement.style.overflow;
+        const prevHtmlTouchAction = documentElement.style.touchAction;
+        const prevHtmlOverscroll = documentElement.style.overscrollBehavior;
+
+        body.style.overflow = 'hidden';
+        body.style.touchAction = 'none';
+        body.style.overscrollBehavior = 'none';
+        documentElement.style.overflow = 'hidden';
+        documentElement.style.touchAction = 'none';
+        documentElement.style.overscrollBehavior = 'none';
+
+        return () => {
+            body.style.overflow = prevBodyOverflow;
+            body.style.touchAction = prevBodyTouchAction;
+            body.style.overscrollBehavior = prevBodyOverscroll;
+            documentElement.style.overflow = prevHtmlOverflow;
+            documentElement.style.touchAction = prevHtmlTouchAction;
+            documentElement.style.overscrollBehavior = prevHtmlOverscroll;
+        };
+    }, [isScanning]);
+
+    const supportsTorch = (scanner: any): boolean => {
+        try {
+            const capabilities = scanner?.getRunningTrackCapabilities?.();
+            if (capabilities && typeof capabilities === 'object' && 'torch' in capabilities) {
+                return !!capabilities.torch;
+            }
+        } catch (_error) {}
+        return false;
+    };
+
     const verifyID = async (idToVerify: string) => {
         const normalizedId = normalizeCotId(idToVerify);
         setLoading(true); setError(null); setUser(null);
@@ -102,6 +142,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
     const startScanner = () => {
         if (!window.Html5Qrcode || !scannerInitialized) return;
         setIsScanning(true); setError(null); setScannedId(null); setUser(null);
+        setTorchSupported(false); setTorchEnabled(false);
         setTimeout(() => {
             const html5Qrcode = new window.Html5Qrcode('qr-reader');
             scannerRef.current = html5Qrcode;
@@ -120,18 +161,46 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
                     }
                 },
                 (_errorMessage: string) => {}
-            ).catch((err: any) => {
-                console.error('Scanner Error:', err);
-                setError('Could not access camera. Please allow camera permissions or upload a picture.');
-                setIsScanning(false);
-            });
+            )
+                .then(() => {
+                    setTorchSupported(supportsTorch(html5Qrcode));
+                })
+                .catch((err: any) => {
+                    console.error('Scanner Error:', err);
+                    setError('Could not access camera. Please allow camera permissions or upload a picture.');
+                    setIsScanning(false);
+                });
         }, 300);
     };
 
     const stopScanner = () => {
         if (scannerRef.current) {
-            scannerRef.current.stop().then(() => { setIsScanning(false); scannerRef.current = null; }).catch(console.error);
-        } else { setIsScanning(false); }
+            scannerRef.current.stop().then(() => {
+                setIsScanning(false);
+                setTorchEnabled(false);
+                setTorchSupported(false);
+                scannerRef.current = null;
+            }).catch(console.error);
+        } else {
+            setTorchEnabled(false);
+            setTorchSupported(false);
+            setIsScanning(false);
+        }
+    };
+
+    const toggleTorch = async () => {
+        if (!scannerRef.current || !torchSupported || isTogglingTorch) return;
+        setIsTogglingTorch(true);
+        const nextState = !torchEnabled;
+        try {
+            await scannerRef.current.applyVideoConstraints({ advanced: [{ torch: nextState }] });
+            setTorchEnabled(nextState);
+        } catch (err) {
+            console.error('Torch toggle failed', err);
+            setError('Torch is not available for this camera.');
+        } finally {
+            setIsTogglingTorch(false);
+        }
     };
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -241,12 +310,24 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
                                     </button>
                                 </div>
                             ) : (
-                                <div className="w-full h-full flex flex-col">
+                                <div className="w-full h-full flex flex-col touch-none select-none">
                                     <div className="flex justify-between items-center mb-4">
                                         <span className="font-bold text-brand-600 flex items-center gap-2 px-4 py-2 bg-brand-50 rounded-full">
                                             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> Scanning Active
                                         </span>
-                                        <button onClick={stopScanner} className="p-3 bg-slate-200 text-slate-600 hover:bg-slate-300 rounded-full transition-colors"><X size={20} /></button>
+                                        <div className="flex items-center gap-2">
+                                            {torchSupported && (
+                                                <button
+                                                    onClick={toggleTorch}
+                                                    disabled={isTogglingTorch}
+                                                    className={`p-3 rounded-full transition-colors ${torchEnabled ? 'bg-amber-500 text-white hover:bg-amber-600' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'} disabled:opacity-60`}
+                                                    title={torchEnabled ? 'Turn torch off' : 'Turn torch on'}
+                                                >
+                                                    <Zap size={20} />
+                                                </button>
+                                            )}
+                                            <button onClick={stopScanner} className="p-3 bg-slate-200 text-slate-600 hover:bg-slate-300 rounded-full transition-colors"><X size={20} /></button>
+                                        </div>
                                     </div>
                                     <div className="flex-1 bg-black rounded-2xl overflow-hidden relative shadow-inner">
                                         <div id="qr-reader" className="absolute inset-0 w-full h-full"></div>

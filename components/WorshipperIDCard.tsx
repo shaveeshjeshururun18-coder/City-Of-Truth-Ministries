@@ -51,7 +51,6 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
     const [isFlipped, setIsFlipped] = useState(isBackSide);
     const [showQrFullScreen, setShowQrFullScreen] = useState(false);
     const [showPhotoDetailsTiles, setShowPhotoDetailsTiles] = useState(false);
-    const qrModalTitle = 'Scan Entrust QR';
     const formatIndianPhoneForCard = (value?: string) => {
         const raw = `${value || ''}`.trim();
         const digits = raw.replace(/\D/g, '');
@@ -93,8 +92,12 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
     })();
     const fullDetails = `CITY OF TRUTH MINISTRIES\nID: ${uniqueId}\nName: ${name}\nLocation: ${location}\nPhone: ${formattedEmergency}\nMember Since: ${memberSince}`.trim();
     const appOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://city-of-truth-ministries.vercel.app';
+    const hasAccountLink = !!`${uniqueId || ''}`.trim() && !`${uniqueId || ''}`.trim().toUpperCase().startsWith('TEMP-');
+    const websiteUrl = `${appOrigin}/`;
     const verifyUrl = `${appOrigin}/verify/${uniqueId}`;
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(verifyUrl)}&bgcolor=ffffff&color=2c298c&margin=2&format=png&cb=${encodeURIComponent(uniqueId || 'COT-SAMPLE')}`;
+    const qrTargetUrl = hasAccountLink ? verifyUrl : websiteUrl;
+    const qrModalTitle = hasAccountLink ? 'Member QR & Link' : 'Website QR & Link';
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrTargetUrl)}&bgcolor=ffffff&color=2c298c&margin=2&format=png&cb=${encodeURIComponent(uniqueId || 'COT-WEBSITE')}`;
     const sanitizedFamilyMembers = familyMembers.filter(member => member.name.trim());
     const memberCount = sanitizedFamilyMembers.length + 1;
     const memberNames = sanitizedFamilyMembers
@@ -372,6 +375,36 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
         </div>
     );
 
+    const QrPreviewModal = () => (
+        <motion.div
+            initial={{ y: 20, scale: 0.95 }}
+            animate={{ y: 0, scale: 1 }}
+            exit={{ y: 20, scale: 0.95 }}
+            className="bg-white rounded-3xl p-4 sm:p-6 w-full max-w-md text-center"
+            onClick={(e) => e.stopPropagation()}
+        >
+            {!hasAccountLink && (
+                <img src="/logo.png" alt="City of Truth logo" className="w-14 h-14 object-contain mx-auto mb-3" />
+            )}
+            <p className="text-sm font-black text-brand-950 mb-2 uppercase tracking-widest">{qrModalTitle}</p>
+            <p className="text-xs text-slate-500 mb-4">
+                {hasAccountLink ? 'Scan to open this user verification page.' : 'Scan to open City of Truth Ministries website.'}
+            </p>
+            <img src={qrCodeUrl} alt="Entrust QR Code" className="w-full max-w-[320px] mx-auto rounded-2xl border border-slate-200" crossOrigin="anonymous" />
+            <a
+                href={qrTargetUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 block text-[11px] font-bold text-brand-700 break-all hover:text-brand-800 underline underline-offset-2"
+            >
+                {qrTargetUrl}
+            </a>
+            <Button onClick={() => setShowQrFullScreen(false)} className="mt-5 w-full">
+                Close
+            </Button>
+        </motion.div>
+    );
+
     if (isStatic) {
         return (
             <>
@@ -391,14 +424,9 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                                 initial={{ y: 20, scale: 0.95 }}
                                 animate={{ y: 0, scale: 1 }}
                                 exit={{ y: 20, scale: 0.95 }}
-                                className="bg-white rounded-3xl p-4 sm:p-6 w-full max-w-md text-center"
-                                onClick={(e) => e.stopPropagation()}
+                                className="contents"
                             >
-                                <p className="text-sm font-black text-brand-950 mb-4 uppercase tracking-widest">{qrModalTitle}</p>
-                                <img src={qrCodeUrl} alt="Entrust QR Code" className="w-full max-w-[320px] mx-auto rounded-2xl border border-slate-200" crossOrigin="anonymous" />
-                                <Button onClick={() => setShowQrFullScreen(false)} className="mt-5 w-full">
-                                    Close
-                                </Button>
+                                <QrPreviewModal />
                             </motion.div>
                         </motion.div>
                     )}
@@ -444,14 +472,9 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                             initial={{ y: 20, scale: 0.95 }}
                             animate={{ y: 0, scale: 1 }}
                             exit={{ y: 20, scale: 0.95 }}
-                            className="bg-white rounded-3xl p-4 sm:p-6 w-full max-w-md text-center"
-                            onClick={(e) => e.stopPropagation()}
+                            className="contents"
                         >
-                            <p className="text-sm font-black text-brand-950 mb-4 uppercase tracking-widest">{qrModalTitle}</p>
-                            <img src={qrCodeUrl} alt="Entrust QR Code" className="w-full max-w-[320px] mx-auto rounded-2xl border border-slate-200" crossOrigin="anonymous" />
-                            <Button onClick={() => setShowQrFullScreen(false)} className="mt-5 w-full">
-                                Close
-                            </Button>
+                            <QrPreviewModal />
                         </motion.div>
                     </motion.div>
                 )}
