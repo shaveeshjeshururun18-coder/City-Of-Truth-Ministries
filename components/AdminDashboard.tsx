@@ -1138,7 +1138,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         cotIdRequestInsights.items.forEach((item) => {
             const userId = item.user?.id || item.userId;
             if (!userId) return;
-            const nextPriority = item.category === 'Dislike Current ID' ? 2 : 1;
+            const nextPriority = item.category === 'Dislike Current ID' ? 0 : item.category === 'Need New ID' ? 1 : 2;
             const previous = requestPriorityByUser.get(userId);
             if (!previous || nextPriority > previous.priority || (item.createdAt || '') > previous.createdAt) {
                 requestPriorityByUser.set(userId, {
