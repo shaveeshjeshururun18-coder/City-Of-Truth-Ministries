@@ -392,22 +392,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     };
 
     const detectDate = (filename: string): string => {
+        const isValidDateParts = (year: number, month: number, day: number) => {
+            if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+            const parsed = new Date(Date.UTC(year, month - 1, day));
+            return parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day;
+        };
         const match = filename.match(/(\d{4})[-_]?(\d{2})[-_]?(\d{2})/);
         if (match) {
-            return `${match[1]}-${match[2]}-${match[3]}`;
+            const year = Number(match[1]);
+            const month = Number(match[2]);
+            const day = Number(match[3]);
+            if (isValidDateParts(year, month, day)) {
+                return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            }
         }
         const compact = filename.match(/\b(\d{8})\b/);
         if (compact) {
             const value = compact[1];
-            return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
+            const year = Number(value.slice(0, 4));
+            const month = Number(value.slice(4, 6));
+            const day = Number(value.slice(6, 8));
+            if (isValidDateParts(year, month, day)) {
+                return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            }
         }
         const dayMonthYear = filename.match(/\b(\d{2})[-_](\d{2})[-_](\d{4})\b/);
         if (dayMonthYear) {
             const day = Number(dayMonthYear[1]);
             const month = Number(dayMonthYear[2]);
-            const year = dayMonthYear[3];
-            if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-                return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const year = Number(dayMonthYear[3]);
+            if (isValidDateParts(year, month, day)) {
+                return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             }
         }
         return new Date().toISOString().split('T')[0];
@@ -1149,7 +1164,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         cotIdRequestInsights.items.forEach((item) => {
             const userId = item.user?.id || item.userId;
             if (!userId) return;
-            const nextPriority = item.category === 'Dislike Current ID' ? 0 : item.category === 'Need New ID' ? 1 : 2;
+            const nextPriority = item.category === 'Dislike Current ID' ? 2 : item.category === 'Need New ID' ? 1 : 0;
             const previous = requestPriorityByUser.get(userId);
             if (!previous || nextPriority > previous.priority || (item.createdAt || '') > previous.createdAt) {
                 requestPriorityByUser.set(userId, {
