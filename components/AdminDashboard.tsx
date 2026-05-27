@@ -5,13 +5,13 @@ import {
     ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Filter, Mail, Phone, MapPin, Droplet,
     Calendar, Award, Shield, ShieldCheck, AlertCircle, CheckCircle, QrCode, Download,
     Save, GripVertical, Globe, Plus, ImagePlus, Camera, Image as ImageIcon, MessageSquare, Check, XCircle, FileText,
-    PanelLeft, PanelTop, Database, RotateCcw, Dice6, Eye, EyeOff
+    PanelLeft, PanelTop, Database, RotateCcw, Dice6, Eye, EyeOff, Video, Tag
 } from 'lucide-react';
 import { User, UserRole, UserStatus, Testimonial, Ministry, DeletedUser } from '../types';
 import { Button } from './Button';
 import { api } from '../services/api';
 import { firebaseConfig, storage } from '../services/firebase';
-import { listAll, ref as storageRef } from 'firebase/storage';
+import { getDownloadURL, listAll, ref as storageRef, uploadBytes } from 'firebase/storage';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { ImageCropper } from './ImageCropper';
@@ -388,7 +388,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
     };
 
-    const detectDate = (filename: string): string => {
+    const detectDate = (file?: File | { name?: string; lastModified?: number }): string => {
+        const filename = file?.name || '';
         const match = filename.match(/(\d{4})[-_]?(\d{2})[-_]?(\d{2})/);
         if (match) {
             return `${match[1]}-${match[2]}-${match[3]}`;
@@ -398,8 +399,87 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             const value = compact[1];
             return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
         }
+        if (file && typeof file !== 'string' && file.lastModified) {
+            const fallback = new Date(file.lastModified);
+            if (!Number.isNaN(fallback.getTime())) {
+                return fallback.toISOString().split('T')[0];
+            }
+        }
         return new Date().toISOString().split('T')[0];
     };
+
+    const formatDuration = (seconds: number) => {
+        if (!Number.isFinite(seconds) || seconds <= 0) return '';
+        const total = Math.round(seconds);
+        const hours = Math.floor(total / 3600);
+        const minutes = Math.floor((total % 3600) / 60);
+        const secs = total % 60;
+        const pad = (value: number) => String(value).padStart(2, '0');
+        return hours > 0 ? `${hours}:${pad(minutes)}:${pad(secs)}` : `${minutes}:${pad(secs)}`;
+    };
+
+    const getVideoDuration = (file: File) =>
+        new Promise<number>((resolve) => {
+            const video = document.createElement('video');
+            const objectUrl = URL.createObjectURL(file);
+            const cleanup = () => {
+                URL.revokeObjectURL(objectUrl);
+            };
+            video.preload = 'metadata';
+            video.onloadedmetadata = () => {
+                const duration = Number.isFinite(video.duration) ? video.duration : 0;
+                cleanup();
+                resolve(duration);
+            };
+            video.onerror = () => {
+                cleanup();
+                resolve(0);
+            };
+            if (!objectUrl.startsWith('blob:')) {
+                cleanup();
+                resolve(0);
+                return;
+            }
+            video.src = objectUrl;
+        });
+
+    const inferMinistryMediaType = (value?: Partial<Ministry>): 'image' | 'video' => {
+        if (value?.mediaType === 'video' || value?.mediaType === 'image') return value.mediaType;
+        const src = `${value?.image || ''}`.trim().toLowerCase();
+        if (src.startsWith('data:video/')) return 'video';
+        if (/\.(mp4|mov|webm|ogg|m4v)(\?.*)?$/.test(src)) return 'video';
+        return 'image';
+    };
+
+    const uploadMinistryVideo = async (file: File) => {
+        const safeName = file.name.replace(/\s+/g, '-');
+        const objectPath = `ministries/${Date.now()}-${safeName}`;
+        const mediaRef = storageRef(storage, objectPath);
+        await uploadBytes(mediaRef, file, { contentType: file.type || 'video/mp4' });
+        return getDownloadURL(mediaRef);
+    };
+
+    const readFileAsDataUrl = (file: File) =>
+        new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve((reader.result as string) || '');
+            reader.onerror = () => reject(new Error(`Failed reading ${file.name}`));
+            reader.readAsDataURL(file);
+        });
+
+    const getFileBaseName = (name: string) => name.replace(/\.[^/.]+$/, '');
+
+    const buildMinistryDraft = (file: File, overrides: Partial<Ministry> = {}) => ({
+        ...overrides,
+        date: overrides.date || editingMinistry?.date || detectDate(file),
+        name: overrides.name || editingMinistry?.name || getFileBaseName(file.name),
+        description: overrides.description ?? editingMinistry?.description ?? '',
+        category: overrides.category ?? editingMinistry?.category ?? '',
+        mediaType: overrides.mediaType ?? editingMinistry?.mediaType,
+        hidden: overrides.hidden ?? editingMinistry?.hidden ?? false,
+        duration: overrides.duration ?? editingMinistry?.duration ?? '',
+        order: overrides.order ?? editingMinistry?.order
+    });
 
 
     const handleSaveMinistry = async () => {
@@ -413,7 +493,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 ...editingMinistry,
                 date: editingMinistry.date || new Date().toISOString().split('T')[0],
                 name: editingMinistry.name || '',
-                description: editingMinistry.description || ''
+                description: editingMinistry.description || '',
+                mediaType: inferMinistryMediaType(editingMinistry),
+                duration: editingMinistry.duration?.trim() || '',
+                category: editingMinistry.category?.trim() || '',
+                hidden: editingMinistry.hidden ?? false
             };
 
             if (editingMinistry.id) {
@@ -1733,66 +1817,113 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
     };
 
-    const handleMinistryImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleMinistryMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        const resetInput = () => {
+            if (e.target) e.target.value = '';
+        };
+
         if (files.length > 1) {
-            const readOne = (file: File) =>
-                new Promise<string>((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve((reader.result as string) || '');
-                    reader.onerror = () => reject(new Error(`Failed reading ${file.name}`));
-                    reader.readAsDataURL(file);
-                });
             (async () => {
                 setIsLoading(true);
                 try {
                     for (const file of files) {
-                        const image = await readOne(file);
+                        const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|webm|ogg|m4v)$/i.test(file.name);
+                        if (isVideo) {
+                            const durationSeconds = await getVideoDuration(file);
+                            const durationLabel = formatDuration(durationSeconds);
+                            const videoUrl = await uploadMinistryVideo(file);
+                            const payload = {
+                                ...buildMinistryDraft(file, {
+                                    image: videoUrl,
+                                    mediaType: 'video',
+                                    duration: durationLabel
+                                }),
+                                description: ''
+                            };
+                            const newMinistry = await api.createMinistry(payload as Omit<Ministry, 'id'>);
+                            setMinistries(prev => [...prev, newMinistry]);
+                            continue;
+                        }
+                        const image = await readFileAsDataUrl(file);
                         if (!image) continue;
                         const payload = {
-                            image,
-                            date: detectDate(file.name),
-                            name: file.name.replace(/\.[^/.]+$/, ''),
+                            ...buildMinistryDraft(file, {
+                                image,
+                                mediaType: 'image'
+                            }),
                             description: ''
                         };
                         const newMinistry = await api.createMinistry(payload as Omit<Ministry, 'id'>);
                         setMinistries(prev => [...prev, newMinistry]);
                     }
                 } catch (error) {
-                    console.error('Failed bulk upload for ministry images', error);
-                    alert('Some ministry images failed to upload. Please retry.');
+                    console.error('Failed bulk upload for ministry media', error);
+                    alert('Some ministry media failed to upload. Please retry.');
                 } finally {
                     setIsLoading(false);
+                    resetInput();
                 }
             })();
             return;
         }
+
         const file = files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = () => {
-                setCropImage(reader.result as string);
+        if (!file) return;
+        const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|webm|ogg|m4v)$/i.test(file.name);
+        if (isVideo) {
+            (async () => {
+                setIsLoading(true);
+                try {
+                    const durationSeconds = await getVideoDuration(file);
+                    const durationLabel = formatDuration(durationSeconds);
+                    const videoUrl = await uploadMinistryVideo(file);
+                    setEditingMinistry(prev => ({
+                        ...buildMinistryDraft(file, {
+                            image: videoUrl,
+                            mediaType: 'video',
+                            duration: durationLabel
+                        }),
+                        id: prev?.id
+                    }));
+                } catch (error) {
+                    console.error('Failed to upload ministry video', error);
+                    alert('Failed to upload video. Please retry.');
+                } finally {
+                    setIsLoading(false);
+                    resetInput();
+                }
+            })();
+            return;
+        }
+        readFileAsDataUrl(file)
+            .then((result) => {
+                if (!result) return;
+                setCropImage(result);
                 setCroppingType('ministry');
                 setIsCropping(true);
-
-                // Pre-detect date from filename
                 if (!editingMinistry?.id) {
                     setEditingMinistry(prev => ({
-                        ...prev,
-                        date: detectDate(file.name),
-                        name: file.name.split('.')[0]
+                        ...buildMinistryDraft(file, { mediaType: 'image' }),
+                        id: prev?.id
                     }));
                 }
-            };
-            reader.readAsDataURL(file);
-        }
+                resetInput();
+            })
+            .catch((error) => {
+                console.error('Failed to read ministry image', error);
+                alert('Failed to read the selected image.');
+                resetInput();
+            });
     };
 
     const handleCropComplete = (croppedImageUrl: string) => {
         if (croppingType === 'user' && editingUser) {
             setEditingUser({ ...editingUser, photo: croppedImageUrl });
         } else if (croppingType === 'ministry') {
-            setEditingMinistry(prev => ({ ...prev, image: croppedImageUrl }));
+            setEditingMinistry(prev => ({ ...prev, image: croppedImageUrl, mediaType: 'image' }));
         }
         setIsCropping(false);
         setCropImage(null);
@@ -1812,6 +1943,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const getVerificationUrl = (memberId: string) => `${appOrigin}/verify/${encodeURIComponent(memberId)}`;
     const getQrImageUrl = (memberId: string, size = 220) =>
         `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(getVerificationUrl(memberId))}&bgcolor=ffffff&color=1a237e&margin=2&format=png&cb=${encodeURIComponent(memberId)}`;
+    const editingMinistryMediaType = editingMinistry ? inferMinistryMediaType(editingMinistry) : 'image';
+    // Use source-based inference for previews so manual metadata changes don't mis-render the actual media.
+    const previewMinistryMediaType = editingMinistry ? inferMinistryMediaType({ ...editingMinistry, mediaType: undefined }) : 'image';
 
     return (
         <div className="min-h-screen bg-slate-50 pt-20 pb-24">
@@ -3797,13 +3931,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     </motion.button>
                                 )}
                                 <label className="flex items-center gap-2 px-8 py-4 bg-brand-950 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-brand-900 transition-all cursor-pointer shadow-xl shadow-brand-950/20 active:scale-95 group">
-                                    <ImagePlus size={20} className="group-hover:scale-110 transition-transform" /> Upload Photo
+                                    <ImagePlus size={20} className="group-hover:scale-110 transition-transform" /> Upload Media
                                     <input
                                         type="file"
                                         className="hidden"
-                                        accept="image/*"
+                                        accept="image/*,video/*"
                                         multiple
-                                        onChange={handleMinistryImageUpload}
+                                        onChange={handleMinistryMediaUpload}
                                     />
                                 </label>
                             </div>
@@ -3818,66 +3952,106 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             }}
                             className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-8"
                         >
-                            {ministries.map((m) => (
-                                <Reorder.Item
-                                    key={m.id}
-                                    value={m}
-                                    dragListener={true}
-                                    dragControls={undefined}
-                                    className="group relative aspect-square rounded-2xl md:rounded-[2.5rem] overflow-hidden bg-white border border-slate-100 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-2xl transition-all duration-700"
-                                >
-                                    {m.image && !failedMinistryImages[m.id] ? (
-                                        <img
-                                            src={m.image}
-                                            alt={m.name}
-                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
-                                            onError={() => setFailedMinistryImages(prev => ({ ...prev, [m.id]: true }))}
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-500 text-center px-3">
-                                            <ImageIcon size={22} className="mb-2" />
-                                            <p className="text-[10px] font-bold uppercase tracking-wide">Image unavailable</p>
+                            {ministries.map((m) => {
+                                const mediaType = inferMinistryMediaType(m);
+                                const isHidden = !!m.hidden;
+                                const categoryLabel = (m.category || '').trim();
+                                const durationLabel = (m.duration || '').trim();
+                                return (
+                                    <Reorder.Item
+                                        key={m.id}
+                                        value={m}
+                                        dragListener={true}
+                                        dragControls={undefined}
+                                        className={`group relative aspect-square rounded-2xl md:rounded-[2.5rem] overflow-hidden bg-white border border-slate-100 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-2xl transition-all duration-700 ${isHidden ? 'opacity-60' : ''}`}
+                                    >
+                                        {m.image && !failedMinistryImages[m.id] ? (
+                                            mediaType === 'video' ? (
+                                                <video
+                                                    src={m.image}
+                                                    className="w-full h-full object-cover"
+                                                    muted
+                                                    loop
+                                                    playsInline
+                                                    autoPlay
+                                                    onError={() => setFailedMinistryImages(prev => ({ ...prev, [m.id]: true }))}
+                                                />
+                                            ) : (
+                                                <img
+                                                    src={m.image}
+                                                    alt={m.name}
+                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                                                    onError={() => setFailedMinistryImages(prev => ({ ...prev, [m.id]: true }))}
+                                                />
+                                            )
+                                        ) : (
+                                            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-500 text-center px-3">
+                                                <ImageIcon size={22} className="mb-2" />
+                                                <p className="text-[10px] font-bold uppercase tracking-wide">Media unavailable</p>
+                                            </div>
+                                        )}
+
+                                        {/* Sync Overlay with MinistryGallery.tsx */}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-brand-950/90 via-brand-950/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-500" />
+
+                                        <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all md:translate-x-4 md:group-hover:translate-x-0 duration-300 z-20">
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setEditingMinistry(m); }}
+                                                className="w-10 h-10 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white hover:text-brand-950 transition-all shadow-lg"
+                                                title="Edit & Crop"
+                                            >
+                                                <Camera size={16} />
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleDeleteMinistry(m.id); }}
+                                                className="w-10 h-10 bg-red-400/10 backdrop-blur-xl border border-red-400/20 rounded-full flex items-center justify-center text-red-100 hover:bg-red-500 hover:text-white transition-all shadow-lg"
+                                                title="Delete"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
                                         </div>
-                                    )}
 
-                                    {/* Sync Overlay with MinistryGallery.tsx */}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-brand-950/90 via-brand-950/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-500" />
-
-                                    <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all md:translate-x-4 md:group-hover:translate-x-0 duration-300 z-20">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setEditingMinistry(m); }}
-                                            className="w-10 h-10 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white hover:text-brand-950 transition-all shadow-lg"
-                                            title="Edit & Crop"
-                                        >
-                                            <Camera size={16} />
-                                        </button>
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handleDeleteMinistry(m.id); }}
-                                            className="w-10 h-10 bg-red-400/10 backdrop-blur-xl border border-red-400/20 rounded-full flex items-center justify-center text-red-100 hover:bg-red-500 hover:text-white transition-all shadow-lg"
-                                            title="Delete"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
-
-                                    <div className="absolute bottom-4 md:bottom-8 left-4 md:left-8 right-4 md:right-8 pointer-events-none group-hover:translate-y-[-4px] transition-transform duration-500">
-                                        <div className="flex items-center gap-2 text-accent-400 mb-1 md:mb-2">
-                                            <div className="w-4 h-[1px] bg-accent-400" />
-                                            <span className="text-[8px] md:text-[10px] font-black tracking-[0.2em] uppercase">Ministry Moment</span>
+                                        <div className="absolute top-4 left-16 flex flex-col gap-2 z-20">
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-white/15 border border-white/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+                                                {mediaType === 'video' ? <Video size={12} /> : <ImageIcon size={12} />}
+                                                {mediaType}
+                                            </span>
+                                            {durationLabel && mediaType === 'video' && (
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-brand-950/70 border border-white/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+                                                    <Clock size={12} /> {durationLabel}
+                                                </span>
+                                            )}
+                                            {categoryLabel && (
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-white/15 border border-white/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+                                                    <Tag size={12} /> {categoryLabel}
+                                                </span>
+                                            )}
+                                            {isHidden && (
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-red-500/70 border border-white/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+                                                    <EyeOff size={12} /> Hidden
+                                                </span>
+                                            )}
                                         </div>
-                                        <h3 className="text-white font-serif font-bold text-sm md:text-lg leading-tight drop-shadow-xl">
-                                            {m.date ? new Date(m.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Nov 25, 2026'}
-                                        </h3>
-                                    </div>
 
-                                    {/* Reorder Grip - Top Left */}
-                                    <div className="absolute top-4 left-4 w-10 h-10 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center text-white/60 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all border border-white/20 hover:bg-white hover:text-brand-950 shadow-lg cursor-grab active:cursor-grabbing z-20">
-                                        <GripVertical size={18} />
-                                    </div>
+                                        <div className="absolute bottom-4 md:bottom-8 left-4 md:left-8 right-4 md:right-8 pointer-events-none group-hover:translate-y-[-4px] transition-transform duration-500">
+                                            <div className="flex items-center gap-2 text-accent-400 mb-1 md:mb-2">
+                                                <div className="w-4 h-[1px] bg-accent-400" />
+                                                <span className="text-[8px] md:text-[10px] font-black tracking-[0.2em] uppercase">Ministry Moment</span>
+                                            </div>
+                                            <h3 className="text-white font-serif font-bold text-sm md:text-lg leading-tight drop-shadow-xl">
+                                                {m.date ? new Date(m.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Nov 25, 2026'}
+                                            </h3>
+                                        </div>
 
-                                    <div className="absolute inset-0 border-2 border-transparent group-active:border-accent-500/50 rounded-2xl md:rounded-[2.5rem] transition-colors" />
-                                </Reorder.Item>
-                            ))}
+                                        {/* Reorder Grip - Top Left */}
+                                        <div className="absolute top-4 left-4 w-10 h-10 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center text-white/60 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all border border-white/20 hover:bg-white hover:text-brand-950 shadow-lg cursor-grab active:cursor-grabbing z-20">
+                                            <GripVertical size={18} />
+                                        </div>
+
+                                        <div className="absolute inset-0 border-2 border-transparent group-active:border-accent-500/50 rounded-2xl md:rounded-[2.5rem] transition-colors" />
+                                    </Reorder.Item>
+                                );
+                            })}
                         </Reorder.Group>
 
                         {ministries.length === 0 && (
@@ -5151,36 +5325,73 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </div>
 
                             <div className="space-y-6">
-                                {/* Image Preview or Upload */}
+                                {/* Media Preview or Upload */}
                                 <div className="space-y-2">
-                                    <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Moment Photo</label>
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Moment Media</label>
                                     <div className="relative aspect-square bg-slate-100 rounded-[2rem] overflow-hidden group border-2 border-slate-100 shadow-inner">
                                         {editingMinistry.image ? (
                                             <>
-                                                <img
-                                                    src={editingMinistry.image}
-                                                    className="w-full h-full object-cover"
-                                                    onError={(e) => {
-                                                        (e.currentTarget as HTMLImageElement).style.display = 'none';
-                                                    }}
-                                                />
+                                                {previewMinistryMediaType === 'video' ? (
+                                                    <video
+                                                        src={editingMinistry.image}
+                                                        className="w-full h-full object-cover"
+                                                        controls
+                                                    />
+                                                ) : (
+                                                    <img
+                                                        src={editingMinistry.image}
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e) => {
+                                                            (e.currentTarget as HTMLImageElement).style.display = 'none';
+                                                        }}
+                                                    />
+                                                )}
                                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-3">
                                                     <label className="w-12 h-12 bg-brand-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-brand-700 transition-colors shadow-lg">
                                                         <Camera size={24} />
-                                                        <input type="file" className="hidden" accept="image/*" onChange={handleMinistryImageUpload} />
+                                                        <input type="file" className="hidden" accept="image/*,video/*" onChange={handleMinistryMediaUpload} />
                                                     </label>
-                                                    <span className="text-xs font-bold uppercase tracking-widest">Change / Crop</span>
+                                                    <span className="text-xs font-bold uppercase tracking-widest">
+                                                        {previewMinistryMediaType === 'video' ? 'Change Media' : 'Change / Crop'}
+                                                    </span>
                                                 </div>
                                             </>
                                         ) : (
                                             <label className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:bg-slate-200 transition-all border-2 border-dashed border-slate-300 rounded-[2rem]">
                                                 <ImagePlus size={48} className="mb-2" />
-                                                <span className="font-bold">Select Photo</span>
-                                                <input type="file" className="hidden" accept="image/*" onChange={handleMinistryImageUpload} />
+                                                <span className="font-bold">Select Media</span>
+                                                <input type="file" className="hidden" accept="image/*,video/*" onChange={handleMinistryMediaUpload} />
                                             </label>
                                         )}
                                     </div>
-                                    <p className="text-[10px] text-slate-400 italic text-center">Tip: Square photos look best in the gallery.</p>
+                                    <p className="text-[10px] text-slate-400 italic text-center">Tip: Photos are cropped to square; videos keep their original shape.</p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Media Type</label>
+                                        <select
+                                            value={editingMinistry.mediaType || editingMinistryMediaType}
+                                            onChange={(e) => setEditingMinistry({ ...editingMinistry, mediaType: e.target.value as 'image' | 'video' })}
+                                            className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm font-bold text-slate-700 bg-slate-50"
+                                        >
+                                            <option value="image">Photo</option>
+                                            <option value="video">Video</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Category</label>
+                                        <div className="relative">
+                                            <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                            <input
+                                                type="text"
+                                                value={editingMinistry.category || ''}
+                                                onChange={(e) => setEditingMinistry({ ...editingMinistry, category: e.target.value })}
+                                                placeholder="e.g., Outreach, Youth, Worship"
+                                                className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-brand-500 focus:bg-white transition-all text-brand-950 font-medium"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-2">
@@ -5194,7 +5405,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-brand-500 focus:bg-white transition-all text-brand-950 font-medium"
                                         />
                                     </div>
-                                    <p className="text-[10px] text-slate-400 italic">Dates are automatically detected from the filename if possible.</p>
+                                    <p className="text-[10px] text-slate-400 italic">Dates are automatically detected from the filename or file metadata.</p>
+                                </div>
+
+                                {editingMinistryMediaType === 'video' && (
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Video Duration</label>
+                                        <div className="relative">
+                                            <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                            <input
+                                                type="text"
+                                                value={editingMinistry.duration || ''}
+                                                onChange={(e) => setEditingMinistry({ ...editingMinistry, duration: e.target.value })}
+                                                placeholder="mm:ss or hh:mm:ss"
+                                                className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-brand-500 focus:bg-white transition-all text-brand-950 font-medium"
+                                            />
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 italic">Auto-detected from the video file when available.</p>
+                                    </div>
+                                )}
+
+                                <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                    <div>
+                                        <p className="text-xs font-black text-slate-600 uppercase tracking-[0.2em]">Visibility</p>
+                                        <p className="text-[11px] text-slate-500">Hide from the public gallery while keeping it saved.</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setEditingMinistry({ ...editingMinistry, hidden: !editingMinistry.hidden })}
+                                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest ${editingMinistry.hidden ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'}`}
+                                    >
+                                        {editingMinistry.hidden ? <EyeOff size={14} /> : <Eye size={14} />}
+                                        {editingMinistry.hidden ? 'Hidden' : 'Visible'}
+                                    </button>
                                 </div>
                             </div>
 

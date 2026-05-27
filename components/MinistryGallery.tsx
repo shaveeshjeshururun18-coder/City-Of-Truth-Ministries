@@ -1,11 +1,13 @@
 import React, { useRef, useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { Calendar, Play, Image as ImageIcon } from 'lucide-react';
+import { Play, Image as ImageIcon, Clock, Tag } from 'lucide-react';
 
 interface MediaItem {
     type: 'image' | 'video';
     src: string;
     date?: string;
+    duration?: string;
+    category?: string;
     id: string;
 }
 
@@ -72,6 +74,18 @@ export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items }) => {
                             {/* Content Overlays */}
                             <div className="absolute top-4 right-4 w-10 h-10 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center text-white border border-white/20">
                                 {item.type === 'video' ? <Play size={16} fill="currentColor" /> : <ImageIcon size={16} />}
+                            </div>
+                            <div className="absolute top-4 left-4 flex flex-col gap-2">
+                                {item.category && (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-white/15 border border-white/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+                                        <Tag size={12} /> {item.category}
+                                    </span>
+                                )}
+                                {item.type === 'video' && item.duration && (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-brand-950/70 border border-white/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+                                        <Clock size={12} /> {item.duration}
+                                    </span>
+                                )}
                             </div>
 
                             <div className={`absolute bottom-0 left-0 right-0 p-3 md:p-6 transition-all duration-500 ${hoveredId === item.id ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-90'

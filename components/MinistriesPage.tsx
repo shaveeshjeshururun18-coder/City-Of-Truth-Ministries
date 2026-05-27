@@ -42,6 +42,7 @@ export const MinistriesPage: React.FC = () => {
     const [dynamicMinistries, setDynamicMinistries] = useState<Ministry[]>([]);
     const [mediaTypeFilter, setMediaTypeFilter] = useState<'all' | 'image' | 'video'>('all');
     const [mediaDateFilter, setMediaDateFilter] = useState<'all' | string>('all');
+    const [mediaCategoryFilter, setMediaCategoryFilter] = useState<'all' | string>('all');
     const assets = useMemo(() => generateAssets(), []);
     const visibleDynamicMinistries = useMemo(
         () => dynamicMinistries.filter((m) => !m.hidden),
@@ -76,10 +77,21 @@ export const MinistriesPage: React.FC = () => {
             return safeBTime - safeATime;
         });
     }, [visibleDynamicMinistries]);
+    const dynamicMediaCategoryOptions = useMemo(() => {
+        const categories = Array.from(
+            new Set(
+                visibleDynamicMinistries
+                    .map((m) => (m.category || '').trim())
+                    .filter(Boolean)
+            )
+        );
+        return categories.sort((a, b) => a.localeCompare(b));
+    }, [visibleDynamicMinistries]);
     const filteredDynamicMinistries = useMemo(() => {
         return visibleDynamicMinistries
             .filter((m) => mediaTypeFilter === 'all' || inferMediaType(m) === mediaTypeFilter)
             .filter((m) => mediaDateFilter === 'all' || (m.date || '') === mediaDateFilter)
+            .filter((m) => mediaCategoryFilter === 'all' || (m.category || '').trim() === mediaCategoryFilter)
             .sort((a, b) => {
                 const aTime = new Date(a.date || '').getTime();
                 const bTime = new Date(b.date || '').getTime();
@@ -87,13 +99,15 @@ export const MinistriesPage: React.FC = () => {
                 const safeBTime = Number.isNaN(bTime) ? 0 : bTime;
                 return safeBTime - safeATime;
             });
-    }, [visibleDynamicMinistries, mediaTypeFilter, mediaDateFilter]);
+    }, [visibleDynamicMinistries, mediaTypeFilter, mediaDateFilter, mediaCategoryFilter]);
     const filteredDynamicMediaItems = useMemo(
         () => filteredDynamicMinistries.map((m) => ({
             id: m.id,
             type: inferMediaType(m),
             src: m.image,
-            date: formatDisplayDate(m.date)
+            date: formatDisplayDate(m.date),
+            duration: (m.duration || '').trim(),
+            category: (m.category || '').trim()
         })),
         [filteredDynamicMinistries]
     );
@@ -142,6 +156,18 @@ export const MinistriesPage: React.FC = () => {
                                 <option value="all">All Media</option>
                                 <option value="image">Photos</option>
                                 <option value="video">Videos</option>
+                            </select>
+                            <select
+                                value={mediaCategoryFilter}
+                                onChange={(e) => setMediaCategoryFilter(e.target.value)}
+                                className="px-4 py-3 rounded-2xl border border-slate-200 text-sm font-bold text-slate-700 bg-slate-50"
+                            >
+                                <option value="all">All Categories</option>
+                                {dynamicMediaCategoryOptions.map((category) => (
+                                    <option key={category} value={category}>
+                                        {category}
+                                    </option>
+                                ))}
                             </select>
                             <select
                                 value={mediaDateFilter}
