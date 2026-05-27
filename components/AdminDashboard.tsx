@@ -94,7 +94,7 @@ const TAB_ITEMS: { id: 'users' | 'edit-page' | 'testimonials' | 'ministries' | '
     { id: 'recycle-bin', label: 'Recycle Bin', icon: RotateCcw },
     { id: 'firebase', label: 'Firebase', icon: Database },
     { id: 'messages', label: 'Messages', icon: MessageSquare },
-    { id: 'ministries', label: 'Ministries', icon: Globe },
+    { id: 'ministries', label: 'Tab TV + Ministry', icon: Globe },
     { id: 'id-cards', label: 'ID Cards', icon: QrCode },
     { id: 'cot-id-manager', label: 'COT ID Manager', icon: Dice6 },
     { id: 'reports', label: 'Monthly Reports', icon: FileText },
@@ -3918,7 +3918,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <div className="space-y-8">
                         <div className="flex justify-between items-center">
                             <div className="flex items-center gap-6">
-                                <h2 className="text-2xl font-black text-brand-950 tracking-tight">Ministry Gallery</h2>
+                                <h2 className="text-2xl font-black text-brand-950 tracking-tight">Tab TV + Ministry Gallery</h2>
                                 {hasOrderChanges && (
                                     <motion.button
                                         initial={{ opacity: 0, scale: 0.9, y: 10 }}
@@ -4057,7 +4057,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         {ministries.length === 0 && (
                             <div className="text-center py-32 bg-slate-50 rounded-[3.5rem] border-2 border-dashed border-slate-200">
                                 <ImageIcon size={48} className="mx-auto text-slate-300 mb-4" />
-                                <p className="text-slate-400 font-medium">No ministry photos yet. Upload your first moment!</p>
+                                <p className="text-slate-400 font-medium">No Tab TV / ministry media yet. Upload your first moment!</p>
                             </div>
                         )}
                     </div>
@@ -4575,7 +4575,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <p><span className="font-bold text-slate-700">Active Users:</span> <span className="text-slate-600">{users.length}</span></p>
                                     <p><span className="font-bold text-slate-700">Deleted Users:</span> <span className="text-slate-600">{deletedUsers.length}</span></p>
                                     <p><span className="font-bold text-slate-700">Testimonials Loaded:</span> <span className="text-slate-600">{testimonials.length}</span></p>
-                                    <p><span className="font-bold text-slate-700">Ministry Items Loaded:</span> <span className="text-slate-600">{ministries.length}</span></p>
+                                    <p><span className="font-bold text-slate-700">Tab TV / Ministry Items Loaded:</span> <span className="text-slate-600">{ministries.length}</span></p>
                                 </div>
                             </div>
                         </div>
