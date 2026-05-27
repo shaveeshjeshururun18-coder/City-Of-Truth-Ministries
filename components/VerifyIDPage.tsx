@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, CheckCircle, XCircle, Search, ScanLine, X, Loader2, LogIn, Zap } from 'lucide-react';
+import { Camera, CheckCircle, XCircle, Search, ScanLine, X, Loader2, LogIn, Zap, Maximize2, Minimize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
 import { User } from '../types';
@@ -25,6 +25,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
     const [torchSupported, setTorchSupported] = useState(false);
     const [torchEnabled, setTorchEnabled] = useState(false);
     const [isTogglingTorch, setIsTogglingTorch] = useState(false);
+    const [scannerMaximized, setScannerMaximized] = useState(false);
     const scannerRef = useRef<any>(null);
     const isApprovedUser = user?.status === 'Active';
 
@@ -110,6 +111,47 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
         return false;
     };
 
+    const applyTorch = async (nextState: boolean) => {
+        if (!scannerRef.current) return false;
+        try {
+            if (typeof scannerRef.current.applyVideoConstraints === 'function') {
+                await scannerRef.current.applyVideoConstraints({ advanced: [{ torch: nextState }] });
+                return true;
+            }
+        } catch (_err) {}
+
+        try {
+            const videoElement = document.querySelector('#qr-reader video') as HTMLVideoElement | null;
+            const mediaStream = videoElement?.srcObject as MediaStream | null;
+            const track = mediaStream?.getVideoTracks?.()[0];
+            if (track && typeof track.applyConstraints === 'function') {
+                await track.applyConstraints({ advanced: [{ torch: nextState }] as MediaTrackConstraintSet[] });
+                return true;
+            }
+        } catch (_err) {}
+
+        return false;
+    };
+
+    const setTorchState = async (nextState: boolean, showError = false) => {
+        if (!scannerRef.current || isTogglingTorch) return false;
+        setIsTogglingTorch(true);
+        try {
+            const applied = await applyTorch(nextState);
+            if (applied) {
+                setTorchEnabled(nextState);
+                return true;
+            }
+            if (showError) {
+                setError('Torch is not available for this camera.');
+            }
+            if (!nextState) setTorchEnabled(false);
+            return false;
+        } finally {
+            setIsTogglingTorch(false);
+        }
+    };
+
     const verifyID = async (idToVerify: string) => {
         const normalizedId = normalizeCotId(idToVerify);
         setLoading(true); setError(null); setUser(null);
@@ -142,6 +184,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
     const startScanner = () => {
         if (!window.Html5Qrcode || !scannerInitialized) return;
         setIsScanning(true); setError(null); setScannedId(null); setUser(null);
+        setScannerMaximized(false);
         setTorchSupported(false); setTorchEnabled(false);
         setTimeout(() => {
             const html5Qrcode = new window.Html5Qrcode('qr-reader');
@@ -163,7 +206,8 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
                 (_errorMessage: string) => {}
             )
                 .then(() => {
-                    setTorchSupported(supportsTorch(html5Qrcode));
+                    const isTorchSupported = supportsTorch(html5Qrcode);
+                    setTorchSupported(isTorchSupported);
                 })
                 .catch((err: any) => {
                     console.error('Scanner Error:', err);
@@ -175,13 +219,18 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
 
     const stopScanner = () => {
         if (scannerRef.current) {
+            if (torchEnabled) {
+                applyTorch(false).catch(() => {});
+            }
             scannerRef.current.stop().then(() => {
                 setIsScanning(false);
+                setScannerMaximized(false);
                 setTorchEnabled(false);
                 setTorchSupported(false);
                 scannerRef.current = null;
             }).catch(console.error);
         } else {
+            setScannerMaximized(false);
             setTorchEnabled(false);
             setTorchSupported(false);
             setIsScanning(false);
@@ -190,16 +239,18 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
 
     const toggleTorch = async () => {
         if (!scannerRef.current || !torchSupported || isTogglingTorch) return;
-        setIsTogglingTorch(true);
         const nextState = !torchEnabled;
-        try {
-            await scannerRef.current.applyVideoConstraints({ advanced: [{ torch: nextState }] });
-            setTorchEnabled(nextState);
-        } catch (err) {
-            console.error('Torch toggle failed', err);
-            setError('Torch is not available for this camera.');
-        } finally {
-            setIsTogglingTorch(false);
+        const success = await setTorchState(nextState, true);
+        if (!success) {
+            console.error('Torch toggle failed');
+        }
+    };
+
+    const toggleScannerSize = async () => {
+        const nextState = !scannerMaximized;
+        setScannerMaximized(nextState);
+        if (scannerRef.current && torchSupported) {
+            await setTorchState(nextState, false);
         }
     };
 
@@ -326,10 +377,18 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
                                                     <Zap size={20} />
                                                 </button>
                                             )}
+                                            <button
+                                                onClick={toggleScannerSize}
+                                                disabled={isTogglingTorch}
+                                                className="p-3 bg-slate-200 text-slate-700 hover:bg-slate-300 rounded-full transition-colors disabled:opacity-60"
+                                                title={scannerMaximized ? 'Minimize scanner (auto torch off)' : 'Maximize scanner (auto torch on)'}
+                                            >
+                                                {scannerMaximized ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+                                            </button>
                                             <button onClick={stopScanner} className="p-3 bg-slate-200 text-slate-600 hover:bg-slate-300 rounded-full transition-colors"><X size={20} /></button>
                                         </div>
                                     </div>
-                                    <div className="flex-1 bg-black rounded-2xl overflow-hidden relative shadow-inner">
+                                    <div className={`bg-black rounded-2xl overflow-hidden relative shadow-inner transition-all duration-300 ${scannerMaximized ? 'h-[75vh]' : 'h-72 md:h-96'}`}>
                                         <div id="qr-reader" className="absolute inset-0 w-full h-full"></div>
                                         <div className="absolute inset-0 pointer-events-none border-[12px] border-black/50" />
                                     </div>
