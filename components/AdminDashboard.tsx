@@ -5,7 +5,7 @@ import {
     ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Filter, Mail, Phone, MapPin, Droplet,
     Calendar, Award, Shield, ShieldCheck, AlertCircle, CheckCircle, QrCode, Download,
     Save, GripVertical, Globe, Plus, ImagePlus, Camera, Image as ImageIcon, MessageSquare, Check, XCircle, FileText,
-    PanelLeft, PanelTop, Database, RotateCcw, Dice6, Eye, EyeOff, Play
+    PanelLeft, PanelTop, Database, RotateCcw, Dice6, Eye, EyeOff
 } from 'lucide-react';
 import { User, UserRole, UserStatus, Testimonial, Ministry, DeletedUser } from '../types';
 import { Button } from './Button';
@@ -316,10 +316,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         if (activeTab === 'messages') {
             api.getTestimonials().then(setTestimonials);
         } else if (activeTab === 'ministries') {
-            api.getMinistries().then((items) => {
-                setMinistries(items);
-                setFailedMinistryImages({});
-            });
+            api.getMinistries().then(setMinistries);
         }
     }, [activeTab]);
 
@@ -392,73 +389,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     };
 
     const detectDate = (filename: string): string => {
-        const isValidDateParts = (year: number, month: number, day: number) => {
-            if (month < 1 || month > 12 || day < 1 || day > 31) return false;
-            const parsed = new Date(Date.UTC(year, month - 1, day));
-            return parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day;
-        };
         const match = filename.match(/(\d{4})[-_]?(\d{2})[-_]?(\d{2})/);
         if (match) {
-            const year = Number(match[1]);
-            const month = Number(match[2]);
-            const day = Number(match[3]);
-            if (isValidDateParts(year, month, day)) {
-                return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            }
+            return `${match[1]}-${match[2]}-${match[3]}`;
         }
         const compact = filename.match(/\b(\d{8})\b/);
         if (compact) {
             const value = compact[1];
-            const year = Number(value.slice(0, 4));
-            const month = Number(value.slice(4, 6));
-            const day = Number(value.slice(6, 8));
-            if (isValidDateParts(year, month, day)) {
-                return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            }
-        }
-        const dayMonthYear = filename.match(/\b(\d{2})[-_](\d{2})[-_](\d{4})\b/);
-        if (dayMonthYear) {
-            const day = Number(dayMonthYear[1]);
-            const month = Number(dayMonthYear[2]);
-            const year = Number(dayMonthYear[3]);
-            if (isValidDateParts(year, month, day)) {
-                return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            }
+            return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
         }
         return new Date().toISOString().split('T')[0];
     };
-    const inferMinistryMediaType = (media?: Pick<Ministry, 'mediaType' | 'image'>): 'image' | 'video' => {
-        if (media?.mediaType === 'video' || media?.mediaType === 'image') return media.mediaType;
-        const src = `${media?.image || ''}`.trim().toLowerCase();
-        if (!src) return 'image';
-        if (src.startsWith('data:video/')) return 'video';
-        if (/\.(mp4|mov|webm|ogg|m4v)(\?.*)?$/.test(src)) return 'video';
-        return 'image';
-    };
-    const formatMediaDuration = (seconds: number) => {
-        if (!Number.isFinite(seconds) || seconds <= 0) return '';
-        const rounded = Math.round(seconds);
-        const hrs = Math.floor(rounded / 3600);
-        const mins = Math.floor((rounded % 3600) / 60);
-        const secs = rounded % 60;
-        if (hrs > 0) return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-        return `${mins}:${String(secs).padStart(2, '0')}`;
-    };
-    const detectVideoDuration = (file: File): Promise<string> => new Promise((resolve) => {
-        const objectUrl = URL.createObjectURL(file);
-        const video = document.createElement('video');
-        video.preload = 'metadata';
-        video.onloadedmetadata = () => {
-            const formatted = formatMediaDuration(video.duration);
-            URL.revokeObjectURL(objectUrl);
-            resolve(formatted);
-        };
-        video.onerror = () => {
-            URL.revokeObjectURL(objectUrl);
-            resolve('');
-        };
-        video.src = objectUrl;
-    });
 
 
     const handleSaveMinistry = async () => {
@@ -472,28 +413,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 ...editingMinistry,
                 date: editingMinistry.date || new Date().toISOString().split('T')[0],
                 name: editingMinistry.name || '',
-                description: editingMinistry.description || '',
-                mediaType: inferMinistryMediaType(editingMinistry as Pick<Ministry, 'mediaType' | 'image'>),
-                duration: (editingMinistry.duration || '').trim(),
-                hidden: !!editingMinistry.hidden
+                description: editingMinistry.description || ''
             };
 
             if (editingMinistry.id) {
                 await api.updateMinistry(ministryData as Ministry);
                 setMinistries(prev => prev.map(m => m.id === editingMinistry.id ? (ministryData as Ministry) : m));
-                setFailedMinistryImages(prev => {
-                    const next = { ...prev };
-                    delete next[editingMinistry.id as string];
-                    return next;
-                });
             } else {
                 const newMin = await api.createMinistry(ministryData as Omit<Ministry, 'id'>);
                 setMinistries(prev => [...prev, newMin]);
-                setFailedMinistryImages(prev => {
-                    const next = { ...prev };
-                    delete next[newMin.id];
-                    return next;
-                });
             }
             setEditingMinistry(null);
         } catch (error) {
@@ -512,16 +440,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             setHasOrderChanges(false); // Reset on delete
         } catch (error) {
             console.error('Failed to delete ministry', error);
-        }
-    };
-    const handleToggleMinistryHidden = async (ministry: Ministry) => {
-        try {
-            const updated = { ...ministry, hidden: !ministry.hidden };
-            await api.updateMinistry(updated);
-            setMinistries(prev => prev.map(m => (m.id === ministry.id ? updated : m)));
-        } catch (error) {
-            console.error('Failed to toggle ministry hidden state', error);
-            alert('Failed to update hidden state.');
         }
     };
 
@@ -719,6 +637,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }, [userReplies, users]);
 
     const cotIdRequestInsights = useMemo(() => {
+        const todayKey = new Date().toISOString().slice(0, 10);
         const classifyRequest = (message: string) => {
             const value = (message || '').toLowerCase();
             if (/not.*like|dislike|don'?t.*like|change/.test(value)) return 'Dislike Current ID';
@@ -728,23 +647,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         const enhanced = cotIdChangeRequests.map(request => ({
             ...request,
             category: classifyRequest(request.message || ''),
+            isToday: (request.createdAt || '').slice(0, 10) === todayKey,
             isPendingUser: request.user?.status === 'Pending Verification'
         }));
-        const priorityRank = (category: string) => (category === 'Dislike Current ID' ? 0 : category === 'Need New ID' ? 1 : 2);
-        const prioritized = [...enhanced].sort((a, b) => {
-            const categoryDelta = priorityRank(a.category) - priorityRank(b.category);
-            if (categoryDelta !== 0) return categoryDelta;
-            return (b.createdAt || '').localeCompare(a.createdAt || '');
-        });
         return {
             total: enhanced.length,
+            today: enhanced.filter(item => item.isToday).length,
+            todayNotPending: enhanced.filter(item => item.isToday && !item.isPendingUser).length,
             pendingUsers: enhanced.filter(item => item.isPendingUser).length,
             categories: {
                 dislike: enhanced.filter(item => item.category === 'Dislike Current ID').length,
                 newId: enhanced.filter(item => item.category === 'Need New ID').length,
                 help: enhanced.filter(item => item.category === 'General ID Help').length
             },
-            items: prioritized
+            items: enhanced
         };
     }, [cotIdChangeRequests]);
 
@@ -1158,45 +1074,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         });
     }, [users, searchQuery, filterStatus, filterRole, filterLocation, userSortMode]);
 
-    const cotManagerBaseUsers = useMemo(() => {
+    const cotManagerUsers = useMemo(() => {
         const query = cotManagerQuery.trim().toLowerCase();
-        const requestPriorityByUser = new Map<string, { priority: number; createdAt: string }>();
-        cotIdRequestInsights.items.forEach((item) => {
-            const userId = item.user?.id || item.userId;
-            if (!userId) return;
-            const nextPriority = item.category === 'Dislike Current ID' ? 2 : item.category === 'Need New ID' ? 1 : 0;
-            const previous = requestPriorityByUser.get(userId);
-            if (!previous || nextPriority > previous.priority || (item.createdAt || '') > previous.createdAt) {
-                requestPriorityByUser.set(userId, {
-                    priority: Math.max(nextPriority, previous?.priority || 0),
-                    createdAt: item.createdAt || ''
-                });
-            }
-        });
-        const ordered = [...users].sort((a, b) => {
-            const aRequest = requestPriorityByUser.get(a.id);
-            const bRequest = requestPriorityByUser.get(b.id);
-            const aPriority = aRequest?.priority || 0;
-            const bPriority = bRequest?.priority || 0;
-            if (aPriority !== bPriority) return bPriority - aPriority;
-            const aCreatedAt = aRequest?.createdAt || '';
-            const bCreatedAt = bRequest?.createdAt || '';
-            if (aCreatedAt !== bCreatedAt) return bCreatedAt.localeCompare(aCreatedAt);
-            return a.name.localeCompare(b.name);
-        });
+        const ordered = [...users].sort((a, b) => a.name.localeCompare(b.name));
         const filtered = !query ? ordered : ordered.filter(user =>
             user.name.toLowerCase().includes(query) ||
             user.id.toLowerCase().includes(query) ||
             (user.phone || '').toLowerCase().includes(query)
         );
-        return filtered;
-    }, [users, cotManagerQuery, cotIdRequestInsights.items]);
-    const cotManagerUsers = useMemo(() => {
-        if (!cotManagerSelectedUserId) return cotManagerBaseUsers;
-        return cotManagerBaseUsers.filter(user => user.id === cotManagerSelectedUserId);
-    }, [cotManagerBaseUsers, cotManagerSelectedUserId]);
+        if (!cotManagerSelectedUserId) return filtered;
+        return filtered.filter(user => user.id === cotManagerSelectedUserId);
+    }, [users, cotManagerQuery, cotManagerSelectedUserId]);
 
-    const cotManagerAssignableUsers = useMemo(() => cotManagerBaseUsers, [cotManagerBaseUsers]);
+    const cotManagerAssignableUsers = useMemo(() => cotManagerUsers, [cotManagerUsers]);
+    const takenUserIds = useMemo(
+        () => new Set(users.map(item => `${item.id || ''}`.trim().toUpperCase())),
+        [users]
+    );
     const randomDiceUsers = useMemo(() => {
         const query = diceUserQuery.trim().toLowerCase();
         if (!query) return cotManagerAssignableUsers;
@@ -1243,31 +1137,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         const cleaned = nextLabel.trim();
         if (!cleaned) return;
         const next = navItems.map((item, idx) => idx === index ? { ...item, label: cleaned } : item);
-        onUpdateNavItems(next);
-    };
-    const renameSubmenuItem = (parentIndex: number, submenuIndex: number, nextLabel: string) => {
-        if (!onUpdateNavItems || !navItems) return;
-        const cleaned = nextLabel.trim();
-        if (!cleaned) return;
-        const next = navItems.map((item, idx) => {
-            if (idx !== parentIndex || !Array.isArray(item.submenu)) return item;
-            const submenu = item.submenu.map((sub: any, sIdx: number) =>
-                sIdx === submenuIndex ? { ...sub, label: cleaned } : sub
-            );
-            return { ...item, submenu };
-        });
-        onUpdateNavItems(next);
-    };
-    const moveSubmenuItem = (parentIndex: number, submenuIndex: number, direction: 'up' | 'down') => {
-        if (!onUpdateNavItems || !navItems) return;
-        const parent = navItems[parentIndex];
-        if (!parent || !Array.isArray(parent.submenu) || parent.submenu.length === 0) return;
-        const target = direction === 'up' ? submenuIndex - 1 : submenuIndex + 1;
-        if (target < 0 || target >= parent.submenu.length) return;
-        const next = navItems.map((item, idx) => {
-            if (idx !== parentIndex || !Array.isArray(item.submenu)) return item;
-            return { ...item, submenu: moveArrayItem(item.submenu, submenuIndex, target) };
-        });
         onUpdateNavItems(next);
     };
 
@@ -1561,8 +1430,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const approveUserOrPendingEdit = async (user: User) => {
         await runUserAction(() => activateUserWithCotId(user), 'Failed to approve user');
     };
+    const createDisapprovedUserPayload = (user: User, nextId?: string): User => ({
+        ...user,
+        id: nextId ?? user.id,
+        status: 'Rejected',
+        pendingProfileUpdate: {},
+        photo: '',
+        linkedProfiles: [],
+        verificationDoc: undefined,
+        communityProfile: undefined
+    });
+    const generateTemporaryUserId = (takenIds: Set<string>) => {
+        const stamp = Date.now().toString(36).toUpperCase();
+        let suffix = 1;
+        let candidate = `TEMP-${stamp}-${suffix}`;
+        while (takenIds.has(candidate)) {
+            suffix += 1;
+            candidate = `TEMP-${stamp}-${suffix}`;
+        }
+        return candidate;
+    };
     const disapproveUser = async (user: User) => {
-        await runUserAction(() => onUpdateUser({ ...user, status: 'Rejected', pendingProfileUpdate: {} }), 'Failed to disapprove user');
+        await runUserAction(async () => {
+            if (isCotId(user.id) && onReassignUserId) {
+                const temporaryId = generateTemporaryUserId(takenUserIds);
+                await onReassignUserId(user.id, temporaryId, createDisapprovedUserPayload(user, temporaryId));
+                return;
+            }
+            await onUpdateUser(createDisapprovedUserPayload(user));
+        }, 'Failed to disapprove user');
     };
     const rejectPendingEdit = async (user: User) => {
         await runUserAction(() => onUpdateUser({ ...user, pendingProfileUpdate: {} }), 'Failed to reject pending edit');
@@ -1853,24 +1749,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     for (const file of files) {
                         const image = await readOne(file);
                         if (!image) continue;
-                        const mediaType: 'image' | 'video' = file.type.startsWith('video/') ? 'video' : 'image';
-                        const duration = mediaType === 'video' ? await detectVideoDuration(file) : '';
                         const payload = {
                             image,
                             date: detectDate(file.name),
                             name: file.name.replace(/\.[^/.]+$/, ''),
-                            description: '',
-                            mediaType,
-                            duration,
-                            hidden: false
+                            description: ''
                         };
                         const newMinistry = await api.createMinistry(payload as Omit<Ministry, 'id'>);
                         setMinistries(prev => [...prev, newMinistry]);
-                        setFailedMinistryImages(prev => {
-                            const next = { ...prev };
-                            delete next[newMinistry.id];
-                            return next;
-                        });
                     }
                 } catch (error) {
                     console.error('Failed bulk upload for ministry images', error);
@@ -1883,36 +1769,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
         const file = files[0];
         if (file) {
-            const mediaType: 'image' | 'video' = file.type.startsWith('video/') ? 'video' : 'image';
-            const detectedDate = detectDate(file.name);
-            const detectedName = file.name.split('.')[0];
-
-            setEditingMinistry(prev => ({
-                ...prev,
-                date: detectedDate,
-                name: prev?.name?.trim() || detectedName,
-                mediaType
-            }));
-
-            if (mediaType === 'video') {
-                const reader = new FileReader();
-                reader.onload = async () => {
-                    const duration = await detectVideoDuration(file);
-                    setEditingMinistry(prev => ({
-                        ...prev,
-                        image: (reader.result as string) || '',
-                        mediaType: 'video',
-                        duration
-                    }));
-                };
-                reader.readAsDataURL(file);
-                return;
-            }
             const reader = new FileReader();
             reader.onload = () => {
                 setCropImage(reader.result as string);
                 setCroppingType('ministry');
                 setIsCropping(true);
+
+                // Pre-detect date from filename
+                if (!editingMinistry?.id) {
+                    setEditingMinistry(prev => ({
+                        ...prev,
+                        date: detectDate(file.name),
+                        name: file.name.split('.')[0]
+                    }));
+                }
             };
             reader.readAsDataURL(file);
         }
@@ -1923,13 +1793,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             setEditingUser({ ...editingUser, photo: croppedImageUrl });
         } else if (croppingType === 'ministry') {
             setEditingMinistry(prev => ({ ...prev, image: croppedImageUrl }));
-            if (editingMinistry?.id) {
-                setFailedMinistryImages(prev => {
-                    const next = { ...prev };
-                    delete next[editingMinistry.id as string];
-                    return next;
-                });
-            }
         }
         setIsCropping(false);
         setCropImage(null);
@@ -1942,14 +1805,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             case 'Pending Verification': return 'bg-amber-100 text-amber-700 border-amber-200';
             case 'Rejected': return 'bg-red-100 text-red-700 border-red-200';
             default: return 'bg-gray-100 text-gray-700 border-gray-200';
-        }
-    };
-    const getStatusLabel = (status: UserStatus) => {
-        switch (status) {
-            case 'Active': return 'Approved';
-            case 'Pending Verification': return 'Pending Approval';
-            case 'Rejected': return 'Disapproved';
-            default: return status;
         }
     };
 
@@ -2530,7 +2385,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                         {user.status === 'Active' && <CheckCircle size={12} />}
                                                         {user.status === 'Pending Verification' && <Clock size={12} />}
                                                         {user.status === 'Rejected' && <AlertCircle size={12} />}
-                                                        {getStatusLabel(user.status)}
+                                                        {user.status}
                                                     </span>
                                                     {hasPendingProfileUpdate(user) && (
                                                         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase bg-amber-100 text-amber-700 border border-amber-200">
@@ -2560,12 +2415,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                             </button>
                                                             <button
                                                                 onClick={async () => {
-                                                                    if (window.confirm(`Disapprove ${user.name}?`)) {
+                                                                    if (window.confirm(`Reject ${user.name}?`)) {
                                                                         await disapproveUser(user);
                                                                     }
                                                                 }}
                                                                 className="p-2 hover:bg-amber-50 text-amber-600 rounded-lg transition-colors"
-                                                                title="Disapprove User"
+                                                                title="Reject User"
                                                             >
                                                                 <XCircle size={16} />
                                                             </button>
@@ -2724,7 +2579,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     </div>
                                     <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold border ${getStatusColor(user.status)}`}>
                                         {user.status === 'Active' && <CheckCircle size={10} />}
-                                        {getStatusLabel(user.status)}
+                                        {user.status}
                                     </span>
                                 </button>
                                 <p className="text-[10px] text-slate-400 font-semibold mb-4">Tap name/photo to edit details & photo</p>
@@ -2775,14 +2630,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         </button>
                                         <button
                                             onClick={async () => {
-                                                if (window.confirm(`Disapprove ${user.name}?`)) {
+                                                if (window.confirm(`Reject ${user.name}?`)) {
                                                     await disapproveUser(user);
                                                 }
                                             }}
                                             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-amber-50 text-amber-600 rounded-xl font-medium text-sm hover:bg-amber-100 transition-colors"
                                         >
                                             <XCircle size={16} />
-                                            Disapprove
+                                            Reject
                                         </button>
                                     </div>
                                 )}
@@ -2940,14 +2795,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 ].map(tab => (
                                     <button
                                         key={tab.id}
-                                        onClick={() => {
-                                            const nextMode = tab.id as 'manual' | 'random' | 'requests';
-                                            setCotManagerMode(nextMode);
-                                            if (nextMode === 'random') {
-                                                setCotManagerSelectedUserId('');
-                                                setCotIdSearchFeedback(null);
-                                            }
-                                        }}
+                                        onClick={() => setCotManagerMode(tab.id as 'manual' | 'random' | 'requests')}
                                         className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${cotManagerMode === tab.id ? 'bg-brand-600 text-white border-brand-600' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}
                                     >
                                         {tab.label}
@@ -2955,9 +2803,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 ))}
                             </div>
                             <div className="flex flex-wrap gap-2">
+                                <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100 text-[11px] font-bold">Today Requests: {cotIdRequestInsights.today}</span>
+                                <span className="px-2.5 py-1 rounded-full bg-violet-50 text-violet-700 border border-violet-100 text-[11px] font-bold">Total Requests: {cotIdRequestInsights.total}</span>
+                                <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 text-[11px] font-bold">Today Not Pending: {cotIdRequestInsights.todayNotPending}</span>
                                 <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100 text-[11px] font-bold">Pending Users: {cotIdRequestInsights.pendingUsers}</span>
                                 <span className="px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-100 text-[11px] font-bold">Dislike ID: {cotIdRequestInsights.categories.dislike}</span>
-                                <span className="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 text-[11px] font-bold">Need New ID: {cotIdRequestInsights.categories.newId}</span>
                             </div>
 
                             {cotManagerMode === 'manual' && (
@@ -3164,9 +3014,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             {cotManagerMode === 'requests' && (
                                 <div className="space-y-3">
                                     <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-2.5 flex flex-wrap items-center gap-2 text-[11px] font-bold text-amber-900">
+                                        <span className="px-2 py-1 rounded-full bg-white border border-amber-200">Total: {cotIdRequestInsights.total}</span>
+                                        <span className="px-2 py-1 rounded-full bg-white border border-amber-200">Today: {cotIdRequestInsights.today}</span>
                                         <span className="px-2 py-1 rounded-full bg-white border border-amber-200">Need New ID: {cotIdRequestInsights.categories.newId}</span>
                                         <span className="px-2 py-1 rounded-full bg-white border border-amber-200">Dislike ID: {cotIdRequestInsights.categories.dislike}</span>
-                                        <span className="px-2 py-1 rounded-full bg-white border border-amber-200">Pending Users: {cotIdRequestInsights.pendingUsers}</span>
                                     </div>
                                 <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                                     {cotIdRequestInsights.items.map(note => (
@@ -3175,7 +3026,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 <div className="flex flex-wrap items-center gap-2 mb-1">
                                                     <p className="text-xs font-black text-amber-900 truncate">{note.user?.name || note.userId}</p>
                                                     <span className="px-2 py-0.5 rounded-full bg-white border border-amber-200 text-[10px] font-black text-amber-800">{note.category}</span>
-                                                    {note.isPendingUser && <span className="px-2 py-0.5 rounded-full bg-amber-100 text-[10px] font-black text-amber-700">Pending User</span>}
+                                                    {note.isToday && <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-[10px] font-black text-emerald-700">Today</span>}
                                                 </div>
                                                 <p className="text-[11px] text-amber-900/90 whitespace-pre-wrap break-words">{note.message}</p>
                                                 <p className="text-[10px] text-amber-700 mt-1">{new Date(note.createdAt).toLocaleString()}</p>
@@ -3714,6 +3565,75 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </div>
                         </div>
 
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 space-y-3">
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                                <div className="flex items-center gap-2">
+                                    <h2 className="text-sm font-black text-brand-950">Deleted Messages Recovery</h2>
+                                    <span className="text-xs font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-100">{deletedContactMessages.length + filteredDeletedMemberReplies.length}</span>
+                                </div>
+                                <select
+                                    value={messageRestoreUserFilter}
+                                    onChange={(e) => setMessageRestoreUserFilter(e.target.value)}
+                                    className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold outline-none focus:border-brand-500"
+                                >
+                                    <option value="">All users</option>
+                                    {deletedMessageUserOptions.map(userId => (
+                                        <option key={userId} value={userId}>{userId}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                                    <p className="text-xs font-black text-slate-700">Deleted Contact Messages</p>
+                                    {filteredDeletedContactMessages.length === 0 && <p className="text-xs text-slate-400">No deleted contact messages.</p>}
+                                    {filteredDeletedContactMessages.map(msg => (
+                                        <div key={msg.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                                            <p className="text-[11px] font-black text-brand-900 truncate">{msg.name || 'Website Visitor'} {msg.senderId ? `• ${msg.senderId}` : ''}</p>
+                                            <p className="text-[11px] text-slate-600 mt-1 line-clamp-2">{msg.message}</p>
+                                            <p className="text-[10px] text-slate-500 mt-1">
+                                                Auto delete: {msg.autoDeleteAt ? new Date(msg.autoDeleteAt).toLocaleDateString() : 'Not set'} •
+                                                {` ${Math.max(0, Math.ceil(((msg.autoDeleteAt ? new Date(msg.autoDeleteAt).getTime() : Date.now()) - Date.now()) / (24 * 60 * 60 * 1000)))} day(s) left`}
+                                            </p>
+                                            {onRestoreContactMessage && (
+                                                <button
+                                                    onClick={() => onRestoreContactMessage(msg.id)}
+                                                    className="mt-2 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold hover:bg-emerald-100"
+                                                >
+                                                    Restore
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                                    <p className="text-xs font-black text-slate-700">Deleted Member Notifications</p>
+                                    {filteredDeletedMemberReplies.length === 0 && <p className="text-xs text-slate-400">No deleted member notifications.</p>}
+                                    {filteredDeletedMemberReplies.map(note => (
+                                        <div key={note.id} className={`rounded-xl border p-3 ${note.from === 'admin' ? 'border-indigo-100 bg-indigo-50' : 'border-blue-100 bg-blue-50'}`}>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <p className={`text-[11px] font-black truncate ${note.from === 'admin' ? 'text-indigo-900' : 'text-blue-900'}`}>{note.userId}</p>
+                                                <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${note.from === 'admin' ? 'bg-white border-indigo-200 text-indigo-700' : 'bg-white border-blue-200 text-blue-700'}`}>
+                                                    {note.from === 'admin' ? 'Admin Message' : 'User Reply'}
+                                                </span>
+                                            </div>
+                                            <p className={`text-[11px] mt-1 line-clamp-2 ${note.from === 'admin' ? 'text-indigo-900' : 'text-blue-900'}`}>{note.message}</p>
+                                            <p className={`text-[10px] mt-1 ${note.from === 'admin' ? 'text-indigo-700/70' : 'text-blue-700/70'}`}>
+                                                Auto delete: {note.autoDeleteAt ? new Date(note.autoDeleteAt).toLocaleDateString() : 'Not set'} •
+                                                {` ${Math.max(0, Math.ceil(((note.autoDeleteAt ? new Date(note.autoDeleteAt).getTime() : Date.now()) - Date.now()) / (24 * 60 * 60 * 1000)))} day(s) left`}
+                                            </p>
+                                            {onRestoreMemberNotification && (
+                                                <button
+                                                    onClick={() => onRestoreMemberNotification(note.id)}
+                                                    className={`mt-2 px-2.5 py-1.5 rounded-lg bg-white text-[11px] font-bold ${note.from === 'admin' ? 'text-indigo-700 border border-indigo-200 hover:bg-indigo-100' : 'text-blue-700 border border-blue-200 hover:bg-blue-100'}`}
+                                                >
+                                                    Restore
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -3863,7 +3783,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 {activeTab === 'ministries' && (
                     <div className="space-y-8">
                         <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-4 flex-wrap">
+                            <div className="flex items-center gap-6">
                                 <h2 className="text-2xl font-black text-brand-950 tracking-tight">Ministry Gallery</h2>
                                 {hasOrderChanges && (
                                     <motion.button
@@ -3876,27 +3796,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <Save size={16} /> Save Order
                                     </motion.button>
                                 )}
-                                <button
-                                    type="button"
-                                    onClick={() => setEditingMinistry({
-                                        date: new Date().toISOString().split('T')[0],
-                                        name: '',
-                                        description: '',
-                                        image: '',
-                                        mediaType: 'image',
-                                        duration: '',
-                                        hidden: false
-                                    })}
-                                    className="flex items-center gap-2 px-5 py-2.5 bg-white text-brand-700 rounded-full font-black text-xs uppercase tracking-widest border border-brand-200 hover:bg-brand-50 transition-all"
-                                >
-                                    <Plus size={16} /> Add Moment
-                                </button>
                                 <label className="flex items-center gap-2 px-8 py-4 bg-brand-950 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-brand-900 transition-all cursor-pointer shadow-xl shadow-brand-950/20 active:scale-95 group">
-                                    <ImagePlus size={20} className="group-hover:scale-110 transition-transform" /> Upload Media
+                                    <ImagePlus size={20} className="group-hover:scale-110 transition-transform" /> Upload Photo
                                     <input
                                         type="file"
                                         className="hidden"
-                                        accept="image/*,video/*"
+                                        accept="image/*"
                                         multiple
                                         onChange={handleMinistryImageUpload}
                                     />
@@ -3919,31 +3824,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     value={m}
                                     dragListener={true}
                                     dragControls={undefined}
-                                    className={`group relative aspect-square rounded-2xl md:rounded-[2.5rem] overflow-hidden bg-white border border-slate-100 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-2xl transition-all duration-700 ${m.hidden ? 'opacity-75 saturate-50' : ''}`}
+                                    className="group relative aspect-square rounded-2xl md:rounded-[2.5rem] overflow-hidden bg-white border border-slate-100 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-2xl transition-all duration-700"
                                 >
                                     {m.image && !failedMinistryImages[m.id] ? (
-                                        inferMinistryMediaType(m) === 'video' ? (
-                                            <video
-                                                src={m.image}
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
-                                                muted
-                                                loop
-                                                autoPlay
-                                                playsInline
-                                                onError={() => setFailedMinistryImages(prev => ({ ...prev, [m.id]: true }))}
-                                            />
-                                        ) : (
-                                            <img
-                                                src={m.image}
-                                                alt={m.name}
-                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
-                                                onError={() => setFailedMinistryImages(prev => ({ ...prev, [m.id]: true }))}
-                                            />
-                                        )
+                                        <img
+                                            src={m.image}
+                                            alt={m.name}
+                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                                            onError={() => setFailedMinistryImages(prev => ({ ...prev, [m.id]: true }))}
+                                        />
                                     ) : (
                                         <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-500 text-center px-3">
                                             <ImageIcon size={22} className="mb-2" />
-                                            <p className="text-[10px] font-bold uppercase tracking-wide">Media unavailable</p>
+                                            <p className="text-[10px] font-bold uppercase tracking-wide">Image unavailable</p>
                                         </div>
                                     )}
 
@@ -3951,13 +3844,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <div className="absolute inset-0 bg-gradient-to-t from-brand-950/90 via-brand-950/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-500" />
 
                                     <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all md:translate-x-4 md:group-hover:translate-x-0 duration-300 z-20">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handleToggleMinistryHidden(m); }}
-                                            className="w-10 h-10 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white hover:text-brand-950 transition-all shadow-lg"
-                                            title={m.hidden ? 'Unhide' : 'Hide'}
-                                        >
-                                            {m.hidden ? <Eye size={16} /> : <EyeOff size={16} />}
-                                        </button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setEditingMinistry(m); }}
                                             className="w-10 h-10 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white hover:text-brand-950 transition-all shadow-lg"
@@ -3972,50 +3858,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         >
                                             <Trash2 size={16} />
                                         </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                const idx = ministries.findIndex(item => item.id === m.id);
-                                                if (idx <= 0) return;
-                                                setMinistries(prev => moveArrayItem(prev, idx, idx - 1));
-                                                setHasOrderChanges(true);
-                                            }}
-                                            className="w-10 h-10 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white hover:text-brand-950 transition-all shadow-lg"
-                                            title="Move Up"
-                                        >
-                                            <ChevronUp size={16} />
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                const idx = ministries.findIndex(item => item.id === m.id);
-                                                if (idx < 0 || idx >= ministries.length - 1) return;
-                                                setMinistries(prev => moveArrayItem(prev, idx, idx + 1));
-                                                setHasOrderChanges(true);
-                                            }}
-                                            className="w-10 h-10 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white hover:text-brand-950 transition-all shadow-lg"
-                                            title="Move Down"
-                                        >
-                                            <ChevronDown size={16} />
-                                        </button>
                                     </div>
 
                                     <div className="absolute bottom-4 md:bottom-8 left-4 md:left-8 right-4 md:right-8 pointer-events-none group-hover:translate-y-[-4px] transition-transform duration-500">
                                         <div className="flex items-center gap-2 text-accent-400 mb-1 md:mb-2">
                                             <div className="w-4 h-[1px] bg-accent-400" />
-                                            <span className="text-[8px] md:text-[10px] font-black tracking-[0.2em] uppercase">{inferMinistryMediaType(m) === 'video' ? 'Video Moment' : 'Ministry Moment'}</span>
+                                            <span className="text-[8px] md:text-[10px] font-black tracking-[0.2em] uppercase">Ministry Moment</span>
                                         </div>
                                         <h3 className="text-white font-serif font-bold text-sm md:text-lg leading-tight drop-shadow-xl">
                                             {m.date ? new Date(m.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Nov 25, 2026'}
                                         </h3>
-                                        {inferMinistryMediaType(m) === 'video' && m.duration && (
-                                            <p className="text-[10px] md:text-xs text-white/80 mt-1 inline-flex items-center gap-1">
-                                                <Play size={10} /> {m.duration}
-                                            </p>
-                                        )}
-                                        {m.hidden && (
-                                            <p className="text-[10px] md:text-xs text-amber-300 mt-1 font-black uppercase tracking-wider">Hidden</p>
-                                        )}
                                     </div>
 
                                     {/* Reorder Grip - Top Left */}
@@ -4031,7 +3883,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         {ministries.length === 0 && (
                             <div className="text-center py-32 bg-slate-50 rounded-[3.5rem] border-2 border-dashed border-slate-200">
                                 <ImageIcon size={48} className="mx-auto text-slate-300 mb-4" />
-                                <p className="text-slate-400 font-medium">No ministry media yet. Upload your first image or video moment!</p>
+                                <p className="text-slate-400 font-medium">No ministry photos yet. Upload your first moment!</p>
                             </div>
                         )}
                     </div>
@@ -4179,7 +4031,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <div className="flex items-center justify-between mb-10">
                                 <div>
                                     <h2 className="text-3xl font-serif font-black text-brand-950">Navigation Menu Editor</h2>
-                                    <p className="text-slate-500 mt-2 text-sm font-medium">Reorder navigation links using drag-and-drop or the move buttons on each card.</p>
+                                    <p className="text-slate-500 mt-2 text-sm font-medium">Drag the cards below to reorder the top navigation links for all visitors.</p>
                                 </div>
                                 <div className="w-14 h-14 bg-brand-50 text-brand-600 rounded-[1.25rem] flex items-center justify-center shadow-inner border border-brand-100">
                                     <Filter size={26} />
@@ -4247,41 +4099,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                         className="w-full font-black text-brand-950 text-lg leading-tight uppercase tracking-tight break-words bg-transparent border border-slate-200 rounded-xl px-3 py-1.5 outline-none focus:border-brand-500"
                                                     />
                                                     {item.submenu && item.submenu.length > 0 && (
-                                                        <div className="mt-2 space-y-1.5 rounded-xl bg-slate-50 border border-slate-200 p-2">
-                                                            {item.submenu.map((sub: any, subIndex: number) => (
-                                                                <div key={`${sub.view || sub.label}-${subIndex}`} className="flex items-center gap-1.5">
-                                                                    <input
-                                                                        type="text"
-                                                                        value={sub.label}
-                                                                        onChange={(e) => renameSubmenuItem(index, subIndex, e.target.value)}
-                                                                        onBlur={(e) => renameSubmenuItem(index, subIndex, e.target.value)}
-                                                                        className="flex-1 text-[11px] font-bold text-brand-900 bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-brand-500"
-                                                                    />
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            moveSubmenuItem(index, subIndex, 'up');
-                                                                        }}
-                                                                        className="w-6 h-6 rounded-md border border-slate-200 text-slate-600 flex items-center justify-center"
-                                                                        aria-label="Move submenu up"
-                                                                    >
-                                                                        <ChevronUp size={11} />
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            moveSubmenuItem(index, subIndex, 'down');
-                                                                        }}
-                                                                        className="w-6 h-6 rounded-md border border-slate-200 text-slate-600 flex items-center justify-center"
-                                                                        aria-label="Move submenu down"
-                                                                    >
-                                                                        <ChevronDown size={11} />
-                                                                    </button>
-                                                                </div>
-                                                            ))}
-                                                        </div>
+                                                        <p className="text-slate-400 text-xs font-bold pr-4 mt-1 leading-relaxed whitespace-normal break-words">
+                                                            {item.submenu.map((sub: any) => sub.label).join(' • ')}
+                                                        </p>
                                                     )}
                                                 </div>
                                             </div>
@@ -4290,7 +4110,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 <div className="hidden sm:block">
                                                     {item.submenu && item.submenu.length > 0 ? 'Has submenu' : 'Direct link'}
                                                 </div>
-                                                <div className="flex items-center gap-1 justify-end mt-2 sm:mt-1">
+                                                <div className="flex sm:hidden items-center gap-1">
                                                     <button
                                                         type="button"
                                                         onClick={(e) => {
@@ -4382,75 +4202,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 >
                                     Delete selected
                                 </button>
-                            </div>
-                        </div>
-                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 space-y-3">
-                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                                <div className="flex items-center gap-2">
-                                    <h2 className="text-sm font-black text-brand-950">Deleted Messages Recovery</h2>
-                                    <span className="text-xs font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-100">{deletedContactMessages.length + filteredDeletedMemberReplies.length}</span>
-                                </div>
-                                <select
-                                    value={messageRestoreUserFilter}
-                                    onChange={(e) => setMessageRestoreUserFilter(e.target.value)}
-                                    className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold outline-none focus:border-brand-500"
-                                >
-                                    <option value="">All users</option>
-                                    {deletedMessageUserOptions.map(userId => (
-                                        <option key={userId} value={userId}>{userId}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
-                                    <p className="text-xs font-black text-slate-700">Deleted Contact Messages</p>
-                                    {filteredDeletedContactMessages.length === 0 && <p className="text-xs text-slate-400">No deleted contact messages.</p>}
-                                    {filteredDeletedContactMessages.map(msg => (
-                                        <div key={msg.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                                            <p className="text-[11px] font-black text-brand-900 truncate">{msg.name || 'Website Visitor'} {msg.senderId ? `• ${msg.senderId}` : ''}</p>
-                                            <p className="text-[11px] text-slate-600 mt-1 line-clamp-2">{msg.message}</p>
-                                            <p className="text-[10px] text-slate-500 mt-1">
-                                                Auto delete: {msg.autoDeleteAt ? new Date(msg.autoDeleteAt).toLocaleDateString() : 'Not set'} •
-                                                {` ${Math.max(0, Math.ceil(((msg.autoDeleteAt ? new Date(msg.autoDeleteAt).getTime() : Date.now()) - Date.now()) / (24 * 60 * 60 * 1000)))} day(s) left`}
-                                            </p>
-                                            {onRestoreContactMessage && (
-                                                <button
-                                                    onClick={() => onRestoreContactMessage(msg.id)}
-                                                    className="mt-2 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold hover:bg-emerald-100"
-                                                >
-                                                    Restore
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
-                                    <p className="text-xs font-black text-slate-700">Deleted Member Notifications</p>
-                                    {filteredDeletedMemberReplies.length === 0 && <p className="text-xs text-slate-400">No deleted member notifications.</p>}
-                                    {filteredDeletedMemberReplies.map(note => (
-                                        <div key={note.id} className={`rounded-xl border p-3 ${note.from === 'admin' ? 'border-indigo-100 bg-indigo-50' : 'border-blue-100 bg-blue-50'}`}>
-                                            <div className="flex items-center justify-between gap-2">
-                                                <p className={`text-[11px] font-black truncate ${note.from === 'admin' ? 'text-indigo-900' : 'text-blue-900'}`}>{note.userId}</p>
-                                                <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${note.from === 'admin' ? 'bg-white border-indigo-200 text-indigo-700' : 'bg-white border-blue-200 text-blue-700'}`}>
-                                                    {note.from === 'admin' ? 'Admin Message' : 'User Reply'}
-                                                </span>
-                                            </div>
-                                            <p className={`text-[11px] mt-1 line-clamp-2 ${note.from === 'admin' ? 'text-indigo-900' : 'text-blue-900'}`}>{note.message}</p>
-                                            <p className={`text-[10px] mt-1 ${note.from === 'admin' ? 'text-indigo-700/70' : 'text-blue-700/70'}`}>
-                                                Auto delete: {note.autoDeleteAt ? new Date(note.autoDeleteAt).toLocaleDateString() : 'Not set'} •
-                                                {` ${Math.max(0, Math.ceil(((note.autoDeleteAt ? new Date(note.autoDeleteAt).getTime() : Date.now()) - Date.now()) / (24 * 60 * 60 * 1000)))} day(s) left`}
-                                            </p>
-                                            {onRestoreMemberNotification && (
-                                                <button
-                                                    onClick={() => onRestoreMemberNotification(note.id)}
-                                                    className={`mt-2 px-2.5 py-1.5 rounded-lg bg-white text-[11px] font-bold ${note.from === 'admin' ? 'text-indigo-700 border border-indigo-200 hover:bg-indigo-100' : 'text-blue-700 border border-blue-200 hover:bg-blue-100'}`}
-                                                >
-                                                    Restore
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
                             </div>
                         </div>
 
@@ -5402,30 +5153,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <div className="space-y-6">
                                 {/* Image Preview or Upload */}
                                 <div className="space-y-2">
-                                    <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Moment Media</label>
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Moment Photo</label>
                                     <div className="relative aspect-square bg-slate-100 rounded-[2rem] overflow-hidden group border-2 border-slate-100 shadow-inner">
                                         {editingMinistry.image ? (
                                             <>
-                                                {inferMinistryMediaType(editingMinistry as Pick<Ministry, 'mediaType' | 'image'>) === 'video' ? (
-                                                    <video
-                                                        src={editingMinistry.image}
-                                                        className="w-full h-full object-cover"
-                                                        controls
-                                                        playsInline
-                                                    />
-                                                ) : (
-                                                    <img
-                                                        src={editingMinistry.image}
-                                                        className="w-full h-full object-cover"
-                                                        onError={(e) => {
-                                                            (e.currentTarget as HTMLImageElement).style.display = 'none';
-                                                        }}
-                                                    />
-                                                )}
+                                                <img
+                                                    src={editingMinistry.image}
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => {
+                                                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                                                    }}
+                                                />
                                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-3">
                                                     <label className="w-12 h-12 bg-brand-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-brand-700 transition-colors shadow-lg">
                                                         <Camera size={24} />
-                                                        <input type="file" className="hidden" accept="image/*,video/*" onChange={handleMinistryImageUpload} />
+                                                        <input type="file" className="hidden" accept="image/*" onChange={handleMinistryImageUpload} />
                                                     </label>
                                                     <span className="text-xs font-bold uppercase tracking-widest">Change / Crop</span>
                                                 </div>
@@ -5433,45 +5175,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         ) : (
                                             <label className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:bg-slate-200 transition-all border-2 border-dashed border-slate-300 rounded-[2rem]">
                                                 <ImagePlus size={48} className="mb-2" />
-                                                <span className="font-bold">Select Media</span>
-                                                <input type="file" className="hidden" accept="image/*,video/*" onChange={handleMinistryImageUpload} />
+                                                <span className="font-bold">Select Photo</span>
+                                                <input type="file" className="hidden" accept="image/*" onChange={handleMinistryImageUpload} />
                                             </label>
                                         )}
                                     </div>
-                                    <p className="text-[10px] text-slate-400 italic text-center">Upload image or video. For images, you can crop before saving.</p>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Moment Name</label>
-                                    <input
-                                        type="text"
-                                        value={editingMinistry.name || ''}
-                                        onChange={(e) => setEditingMinistry({ ...editingMinistry, name: e.target.value })}
-                                        placeholder="Enter ministry moment title"
-                                        className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-brand-500 focus:bg-white transition-all text-brand-950 font-medium"
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Description</label>
-                                    <textarea
-                                        value={editingMinistry.description || ''}
-                                        onChange={(e) => setEditingMinistry({ ...editingMinistry, description: e.target.value })}
-                                        placeholder="Optional notes for this media"
-                                        rows={3}
-                                        className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-brand-500 focus:bg-white transition-all text-brand-950 font-medium resize-none"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Duration</label>
-                                    <input
-                                        type="text"
-                                        value={editingMinistry.duration || ''}
-                                        onChange={(e) => setEditingMinistry({ ...editingMinistry, duration: e.target.value })}
-                                        placeholder="e.g. 2:35"
-                                        className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-brand-500 focus:bg-white transition-all text-brand-950 font-medium"
-                                    />
-                                    <p className="text-[10px] text-slate-400 italic">Useful for videos; auto-filled on upload and editable here.</p>
+                                    <p className="text-[10px] text-slate-400 italic text-center">Tip: Square photos look best in the gallery.</p>
                                 </div>
 
                                 <div className="space-y-2">
@@ -5487,18 +5196,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     </div>
                                     <p className="text-[10px] text-slate-400 italic">Dates are automatically detected from the filename if possible.</p>
                                 </div>
-                                <label className="flex items-center justify-between gap-4 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
-                                    <span>
-                                        <span className="block text-xs font-black text-slate-500 uppercase tracking-[0.2em]">Hiding</span>
-                                        <span className="block text-[10px] text-slate-400 mt-1">Hidden moments stay in admin but are not shown on the Ministries page.</span>
-                                    </span>
-                                    <input
-                                        type="checkbox"
-                                        checked={!!editingMinistry.hidden}
-                                        onChange={(e) => setEditingMinistry({ ...editingMinistry, hidden: e.target.checked })}
-                                        className="w-5 h-5 accent-brand-600"
-                                    />
-                                </label>
                             </div>
 
                             <div className="flex gap-4 mt-10">
