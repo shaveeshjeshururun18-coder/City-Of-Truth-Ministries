@@ -389,7 +389,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     };
 
     const detectDate = (file?: File | { name?: string; lastModified?: number }): string => {
-        const filename = typeof file === 'string' ? file : (file?.name || '');
+        const filename = file?.name || '';
         const match = filename.match(/(\d{4})[-_]?(\d{2})[-_]?(\d{2})/);
         if (match) {
             return `${match[1]}-${match[2]}-${match[3]}`;
@@ -435,6 +435,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 cleanup();
                 resolve(0);
             };
+            if (!objectUrl.startsWith('blob:')) {
+                cleanup();
+                resolve(0);
+                return;
+            }
             video.src = objectUrl;
         });
 
@@ -1939,6 +1944,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const getQrImageUrl = (memberId: string, size = 220) =>
         `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(getVerificationUrl(memberId))}&bgcolor=ffffff&color=1a237e&margin=2&format=png&cb=${encodeURIComponent(memberId)}`;
     const editingMinistryMediaType = editingMinistry ? inferMinistryMediaType(editingMinistry) : 'image';
+    // Use source-based inference for previews so manual metadata changes don't mis-render the actual media.
     const previewMinistryMediaType = editingMinistry ? inferMinistryMediaType({ ...editingMinistry, mediaType: undefined }) : 'image';
 
     return (
