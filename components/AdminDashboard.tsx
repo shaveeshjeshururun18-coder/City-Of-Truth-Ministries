@@ -4011,7 +4011,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             </button>
                                         </div>
 
-                                        <div className="absolute top-4 left-4 flex flex-col gap-2 z-20">
+                                        <div className="absolute top-4 left-16 flex flex-col gap-2 z-20">
                                             <span className="inline-flex items-center gap-1 rounded-full bg-white/15 border border-white/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
                                                 {mediaType === 'video' ? <Video size={12} /> : <ImageIcon size={12} />}
                                                 {mediaType}
@@ -4043,8 +4043,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             </h3>
                                         </div>
 
-                                        {/* Reorder Grip - Bottom Right */}
-                                        <div className="absolute bottom-4 right-4 w-10 h-10 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center text-white/60 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all border border-white/20 hover:bg-white hover:text-brand-950 shadow-lg cursor-grab active:cursor-grabbing z-20">
+                                        {/* Reorder Grip - Top Left */}
+                                        <div className="absolute top-4 left-4 w-10 h-10 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center text-white/60 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all border border-white/20 hover:bg-white hover:text-brand-950 shadow-lg cursor-grab active:cursor-grabbing z-20">
                                             <GripVertical size={18} />
                                         </div>
 
