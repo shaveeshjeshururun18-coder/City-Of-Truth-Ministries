@@ -52,6 +52,25 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
         return null;
     };
 
+    const getActiveVideoTrack = (): MediaStreamTrack | null => {
+        const videoElement = document.querySelector<HTMLVideoElement>('#qr-reader video');
+        const stream = videoElement?.srcObject as MediaStream | null;
+        return stream?.getVideoTracks?.()[0] || null;
+    };
+
+    const applyTorchToActiveTrack = async (enabled: boolean) => {
+        const track = getActiveVideoTrack();
+        if (!track) return false;
+        try {
+            await track.applyConstraints({ advanced: [{ torch: enabled } as any] });
+            setTorchOn(enabled);
+            return true;
+        } catch (_e) {
+            if (!enabled) setTorchOn(false);
+            return false;
+        }
+    };
+
     useEffect(() => {
         const loadScript = () => {
             if (!window.Html5Qrcode) {
@@ -112,31 +131,12 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
             const html5Qrcode = new window.Html5Qrcode('qr-reader');
             scannerRef.current = html5Qrcode;
 
-            const getActiveVideoTrack = (): MediaStreamTrack | null => {
-                const videoElement = document.querySelector<HTMLVideoElement>('#qr-reader video');
-                const stream = videoElement?.srcObject as MediaStream | null;
-                return stream?.getVideoTracks?.()[0] || null;
-            };
-
             const detectTorchSupport = () => {
                 const track = getActiveVideoTrack();
                 const capabilities = ((track as any)?.getCapabilities?.() as any) || {};
                 const supported = !!capabilities.torch;
                 setTorchSupported(supported);
                 return supported;
-            };
-
-            const setTrackTorch = async (enabled: boolean) => {
-                const track = getActiveVideoTrack();
-                if (!track) return false;
-                try {
-                    await track.applyConstraints({ advanced: [{ torch: enabled } as any] });
-                    setTorchOn(enabled);
-                    return true;
-                } catch (_e) {
-                    if (!enabled) setTorchOn(false);
-                    return false;
-                }
             };
 
             html5Qrcode.start(
@@ -156,7 +156,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
                 (_errorMessage: string) => {}
             ).then(() => {
                 const hasTorch = detectTorchSupport();
-                if (hasTorch) setTrackTorch(true);
+                if (hasTorch) applyTorchToActiveTrack(true);
             }).catch((err: any) => {
                 console.error('Scanner Error:', err);
                 setError('Could not access camera. Please allow camera permissions or upload a picture.');
@@ -177,13 +177,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
         };
 
         const disableTorchIfPossible = async () => {
-            const videoElement = document.querySelector<HTMLVideoElement>('#qr-reader video');
-            const stream = videoElement?.srcObject as MediaStream | null;
-            const track = stream?.getVideoTracks?.()[0];
-            if (!track) return;
-            try {
-                await track.applyConstraints({ advanced: [{ torch: false } as any] });
-            } catch (_e) {}
+            await applyTorchToActiveTrack(false);
         };
 
         if (scannerRef.current) {
@@ -201,21 +195,19 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
 
     const handleTorchToggle = async () => {
         if (!isScanning || !torchSupported) return;
-        const videoElement = document.querySelector<HTMLVideoElement>('#qr-reader video');
-        const stream = videoElement?.srcObject as MediaStream | null;
-        const track = stream?.getVideoTracks?.()[0];
-        if (!track) return;
         const next = !torchOn;
-        try {
-            await track.applyConstraints({ advanced: [{ torch: next } as any] });
-            setTorchOn(next);
-        } catch (_e) {
+        const applied = await applyTorchToActiveTrack(next);
+        if (!applied && next) {
             if (next) setError('Flashlight control is not supported on this device/browser.');
         }
     };
 
-    const handleScannerSizeToggle = () => {
-        setScannerExpanded(prev => !prev);
+    const handleScannerSizeToggle = async () => {
+        const nextExpanded = !scannerExpanded;
+        setScannerExpanded(nextExpanded);
+        if (torchSupported) {
+            await applyTorchToActiveTrack(nextExpanded);
+        }
     };
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -115,6 +115,9 @@ export interface Ministry {
   name?: string;
   description?: string;
   image: string;
+  mediaType?: 'image' | 'video';
+  duration?: string;
+  hidden?: boolean;
   date: string;
   order?: number;
 }

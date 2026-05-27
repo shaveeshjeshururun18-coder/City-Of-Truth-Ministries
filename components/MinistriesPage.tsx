@@ -40,8 +40,63 @@ const generateAssets = () => {
 
 export const MinistriesPage: React.FC = () => {
     const [dynamicMinistries, setDynamicMinistries] = useState<Ministry[]>([]);
-    const [failedDynamicImages, setFailedDynamicImages] = useState<Record<string, boolean>>({});
+    const [mediaTypeFilter, setMediaTypeFilter] = useState<'all' | 'image' | 'video'>('all');
+    const [mediaDateFilter, setMediaDateFilter] = useState<'all' | string>('all');
     const assets = useMemo(() => generateAssets(), []);
+    const visibleDynamicMinistries = useMemo(
+        () => dynamicMinistries.filter((m) => !m.hidden),
+        [dynamicMinistries]
+    );
+    const inferMediaType = (item: Ministry): 'image' | 'video' => {
+        if (item.mediaType === 'video' || item.mediaType === 'image') return item.mediaType;
+        const src = `${item.image || ''}`.trim().toLowerCase();
+        if (src.startsWith('data:video/')) return 'video';
+        if (/\.(mp4|mov|webm|ogg|m4v)(\?.*)?$/.test(src)) return 'video';
+        return 'image';
+    };
+    const formatDisplayDate = (value?: string) => {
+        if (!value) return 'Recent Moment';
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) return value;
+        return parsed.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    };
+    const dynamicMediaDateOptions = useMemo(() => {
+        const uniqueDates = Array.from(
+            new Set(
+                visibleDynamicMinistries
+                    .map((m) => (m.date || '').trim())
+                    .filter(Boolean)
+            )
+        );
+        return uniqueDates.sort((a, b) => {
+            const aTime = new Date(a).getTime();
+            const bTime = new Date(b).getTime();
+            const safeATime = Number.isNaN(aTime) ? 0 : aTime;
+            const safeBTime = Number.isNaN(bTime) ? 0 : bTime;
+            return safeBTime - safeATime;
+        });
+    }, [visibleDynamicMinistries]);
+    const filteredDynamicMinistries = useMemo(() => {
+        return visibleDynamicMinistries
+            .filter((m) => mediaTypeFilter === 'all' || inferMediaType(m) === mediaTypeFilter)
+            .filter((m) => mediaDateFilter === 'all' || (m.date || '') === mediaDateFilter)
+            .sort((a, b) => {
+                const aTime = new Date(a.date || '').getTime();
+                const bTime = new Date(b.date || '').getTime();
+                const safeATime = Number.isNaN(aTime) ? 0 : aTime;
+                const safeBTime = Number.isNaN(bTime) ? 0 : bTime;
+                return safeBTime - safeATime;
+            });
+    }, [visibleDynamicMinistries, mediaTypeFilter, mediaDateFilter]);
+    const filteredDynamicMediaItems = useMemo(
+        () => filteredDynamicMinistries.map((m) => ({
+            id: m.id,
+            type: inferMediaType(m),
+            src: m.image,
+            date: formatDisplayDate(m.date)
+        })),
+        [filteredDynamicMinistries]
+    );
 
     useEffect(() => {
         api.getMinistries().then(setDynamicMinistries);
@@ -71,51 +126,44 @@ export const MinistriesPage: React.FC = () => {
             </div>
 
             {/* Dynamic Ministries Section */}
-            {dynamicMinistries.length > 0 && (
+            {visibleDynamicMinistries.length > 0 && (
                 <div className="container mx-auto px-6 mb-32">
                     <div className="flex items-center gap-4 mb-16">
                         <div className="w-12 h-px bg-brand-950/20" />
-                        <span className="text-xs font-bold text-brand-950 uppercase tracking-widest font-sans">Recent Moments</span>
+                        <span className="text-xs font-bold text-brand-950 uppercase tracking-widest font-sans">All Ministry Media</span>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                        {dynamicMinistries.map((m, i) => (
-                            <motion.div
-                                key={m.id}
-                                initial={{ opacity: 0, y: 30 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                transition={{ delay: (i % 4) * 0.1 }}
-                                className="group relative aspect-square rounded-[2.5rem] overflow-hidden bg-white border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-700"
+                    <div className="bg-white rounded-3xl border border-slate-100 p-4 md:p-6 shadow-sm">
+                        <div className="flex flex-col md:flex-row gap-3 md:gap-4 mb-6">
+                            <select
+                                value={mediaTypeFilter}
+                                onChange={(e) => setMediaTypeFilter(e.target.value as 'all' | 'image' | 'video')}
+                                className="px-4 py-3 rounded-2xl border border-slate-200 text-sm font-bold text-slate-700 bg-slate-50"
                             >
-                                {m.image && !failedDynamicImages[m.id] ? (
-                                    <img
-                                        src={m.image}
-                                        alt={m.name || 'Ministry Moment'}
-                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
-                                        onError={() => setFailedDynamicImages(prev => ({ ...prev, [m.id]: true }))}
-                                    />
-                                ) : (
-                                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-500 px-4 text-center">
-                                        <Sparkles size={26} className="mb-2" />
-                                        <p className="text-xs font-bold uppercase tracking-wide">Image unavailable</p>
-                                        <p className="text-[10px] mt-1">{m.date ? new Date(m.date).toLocaleDateString() : 'Recent Moment'}</p>
-                                    </div>
-                                )}
-                                <div className="absolute inset-0 bg-gradient-to-t from-brand-950/90 via-brand-950/20 to-transparent opacity-60 group-hover:opacity-90 transition-opacity duration-500" />
-
-                                <div className="absolute bottom-0 left-0 right-0 p-8 transform group-hover:translate-y-0 transition-transform duration-500">
-                                    <div className="flex items-center gap-2 text-accent-400 mb-2">
-                                        <div className="w-4 h-[1px] bg-accent-400" />
-                                        <span className="text-[10px] font-black tracking-[0.2em] uppercase">Ministry Moment</span>
-                                    </div>
-                                    <h3 className="text-xl font-serif font-bold text-white leading-tight">
-                                        {m.date ? new Date(m.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Recent Moment'}
-                                    </h3>
-                                    {m.name && m.name !== m.date && (
-                                        <p className="text-white/60 text-xs mt-2 font-medium tracking-wide uppercase">{m.name}</p>
-                                    )}
-                                </div>
-                            </motion.div>
-                        ))}
+                                <option value="all">All Media</option>
+                                <option value="image">Photos</option>
+                                <option value="video">Videos</option>
+                            </select>
+                            <select
+                                value={mediaDateFilter}
+                                onChange={(e) => setMediaDateFilter(e.target.value)}
+                                className="px-4 py-3 rounded-2xl border border-slate-200 text-sm font-bold text-slate-700 bg-slate-50"
+                            >
+                                <option value="all">All Dates</option>
+                                {dynamicMediaDateOptions.map((dateValue) => (
+                                    <option key={dateValue} value={dateValue}>
+                                        {formatDisplayDate(dateValue)}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        {filteredDynamicMediaItems.length > 0 ? (
+                            <MinistryGallery items={filteredDynamicMediaItems} />
+                        ) : (
+                            <div className="text-center py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                                <Sparkles className="mx-auto mb-3 text-slate-300" />
+                                <p className="text-slate-500 font-medium">No media found for this filter.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
