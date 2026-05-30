@@ -1,70 +1,18 @@
 import React from 'react';
 
 export const HEBREW_MONTHS_DATA = [
-    {
-        name: 'Nisan',
-        gregorian: 'March/April',
-        notes: 'Scriptural Month 1',
-        holidays: 'Passover (Pesach)'
-    },
-    {
-        name: 'Iyar',
-        gregorian: 'April/May',
-        notes: 'Scriptural Month 2'
-    },
-    {
-        name: 'Sivan',
-        gregorian: 'May/June',
-        notes: 'Scriptural Month 3',
-        holidays: 'Shavuot (Feast of Weeks)'
-    },
-    {
-        name: 'Tammuz',
-        gregorian: 'June/July',
-        notes: 'Scriptural Month 4'
-    },
-    {
-        name: 'Av',
-        gregorian: 'July/August',
-        notes: 'Scriptural Month 5'
-    },
-    {
-        name: 'Elul',
-        gregorian: 'August/September',
-        notes: 'Scriptural Month 6'
-    },
-    {
-        name: 'Tishrei',
-        gregorian: 'September/October',
-        notes: 'Start of Civil Year (Rosh Hashanah)',
-        holidays: 'High Holy Days (Rosh Hashanah, Yom Kippur, Sukkot)'
-    },
-    {
-        name: 'Cheshvan',
-        gregorian: 'October/November',
-        notes: 'Varies between 29 & 30 days'
-    },
-    {
-        name: 'Kislev',
-        gregorian: 'November/December',
-        notes: 'Varies between 29 & 30 days',
-        holidays: 'Hanukkah'
-    },
-    {
-        name: 'Tevet',
-        gregorian: 'December/January',
-        notes: 'Scriptural Month 10'
-    },
-    {
-        name: 'Shevat',
-        gregorian: 'January/February',
-        notes: 'Scriptural Month 11'
-    },
-    {
-        name: 'Adar',
-        gregorian: 'February/March',
-        notes: 'Scriptural Month 12'
-    }
+    { name: 'Nisan', hebrewScript: 'נִיסָן', tamil: 'நிசான்', gregorian: 'March/April', notes: 'Scriptural Month 1', holidays: 'Passover (Pesach)' },
+    { name: 'Iyar', hebrewScript: 'אִייָר', tamil: 'இயார்', gregorian: 'April/May', notes: 'Scriptural Month 2' },
+    { name: 'Sivan', hebrewScript: 'סִיוָן', tamil: 'சிவான்', gregorian: 'May/June', notes: 'Scriptural Month 3', holidays: 'Shavuot (Feast of Weeks)' },
+    { name: 'Tammuz', hebrewScript: 'תַּמּוּז', tamil: 'தம்மூஸ்', gregorian: 'June/July', notes: 'Scriptural Month 4' },
+    { name: 'Av', hebrewScript: 'אָב', tamil: 'ஆவ்', gregorian: 'July/August', notes: 'Scriptural Month 5' },
+    { name: 'Elul', hebrewScript: 'אֱלוּל', tamil: 'எலூல்', gregorian: 'August/September', notes: 'Scriptural Month 6' },
+    { name: 'Tishrei', hebrewScript: 'תִּשְׁרֵי', tamil: 'திஷ்ரே', gregorian: 'September/October', notes: 'Start of Civil Year (Rosh Hashanah)', holidays: 'High Holy Days (Rosh Hashanah, Yom Kippur, Sukkot)' },
+    { name: 'Cheshvan', hebrewScript: 'חֶשְׁוָן', tamil: 'செஷ்வான்', gregorian: 'October/November', notes: 'Varies between 29 & 30 days' },
+    { name: 'Kislev', hebrewScript: 'כִּסְלֵו', tamil: 'கிஸ்லேவ்', gregorian: 'November/December', notes: 'Varies between 29 & 30 days', holidays: 'Hanukkah' },
+    { name: 'Tevet', hebrewScript: 'טֵבֵת', tamil: 'தேவேத்', gregorian: 'December/January', notes: 'Scriptural Month 10' },
+    { name: 'Shevat', hebrewScript: 'שְׁבָט', tamil: 'ஷேவாட்', gregorian: 'January/February', notes: 'Scriptural Month 11' },
+    { name: 'Adar', hebrewScript: 'אֲדָר', tamil: 'அதார்', gregorian: 'February/March', notes: 'Scriptural Month 12' }
 ];
 
 export const KEY_DETAILS = [
@@ -91,23 +39,28 @@ export const PrintableReferenceGuide: React.FC<{ year?: number }> = ({ year = 57
                     <thead>
                         <tr className="bg-slate-50 border-b-2 border-slate-200">
                             <th className="p-3 text-xs font-black uppercase tracking-widest text-slate-500">Month</th>
-                            <th className="p-3 text-xs font-black uppercase tracking-widest text-slate-500">Gregorian</th>
-                            <th className="p-3 text-xs font-black uppercase tracking-widest text-slate-500">Holidays & Notes</th>
+                            <th className="p-3 text-xs font-black uppercase tracking-widest text-slate-500">Hebrew</th>
+                            <th className="p-3 text-xs font-black uppercase tracking-widest text-slate-500">Tamil</th>
+                            <th className="p-3 text-xs font-black uppercase tracking-widest text-slate-500">Gregorian / Notes</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                         {HEBREW_MONTHS_DATA.map((m, i) => (
                             <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
-                                <td className="p-3 font-bold text-slate-900 border-r border-slate-100/50 w-1/4">
+                                <td className="p-3 font-bold text-slate-900 border-r border-slate-100/50">
                                     {m.name}
                                 </td>
-                                <td className="p-3 text-slate-600 text-sm w-1/4">
-                                    {m.gregorian}
+                                <td className="p-3 text-slate-700 text-lg font-serif border-r border-slate-100/50" dir="rtl">
+                                    {m.hebrewScript}
+                                </td>
+                                <td className="p-3 text-blue-700 text-sm font-bold border-r border-slate-100/50">
+                                    {m.tamil}
                                 </td>
                                 <td className="p-3 text-slate-700 text-sm">
                                     <div className="flex flex-col gap-1">
+                                        <span className="text-xs text-slate-500 font-semibold">{m.gregorian}</span>
                                         {m.holidays && <span className="font-bold text-amber-700">{m.holidays}</span>}
-                                        <span className="text-slate-500 text-xs">{m.notes}</span>
+                                        <span className="text-slate-400 text-xs italic">{m.notes}</span>
                                     </div>
                                 </td>
                             </tr>

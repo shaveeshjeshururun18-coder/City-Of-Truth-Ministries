@@ -13,31 +13,6 @@ const VOWEL_CHART = [
   { mark: 'ֵ', name: 'Tsere', sound: 'AY (Long)', example: 'סֵפֶר (Sefer)' },
 ];
 
-const ALEPH_BET = [
-  { letter: 'א', name: 'Aleph' },
-  { letter: 'ב', name: 'Bet' },
-  { letter: 'ג', name: 'Gimel' },
-  { letter: 'ד', name: 'Dalet' },
-  { letter: 'ה', name: 'Hey' },
-  { letter: 'ו', name: 'Vav' },
-  { letter: 'ז', name: 'Zayin' },
-  { letter: 'ח', name: 'Chet' },
-  { letter: 'ט', name: 'Tet' },
-  { letter: 'י', name: 'Yod' },
-  { letter: 'כ', name: 'Kaf', final: 'ך' },
-  { letter: 'ל', name: 'Lamed' },
-  { letter: 'מ', name: 'Mem', final: 'ם' },
-  { letter: 'נ', name: 'Nun', final: 'ן' },
-  { letter: 'ס', name: 'Samech' },
-  { letter: 'ע', name: 'Ayin' },
-  { letter: 'פ', name: 'Pey', final: 'ף' },
-  { letter: 'צ', name: 'Tsadi', final: 'ץ' },
-  { letter: 'ק', name: 'Kuf' },
-  { letter: 'ר', name: 'Resh' },
-  { letter: 'ש', name: 'Shin' },
-  { letter: 'ת', name: 'Tav' },
-];
-
 const BINYANIM_MENORAH = [
   { id: 4, name: "Hitpa'el", type: 'Reflexive', active: true, desc: "Reflexive/Reciprocal", ex: "הִתְלַבֵּשׁ (Hitlabash)" },
   { id: 1, name: "Pa'al", type: 'Active', active: true, desc: "Simple Active", ex: "לָבַשׁ (Lavash)" },
@@ -50,7 +25,7 @@ const BINYANIM_MENORAH = [
 
 const GRAMMAR_SECTIONS = [
   {
-    title: "1. Foundation: Aleph-Bet & Nikkud",
+    title: "1. Foundation: Aleph to Tav & Nikkud",
     icon: <BookType className="text-amber-500" size={32} />,
     content: "Hebrew is written right-to-left with 22 consonants. Vowels (Nikkud) are marks above, below, or inside letters, used mostly by beginners.",
     interactive: 'vowels'
@@ -171,71 +146,33 @@ export const HebrewGrammar3D: React.FC = () => {
             {/* Interactive Content */}
             <div className="mt-8 perspective-[2000px]">
               
-              {/* Vowels and Aleph-Bet Interactive */}
+              {/* Vowels Interactive */}
               {section.interactive === 'vowels' && (
-                <div className="space-y-12">
-                  <div>
-                    <h4 className="text-xl font-bold text-amber-500 mb-6 flex items-center gap-2">
-                      <BookType size={20} /> The 22 Consonants (Aleph-Bet)
-                    </h4>
-                    <div className="flex flex-wrap gap-4 justify-end" dir="rtl">
-                      {ALEPH_BET.map((a, i) => (
-                        <motion.div 
-                          key={i}
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          whileInView={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: i * 0.05 }}
-                          viewport={{ once: true }}
-                          whileHover={{ y: -5, scale: 1.1 }}
-                          className="w-16 h-16 bg-white rounded-xl border border-slate-200 flex flex-col items-center justify-center shadow-sm cursor-crosshair group hover:border-amber-400 hover:shadow-md transition-all relative"
-                        >
-                          <div className="text-3xl font-serif text-brand-950">{a.letter}</div>
-                          {a.final && (
-                            <div className="absolute -top-2 -right-2 w-6 h-6 bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center text-xs font-serif text-slate-500 shadow-sm">
-                              {a.final}
-                            </div>
-                          )}
-                          
-                          {/* Tooltip */}
-                          <div className="absolute -top-10 bg-slate-900 text-white px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-xl pointer-events-none text-xs font-bold tracking-widest uppercase">
-                            {a.name}
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="pt-8 border-t border-slate-100">
-                    <h4 className="text-xl font-bold text-amber-500 mb-6 flex items-center gap-2">
-                      <Sparkles size={20} /> The Vowels (Nikkud)
-                    </h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                      {VOWEL_CHART.slice(0, 4).map((v, i) => (
-                        <motion.div 
-                          key={i}
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          whileInView={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: i * 0.1 }}
-                          viewport={{ once: true }}
-                        >
-                          <FlipCard 
-                            front={
-                              <>
-                                <div className="text-6xl font-serif text-brand-950 mb-4">{v.mark}</div>
-                                <div className="font-bold text-slate-700 text-lg">{v.name}</div>
-                              </>
-                            }
-                            back={
-                              <>
-                                <div className="text-xl font-black text-amber-400 mb-3">{v.sound}</div>
-                                <div className="text-md text-slate-300 italic">{v.example}</div>
-                              </>
-                            }
-                          />
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  {VOWEL_CHART.slice(0, 4).map((v, i) => (
+                    <motion.div 
+                      key={i}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.1 }}
+                      viewport={{ once: true }}
+                    >
+                      <FlipCard 
+                        front={
+                          <>
+                            <div className="text-6xl font-serif text-brand-950 mb-4">{v.mark}</div>
+                            <div className="font-bold text-slate-700 text-lg">{v.name}</div>
+                          </>
+                        }
+                        back={
+                          <>
+                            <div className="text-xl font-black text-amber-400 mb-3">{v.sound}</div>
+                            <div className="text-md text-slate-300 italic">{v.example}</div>
+                          </>
+                        }
+                      />
+                    </motion.div>
+                  ))}
                 </div>
               )}
 

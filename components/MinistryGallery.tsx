@@ -204,7 +204,7 @@ export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items }) => {
                         {lightboxIndex > 0 && (
                             <button
                                 onClick={(e) => { e.stopPropagation(); prevItem(); }}
-                                className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white/10 border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/25 transition-all backdrop-blur-sm shadow-lg"
+                                className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white/30 border border-white/40 rounded-full flex items-center justify-center text-white hover:bg-white/50 transition-all backdrop-blur-sm shadow-lg"
                             >
                                 <ChevronLeft size={26} />
                             </button>
@@ -214,7 +214,7 @@ export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items }) => {
                         {lightboxIndex < items.length - 1 && (
                             <button
                                 onClick={(e) => { e.stopPropagation(); nextItem(); }}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white/10 border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/25 transition-all backdrop-blur-sm shadow-lg"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white/30 border border-white/40 rounded-full flex items-center justify-center text-white hover:bg-white/50 transition-all backdrop-blur-sm shadow-lg"
                             >
                                 <ChevronRight size={26} />
                             </button>

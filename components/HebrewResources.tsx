@@ -89,28 +89,27 @@ const toHebrew = (num: number): string => {
 // --- Calendar Constants & Data ---
 
 const BIBLICAL_FESTIVALS = [
-    { name: 'Pesach', date: '26 Mar - 25 Apr', desc: 'Passover (first of seven/eight days).', icon: <Flame className="text-red-600" /> },
-    { name: 'Yom HaShoah', date: '8 Apr - 7 May', desc: 'Holocaust Remembrance Day.', icon: <Hash className="text-slate-600" /> },
-    { name: 'Yom Ha\'atzmaut', date: '15 Apr - 15 May', desc: 'Israel Independence Day.', icon: <Hash className="text-blue-500" /> },
-    { name: 'Lag B\'Omer', date: '28 Apr - 28 May', desc: 'Celebrating Jewish unity and the light of Torah.', icon: <Flame className="text-orange-400" /> },
-    { name: 'Yom Yerushalayim', date: '8 May - 7 Jun', desc: 'Jerusalem Day, celebrating the reunification of Jerusalem.', icon: <Hash className="text-amber-500" /> },
-    { name: 'Shavuot', date: '15 May - 14 Jun', desc: 'Feast of Weeks, commemorating the giving of the Torah.', icon: <BookOpen className="text-blue-600" /> },
-    { name: 'Tzom Tammuz', date: '25 Jun - 25 Jul', desc: 'Fast of Tammuz, marking the breach of Jerusalem\'s walls.', icon: <Clock className="text-slate-500" /> },
-    { name: 'Tisha B\'Av', date: '16 Jul - 15 Aug', desc: 'Fast of the Ninth of Av, mourning the destruction of the Temples.', icon: <Clock className="text-slate-800" /> },
-    { name: 'Tu B\'Av', date: '22 Jul - 21 Aug', desc: 'Jewish day of love.', icon: <Heart className="text-red-500" /> },
-    { name: 'Rosh Hashanah', date: '5 Sep - 5 Oct', desc: 'The Jewish New Year, a time of reflection and repentance.', icon: <Flame className="text-red-500" /> },
-    { name: 'Yom Kippur', date: '14 Sep - 14 Oct', desc: 'Day of Atonement, the holiest day of the year.', icon: <Clock className="text-slate-500" /> },
-    { name: 'Sukkot', date: '19 Sep - 19 Oct', desc: 'Feast of Tabernacles (first of seven days).', icon: <CalendarIcon className="text-green-600" /> },
-    { name: 'Shemini Atzeret', date: '26 Sep - 26 Oct', desc: 'The Eighth Day of Assembly.', icon: <Hash className="text-amber-600" /> },
-    { name: 'Simchat Torah', date: '27 Sep - 27 Oct', desc: 'Rejoicing in the Torah.', icon: <BookOpen className="text-blue-600" /> },
-    { name: 'Hanukkah', date: '28 Nov - 27 Dec', desc: 'Festival of Lights (first of eight days).', icon: <Flame className="text-orange-500" /> },
-    { name: 'Tu Bishvat', date: '15 Jan - 13 Feb', desc: 'New Year for Trees.', icon: <Sparkles className="text-green-500" /> },
-    { name: 'Purim', date: '24 Feb - 26 Mar', desc: 'Commemorating the salvation of the Jewish people in ancient Persia.', icon: <Sparkles className="text-purple-500" /> },
-    { name: 'Shushan Purim', date: '25 Feb - 27 Mar', desc: 'Celebrated in walled cities like Jerusalem.', icon: <Sparkles className="text-purple-600" /> }
+    { name: 'Pesach', date: '26 Mar - 25 Apr', desc: 'Passover (first of seven/eight days).', tamil: 'பஸ்கா (பெஸாக்) - விடுதலையின் பண்டிகை', icon: <Flame className="text-red-600" /> },
+    { name: 'Yom HaShoah', date: '8 Apr - 7 May', desc: 'Holocaust Remembrance Day.', tamil: 'யோம் ஹஷோவா - ஹோலோகாஸ்ட் நினைவு தினம்', icon: <Hash className="text-slate-600" /> },
+    { name: "Yom Ha'atzmaut", date: '15 Apr - 15 May', desc: 'Israel Independence Day.', tamil: 'இஸ்ரேல் சுதந்திர தினம்', icon: <Hash className="text-blue-500" /> },
+    { name: "Lag B'Omer", date: '28 Apr - 28 May', desc: 'Celebrating Jewish unity and the light of Torah.', tamil: 'லாக் பஓமர் - தோரா ஒளி பண்டிகை', icon: <Flame className="text-orange-400" /> },
+    { name: 'Yom Yerushalayim', date: '8 May - 7 Jun', desc: 'Jerusalem Day, celebrating the reunification of Jerusalem.', tamil: 'யெருசலேம் தினம் - நகர ஒருங்கிணைப்பு', icon: <Hash className="text-amber-500" /> },
+    { name: 'Shavuot', date: '15 May - 14 Jun', desc: 'Feast of Weeks, commemorating the giving of the Torah.', tamil: 'ஷாவுவோத் - வாரங்களின் பண்டிகை (தோரா வழங்கல்)', icon: <BookOpen className="text-blue-600" /> },
+    { name: 'Tzom Tammuz', date: '25 Jun - 25 Jul', desc: "Fast of Tammuz, marking the breach of Jerusalem's walls.", tamil: 'யெருசலேம் மதில் உடைப்பு நினைவு நோன்பு', icon: <Clock className="text-slate-500" /> },
+    { name: "Tisha B'Av", date: '16 Jul - 15 Aug', desc: 'Fast of the Ninth of Av, mourning the destruction of the Temples.', tamil: 'திஷா பஆவ் - ஆலயம் அழிந்த நோன்பு நாள்', icon: <Clock className="text-slate-800" /> },
+    { name: "Tu B'Av", date: '22 Jul - 21 Aug', desc: 'Jewish day of love.', tamil: 'துவ் பஆவ் - அன்பின் நாள்', icon: <Heart className="text-red-500" /> },
+    { name: 'Rosh Hashanah', date: '5 Sep - 5 Oct', desc: 'The Jewish New Year, a time of reflection and repentance.', tamil: 'ரோஷ் ஹஷானா - யூத புத்தாண்டு', icon: <Flame className="text-red-500" /> },
+    { name: 'Yom Kippur', date: '14 Sep - 14 Oct', desc: 'Day of Atonement, the holiest day of the year.', tamil: 'யோம் கிப்பூர் - பரிகார நாள் (மிக புனிதமான நாள்)', icon: <Clock className="text-slate-500" /> },
+    { name: 'Sukkot', date: '19 Sep - 19 Oct', desc: 'Feast of Tabernacles (first of seven days).', tamil: 'சுக்கோத் - கூடாரப் பண்டிகை (7 நாட்கள்)', icon: <CalendarIcon className="text-green-600" /> },
+    { name: 'Shemini Atzeret', date: '26 Sep - 26 Oct', desc: 'The Eighth Day of Assembly.', tamil: 'ஷெமினி அஸெரெத் - எட்டாம் நாள் ஆராதனை', icon: <Hash className="text-amber-600" /> },
+    { name: 'Simchat Torah', date: '27 Sep - 27 Oct', desc: 'Rejoicing in the Torah.', tamil: 'சிம்சாத் தோரா - தோரா மகிழ்ச்சி நாள்', icon: <BookOpen className="text-blue-600" /> },
+    { name: 'Hanukkah', date: '28 Nov - 27 Dec', desc: 'Festival of Lights (first of eight days).', tamil: 'ஹனுக்கா - விளக்குகளின் பண்டிகை (8 நாட்கள்)', icon: <Flame className="text-orange-500" /> },
+    { name: 'Tu Bishvat', date: '15 Jan - 13 Feb', desc: 'New Year for Trees.', tamil: 'து பிஷ்வாத் - மரங்களின் புத்தாண்டு', icon: <Sparkles className="text-green-500" /> },
+    { name: 'Purim', date: '24 Feb - 26 Mar', desc: 'Commemorating the salvation of the Jewish people in ancient Persia.', tamil: 'புரிம் - யூத மக்களின் விடுதலை கொண்டாட்டம்', icon: <Sparkles className="text-purple-500" /> },
+    { name: 'Shushan Purim', date: '25 Feb - 27 Mar', desc: 'Celebrated in walled cities like Jerusalem.', tamil: 'ஷுஷான் புரிம் - மதில் நகர புரிம்', icon: <Sparkles className="text-purple-600" /> }
 ];
 
 const HEBREW_DAYS = [
-    { name: 'Yom Rishon', english: 'Sunday', hebrew: 'יוֹם רִאשׁוֹן' },
     { name: 'Yom Sheni', english: 'Monday', hebrew: 'יוֹם שֵׁנִי' },
     { name: 'Yom Shlishi', english: 'Tuesday', hebrew: 'יוֹם שְׁלִישִׁי' },
     { name: 'Yom Revi\'i', english: 'Wednesday', hebrew: 'יוֹם רְבִיעִי' },
@@ -526,9 +525,9 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Valparai · Tamil Nadu · India</p>
                         </div>
                     </div>
-                    <div className="text-center">
-                        <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Hebrew Calendar {safeYear}</p>
-                        <p className="text-[9px] text-slate-400">© {new Date().getFullYear()} City of Truth Ministries · All rights reserved</p>
+                    <div className="text-center flex flex-col items-center justify-center gap-1.5 py-2">
+                        <p className="text-[11px] font-black text-amber-600 uppercase tracking-[0.2em] drop-shadow-sm">Hebrew Calendar {safeYear}</p>
+                        <p className="text-[10px] text-slate-500 font-bold tracking-wide">© {new Date().getFullYear()} <span className="text-brand-800 font-black">City of Truth Ministries</span> · All rights reserved</p>
                     </div>
                     <div className="flex items-center gap-4 text-[9px] text-slate-400 font-bold">
                         <span>📞 +91 8056125478</span>
@@ -590,76 +589,257 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
 };
 
 
-const FestivalsView: React.FC = () => (
-    <div className="space-y-16">
-        <div className="relative h-[450px] flex items-center justify-center p-8 bg-white rounded-[3rem] overflow-hidden group border border-amber-100 shadow-[0_20px_50px_rgba(245,158,11,0.12)]">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-200/60 via-transparent to-transparent"></div>
-            <div className="relative z-10 w-full max-w-md h-full flex flex-col items-center justify-center">
-                <div className="w-full h-full scale-90 origin-center">
-                    <InteractiveMenorah />
-                </div>
-            </div>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-amber-300/30 rounded-full blur-[80px] animate-pulse pointer-events-none" />
-        </div>
+const FestivalsView: React.FC = () => {
+    const exportRef = useRef<HTMLDivElement>(null);
+    const [isExporting, setIsExporting] = useState(false);
 
-        <div className="text-center -mt-8 mb-12 relative z-20">
-            <h3 className="text-4xl font-serif italic text-brand-950 font-bold tracking-widest drop-shadow-sm">Divine Festivals</h3>
-            <div className="h-1 w-24 bg-amber-500 mx-auto mt-4 rounded-full" />
-        </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {BIBLICAL_FESTIVALS.map((f, i) => (
-                <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-[0_20px_50px_-10px_rgba(79,70,229,0.15)] hover:border-brand-200 hover:-translate-y-1 transition-all duration-300 group overflow-hidden relative cursor-pointer"
-                >
-                    <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-brand-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-brand-50 rounded-bl-full -mr-12 -mt-12 transition-transform duration-500 group-hover:scale-150 group-hover:bg-brand-100/50" />
-
-                    <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-6">
-                            <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-transparent group-hover:text-brand-600 transition-colors duration-300 shadow-inner group-hover:shadow-lg group-hover:scale-110 transform">
-                                {f.icon}
-                            </div>
-                            <span className="text-[10px] font-bold text-slate-400 group-hover:text-brand-500 uppercase tracking-widest transition-colors">{f.date}</span>
-                        </div>
-                        <h4 className="text-xl font-bold text-brand-950 mb-3 group-hover:text-brand-700 transition-colors">{f.name}</h4>
-                        <p className="text-sm text-slate-500 leading-relaxed font-light group-hover:text-slate-600">{f.desc}</p>
-                    </div>
-                </motion.div>
-            ))}
-        </div>
-    </div>
-);
-
-const ReferenceView: React.FC = () => {
-    // Standardize logic
-    const leap = isLeapYear(5786);
-    // ... logic for display ...
+    const handleDownloadPDF = async () => {
+        if (!exportRef.current) return;
+        setIsExporting(true);
+        try {
+            const dataUrl = await captureNodeToJpeg(exportRef.current, { backgroundColor: '#0f0c29', width: 900 });
+            const img = new Image();
+            img.src = dataUrl;
+            await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = () => reject(); });
+            const A4_W = 210;
+            const pdfH = (img.height * A4_W) / img.width;
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [A4_W, pdfH] });
+            pdf.addImage(dataUrl, 'JPEG', 0, 0, A4_W, pdfH);
+            pdf.save('COT-Hebrew-Festivals.pdf');
+        } catch (e) {
+            console.error(e);
+            alert('Export failed, please try again.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     return (
         <div className="space-y-16">
-            {/* Note: The download button is now combined with the main calendar download in the Calendar tab */}
+            {/* Hidden export card */}
+            <div style={{ position: 'fixed', left: '-9999px', top: 0, zIndex: -1, pointerEvents: 'none' }}>
+                <div ref={exportRef} style={{ width: '900px', background: 'linear-gradient(135deg, #0f0c29 0%, #1a1450 50%, #0f0c29 100%)', padding: '48px', fontFamily: 'Georgia, serif', color: '#fff', borderRadius: '24px' }}>
+                    {/* Header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', paddingBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            <div>
+                                <div style={{ fontSize: '18px', fontWeight: 900, color: '#f0c040', textTransform: 'uppercase', letterSpacing: '0.06em' }}>City of Truth Ministries</div>
+                                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Valparai · India</div>
+                            </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '22px', fontWeight: 900, color: '#f0c040' }}>Divine Festivals</div>
+                            <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)' }}>தெய்வீக பண்டிகைகள்</div>
+                        </div>
+                    </div>
+                    {/* Grid of festivals */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                        {BIBLICAL_FESTIVALS.map((f, i) => (
+                            <div key={i} style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '14px', padding: '14px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                <div style={{ fontSize: '13px', fontWeight: 900, color: '#f0c040', marginBottom: '4px' }}>{f.name}</div>
+                                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginBottom: '6px', letterSpacing: '0.1em' }}>{f.date}</div>
+                                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.5, marginBottom: '6px' }}>{f.desc}</div>
+                                <div style={{ fontSize: '11px', color: '#93c5fd', fontStyle: 'italic' }}>{f.tamil}</div>
+                            </div>
+                        ))}
+                    </div>
+                    {/* Footer */}
+                    <div style={{ marginTop: '28px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'rgba(255,255,255,0.3)' }}>
+                        <span>© {new Date().getFullYear()} City of Truth Ministries · All rights reserved</span>
+                        <span>+91 8056125478 · city-of-truth-ministries.vercel.app</span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="relative h-[450px] flex items-center justify-center p-8 bg-white rounded-[3rem] overflow-hidden group border border-amber-100 shadow-[0_20px_50px_rgba(245,158,11,0.12)]">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-200/60 via-transparent to-transparent"></div>
+                <div className="relative z-10 w-full max-w-md h-full flex flex-col items-center justify-center">
+                    <div className="w-full h-full scale-90 origin-center">
+                        <InteractiveMenorah />
+                    </div>
+                </div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-amber-300/30 rounded-full blur-[80px] animate-pulse pointer-events-none" />
+            </div>
+
+            <div className="flex items-center justify-between -mt-8 mb-12 relative z-20">
+                <div className="text-center flex-1">
+                    <h3 className="text-4xl font-serif italic text-brand-950 font-bold tracking-widest drop-shadow-sm">Divine Festivals</h3>
+                    <p className="text-amber-600 font-bold text-lg mt-1">தெய்வீக பண்டிகைகள்</p>
+                    <div className="h-1 w-24 bg-amber-500 mx-auto mt-4 rounded-full" />
+                </div>
+                <button
+                    onClick={handleDownloadPDF}
+                    disabled={isExporting}
+                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-brand-900 to-brand-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:from-brand-800 hover:to-brand-600 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50"
+                >
+                    {isExporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                    Download PDF
+                </button>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {BIBLICAL_FESTIVALS.map((f, i) => (
+                    <motion.div
+                        key={i}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-[0_20px_50px_-10px_rgba(79,70,229,0.15)] hover:border-brand-200 hover:-translate-y-1 transition-all duration-300 group overflow-hidden relative cursor-pointer"
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-brand-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-brand-50 rounded-bl-full -mr-12 -mt-12 transition-transform duration-500 group-hover:scale-150 group-hover:bg-brand-100/50" />
+
+                        <div className="relative z-10">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-transparent group-hover:text-brand-600 transition-colors duration-300 shadow-inner group-hover:shadow-lg group-hover:scale-110 transform">
+                                    {f.icon}
+                                </div>
+                                <span className="text-[10px] font-bold text-slate-400 group-hover:text-brand-500 uppercase tracking-widest transition-colors">{f.date}</span>
+                            </div>
+                            <h4 className="text-xl font-bold text-brand-950 mb-1 group-hover:text-brand-700 transition-colors">{f.name}</h4>
+                            <p className="text-sm font-bold text-blue-600 mb-3">{f.tamil}</p>
+                            <p className="text-sm text-slate-500 leading-relaxed font-light group-hover:text-slate-600">{f.desc}</p>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); audioService.playHebrew(f.name); }}
+                                className="mt-3 flex items-center gap-1 text-[10px] text-brand-600 hover:text-brand-800 font-bold transition-colors"
+                                title="Listen in Hebrew"
+                            >
+                                <Volume2 size={12} /> Listen
+                            </button>
+                        </div>
+                    </motion.div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+const ReferenceView: React.FC = () => {
+    const leap = isLeapYear(5786);
+    const exportMonthsRef = useRef<HTMLDivElement>(null);
+    const [isExportingMonths, setIsExportingMonths] = useState(false);
+
+    const handleDownloadMonthsPDF = async () => {
+        if (!exportMonthsRef.current) return;
+        setIsExportingMonths(true);
+        try {
+            const dataUrl = await captureNodeToJpeg(exportMonthsRef.current, { backgroundColor: '#0f0c29', width: 900 });
+            const img = new Image();
+            img.src = dataUrl;
+            await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = () => reject(); });
+            const A4_W = 210;
+            const pdfH = (img.height * A4_W) / img.width;
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [A4_W, pdfH] });
+            pdf.addImage(dataUrl, 'JPEG', 0, 0, A4_W, pdfH);
+            pdf.save('COT-Hebrew-Months-Days.pdf');
+        } catch (e) {
+            console.error(e);
+            alert('Export failed, please try again.');
+        } finally {
+            setIsExportingMonths(false);
+        }
+    };
+
+    return (
+        <div className="space-y-16">
+            {/* Hidden export card for Months & Days */}
+            <div style={{ position: 'fixed', left: '-9999px', top: 0, zIndex: -1, pointerEvents: 'none' }}>
+                <div ref={exportMonthsRef} style={{ width: '900px', background: 'linear-gradient(135deg, #0f0c29 0%, #1a1450 50%, #0f0c29 100%)', padding: '48px', fontFamily: 'Georgia, serif', color: '#fff', borderRadius: '24px' }}>
+                    {/* Header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', paddingBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
+                        <div>
+                            <div style={{ fontSize: '18px', fontWeight: 900, color: '#f0c040', textTransform: 'uppercase', letterSpacing: '0.06em' }}>City of Truth Ministries</div>
+                            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Valparai · India</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '20px', fontWeight: 900, color: '#f0c040' }}>Hebrew Months & Days</div>
+                            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>எபிரேய மாதங்கள் மற்றும் நாட்கள்</div>
+                        </div>
+                    </div>
+                    {/* Months grid */}
+                    <div style={{ marginBottom: '20px' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 900, color: '#f0c040', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '12px' }}>Months · மாதங்கள்</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px' }}>
+                            {HEBREW_MONTHS_DATA.map((m, i) => (
+                                <div key={i} style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '12px', padding: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                    <div style={{ fontSize: '12px', fontWeight: 900, color: '#f0c040' }}>{(i+1).toString().padStart(2,'0')}. {m.name}</div>
+                                    <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.8)', direction: 'rtl', margin: '4px 0' }}>{m.hebrewScript}</div>
+                                    <div style={{ fontSize: '11px', color: '#93c5fd', marginBottom: '4px' }}>{m.tamil}</div>
+                                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>{m.gregorian}</div>
+                                    {m.holidays && <div style={{ fontSize: '9px', color: '#fde68a', marginTop: '4px' }}>{m.holidays}</div>}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    {/* Days grid */}
+                    <div style={{ marginBottom: '24px' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 900, color: '#f0c040', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '12px' }}>Days of the Week · வாரத்தின் நாட்கள்</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr', gap: '8px' }}>
+                            {HEBREW_DAYS.map((d, i) => (
+                                <div key={i} style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '10px', padding: '10px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                    <div style={{ fontSize: '16px', color: '#a78bfa', direction: 'rtl', marginBottom: '4px' }}>{d.hebrew}</div>
+                                    <div style={{ fontSize: '10px', fontWeight: 900, color: '#f0c040' }}>{d.name}</div>
+                                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>{d.english}</div>
+                                    <div style={{ fontSize: '10px', color: '#93c5fd', marginTop: '3px' }}>{d.tamil}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    {/* Footer */}
+                    <div style={{ paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'rgba(255,255,255,0.3)' }}>
+                        <span>© {new Date().getFullYear()} City of Truth Ministries · All rights reserved</span>
+                        <span>+91 8056125478 · city-of-truth-ministries.vercel.app</span>
+                    </div>
+                </div>
+            </div>
 
             {/* Hebrew Months Section */}
             <div>
-                <h3 className="text-2xl font-serif font-bold text-brand-950 mb-8 flex items-center gap-3">
-                    <BookOpen className="text-brand-600" /> Hebrew Months (Scriptural Order)
-                </h3>
+                <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-2xl font-serif font-bold text-brand-950 flex items-center gap-3">
+                        <BookOpen className="text-brand-600" /> Hebrew Months
+                        <span className="text-amber-600 font-normal text-lg">· எபிரேய மாதங்கள்</span>
+                    </h3>
+                    <button
+                        onClick={handleDownloadMonthsPDF}
+                        disabled={isExportingMonths}
+                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-brand-900 to-brand-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:from-brand-800 hover:to-brand-600 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50"
+                    >
+                        {isExportingMonths ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                        Download PDF
+                    </button>
+                </div>
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {HEBREW_MONTHS_DATA.map((m, i) => (
-                        <div key={i} className="bg-white p-6 rounded-3xl border border-slate-100 flex items-center gap-6 group hover:border-brand-200 transition-all hover:shadow-lg">
-                            <div className="text-4xl font-serif text-slate-200 group-hover:text-brand-100 transition-colors">{(i + 1).toString().padStart(2, '0')}</div>
+                        <div key={i} className="bg-white p-6 rounded-3xl border border-slate-100 flex items-start gap-5 group hover:border-brand-200 transition-all hover:shadow-lg">
+                            <div className="text-3xl font-serif text-slate-200 group-hover:text-brand-100 transition-colors shrink-0 w-10 text-center">{(i + 1).toString().padStart(2, '0')}</div>
                             <div className="flex-1">
-                                <div className="flex justify-between items-start">
-                                    <h4 className="text-lg font-bold text-brand-950">{m.name}</h4>
+                                <div className="flex justify-between items-start gap-2 flex-wrap">
+                                    <div>
+                                        <h4 className="text-lg font-bold text-brand-950">{m.name}</h4>
+                                        {m.hebrewScript && <p className="text-xl font-serif text-accent-700" dir="rtl">{m.hebrewScript}</p>}
+                                        <p className="text-sm font-bold text-blue-600">{m.tamil}</p>
+                                    </div>
                                 </div>
-                                <p className="text-xs text-accent-600 font-bold mb-1 uppercase tracking-widest">{m.gregorian}</p>
+                                <p className="text-xs text-accent-600 font-bold mb-1 uppercase tracking-widest mt-2">{m.gregorian}</p>
                                 {m.holidays && <p className="text-xs text-amber-700 font-bold">{m.holidays}</p>}
                                 <p className="text-[10px] text-slate-400 italic">{m.notes}</p>
+                                <div className="flex gap-3 mt-2">
+                                    <button
+                                        onClick={() => audioService.playHebrew(m.hebrewScript || m.name)}
+                                        className="flex items-center gap-1 text-[10px] text-brand-600 hover:text-brand-800 font-bold transition-colors"
+                                        title="Listen in Hebrew"
+                                    >
+                                        <Volume2 size={12} /> Listen (Hebrew)
+                                    </button>
+                                    <button
+                                        onClick={() => audioService.playTamil(m.tamil)}
+                                        className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 font-bold transition-colors"
+                                        title="Listen in Tamil"
+                                    >
+                                        <Volume2 size={12} /> கேள் (தமிழ்)
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))}
@@ -685,18 +865,36 @@ const ReferenceView: React.FC = () => {
             <div>
                 <h3 className="text-2xl font-serif font-bold text-brand-950 mb-8 flex items-center gap-3">
                     <Clock className="text-brand-600" /> Sacred Days
+                    <span className="text-amber-600 font-normal text-lg">· வாரத்தின் நாட்கள்</span>
                 </h3>
-                <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {HEBREW_DAYS.map((day, i) => (
-                        <div key={i} className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all group cursor-default">
-                            <div className="flex justify-between items-start mb-6">
-                                <div className="w-12 h-12 bg-brand-50 rounded-2xl flex items-center justify-center text-brand-600 group-hover:bg-brand-600 group-hover:text-white transition-colors font-bold">
+                        <div key={i} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all group cursor-default">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="w-10 h-10 bg-brand-50 rounded-2xl flex items-center justify-center text-brand-600 group-hover:bg-brand-600 group-hover:text-white transition-colors font-bold text-sm">
                                     {i + 1}
                                 </div>
                             </div>
-                            <h4 className="text-xl font-bold text-brand-950 mb-1">{day.name}</h4>
-                            <p className="text-sm text-slate-400 font-medium mb-4 uppercase tracking-widest">{day.english}</p>
-                            <div className="text-3xl font-serif text-accent-600 border-t border-slate-50 pt-4 mt-4">{day.hebrew}</div>
+                            <h4 className="text-lg font-bold text-brand-950 mb-0.5">{day.name}</h4>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">{day.english}</p>
+                            <p className="text-sm font-bold text-blue-600 mb-3">{day.tamil}</p>
+                            <div className="text-3xl font-serif text-accent-600 border-t border-slate-50 pt-4 mt-4" dir="rtl">{day.hebrew}</div>
+                            <div className="flex gap-3 mt-3">
+                                <button
+                                    onClick={() => audioService.playHebrew(day.hebrew)}
+                                    className="flex items-center gap-1 text-[10px] text-brand-600 hover:text-brand-800 font-bold transition-colors"
+                                    title="Listen in Hebrew"
+                                >
+                                    <Volume2 size={12} /> Listen (Hebrew)
+                                </button>
+                                <button
+                                    onClick={() => audioService.playTamil(day.tamil)}
+                                    className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 font-bold transition-colors"
+                                    title="Listen in Tamil"
+                                >
+                                    <Volume2 size={12} /> கேள் (தமிழ்)
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>
