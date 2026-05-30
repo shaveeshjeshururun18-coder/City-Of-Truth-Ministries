@@ -13,7 +13,7 @@ import { jsPDF } from 'jspdf';
 import { User, ViewState } from '../types';
 import { getCalendarData5786 } from './CalendarLogic';
 import { audioService } from '../services/audioService';
-
+import { HebrewGrammar3D } from './HebrewGrammar3D';
 
 const captureNodeToJpeg = async (
     sourceNode: HTMLElement,
@@ -2080,7 +2080,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
                             {tab === 'numbers' && <HebrewConverterNumbers />}
                             {tab === 'gematria' && <HebrewGematriaCalc />}
                             {tab === 'reference' && <ReferenceView />}
-                            {tab === 'grammar' && <GrammarView />}
+                            {tab === 'grammar' && <HebrewGrammar3D />}
                         </motion.div>
                     </AnimatePresence>
                 </div>
