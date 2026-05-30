@@ -10,6 +10,7 @@ interface GoldenMenorahPageProps {
 export const GoldenMenorahPage: React.FC<GoldenMenorahPageProps> = () => {
     const [flagImageSrc, setFlagImageSrc] = React.useState('/menorah-flag-image.png');
     const [isFlagUnavailable, setIsFlagUnavailable] = React.useState(false);
+    const [videoError, setVideoError] = React.useState(false);
 
     const handleFlagImageError = () => {
         if (flagImageSrc === '/menorah-flag-image.png') {
@@ -50,8 +51,19 @@ export const GoldenMenorahPage: React.FC<GoldenMenorahPageProps> = () => {
                         <div className="absolute -inset-1 bg-gradient-to-r from-amber-600 to-yellow-400 rounded-[2.6rem] blur-xl opacity-20 group-hover:opacity-40 transition duration-1000"></div>
                         <div className="relative w-full h-full bg-gradient-to-bl from-white/[0.05] to-white/[0.01] backdrop-blur-xl border border-amber-500/30 rounded-[2.5rem] p-10 shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col justify-center">
                             <div className="absolute top-6 right-6 flex items-center gap-2 text-amber-500/50 font-bold text-xs uppercase tracking-[0.3em]"><Sparkles size={14} /> Sacred Standard</div>
-                            <div className="relative overflow-hidden rounded-2xl shadow-inner border border-amber-500/10 w-full max-w-md mx-auto h-full flex items-center justify-center">
-                                {!isFlagUnavailable ? (
+                            <div className="relative overflow-hidden rounded-2xl shadow-[0_0_30px_rgba(245,158,11,0.15)] group-hover:shadow-[0_0_40px_rgba(245,158,11,0.4)] border border-amber-500/20 group-hover:border-amber-400/40 w-full max-w-md mx-auto h-full flex items-center justify-center transition-all duration-700 bg-black/40">
+                                {!videoError ? (
+                                    <video
+                                        src="/gemini_generated_video_cf07149d.mp4"
+                                        autoPlay
+                                        loop
+                                        muted
+                                        playsInline
+                                        preload="auto"
+                                        className="w-full h-full object-cover transform scale-100 group-hover:scale-105 transition-transform duration-[1.5s] ease-out-quint"
+                                        onError={() => setVideoError(true)}
+                                    />
+                                ) : !isFlagUnavailable ? (
                                     <img
                                         src={flagImageSrc}
                                         alt="Sacred Menorah Flag with YHWH inscriptions"
@@ -64,7 +76,8 @@ export const GoldenMenorahPage: React.FC<GoldenMenorahPageProps> = () => {
                                         <p className="text-amber-100/60 text-xs mt-1">Please refresh the page and try again.</p>
                                     </div>
                                 )}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none"></div>
+                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/5 via-transparent to-transparent opacity-60 pointer-events-none"></div>
                             </div>
                             <div className="mt-8 text-center">
                                 <h3 className="text-xl font-bold text-amber-200 mb-2 font-serif">YHWH (יהוה)</h3>

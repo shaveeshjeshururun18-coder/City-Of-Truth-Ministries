@@ -67,11 +67,29 @@ const getYearStartOffset = (year: number): Date => {
     return startDate;
 }
 
-// Generate data for 5786 (Simulated)
-export const getCalendarData5786 = (): any[] => {
-    // 5786 (Biblical Order) - Starts Nisan 1 (approx March 19, 2026)
-    const year = 5786;
-    const currentDate = new Date(2026, 2, 19);
+const getNisan1StartOffset = (year: number): Date => {
+    const refYear = 5786;
+    const refDate = new Date(2026, 2, 19); // March 19, 2026
+
+    let diffDays = 0;
+    if (year >= refYear) {
+        for (let y = refYear; y < year; y++) {
+            diffDays += isHebrewLeapYear(y) ? 384 : 354;
+        }
+    } else {
+        for (let y = year; y < refYear; y++) {
+            diffDays -= isHebrewLeapYear(y) ? 384 : 354;
+        }
+    }
+
+    const startDate = new Date(refDate);
+    startDate.setDate(startDate.getDate() + diffDays);
+    return startDate;
+};
+
+export const getCalendarData5786 = (year: number = 5786): any[] => {
+    const isLeap = isHebrewLeapYear(year);
+    const currentDate = getNisan1StartOffset(year);
 
     const monthsInYear = [
         { name: 'Nisan', hebrew: 'נִיסָן' },
@@ -85,7 +103,10 @@ export const getCalendarData5786 = (): any[] => {
         { name: 'Kislev', hebrew: 'כִּסְלֵו' },
         { name: 'Tevet', hebrew: 'טֵבֵת' },
         { name: 'Shevat', hebrew: 'שְׁבָט' },
-        { name: 'Adar', hebrew: 'אֲדָר' }
+        ...(isLeap
+            ? [{ name: 'Adar I', hebrew: 'אֲדָר א׳' }, { name: 'Adar II', hebrew: 'אֲדָר ב׳' }]
+            : [{ name: 'Adar', hebrew: 'אֲדָר' }]
+        )
     ];
 
     const getMonthLength = (mName: string) => {

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type, Volume2, Loader2, Info, Fingerprint, FileImage } from 'lucide-react';
+import { Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type, Volume2, Loader2, Info, Fingerprint, FileImage, Download, Printer } from 'lucide-react';
 import { analyzeHebrewWord } from '../services/openRouterService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HebrewYearDropdown } from './HebrewYearDropdown';
@@ -10,8 +10,7 @@ import { PrintableHebrewCalendar } from './PrintableHebrewCalendar';
 import { PrintableReferenceGuide, HEBREW_MONTHS_DATA, KEY_DETAILS } from './PrintableReferenceGuide';
 import { toPng, toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
-import { User } from '../types';
-import { Download, Printer } from 'lucide-react';
+import { User, ViewState } from '../types';
 import { getCalendarData5786 } from './CalendarLogic';
 import { audioService } from '../services/audioService';
 
@@ -202,13 +201,14 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
     const [currentMonthIdx, setCurrentMonthIdx] = useState(0); // Nisan (Default 0)
     const [selectedDay, setSelectedDay] = useState<number | null>(null);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+    const [isGeneratingCurrentMonth, setIsGeneratingCurrentMonth] = useState(false);
     const [calendarRenderMode, setCalendarRenderMode] = useState<{ mode: 'cover' | 'month', monthData?: any } | null>(null);
 
     // Use a safe fallback year if input is invalid
     const safeYear = (!year || isNaN(year) || year < 1 || year > 9999) ? 5786 : year;
 
     // Import logic helper - use safeYear
-    const calendarData = React.useMemo(() => getCalendarData5786(), [safeYear]);
+    const calendarData = React.useMemo(() => getCalendarData5786(safeYear), [safeYear]);
 
     // Derived state for current view
     const currentMonthData = calendarData[currentMonthIdx];
@@ -316,6 +316,41 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
         }
     };
 
+    const handleDownloadCurrentMonth = async () => {
+        setIsGeneratingCurrentMonth(true);
+        try {
+            const node = document.getElementById('active-calendar-card');
+            if (!node) throw new Error("Active Calendar Card not found");
+
+            const downloadButtonContainer = node.querySelector('.download-actions-container') as HTMLElement;
+            const todayNotice = node.querySelector('.today-notice-container') as HTMLElement;
+            if (downloadButtonContainer) downloadButtonContainer.style.display = 'none';
+            if (todayNotice) todayNotice.style.display = 'none';
+
+            await new Promise(resolve => setTimeout(resolve, 200));
+
+            const dataUrl = await toPng(node, {
+                pixelRatio: 2.0,
+                quality: 0.95,
+                backgroundColor: '#ffffff',
+                cacheBust: true,
+            });
+
+            if (downloadButtonContainer) downloadButtonContainer.style.display = '';
+            if (todayNotice) todayNotice.style.display = '';
+
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = `COT-Hebrew-Calendar-${name}-${year}.png`;
+            link.click();
+        } catch (e) {
+            console.error(e);
+            alert("Failed to export month image. Please try again.");
+        } finally {
+            setIsGeneratingCurrentMonth(false);
+        }
+    };
+
     return (
         <div className="space-y-6 md:space-y-12 w-full max-w-none mx-auto px-0 md:px-2">
             {/* Hidden Print Config */}
@@ -337,7 +372,7 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                 <PrintableReferenceGuide year={year} />
             </div>
 
-            <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-12 shadow-[0_20px_60px_rgba(0,0,0,0.05)] border border-slate-100 font-serif">
+            <div id="active-calendar-card" className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-12 shadow-[0_20px_60px_rgba(0,0,0,0.05)] border border-slate-100 font-serif">
                 <div className="flex flex-col xl:flex-row items-center justify-between gap-6 md:gap-8 mb-8 md:mb-12">
                     <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4 bg-slate-50 p-2 md:p-3 rounded-2xl w-full xl:w-auto">
                         <HebrewYearDropdown
@@ -355,7 +390,7 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                             disabled={currentMonthIdx === 0}
                             className="p-2 rounded-full hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-brand-900"
                         >
-                            <ChevronLeft size={24} md:size={32} />
+                            <ChevronLeft size={24} />
                         </button>
 
                         <div className="text-center min-w-[180px]">
@@ -379,7 +414,7 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                     </div>
                 </div>
 
-                <div className="mb-6 rounded-2xl border border-amber-100 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3 text-center">
+                <div className="today-notice-container mb-6 rounded-2xl border border-amber-100 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3 text-center">
                     <p className="text-[10px] uppercase tracking-[0.2em] text-amber-700 font-black">Today</p>
                     <p className="text-sm md:text-base font-bold text-brand-950">
                         {todayDayName}, {today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
@@ -387,17 +422,29 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                     <p className="text-xs text-slate-500">Current Hebrew month view: {name} ({hebrew})</p>
                 </div>
 
-                {/* PDF Action */}
-                <div className="flex justify-center mb-8">
+                {/* PDF & PNG Actions */}
+                <div className="download-actions-container flex flex-wrap justify-center gap-4 mb-8">
+                    <button
+                        onClick={handleDownloadCurrentMonth}
+                        disabled={isGeneratingCurrentMonth}
+                        className="flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-amber-400 to-amber-500 text-white rounded-full hover:from-amber-500 hover:to-amber-600 font-black text-xs uppercase tracking-widest transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50"
+                    >
+                        {isGeneratingCurrentMonth ? (
+                            <><span className="animate-spin text-xs">⏳</span> Exporting PNG...</>
+                        ) : (
+                            <><FileImage size={15} /> Download Current Month (Fast PNG)</>
+                        )}
+                    </button>
+
                     <button
                         onClick={handleDownloadFullCalendar}
                         disabled={isGeneratingPdf}
-                        className="flex items-center gap-2 px-8 py-4 bg-amber-500 text-white rounded-full hover:bg-amber-600 font-bold text-sm uppercase tracking-widest transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1"
+                        className="flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-orange-500 to-amber-600 text-white rounded-full hover:from-orange-600 hover:to-amber-700 font-black text-xs uppercase tracking-widest transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50"
                     >
                         {isGeneratingPdf ? (
-                            <><span className="animate-spin text-xl">⏳</span> Generating PDF...</>
+                            <><span className="animate-spin text-xs">⏳</span> Bulk Exporting PDF...</>
                         ) : (
-                            <><Download size={18} /> Download Calendar</>
+                            <><Download size={15} /> Download Full Calendar (Bulk PDF)</>
                         )}
                     </button>
                 </div>
@@ -646,47 +693,79 @@ const AnalogDial: React.FC<{
     hourAngle: number;
     minuteAngle: number;
     secondAngle: number;
-    accent: string;
-}> = ({ label, hourAngle, minuteAngle, secondAngle, accent }) => (
-    <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 text-center mb-4">{label}</p>
-        <div className={`relative mx-auto w-52 h-52 rounded-full border-4 ${accent} bg-slate-50 shadow-inner`}>
-            {Array.from({ length: 12 }).map((_, i) => {
-                const value = i + 1;
-                const hebrewNumber = toHebrew(value);
-                const hebrewLetter = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ', 'ל'][i];
-                return (
-                    <span
-                        key={value}
-                        className="absolute text-[10px] font-black text-brand-900 flex flex-col items-center leading-none"
-                        style={{
-                            left: '50%',
-                            top: '50%',
-                            transform: `rotate(${value * 30}deg) translateY(-88px) translateX(-50%)`,
-                            transformOrigin: 'center center',
-                        }}
-                    >
-                        <span className="text-[11px]">{hebrewNumber}</span>
-                        <span className="text-[10px] text-slate-500">{hebrewLetter}</span>
-                    </span>
-                );
-            })}
-            <span
-                className="absolute left-1/2 top-1/2 w-1.5 h-12 bg-slate-800 rounded-full"
-                style={{ transform: `translate(-50%, -100%) rotate(${hourAngle}deg)`, transformOrigin: '50% 100%' }}
-            />
-            <span
-                className="absolute left-1/2 top-1/2 w-1 h-16 bg-brand-600 rounded-full"
-                style={{ transform: `translate(-50%, -100%) rotate(${minuteAngle}deg)`, transformOrigin: '50% 100%' }}
-            />
-            <span
-                className="absolute left-1/2 top-1/2 w-0.5 h-20 bg-red-500 rounded-full"
-                style={{ transform: `translate(-50%, -100%) rotate(${secondAngle}deg)`, transformOrigin: '50% 100%' }}
-            />
-            <span className="absolute left-1/2 top-1/2 w-3 h-3 bg-slate-800 rounded-full -translate-x-1/2 -translate-y-1/2 border-2 border-white" />
+    is24Hour: boolean;
+}> = ({ label, hourAngle, minuteAngle, secondAngle, is24Hour }) => {
+    const letters = is24Hour 
+        ? ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'יא', 'יב', 'יג', 'יד', 'טו', 'טז', 'יז', 'יח', 'יט', 'כ', 'כא', 'כב', 'כג', 'כד'] 
+        : ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ', 'ל'];
+
+    return (
+        <div className="bg-[#0f1026] border border-white/10 rounded-[2.5rem] p-6 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col items-center hover:border-[#C5A880]/30 transition-all relative group overflow-hidden w-full max-w-sm">
+            <div className="absolute inset-0 bg-gradient-to-b from-[#C5A880]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#C5A880] text-center mb-6 relative z-10">{label}</p>
+            
+            {/* Clock Face Circle - Bigger and Bold! */}
+            <div className="relative w-64 h-64 sm:w-76 sm:h-76 md:w-80 md:h-80 rounded-full border-[8px] border-double border-[#C5A880] bg-gradient-to-br from-[#121330] to-[#08091a] shadow-[0_0_35px_rgba(197,168,128,0.25),inset_0_0_20px_rgba(0,0,0,0.8)] flex items-center justify-center">
+                {/* Dial numbers placed using polar trigonometry */}
+                {letters.map((char, i) => {
+                    const value = i + 1;
+                    const angle = value * (is24Hour ? 15 : 30);
+                    const angleRad = (angle * Math.PI) / 180;
+                    const radiusPercent = 38; // Radius of letters placement
+                    const left = 50 + radiusPercent * Math.sin(angleRad);
+                    const top = 50 - radiusPercent * Math.cos(angleRad);
+                    
+                    return (
+                        <div
+                            key={value}
+                            className="absolute flex flex-col items-center justify-center leading-none text-center select-none"
+                            style={{
+                                left: `${left}%`,
+                                top: `${top}%`,
+                                transform: 'translate(-50%, -50%)',
+                            }}
+                        >
+                            <span className="text-[10px] sm:text-[12px] font-extrabold text-white">{value}</span>
+                            <span className="text-[8px] sm:text-[9px] font-black text-[#C5A880] mt-0.5">{char}</span>
+                        </div>
+                    );
+                })}
+
+                {/* Hour Hand */}
+                <div
+                    className="absolute left-1/2 top-1/2 w-[5px] sm:w-[6px] h-[30%] bg-gradient-to-t from-[#C5A880] to-white rounded-full shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
+                    style={{
+                        transform: `translate(-50%, -100%) rotate(${hourAngle}deg)`,
+                        transformOrigin: '50% 100%',
+                    }}
+                />
+
+                {/* Minute Hand */}
+                <div
+                    className="absolute left-1/2 top-1/2 w-[3px] sm:w-[4px] h-[38%] bg-gradient-to-t from-slate-300 to-white rounded-full shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
+                    style={{
+                        transform: `translate(-50%, -100%) rotate(${minuteAngle}deg)`,
+                        transformOrigin: '50% 100%',
+                    }}
+                />
+
+                {/* Second Hand */}
+                <div
+                    className="absolute left-1/2 top-1/2 w-[1.5px] h-[44%] bg-red-500 rounded-full shadow-[0_1px_4px_rgba(0,0,0,0.3)]"
+                    style={{
+                        transform: `translate(-50%, -100%) rotate(${secondAngle}deg)`,
+                        transformOrigin: '50% 100%',
+                    }}
+                />
+
+                {/* Center Pivot Point */}
+                <div className="absolute left-1/2 top-1/2 w-4 h-4 bg-slate-950 rounded-full -translate-x-1/2 -translate-y-1/2 border-2 border-[#C5A880] shadow-md flex items-center justify-center">
+                    <div className="w-1.5 h-1.5 bg-[#C5A880] rounded-full" />
+                </div>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 const HebrewClockView: React.FC = () => {
     const [now, setNow] = useState(() => new Date());
@@ -722,40 +801,55 @@ const HebrewClockView: React.FC = () => {
 
     const [hour = 0, minute = 0, second = 0] = digitalTime.split(':').map((v) => Number(v));
     const hourAngle = ((hour % 12) + minute / 60 + second / 3600) * 30;
+    const hour24Angle = (hour + minute / 60 + second / 3600) * 15;
     const minuteAngle = (minute + second / 60) * 6;
     const secondAngle = second * 6;
     const hebrewDigitalTime = `${toHebrew((hour % 12) || 12)}:${toHebrew(minute)}:${toHebrew(second)}`;
+    const hebrewDigital24Time = `${toHebrew(hour)}:${toHebrew(minute)}:${toHebrew(second)}`;
 
     return (
-        <div className="space-y-10">
-            <div className="text-center">
-                <h3 className="text-3xl md:text-5xl font-serif font-bold text-brand-950">Hebrew Clock — Chennai Time</h3>
-                <p className="text-slate-500 mt-2">Live time synced to Chennai (Asia/Kolkata).</p>
+        <div className="space-y-10 bg-slate-950 text-white rounded-[2.5rem] p-6 md:p-10 border border-white/10 shadow-2xl relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
+            
+            <div className="text-center relative z-10 space-y-2">
+                <h3 className="text-3xl md:text-5xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 drop-shadow-md">Hebrew Clock — Chennai Time</h3>
+                <p className="text-slate-400 max-w-xl mx-auto text-xs sm:text-sm">Synchronized to Chennai, India (Asia/Kolkata timezone)</p>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-2">
-                <div className="bg-white rounded-[2rem] border border-amber-100 p-8 shadow-xl text-center">
-                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-600 mb-3">Hebrew Digital Clock</p>
-                    <div className="text-4xl md:text-6xl font-black text-brand-950 tracking-wider" dir="rtl">{hebrewDigitalTime}</div>
-                    <p className="text-sm text-slate-500 mt-4">Digits rendered as Hebrew numerals.</p>
-                </div>
-                <div className="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-xl text-center">
-                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 mb-3">Normal Digital Timing</p>
-                    <div className="text-5xl md:text-7xl font-black font-mono text-brand-950 tracking-wider">{digitalTime}</div>
-                    <p className="text-sm text-slate-500 mt-4">{dateLine}</p>
-                </div>
+            <div className="grid gap-6 md:grid-cols-2 relative z-10 justify-items-center">
+                {/* 12-Hour Clock */}
+                <AnalogDial
+                    label="12-Hour Sacred Dial (Hebrew Letters + Numbers)"
+                    hourAngle={hourAngle}
+                    minuteAngle={minuteAngle}
+                    secondAngle={secondAngle}
+                    is24Hour={false}
+                />
+                {/* 24-Hour Clock */}
+                <AnalogDial
+                    label="24-Hour Solar Dial (Full Day Cycle א - כד)"
+                    hourAngle={hour24Angle}
+                    minuteAngle={minuteAngle}
+                    secondAngle={secondAngle}
+                    is24Hour={true}
+                />
             </div>
 
-            <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 text-center mb-4">Hebrew Quartz Clock</p>
-                <div className="max-w-md mx-auto">
-                    <AnalogDial
-                        label="Analogue Dial (Hebrew Letters + Numbers)"
-                        hourAngle={hourAngle}
-                        minuteAngle={minuteAngle}
-                        secondAngle={secondAngle}
-                        accent="border-emerald-300"
-                    />
+            <div className="grid gap-4 sm:grid-cols-3 relative z-10">
+                <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 text-center shadow-lg hover:border-amber-500/20 transition-all">
+                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-400 mb-2">Sacred 12H Time</p>
+                    <div className="text-2xl sm:text-3xl font-black tracking-wider text-white" dir="rtl">{hebrewDigitalTime}</div>
+                    <p className="text-[9px] text-slate-400 mt-2">Hebrew numerals (12H cycle)</p>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 text-center shadow-lg hover:border-amber-500/20 transition-all">
+                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-400 mb-2">Solar 24H Time</p>
+                    <div className="text-2xl sm:text-3xl font-black tracking-wider text-white" dir="rtl">{hebrewDigital24Time}</div>
+                    <p className="text-[9px] text-slate-400 mt-2">Hebrew numerals (24H cycle)</p>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 text-center shadow-lg hover:border-amber-500/20 transition-all">
+                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-400 mb-2">Standard Timing</p>
+                    <div className="text-2xl sm:text-3xl font-black font-mono tracking-wider text-white">{digitalTime}</div>
+                    <p className="text-[9px] text-slate-400 mt-2">{dateLine}</p>
                 </div>
             </div>
         </div>
@@ -919,38 +1013,31 @@ const GrammarView: React.FC = () => {
     };
 
     return (
-        <div className="space-y-8">
-            <div className="text-center max-w-3xl mx-auto">
-                <h3 className="text-3xl md:text-5xl font-serif font-bold text-brand-950 mb-3">Hebrew Grammar</h3>
-                <p className="text-slate-500">A complete foundation for script, vowels, sentence flow, roots, and biblical reading mastery.</p>
+        <div className="space-y-10 bg-slate-950 text-white rounded-[2.5rem] p-6 md:p-10 border border-white/10 shadow-2xl relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
+            
+            {/* Header */}
+            <div className="text-center max-w-3xl mx-auto relative z-10 space-y-2">
+                <h3 className="text-3xl md:text-5xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 drop-shadow-md">Hebrew Grammar</h3>
+                <p className="text-slate-400 text-xs sm:text-sm">A complete foundation for script, vowels, sentence flow, roots, and biblical reading mastery.</p>
             </div>
-            <div className="grid md:grid-cols-2 gap-6">
-                {grammarTopics.map((topic) => (
-                    <div key={topic.title} className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
-                        <h4 className="text-xl font-bold text-brand-950 mb-3">{topic.title}</h4>
-                        <ul className="space-y-2 text-sm text-slate-600 leading-relaxed list-disc pl-5">
-                            {topic.points.map(point => (
-                                <li key={point}>{point}</li>
-                            ))}
-                        </ul>
-                    </div>
-                ))}
-            </div>
-            <div className="bg-white border border-slate-100 rounded-[2rem] p-6 md:p-8 shadow-xl space-y-5">
+
+            {/* Sentence Rectifier (At the Top!) */}
+            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 md:p-8 shadow-xl space-y-5 relative z-10 hover:border-amber-500/10 transition-all">
                 <div className="space-y-2">
-                    <h4 className="text-2xl font-bold text-brand-950">Sentence Rectifier</h4>
-                    <p className="text-sm text-slate-500">Paste a sentence and rectify spacing, punctuation, and Hebrew final-letter form mistakes.</p>
+                    <h4 className="text-2xl font-bold text-[#C5A880]">Sentence Rectifier</h4>
+                    <p className="text-xs sm:text-sm text-slate-400">Paste a sentence and rectify spacing, punctuation, and Hebrew final-letter form mistakes instantly.</p>
                 </div>
                 <textarea
                     value={sentence}
                     onChange={(e) => setSentence(e.target.value)}
-                    placeholder="Type Hebrew or transliterated sentence..."
-                    className="w-full min-h-28 rounded-2xl border border-slate-200 p-4 text-sm text-slate-700 focus:outline-none focus:ring-4 focus:ring-brand-500/10"
+                    placeholder="Type Hebrew or transliterated sentence here..."
+                    className="w-full min-h-28 rounded-2xl border border-white/10 bg-slate-900/50 p-4 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-[#C5A880]/20 transition-all"
                 />
                 <div className="flex flex-wrap gap-3">
                     <button
                         onClick={rectifySentence}
-                        className="px-5 py-2.5 rounded-full bg-brand-950 text-white font-bold text-sm hover:bg-brand-900 transition-colors"
+                        className="px-5 py-2.5 rounded-full bg-gradient-to-r from-[#C5A880] to-[#E5C9A3] text-brand-950 font-extrabold text-sm hover:from-white hover:to-white transition-all shadow-md active:scale-95 cursor-pointer"
                     >
                         Rectify Mistakes
                     </button>
@@ -959,7 +1046,7 @@ const GrammarView: React.FC = () => {
                             <button
                                 onClick={() => handleGrammarExport('pdf')}
                                 disabled={isExportingGrammar}
-                                className="px-5 py-2.5 rounded-full bg-gradient-to-r from-emerald-400 via-sky-500 to-indigo-500 text-white font-bold text-sm shadow-lg disabled:opacity-50 flex items-center gap-2"
+                                className="px-5 py-2.5 rounded-full bg-gradient-to-r from-emerald-400 via-sky-500 to-indigo-500 text-white font-bold text-sm shadow-lg disabled:opacity-50 flex items-center gap-2 cursor-pointer active:scale-95"
                             >
                                 {isExportingGrammar ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                                 Export PDF
@@ -967,7 +1054,7 @@ const GrammarView: React.FC = () => {
                             <button
                                 onClick={() => handleGrammarExport('png')}
                                 disabled={isExportingGrammar}
-                                className="px-5 py-2.5 rounded-full bg-slate-100 text-slate-700 font-bold text-sm hover:bg-slate-200 disabled:opacity-50 flex items-center gap-2"
+                                className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-sm disabled:opacity-50 flex items-center gap-2 cursor-pointer active:scale-95"
                             >
                                 {isExportingGrammar ? <Loader2 size={14} className="animate-spin" /> : <FileImage size={14} />}
                                 Export Image
@@ -976,16 +1063,88 @@ const GrammarView: React.FC = () => {
                     )}
                 </div>
                 {correctedSentence && (
-                    <div ref={grammarExportRef} className="bg-slate-900 text-white rounded-[1.5rem] p-5 border border-slate-700 space-y-3">
-                        <p className="text-[10px] uppercase tracking-[0.2em] text-sky-300 font-black">Professional Export Preview</p>
-                        <p className="text-sm text-slate-300">Corrected Sentence</p>
-                        <div className="text-2xl font-serif bg-white/5 rounded-xl p-4" dir="rtl">{correctedSentence}</div>
+                    <div className="bg-[#0f1026] text-white rounded-[1.5rem] p-5 border border-white/10 space-y-3 shadow-inner">
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-[#C5A880] font-black">Professional Export Preview</p>
+                        <p className="text-xs text-slate-400 font-bold">Corrected Sentence</p>
+                        <div className="text-2xl font-serif bg-white/5 rounded-xl p-4 border border-white/5 text-white" dir="rtl">{correctedSentence}</div>
+                        <p className="text-xs text-slate-400 font-bold mt-2">Applied Rules & Details</p>
                         <ul className="space-y-1 text-xs text-slate-300 list-disc pl-5">
                             {correctionNotes.map((note) => <li key={note}>{note}</li>)}
                         </ul>
                     </div>
                 )}
             </div>
+
+            {/* Grammar Topics (Below the Rectifier!) */}
+            <div className="grid md:grid-cols-2 gap-6 relative z-10">
+                {grammarTopics.map((topic) => (
+                    <div key={topic.title} className="bg-white/5 border border-white/10 rounded-3xl p-6 shadow-sm hover:border-[#C5A880]/20 transition-all">
+                        <h4 className="text-lg font-bold text-[#C5A880] mb-3">{topic.title}</h4>
+                        <ul className="space-y-2 text-xs sm:text-sm text-slate-300 leading-relaxed list-disc pl-5">
+                            {topic.points.map(point => (
+                                <li key={point}>{point}</li>
+                            ))}
+                        </ul>
+                    </div>
+                ))}
+            </div>
+
+            {/* Hidden/offscreen premium render card for capture */}
+            {correctedSentence && (
+                <div
+                    ref={grammarExportRef}
+                    style={{ position: 'fixed', left: '-9999px', top: 0, width: '800px', pointerEvents: 'none', zIndex: -1 }}
+                >
+                    <div style={{ background: 'linear-gradient(135deg, #0f0c29 0%, #1a1450 50%, #0f0c29 100%)', padding: '48px', fontFamily: 'Georgia, serif', color: '#ffffff', borderRadius: '24px', position: 'relative', overflow: 'hidden' }}>
+                        <div style={{ position: 'absolute', inset: 0, opacity: 0.04, backgroundImage: 'repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)', backgroundSize: '12px 12px', borderRadius: '24px' }} />
+                        
+                        {/* Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', paddingBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                <img src="/logo.png" alt="COT Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '12px', background: 'rgba(255,255,255,0.08)', padding: '6px' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                                <div>
+                                    <div style={{ fontSize: '18px', fontWeight: 900, letterSpacing: '0.06em', color: '#f0c040', textTransform: 'uppercase' }}>City of Truth Ministries</div>
+                                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: '3px' }}>Valparai &bull; India</div>
+                                </div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '3px' }}>Hebrew Grammar Study</div>
+                                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)' }}>AI Sentence Rectifier</div>
+                            </div>
+                        </div>
+
+                        {/* Rectified Sentence Hero */}
+                        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+                            <div style={{ fontSize: '12px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '12px' }}>Rectified Sentence</div>
+                            <div style={{ fontSize: '44px', fontWeight: 900, color: '#f0c040', letterSpacing: '0.04em', lineHeight: 1.3, direction: 'rtl', marginBottom: '16px' }}>{correctedSentence}</div>
+                            {sentence !== correctedSentence && (
+                                <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', direction: 'rtl' }}>Original: {sentence}</div>
+                            )}
+                        </div>
+
+                        {/* Corrections Badge */}
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px' }}>
+                            <div style={{ background: 'rgba(240,192,64,0.15)', border: '1px solid rgba(240,192,64,0.3)', borderRadius: '40px', padding: '8px 24px', display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }}>
+                                <span style={{ fontSize: '9px', fontWeight: 900, color: '#f0c040', letterSpacing: '0.25em', textTransform: 'uppercase' }}>Rectification Report</span>
+                            </div>
+                        </div>
+
+                        {/* Notes details as beautiful study blocks */}
+                        <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '18px', padding: '24px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                            <div style={{ fontSize: '11px', fontWeight: 900, color: '#93c5fd', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '14px' }}>Grammar Corrections & Rules Applied</div>
+                            <ul style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingLeft: '20px', listStyleType: 'disc', color: '#f1f5f9', fontSize: '14px', lineHeight: '1.5' }}>
+                                {correctionNotes.map((note, idx) => (
+                                    <li key={idx} style={{ color: '#e2e8f0' }}>{note}</li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        <div style={{ marginTop: '40px', textAlign: 'center', fontSize: '11px', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.05em' }}>
+                            Valparai, Tamil Nadu, India &bull; Study faithfully. May your eyes see the wonders of the Hebrew tongue.
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -1089,70 +1248,213 @@ const ALPHABET_REF = [
 
 const HebrewGematriaCalc: React.FC = () => {
     const [word, setWord] = useState('');
+    const [isExportingGematria, setIsExportingGematria] = useState(false);
+    const gematriaExportRef = useRef<HTMLDivElement>(null);
+
     const total = useMemo(() => word.split('').reduce((sum, c) => sum + (GEMATRIA_VALUES[c] || 0), 0), [word]);
 
     const letterBreakdown = useMemo(() => {
         return word.split('').filter(c => c.trim()).map(c => ({ char: c, value: GEMATRIA_VALUES[c] || 0 }));
     }, [word]);
 
+    const handleGematriaExport = async (format: 'pdf' | 'png') => {
+        if (!gematriaExportRef.current || !word.trim()) return;
+        setIsExportingGematria(true);
+        try {
+            const image = await toPng(gematriaExportRef.current, { pixelRatio: 2.5, cacheBust: true, backgroundColor: '#0f172a' });
+            const fileBase = `COT-Hebrew-Gematria-${word.trim()}-${Date.now()}`;
+            if (format === 'png') {
+                const link = document.createElement('a');
+                link.href = image;
+                link.download = `${fileBase}.png`;
+                link.click();
+            } else {
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                const width = pdf.internal.pageSize.getWidth();
+                const img = new Image();
+                img.src = image;
+                await new Promise<void>((resolve, reject) => {
+                    img.onload = () => resolve();
+                    img.onerror = () => reject(new Error('Failed to load Gematria image for PDF export.'));
+                });
+                const height = Math.min((img.height * width) / img.width, pdf.internal.pageSize.getHeight());
+                pdf.addImage(image, 'PNG', 0, 0, width, height);
+                pdf.save(`${fileBase}.pdf`);
+            }
+        } catch (error) {
+            console.error('Gematria export failed:', error);
+            alert('Could not export Gematria result. Please try again.');
+        } finally {
+            setIsExportingGematria(false);
+        }
+    };
+
     return (
-        <div className="space-y-12 py-8">
-            <div className="text-center space-y-3">
-                <h2 className="text-4xl md:text-5xl font-serif font-bold text-brand-950">Gematria <span className="text-accent-600">Calculator</span></h2>
-                <p className="text-slate-500 text-base max-w-xl mx-auto">Type any Hebrew word to calculate its sacred numerical value</p>
+        <div className="space-y-10 bg-slate-950 text-white rounded-[2.5rem] p-6 md:p-10 border border-white/10 shadow-2xl relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
+            
+            <div className="text-center relative z-10 space-y-2">
+                <h2 className="text-3xl md:text-5xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 drop-shadow-md">Gematria Calculator</h2>
+                <p className="text-slate-400 text-xs sm:text-sm">Type any Hebrew word to calculate its sacred numerical value</p>
             </div>
 
             {/* Calculator card */}
-            <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden text-brand-950 border border-amber-100">
-                <div className="absolute inset-0 bg-gradient-to-br from-amber-50/80 to-transparent pointer-events-none" />
-                <div className="flex flex-col md:flex-row items-center gap-12 relative z-10">
-                    <div className="flex-1 w-full space-y-6">
-                        <label className="text-xs font-bold text-amber-700 uppercase tracking-widest flex items-center gap-2">
-                            <Search size={14} className="text-amber-500" /> Type Hebrew Word
+            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 md:p-8 shadow-xl relative z-10 hover:border-amber-500/10 transition-all">
+                <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
+                    <div className="flex-[1.5] w-full space-y-4">
+                        <label className="text-xs font-bold text-[#C5A880] uppercase tracking-widest flex items-center gap-2">
+                            <Search size={14} className="text-[#C5A880]" /> Type Hebrew Word
                         </label>
-                        <input type="text" placeholder="…Type any Hebrew word…" dir="rtl" className="w-full text-4xl md:text-6xl font-serif bg-transparent border-b-2 border-slate-200 py-4 outline-none focus:border-amber-500 transition-colors text-brand-950 placeholder:text-slate-300 text-right" value={word} onChange={e => setWord(e.target.value)} />
+                        <input 
+                            type="text" 
+                            placeholder="Type any Hebrew word..." 
+                            dir="rtl" 
+                            className="w-full text-4xl sm:text-5xl md:text-6xl font-serif bg-transparent border-b-2 border-white/10 py-4 outline-none focus:border-[#C5A880] transition-colors text-white placeholder:text-slate-700 text-right" 
+                            value={word} 
+                            onChange={e => setWord(e.target.value)} 
+                        />
                     </div>
-                    <div className="hidden md:block w-px h-32 bg-slate-200" />
-                    <div className="flex-1 w-full text-center md:text-left space-y-2">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block">Calculated Sum</label>
-                        <div className="text-7xl md:text-9xl font-mono text-amber-500 font-black">{total || '0'}</div>
+                    <div className="hidden md:block w-px h-28 bg-white/10" />
+                    <div className="flex-1 w-full text-center md:text-right space-y-2">
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block">Calculated Sum</label>
+                        <div className="text-6xl sm:text-7xl md:text-8xl font-mono text-amber-400 font-black">{total || '0'}</div>
                     </div>
                 </div>
+
+                {word.trim() && (
+                    <div className="pt-6 border-t border-white/15 mt-6 flex gap-3 flex-wrap">
+                        <button
+                            onClick={() => handleGematriaExport('pdf')}
+                            disabled={isExportingGematria}
+                            className="px-5 py-2.5 rounded-full bg-gradient-to-r from-emerald-400 via-sky-500 to-indigo-500 text-white font-bold text-sm shadow-lg disabled:opacity-50 flex items-center gap-2 cursor-pointer active:scale-95"
+                        >
+                            {isExportingGematria ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                            Export PDF Study Card
+                        </button>
+                        <button
+                            onClick={() => handleGematriaExport('png')}
+                            disabled={isExportingGematria}
+                            className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-sm disabled:opacity-50 flex items-center gap-2 cursor-pointer active:scale-95"
+                        >
+                            {isExportingGematria ? <Loader2 size={14} className="animate-spin" /> : <FileImage size={14} />}
+                            Save Image
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Letter breakdown */}
             {letterBreakdown.length > 0 && (
-                <div className="bg-white rounded-[2rem] p-6 shadow-lg border border-slate-100">
-                    <h3 className="text-base font-bold text-slate-500 uppercase tracking-widest mb-5">Letter Breakdown</h3>
-                    <div className="flex flex-wrap gap-3">
+                <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 shadow-lg relative z-10">
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Letter Breakdown</h3>
+                    <div className="flex flex-wrap gap-2.5 items-center">
                         {letterBreakdown.map((item, i) => (
-                            <div key={i} className="flex flex-col items-center gap-1 bg-brand-50 border border-brand-100 rounded-2xl px-4 py-3 min-w-[60px]">
-                                <span className="text-2xl font-serif text-brand-950">{item.char}</span>
-                                <span className="text-sm font-bold text-accent-600 font-mono">{item.value}</span>
-                            </div>
+                            <React.Fragment key={i}>
+                                <div className="flex flex-col items-center gap-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 min-w-[58px] shadow-sm">
+                                    <span className="text-2xl font-serif text-white">{item.char}</span>
+                                    <span className="text-xs font-bold text-amber-400 font-mono">{item.value}</span>
+                                </div>
+                                {i < letterBreakdown.length - 1 && (
+                                    <span className="text-white/20 text-lg font-light">＋</span>
+                                )}
+                            </React.Fragment>
                         ))}
-                        <div className="flex flex-col items-center justify-center gap-1 bg-amber-500 rounded-2xl px-4 py-3 min-w-[60px] ml-auto">
-                            <span className="text-[9px] font-black uppercase text-white/80 tracking-widest">Total</span>
-                            <span className="text-2xl font-black text-white font-mono">{total}</span>
+                        <span className="text-white/20 text-lg font-light mx-1">＝</span>
+                        <div className="flex flex-col items-center justify-center gap-0.5 bg-gradient-to-r from-amber-500 to-amber-600 rounded-2xl px-5 py-3 min-w-[62px] shadow-lg">
+                            <span className="text-[9px] font-black uppercase text-brand-950 tracking-widest">Total</span>
+                            <span className="text-2xl font-black text-brand-950 font-mono">{total}</span>
                         </div>
                     </div>
                 </div>
             )}
 
             {/* Alphabet reference */}
-            <div className="space-y-6">
-                <h3 className="text-xl font-serif font-bold text-brand-950 text-center">Alphabet Values Reference</h3>
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-11 gap-3">
+            <div className="space-y-6 relative z-10 pt-4">
+                <h3 className="text-lg font-serif font-bold text-[#C5A880] text-center">Alphabet Values Reference</h3>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-11 gap-2.5 justify-center">
                     {ALPHABET_REF.map(item => (
-                        <button key={item.letter} onClick={() => setWord(w => w + item.letter)} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center gap-1 text-center hover:bg-brand-50 hover:scale-105 hover:border-brand-200 transition-all cursor-pointer" title={`Add ${item.name}`}>
-                            <span className="text-3xl font-serif text-brand-950">{item.letter}</span>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase">{item.name}</span>
-                            <span className="text-sm font-bold text-accent-600 font-mono">{item.value}</span>
+                        <button 
+                            key={item.letter} 
+                            onClick={() => setWord(w => w + item.letter)} 
+                            className="bg-white/5 p-4 rounded-2xl border border-white/10 shadow-sm flex flex-col items-center gap-1 text-center hover:bg-white/10 hover:scale-105 hover:border-[#C5A880]/30 transition-all cursor-pointer" 
+                            title={`Add ${item.name}`}
+                        >
+                            <span className="text-3xl font-serif text-white">{item.letter}</span>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{item.name}</span>
+                            <span className="text-xs font-bold text-amber-400 font-mono mt-0.5">{item.value}</span>
                         </button>
                     ))}
                 </div>
-                <p className="text-center text-xs text-slate-400">👆 Click a letter to add it to your word</p>
+                <p className="text-center text-xs text-slate-400">👆 Click a letter to build your Hebrew word</p>
             </div>
+
+            {/* Hidden/offscreen premium render card for capture */}
+            {word.trim() && (
+                <div
+                    ref={gematriaExportRef}
+                    style={{ position: 'fixed', left: '-9999px', top: 0, width: '800px', pointerEvents: 'none', zIndex: -1 }}
+                >
+                    <div style={{ background: 'linear-gradient(135deg, #0f0c29 0%, #1a1450 50%, #0f0c29 100%)', padding: '48px', fontFamily: 'Georgia, serif', color: '#ffffff', borderRadius: '24px', position: 'relative', overflow: 'hidden' }}>
+                        <div style={{ position: 'absolute', inset: 0, opacity: 0.04, backgroundImage: 'repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)', backgroundSize: '12px 12px', borderRadius: '24px' }} />
+                        
+                        {/* Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', paddingBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                <img src="/logo.png" alt="COT Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '12px', background: 'rgba(255,255,255,0.08)', padding: '6px' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                                <div>
+                                    <div style={{ fontSize: '18px', fontWeight: 900, letterSpacing: '0.06em', color: '#f0c040', textTransform: 'uppercase' }}>City of Truth Ministries</div>
+                                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: '3px' }}>Valparai &bull; India</div>
+                                </div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '3px' }}>Hebrew Gematria Study</div>
+                                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)' }}>Numerical Calculator</div>
+                            </div>
+                        </div>
+
+                        {/* Word Hero */}
+                        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+                            <div style={{ fontSize: '12px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '12px' }}>Hebrew Word</div>
+                            <div style={{ fontSize: '84px', fontWeight: 900, color: '#f0c040', letterSpacing: '0.08em', lineHeight: 1.1, direction: 'rtl', marginBottom: '16px' }}>{word}</div>
+                        </div>
+
+                        {/* Gematria Sum Badge */}
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px' }}>
+                            <div style={{ background: 'rgba(240,192,64,0.15)', border: '1px solid rgba(240,192,64,0.3)', borderRadius: '40px', padding: '10px 32px', display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                                <span style={{ fontSize: '9px', fontWeight: 900, color: '#f0c040', letterSpacing: '0.3em', textTransform: 'uppercase' }}>Gematria Value</span>
+                                <span style={{ fontSize: '36px', fontWeight: 900, color: '#f0c040' }}>{total}</span>
+                            </div>
+                        </div>
+
+                        {/* Letter breakdown grid */}
+                        <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '18px', padding: '24px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                            <div style={{ fontSize: '11px', fontWeight: 900, color: '#93c5fd', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '14px', textAlign: 'center' }}>Letter-by-Letter Breakdown</div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center', alignItems: 'center' }}>
+                                {letterBreakdown.map((item, idx) => (
+                                    <React.Fragment key={idx}>
+                                        <div style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', padding: '12px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px' }}>
+                                            <span style={{ fontSize: '26px', fontWeight: 700, color: '#ffffff', fontFamily: 'serif' }}>{item.char}</span>
+                                            <span style={{ fontSize: '12px', color: '#f0c040', fontWeight: 'bold', marginTop: '4px' }}>{item.value}</span>
+                                        </div>
+                                        {idx < letterBreakdown.length - 1 && (
+                                            <span style={{ fontSize: '20px', color: 'rgba(255,255,255,0.3)' }}>+</span>
+                                        )}
+                                    </React.Fragment>
+                                ))}
+                                <span style={{ fontSize: '20px', color: 'rgba(255,255,255,0.3)' }}>=</span>
+                                <div style={{ background: 'rgba(240,192,64,0.2)', border: '1px solid rgba(240,192,64,0.4)', borderRadius: '14px', padding: '12px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px' }}>
+                                    <span style={{ fontSize: '10px', color: '#f0c040', fontWeight: 'bold', textTransform: 'uppercase' }}>Sum</span>
+                                    <span style={{ fontSize: '26px', fontWeight: 900, color: '#f0c040', marginTop: '4px' }}>{total}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={{ marginTop: '40px', textAlign: 'center', fontSize: '11px', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.05em' }}>
+                            City of Truth Ministries &bull; Valparai, Tamil Nadu, India &bull; Study and grow in wisdom.
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -1370,115 +1672,154 @@ const HebrewLettersAudioLab: React.FC = () => {
                 </p>
             </div>
 
-            <div className="grid gap-6 xl:grid-cols-2 xl:items-start">
-                <div className="space-y-6">
-                    {/* ── WORD BUILDER (always visible at top) ── */}
-                    <div className={`bg-gradient-to-r from-fuchsia-500 via-sky-500 to-emerald-500 p-[2px] rounded-[2rem] z-20 ${builderSticky ? 'sticky top-20 md:top-[7rem]' : ''}`}>
-                        <div className="bg-white rounded-[2rem] p-4 md:p-6">
-                            <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center justify-between gap-3 mb-2">
-                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Word Builder — {selectedLetters.length} letter{selectedLetters.length !== 1 ? 's' : ''} (unlimited)</p>
-                                        <button
-                                            onClick={() => setBuilderSticky((v) => !v)}
-                                            className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border transition-colors ${builderSticky ? 'bg-brand-50 text-brand-700 border-brand-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}
-                                        >
-                                            {builderSticky ? 'Sticky On' : 'Sticky Off'}
-                                        </button>
-                                    </div>
-                                    {selectedLetters.length === 0 ? (
-                                        <div
-                                            onDragOver={handleBuilderDragOver}
-                                            onDrop={handleBuilderDrop}
-                                            onDragLeave={() => setIsBuilderDragOver(false)}
-                                            className={`text-sm italic rounded-2xl border-2 border-dashed p-4 transition-colors ${isBuilderDragOver ? 'border-brand-400 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-300'}`}
-                                        >
-                                            Drag and drop letters here, or tap + Add below.
-                                        </div>
-                                    ) : (
-                                        <div
-                                            className={`flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 pr-1 rounded-xl transition-colors ${isBuilderDragOver ? 'bg-brand-50/70' : ''}`}
-                                            dir="rtl"
-                                            onDragOver={handleBuilderDragOver}
-                                            onDrop={handleBuilderDrop}
-                                            onDragLeave={() => setIsBuilderDragOver(false)}
-                                        >
-                                            {selectedLetters.map((l, idx) => (
-                                                <div
-                                                    key={l.key}
-                                                    draggable
-                                                    onDragStart={e => handleDragStart(e, idx)}
-                                                    onDragOver={e => handleDragOver(e, idx)}
-                                                    onDrop={e => handleDrop(e, idx)}
-                                                    onDragEnd={handleDragEnd}
-                                                    className={`shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-2xl border-2 cursor-grab active:cursor-grabbing select-none transition-all ${dragOverIdx === idx ? 'border-brand-400 bg-brand-50 scale-105' : 'border-slate-200 bg-slate-50 hover:border-brand-300'} ${draggingIdx === idx ? 'opacity-40' : ''}`}
-                                                >
-                                                    <span className="text-2xl font-serif text-brand-950 leading-none">{l.letter}</span>
-                                                    <span className="text-[9px] font-bold text-slate-400 uppercase">{l.name}</span>
-                                                    <div className="flex items-center gap-0.5 ml-1">
-                                                        <button
-                                                            onClick={() => moveLetter(idx, -1)}
-                                                            disabled={idx === 0}
-                                                            className="w-5 h-5 rounded-full bg-slate-200 hover:bg-brand-100 disabled:opacity-40 text-slate-500 flex items-center justify-center transition-colors"
-                                                            title={`Move ${l.name} left`}
-                                                        >
-                                                            <ChevronLeft size={10} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => moveLetter(idx, 1)}
-                                                            disabled={idx === selectedLetters.length - 1}
-                                                            className="w-5 h-5 rounded-full bg-slate-200 hover:bg-brand-100 disabled:opacity-40 text-slate-500 flex items-center justify-center transition-colors"
-                                                            title={`Move ${l.name} right`}
-                                                        >
-                                                            <ChevronRight size={10} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => removeLetter(idx)}
-                                                            className="w-5 h-5 rounded-full bg-slate-200 hover:bg-red-100 hover:text-red-500 text-slate-400 flex items-center justify-center transition-colors text-[10px] font-black"
-                                                            title={`Remove ${l.name}`}
-                                                        >
-                                                            ✕
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                    {selectedLetters.length > 0 && (
-                                        <div className="text-3xl md:text-4xl font-serif text-brand-950 mt-2 max-h-12 max-w-full overflow-x-auto overflow-y-hidden no-scrollbar leading-tight whitespace-nowrap" dir="rtl">{combinedWord}</div>
-                                    )}
-                                </div>
-                                <div className="flex gap-2 shrink-0 flex-wrap">
-                                    <button
-                                        onClick={playCombined}
-                                        disabled={!combinedWord}
-                                        className="px-5 py-2.5 rounded-full bg-brand-950 text-white font-bold text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-900 transition-colors"
-                                    >
-                                        <Volume2 size={15} /> Play Word
-                                    </button>
-                                    {selectedLetters.length > 0 && !aiResult && (
-                                        <button
-                                            onClick={handleDeepAnalysis}
-                                            disabled={isAnalyzing}
-                                            className="px-5 py-2.5 rounded-full bg-accent-500 text-brand-950 font-bold text-sm flex items-center gap-2 disabled:opacity-50 hover:bg-accent-400 transition-colors shadow-lg"
-                                        >
-                                            {isAnalyzing ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
-                                            {isAnalyzing ? 'Analyzing…' : 'Deep Insight'}
-                                        </button>
-                                    )}
-                                    {selectedLetters.length > 0 && (
-                                        <button
-                                            onClick={() => { setSelectedLetters([]); setAiResult(null); setAiError(null); }}
-                                            className="px-4 py-2.5 rounded-full border border-slate-200 text-slate-500 font-bold text-sm hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors"
-                                        >
-                                            Clear All
-                                        </button>
-                                    )}
-                                </div>
+            {/* ── WORD BUILDER (Always visible full-width at top, static on mobile, sticky on desktop alone) ── */}
+            <div className={`bg-gradient-to-r from-fuchsia-500 via-sky-500 to-emerald-500 p-[2px] rounded-[2rem] z-20 ${builderSticky ? 'md:sticky md:top-[7rem]' : ''}`}>
+                <div className="bg-white rounded-[2rem] p-4 md:p-6">
+                    <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-3 mb-2">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Word Builder — {selectedLetters.length} letter{selectedLetters.length !== 1 ? 's' : ''} (unlimited)</p>
+                                <button
+                                    onClick={() => setBuilderSticky((v) => !v)}
+                                    className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border transition-colors ${builderSticky ? 'bg-brand-50 text-brand-700 border-brand-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}
+                                >
+                                    {builderSticky ? 'Sticky On' : 'Sticky Off'}
+                                </button>
                             </div>
+                            {selectedLetters.length === 0 ? (
+                                <div
+                                    onDragOver={handleBuilderDragOver}
+                                    onDrop={handleBuilderDrop}
+                                    onDragLeave={() => setIsBuilderDragOver(false)}
+                                    className={`text-sm italic rounded-2xl border-2 border-dashed p-4 transition-colors ${isBuilderDragOver ? 'border-brand-400 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-300'}`}
+                                >
+                                    Drag and drop letters here, or tap + Add below.
+                                </div>
+                            ) : (
+                                <div
+                                    className={`flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 pr-1 rounded-xl transition-colors ${isBuilderDragOver ? 'bg-brand-50/70' : ''}`}
+                                    dir="rtl"
+                                    onDragOver={handleBuilderDragOver}
+                                    onDrop={handleBuilderDrop}
+                                    onDragLeave={() => setIsBuilderDragOver(false)}
+                                >
+                                    {selectedLetters.map((l, idx) => (
+                                        <div
+                                            key={l.key}
+                                            draggable
+                                            onDragStart={e => handleDragStart(e, idx)}
+                                            onDragOver={e => handleDragOver(e, idx)}
+                                            onDrop={e => handleDrop(e, idx)}
+                                            onDragEnd={handleDragEnd}
+                                            className={`shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-2xl border-2 cursor-grab active:cursor-grabbing select-none transition-all ${dragOverIdx === idx ? 'border-brand-400 bg-brand-50 scale-105' : 'border-slate-200 bg-slate-50 hover:border-brand-300'} ${draggingIdx === idx ? 'opacity-40' : ''}`}
+                                        >
+                                            <span className="text-2xl font-serif text-brand-950 leading-none">{l.letter}</span>
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase">{l.name}</span>
+                                            <div className="flex items-center gap-0.5 ml-1">
+                                                <button
+                                                    onClick={() => moveLetter(idx, -1)}
+                                                    disabled={idx === 0}
+                                                    className="w-5 h-5 rounded-full bg-slate-200 hover:bg-brand-100 disabled:opacity-40 text-slate-500 flex items-center justify-center transition-colors"
+                                                    title={`Move ${l.name} left`}
+                                                >
+                                                    <ChevronLeft size={10} />
+                                                </button>
+                                                <button
+                                                    onClick={() => moveLetter(idx, 1)}
+                                                    disabled={idx === selectedLetters.length - 1}
+                                                    className="w-5 h-5 rounded-full bg-slate-200 hover:bg-brand-100 disabled:opacity-40 text-slate-500 flex items-center justify-center transition-colors"
+                                                    title={`Move ${l.name} right`}
+                                                >
+                                                    <ChevronRight size={10} />
+                                                </button>
+                                                <button
+                                                    onClick={() => removeLetter(idx)}
+                                                    className="w-5 h-5 rounded-full bg-slate-200 hover:bg-red-100 hover:text-red-500 text-slate-400 flex items-center justify-center transition-colors text-[10px] font-black"
+                                                    title={`Remove ${l.name}`}
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {selectedLetters.length > 0 && (
+                                <div className="text-3xl md:text-4xl font-serif text-brand-950 mt-2 max-h-12 max-w-full overflow-x-auto overflow-y-hidden no-scrollbar leading-tight whitespace-nowrap" dir="rtl">{combinedWord}</div>
+                            )}
+                        </div>
+                        <div className="flex gap-2 shrink-0 flex-wrap">
+                            <button
+                                onClick={playCombined}
+                                disabled={!combinedWord}
+                                className="px-5 py-2.5 rounded-full bg-brand-950 text-white font-bold text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-900 transition-colors cursor-pointer"
+                            >
+                                <Volume2 size={15} /> Play Word
+                            </button>
+                            {selectedLetters.length > 0 && !aiResult && (
+                                <button
+                                    onClick={handleDeepAnalysis}
+                                    disabled={isAnalyzing}
+                                    className="px-5 py-2.5 rounded-full bg-accent-500 text-brand-950 font-bold text-sm flex items-center gap-2 disabled:opacity-50 hover:bg-accent-400 transition-colors shadow-lg cursor-pointer"
+                                >
+                                    {isAnalyzing ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
+                                    {isAnalyzing ? 'Analyzing…' : 'Deep Insight'}
+                                </button>
+                            )}
+                            {selectedLetters.length > 0 && (
+                                <button
+                                    onClick={() => { setSelectedLetters([]); setAiResult(null); setAiError(null); }}
+                                    className="px-4 py-2.5 rounded-full border border-slate-200 text-slate-500 font-bold text-sm hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors cursor-pointer"
+                                >
+                                    Clear All
+                                </button>
+                            )}
                         </div>
                     </div>
+                </div>
+            </div>
 
+            {/* ── LOWER GRID (Compact Hebrew Letters grid on left, AI Insights on right) ── */}
+            <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+                {/* ── COMPACT HEBREW LETTERS GRID ("Short Below") ── */}
+                <div className="bg-white rounded-[2.5rem] border border-slate-100 p-5 sm:p-8 shadow-xl">
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-6 text-center">Tap a letter to add it to your word</p>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+                        {HEBREW_AUDIO_LETTERS.map((item, index) => (
+                            <div key={item.letter} className={`rounded-2xl bg-gradient-to-br ${RAINBOW_GRADIENTS[index % RAINBOW_GRADIENTS.length]} p-[1px] hover:scale-105 transition-transform duration-300 shadow-sm`}>
+                                <div
+                                    className="bg-white rounded-2xl p-2.5 flex flex-col items-center justify-between text-center h-full min-h-[120px]"
+                                    draggable
+                                    onDragStart={(e) => handleSourceLetterDragStart(e, item)}
+                                >
+                                    <div className="flex flex-col items-center gap-0.5">
+                                        <span className="text-3xl font-serif text-brand-950 font-bold leading-none">{item.letter}</span>
+                                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 leading-none">{item.name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 mt-2 w-full justify-center">
+                                        <button
+                                            onClick={() => addLetter(item)}
+                                            className="flex-1 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider bg-brand-600 text-white hover:bg-brand-700 transition-colors shadow-sm cursor-pointer"
+                                            title={`Add ${item.name}`}
+                                        >
+                                            + Add
+                                        </button>
+                                        <button
+                                            onClick={() => playLetter(item.letter, item.hebrewName)}
+                                            className="w-6 h-6 rounded-full bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors flex items-center justify-center shrink-0 cursor-pointer"
+                                            title={`Play ${item.hebrewName}`}
+                                        >
+                                            <Volume2 size={10} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* ── AI ANALYSIS & ERRORS COLUMN ── */}
+                <div className="space-y-6">
                     {/* ── AI ERROR ── */}
                     {aiError && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 text-red-500 text-xs font-bold bg-red-50 p-4 rounded-2xl border border-red-100">
@@ -1497,151 +1838,106 @@ const HebrewLettersAudioLab: React.FC = () => {
                                 transition={{ duration: 0.35 }}
                                 className="bg-slate-950 text-white rounded-[2rem] p-6 md:p-8 flex flex-col space-y-5 shadow-2xl relative overflow-hidden"
                             >
-                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-                        {/* Header row */}
-                        <div className="flex justify-between items-start gap-3">
-                            <div className="space-y-1 min-w-0">
-                                <div className="text-[10px] font-black text-brand-400 uppercase tracking-[0.2em]">AI Deep Insight</div>
-                                <div className="text-2xl font-black flex items-center gap-2 text-white flex-wrap">
-                                    <span>{aiResult.pronunciation}</span>
-                                    <button onClick={playCombined} className="shrink-0 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-accent-400">
-                                        <Volume2 size={16} />
-                                    </button>
+                                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+                                {/* Header row */}
+                                <div className="flex justify-between items-start gap-3">
+                                    <div className="space-y-1 min-w-0">
+                                        <div className="text-[10px] font-black text-brand-400 uppercase tracking-[0.2em]">AI Deep Insight</div>
+                                        <div className="text-2xl font-black flex items-center gap-2 text-white flex-wrap">
+                                            <span>{aiResult.pronunciation}</span>
+                                            <button onClick={playCombined} className="shrink-0 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-accent-400 cursor-pointer">
+                                                <Volume2 size={16} />
+                                            </button>
+                                        </div>
+                                        {aiResult.pronunciationTa && (
+                                            <div className="text-sm font-bold text-slate-400 flex items-center gap-2 mt-1">
+                                                <div className="w-4 h-[1px] bg-slate-700" />
+                                                {aiResult.pronunciationTa} (தமிழ்)
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="shrink-0 bg-brand-500/20 p-2.5 rounded-xl border border-white/5">
+                                        <Sparkles size={18} className="text-accent-400 animate-pulse" />
+                                    </div>
                                 </div>
-                                {aiResult.pronunciationTa && (
-                                    <div className="text-sm font-bold text-slate-400 flex items-center gap-2 mt-1">
-                                        <div className="w-4 h-[1px] bg-slate-700" />
-                                        {aiResult.pronunciationTa} (தமிழ்)
+
+                                {/* Root (Shoresh) */}
+                                {aiResult.root && (
+                                    <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center justify-between gap-3">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <div className="shrink-0 w-7 h-7 bg-accent-500/20 rounded-lg flex items-center justify-center text-accent-400">
+                                                <Fingerprint size={14} />
+                                            </div>
+                                            <div className="space-y-0.5 min-w-0">
+                                                <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Shoresh (Hebrew Root)</div>
+                                                <div className="text-xs text-brand-400 font-bold">The spiritual foundation</div>
+                                            </div>
+                                        </div>
+                                        <div className="text-2xl font-serif text-accent-400 tracking-[0.2em] shrink-0" dir="rtl">{aiResult.root}</div>
                                     </div>
                                 )}
-                            </div>
-                            <div className="shrink-0 bg-brand-500/20 p-2.5 rounded-xl border border-white/5">
-                                <Sparkles size={18} className="text-accent-400 animate-pulse" />
-                            </div>
-                        </div>
 
-                        {/* Root (Shoresh) */}
-                        {aiResult.root && (
-                            <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center justify-between gap-3">
-                                <div className="flex items-center gap-2 min-w-0">
-                                    <div className="shrink-0 w-7 h-7 bg-accent-500/20 rounded-lg flex items-center justify-center text-accent-400">
-                                        <Fingerprint size={14} />
+                                {/* Syllable breakdown */}
+                                <div className="grid grid-cols-2 gap-3 py-4 border-y border-white/10">
+                                    <div className="space-y-1.5">
+                                        <div className="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em]">Hebrew Syllables</div>
+                                        <div className="text-base font-serif tracking-widest text-white/90 break-words" dir="rtl">{aiResult.breakdownHe}</div>
                                     </div>
-                                    <div className="space-y-0.5 min-w-0">
-                                        <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Shoresh (Hebrew Root)</div>
-                                        <div className="text-xs text-brand-400 font-bold">The spiritual foundation</div>
+                                    <div className="space-y-1.5 border-l border-white/10 pl-3">
+                                        <div className="text-[10px] font-black text-brand-400 uppercase tracking-[0.2em]">English Splitting</div>
+                                        <div className="text-base font-mono font-bold text-accent-200 tracking-tight break-words">{aiResult.breakdownEn}</div>
                                     </div>
                                 </div>
-                                <div className="text-2xl font-serif text-accent-400 tracking-[0.2em] shrink-0" dir="rtl">{aiResult.root}</div>
-                            </div>
-                        )}
 
-                        {/* Syllable breakdown */}
-                        <div className="grid grid-cols-2 gap-3 py-4 border-y border-white/10">
-                            <div className="space-y-1.5">
-                                <div className="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em]">Hebrew Syllables</div>
-                                <div className="text-base font-serif tracking-widest text-white/90 break-words" dir="rtl">{aiResult.breakdownHe}</div>
-                            </div>
-                            <div className="space-y-1.5 border-l border-white/10 pl-3">
-                                <div className="text-[10px] font-black text-brand-400 uppercase tracking-[0.2em]">English Splitting</div>
-                                <div className="text-base font-mono font-bold text-accent-200 tracking-tight break-words">{aiResult.breakdownEn}</div>
-                            </div>
-                        </div>
+                                {/* Meanings */}
+                                <div className="space-y-4">
+                                    <div className="space-y-1.5">
+                                        <div className="text-xs font-bold text-amber-500 uppercase tracking-widest">English Meaning</div>
+                                        <div className="text-lg font-serif leading-relaxed text-slate-100 break-words">{aiResult.meaningEn}</div>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <div className="text-xs font-bold text-brand-400 uppercase tracking-widest">Tamil Meaning (தமிழ்)</div>
+                                        <div className="text-xl font-serif leading-relaxed text-slate-100 break-words">{aiResult.meaningTa}</div>
+                                    </div>
+                                </div>
 
-                        {/* Meanings */}
-                        <div className="space-y-4">
-                            <div className="space-y-1.5">
-                                <div className="text-xs font-bold text-amber-500 uppercase tracking-widest">English Meaning</div>
-                                <div className="text-lg font-serif leading-relaxed text-slate-100 break-words">{aiResult.meaningEn}</div>
-                            </div>
-                            <div className="space-y-1.5">
-                                <div className="text-xs font-bold text-brand-400 uppercase tracking-widest">Tamil Meaning (தமிழ்)</div>
-                                <div className="text-xl font-serif leading-relaxed text-slate-100 break-words">{aiResult.meaningTa}</div>
-                            </div>
-                        </div>
+                                {/* Description */}
+                                {aiResult.description && (
+                                    <div className="pt-4 border-t border-white/5 italic text-[11px] text-slate-500 font-light leading-relaxed break-words">
+                                        {aiResult.description}
+                                    </div>
+                                )}
 
-                        {/* Description */}
-                        {aiResult.description && (
-                            <div className="pt-4 border-t border-white/5 italic text-[11px] text-slate-500 font-light leading-relaxed break-words">
-                                {aiResult.description}
-                            </div>
-                        )}
-
-                        {/* Re-analyze / Export actions */}
-                        <div className="pt-2 flex flex-wrap gap-2">
-                            <button
-                                onClick={handleDeepAnalysis}
-                                disabled={isAnalyzing}
-                                className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-2 disabled:opacity-50 transition-colors"
-                            >
-                                {isAnalyzing ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
-                                Re-analyze
-                            </button>
-                            <button
-                                onClick={() => handleExportInsight('pdf')}
-                                disabled={isExporting}
-                                className="px-4 py-2 rounded-full bg-accent-500 text-brand-950 hover:bg-accent-400 font-bold text-xs flex items-center gap-2 disabled:opacity-50 transition-colors"
-                            >
-                                {isExporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-                                Download PDF
-                            </button>
-                            <button
-                                onClick={() => handleExportInsight('jpeg')}
-                                disabled={isExporting}
-                                className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-2 disabled:opacity-50 transition-colors"
-                            >
-                                {isExporting ? <Loader2 size={13} className="animate-spin" /> : <FileImage size={13} />}
-                                Save Image
-                            </button>
-                        </div>
+                                {/* Re-analyze / Export actions */}
+                                <div className="pt-2 flex flex-wrap gap-2">
+                                    <button
+                                        onClick={handleDeepAnalysis}
+                                        disabled={isAnalyzing}
+                                        className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-2 disabled:opacity-50 transition-colors cursor-pointer"
+                                    >
+                                        {isAnalyzing ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                                        Re-analyze
+                                    </button>
+                                    <button
+                                        onClick={() => handleExportInsight('pdf')}
+                                        disabled={isExporting}
+                                        className="px-4 py-2 rounded-full bg-accent-500 text-brand-950 hover:bg-accent-400 font-bold text-xs flex items-center gap-2 disabled:opacity-50 transition-colors cursor-pointer"
+                                    >
+                                        {isExporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                                        Download PDF
+                                    </button>
+                                    <button
+                                        onClick={() => handleExportInsight('jpeg')}
+                                        disabled={isExporting}
+                                        className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-2 disabled:opacity-50 transition-colors cursor-pointer"
+                                    >
+                                        {isExporting ? <Loader2 size={13} className="animate-spin" /> : <FileImage size={13} />}
+                                        Save Image
+                                    </button>
+                                </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
-                </div>
-
-                <div className="bg-white rounded-[2.5rem] border border-slate-100 p-6 md:p-10 shadow-xl xl:sticky xl:top-24">
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-6 text-center">Tap a letter to add it to your word</p>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {HEBREW_AUDIO_LETTERS.map((item, index) => (
-                            <div key={item.letter} className={`rounded-3xl bg-gradient-to-br ${RAINBOW_GRADIENTS[index % RAINBOW_GRADIENTS.length]} p-[1px]`}>
-                                <div
-                                    className="bg-white rounded-3xl p-4 h-full flex flex-col items-center text-center gap-2"
-                                    draggable
-                                    role="button"
-                                    tabIndex={0}
-                                    onDragStart={(e) => handleSourceLetterDragStart(e, item)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                            e.preventDefault();
-                                            addLetter(item);
-                                        }
-                                    }}
-                                    aria-label={`Add ${item.name}`}
-                                >
-                                    <span className="text-4xl font-serif text-brand-950">{item.letter}</span>
-                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">{item.name}</span>
-                                    <span className="text-[9px] text-slate-400 font-bold">Drag & Drop</span>
-                                    <div className="flex items-center gap-1 pt-1 w-full justify-center">
-                                        <button
-                                            onClick={() => addLetter(item)}
-                                            className="flex-1 px-2 py-1.5 rounded-xl text-[10px] font-bold bg-brand-600 text-white hover:bg-brand-700 transition-colors shadow-sm"
-                                            title={`Add ${item.name}`}
-                                        >
-                                            + Add
-                                        </button>
-                                        <button
-                                            onClick={() => playLetter(item.letter, item.hebrewName)}
-                                            className="w-8 h-8 rounded-full bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors flex items-center justify-center shrink-0"
-                                            title={`Play ${item.hebrewName}`}
-                                            aria-label={`Play ${item.hebrewName}`}
-                                        >
-                                            <Volume2 size={13} />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
                 </div>
             </div>
         </div>
@@ -1652,6 +1948,8 @@ interface HebrewResourcesProps {
     initialTab?: 'numbers' | 'calendar' | 'clock' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio' | 'grammar';
     mode?: 'all' | 'content' | 'tools';
     currentUser?: User;
+    currentView?: ViewState;
+    setView?: (view: ViewState) => void;
 }
 
 type HebrewResourceTab = 'numbers' | 'calendar' | 'clock' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio' | 'grammar';
@@ -1671,7 +1969,33 @@ const HEBREW_RESOURCE_TABS: ReadonlyArray<{ id: HebrewResourceTab; label: string
 const CONTENT_TAB_IDS: HebrewResourceTab[] = ['festivals', 'calendar', 'clock', 'reference', 'grammar'];
 const TOOLS_TAB_IDS: HebrewResourceTab[] = ['words', 'lettersaudio', 'numbers', 'gematria'];
 
-export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mode = 'all', currentUser }) => {
+const viewToTabMap: Record<string, HebrewResourceTab> = {
+    [ViewState.ABOUT]: 'calendar',
+    [ViewState.HEBREW_CALENDAR]: 'calendar',
+    [ViewState.HEBREW_CLOCK]: 'clock',
+    [ViewState.HEBREW_FESTIVALS]: 'festivals',
+    [ViewState.HEBREW_REFERENCE]: 'reference',
+    [ViewState.HEBREW_GRAMMAR]: 'grammar',
+    [ViewState.HEBREW_TOOLS]: 'words',
+    [ViewState.HEBREW_WORDS]: 'words',
+    [ViewState.HEBREW_LETTERS_AUDIO]: 'lettersaudio',
+    [ViewState.HEBREW_NUMBERS]: 'numbers',
+    [ViewState.HEBREW_GEMATRIA]: 'gematria',
+};
+
+const tabToViewMap: Record<HebrewResourceTab, ViewState> = {
+    calendar: ViewState.HEBREW_CALENDAR,
+    clock: ViewState.HEBREW_CLOCK,
+    festivals: ViewState.HEBREW_FESTIVALS,
+    reference: ViewState.HEBREW_REFERENCE,
+    grammar: ViewState.HEBREW_GRAMMAR,
+    words: ViewState.HEBREW_WORDS,
+    lettersaudio: ViewState.HEBREW_LETTERS_AUDIO,
+    numbers: ViewState.HEBREW_NUMBERS,
+    gematria: ViewState.HEBREW_GEMATRIA,
+};
+
+export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mode = 'all', currentUser, currentView, setView }) => {
     const availableTabs = HEBREW_RESOURCE_TABS.filter(tabItem => {
         if (mode === 'content') return CONTENT_TAB_IDS.includes(tabItem.id);
         if (mode === 'tools') return TOOLS_TAB_IDS.includes(tabItem.id);
@@ -1681,71 +2005,45 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
     const defaultTab = initialTab && availableTabs.some(t => t.id === initialTab)
         ? initialTab
         : (availableTabs[0]?.id || 'calendar');
-    const [tab, setTab] = useState<HebrewResourceTab>(defaultTab);
 
-    useEffect(() => {
-        if (initialTab && availableTabs.some(t => t.id === initialTab)) {
-            setTab(initialTab as HebrewResourceTab);
-            return;
+    const [localTab, setLocalTab] = useState<HebrewResourceTab>(defaultTab);
+    const tab = (currentView && viewToTabMap[currentView]) || localTab;
+
+    const setTab = (newTab: HebrewResourceTab) => {
+        if (setView && tabToViewMap[newTab]) {
+            setView(tabToViewMap[newTab]);
+        } else {
+            setLocalTab(newTab);
         }
-        if (!availableTabs.some(t => t.id === tab) && availableTabs[0]) {
-            setTab(availableTabs[0].id);
-        }
-    }, [availableTabs, initialTab, tab]);
+    };
 
 
     return (
-        <div className="min-h-screen pt-20 md:pt-28 pb-32 md:pb-20 w-full px-3 md:px-6 font-sans bg-[#fffdf6]">
-            <div className={`mx-auto md:flex md:items-start md:gap-8 ${tab === 'calendar' ? 'max-w-[96rem]' : 'max-w-7xl'}`}>
-                <aside className="hidden md:block md:w-64 md:shrink-0 md:sticky md:top-[110px]">
-                    <div className="flex flex-col gap-3">
-                        {availableTabs.map((t) => {
-                            const isActive = tab === t.id;
-                            return (
-                                <button
-                                    key={t.id}
-                                    onClick={() => { setTab(t.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                                    className={`relative w-full flex items-center justify-start gap-3 px-4 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all duration-300 ${isActive
-                                        ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/30'
-                                        : 'bg-white text-slate-400 hover:text-amber-600 hover:border-amber-200 border border-slate-200 shadow-sm'
-                                        }`}
-                                >
-                                    {t.icon}
-                                    <span>{t.label}</span>
-                                    {isActive && (
-                                        <motion.div
-                                            layoutId="active-pill-desktop"
-                                            className="absolute inset-0 bg-gradient-to-r from-amber-500 to-amber-600 -z-10 rounded-2xl"
-                                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                        />
-                                    )}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </aside>
-
-                <div className={`flex-1 ${tab === 'calendar' ? 'space-y-8' : 'space-y-12'}`}>
-                    <div className="text-center space-y-4 mb-4 md:mb-12">
-                    <h1 className="text-4xl md:text-8xl font-serif font-bold text-brand-950 px-2">
-                        {mode === 'tools' ? (
-                            <>Hebrew <span className="text-accent-600">Tools</span></>
-                        ) : mode === 'content' ? (
-                            <>Hebrew <span className="text-accent-600">Content</span></>
-                        ) : (
-                            <>Biblical <span className="text-accent-600">Hub</span></>
-                        )}
-                    </h1>
-                    <p className="text-sm md:text-xl text-slate-500 font-light max-w-3xl mx-auto px-6">
-                        {mode === 'tools'
-                            ? 'Explore Hebrew learning tools: words, letters audio, numbers, and gematria.'
-                            : mode === 'content'
-                                ? 'Explore Hebrew calendar, live Chennai Hebrew clock, festivals, month/day reference, and complete grammar foundations.'
-                                : 'A sanctuary of divine knowledge. Explore the sacred calendar, biblical festivals, and spiritual mathematics.'}
-                    </p>
+        <div className="min-h-screen pt-24 md:pt-32 pb-32 md:pb-20 w-full px-3 md:px-6 font-sans bg-[#fffdf6]">
+            <div className={`mx-auto flex flex-col items-center ${tab === 'calendar' ? 'max-w-5xl' : 'max-w-7xl'}`}>
+                
+                {/* Horizontal navigation menu: Sticky on Desktop, standard scroll on Mobile */}
+                <div className="relative md:sticky top-auto md:top-[84px] z-auto md:z-30 w-full bg-[#fffdf6] md:bg-[#fffdf6]/90 md:backdrop-blur-md py-3.5 md:py-5 flex flex-wrap items-center justify-center gap-2 md:gap-3 mb-6 md:mb-10 border-b border-transparent md:border-amber-500/5 shadow-none md:shadow-[0_4px_20px_-10px_rgba(217,119,6,0.05)] transition-all duration-300">
+                    {availableTabs.map((t) => {
+                        const isActive = tab === t.id;
+                        return (
+                            <button
+                                key={t.id}
+                                onClick={() => { setTab(t.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                className={`relative flex items-center justify-center gap-2 px-4 py-2.5 md:px-6 md:py-3.5 rounded-full font-black text-[9px] md:text-[11px] uppercase tracking-widest transition-all duration-500 shadow-sm border ${
+                                    isActive
+                                        ? 'bg-gradient-to-r from-amber-500 to-amber-600 border-amber-600 text-white shadow-lg shadow-amber-500/25 scale-105'
+                                        : 'bg-white text-slate-400 hover:text-amber-600 hover:border-amber-200 border-slate-200 hover:bg-amber-50/10'
+                                }`}
+                            >
+                                {t.icon}
+                                <span>{t.label}</span>
+                            </button>
+                        );
+                    })}
                 </div>
 
-                <div className="relative mb-24 min-h-[500px]">
+                <div className="w-full relative min-h-[500px]">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={tab}
@@ -1753,6 +2051,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.3 }}
+                            className="w-full"
                         >
                             {tab === 'festivals' && <FestivalsView />}
                             {tab === 'calendar' && <HebrewCalendarView currentUser={currentUser} />}
@@ -1765,7 +2064,6 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
                             {tab === 'grammar' && <GrammarView />}
                         </motion.div>
                     </AnimatePresence>
-                </div>
                 </div>
             </div>
         </div>

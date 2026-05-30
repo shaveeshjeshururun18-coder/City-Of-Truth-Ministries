@@ -112,6 +112,23 @@ export const MinistriesPage: React.FC = () => {
         [filteredDynamicMinistries]
     );
 
+    const getCategoryItems = (categoryName: string, moduloOffset: number) => {
+        const dynamic = visibleDynamicMinistries.filter(m => m.category === categoryName);
+        return dynamic.length > 0 ? dynamic.map(m => ({
+            id: m.id,
+            type: inferMediaType(m),
+            src: m.image,
+            date: formatDisplayDate(m.date)
+        })) : assets.filter((_, i) => i % 6 === moduloOffset);
+    };
+
+    const spiritualItems = useMemo(() => getCategoryItems('Spiritual Gatherings', 0), [visibleDynamicMinistries, assets]);
+    const youthItems = useMemo(() => getCategoryItems('Youth Ministry', 1), [visibleDynamicMinistries, assets]);
+    const communityItems = useMemo(() => getCategoryItems('Community Impact', 2), [visibleDynamicMinistries, assets]);
+    const helpingItems = useMemo(() => getCategoryItems('Helping Hands', 3), [visibleDynamicMinistries, assets]);
+    const musicItems = useMemo(() => getCategoryItems('Sacred Music & Praise', 4), [visibleDynamicMinistries, assets]);
+    const healingItems = useMemo(() => getCategoryItems('Healing & Miracle Service', 5), [visibleDynamicMinistries, assets]);
+
     useEffect(() => {
         api.getMinistries().then(setDynamicMinistries);
     }, []);
@@ -210,7 +227,7 @@ export const MinistriesPage: React.FC = () => {
                             <h2 className="text-4xl md:text-5xl font-serif font-black text-brand-950">Spiritual Gatherings</h2>
                             <p className="text-slate-500 mt-4 max-w-xl font-light">Deepening our connection with the Divine through prayer and fellowship.</p>
                         </div>
-                        <MinistryGallery items={assets.filter((_, i) => i % 6 === 0)} />
+                        <MinistryGallery items={spiritualItems} />
                     </div>
                 </section>
 
@@ -228,7 +245,7 @@ export const MinistriesPage: React.FC = () => {
                             <h2 className="text-4xl md:text-5xl font-serif font-black text-brand-950">Youth Ministry</h2>
                             <p className="text-slate-500 mt-4 max-w-xl font-light ml-auto lg:ml-0">Empowering the next generation to walk in the light of Truth.</p>
                         </div>
-                        <MinistryGallery items={assets.filter((_, i) => i % 6 === 1)} />
+                        <MinistryGallery items={youthItems} />
                     </div>
                 </section>
 
@@ -245,7 +262,7 @@ export const MinistriesPage: React.FC = () => {
                         <p className="text-slate-500 mt-4 max-w-xl font-light">Transforming lives and building stronger communities together.</p>
                     </div>
                     <div className="relative z-10 pl-4 md:pl-12">
-                        <MinistryGallery items={assets.filter((_, i) => i % 6 === 2)} />
+                        <MinistryGallery items={communityItems} />
                     </div>
                 </section>
 
@@ -264,7 +281,7 @@ export const MinistriesPage: React.FC = () => {
                         <p className="text-brand-100/60 max-w-2xl mx-auto text-lg font-light leading-relaxed">Pure religion and undefiled before God and the Father is this, To visit the fatherless and widows in their affliction...</p>
                     </div>
                     <div className="relative z-10 pl-4 md:pl-12">
-                        <MinistryGallery items={assets.filter((_, i) => i % 6 === 3)} />
+                        <MinistryGallery items={helpingItems} />
                     </div>
                 </section>
 
@@ -281,7 +298,7 @@ export const MinistriesPage: React.FC = () => {
                             <h2 className="text-4xl md:text-5xl font-serif font-black text-brand-950">Sacred Music & Praise</h2>
                             <p className="text-slate-500 mt-4 max-w-xl font-light">Celebrating the Word through the beauty of song and worship.</p>
                         </div>
-                        <MinistryGallery items={assets.filter((_, i) => i % 6 === 4)} />
+                        <MinistryGallery items={musicItems} />
                     </div>
                 </section>
 
@@ -298,7 +315,7 @@ export const MinistriesPage: React.FC = () => {
                         <p className="text-slate-600 mt-4 max-w-xl mx-auto font-light">Witnessing the miraculous power of prayer and restoration.</p>
                     </div>
                     <div className="relative z-10 pl-4 md:pl-12">
-                        <MinistryGallery items={assets.filter((_, i) => i % 6 === 5)} />
+                        <MinistryGallery items={healingItems} />
                     </div>
                 </section>
             </div>

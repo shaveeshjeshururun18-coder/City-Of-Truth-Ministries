@@ -5,7 +5,7 @@ import {
     ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Filter, Mail, Phone, MapPin, Droplet,
     Calendar, Award, Shield, ShieldCheck, AlertCircle, CheckCircle, QrCode, Download,
     Save, GripVertical, Globe, Plus, ImagePlus, Camera, Image as ImageIcon, MessageSquare, Check, XCircle, FileText,
-    PanelLeft, PanelTop, Database, RotateCcw, Dice6, Eye, EyeOff, Video, Tag
+    PanelLeft, PanelTop, Database, RotateCcw, Dice6, Eye, EyeOff, Video, Tag, Settings, Crop
 } from 'lucide-react';
 import { User, UserRole, UserStatus, Testimonial, Ministry, DeletedUser } from '../types';
 import { Button } from './Button';
@@ -88,7 +88,7 @@ const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any
 
 
 
-const TAB_ITEMS: { id: 'users' | 'edit-page' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'; label: string; icon: React.ElementType }[] = [
+const TAB_ITEMS: { id: 'users' | 'edit-page' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin' | 'admin-tabs'; label: string; icon: React.ElementType }[] = [
     { id: 'users', label: 'Users', icon: Users },
     { id: 'edit-page', label: 'Edit Page', icon: Edit2 },
     { id: 'recycle-bin', label: 'Recycle Bin', icon: RotateCcw },
@@ -100,7 +100,12 @@ const TAB_ITEMS: { id: 'users' | 'edit-page' | 'testimonials' | 'ministries' | '
     { id: 'reports', label: 'Monthly Reports', icon: FileText },
     { id: 'home-layout', label: 'Home Layout', icon: GripVertical },
     { id: 'menu-editor', label: 'Menu Editor', icon: Filter },
+    { id: 'admin-tabs', label: 'Admin Tabs', icon: Settings }
 ];
+
+const LUCIDE_ICONS: Record<string, React.ElementType> = {
+    Users, Edit2, RotateCcw, Database, MessageSquare, Globe, QrCode, Dice6, FileText, GripVertical, Filter, Settings
+};
 
 const COMMON_DISAPPROVE_REASONS = [
     'Incomplete or invalid profile information',
@@ -246,7 +251,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [failedMinistryImages, setFailedMinistryImages] = useState<Record<string, boolean>>({});
     const [userQuickViewMode, setUserQuickViewMode] = useState<UserQuickViewMode | null>(null);
 
-    const [activeTab, setActiveTab] = useState<'users' | 'edit-page' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'edit-page' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin' | 'admin-tabs'>('users');
     const [menuMode, setMenuMode] = useState<'horizontal' | 'vertical'>(() => {
         try {
             const stored = localStorage.getItem('adminMenuMode');
@@ -268,6 +273,68 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
     const [ministries, setMinistries] = useState<Ministry[]>([]);
     const [editingMinistry, setEditingMinistry] = useState<Partial<Ministry> | null>(null);
+    
+    // Premium gallery states
+    const [mediaTypeFilter, setMediaTypeFilter] = useState<'all' | 'image' | 'video'>('all');
+    const [mediaSortOrder, setMediaSortOrder] = useState<'newest' | 'oldest'>('newest');
+    const [mediaMonthFilter, setMediaMonthFilter] = useState<string>('all');
+
+    // Tab renaming states
+    const [tabLabels, setTabLabels] = useState<Record<string, string>>(() => {
+        try {
+            const saved = localStorage.getItem('cot_admin_tab_labels');
+            return saved ? JSON.parse(saved) : {};
+        } catch {
+            return {};
+        }
+    });
+    const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
+    const [renameValue, setRenameValue] = useState('');
+
+    const [dynamicTabs, setDynamicTabs] = useState<any[]>([]);
+
+    React.useEffect(() => {
+        api.getAdminTabsConfig().then(config => {
+            setDynamicTabs(config);
+        });
+    }, []);
+
+    const visibleTabs = useMemo(() => {
+        if (dynamicTabs.length === 0) return TAB_ITEMS;
+        return dynamicTabs.filter(t => !t.hidden).map(t => {
+            const item = TAB_ITEMS.find(ti => ti.id === t.id);
+            return {
+                id: t.id as any,
+                label: t.label,
+                icon: item ? item.icon : Globe
+            };
+        });
+    }, [dynamicTabs]);
+
+    // Bulk pre-edit queue states
+    const [bulkQueue, setBulkQueue] = useState<Array<{
+        id: string;
+        file: File;
+        preview: string;
+        name: string;
+        date: string;
+        category: string;
+        mediaType: 'image' | 'video';
+        duration: string;
+        videoDurationSeconds: number;
+        videoTrimStart: number;
+        videoTrimEnd: number;
+        cropZoom: number;
+        cropX: number;
+        cropY: number;
+        hidden: boolean;
+    }>>([]);
+    const [isBulkUploading, setIsBulkUploading] = useState(false);
+    const [bulkUploadProgress, setBulkUploadProgress] = useState(0);
+
+    // Navigation Menu selection tab
+    const [selectedMenuEditTab, setSelectedMenuEditTab] = useState<'main' | 'hebrew-content' | 'hebrew-tools'>('main');
+
     const [hasOrderChanges, setHasOrderChanges] = useState(false);
     const [isCropping, setIsCropping] = useState(false);
     const [cropImage, setCropImage] = useState<string | null>(null);
@@ -451,11 +518,47 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         return 'image';
     };
 
-    const uploadMinistryVideo = async (file: File) => {
-        const safeName = file.name.replace(/\s+/g, '-');
+    const uploadMinistryFile = async (file: File | string, fileName?: string) => {
+        if (typeof file === 'string' && !file.startsWith('data:') && !file.startsWith('blob:')) {
+            return file;
+        }
+
+        let blob: Blob;
+        let contentType = 'image/jpeg';
+        let safeName = fileName || 'cropped-image.jpg';
+
+        if (typeof file === 'string' && file.startsWith('data:')) {
+            const parts = file.split(',');
+            const byteString = atob(parts[1]);
+            const mimeString = parts[0].split(':')[1].split(';')[0];
+            contentType = mimeString;
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) {
+                ia[i] = byteString.charCodeAt(i);
+            }
+            blob = new Blob([ab], { type: mimeString });
+            if (mimeString.startsWith('video/')) {
+                safeName = 'video.mp4';
+            }
+        } else if (typeof file === 'string' && file.startsWith('blob:')) {
+            const response = await fetch(file);
+            blob = await response.blob();
+            contentType = blob.type || 'image/jpeg';
+            if (contentType.startsWith('video/')) {
+                safeName = 'video.mp4';
+            }
+        } else if (file instanceof File) {
+            blob = file;
+            contentType = file.type || 'image/jpeg';
+            safeName = file.name.replace(/\s+/g, '-');
+        } else {
+            throw new Error('Unsupported file type for upload');
+        }
+
         const objectPath = `ministries/${Date.now()}-${safeName}`;
         const mediaRef = storageRef(storage, objectPath);
-        await uploadBytes(mediaRef, file, { contentType: file.type || 'video/mp4' });
+        await uploadBytes(mediaRef, blob, { contentType });
         return getDownloadURL(mediaRef);
     };
 
@@ -489,12 +592,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
         setIsLoading(true);
         try {
+            let finalImageUrl = editingMinistry.image;
+            if (finalImageUrl.startsWith('data:') || finalImageUrl.startsWith('blob:')) {
+                finalImageUrl = await uploadMinistryFile(
+                    finalImageUrl, 
+                    editingMinistry.name ? `${editingMinistry.name.replace(/\s+/g, '-')}` : undefined
+                );
+            }
+
             const ministryData = {
                 ...editingMinistry,
+                image: finalImageUrl,
                 date: editingMinistry.date || new Date().toISOString().split('T')[0],
                 name: editingMinistry.name || '',
                 description: editingMinistry.description || '',
-                mediaType: inferMinistryMediaType(editingMinistry),
+                mediaType: inferMinistryMediaType({ ...editingMinistry, image: finalImageUrl }),
                 duration: editingMinistry.duration?.trim() || '',
                 category: editingMinistry.category?.trim() || '',
                 hidden: editingMinistry.hidden ?? false
@@ -524,6 +636,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             setHasOrderChanges(false); // Reset on delete
         } catch (error) {
             console.error('Failed to delete ministry', error);
+        }
+    };
+
+    const handleRenameTab = (tabId: string, newLabel: string) => {
+        if (!newLabel.trim()) return;
+        const updated = { ...tabLabels, [tabId]: newLabel };
+        setTabLabels(updated);
+        localStorage.setItem('cot_admin_tab_labels', JSON.stringify(updated));
+    };
+
+    const handleToggleMinistryVisibility = async (m: Ministry) => {
+        try {
+            const updated = { ...m, hidden: !m.hidden };
+            setMinistries(prev => prev.map(item => item.id === m.id ? updated : item));
+            await api.updateMinistry(updated);
+        } catch (error) {
+            console.error('Failed to toggle visibility:', error);
+            alert('Failed to update visibility in real-time. Please retry.');
+            setMinistries(prev => prev.map(item => item.id === m.id ? m : item));
         }
     };
 
@@ -1817,106 +1948,170 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
     };
 
-    const handleMinistryMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleMinistryMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         if (files.length === 0) return;
 
-        const resetInput = () => {
-            if (e.target) e.target.value = '';
-        };
+        setIsLoading(true);
+        const newQueueItems: any[] = [];
+        try {
+            for (const file of files) {
+                const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|webm|ogg|m4v)$/i.test(file.name);
+                const mediaType = isVideo ? 'video' : 'image';
+                const detectedDate = detectDate(file);
+                const preview = URL.createObjectURL(file);
+                let videoDurationSeconds = 0;
+                let duration = '';
 
-        if (files.length > 1) {
-            (async () => {
-                setIsLoading(true);
-                try {
-                    for (const file of files) {
-                        const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|webm|ogg|m4v)$/i.test(file.name);
-                        if (isVideo) {
-                            const durationSeconds = await getVideoDuration(file);
-                            const durationLabel = formatDuration(durationSeconds);
-                            const videoUrl = await uploadMinistryVideo(file);
-                            const payload = {
-                                ...buildMinistryDraft(file, {
-                                    image: videoUrl,
-                                    mediaType: 'video',
-                                    duration: durationLabel
-                                }),
-                                description: ''
-                            };
-                            const newMinistry = await api.createMinistry(payload as Omit<Ministry, 'id'>);
-                            setMinistries(prev => [...prev, newMinistry]);
-                            continue;
-                        }
-                        const image = await readFileAsDataUrl(file);
-                        if (!image) continue;
-                        const payload = {
-                            ...buildMinistryDraft(file, {
-                                image,
-                                mediaType: 'image'
-                            }),
-                            description: ''
-                        };
-                        const newMinistry = await api.createMinistry(payload as Omit<Ministry, 'id'>);
-                        setMinistries(prev => [...prev, newMinistry]);
+                if (isVideo) {
+                    try {
+                        videoDurationSeconds = await getVideoDuration(file);
+                        duration = formatDuration(videoDurationSeconds);
+                    } catch (err) {
+                        console.error(err);
                     }
-                } catch (error) {
-                    console.error('Failed bulk upload for ministry media', error);
-                    alert('Some ministry media failed to upload. Please retry.');
-                } finally {
-                    setIsLoading(false);
-                    resetInput();
                 }
-            })();
-            return;
-        }
 
-        const file = files[0];
-        if (!file) return;
-        const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|webm|ogg|m4v)$/i.test(file.name);
-        if (isVideo) {
-            (async () => {
-                setIsLoading(true);
-                try {
-                    const durationSeconds = await getVideoDuration(file);
-                    const durationLabel = formatDuration(durationSeconds);
-                    const videoUrl = await uploadMinistryVideo(file);
-                    setEditingMinistry(prev => ({
-                        ...buildMinistryDraft(file, {
-                            image: videoUrl,
-                            mediaType: 'video',
-                            duration: durationLabel
-                        }),
-                        id: prev?.id
-                    }));
-                } catch (error) {
-                    console.error('Failed to upload ministry video', error);
-                    alert('Failed to upload video. Please retry.');
-                } finally {
-                    setIsLoading(false);
-                    resetInput();
-                }
-            })();
-            return;
+                newQueueItems.push({
+                    id: Math.random().toString(36).substring(7),
+                    file,
+                    preview,
+                    name: getFileBaseName(file.name),
+                    date: detectedDate,
+                    category: 'Highlights',
+                    mediaType,
+                    duration,
+                    videoDurationSeconds,
+                    videoTrimStart: 0,
+                    videoTrimEnd: 100,
+                    cropZoom: 1,
+                    cropX: 0,
+                    cropY: 0,
+                    hidden: false
+                });
+            }
+            setBulkQueue(prev => [...prev, ...newQueueItems]);
+        } catch (error) {
+            console.error('Failed reading selected files', error);
+            alert('Failed to process some selected files.');
+        } finally {
+            setIsLoading(false);
+            if (e.target) e.target.value = '';
         }
-        readFileAsDataUrl(file)
-            .then((result) => {
-                if (!result) return;
-                setCropImage(result);
+    };
+
+    const handleSingleMinistryMediaSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !editingMinistry) return;
+
+        setIsLoading(true);
+        try {
+            const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|webm|ogg|m4v)$/i.test(file.name);
+            const mediaType = isVideo ? 'video' : 'image';
+            const detectedDate = detectDate(file);
+            const url = URL.createObjectURL(file);
+            
+            if (isVideo) {
+                const cloudUrl = await uploadMinistryFile(file);
+                const durationSecs = await getVideoDuration(file);
+                const durationStr = formatDuration(durationSecs);
+                // Clean up local blob URL
+                URL.revokeObjectURL(url);
+                setEditingMinistry(prev => ({
+                    ...prev,
+                    image: cloudUrl,
+                    mediaType: 'video',
+                    duration: durationStr,
+                    date: prev?.date || detectedDate,
+                    name: prev?.name || getFileBaseName(file.name)
+                }));
+            } else {
+                setCropImage(url);
                 setCroppingType('ministry');
                 setIsCropping(true);
-                if (!editingMinistry?.id) {
-                    setEditingMinistry(prev => ({
-                        ...buildMinistryDraft(file, { mediaType: 'image' }),
-                        id: prev?.id
-                    }));
+                setEditingMinistry(prev => ({
+                    ...prev,
+                    date: prev?.date || detectedDate,
+                    name: prev?.name || getFileBaseName(file.name)
+                }));
+            }
+        } catch (error) {
+            console.error('Failed to change ministry media', error);
+            alert('Failed to process the selected media file.');
+        } finally {
+            setIsLoading(false);
+            if (e.target) e.target.value = '';
+        }
+    };
+
+    const handleRemoveQueueItem = (id: string) => {
+        setBulkQueue(prev => {
+            const item = prev.find(i => i.id === id);
+            if (item && item.preview.startsWith('blob:')) {
+                URL.revokeObjectURL(item.preview);
+            }
+            return prev.filter(i => i.id !== id);
+        });
+    };
+
+    const handleUpdateQueueItem = (id: string, updates: Partial<any>) => {
+        setBulkQueue(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
+    };
+
+    const handlePublishBulkQueue = async () => {
+        if (bulkQueue.length === 0) return;
+        setIsBulkUploading(true);
+        setBulkUploadProgress(0);
+
+        let completed = 0;
+        const total = bulkQueue.length;
+
+        try {
+            for (const item of bulkQueue) {
+                const mediaUrl = await uploadMinistryFile(item.file);
+                let finalDuration = item.duration;
+
+                if (item.mediaType === 'video' && item.videoDurationSeconds > 0) {
+                    const startPct = item.videoTrimStart / 100;
+                    const endPct = item.videoTrimEnd / 100;
+                    const trimmedSecs = Math.max(1, Math.round((endPct - startPct) * item.videoDurationSeconds));
+                    finalDuration = formatDuration(trimmedSecs);
                 }
-                resetInput();
-            })
-            .catch((error) => {
-                console.error('Failed to read ministry image', error);
-                alert('Failed to read the selected image.');
-                resetInput();
+
+                const payload = {
+                    name: item.name,
+                    date: item.date || new Date().toISOString().split('T')[0],
+                    image: mediaUrl,
+                    mediaType: item.mediaType,
+                    duration: finalDuration,
+                    category: item.category,
+                    hidden: item.hidden,
+                    description: '',
+                    order: ministries.length + completed + 1
+                };
+
+                const newMinistry = await api.createMinistry(payload as Omit<Ministry, 'id'>);
+                setMinistries(prev => [...prev, newMinistry]);
+
+                completed++;
+                setBulkUploadProgress(Math.round((completed / total) * 100));
+            }
+
+            bulkQueue.forEach(item => {
+                if (item.preview.startsWith('blob:')) {
+                    URL.revokeObjectURL(item.preview);
+                }
             });
+
+            setBulkQueue([]);
+            alert('All media items in the bulk queue published successfully!');
+        } catch (error) {
+            console.error('Error publishing bulk queue', error);
+            alert('An error occurred during bulk media upload. Please retry.');
+        } finally {
+            setIsBulkUploading(false);
+            setBulkUploadProgress(0);
+        }
     };
 
     const handleCropComplete = (croppedImageUrl: string) => {
@@ -2012,7 +2207,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                     {(menuMode === 'horizontal' || menuMode === 'vertical') && (
                         <div className={`flex gap-1.5 flex-nowrap overflow-x-auto pb-1 scrollbar-none -mx-1 px-1 ${menuMode === 'vertical' ? 'lg:hidden' : ''}`}>
-                            {TAB_ITEMS.map(tab => (
+                            {visibleTabs.map(tab => (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
@@ -2036,20 +2231,63 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {menuMode === 'vertical' && (
                         <aside className="hidden lg:block w-56 shrink-0 sticky top-28">
                             <nav className="bg-white rounded-3xl border border-slate-100 shadow-sm p-3 space-y-1">
-                                {TAB_ITEMS.map(tab => (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => setActiveTab(tab.id)}
-                                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-colors ${
-                                            activeTab === tab.id
-                                                ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20'
-                                                : 'text-slate-600 hover:bg-slate-50'
-                                        }`}
-                                    >
-                                        <tab.icon size={18} />
-                                        {tab.label}
-                                    </button>
-                                ))}
+                                {visibleTabs.map(tab => {
+                                    const customLabel = tab.label;
+                                    const isRenaming = renamingTabId === tab.id;
+                                    const isActive = activeTab === tab.id;
+                                    return (
+                                        <div
+                                            key={tab.id}
+                                            onClick={() => setActiveTab(tab.id)}
+                                            className={`w-full flex items-center justify-between gap-2 px-4 py-3 rounded-xl transition-colors group cursor-pointer ${
+                                                isActive
+                                                    ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20'
+                                                    : 'text-slate-600 hover:bg-slate-50'
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                <tab.icon size={18} className="shrink-0" />
+                                                {isRenaming ? (
+                                                    <input
+                                                        type="text"
+                                                        value={renameValue}
+                                                        onChange={(e) => setRenameValue(e.target.value)}
+                                                        onBlur={() => {
+                                                            handleRenameTab(tab.id, renameValue);
+                                                            setRenamingTabId(null);
+                                                        }}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                handleRenameTab(tab.id, renameValue);
+                                                                setRenamingTabId(null);
+                                                            }
+                                                        }}
+                                                        autoFocus
+                                                        className="w-full bg-slate-50 text-slate-900 font-bold px-2 py-0.5 rounded text-xs border border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    />
+                                                ) : (
+                                                    <span className="font-bold text-sm truncate">{customLabel}</span>
+                                                )}
+                                            </div>
+                                            {!isRenaming && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setRenamingTabId(tab.id);
+                                                        setRenameValue(customLabel);
+                                                    }}
+                                                    className={`p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-black/10 transition-opacity shrink-0 ${
+                                                        isActive ? 'text-white/60 hover:text-white' : 'text-slate-400 hover:text-slate-600'
+                                                    }`}
+                                                    title="Rename tab"
+                                                >
+                                                    <Edit2 size={12} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </nav>
                         </aside>
                     )}
@@ -3914,154 +4152,283 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 )}
 
                 {/* Ministries View */}
-                {activeTab === 'ministries' && (
-                    <div className="space-y-8">
-                        <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-6">
-                                <h2 className="text-2xl font-black text-brand-950 tracking-tight">Tab TV + Ministry Gallery</h2>
-                                {hasOrderChanges && (
-                                    <motion.button
-                                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                                        onClick={handleSaveOrder}
-                                        disabled={isLoading}
-                                        className="flex items-center gap-2 px-6 py-2.5 bg-accent-500 text-brand-950 rounded-full font-black text-xs uppercase tracking-widest hover:bg-accent-600 transition-all shadow-xl shadow-accent-500/20 active:scale-95"
-                                    >
-                                        <Save size={16} /> Save Order
-                                    </motion.button>
-                                )}
-                                <label className="flex items-center gap-2 px-8 py-4 bg-brand-950 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-brand-900 transition-all cursor-pointer shadow-xl shadow-brand-950/20 active:scale-95 group">
-                                    <ImagePlus size={20} className="group-hover:scale-110 transition-transform" /> Upload Media
-                                    <input
-                                        type="file"
-                                        className="hidden"
-                                        accept="image/*,video/*"
-                                        multiple
-                                        onChange={handleMinistryMediaUpload}
-                                    />
-                                </label>
-                            </div>
-                        </div>
+                {activeTab === 'ministries' && (() => {
+                    const uniqueMediaMonths = Array.from(new Set(
+                        ministries
+                            .map(m => m.date ? m.date.substring(0, 7) : '')
+                            .filter(Boolean)
+                    )).sort().reverse();
 
-                        <Reorder.Group
-                            axis="y"
-                            values={ministries}
-                            onReorder={(newOrder) => {
-                                setMinistries(newOrder);
-                                setHasOrderChanges(true);
-                            }}
-                            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-8"
-                        >
-                            {ministries.map((m) => {
-                                const mediaType = inferMinistryMediaType(m);
-                                const isHidden = !!m.hidden;
-                                const categoryLabel = (m.category || '').trim();
-                                const durationLabel = (m.duration || '').trim();
-                                return (
-                                    <Reorder.Item
-                                        key={m.id}
-                                        value={m}
-                                        dragListener={true}
-                                        dragControls={undefined}
-                                        className={`group relative aspect-square rounded-2xl md:rounded-[2.5rem] overflow-hidden bg-white border border-slate-100 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-2xl transition-all duration-700 ${isHidden ? 'opacity-60' : ''}`}
+                    const filteredMinistries = ministries.filter((m) => {
+                        const mediaType = inferMinistryMediaType(m);
+                        if (mediaTypeFilter !== 'all' && mediaType !== mediaTypeFilter) return false;
+                        if (mediaMonthFilter !== 'all') {
+                            if (!m.date) return false;
+                            const itemMonth = m.date.substring(0, 7);
+                            if (itemMonth !== mediaMonthFilter) return false;
+                        }
+                        return true;
+                    }).sort((a, b) => {
+                        const dateA = a.date ? new Date(a.date).getTime() : 0;
+                        const dateB = b.date ? new Date(b.date).getTime() : 0;
+                        return mediaSortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+                    });
+
+                    const isFiltered = mediaTypeFilter !== 'all' || mediaMonthFilter !== 'all';
+
+                    return (
+                        <div className="space-y-8">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div>
+                                    <h2 className="text-2xl font-black text-brand-950 tracking-tight">Tab TV + Ministry Gallery</h2>
+                                    <p className="text-xs text-slate-500 mt-1 font-medium">Control the visual moments shown in the Ministry TV media center.</p>
+                                    <div className="flex items-center gap-2 mt-3.5 flex-wrap">
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 border border-brand-200/50 text-brand-700 text-[10px] font-black uppercase tracking-wider shadow-sm select-none">
+                                            📊 Total: {ministries.length} {isFiltered && `(${filteredMinistries.length} shown)`}
+                                        </span>
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200/50 text-amber-700 text-[10px] font-black uppercase tracking-wider shadow-sm select-none">
+                                            📸 Images: {ministries.filter(m => inferMinistryMediaType(m) === 'image').length}
+                                        </span>
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200/50 text-indigo-700 text-[10px] font-black uppercase tracking-wider shadow-sm select-none">
+                                            🎥 Videos: {ministries.filter(m => inferMinistryMediaType(m) === 'video').length}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3 flex-wrap">
+                                    {hasOrderChanges && !isFiltered && (
+                                        <motion.button
+                                            initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                            onClick={handleSaveOrder}
+                                            disabled={isLoading}
+                                            className="flex items-center gap-2 px-6 py-2.5 bg-accent-500 text-brand-950 rounded-full font-black text-xs uppercase tracking-widest hover:bg-accent-600 transition-all shadow-xl shadow-accent-500/20 active:scale-95"
+                                        >
+                                            <Save size={16} /> Save Order
+                                        </motion.button>
+                                    )}
+                                    <motion.label
+                                        whileHover={{ 
+                                            scale: 1.05, 
+                                            y: -2,
+                                            boxShadow: '0 20px 25px -5px rgba(217, 119, 6, 0.4), 0 10px 10px -5px rgba(217, 119, 6, 0.3)' 
+                                        }}
+                                        whileTap={{ scale: 0.95 }}
+                                        transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                                        className="flex items-center gap-2.5 px-8 py-4 bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-700 hover:from-amber-500 hover:via-yellow-500 hover:to-amber-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest cursor-pointer shadow-xl shadow-amber-600/20 border border-yellow-500/30 select-none group relative overflow-hidden"
                                     >
-                                        {m.image && !failedMinistryImages[m.id] ? (
-                                            mediaType === 'video' ? (
-                                                <video
-                                                    src={m.image}
-                                                    className="w-full h-full object-cover"
-                                                    muted
-                                                    loop
-                                                    playsInline
-                                                    autoPlay
-                                                    onError={() => setFailedMinistryImages(prev => ({ ...prev, [m.id]: true }))}
-                                                />
+                                        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
+                                        <ImagePlus size={20} className="group-hover:rotate-12 group-hover:scale-110 transition-all duration-300 text-yellow-100" />
+                                        <span>Upload Media</span>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept="image/*,video/*"
+                                            multiple
+                                            onChange={handleMinistryMediaUpload}
+                                        />
+                                    </motion.label>
+                                </div>
+                            </div>
+
+                            {/* Filters row */}
+                            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest mr-2">Filter:</span>
+                                    {[
+                                        { id: 'all', label: 'All Media 🌐' },
+                                        { id: 'image', label: 'Images 📸' },
+                                        { id: 'video', label: 'Videos 🎥' }
+                                    ].map((type) => (
+                                        <button
+                                            key={type.id}
+                                            onClick={() => setMediaTypeFilter(type.id as any)}
+                                            className={`px-4 py-2 rounded-full font-bold text-xs transition-all ${
+                                                mediaTypeFilter === type.id
+                                                    ? 'bg-brand-600 text-white shadow-md shadow-brand-500/10'
+                                                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
+                                            }`}
+                                        >
+                                            {type.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-4">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Sort:</span>
+                                        <select
+                                            value={mediaSortOrder}
+                                            onChange={(e) => setMediaSortOrder(e.target.value as any)}
+                                            className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer"
+                                        >
+                                            <option value="newest">Newest First ⬇️</option>
+                                            <option value="oldest">Oldest First ⬆️</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Month:</span>
+                                        <select
+                                            value={mediaMonthFilter}
+                                            onChange={(e) => setMediaMonthFilter(e.target.value)}
+                                            className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer"
+                                        >
+                                            <option value="all">All Months 📅</option>
+                                            {uniqueMediaMonths.map((mMonth) => {
+                                                const [yr, mn] = mMonth.split('-');
+                                                const monthName = new Date(parseInt(yr, 10), parseInt(mn, 10) - 1, 1).toLocaleString('en-US', { month: 'long' });
+                                                return (
+                                                    <option key={mMonth} value={mMonth}>{`${monthName} ${yr}`}</option>
+                                                );
+                                            })}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Notice if dragging is disabled */}
+                            {isFiltered && (
+                                <div className="rounded-2xl bg-brand-50/50 border border-brand-100 px-4 py-3 flex items-center gap-2.5 text-xs text-brand-700 font-bold">
+                                    <Sparkles size={14} className="animate-pulse" />
+                                    ℹ️ Drag-and-drop ordering is disabled while file type or month filters are active.
+                                </div>
+                            )}
+
+                            <Reorder.Group
+                                axis="y"
+                                values={filteredMinistries}
+                                onReorder={(newOrder) => {
+                                    if (isFiltered) return; // Disable reordering if active filters
+                                    setMinistries(newOrder);
+                                    setHasOrderChanges(true);
+                                }}
+                                className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-8"
+                            >
+                                {filteredMinistries.map((m) => {
+                                    const mediaType = inferMinistryMediaType(m);
+                                    const isHidden = !!m.hidden;
+                                    const categoryLabel = (m.category || '').trim();
+                                    const durationLabel = (m.duration || '').trim();
+                                    return (
+                                        <Reorder.Item
+                                            key={m.id}
+                                            value={m}
+                                            dragListener={!isFiltered}
+                                            dragControls={undefined}
+                                            className={`group relative aspect-square rounded-2xl md:rounded-[2.5rem] overflow-hidden bg-white border border-slate-100 shadow-sm ${!isFiltered ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'} hover:shadow-2xl transition-all duration-700 ${isHidden ? 'opacity-60' : ''}`}
+                                        >
+                                            {m.image && !failedMinistryImages[m.id] ? (
+                                                mediaType === 'video' ? (
+                                                    <video
+                                                        src={m.image}
+                                                        className="w-full h-full object-cover"
+                                                        muted
+                                                        loop
+                                                        playsInline
+                                                        autoPlay
+                                                        onError={() => setFailedMinistryImages(prev => ({ ...prev, [m.id]: true }))}
+                                                    />
+                                                ) : (
+                                                    <img
+                                                        src={m.image}
+                                                        alt={m.name}
+                                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                                                        onError={() => setFailedMinistryImages(prev => ({ ...prev, [m.id]: true }))}
+                                                    />
+                                                )
                                             ) : (
-                                                <img
-                                                    src={m.image}
-                                                    alt={m.name}
-                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
-                                                    onError={() => setFailedMinistryImages(prev => ({ ...prev, [m.id]: true }))}
-                                                />
-                                            )
-                                        ) : (
-                                            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-500 text-center px-3">
-                                                <ImageIcon size={22} className="mb-2" />
-                                                <p className="text-[10px] font-bold uppercase tracking-wide">Media unavailable</p>
-                                            </div>
-                                        )}
-
-                                        {/* Sync Overlay with MinistryGallery.tsx */}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-brand-950/90 via-brand-950/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-500" />
-
-                                        <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all md:translate-x-4 md:group-hover:translate-x-0 duration-300 z-20">
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); setEditingMinistry(m); }}
-                                                className="w-10 h-10 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white hover:text-brand-950 transition-all shadow-lg"
-                                                title="Edit & Crop"
-                                            >
-                                                <Camera size={16} />
-                                            </button>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); handleDeleteMinistry(m.id); }}
-                                                className="w-10 h-10 bg-red-400/10 backdrop-blur-xl border border-red-400/20 rounded-full flex items-center justify-center text-red-100 hover:bg-red-500 hover:text-white transition-all shadow-lg"
-                                                title="Delete"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
-
-                                        <div className="absolute top-4 left-16 flex flex-col gap-2 z-20">
-                                            <span className="inline-flex items-center gap-1 rounded-full bg-white/15 border border-white/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
-                                                {mediaType === 'video' ? <Video size={12} /> : <ImageIcon size={12} />}
-                                                {mediaType}
-                                            </span>
-                                            {durationLabel && mediaType === 'video' && (
-                                                <span className="inline-flex items-center gap-1 rounded-full bg-brand-950/70 border border-white/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
-                                                    <Clock size={12} /> {durationLabel}
-                                                </span>
+                                                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-500 text-center px-3">
+                                                    <ImageIcon size={22} className="mb-2" />
+                                                    <p className="text-[10px] font-bold uppercase tracking-wide">Media unavailable</p>
+                                                </div>
                                             )}
-                                            {categoryLabel && (
+
+                                            {/* Gradient overlay */}
+                                            <div className="absolute inset-0 bg-gradient-to-t from-brand-950/90 via-brand-950/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-500" />
+
+                                            {/* Action Overlay */}
+                                            <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all md:translate-x-4 md:group-hover:translate-x-0 duration-300 z-20">
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setEditingMinistry(m); }}
+                                                    className="w-10 h-10 bg-white/15 backdrop-blur-xl border border-white/25 rounded-full flex items-center justify-center text-white hover:bg-white hover:text-brand-950 transition-all shadow-lg"
+                                                    title="Edit Details"
+                                                >
+                                                    <Camera size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleToggleMinistryVisibility(m); }}
+                                                    className={`w-10 h-10 backdrop-blur-xl border rounded-full flex items-center justify-center transition-all shadow-lg ${
+                                                        isHidden 
+                                                            ? 'bg-red-500/20 border-red-500/30 text-red-300 hover:bg-red-500 hover:text-white' 
+                                                            : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500 hover:text-white'
+                                                    }`}
+                                                    title={isHidden ? 'Make Visible' : 'Hide Page'}
+                                                >
+                                                    {isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                </button>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleDeleteMinistry(m.id); }}
+                                                    className="w-10 h-10 bg-red-400/10 backdrop-blur-xl border border-red-400/20 rounded-full flex items-center justify-center text-red-100 hover:bg-red-500 hover:text-white transition-all shadow-lg"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+
+                                            <div className="absolute top-4 left-16 flex flex-col gap-2 z-20">
                                                 <span className="inline-flex items-center gap-1 rounded-full bg-white/15 border border-white/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
-                                                    <Tag size={12} /> {categoryLabel}
+                                                    {mediaType === 'video' ? <Video size={12} /> : <ImageIcon size={12} />}
+                                                    {mediaType}
                                                 </span>
-                                            )}
-                                            {isHidden && (
-                                                <span className="inline-flex items-center gap-1 rounded-full bg-red-500/70 border border-white/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
-                                                    <EyeOff size={12} /> Hidden
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        <div className="absolute bottom-4 md:bottom-8 left-4 md:left-8 right-4 md:right-8 pointer-events-none group-hover:translate-y-[-4px] transition-transform duration-500">
-                                            <div className="flex items-center gap-2 text-accent-400 mb-1 md:mb-2">
-                                                <div className="w-4 h-[1px] bg-accent-400" />
-                                                <span className="text-[8px] md:text-[10px] font-black tracking-[0.2em] uppercase">Ministry Moment</span>
+                                                {durationLabel && mediaType === 'video' && (
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-brand-950/70 border border-white/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+                                                        <Clock size={12} /> {durationLabel}
+                                                    </span>
+                                                )}
+                                                {categoryLabel && (
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-white/15 border border-white/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+                                                        <Tag size={12} /> {categoryLabel}
+                                                    </span>
+                                                )}
+                                                {isHidden && (
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-red-500/70 border border-white/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+                                                        <EyeOff size={12} /> Hidden
+                                                    </span>
+                                                )}
                                             </div>
-                                            <h3 className="text-white font-serif font-bold text-sm md:text-lg leading-tight drop-shadow-xl">
-                                                {m.date ? new Date(m.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Nov 25, 2026'}
-                                            </h3>
-                                        </div>
 
-                                        {/* Reorder Grip - Top Left */}
-                                        <div className="absolute top-4 left-4 w-10 h-10 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center text-white/60 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all border border-white/20 hover:bg-white hover:text-brand-950 shadow-lg cursor-grab active:cursor-grabbing z-20">
-                                            <GripVertical size={18} />
-                                        </div>
+                                            <div className="absolute bottom-4 md:bottom-8 left-4 md:left-8 right-4 md:right-8 pointer-events-none group-hover:translate-y-[-4px] transition-transform duration-500">
+                                                <div className="flex items-center gap-2 text-accent-400 mb-1 md:mb-2">
+                                                    <div className="w-4 h-[1px] bg-accent-400" />
+                                                    <span className="text-[8px] md:text-[10px] font-black tracking-[0.2em] uppercase">Ministry Moment</span>
+                                                </div>
+                                                <h3 className="text-white font-serif font-bold text-sm md:text-lg leading-tight drop-shadow-xl">
+                                                    {m.date ? new Date(m.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Nov 25, 2026'}
+                                                </h3>
+                                            </div>
 
-                                        <div className="absolute inset-0 border-2 border-transparent group-active:border-accent-500/50 rounded-2xl md:rounded-[2.5rem] transition-colors" />
-                                    </Reorder.Item>
-                                );
-                            })}
-                        </Reorder.Group>
+                                            {/* Reorder Grip - Top Left */}
+                                            {!isFiltered && (
+                                                <div className="absolute top-4 left-4 w-10 h-10 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center text-white/60 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all border border-white/20 hover:bg-white hover:text-brand-950 shadow-lg cursor-grab active:cursor-grabbing z-20">
+                                                    <GripVertical size={18} />
+                                                </div>
+                                            )}
 
-                        {ministries.length === 0 && (
-                            <div className="text-center py-32 bg-slate-50 rounded-[3.5rem] border-2 border-dashed border-slate-200">
-                                <ImageIcon size={48} className="mx-auto text-slate-300 mb-4" />
-                                <p className="text-slate-400 font-medium">No Tab TV / ministry media yet. Upload your first moment!</p>
-                            </div>
-                        )}
-                    </div>
-                )}
+                                            <div className="absolute inset-0 border-2 border-transparent group-active:border-accent-500/50 rounded-2xl md:rounded-[2.5rem] transition-colors" />
+                                        </Reorder.Item>
+                                    );
+                                })}
+                            </Reorder.Group>
+
+                            {filteredMinistries.length === 0 && (
+                                <div className="text-center py-32 bg-slate-50 rounded-[3.5rem] border-2 border-dashed border-slate-200">
+                                    <ImageIcon size={48} className="mx-auto text-slate-300 mb-4" />
+                                    <p className="text-slate-400 font-medium">No moments match your current filter selection. Clear filters or add new moments!</p>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()}
 
                 {activeTab === 'home-layout' && (
                     <div className="max-w-5xl mx-auto">
@@ -4098,26 +4465,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 onReorder={onUpdateHomeSectionsOrder}
                                 className="space-y-4"
                             >
-                                {homeSectionsOrder.map((sectionId) => {
+                                {homeSectionsOrder.map((sectionId, idx) => {
                                     const info = HOME_SECTIONS_INFO[sectionId] || { name: sectionId, desc: 'Home component', icon: Globe, color: 'bg-brand-500' };
                                     const Icon = info.icon;
+                                    const displayIndex = (idx + 1).toString().padStart(2, '0');
                                     
                                     return (
                                         <Reorder.Item
                                             key={sectionId}
                                             value={sectionId}
-                                            dragListener={true}
-                                            whileDrag={{ scale: 1.02, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)" }}
-                                            className="bg-white p-5 rounded-[2rem] border border-slate-100 flex items-center gap-6 group hover:border-brand-300 hover:shadow-lg transition-all cursor-grab active:cursor-grabbing relative overflow-hidden"
+                                            className="bg-white p-5 rounded-[2rem] border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-6 group hover:border-brand-300 hover:shadow-lg transition-all relative overflow-hidden cursor-grab active:cursor-grabbing"
                                         >
                                             <div className="absolute top-0 right-0 w-24 h-24 bg-brand-50/30 rounded-full -mr-12 -mt-12 transition-all group-hover:scale-150 pointer-events-none" />
                                             
                                             <div className="flex items-center gap-5 flex-1 relative z-10">
-                                                <div
-                                                    className="text-slate-300 group-hover:text-brand-500 transition-colors shrink-0 cursor-grab active:cursor-grabbing"
-                                                    aria-label={`Drag to reorder ${info.name}`}
-                                                >
-                                                    <GripVertical size={24} />
+                                                {/* Premium Serial Index Badge */}
+                                                <div className="text-brand-600 font-serif font-black text-lg select-none w-6 text-center shrink-0">
+                                                    {displayIndex}
                                                 </div>
                                                 
                                                 <div className={`w-14 h-14 ${info.color} rounded-2xl flex items-center justify-center text-white shadow-lg`}>
@@ -4128,23 +4492,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                     <h3 className="font-black text-brand-950 text-lg leading-tight uppercase tracking-tight">
                                                         {info.name}
                                                     </h3>
-                                                    <p className="text-slate-400 text-xs font-bold truncate pr-4">
+                                                    <p className="text-slate-400 text-xs font-bold truncate pr-4 mt-0.5">
                                                         {info.desc}
                                                     </p>
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-3 relative z-10">
-                                                <div className="flex items-center gap-1">
+                                            <div className="flex items-center gap-3 relative z-10 justify-end shrink-0">
+                                                {/* Explicit Up/Down Buttons */}
+                                                <div className="flex items-center gap-1.5">
                                                     <button
                                                         type="button"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            const idx = homeSectionsOrder.findIndex(item => item === sectionId);
-                                                            if (idx <= 0) return;
-                                                            onUpdateHomeSectionsOrder(moveArrayItem(homeSectionsOrder, idx, idx - 1));
+                                                            const idxVal = homeSectionsOrder.findIndex(item => item === sectionId);
+                                                            if (idxVal <= 0) return;
+                                                            onUpdateHomeSectionsOrder(moveArrayItem(homeSectionsOrder, idxVal, idxVal - 1));
                                                         }}
-                                                        className="w-8 h-8 rounded-full border border-slate-200 text-slate-600 flex items-center justify-center"
+                                                        disabled={idx === 0}
+                                                        className="w-8 h-8 rounded-full border border-slate-200 bg-white text-slate-600 flex items-center justify-center hover:bg-slate-50 disabled:opacity-30 transition-all active:scale-95"
                                                         aria-label="Move up"
                                                     >
                                                         <ChevronUp size={14} />
@@ -4153,21 +4519,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                         type="button"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            const idx = homeSectionsOrder.findIndex(item => item === sectionId);
-                                                            if (idx < 0 || idx >= homeSectionsOrder.length - 1) return;
-                                                            onUpdateHomeSectionsOrder(moveArrayItem(homeSectionsOrder, idx, idx + 1));
+                                                            const idxVal = homeSectionsOrder.findIndex(item => item === sectionId);
+                                                            if (idxVal < 0 || idxVal >= homeSectionsOrder.length - 1) return;
+                                                            onUpdateHomeSectionsOrder(moveArrayItem(homeSectionsOrder, idxVal, idxVal + 1));
                                                         }}
-                                                        className="w-8 h-8 rounded-full border border-slate-200 text-slate-600 flex items-center justify-center"
+                                                        disabled={idx === homeSectionsOrder.length - 1}
+                                                        className="w-8 h-8 rounded-full border border-slate-200 bg-white text-slate-600 flex items-center justify-center hover:bg-slate-50 disabled:opacity-30 transition-all active:scale-95"
                                                         aria-label="Move down"
                                                     >
                                                         <ChevronDown size={14} />
                                                     </button>
                                                 </div>
-                                                <div className="hidden sm:block text-[9px] font-black uppercase tracking-widest text-slate-300 group-hover:text-brand-400 transition-colors bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
-                                                    {sectionId === 'hero' ? 'Top Section' : 'Live Section'}
-                                                </div>
-                                                <div className="w-8 h-8 rounded-full border-2 border-slate-100 flex items-center justify-center text-slate-300 group-hover:border-brand-200 group-hover:text-brand-500 transition-all opacity-0 group-hover:opacity-100">
-                                                    <ChevronRight size={16} />
+                                                <div className="hidden sm:flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-300 group-hover:text-brand-400 transition-colors bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
+                                                    <GripVertical size={12} />
+                                                    Drag
                                                 </div>
                                             </div>
                                         </Reorder.Item>
@@ -4195,151 +4560,361 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                 )}
 
-                {activeTab === 'menu-editor' && (
-                    <div className="max-w-3xl mx-auto">
-                        <motion.div
+                {activeTab === 'menu-editor' && (() => {
+                    const getActiveEditMenuItems = (): any[] => {
+                        if (!navItems) return [];
+                        if (selectedMenuEditTab === 'main') return navItems;
+                        if (selectedMenuEditTab === 'hebrew-content') {
+                            const contentItem = navItems.find(item => item.label === 'HEBREW RESOURCES' || item.label === 'HEBREW CONTENT' || item.label === 'HEBREW');
+                            return contentItem?.submenu || [];
+                        }
+                        if (selectedMenuEditTab === 'hebrew-tools') {
+                            const toolsItem = navItems.find(item => item.label === 'HEBREW TOOLS');
+                            return toolsItem?.submenu || [];
+                        }
+                        return [];
+                    };
+
+                    const handleUpdateMenuOrder = (newOrder: any[]) => {
+                        if (!onUpdateNavItems || !navItems) return;
+                        
+                        if (selectedMenuEditTab === 'main') {
+                            onUpdateNavItems(newOrder);
+                        } else if (selectedMenuEditTab === 'hebrew-content') {
+                            const updated = navItems.map(item => {
+                                if (item.label === 'HEBREW RESOURCES' || item.label === 'HEBREW CONTENT' || item.label === 'HEBREW') {
+                                    return { ...item, submenu: newOrder };
+                                }
+                                return item;
+                            });
+                            onUpdateNavItems(updated);
+                        } else if (selectedMenuEditTab === 'hebrew-tools') {
+                            const updated = navItems.map(item => {
+                                if (item.label === 'HEBREW TOOLS') {
+                                    return { ...item, submenu: newOrder };
+                                }
+                                return item;
+                            });
+                            onUpdateNavItems(updated);
+                        }
+                    };
+
+                    const handleRenameMenuItem = (index: number, newLabel: string) => {
+                        const currentItems = getActiveEditMenuItems();
+                        const updated = currentItems.map((item, idx) => idx === index ? { ...item, label: newLabel } : item);
+                        handleUpdateMenuOrder(updated);
+                    };
+
+                    const handleToggleMenuItemVisibility = (index: number) => {
+                        const currentItems = getActiveEditMenuItems();
+                        const updated = currentItems.map((item, idx) => idx === index ? { ...item, hidden: !item.hidden } : item);
+                        handleUpdateMenuOrder(updated);
+                    };
+
+                    const currentItems = getActiveEditMenuItems();
+
+                    return (
+                        <div className="max-w-3xl mx-auto">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl border-b-8 border-b-brand-600"
+                            >
+                                <div className="flex items-center justify-between mb-10">
+                                    <div>
+                                        <h2 className="text-3xl font-serif font-black text-brand-950">Navigation Menu Editor</h2>
+                                        <p className="text-slate-500 mt-2 text-sm font-medium">Configure items, submenus, direct renaming, visibility hide toggles, and multi-directional reordering controls.</p>
+                                    </div>
+                                    <div className="w-14 h-14 bg-brand-50 text-brand-600 rounded-[1.25rem] flex items-center justify-center shadow-inner border border-brand-100">
+                                        <Filter size={26} />
+                                    </div>
+                                </div>
+
+                                {/* Segmented Menu Selector */}
+                                <div className="flex border-b border-slate-100 mb-8">
+                                    {[
+                                        { id: 'main', label: 'Main Menu 🌐' },
+                                        { id: 'hebrew-content', label: 'Hebrew Content 📜' },
+                                        { id: 'hebrew-tools', label: 'Hebrew Tools 🛠️' }
+                                    ].map((tab) => (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => setSelectedMenuEditTab(tab.id as any)}
+                                            className={`flex-1 text-center py-3.5 text-xs font-black uppercase tracking-wider transition-all border-b-2 ${
+                                                selectedMenuEditTab === tab.id
+                                                    ? 'border-brand-600 text-brand-600 font-extrabold'
+                                                    : 'border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-200'
+                                            }`}
+                                        >
+                                            {tab.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {currentItems && currentItems.length > 0 ? (
+                                    <Reorder.Group
+                                        axis="y"
+                                        values={currentItems}
+                                        onReorder={handleUpdateMenuOrder}
+                                        className="space-y-4"
+                                    >
+                                        {currentItems.map((item, index) => (
+                                            <Reorder.Item
+                                                key={`${item.view || item.label}-${index}`}
+                                                value={item}
+                                                whileDrag={{ scale: 1.02, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)" }}
+                                                className={`bg-white p-5 rounded-[2rem] border border-slate-100 flex items-center gap-6 group hover:border-brand-300 hover:shadow-lg transition-all cursor-grab active:cursor-grabbing relative overflow-hidden ${item.hidden ? 'opacity-65 bg-slate-50/50' : ''}`}
+                                            >
+                                                <div className="absolute top-0 right-0 w-24 h-24 bg-brand-50/30 rounded-full -mr-12 -mt-12 transition-all group-hover:scale-150 pointer-events-none" />
+
+                                                <div className="flex items-center gap-5 flex-1 relative z-10">
+                                                    <div className="text-slate-300 group-hover:text-brand-500 transition-colors shrink-0">
+                                                        <GripVertical size={24} />
+                                                    </div>
+
+                                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg text-lg font-black shrink-0 ${item.hidden ? 'bg-slate-400' : 'bg-brand-600'}`}>
+                                                        {item.label.charAt(0)}
+                                                    </div>
+
+                                                    <div className="min-w-0 flex-1">
+                                                        <input
+                                                            type="text"
+                                                            value={item.label}
+                                                            onChange={(e) => handleRenameMenuItem(index, e.target.value)}
+                                                            className="w-full font-black text-brand-950 text-base uppercase tracking-tight bg-transparent border border-slate-200 rounded-xl px-3 py-1.5 outline-none focus:border-brand-500"
+                                                        />
+                                                        {item.submenu && item.submenu.length > 0 && selectedMenuEditTab === 'main' && (
+                                                            <p className="text-slate-400 text-xs font-bold pr-4 mt-1 leading-relaxed whitespace-normal break-words">
+                                                                {item.submenu.map((sub: any) => sub.label).join(' • ')}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-3 relative z-10 shrink-0">
+                                                    {/* Eye Hide/Show */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleToggleMenuItemVisibility(index);
+                                                        }}
+                                                        className={`w-10 h-10 rounded-full flex items-center justify-center border transition-all ${
+                                                            item.hidden
+                                                                ? 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100'
+                                                                : 'bg-emerald-50 border-emerald-200 text-emerald-500 hover:bg-emerald-100'
+                                                        }`}
+                                                        title={item.hidden ? 'Show Link' : 'Hide Link'}
+                                                    >
+                                                        {item.hidden ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                    </button>
+
+                                                    {/* Direct Position Arrow reordering */}
+                                                    <div className="flex items-center gap-1">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (index <= 0) return;
+                                                                const next = [...currentItems];
+                                                                const temp = next[index];
+                                                                next[index] = next[index - 1];
+                                                                next[index - 1] = temp;
+                                                                handleUpdateMenuOrder(next);
+                                                            }}
+                                                            disabled={index <= 0}
+                                                            className="w-8 h-8 rounded-full border border-slate-200 text-slate-600 flex items-center justify-center hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer"
+                                                            title="Move Up"
+                                                        >
+                                                            <ChevronUp size={14} />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (index >= currentItems.length - 1) return;
+                                                                const next = [...currentItems];
+                                                                const temp = next[index];
+                                                                next[index] = next[index + 1];
+                                                                next[index + 1] = temp;
+                                                                handleUpdateMenuOrder(next);
+                                                            }}
+                                                            disabled={index >= currentItems.length - 1}
+                                                            className="w-8 h-8 rounded-full border border-slate-200 text-slate-600 flex items-center justify-center hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer"
+                                                            title="Move Down"
+                                                        >
+                                                            <ChevronDown size={14} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </Reorder.Item>
+                                        ))}
+                                    </Reorder.Group>
+                                ) : (
+                                    <div className="text-center py-16 text-slate-400">
+                                        <Filter size={40} className="mx-auto mb-4 opacity-30" />
+                                        <p className="font-medium">No items found in this menu category.</p>
+                                    </div>
+                                )}
+
+                                <div className="mt-12 p-8 bg-brand-950 rounded-[2.5rem] border border-brand-800 shadow-2xl flex items-start gap-6 relative overflow-hidden">
+                                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none" />
+                                    <div className="w-14 h-14 bg-brand-500/20 backdrop-blur-xl border border-brand-500/30 rounded-2xl flex items-center justify-center text-brand-400 shadow-xl shrink-0">
+                                        <Globe size={28} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h4 className="font-black text-white text-xl">Cloud Global Sync</h4>
+                                            <div className="flex items-center gap-2 bg-brand-500/10 px-3 py-1 rounded-full border border-brand-500/20">
+                                                <div className="w-1.5 h-1.5 bg-brand-400 rounded-full animate-pulse" />
+                                                <span className="text-[10px] font-black text-brand-400 uppercase tracking-widest">Live Cloud Connection</span>
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-brand-100/60 leading-relaxed font-medium">Reordering menu links syncs instantly to Firestore. All visitors see the new menu order on their next page load.</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
+                    );
+                })()}
+
+                {activeTab === 'admin-tabs' && (
+                    <div className="max-w-4xl mx-auto">
+                        <motion.div 
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl border-b-8 border-b-brand-600"
+                            className="bg-white p-6 md:p-10 rounded-[3rem] border border-slate-100 shadow-xl border-b-8 border-b-brand-600"
                         >
                             <div className="flex items-center justify-between mb-10">
                                 <div>
-                                    <h2 className="text-3xl font-serif font-black text-brand-950">Navigation Menu Editor</h2>
-                                    <p className="text-slate-500 mt-2 text-sm font-medium">Drag the cards below to reorder the top navigation links for all visitors.</p>
+                                    <h2 className="text-3xl font-serif font-black text-brand-950">Sidebar Navigation Configuration</h2>
+                                    <p className="text-slate-500 mt-2 text-sm font-medium">Customize sidebar tab names, toggle visibility, and adjust order with Up/Down buttons.</p>
                                 </div>
                                 <div className="w-14 h-14 bg-brand-50 text-brand-600 rounded-[1.25rem] flex items-center justify-center shadow-inner border border-brand-100">
-                                    <Filter size={26} />
+                                    <Settings size={28} />
                                 </div>
                             </div>
 
-                            <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                                <p className="text-xs font-black text-amber-900 mb-3">Quick position controls for Hebrew menus</p>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {[{ label: 'HEBREW RESOURCES', view: 'ABOUT' }, { label: 'HEBREW TOOLS', view: 'HEBREW_TOOLS' }].map((item) => (
-                                        <div key={item.view} className="rounded-xl border border-amber-200 bg-white p-3">
-                                            <p className="text-xs font-black text-brand-950 mb-2">{item.label}</p>
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => moveNavItemByView(item.view, 'up')}
-                                                    className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-700 hover:bg-slate-50"
-                                                >
-                                                    Move Up
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => moveNavItemByView(item.view, 'down')}
-                                                    className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-700 hover:bg-slate-50"
-                                                >
-                                                    Move Down
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {navItems && navItems.length > 0 ? (
-                                <Reorder.Group
-                                    axis="y"
-                                    values={navItems}
-                                    onReorder={(newOrder) => onUpdateNavItems && onUpdateNavItems(newOrder)}
-                                    className="space-y-4"
-                                >
-                                    {navItems.map((item, index) => (
-                                        <Reorder.Item
-                                            key={`${item.view || item.label}-${index}`}
-                                            value={item}
-                                            whileDrag={{ scale: 1.02, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)" }}
-                                            className="bg-white p-5 rounded-[2rem] border border-slate-100 flex items-center gap-6 group hover:border-brand-300 hover:shadow-lg transition-all cursor-grab active:cursor-grabbing relative overflow-hidden"
-                                        >
-                                            <div className="absolute top-0 right-0 w-24 h-24 bg-brand-50/30 rounded-full -mr-12 -mt-12 transition-all group-hover:scale-150 pointer-events-none" />
-
-                                            <div className="flex items-center gap-5 flex-1 relative z-10">
-                                                <div className="text-slate-300 group-hover:text-brand-500 transition-colors shrink-0">
-                                                    <GripVertical size={24} />
+                            <div className="space-y-4">
+                                {dynamicTabs.map((tab, index) => {
+                                    const IconComponent = LUCIDE_ICONS[tab.icon] || Globe;
+                                    
+                                    return (
+                                        <div key={tab.id} className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                            <div className="flex items-center gap-4 flex-1">
+                                                <div className="w-10 h-10 bg-brand-500 text-white rounded-xl flex items-center justify-center shadow-sm">
+                                                    <IconComponent size={20} />
                                                 </div>
-
-                                                <div className="w-12 h-12 bg-brand-600 rounded-2xl flex items-center justify-center text-white shadow-lg text-lg font-black shrink-0">
-                                                    {item.label.charAt(0)}
-                                                </div>
-
-                                                <div className="min-w-0 flex-1">
-                                                    <input
-                                                        type="text"
-                                                        value={item.label}
-                                                        onChange={(e) => renameNavItem(index, e.target.value)}
-                                                        onBlur={(e) => renameNavItem(index, e.target.value)}
-                                                        className="w-full font-black text-brand-950 text-lg leading-tight uppercase tracking-tight break-words bg-transparent border border-slate-200 rounded-xl px-3 py-1.5 outline-none focus:border-brand-500"
+                                                <div className="flex-1">
+                                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">System ID: {tab.id}</span>
+                                                    <input 
+                                                        type="text" 
+                                                        value={tab.label}
+                                                        onChange={(e) => {
+                                                            const copy = [...dynamicTabs];
+                                                            copy[index] = { ...copy[index], label: e.target.value };
+                                                            setDynamicTabs(copy);
+                                                        }}
+                                                        className="w-full bg-white px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-bold text-slate-800 focus:outline-none focus:border-brand-500 mt-1"
                                                     />
-                                                    {item.submenu && item.submenu.length > 0 && (
-                                                        <p className="text-slate-400 text-xs font-bold pr-4 mt-1 leading-relaxed whitespace-normal break-words">
-                                                            {item.submenu.map((sub: any) => sub.label).join(' • ')}
-                                                        </p>
-                                                    )}
                                                 </div>
                                             </div>
 
-                                            <div className="text-slate-300 text-xs font-bold uppercase tracking-widest shrink-0 pr-4 text-right">
-                                                <div className="hidden sm:block">
-                                                    {item.submenu && item.submenu.length > 0 ? 'Has submenu' : 'Direct link'}
-                                                </div>
-                                                <div className="flex sm:hidden items-center gap-1">
+                                            <div className="flex items-center justify-end gap-4 shrink-0">
+                                                <button
+                                                    onClick={() => {
+                                                        const copy = [...dynamicTabs];
+                                                        copy[index] = { ...copy[index], hidden: !copy[index].hidden };
+                                                        setDynamicTabs(copy);
+                                                    }}
+                                                    className={`px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${
+                                                        !tab.hidden 
+                                                            ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100' 
+                                                            : 'bg-rose-50 text-rose-500 border-rose-200 hover:bg-rose-100'
+                                                    }`}
+                                                >
+                                                    {!tab.hidden ? <Eye size={12} /> : <EyeOff size={12} />}
+                                                    {!tab.hidden ? 'Visible' : 'Hidden'}
+                                                </button>
+
+                                                <div className="flex items-center gap-1.5">
                                                     <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            if (!onUpdateNavItems || !navItems) return;
-                                                            const idx = index;
-                                                            if (idx <= 0) return;
-                                                            onUpdateNavItems(moveArrayItem(navItems, idx, idx - 1));
+                                                        onClick={() => {
+                                                            if (index === 0) return;
+                                                            const copy = [...dynamicTabs];
+                                                            const temp = copy[index];
+                                                            copy[index] = copy[index - 1];
+                                                            copy[index - 1] = temp;
+                                                            const updated = copy.map((t, idx) => ({ ...t, order: idx }));
+                                                            setDynamicTabs(updated);
                                                         }}
-                                                        className="w-7 h-7 rounded-full border border-slate-200 text-slate-600 flex items-center justify-center"
-                                                        aria-label="Move up"
+                                                        disabled={index === 0}
+                                                        className="w-8 h-8 rounded-full border border-slate-200 bg-white text-slate-600 flex items-center justify-center hover:bg-slate-50 active:scale-95 disabled:opacity-30 transition-all"
+                                                        aria-label="Move Up"
                                                     >
-                                                        <ChevronUp size={12} />
+                                                        <ChevronUp size={16} />
                                                     </button>
                                                     <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            if (!onUpdateNavItems || !navItems) return;
-                                                            const idx = index;
-                                                            if (idx < 0 || idx >= navItems.length - 1) return;
-                                                            onUpdateNavItems(moveArrayItem(navItems, idx, idx + 1));
+                                                        onClick={() => {
+                                                            if (index === dynamicTabs.length - 1) return;
+                                                            const copy = [...dynamicTabs];
+                                                            const temp = copy[index];
+                                                            copy[index] = copy[index + 1];
+                                                            copy[index + 1] = temp;
+                                                            const updated = copy.map((t, idx) => ({ ...t, order: idx }));
+                                                            setDynamicTabs(updated);
                                                         }}
-                                                        className="w-7 h-7 rounded-full border border-slate-200 text-slate-600 flex items-center justify-center"
-                                                        aria-label="Move down"
+                                                        disabled={index === dynamicTabs.length - 1}
+                                                        className="w-8 h-8 rounded-full border border-slate-200 bg-white text-slate-600 flex items-center justify-center hover:bg-slate-50 active:scale-95 disabled:opacity-30 transition-all"
+                                                        aria-label="Move Down"
                                                     >
-                                                        <ChevronDown size={12} />
+                                                        <ChevronDown size={16} />
                                                     </button>
                                                 </div>
                                             </div>
-                                        </Reorder.Item>
-                                    ))}
-                                </Reorder.Group>
-                            ) : (
-                                <div className="text-center py-16 text-slate-400">
-                                    <Filter size={40} className="mx-auto mb-4 opacity-30" />
-                                    <p className="font-medium">No navigation items found.</p>
-                                </div>
-                            )}
-
-                            <div className="mt-12 p-8 bg-brand-950 rounded-[2.5rem] border border-brand-800 shadow-2xl flex items-start gap-6 relative overflow-hidden">
-                                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none" />
-                                <div className="w-14 h-14 bg-brand-500/20 backdrop-blur-xl border border-brand-500/30 rounded-2xl flex items-center justify-center text-brand-400 shadow-xl shrink-0">
-                                    <Globe size={28} />
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <h4 className="font-black text-white text-xl">Cloud Global Sync</h4>
-                                        <div className="flex items-center gap-2 bg-brand-500/10 px-3 py-1 rounded-full border border-brand-500/20">
-                                            <div className="w-1.5 h-1.5 bg-brand-400 rounded-full animate-pulse" />
-                                            <span className="text-[10px] font-black text-brand-400 uppercase tracking-widest">Live Cloud Connection</span>
                                         </div>
-                                    </div>
-                                    <p className="text-sm text-brand-100/60 leading-relaxed font-medium">Reordering menu links syncs instantly to Firestore. All visitors see the new menu order on their next page load.</p>
-                                </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="flex flex-wrap gap-4 mt-10 pt-8 border-t border-slate-100">
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            await api.updateAdminTabsConfig(dynamicTabs);
+                                            alert("Tabs configuration successfully saved globally to Firestore!");
+                                        } catch (e) {
+                                            alert("Failed to save configuration. Please try again.");
+                                        }
+                                    }}
+                                    className="px-6 py-3 rounded-full bg-brand-600 text-white font-extrabold text-xs uppercase tracking-widest shadow-md hover:bg-brand-500 hover:scale-105 active:scale-95 transition-all"
+                                >
+                                    Save Config Globally
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (window.confirm("Restore factory default sidebar tab layouts? This resets all tab names and ordering.")) {
+                                            const defaults = [
+                                                { id: 'users', label: 'Users', icon: 'Users', order: 0, hidden: false },
+                                                { id: 'edit-page', label: 'Edit Page', icon: 'Edit2', order: 1, hidden: false },
+                                                { id: 'recycle-bin', label: 'Recycle Bin', icon: 'RotateCcw', order: 2, hidden: false },
+                                                { id: 'firebase', label: 'Firebase', icon: 'Database', order: 3, hidden: false },
+                                                { id: 'messages', label: 'Messages', icon: 'MessageSquare', order: 4, hidden: false },
+                                                { id: 'ministries', label: 'Tab TV + Ministry', icon: 'Globe', order: 5, hidden: false },
+                                                { id: 'id-cards', label: 'ID Cards', icon: 'QrCode', order: 6, hidden: false },
+                                                { id: 'cot-id-manager', label: 'COT ID Manager', icon: 'Dice6', order: 7, hidden: false },
+                                                { id: 'reports', label: 'Monthly Reports', icon: 'FileText', order: 8, hidden: false },
+                                                { id: 'home-layout', label: 'Home Layout', icon: 'GripVertical', order: 9, hidden: false },
+                                                { id: 'menu-editor', label: 'Menu Editor', icon: 'Filter', order: 10, hidden: false },
+                                                { id: 'admin-tabs', label: 'Admin Tabs', icon: 'Settings', order: 11, hidden: false }
+                                            ];
+                                            setDynamicTabs(defaults);
+                                        }
+                                    }}
+                                    className="px-6 py-3 rounded-full border border-slate-200 text-slate-500 font-extrabold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
+                                >
+                                    Reset Defaults
+                                </button>
                             </div>
                         </motion.div>
                     </div>
@@ -5306,11 +5881,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <AnimatePresence>
                 {editingMinistry && (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        {/* ImageCropper overlay for ministry images */}
+                        {isCropping && croppingType === 'ministry' && cropImage && (
+                            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+                                <div className="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <span className="text-sm font-bold text-brand-950">Crop Image</span>
+                                        <button
+                                            onClick={() => { setIsCropping(false); setCropImage(null); setCroppingType(null); }}
+                                            className="text-xs font-bold text-red-500 hover:text-red-600"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                                        <ImageCropper
+                                            imageSrc={cropImage}
+                                            onCropComplete={handleCropComplete}
+                                            onCancel={() => { setIsCropping(false); setCropImage(null); setCroppingType(null); }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            className="bg-white rounded-[2.5rem] p-8 max-w-xl w-full"
+                            className="bg-white rounded-[2.5rem] p-5 sm:p-8 max-w-xl w-full max-h-[92vh] overflow-y-auto"
                         >
                             <div className="flex items-center justify-between mb-8">
                                 <h3 className="text-2xl font-bold text-brand-950">
@@ -5346,21 +5944,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                         }}
                                                     />
                                                 )}
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-3">
-                                                    <label className="w-12 h-12 bg-brand-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-brand-700 transition-colors shadow-lg">
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-2">
+                                                    <label className="w-12 h-12 bg-brand-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-brand-700 transition-colors shadow-lg" title="Upload New Media">
                                                         <Camera size={24} />
-                                                        <input type="file" className="hidden" accept="image/*,video/*" onChange={handleMinistryMediaUpload} />
+                                                        <input type="file" className="hidden" accept="image/*,video/*" onChange={handleSingleMinistryMediaSelect} />
                                                     </label>
                                                     <span className="text-xs font-bold uppercase tracking-widest">
-                                                        {previewMinistryMediaType === 'video' ? 'Change Media' : 'Change / Crop'}
+                                                        {previewMinistryMediaType === 'video' ? 'Change Media' : 'Upload New'}
                                                     </span>
+                                                    {previewMinistryMediaType !== 'video' && editingMinistry.image && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setCropImage(editingMinistry.image!);
+                                                                setCroppingType('ministry');
+                                                                setIsCropping(true);
+                                                            }}
+                                                            className="flex items-center gap-1.5 px-4 py-1.5 bg-white/20 hover:bg-white/30 rounded-full text-xs font-bold uppercase tracking-widest backdrop-blur-sm transition-colors"
+                                                            title="Crop Image"
+                                                        >
+                                                            <Crop size={13} /> Crop Image
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </>
                                         ) : (
                                             <label className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:bg-slate-200 transition-all border-2 border-dashed border-slate-300 rounded-[2rem]">
                                                 <ImagePlus size={48} className="mb-2" />
                                                 <span className="font-bold">Select Media</span>
-                                                <input type="file" className="hidden" accept="image/*,video/*" onChange={handleMinistryMediaUpload} />
+                                                <input type="file" className="hidden" accept="image/*,video/*" onChange={handleSingleMinistryMediaSelect} />
                                             </label>
                                         )}
                                     </div>
@@ -5629,6 +6241,272 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     >
                                         <Plus size={18} />
                                         {isLoading ? 'Adding...' : 'Add User'}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Bulk Upload Pre-Edit Modal Workspace */}
+            <AnimatePresence>
+                {bulkQueue.length > 0 && (
+                    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 30 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 30 }}
+                            className="bg-[#0e0b16] border border-white/10 rounded-[3rem] p-8 max-w-5xl w-full text-white shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col max-h-[90vh]"
+                        >
+                            {/* Modal Header */}
+                            <div className="flex items-center justify-between pb-6 border-b border-white/10 shrink-0">
+                                <div>
+                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-400/10 border border-yellow-400/30 text-xs font-black text-yellow-300 uppercase tracking-widest mb-1.5">
+                                        <Sparkles size={12} className="animate-pulse" />
+                                        Advanced Media Studio
+                                    </div>
+                                    <h3 className="text-3xl font-serif font-black text-white">Bulk Pre-Edit Workspace</h3>
+                                    <p className="text-gray-400 text-xs mt-1 font-medium">Detecting metadata, trimming timeline clips, adjusting image crops, and setting categories before publishing in batch.</p>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        if (window.confirm("Discard all items in the upload queue?")) {
+                                            bulkQueue.forEach(item => {
+                                                if (item.mediaType === 'video' && item.preview.startsWith('blob:')) {
+                                                    URL.revokeObjectURL(item.preview);
+                                                }
+                                            });
+                                            setBulkQueue([]);
+                                        }
+                                    }}
+                                    className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-colors shrink-0 cursor-pointer"
+                                    title="Close workspace"
+                                    disabled={isBulkUploading}
+                                >
+                                    <X size={20} className="text-gray-400 hover:text-white" />
+                                </button>
+                            </div>
+
+                            {/* Queue Grid List */}
+                            <div className="flex-1 overflow-y-auto my-6 pr-2 space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {bulkQueue.map((item) => {
+                                        const finalSecs = Math.max(1, Math.round(((item.videoTrimEnd - item.videoTrimStart) / 100) * item.videoDurationSeconds));
+                                        const isHidden = item.hidden;
+                                        return (
+                                            <div key={item.id} className={`bg-white/5 border border-white/10 rounded-3xl p-5 flex flex-col gap-4 relative overflow-hidden transition-all hover:border-yellow-400/30 hover:shadow-xl ${isHidden ? 'opacity-60 bg-[#150f24]/30' : ''}`}>
+                                                
+                                                {/* Remove item button */}
+                                                <button
+                                                    onClick={() => handleRemoveQueueItem(item.id)}
+                                                    className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-red-600 transition-colors cursor-pointer"
+                                                    title="Discard from queue"
+                                                    disabled={isBulkUploading}
+                                                >
+                                                    <X size={14} />
+                                                </button>
+
+                                                {/* Media details column */}
+                                                <div className="flex gap-4 items-start">
+                                                    {/* Thumbnail preview with Crop simulation */}
+                                                    <div className="w-32 h-32 rounded-2xl bg-black border border-white/10 overflow-hidden shrink-0 relative flex items-center justify-center">
+                                                        {item.mediaType === 'video' ? (
+                                                            <video
+                                                                src={item.preview}
+                                                                muted
+                                                                playsInline
+                                                                className="w-full h-full object-cover pointer-events-none"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full overflow-hidden flex items-center justify-center relative">
+                                                                <img
+                                                                    src={item.preview}
+                                                                    className="max-w-none transition-transform"
+                                                                    style={{
+                                                                        transform: `scale(${item.cropZoom}) translate(${item.cropX}px, ${item.cropY}px)`,
+                                                                        width: '100%',
+                                                                        height: '100%',
+                                                                        objectFit: 'cover'
+                                                                    }}
+                                                                />
+                                                                {/* Glowing crop border mockup */}
+                                                                <div className="absolute inset-2 border border-dashed border-yellow-400/50 pointer-events-none rounded" />
+                                                            </div>
+                                                        )}
+                                                        <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded bg-black/80 border border-white/20 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-white">
+                                                            {item.mediaType}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="flex-1 min-w-0 space-y-2">
+                                                        {/* Editable file name */}
+                                                        <div>
+                                                            <label className="text-[9px] font-black tracking-widest uppercase text-gray-500">Moment Name</label>
+                                                            <input
+                                                                type="text"
+                                                                value={item.name}
+                                                                onChange={(e) => handleUpdateQueueItem(item.id, { name: e.target.value })}
+                                                                className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-2.5 py-1 text-xs font-bold focus:outline-none focus:border-yellow-400 focus:bg-white/10 transition-colors"
+                                                                disabled={isBulkUploading}
+                                                            />
+                                                        </div>
+
+                                                        {/* Date Detection input */}
+                                                        <div>
+                                                            <label className="text-[9px] font-black tracking-widest uppercase text-gray-500">Detected Date</label>
+                                                            <input
+                                                                type="date"
+                                                                value={item.date}
+                                                                onChange={(e) => handleUpdateQueueItem(item.id, { date: e.target.value })}
+                                                                className="w-full bg-white/5 border border-white/10 text-white rounded-lg px-2.5 py-1 text-xs font-bold focus:outline-none focus:border-yellow-400 focus:bg-white/10 transition-colors cursor-pointer"
+                                                                disabled={isBulkUploading}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Pre-editing Controls */}
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="text-[9px] font-black tracking-widest uppercase text-gray-500">Category</label>
+                                                        <select
+                                                            value={item.category}
+                                                            onChange={(e) => handleUpdateQueueItem(item.id, { category: e.target.value })}
+                                                            className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:border-yellow-400 focus:bg-[#1b1928] cursor-pointer"
+                                                            disabled={isBulkUploading}
+                                                        >
+                                                            <option value="Sermons">Outreach / Sermons 🎙️</option>
+                                                            <option value="Worship">Worship / Praise 🎵</option>
+                                                            <option value="Youth">Youth Assembly 🧒</option>
+                                                            <option value="Valparai">Valparai Mission ⛰️</option>
+                                                            <option value="Highlights">Highlights Moments ✨</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div className="flex flex-col justify-end">
+                                                        <button
+                                                            onClick={() => handleUpdateQueueItem(item.id, { hidden: !item.hidden })}
+                                                            disabled={isBulkUploading}
+                                                            className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all border cursor-pointer ${
+                                                                isHidden
+                                                                    ? 'bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20'
+                                                                    : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20'
+                                                            }`}
+                                                        >
+                                                            {isHidden ? <EyeOff size={14} /> : <Eye size={14} />}
+                                                            {isHidden ? 'Hidden' : 'Visible'}
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Trimmer and Cropper sliders */}
+                                                {item.mediaType === 'image' ? (
+                                                    <div className="bg-white/5 border border-white/5 p-3 rounded-2xl flex items-center justify-between gap-4">
+                                                        <div className="flex-1">
+                                                            <div className="flex justify-between text-[9px] font-black uppercase tracking-wider text-gray-500 mb-1">
+                                                                <span>Refine Image Crop</span>
+                                                                <span className="text-yellow-400 font-bold">{item.cropZoom.toFixed(1)}x Zoom</span>
+                                                            </div>
+                                                            <input
+                                                                type="range"
+                                                                min="1"
+                                                                max="2"
+                                                                step="0.1"
+                                                                value={item.cropZoom}
+                                                                onChange={(e) => handleUpdateQueueItem(item.id, { cropZoom: parseFloat(e.target.value) })}
+                                                                className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-yellow-400 focus:outline-none"
+                                                                disabled={isBulkUploading}
+                                                            />
+                                                        </div>
+                                                        <span className="text-[10px] text-gray-400 font-bold bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg">📸 Crop ready</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="bg-[#1b1928] border border-white/5 p-3 rounded-2xl space-y-2">
+                                                        <div className="flex justify-between text-[9px] font-black uppercase tracking-wider text-gray-500">
+                                                            <span>Timeline Clip Trimmer</span>
+                                                            <span className="text-yellow-400 font-bold">Clip: {formatDuration(finalSecs)}</span>
+                                                        </div>
+                                                        
+                                                        <div className="space-y-1">
+                                                            <div className="flex items-center justify-between text-[8px] text-gray-400 font-bold">
+                                                                <span>Trim Start: {item.videoTrimStart}%</span>
+                                                                <span>Trim End: {item.videoTrimEnd}%</span>
+                                                            </div>
+                                                            <div className="grid grid-cols-2 gap-2">
+                                                                <input
+                                                                    type="range"
+                                                                    min="0"
+                                                                    max="90"
+                                                                    value={item.videoTrimStart}
+                                                                    onChange={(e) => handleUpdateQueueItem(item.id, { videoTrimStart: parseInt(e.target.value) })}
+                                                                    className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-yellow-400"
+                                                                    disabled={isBulkUploading}
+                                                                />
+                                                                <input
+                                                                    type="range"
+                                                                    min="10"
+                                                                    max="100"
+                                                                    value={item.videoTrimEnd}
+                                                                    onChange={(e) => handleUpdateQueueItem(item.id, { videoTrimEnd: parseInt(e.target.value) })}
+                                                                    className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-yellow-400"
+                                                                    disabled={isBulkUploading}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="pt-6 border-t border-white/10 flex flex-col gap-4 shrink-0">
+                                {/* Upload progress bar */}
+                                {isBulkUploading && (
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-xs font-black uppercase tracking-widest text-yellow-400">
+                                            <span>Publishing batch to Cloud Storage & Database...</span>
+                                            <span>{bulkUploadProgress}%</span>
+                                        </div>
+                                        <div className="w-full h-2.5 bg-white/10 rounded-full overflow-hidden p-0.5 border border-white/5 shadow-inner">
+                                            <div
+                                                className="h-full bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-300 rounded-full transition-all duration-300 shadow-[0_0_12px_rgba(251,191,36,0.6)]"
+                                                style={{ width: `${bulkUploadProgress}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="flex gap-4">
+                                    <button
+                                        onClick={() => {
+                                            if (window.confirm("Discard all items in the upload queue?")) {
+                                                bulkQueue.forEach(item => {
+                                                    if (item.mediaType === 'video' && item.preview.startsWith('blob:')) {
+                                                        URL.revokeObjectURL(item.preview);
+                                                    }
+                                                });
+                                                setBulkQueue([]);
+                                            }
+                                        }}
+                                        className="flex-1 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-bold rounded-2xl transition-colors disabled:opacity-40 cursor-pointer"
+                                        disabled={isBulkUploading}
+                                    >
+                                        Cancel All
+                                    </button>
+                                    <button
+                                        onClick={handlePublishBulkQueue}
+                                        disabled={isBulkUploading}
+                                        className="flex-1 py-4 bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-500 text-brand-950 rounded-2xl font-black uppercase tracking-wider hover:from-yellow-300 hover:to-amber-400 hover:shadow-lg hover:shadow-yellow-400/20 transition-all flex items-center justify-center gap-2 disabled:opacity-40 active:scale-95 cursor-pointer"
+                                    >
+                                        {isBulkUploading ? (
+                                            <span className="animate-pulse">Publishing Batch...</span>
+                                        ) : (
+                                            <><UploadCloud size={20} /> Publish Bulk Media ({bulkQueue.length})</>
+                                        )}
                                     </button>
                                 </div>
                             </div>

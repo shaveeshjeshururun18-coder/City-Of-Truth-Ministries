@@ -354,27 +354,115 @@ export const api = {
 
     // --- Ministries ---
 
-    // Fetch all ministries
+    // Fetch all ministries (with automatic self-healing database seeding for the 47 gallery assets)
     getMinistries: async (): Promise<any[]> => {
+        const getSeedMinistries = () => {
+            const assets: any[] = [];
+            const categories = [
+                'Spiritual Gatherings',
+                'Youth Ministry',
+                'Community Impact',
+                'Helping Hands',
+                'Sacred Music & Praise',
+                'Healing & Miracle Service'
+            ];
+            const descriptions = [
+                'Deepening our connection with the Divine through prayer and fellowship.',
+                'Empowering the next generation to walk in the light of Truth.',
+                'Transforming lives and building stronger communities together.',
+                'Pure religion and undefiled before God and the Father is this, To visit the fatherless and widows in their affliction...',
+                'Celebrating the Word through the beauty of song and worship.',
+                'Witnessing the miraculous power of prayer and restoration.'
+            ];
+
+            // 40 images
+            for (let i = 0; i < 40; i++) {
+                const num = i.toString().padStart(4, '0');
+                const catIndex = i % 6;
+                assets.push({
+                    name: `${categories[catIndex]} Moment ${i + 1}`,
+                    image: `/ministry/IMG-20231230-WA${num}.jpg`,
+                    date: '2023-12-30',
+                    category: categories[catIndex],
+                    description: descriptions[catIndex],
+                    mediaType: 'image',
+                    hidden: false,
+                    order: i
+                });
+            }
+
+            // 7 videos
+            const videos = [
+                'VID-20231226-WA0002.mp4',
+                'VID-20231226-WA0005.mp4',
+                'VID-20231230-WA0104.mp4',
+                'VID-20231230-WA0105.mp4',
+                'VID-20231230-WA0107.mp4',
+                'VID-20231230-WA0112.mp4',
+                'VID-20231230-WA0122.mp4'
+            ];
+
+            videos.forEach((vid, i) => {
+                const dateStr = vid.split('-')[1];
+                const y = dateStr.substring(0, 4);
+                const m = dateStr.substring(4, 6);
+                const d = dateStr.substring(6, 8);
+                const dateVal = `${y}-${m}-${d}`;
+                const index = 40 + i;
+                const catIndex = index % 6;
+                assets.push({
+                    name: `${categories[catIndex]} Video ${i + 1}`,
+                    image: `/ministry/${vid}`,
+                    date: dateVal,
+                    category: categories[catIndex],
+                    description: descriptions[catIndex],
+                    mediaType: 'video',
+                    hidden: false,
+                    order: index
+                });
+            });
+
+            return assets;
+        };
+
         try {
             const ministriesCollection = collection(db, 'ministries');
             const snapshot = await getDocs(ministriesCollection);
-            return snapshot.docs.map(doc => ({
+            let items = snapshot.docs.map(doc => ({
                 ...doc.data(),
                 id: doc.id
-            })).sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
+            }));
+            
+            // If database is new/empty (contains less than 5 items), seed all 47 items to Firestore!
+            if (items.length <= 3) {
+                const seeds = getSeedMinistries();
+                for (const seed of seeds) {
+                    const exists = items.some((item: any) => item.image === seed.image);
+                    if (!exists) {
+                        try {
+                            const docRef = await addDoc(ministriesCollection, seed);
+                            items.push({ ...seed, id: docRef.id });
+                        } catch (e) {
+                            console.error('Failed to write seed:', e);
+                        }
+                    }
+                }
+            }
+            
+            return items.sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
         } catch (error: any) {
             console.error('Firestore Error (Ministries):', error);
-            if (error.code === 'permission-denied') {
-                try {
-                    const localData = await import('../db.json');
-                    if (localData.ministries) return localData.ministries as any[];
-
-                    const response = await fetch('http://localhost:4000/ministries');
-                    if (response.ok) return await response.json();
-                } catch (e) { }
+            let items: any[] = [];
+            try {
+                const localData = await import('../db.json');
+                if (localData.ministries) items = JSON.parse(JSON.stringify(localData.ministries));
+            } catch (e) { }
+            
+            if (items.length <= 3) {
+                const seeds = getSeedMinistries();
+                items = [...items, ...seeds.map((s, idx) => ({ ...s, id: `seed-local-${idx}` }))];
             }
-            return [];
+            return items.sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
         }
     },
 
@@ -492,5 +580,58 @@ export const api = {
             console.error('Error updating navigation layout:', error);
             throw error;
         }
+    },
+
+    // Fetch the admin dashboard sidebar tab items configuration
+    getAdminTabsConfig: async (): Promise<any[]> => {
+        try {
+            const tabsDoc = doc(db, 'config', 'admin_tabs');
+            const snapshot = await getDoc(tabsDoc);
+            if (snapshot.exists()) {
+                const data = snapshot.data();
+                if (data.tabs) {
+                    return (data.tabs as any[]).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+                }
+            }
+        } catch (error) {
+            console.error('Firestore Error (Admin Tabs):', error);
+        }
+        
+        try {
+            const saved = localStorage.getItem('cot_admin_tabs_config');
+            if (saved) return JSON.parse(saved).sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
+        } catch {}
+        
+        const defaults = [
+            { id: 'users', label: 'Users', icon: 'Users', order: 0, hidden: false },
+            { id: 'edit-page', label: 'Edit Page', icon: 'Edit2', order: 1, hidden: false },
+            { id: 'recycle-bin', label: 'Recycle Bin', icon: 'RotateCcw', order: 2, hidden: false },
+            { id: 'firebase', label: 'Firebase', icon: 'Database', order: 3, hidden: false },
+            { id: 'messages', label: 'Messages', icon: 'MessageSquare', order: 4, hidden: false },
+            { id: 'ministries', label: 'Tab TV + Ministry', icon: 'Globe', order: 5, hidden: false },
+            { id: 'id-cards', label: 'ID Cards', icon: 'QrCode', order: 6, hidden: false },
+            { id: 'cot-id-manager', label: 'COT ID Manager', icon: 'Dice6', order: 7, hidden: false },
+            { id: 'reports', label: 'Monthly Reports', icon: 'FileText', order: 8, hidden: false },
+            { id: 'home-layout', label: 'Home Layout', icon: 'GripVertical', order: 9, hidden: false },
+            { id: 'menu-editor', label: 'Menu Editor', icon: 'Filter', order: 10, hidden: false }
+        ];
+        return defaults;
+    },
+
+    // Save the admin dashboard sidebar tab items configuration
+    updateAdminTabsConfig: async (tabs: any[]): Promise<void> => {
+        try {
+            const tabsDoc = doc(db, 'config', 'admin_tabs');
+            await setDoc(tabsDoc, {
+                tabs,
+                updatedAt: new Date().toISOString()
+            }, { merge: true });
+        } catch (error) {
+            console.error('Error updating admin tabs:', error);
+        }
+        
+        try {
+            localStorage.setItem('cot_admin_tabs_config', JSON.stringify(tabs));
+        } catch {}
     }
 };

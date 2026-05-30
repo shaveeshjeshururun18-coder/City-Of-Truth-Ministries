@@ -83,6 +83,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
     window.location.href = `https://translate.google.com/translate?sl=auto&tl=ta&u=${encodeURIComponent(currentUrl)}`;
   };
 
+  const isTransparentNavbar = (
+    (currentView === ViewState.HOME ||
+     currentView === ViewState.ABOUT ||
+     String(currentView).startsWith('HEBREW')) &&
+    !isScrolled
+  );
+
   return (
     <>
       {/* Import Montserrat font directly for exactness */}
@@ -93,8 +100,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
       `}} />
 
       {/* Hero-transparent or solid-white navbar */}
-      <nav className={`${currentView === ViewState.ABOUT ? 'absolute shadow-none' : 'fixed'} top-0 left-0 right-0 z-50 flex justify-between items-center transition-all duration-500 px-4 md:px-8 montserrat ${
-        currentView === ViewState.HOME && !isScrolled
+      <nav className={`fixed top-0 left-0 right-0 z-50 flex justify-between items-center transition-all duration-500 px-4 md:px-8 montserrat ${
+        isTransparentNavbar
           ? 'py-4 bg-transparent backdrop-blur-md border-b border-white/10'
           : 'py-2.5 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100'
       }`}>
@@ -107,17 +114,17 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             <img src="/logo.png" alt="COT Logo" className="w-full h-full object-contain" />
           </div>
           <div className="flex flex-col justify-center">
-              <span className={`font-bold text-[1.1rem] leading-[1.1] tracking-[-0.5px] transition-colors duration-300 ${currentView === ViewState.HOME && !isScrolled ? 'text-white' : 'text-[#1a1a2e]'}`}>City of Truth</span>
-              <span className={`text-[0.65rem] font-bold tracking-[1px] uppercase transition-colors duration-300 ${currentView === ViewState.HOME && !isScrolled ? 'text-blue-300' : 'text-[#5D5FEF]'}`}>MINISTRIES</span>
+              <span className={`font-bold text-[1.1rem] leading-[1.1] tracking-[-0.5px] transition-colors duration-300 ${isTransparentNavbar ? 'text-white' : 'text-[#1a1a2e]'}`}>City of Truth</span>
+              <span className={`text-[0.65rem] font-bold tracking-[1px] uppercase transition-colors duration-300 ${isTransparentNavbar ? 'text-blue-300' : 'text-[#5D5FEF]'}`}>MINISTRIES</span>
           </div>
         </div>
 
 
         {/* MENU LINKS STYLING (Restored for Desktop) */}
-        <ul className="hidden xl:flex items-center gap-[6px] list-none">
-          {navItems.map((item) => {
-            const isActive = currentView === item.view || item.submenu?.some(s => s.view === currentView);
-            const hasSubmenu = item.submenu && item.submenu.length > 0;
+        <ul className="hidden xl:flex items-center gap-[3px] 2xl:gap-[8px] list-none">
+          {navItems.filter(item => !item.hidden).map((item) => {
+            const isActive = currentView === item.view || item.submenu?.filter(s => !s.hidden).some(s => s.view === currentView);
+            const hasSubmenu = item.submenu && item.submenu.filter(s => !s.hidden).length > 0;
 
             return (
               <li
@@ -128,19 +135,20 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
               >
                 <button
                   onClick={() => {
-                    if (hasSubmenu) {
-                      setView(item.view);
-                    } else {
-                      setView(item.view);
-                    }
+                    setView(item.view);
                   }}
-                  className={`text-[0.65rem] font-bold uppercase tracking-[0.5px] px-[12px] py-2 rounded-[20px] transition-all duration-300 no-underline whitespace-nowrap flex items-center gap-1 ${isActive
-                    ? 'bg-brand-50 text-brand-600 shadow-sm border border-brand-100'
-                    : 'text-slate-600 hover:text-brand-600'
-                    }`}
+                  className={`text-[0.58rem] 2xl:text-[0.65rem] font-extrabold uppercase tracking-[0.2px] 2xl:tracking-[0.5px] px-[8px] 2xl:px-[12px] py-1.5 2xl:py-2 rounded-[20px] transition-all duration-300 no-underline whitespace-nowrap flex items-center gap-0.5 2xl:gap-1 ${
+                    isActive
+                      ? (isTransparentNavbar
+                          ? 'bg-white/10 text-white border border-white/20 shadow-inner'
+                          : 'bg-brand-50 text-brand-600 shadow-sm border border-brand-100')
+                      : (isTransparentNavbar
+                          ? 'text-slate-200 hover:text-white hover:bg-white/5'
+                          : 'text-slate-600 hover:text-brand-600 hover:bg-slate-50')
+                  }`}
                 >
                   {translateLabel(item.label)}
-                  {hasSubmenu && <ChevronDown size={12} className={`transition-transform duration-300 ${desktopHoverMenu === item.label ? 'rotate-180' : ''}`} />}
+                  {hasSubmenu && <ChevronDown size={10} className={`transition-transform duration-300 ${desktopHoverMenu === item.label ? 'rotate-180' : ''}`} />}
                 </button>
 
                 {/* Desktop Submenu */}
@@ -153,7 +161,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                         exit={{ opacity: 0, y: 10 }}
                         className="absolute top-full left-0 mt-2 w-48 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-100 py-3 z-50 overflow-hidden"
                       >
-                        {item.submenu?.map((sub) => (
+                        {item.submenu?.filter(s => !s.hidden).map((sub) => (
                           <button
                             key={sub.label}
                             onClick={() => {
@@ -178,21 +186,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
         {/* RIGHT SIDE ACTIONS */}
 
         <div className="flex items-center gap-1.5 sm:gap-2 ml-1 sm:ml-2">
-          {/* Language Toggle */}
-          <button
-            onClick={() => {
-              if (language === 'en') triggerTamilOnlyMode();
-              else setLanguage('en');
-            }}
-            className={`hidden sm:flex items-center gap-1 px-2.5 h-9 rounded-xl text-[11px] font-bold transition-all whitespace-nowrap ${currentView === ViewState.HOME && !isScrolled ? 'border border-white/20 bg-white/10 text-white hover:bg-white/20' : 'border border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50'}`}
-            title={language === 'en' ? 'Current mode: Bilingual' : 'Current mode: Tamil only'}
-            aria-label="Toggle language"
-          >
-            <Languages size={13} className="shrink-0" />
-            <span>{language === 'en' ? 'Bilingual' : 'Tamil Only'}</span>
-          </button>
 
-          <div className={`flex items-center gap-3 sm:gap-3.5 p-1 sm:p-1.5 rounded-2xl backdrop-blur-md border transition-all duration-300 ${currentView === ViewState.HOME && !isScrolled ? 'bg-white/10 border-white/20' : 'bg-white/95 border-brand-200/80'}`}>
+
+          <div className={`flex items-center gap-3 sm:gap-3.5 p-1 sm:p-1.5 rounded-2xl backdrop-blur-md border transition-all duration-300 ${isTransparentNavbar ? 'bg-white/10 border-white/20' : 'bg-white/95 border-brand-200/80'}`}>
             <button
               onClick={() => currentUser ? setView(ViewState.USER_DASHBOARD) : setView(ViewState.ID_CARD)}
               className={`${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-11 h-11 rounded-2xl shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 border border-blue-300/50 px-3.5 h-10 rounded-2xl shadow-[0_14px_24px_-12px_rgba(37,99,235,0.7)] hover:shadow-[0_18px_28px_-12px_rgba(37,99,235,0.8)] hover:from-blue-700 hover:via-blue-600 hover:to-blue-800'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group`}
@@ -336,10 +332,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                     <ChevronRight size={14} />
                   </button>
                 )}
-                {navItems.map((item) => {
-                  const hasSubmenu = item.submenu && item.submenu.length > 0;
+                {navItems.filter(item => !item.hidden).map((item) => {
+                  const hasSubmenu = item.submenu && item.submenu.filter(s => !s.hidden).length > 0;
                   const isSubmenuOpen = activeMobileSubmenu === item.label;
-                  const isMobileActive = currentView === item.view || item.submenu?.some(s => s.view === currentView);
+                  const isMobileActive = currentView === item.view || item.submenu?.filter(s => !s.hidden).some(s => s.view === currentView);
 
                   return (
                     <div key={item.label} className="space-y-1">
@@ -380,7 +376,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                               exit={{ height: 0, opacity: 0 }}
                               className="overflow-hidden pl-12 space-y-1"
                             >
-                              {item.submenu?.map((sub) => (
+                              {item.submenu?.filter(s => !s.hidden).map((sub) => (
                                 <button
                                   key={sub.label}
                                   onClick={() => {
@@ -450,39 +446,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                 )}
               </div>
 
-              {/* Language Mode in Mobile Menu */}
-              <div className="px-4 pb-2">
-                <div className="w-full rounded-xl border border-brand-100 bg-white p-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-brand-700 mb-2 flex items-center gap-1.5">
-                    <Languages size={12} />
-                    Language
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => setLanguage('en')}
-                      className={`p-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                        language === 'en'
-                          ? 'bg-brand-600 text-white'
-                          : 'bg-brand-50 text-brand-700 hover:bg-brand-100'
-                      }`}
-                      aria-label="Set English and Tamil mode"
-                    >
-                      Bilingual
-                    </button>
-                    <button
-                      onClick={triggerTamilOnlyMode}
-                      className={`p-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                        language === 'ta'
-                          ? 'bg-brand-600 text-white'
-                          : 'bg-brand-50 text-brand-700 hover:bg-brand-100'
-                      }`}
-                      aria-label="Set Tamil only mode"
-                    >
-                      Tamil Only
-                    </button>
-                  </div>
-                </div>
-              </div>
+
 
               {/* Logout Button in Mobile Menu */}
               {currentUser && onLogoutClick && (

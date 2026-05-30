@@ -216,13 +216,16 @@ const HEBREW_TOOLS_SUBMENU: NavItem[] = [
 ];
 
 const withHebrewResourceSubmenu = (items: NavItem[]): NavItem[] =>
-  items.map(item =>
-    item.label === 'HEBREW CONTENT' || item.label === 'HEBREW RESOURCES' || item.label === 'HEBREW'
-      ? { ...item, submenu: HEBREW_RESOURCE_SUBMENU }
-      : item.label === 'HEBREW TOOLS'
-        ? { ...item, submenu: HEBREW_TOOLS_SUBMENU }
-      : item
-  );
+  items.map(item => {
+    const labelUpper = String(item.label || '').toUpperCase().trim();
+    if (labelUpper === 'HEBREW CONTENT' || labelUpper === 'HEBREW RESOURCES' || labelUpper === 'HEBREW') {
+      return { ...item, submenu: HEBREW_RESOURCE_SUBMENU };
+    }
+    if (labelUpper === 'HEBREW TOOLS') {
+      return { ...item, submenu: HEBREW_TOOLS_SUBMENU };
+    }
+    return item;
+  });
 
 const VIEW_ALIASES: Record<string, ViewState> = {
   MENORAH: ViewState.GOLDEN_MENORAH,
@@ -1520,37 +1523,56 @@ const App: React.FC = () => {
                     <span className="text-yellow-200 font-semibold tracking-widest uppercase text-[11px]">✦ Registration Open ✦</span>
                   </motion.div>
 
-                  {/* Main title */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.9, delay: 0.15 }}
-                    className="mb-4"
-                  >
-                    <h1 className="font-black tracking-tight leading-none" style={{ textShadow: '0 4px 32px rgba(212,160,0,0.55), 0 2px 8px rgba(0,0,0,0.6)' }}>
-                      <span className="gold-shimmer-title block text-5xl sm:text-8xl md:text-9xl text-transparent bg-clip-text pb-2 md:pb-4">சத்திய நகரம்</span>
-                    </h1>
-                  </motion.div>
+                  {/* Desktop Layout (md and larger) */}
+                  <div className="hidden md:block">
+                    {/* Main title */}
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9, y: 40 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+                      className="mb-4 whitespace-nowrap overflow-visible w-full flex justify-center"
+                    >
+                      <h1 className="font-black tracking-wider leading-none whitespace-nowrap overflow-visible">
+                        <span className="pure-gold-text inline-block text-5xl sm:text-7xl lg:text-[6.8rem] xl:text-[8rem] 2xl:text-[9.5rem] pb-2 md:pb-4 whitespace-nowrap">சத்திய நகரம்</span>
+                      </h1>
+                    </motion.div>
 
-                  {/* Subtitle */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, delay: 0.3 }}
-                    className="mb-2"
-                  >
-                    <h2 className="text-xl md:text-2xl font-semibold tracking-[0.2em] uppercase" style={{ color: "rgba(253,230,138,0.85)", letterSpacing: "0.2em" }}>City of Truth Ministries</h2>
-                  </motion.div>
+                    {/* Subtitle */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.8, delay: 0.3 }}
+                      className="mb-2"
+                    >
+                      <h2 className="text-xl md:text-2xl font-semibold tracking-[0.2em] uppercase" style={{ color: "rgba(253,230,138,0.85)", letterSpacing: "0.2em" }}>City of Truth Ministries</h2>
+                    </motion.div>
 
-                  {/* Support text */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.7, delay: 0.4 }}
-                    className="mb-10"
-                  >
-                    <span className="text-lg md:text-xl font-medium tracking-[0.25em]" style={{ color: "rgba(251,191,36,0.65)" }}>ஊழியங்கள்</span>
-                  </motion.div>
+                    {/* Support text */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.7, delay: 0.4 }}
+                      className="mb-10"
+                    >
+                      <span className="text-lg md:text-xl font-medium tracking-[0.25em]" style={{ color: "rgba(251,191,36,0.65)" }}>ஊழியங்கள்</span>
+                    </motion.div>
+                  </div>
+
+                  {/* Mobile Layout (less than md - Stacked title alignment) */}
+                  <div className="block md:hidden mb-10">
+                    <motion.div
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 1.0 }}
+                      className="flex flex-col items-center justify-center w-full"
+                    >
+                      <h1 className="font-serif font-black tracking-wider flex flex-col items-center justify-center leading-normal">
+                        <span className="pure-gold-text inline-block text-4xl xs:text-5xl pt-2 pb-3 px-4 mb-1">சத்திய நகரம்</span>
+                        <span className="pure-gold-text inline-block text-5xl xs:text-6xl pt-2 pb-4 px-4 mb-2">ஊழியங்கள்</span>
+                      </h1>
+                      <h2 className="text-xs font-bold tracking-[0.25em] uppercase mt-2" style={{ color: "rgba(253,230,138,0.85)" }}>City of Truth Ministries</h2>
+                    </motion.div>
+                  </div>
 
                   {/* Quote */}
                   <motion.p
@@ -1563,17 +1585,17 @@ const App: React.FC = () => {
                     <span className="not-italic tracking-wider text-xs" style={{ color: "rgba(251,191,36,0.4)" }}>— John 8:32</span>
                   </motion.p>
 
-                  {/* Buttons */}
+                   {/* Buttons */}
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.6, delay: 0.7 }}
-                    className="flex items-center justify-center gap-3 w-full max-w-xs sm:max-w-none mx-auto px-2 sm:px-0"
+                    className="flex items-center justify-center gap-4 w-full max-w-xs sm:max-w-none mx-auto px-2 sm:px-0"
                   >
                     <Button
                       id="tour-register-btn"
                       onClick={() => setCurrentView(ViewState.ID_CARD)}
-                      className="flex-1 sm:flex-none sm:w-auto px-6 py-3 sm:px-12 sm:py-5 text-[11px] sm:text-sm uppercase tracking-[0.15em] font-black border-none hover:scale-105 active:scale-95 whitespace-nowrap"
+                      className="flex-1 sm:flex-none sm:w-52 px-6 py-3 sm:py-4 text-[11px] sm:text-xs uppercase tracking-[0.18em] font-black border-none hover:scale-105 active:scale-95 whitespace-nowrap"
                       style={{ background: "linear-gradient(135deg, #f59e0b 0%, #fbbf24 40%, #fde68a 65%, #d97706 100%)", color: "#3b1f00", borderRadius: "9999px", boxShadow: "0 0 0 2px rgba(251,191,36,0.4), 0 8px 28px rgba(212,160,0,0.55)", letterSpacing: "0.18em" }}
                     >
                       Register Now
@@ -1581,8 +1603,8 @@ const App: React.FC = () => {
                     <Button
                       id="tour-login-btn"
                       onClick={() => navigate('/auth?view=login')}
-                      className="flex-1 sm:flex-none sm:w-auto px-6 py-3 sm:px-10 sm:py-5 text-[11px] sm:text-sm uppercase tracking-[0.15em] font-black hover:scale-105 active:scale-95 rounded-full transition-all duration-300 whitespace-nowrap"
-                      style={{ background: "rgba(251,191,36,0.08)", backdropFilter: "blur(10px)", border: "1px solid rgba(251,191,36,0.3)", color: "rgba(253,230,138,0.9)" }}
+                      className="flex-1 sm:flex-none sm:w-52 px-6 py-3 sm:py-4 text-[11px] sm:text-xs uppercase tracking-[0.18em] font-black border-none hover:scale-105 active:scale-95 whitespace-nowrap"
+                      style={{ background: "rgba(251,191,36,0.08)", backdropFilter: "blur(10px)", border: "1px solid rgba(251,191,36,0.3)", color: "rgba(253,230,138,0.9)", borderRadius: "9999px", letterSpacing: "0.18em" }}
                     >
                       Login
                     </Button>
@@ -1659,63 +1681,105 @@ const App: React.FC = () => {
             );
                   case 'about':
                     return (
-                      <section key="about" className="py-24 bg-gray-50 overflow-hidden relative">
-                <div className="absolute top-0 right-0 w-[40%] h-full bg-white -skew-x-12 translate-x-32 z-0 hidden lg:block"></div>
-                <div className="container mx-auto px-6 relative z-10">
-                  <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
-                    <motion.div
-                      initial={{ opacity: 0, x: -50 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      className="relative mx-auto lg:mx-0 max-w-lg lg:max-w-none"
-                    >
-                      <div className="relative z-10 rounded-[2rem] overflow-hidden shadow-2xl border-[6px] border-white">
-                        <img
-                          src="https://images.unsplash.com/photo-1510590337019-5ef2d39aa786?q=80&w=2670&auto=format&fit=crop"
-                          alt="Community gathering"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="absolute -bottom-16 -right-16 w-3/4 rounded-2xl overflow-hidden shadow-2xl border-[6px] border-white z-20 hidden md:block">
-                        <img
-                          src="https://images.unsplash.com/photo-1511632765486-a01980e01a18?q=80&w=2670&auto=format&fit=crop"
-                          alt="Worship Moment"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    </motion.div>
-
-                    <motion.div
-                      initial={{ opacity: 0, x: 50 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      className="text-left"
-                    >
-                      <div className="flex items-center gap-2 mb-4">
-                        <span className="w-12 h-1 bg-accent-500 rounded-full"></span>
-                        <span className="text-brand-600 font-bold uppercase tracking-wider text-sm">Who We Are</span>
-                      </div>
-                      <h2 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-slate-900 mb-6 leading-[1.1]">
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-brand-400">You</span> to Part <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-500 to-accent-400">Ministries</span>
-                      </h2>
-                      <p className="text-gray-600 text-lg leading-relaxed mb-8">
-                        City of Truth Ministries is more than just a building—it's a family. We are dedicated to creating a space where lives are transformed by the power of the Gospel.
-                      </p>
-                      <div className="flex flex-wrap gap-3">
-                        <Button onClick={() => setCurrentView(ViewState.ABOUT)} variant="primary" className="shadow-brand-500/30 px-8 py-4 text-base">Read Our Story</Button>
-                        <button
-                          onClick={() => window.open(youtubeLink, '_blank', 'noopener,noreferrer')}
-                          className="group flex items-center gap-2 px-8 py-4 rounded-full border-2 border-brand-200 text-brand-700 font-bold text-base hover:bg-brand-50 hover:border-brand-400 transition-all"
-                        >
-                          Visit COT YouTube
-                          <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                        </button>
-                      </div>
-                    </motion.div>
-                  </div>
-                </div>
-              </section>
-            );
+                      <section key="about" className="py-24 bg-gradient-to-br from-[#0c0813] via-[#060409] to-[#0f091a] text-white relative overflow-hidden">
+                        {/* Background ambient glows */}
+                        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-600/10 rounded-full blur-[120px] pointer-events-none" />
+                        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-[120px] pointer-events-none" />
+                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.015),transparent_60%)] pointer-events-none" />
+                        
+                        <div className="container mx-auto px-6 relative z-10">
+                          <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+                            {/* Left text & stats column */}
+                            <motion.div
+                              initial={{ opacity: 0, x: -40 }}
+                              whileInView={{ opacity: 1, x: 0 }}
+                              viewport={{ once: true }}
+                              transition={{ duration: 0.8 }}
+                              className="text-left"
+                            >
+                              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 mb-6 backdrop-blur-xl">
+                                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-red-400">COT Broadcasting Hub</span>
+                              </div>
+                              
+                              <h2 className="text-4xl md:text-5xl lg:text-6xl font-serif font-black mb-6 leading-[1.1] tracking-tight">
+                                Experience Divine Truth <br className="hidden md:inline" />
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-rose-400 to-amber-400">
+                                  In Power & Glory
+                                </span>
+                              </h2>
+                              
+                              <p className="text-gray-400 text-lg leading-relaxed mb-8">
+                                Step into a sanctuary of high-production spiritual broadcasts. Stream our anointed sermons, deep Hebrew mysteries, and divine worship songs directly on our official YouTube channel. Live every Sunday, archived for your spiritual growth.
+                              </p>
+                              
+                              {/* Premium Stats Dashboard Grid */}
+                              <div className="grid grid-cols-3 gap-4 mb-10">
+                                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
+                                  <p className="text-3xl font-black text-red-500">100+</p>
+                                  <p className="text-[11px] uppercase tracking-wider text-gray-500 font-bold mt-1">Sermons</p>
+                                </div>
+                                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
+                                  <p className="text-3xl font-black text-amber-500">Live</p>
+                                  <p className="text-[11px] uppercase tracking-wider text-gray-500 font-bold mt-1">Broadcasts</p>
+                                </div>
+                                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
+                                  <p className="text-3xl font-black text-rose-500">Torah</p>
+                                  <p className="text-[11px] uppercase tracking-wider text-gray-500 font-bold mt-1">Hebrew Hub</p>
+                                </div>
+                              </div>
+                              
+                              <div className="flex flex-wrap gap-4">
+                                <button
+                                  onClick={() => window.open(youtubeLink, '_blank', 'noopener,noreferrer')}
+                                  className="group flex items-center gap-3 px-8 py-4 rounded-full bg-gradient-to-r from-red-600 to-rose-600 text-white font-extrabold text-base hover:from-red-500 hover:to-rose-500 transition-all shadow-lg shadow-red-600/30 hover:shadow-red-600/50 hover:scale-105 active:scale-95"
+                                >
+                                  <Youtube size={22} className="text-white" />
+                                  Watch Live on YouTube
+                                  <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                </button>
+                                <button
+                                  onClick={() => setCurrentView(ViewState.HEBREW_RESOURCES)}
+                                  className="group flex items-center gap-2 px-8 py-4 rounded-full border border-white/20 bg-white/5 font-extrabold text-base text-gray-200 hover:bg-white/10 hover:border-amber-400/40 hover:text-amber-300 transition-all"
+                                >
+                                  Explore Hebrew Tools
+                                </button>
+                              </div>
+                            </motion.div>
+                            
+                            {/* Right interactive video player column */}
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.95, x: 40 }}
+                              whileInView={{ opacity: 1, scale: 1, x: 0 }}
+                              viewport={{ once: true }}
+                              transition={{ duration: 0.8 }}
+                              className="relative mx-auto lg:mx-0 w-full max-w-lg lg:max-w-none"
+                            >
+                              <div className="relative group rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(239,68,68,0.18)] border border-white/10 bg-white/5 backdrop-blur-xl p-3">
+                                <div className="relative aspect-video rounded-2xl overflow-hidden bg-black shadow-inner">
+                                  <video
+                                    src="/சத்திய_நகரம்_City_of_Truth_Min.mp4"
+                                    poster="https://images.unsplash.com/photo-1510590337019-5ef2d39aa786?q=80&w=2670&auto=format&fit=crop"
+                                    controls
+                                    controlsList="nodownload noplaybackrate"
+                                    disablePictureInPicture
+                                    autoPlay
+                                    loop
+                                    muted
+                                    playsInline
+                                    className="w-full h-full object-cover"
+                                    style={{ boxShadow: "inset 0 0 40px rgba(0,0,0,0.8)" }}
+                                  />
+                                </div>
+                              </div>
+                              
+                              {/* Decorative back glow card */}
+                              <div className="absolute -inset-1.5 rounded-[2rem] bg-gradient-to-r from-red-600 to-amber-500 opacity-25 blur-2xl -z-10 group-hover:opacity-40 transition-opacity duration-500" />
+                            </motion.div>
+                          </div>
+                        </div>
+                      </section>
+                    );
           case 'menorah': return <GoldenMenorah key="menorah" onPreviewClick={() => setCurrentView(ViewState.GOLDEN_MENORAH)} />;
           case 'highlights': return <MinistryHighlights key="highlights" setView={setCurrentView} />;
           case 'leader': return null; // Leader message is now a fixed overlay triggered by email input
@@ -1780,69 +1844,15 @@ const App: React.FC = () => {
             </motion.div>
           )}
 
-          {currentView === ViewState.ABOUT && (
-            <div key="hebrew-hub">
-              <HebrewResources mode="content" initialTab="calendar" currentUser={currentUser || undefined} />
+          {[ViewState.ABOUT, ViewState.HEBREW_CALENDAR, ViewState.HEBREW_CLOCK, ViewState.HEBREW_FESTIVALS, ViewState.HEBREW_REFERENCE, ViewState.HEBREW_GRAMMAR].includes(currentView) && (
+            <div key="hebrew-hub-content">
+              <HebrewResources mode="content" currentUser={currentUser || undefined} currentView={currentView} setView={setCurrentView} />
             </div>
           )}
 
-          {currentView === ViewState.HEBREW_TOOLS && (
-            <div key="hebrew-tools">
-              <HebrewResources mode="tools" initialTab="words" />
-            </div>
-          )}
-
-          {currentView === ViewState.HEBREW_CALENDAR && (
-            <div key="hebrew-calendar">
-              <HebrewResources mode="content" initialTab="calendar" currentUser={currentUser || undefined} />
-            </div>
-          )}
-
-          {currentView === ViewState.HEBREW_CLOCK && (
-            <div key="hebrew-clock">
-              <HebrewResources mode="content" initialTab="clock" />
-            </div>
-          )}
-
-          {currentView === ViewState.HEBREW_NUMBERS && (
-            <div key="hebrew-numbers">
-              <HebrewResources mode="tools" initialTab="numbers" />
-            </div>
-          )}
-
-          {currentView === ViewState.HEBREW_WORDS && (
-            <div key="hebrew-words">
-              <HebrewResources mode="tools" initialTab="words" />
-            </div>
-          )}
-
-          {currentView === ViewState.HEBREW_LETTERS_AUDIO && (
-            <div key="hebrew-letters-audio">
-              <HebrewResources mode="tools" initialTab="lettersaudio" />
-            </div>
-          )}
-
-          {currentView === ViewState.HEBREW_GEMATRIA && (
-            <div key="hebrew-gematria">
-              <HebrewResources mode="tools" initialTab="gematria" />
-            </div>
-          )}
-
-          {currentView === ViewState.HEBREW_FESTIVALS && (
-            <div key="hebrew-festivals">
-              <HebrewResources mode="content" initialTab="festivals" />
-            </div>
-          )}
-
-          {currentView === ViewState.HEBREW_REFERENCE && (
-            <div key="hebrew-reference">
-              <HebrewResources mode="content" initialTab="reference" />
-            </div>
-          )}
-
-          {currentView === ViewState.HEBREW_GRAMMAR && (
-            <div key="hebrew-grammar">
-              <HebrewResources mode="content" initialTab="grammar" />
+          {[ViewState.HEBREW_TOOLS, ViewState.HEBREW_WORDS, ViewState.HEBREW_LETTERS_AUDIO, ViewState.HEBREW_NUMBERS, ViewState.HEBREW_GEMATRIA].includes(currentView) && (
+            <div key="hebrew-hub-tools">
+              <HebrewResources mode="tools" currentView={currentView} setView={setCurrentView} />
             </div>
           )}
 

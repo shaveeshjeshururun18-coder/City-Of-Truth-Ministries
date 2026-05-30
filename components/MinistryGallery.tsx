@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { Play, Image as ImageIcon, Clock, Tag } from 'lucide-react';
+import { Play, Image as ImageIcon, Clock, Tag, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface MediaItem {
     type: 'image' | 'video';
@@ -18,11 +18,20 @@ interface MinistryGalleryProps {
 export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items }) => {
     const [hoveredId, setHoveredId] = useState<string | null>(null);
     const [failedMedia, setFailedMedia] = useState<Record<string, boolean>>({});
+    const scrollRef = useRef<HTMLDivElement>(null);
+
+    const scroll = (direction: 'left' | 'right') => {
+        if (scrollRef.current) {
+            const scrollAmount = direction === 'left' ? -350 : 350;
+            scrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        }
+    };
 
     return (
         <div className="relative w-full py-8 group">
             {/* Scroll Container */}
             <div
+                ref={scrollRef}
                 className="grid grid-cols-2 gap-3 md:flex md:overflow-x-auto md:gap-6 px-4 md:px-6 pb-8 md:pb-12 pt-4 no-scrollbar"
                 style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
@@ -102,6 +111,26 @@ export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items }) => {
                     </motion.div>
                 ))}
             </div>
+
+            {/* Left Scroll Arrow */}
+            <button
+                onClick={() => scroll('left')}
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-20 hidden md:flex items-center justify-center w-12 h-12 rounded-full bg-white/90 hover:bg-white backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-200/80 transition-all duration-300 opacity-0 group-hover:opacity-100 hover:scale-110 active:scale-95 cursor-pointer"
+                title="Scroll Left"
+                aria-label="Scroll gallery left"
+            >
+                <ChevronLeft size={24} strokeWidth={2.5} className="text-[#C5A880]" />
+            </button>
+
+            {/* Right Scroll Arrow */}
+            <button
+                onClick={() => scroll('right')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-20 hidden md:flex items-center justify-center w-12 h-12 rounded-full bg-white/90 hover:bg-white backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-200/80 transition-all duration-300 opacity-0 group-hover:opacity-100 hover:scale-110 active:scale-95 cursor-pointer"
+                title="Scroll Right"
+                aria-label="Scroll gallery right"
+            >
+                <ChevronRight size={24} strokeWidth={2.5} className="text-[#C5A880]" />
+            </button>
 
             {/* Subtle Gradient Fades for Scroll Indication */}
             <div className="absolute top-0 bottom-12 right-0 w-24 bg-gradient-to-l from-[#fdfcf0] to-transparent pointer-events-none z-10 hidden md:block" />
