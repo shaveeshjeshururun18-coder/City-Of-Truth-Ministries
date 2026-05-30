@@ -516,6 +516,25 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                         </React.Fragment>
                     ))}
                 </div>
+
+                {/* Copyright Footer */}
+                <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                        <img src="/brand-logo.png" alt="COT Logo" className="w-7 h-7 object-contain opacity-70" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                        <div>
+                            <p className="text-[11px] font-black text-brand-950 uppercase tracking-[0.15em]">City of Truth Ministries</p>
+                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Valparai · Tamil Nadu · India</p>
+                        </div>
+                    </div>
+                    <div className="text-center">
+                        <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Hebrew Calendar {safeYear}</p>
+                        <p className="text-[9px] text-slate-400">© {new Date().getFullYear()} City of Truth Ministries · All rights reserved</p>
+                    </div>
+                    <div className="flex items-center gap-4 text-[9px] text-slate-400 font-bold">
+                        <span>📞 +91 8056125478</span>
+                        <span>🌐 city-of-truth-ministries.vercel.app</span>
+                    </div>
+                </div>
             </div>
 
             {/* Selected Date Details */}

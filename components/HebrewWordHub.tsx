@@ -249,7 +249,7 @@ export const HebrewWordHub: React.FC = () => {
         if (!wordDetails || !exportCardRef.current) return;
         setIsExporting(true);
         try {
-            const dataUrl = await captureNodeToJpeg(exportCardRef.current, { backgroundColor: '#ffffff', width: 800 });
+            const dataUrl = await captureNodeToJpeg(exportCardRef.current, { backgroundColor: '#0f0c29', width: 800 });
             const filename = `COT-Hebrew-${sanitizeFilename(wordDetails.pronunciation)}`;
             if (format === 'jpeg') {
                 const link = document.createElement('a');
@@ -257,17 +257,18 @@ export const HebrewWordHub: React.FC = () => {
                 link.href = dataUrl;
                 link.click();
             } else {
-                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-                const pdfW = pdf.internal.pageSize.getWidth();
+                // Load image to get real pixel dimensions
                 const img = new Image();
                 img.src = dataUrl;
                 await new Promise<void>((resolve, reject) => {
                     img.onload = () => resolve();
                     img.onerror = () => reject(new Error('Failed to load export image'));
                 });
-                const pdfH = (img.height * pdfW) / img.width;
-                const pageH = pdf.internal.pageSize.getHeight();
-                pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfW, Math.min(pdfH, pageH));
+                // Create PDF page exactly sized to the image (no white gap)
+                const A4_W_MM = 210;
+                const pdfH = (img.height * A4_W_MM) / img.width;
+                const pdf = new jsPDF({ orientation: pdfH > A4_W_MM ? 'portrait' : 'landscape', unit: 'mm', format: [A4_W_MM, pdfH] });
+                pdf.addImage(dataUrl, 'JPEG', 0, 0, A4_W_MM, pdfH);
                 pdf.save(`${filename}.pdf`);
             }
         } catch (err) {
