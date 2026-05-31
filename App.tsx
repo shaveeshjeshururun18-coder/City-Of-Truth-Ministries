@@ -1456,7 +1456,7 @@ const App: React.FC = () => {
   }
 
   if (isVerifyScannerRoute) {
-    return <VerifyIDPage onProceedToDashboard={handleLogin} />;
+    return <VerifyIDPage onProceedToDashboard={handleLogin} currentUser={currentUser} />;
   }
 
   return (

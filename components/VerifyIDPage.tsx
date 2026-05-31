@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, CheckCircle, XCircle, Search, ScanLine, X, LogIn, Flashlight, FlashlightOff, Maximize2, Minimize2 } from 'lucide-react';
+import { Camera, CheckCircle, XCircle, Search, ScanLine, X, LogIn, Flashlight, FlashlightOff, Maximize2, Minimize2, QrCode } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
 import { User } from '../types';
@@ -12,9 +12,10 @@ GlobalWorkerOptions.workerSrc = pdfWorker;
 
 interface VerifyIDPageProps {
     onProceedToDashboard?: (identifier: string) => void;
+    currentUser?: { id: string; name: string; photo?: string; status?: string } | null;
 }
 
-const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => {
+const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, currentUser }) => {
     const [scannedId, setScannedId] = useState<string | null>(null);
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(false);
@@ -24,8 +25,33 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
     const [torchSupported, setTorchSupported] = useState(false);
     const [torchOn, setTorchOn] = useState(false);
     const [scannerExpanded, setScannerExpanded] = useState(true);
+    const [showMyQr, setShowMyQr] = useState(false);
     const scannerRef = useRef<any>(null);
     const isApprovedUser = user?.status === 'Active';
+
+    const WEBSITE_URL = 'https://city-of-truth-ministries.vercel.app';
+    const myQrUrl = currentUser
+        ? `https://city-of-truth-ministries.vercel.app/verify/${encodeURIComponent(currentUser.id)}`
+        : WEBSITE_URL;
+    const myQrImage = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(myQrUrl)}&bgcolor=ffffff&color=1a1450&margin=10`;
+
+    const handleShareMyQr = async () => {
+        const shareData = {
+            title: currentUser ? `${currentUser.name} — City of Truth Ministries` : 'City of Truth Ministries',
+            text: currentUser ? `Verify my Entrust ID: ${currentUser.id}` : 'Visit City of Truth Ministries',
+            url: myQrUrl
+        };
+        try {
+            if (navigator.share) {
+                await navigator.share(shareData);
+            } else {
+                await navigator.clipboard.writeText(myQrUrl);
+                alert('Link copied to clipboard!');
+            }
+        } catch (_e) {
+            try { await navigator.clipboard.writeText(myQrUrl); alert('Link copied!'); } catch (_) {}
+        }
+    };
 
     const normalizeCotId = (value: string) => value.trim().toUpperCase().replace(/^COT(?!-)/, 'COT-');
     const extractIdFromPath = (value: string) => value.match(/\/(?:verify|card)\/([A-Za-z0-9]+(?:-[A-Za-z0-9]+)*)/i)?.[1] || null;
@@ -342,12 +368,99 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#d4a547]/15 border border-[#d4a547]/30 text-[#d4a547] text-xs font-black uppercase tracking-[0.2em]">
+                        {/* My QR button */}
+                        <button
+                            onClick={() => setShowMyQr(true)}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#d4a547]/15 border border-[#d4a547]/30 text-[#d4a547] text-xs font-black uppercase tracking-[0.15em] hover:bg-[#d4a547]/25 transition-all"
+                            title="Show My QR Code"
+                        >
+                            <QrCode size={14} />
+                            {currentUser ? 'My QR' : 'Site QR'}
+                        </button>
+                        <span className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/60 text-xs font-black uppercase tracking-[0.2em]">
                             <ScanLine size={12} /> Verify Entrust ID
                         </span>
                     </div>
                 </div>
             </header>
+
+            {/* ── MY QR CODE BOTTOM SHEET ── */}
+            <AnimatePresence>
+                {showMyQr && (
+                    <motion.div
+                        key="myqr-backdrop"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end justify-center"
+                        onClick={() => setShowMyQr(false)}
+                    >
+                        <motion.div
+                            key="myqr-sheet"
+                            initial={{ y: '100%', opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: '100%', opacity: 0 }}
+                            transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+                            className="w-full max-w-sm bg-gradient-to-b from-[#1a1450] to-[#0f0c29] rounded-t-[2.5rem] p-8 pb-10 flex flex-col items-center gap-5 shadow-2xl border-t border-white/10"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            {/* Drag handle */}
+                            <div className="w-12 h-1.5 rounded-full bg-white/20 -mt-2 mb-1" />
+
+                            {/* Header */}
+                            {currentUser ? (
+                                <div className="text-center">
+                                    <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#d4a547]/50 mx-auto mb-3 bg-white/10 flex items-center justify-center">
+                                        {currentUser.photo
+                                            ? <img src={currentUser.photo} alt={currentUser.name} className="w-full h-full object-cover" />
+                                            : <span className="text-2xl font-black text-white">{currentUser.name.charAt(0).toUpperCase()}</span>
+                                        }
+                                    </div>
+                                    <h3 className="text-xl font-black text-white">{currentUser.name}</h3>
+                                    <p className="text-[#d4a547] font-bold text-sm font-mono mt-0.5">{currentUser.id}</p>
+                                    <p className="text-white/40 text-xs mt-1">City of Truth Ministries Member</p>
+                                </div>
+                            ) : (
+                                <div className="text-center">
+                                    <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-[#d4a547]/50 mx-auto mb-3 bg-white/10 flex items-center justify-center">
+                                        <img src="/logo.png" alt="COT" className="w-12 h-12 object-contain" />
+                                    </div>
+                                    <h3 className="text-xl font-black text-white">City of Truth Ministries</h3>
+                                    <p className="text-white/40 text-xs mt-1">Valparai, Tamil Nadu · India</p>
+                                </div>
+                            )}
+
+                            {/* QR Code */}
+                            <div className="bg-white p-4 rounded-3xl shadow-xl">
+                                <img
+                                    src={myQrImage}
+                                    alt="QR Code"
+                                    className="w-56 h-56 object-contain"
+                                />
+                            </div>
+
+                            <p className="text-white/40 text-[11px] text-center font-medium">
+                                {currentUser ? 'Scan to verify this member\'s Entrust ID' : 'Scan to visit our ministry website'}
+                            </p>
+
+                            {/* Share button */}
+                            <button
+                                onClick={handleShareMyQr}
+                                className="w-full flex items-center justify-center gap-3 py-4 bg-gradient-to-r from-[#d4a547] to-[#f0c040] text-[#1a0d00] font-black rounded-2xl text-sm uppercase tracking-widest hover:brightness-110 transition-all shadow-lg shadow-[#d4a547]/30"
+                            >
+                                <ScanLine size={18} /> Share QR Code
+                            </button>
+
+                            <button
+                                onClick={() => setShowMyQr(false)}
+                                className="text-white/40 text-xs font-bold uppercase tracking-widest hover:text-white/70 transition-colors"
+                            >
+                                Close
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <div className="max-w-5xl mx-auto pt-8 px-4">
 

@@ -2139,6 +2139,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 drawField('Denomination', member.communityProfile.denomination);
                 drawField('Church Name', member.communityProfile.churchName);
                 drawField('Role in Ministry', member.communityProfile.role);
+                drawField('District / Zone', member.communityProfile.district);
 
                 const bio = `${member.communityProfile.bio || ''}`.trim() || 'Not provided';
                 const bioLines = pdf.splitTextToSize(bio, contentWidth - 6);
@@ -2238,6 +2239,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             addBlock('Denomination', profile.denomination || '');
             addBlock('Church Name', profile.churchName || '');
             addBlock('Role in Ministry', profile.role || '');
+            addBlock('District / Zone', profile.district || '');
             addBlock('Testimony / Bio', profile.bio || '');
 
             pdf.save(`COT-MEMBER-FORM-${member.id}.pdf`);
@@ -6235,10 +6237,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <p className="text-[10px] font-black uppercase tracking-widest text-[#d4a547] mb-1">Church Name</p>
                                             <p className="text-sm font-semibold text-slate-700">{memberFormPageUser.communityProfile?.churchName || 'N/A'}</p>
                                         </div>
-                                    </div>
-                                    <div className="p-4 bg-white rounded-2xl border border-[#d4a547]/20">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-[#d4a547] mb-1">Role in Ministry</p>
-                                        <p className="text-sm font-semibold text-slate-700">{memberFormPageUser.communityProfile?.role || 'N/A'}</p>
+                                        <div className="p-4 bg-white rounded-2xl border border-[#d4a547]/20">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-[#d4a547] mb-1">Role in Ministry</p>
+                                            <p className="text-sm font-semibold text-slate-700">{memberFormPageUser.communityProfile?.role || 'N/A'}</p>
+                                        </div>
+                                        <div className="p-4 bg-white rounded-2xl border border-[#d4a547]/20">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-[#d4a547] mb-1">District / Zone</p>
+                                            <p className="text-sm font-semibold text-slate-700">{memberFormPageUser.communityProfile?.district || 'N/A'}</p>
+                                        </div>
                                     </div>
                                     <div className="p-4 bg-white rounded-2xl border border-[#d4a547]/20">
                                         <p className="text-[10px] font-black uppercase tracking-widest text-[#d4a547] mb-1">Testimony / Bio</p>
