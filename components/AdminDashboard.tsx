@@ -5132,86 +5132,71 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </div>
                             </div>
 
-                            <Reorder.Group
-                                axis="y"
-                                values={homeSectionsOrder}
-                                onReorder={onUpdateHomeSectionsOrder}
-                                className="space-y-4"
-                            >
+                            <div className="space-y-3">
                                 {homeSectionsOrder.map((sectionId, idx) => {
                                     const info = HOME_SECTIONS_INFO[sectionId] || { name: sectionId, desc: 'Home component', icon: Globe, color: 'bg-brand-500' };
                                     const Icon = info.icon;
                                     const displayIndex = (idx + 1).toString().padStart(2, '0');
-                                    
+                                    const isFirst = idx === 0;
+                                    const isLast = idx === homeSectionsOrder.length - 1;
+
+                                    const moveUp = () => {
+                                        if (isFirst) return;
+                                        const next = [...homeSectionsOrder];
+                                        [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                                        onUpdateHomeSectionsOrder(next);
+                                    };
+                                    const moveDown = () => {
+                                        if (isLast) return;
+                                        const next = [...homeSectionsOrder];
+                                        [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+                                        onUpdateHomeSectionsOrder(next);
+                                    };
+
                                     return (
-                                        <Reorder.Item
+                                        <div
                                             key={sectionId}
-                                            value={sectionId}
-                                            className="bg-white p-5 rounded-[2rem] border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-6 group hover:border-brand-300 hover:shadow-lg transition-all relative overflow-hidden cursor-grab active:cursor-grabbing"
+                                            className="bg-white p-5 rounded-[2rem] border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-6 group hover:border-brand-300 hover:shadow-lg transition-all relative overflow-hidden select-none"
                                         >
                                             <div className="absolute top-0 right-0 w-24 h-24 bg-brand-50/30 rounded-full -mr-12 -mt-12 transition-all group-hover:scale-150 pointer-events-none" />
-                                            
+
                                             <div className="flex items-center gap-5 flex-1 relative z-10">
-                                                {/* Premium Serial Index Badge */}
                                                 <div className="text-brand-600 font-serif font-black text-lg select-none w-6 text-center shrink-0">
                                                     {displayIndex}
                                                 </div>
-                                                
                                                 <div className={`w-14 h-14 ${info.color} rounded-2xl flex items-center justify-center text-white shadow-lg`}>
                                                     <Icon size={24} strokeWidth={2.5} />
                                                 </div>
-
                                                 <div className="min-w-0">
-                                                    <h3 className="font-black text-brand-950 text-lg leading-tight uppercase tracking-tight">
-                                                        {info.name}
-                                                    </h3>
-                                                    <p className="text-slate-400 text-xs font-bold truncate pr-4 mt-0.5">
-                                                        {info.desc}
-                                                    </p>
+                                                    <h3 className="font-black text-brand-950 text-lg leading-tight uppercase tracking-tight">{info.name}</h3>
+                                                    <p className="text-slate-400 text-xs font-bold truncate pr-4 mt-0.5">{info.desc}</p>
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-3 relative z-10 justify-end shrink-0">
-                                                {/* Explicit Up/Down Buttons */}
-                                                <div className="flex items-center gap-1.5">
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            const idxVal = homeSectionsOrder.findIndex(item => item === sectionId);
-                                                            if (idxVal <= 0) return;
-                                                            onUpdateHomeSectionsOrder(moveArrayItem(homeSectionsOrder, idxVal, idxVal - 1));
-                                                        }}
-                                                        disabled={idx === 0}
-                                                        className="w-8 h-8 rounded-full border border-slate-200 bg-white text-slate-600 flex items-center justify-center hover:bg-slate-50 disabled:opacity-30 transition-all active:scale-95"
-                                                        aria-label="Move up"
-                                                    >
-                                                        <ChevronUp size={14} />
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            const idxVal = homeSectionsOrder.findIndex(item => item === sectionId);
-                                                            if (idxVal < 0 || idxVal >= homeSectionsOrder.length - 1) return;
-                                                            onUpdateHomeSectionsOrder(moveArrayItem(homeSectionsOrder, idxVal, idxVal + 1));
-                                                        }}
-                                                        disabled={idx === homeSectionsOrder.length - 1}
-                                                        className="w-8 h-8 rounded-full border border-slate-200 bg-white text-slate-600 flex items-center justify-center hover:bg-slate-50 disabled:opacity-30 transition-all active:scale-95"
-                                                        aria-label="Move down"
-                                                    >
-                                                        <ChevronDown size={14} />
-                                                    </button>
-                                                </div>
-                                                <div className="hidden sm:flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-300 group-hover:text-brand-400 transition-colors bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
-                                                    <GripVertical size={12} />
-                                                    Drag
-                                                </div>
+                                            <div className="flex items-center gap-2 relative z-10 justify-end shrink-0">
+                                                <button
+                                                    type="button"
+                                                    onClick={moveUp}
+                                                    disabled={isFirst}
+                                                    className="w-10 h-10 rounded-2xl border-2 border-slate-200 bg-white text-slate-600 flex items-center justify-center hover:bg-brand-600 hover:text-white hover:border-brand-600 disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-90 shadow-sm"
+                                                    aria-label="Move up"
+                                                >
+                                                    <ChevronUp size={18} />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={moveDown}
+                                                    disabled={isLast}
+                                                    className="w-10 h-10 rounded-2xl border-2 border-slate-200 bg-white text-slate-600 flex items-center justify-center hover:bg-brand-600 hover:text-white hover:border-brand-600 disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-90 shadow-sm"
+                                                    aria-label="Move down"
+                                                >
+                                                    <ChevronDown size={18} />
+                                                </button>
                                             </div>
-                                        </Reorder.Item>
+                                        </div>
                                     );
                                 })}
-                            </Reorder.Group>
+                            </div>
 
                             <div className="mt-12 p-8 bg-brand-950 rounded-[2.5rem] border border-brand-800 shadow-2xl flex items-start gap-6 relative overflow-hidden">
                                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none" />

@@ -5,11 +5,30 @@ import { Star, ArrowRight, BookOpen, MapPin, Globe, Sparkles, MessageSquare, QrC
 import { ViewState, User } from '../types';
 import { MessageFromLeader } from './MessageFromLeader';
 
+const useSectionInfo = (sectionId: string, defaultName: string, defaultDesc: string) => {
+    return React.useMemo(() => {
+        try {
+            const saved = localStorage.getItem('cot_sections_info');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed[sectionId]) {
+                    return {
+                        name: parsed[sectionId].name || defaultName,
+                        desc: parsed[sectionId].desc || defaultDesc
+                    };
+                }
+            }
+        } catch {}
+        return { name: defaultName, desc: defaultDesc };
+    }, [sectionId, defaultName, defaultDesc]);
+};
+
 interface SectionProps {
     setView: (view: ViewState) => void;
 }
 
 export const MinistryHighlights: React.FC<SectionProps> = ({ setView }) => {
+    const { name, desc } = useSectionInfo('highlights', 'Our Ministries', 'A Legacy of Service and Faith');
     const ministries = [
         { name: 'Spiritual Gatherings', icon: <Sparkles size={24} />, color: 'bg-blue-500' },
         { name: 'Youth Ministry', icon: <Star size={24} />, color: 'bg-amber-500' },
@@ -27,10 +46,10 @@ export const MinistryHighlights: React.FC<SectionProps> = ({ setView }) => {
                             className="inline-flex items-center gap-2 bg-brand-50 text-brand-700 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] mb-6"
                         >
                             <Star size={12} />
-                            Our Ministries
+                            {name}
                         </motion.div>
                         <h2 className="text-4xl md:text-6xl font-serif font-black text-brand-950 leading-[0.9] tracking-tighter">
-                            A Legacy of <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-brand-400 italic font-light">Service</span> and Faith
+                            {desc}
                         </h2>
                     </div>
                     <button
@@ -70,6 +89,7 @@ export const MinistryHighlights: React.FC<SectionProps> = ({ setView }) => {
 };
 
 export const HebrewSanctuaryIntro: React.FC<SectionProps> = ({ setView }) => {
+    const { name, desc } = useSectionInfo('hebrew', 'Hebrew Hub', 'Sacred Scriptures Decoded');
     return (
         <section className="py-12 md:py-20 bg-[#fdfcf0]">
             <div className="container mx-auto px-6">
@@ -99,10 +119,10 @@ export const HebrewSanctuaryIntro: React.FC<SectionProps> = ({ setView }) => {
                             className="inline-flex items-center gap-2 bg-brand-950 text-brand-100 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] mb-4 md:mb-6"
                         >
                             <BookOpen size={12} />
-                            Hebrew Hub
+                            {name}
                         </motion.div>
                         <h2 className="text-3xl md:text-5xl lg:text-6xl font-serif font-black text-brand-950 leading-[0.9] tracking-tighter mb-4 md:mb-8">
-                            Sacred <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-600 to-accent-400 italic font-light">Scriptures</span> Decoded
+                            {desc}
                         </h2>
                         <p className="text-base md:text-xl text-slate-500 font-light leading-relaxed mb-6 md:mb-10 max-w-xl">
                             From the Hebrew alphabet to the profound depth of the Biblical calendar, embark on a journey of spiritual discovery.
@@ -130,6 +150,7 @@ export const HebrewSanctuaryIntro: React.FC<SectionProps> = ({ setView }) => {
 };
 
 export const HebrewPagesPreviewSection: React.FC<SectionProps> = ({ setView }) => {
+    const { name, desc } = useSectionInfo('hebrewPages', 'All Page Previews', 'Every Page Preview on Home');
     const navigate = useNavigate();
 
     type PreviewItem = {
@@ -236,10 +257,10 @@ export const HebrewPagesPreviewSection: React.FC<SectionProps> = ({ setView }) =
             <div className="container mx-auto px-6">
                 <div className="text-center mb-14">
                     <span className="inline-flex items-center gap-2 bg-brand-50 text-brand-700 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em]">
-                        <BookOpen size={12} /> All Page Previews
+                        <BookOpen size={12} /> {name}
                     </span>
                     <h2 className="mt-5 text-4xl md:text-6xl font-serif font-black text-brand-950 tracking-tight">
-                        Every <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-accent-500 italic font-light">Page Preview</span> on Home
+                        {desc}
                     </h2>
                     <p className="mt-5 max-w-3xl mx-auto text-slate-500 text-base md:text-lg leading-relaxed">
                         Browse Hebrew content, Hebrew tools, ministry highlights, and community access pages directly from the home section before opening the full page.
