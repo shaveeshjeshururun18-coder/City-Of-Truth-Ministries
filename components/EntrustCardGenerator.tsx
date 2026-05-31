@@ -59,7 +59,7 @@ export const EntrustCardGenerator: React.FC = () => {
           <p className="text-gray-500 max-w-2xl mx-auto font-normal">Generate your official City of Truth Ministries Entrust Card. Identity verification is required for all active members.</p>
         </header>
 
-        <div className="grid lg:grid-cols-12 gap-12 items-start">
+        <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -116,15 +116,15 @@ export const EntrustCardGenerator: React.FC = () => {
             </form>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-5 flex flex-col items-center">
-            <div className="w-full sticky top-32">
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-5 flex flex-col items-center order-first lg:order-last">
+            <div className="w-full lg:sticky lg:top-32">
               <div className="flex items-center justify-center gap-2 mb-6 text-brand-600 font-bold uppercase tracking-widest text-[10px]">
                 <span className="w-6 h-px bg-brand-200"></span>
                 Document Preview
                 <span className="w-6 h-px bg-brand-200"></span>
               </div>
 
-              <div className="id-card-visual relative w-[320px] h-[460px] bg-white rounded-[1.5rem] shadow-2xl overflow-hidden border border-brand-100 mx-auto">
+              <div className="id-card-visual relative w-full max-w-[320px] h-[460px] bg-white rounded-[1.5rem] shadow-2xl overflow-hidden border border-brand-100 mx-auto">
                 <div className="bg-brand-950 px-5 py-4 flex items-center gap-3 text-white">
                   <div className="p-1.5 bg-brand-600 rounded-lg text-white border border-brand-400"><Church size={20} strokeWidth={2} /></div>
                   <div>

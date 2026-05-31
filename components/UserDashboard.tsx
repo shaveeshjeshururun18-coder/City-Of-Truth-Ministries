@@ -1226,28 +1226,31 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                         {/* Left: Card Preview */}
                         <div className="w-full xl:w-3/5">
-                            {/* Stacked card visual + tap to reveal (MOBILE ONLY) */}
+                            {/* Card Preview (MOBILE) — shows real card scaled down */}
                             <div className="md:hidden relative cursor-pointer" onClick={() => setShowCardPreview(true)}>
-                                <div className="absolute inset-x-4 top-2 h-10 bg-gradient-to-r from-brand-200 to-accent-200 rounded-2xl opacity-40 blur-sm" />
-                                <div className="absolute inset-x-2 top-1 h-10 bg-gradient-to-r from-brand-300 to-accent-300 rounded-2xl opacity-30" />
-                                <div className={`relative bg-gradient-to-r from-[#1a237e] to-[#3949ab] rounded-2xl h-24 flex items-center justify-center overflow-hidden border border-white/20 ${!canAccessEntrustFeatures ? 'blur-[2px]' : ''}`}>
-                                    <div className="absolute left-4 flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/50 bg-white/20 shrink-0">
-                                            {renderAvatarContent(displayProfile.photo, displayProfile.name, 'text-xs', 'from-brand-500 to-violet-700')}
-                                        </div>
-                                        <div>
-                                            <p className="text-white font-bold text-sm leading-tight">{displayProfile.name}</p>
-                                            <p className="text-white/70 text-[10px] font-mono mt-0.5">{displayProfile.id}</p>
-                                        </div>
+                                <div className={`relative w-full flex justify-center origin-top ${!canAccessEntrustFeatures ? 'blur-[2px]' : ''}`}
+                                    style={{ height: '220px', overflow: 'hidden' }}>
+                                    <div style={{ transform: 'scale(0.62)', transformOrigin: 'top center', position: 'absolute', top: 0 }}>
+                                        <EntrustCard3D
+                                            name={displayProfile.name}
+                                            email={user.email}
+                                            location={user.location}
+                                            emergency={user.emergency}
+                                            uniqueId={displayProfile.id}
+                                            memberSince={user.memberSince}
+                                            photo={displayProfile.photo}
+                                            status={user.status}
+                                            isStatic={true}
+                                            isBackSide={false}
+                                        />
                                     </div>
-                                    <div className="absolute right-4 text-white/30"><ScanLine size={32} /></div>
                                 </div>
                                 {!canAccessEntrustFeatures && (
                                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                         <span className="bg-black/55 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">Awaiting Approval</span>
                                     </div>
                                 )}
-                                <p className="text-center text-slate-500 text-xs font-semibold mt-3 mb-1">Tap to preview your Entrust Card ↗</p>
+                                <p className="text-center text-slate-500 text-xs font-semibold mt-2 mb-1">Tap card to expand &amp; download ✨</p>
                             </div>
 
                             {/* Real EntrustCard3D Preview (DESKTOP ONLY) */}
