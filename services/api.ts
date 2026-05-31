@@ -604,16 +604,17 @@ export const api = {
         
         const defaults = [
             { id: 'users', label: 'Users', icon: 'Users', order: 0, hidden: false },
-            { id: 'edit-page', label: 'Edit Page', icon: 'Edit2', order: 1, hidden: false },
-            { id: 'recycle-bin', label: 'Recycle Bin', icon: 'RotateCcw', order: 2, hidden: false },
-            { id: 'firebase', label: 'Firebase', icon: 'Database', order: 3, hidden: false },
-            { id: 'messages', label: 'Messages', icon: 'MessageSquare', order: 4, hidden: false },
-            { id: 'ministries', label: 'Tab TV + Ministry', icon: 'Globe', order: 5, hidden: false },
-            { id: 'id-cards', label: 'ID Cards', icon: 'QrCode', order: 6, hidden: false },
-            { id: 'cot-id-manager', label: 'COT ID Manager', icon: 'Dice6', order: 7, hidden: false },
-            { id: 'reports', label: 'Monthly Reports', icon: 'FileText', order: 8, hidden: false },
-            { id: 'home-layout', label: 'Home Layout', icon: 'GripVertical', order: 9, hidden: false },
-            { id: 'menu-editor', label: 'Menu Editor', icon: 'Filter', order: 10, hidden: false }
+            { id: 'member-forms', label: 'Member Forms', icon: 'FileText', order: 1, hidden: false },
+            { id: 'edit-page', label: 'Edit Page', icon: 'Edit2', order: 2, hidden: false },
+            { id: 'recycle-bin', label: 'Recycle Bin', icon: 'RotateCcw', order: 3, hidden: false },
+            { id: 'firebase', label: 'Firebase', icon: 'Database', order: 4, hidden: false },
+            { id: 'messages', label: 'Messages', icon: 'MessageSquare', order: 5, hidden: false },
+            { id: 'ministries', label: 'Tab TV + Ministry', icon: 'Globe', order: 6, hidden: false },
+            { id: 'id-cards', label: 'ID Cards', icon: 'QrCode', order: 7, hidden: false },
+            { id: 'cot-id-manager', label: 'COT ID Manager', icon: 'Dice6', order: 8, hidden: false },
+            { id: 'reports', label: 'Monthly Reports', icon: 'FileText', order: 9, hidden: false },
+            { id: 'home-layout', label: 'Home Layout', icon: 'GripVertical', order: 10, hidden: false },
+            { id: 'menu-editor', label: 'Menu Editor', icon: 'Filter', order: 11, hidden: false }
         ];
         return defaults;
     },

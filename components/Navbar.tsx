@@ -134,6 +134,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                 onMouseLeave={() => hasSubmenu && setDesktopHoverMenu(null)}
               >
                 <button
+                  id={item.view === 'HEBREW' || item.label === 'Hebrew' ? 'nav-hebrew-btn' : undefined}
                   onClick={() => {
                     setView(item.view);
                   }}
@@ -190,6 +191,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
           <div className={`flex items-center gap-3 sm:gap-3.5 p-1 sm:p-1.5 rounded-2xl backdrop-blur-md border transition-all duration-300 ${isTransparentNavbar ? 'bg-white/10 border-white/20' : 'bg-white/95 border-brand-200/80'}`}>
             <button
+              id={currentUser ? undefined : 'nav-register-btn'}
               onClick={() => currentUser ? setView(ViewState.USER_DASHBOARD) : setView(ViewState.ID_CARD)}
               className={`${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-11 h-11 rounded-2xl shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 border border-blue-300/50 px-3.5 h-10 rounded-2xl shadow-[0_14px_24px_-12px_rgba(37,99,235,0.7)] hover:shadow-[0_18px_28px_-12px_rgba(37,99,235,0.8)] hover:from-blue-700 hover:via-blue-600 hover:to-blue-800'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group`}
               title={currentUser ? "My Account" : "Register"}
@@ -210,6 +212,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             </button>
 
             <button
+              id="nav-hamburger-btn"
               onClick={() => setMobileMenuOpen(true)}
               className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl cursor-pointer flex items-center justify-center transition-all duration-300 border border-blue-300/50 bg-gradient-to-r from-blue-700 via-blue-600 to-blue-800 text-white hover:from-blue-800 hover:via-blue-700 hover:to-blue-900 shadow-[0_12px_22px_-12px_rgba(37,99,235,0.75)] hover:shadow-[0_16px_26px_-12px_rgba(37,99,235,0.85)]"
               title="Open menu"
@@ -314,6 +317,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
               <div className="flex-1 overflow-y-auto py-3 px-4 space-y-0.5">
                 {currentUser && (
                   <button
+                    id="nav-my-dashboard-btn"
                     onClick={() => {
                       setView(ViewState.USER_DASHBOARD);
                       setMobileMenuOpen(false);

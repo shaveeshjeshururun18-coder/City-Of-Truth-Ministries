@@ -14,6 +14,7 @@ import { getCalendarData5786 } from './CalendarLogic';
 import { CalendarCustomizationModal, CalendarOptions } from './CalendarCustomizationModal';
 import { addCenteredCardPage, waitForNodeImages } from './pdfCardUtils';
 import { CommunityProfileForm } from './CommunityProfileForm';
+import { GuidedTour, WelcomeTourModal, useTour } from './GuidedTour';
 
 interface UserDashboardProps {
     user: User;
@@ -71,6 +72,61 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const notificationsSectionRef = React.useRef<HTMLDivElement | null>(null);
     const hasPermanentCotId = /^COT-\d{4,}$/.test((user.id || '').trim());
     const canAccessEntrustFeatures = user.status === 'Active' && hasPermanentCotId;
+
+    // ── Guided Tour ──
+    const dashboardTour = useTour('user_dashboard');
+
+    useEffect(() => {
+        // Show welcome tour for first-time visitors
+        const timer = setTimeout(() => dashboardTour.promptIfNew(), 1200);
+        return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const dashboardTourSteps = [
+        {
+            target: '#nav-hamburger-btn',
+            title: '☰ Navigation Menu',
+            description: 'Tap the hamburger menu to access all pages — Hebrew tools, Ministries, Pastor page, AI Assistant, and more.',
+            position: 'bottom' as const,
+        },
+        {
+            target: '#nav-my-dashboard-btn',
+            title: '👤 My Dashboard',
+            description: 'Inside the menu, tap "My Dashboard" to come back here anytime. Your profile, card, and all actions live here.',
+            position: 'bottom' as const,
+        },
+        {
+            target: '#dashboard-wallet-card',
+            title: '🪪 Your Entrust Card',
+            description: 'This is your digital Entrust Card with your unique COT ID. Tap the card to expand it, download as PDF, or share your profile.',
+            position: 'top' as const,
+        },
+        {
+            target: '#dashboard-edit-btn',
+            title: '✏️ Edit Your Profile',
+            description: 'Keep your details up to date — name, phone, location, blood group and more. Tap here to edit.',
+            position: 'top' as const,
+        },
+        {
+            target: '#dashboard-notifications-card',
+            title: '🔔 Notifications',
+            description: 'Admin messages and ministry updates appear here. You can also reply to admins directly from this card.',
+            position: 'bottom' as const,
+        },
+        {
+            target: '#dashboard-actions-row',
+            title: '⚡ Quick Actions',
+            description: 'Download your card PDF, share your profile link, download QR code, or export your details — all in one tap.',
+            position: 'top' as const,
+        },
+        {
+            target: '#dashboard-action-cards',
+            title: '📋 Member Actions',
+            description: 'Fill your Member Form, write a Testimony, download your Family Portfolio PDF, and access the Hebrew Calendar from here.',
+            position: 'top' as const,
+        },
+    ];
 
     useEffect(() => {
         if (!initialProfileId) {
@@ -1212,7 +1268,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 {/* ════════════════════════════════════
                     mAadhaar-Style Wallet Card
                 ════════════════════════════════════ */}
-                <div className="bg-white rounded-[28px] shadow-xl mb-5 overflow-hidden">
+                <div id="dashboard-wallet-card" className="bg-white rounded-[28px] shadow-xl mb-5 overflow-hidden">
                     {/* Gold ID Number Header - show full ID, no masking */}
                     <div className="bg-gradient-to-r from-[#d4a547] via-[#f0c040] to-[#c8922a] px-5 py-3.5 flex items-center justify-between">
                         <span className="font-black text-[#3d2500] text-xl tracking-[3px] font-mono">
@@ -1387,7 +1443,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                     {/* Action buttons row (mAadhaar style) */}
                     {canAccessEntrustFeatures && (
-                        <div className="grid grid-cols-5 gap-1 px-4 pb-5 pt-3">
+                        <div id="dashboard-actions-row" className="grid grid-cols-5 gap-1 px-4 pb-5 pt-3">
                             {[
                                 { icon: <Share2 size={20} />, label: 'Share', action: handleShare, id: 'dashboard-share-top-btn' },
                                 { icon: <Download size={20} />, label: 'Download', action: handleDownloadPDF, loading: isProcessing },
@@ -1407,7 +1463,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 </div>
 
                 {/* ── ACTION CARDS GRID ── */}
-                    <div className="grid grid-cols-2 gap-4 mb-5">
+                    <div id="dashboard-action-cards" className="grid grid-cols-2 gap-4 mb-5">
 
                     {/* QR Card (Mobile priority #1) */}
                     {canAccessEntrustFeatures ? (
@@ -1784,6 +1840,32 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     </motion.div>
                 </div>
             )}
+
+            {/* ── Dashboard Guided Tour ── */}
+            <WelcomeTourModal
+                isOpen={dashboardTour.showWelcome}
+                onStartTour={dashboardTour.start}
+                onSkip={() => { dashboardTour.setShowWelcome(false); localStorage.setItem('cot_tour_user_dashboard', '1'); }}
+                userName={user.name}
+            />
+            <GuidedTour
+                steps={dashboardTourSteps}
+                isActive={dashboardTour.isActive}
+                onComplete={dashboardTour.stop}
+                onSkip={dashboardTour.stop}
+                tourName="user_dashboard"
+                accentColor="#4f46e5"
+            />
+
+            {/* Tour trigger button */}
+            <button
+                onClick={dashboardTour.start}
+                title="Start guided tour"
+                className="fixed bottom-20 right-4 z-50 w-10 h-10 rounded-full bg-brand-600 hover:bg-brand-700 text-white shadow-lg flex items-center justify-center text-lg font-black transition-all hover:scale-110 active:scale-95"
+                style={{ boxShadow: '0 4px 20px rgba(79,70,229,0.4)' }}
+            >
+                ?
+            </button>
 
         </div>
     );

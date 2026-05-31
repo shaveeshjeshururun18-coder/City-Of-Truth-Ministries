@@ -88,8 +88,9 @@ const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any
 
 
 
-const TAB_ITEMS: { id: 'users' | 'edit-page' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin' | 'admin-tabs'; label: string; icon: React.ElementType }[] = [
+const TAB_ITEMS: { id: 'users' | 'edit-page' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin' | 'admin-tabs' | 'member-forms'; label: string; icon: React.ElementType }[] = [
     { id: 'users', label: 'Users', icon: Users },
+    { id: 'member-forms', label: 'Member Forms', icon: FileText },
     { id: 'edit-page', label: 'Edit Page', icon: Edit2 },
     { id: 'recycle-bin', label: 'Recycle Bin', icon: RotateCcw },
     { id: 'firebase', label: 'Firebase', icon: Database },
@@ -251,7 +252,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [failedMinistryImages, setFailedMinistryImages] = useState<Record<string, boolean>>({});
     const [userQuickViewMode, setUserQuickViewMode] = useState<UserQuickViewMode | null>(null);
 
-    const [activeTab, setActiveTab] = useState<'users' | 'edit-page' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin' | 'admin-tabs'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'edit-page' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin' | 'admin-tabs' | 'member-forms'>('users');
     const [menuMode, setMenuMode] = useState<'horizontal' | 'vertical'>(() => {
         try {
             const stored = localStorage.getItem('adminMenuMode');
@@ -301,7 +302,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     const visibleTabs = useMemo(() => {
         if (dynamicTabs.length === 0) return TAB_ITEMS;
-        return dynamicTabs.filter(t => !t.hidden).map(t => {
+        
+        const hasMemberForms = dynamicTabs.some(t => t.id === 'member-forms');
+        let tabs = [...dynamicTabs];
+        if (!hasMemberForms) {
+            tabs.splice(1, 0, { id: 'member-forms', label: 'Member Forms', icon: 'FileText', order: 1, hidden: false });
+        }
+
+        return tabs.filter(t => !t.hidden).map(t => {
             const item = TAB_ITEMS.find(ti => ti.id === t.id);
             return {
                 id: t.id as any,
@@ -371,6 +379,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [showAdminPasswordPhrase, setShowAdminPasswordPhrase] = useState(false);
     const [adminPasswordMessage, setAdminPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const [memberFormPageUser, setMemberFormPageUser] = useState<User | null>(null);
+    const [selectedDenominationCategory, setSelectedDenominationCategory] = useState<string>('Form Not Filled');
+    const [broadcastSubject, setBroadcastSubject] = useState('');
+    const [broadcastMessage, setBroadcastMessage] = useState('');
+    const [broadcastType, setBroadcastType] = useState<'Email' | 'SMS' | 'Notification'>('Email');
+    const [isBroadcasting, setIsBroadcasting] = useState(false);
+    const [broadcastLog, setBroadcastLog] = useState<{ id: string; target: string; count: number; date: string; subject: string; status: 'Sent' | 'Failed' }[]>([]);
+    const [broadcastSuccessList, setBroadcastSuccessList] = useState<string[]>([]);
     const [hasAdminPasswordOverride, setHasAdminPasswordOverride] = useState(() => {
         try {
             return !!localStorage.getItem(ADMIN_PASSWORD_OVERRIDE_KEY);
@@ -679,6 +694,68 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         pending: users.filter(u => u.status === 'Pending Verification').length,
         rejected: users.filter(u => u.status === 'Rejected').length,
     }), [users]);
+
+    const memberFormStats = useMemo(() => {
+        const total = users.length;
+        const filledUsers = users.filter(u => u.communityProfile && (u.communityProfile.denomination || u.communityProfile.churchName || u.communityProfile.role || u.communityProfile.bio));
+        const filled = filledUsers.length;
+        const missing = total - filled;
+        const rate = total > 0 ? Math.round((filled / total) * 100) : 0;
+
+        const STANDARD_DENOMINATIONS = [
+            'Pentecostal',
+            'Baptist',
+            'Hebrew Roots',
+            'Evangelical',
+            'Catholic',
+            'Non-denominational'
+        ];
+
+        const groupCounts: Record<string, User[]> = {
+            'Form Not Filled': users.filter(u => !u.communityProfile || !(u.communityProfile.denomination || u.communityProfile.churchName || u.communityProfile.role || u.communityProfile.bio))
+        };
+
+        STANDARD_DENOMINATIONS.forEach(denom => {
+            groupCounts[denom] = [];
+        });
+
+        filledUsers.forEach(u => {
+            const denom = u.communityProfile?.denomination?.trim() || '';
+            if (!denom) {
+                const unspecifiedKey = 'Unspecified Denomination';
+                if (!groupCounts[unspecifiedKey]) groupCounts[unspecifiedKey] = [];
+                groupCounts[unspecifiedKey].push(u);
+            } else {
+                const standardMatch = STANDARD_DENOMINATIONS.find(sd => sd.toLowerCase() === denom.toLowerCase());
+                const key = standardMatch || denom;
+                if (!groupCounts[key]) {
+                    groupCounts[key] = [];
+                }
+                groupCounts[key].push(u);
+            }
+        });
+
+        const groups = Object.entries(groupCounts)
+            .map(([name, members]) => ({
+                name,
+                count: members.length,
+                rate: total > 0 ? Math.round((members.length / total) * 100) : 0,
+                members
+            }))
+            .sort((a, b) => {
+                if (a.name === 'Form Not Filled') return -1;
+                if (b.name === 'Form Not Filled') return 1;
+                return b.count - a.count;
+            });
+
+        return {
+            total,
+            filled,
+            missing,
+            rate,
+            groups
+        };
+    }, [users]);
 
     const locationStats = useMemo(() => {
         const counts = users.reduce<Record<string, number>>((acc, user) => {
@@ -1169,6 +1246,247 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         reportData.websiteChanges.slice(0, 150).forEach(change => addBodyLine(`${new Date(change.date).toLocaleString()} • ${change.type} • ${change.detail}`));
 
         pdf.save(`COT-Monthly-Admin-Report-${month}.pdf`);
+    };
+
+    const handleDownloadCategoryReportPdf = (categoryName: string, categoryMembers: User[]) => {
+        setIsLoading(true);
+        try {
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const margin = 14;
+            const contentWidth = pageWidth - margin * 2;
+            
+            // Header Banner
+            pdf.setFillColor(26, 27, 75); // Dark sapphire blue
+            pdf.rect(0, 0, pageWidth, 38, 'F');
+            pdf.setFillColor(212, 165, 71); // Gold
+            pdf.rect(0, 35, pageWidth, 3, 'F');
+            
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(16);
+            pdf.text('CITY OF TRUTH MINISTRIES', margin, 15);
+            
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(10);
+            pdf.setTextColor(212, 165, 71);
+            pdf.text('MEMBER REGISTRATION & DIRECTORY REPORT', margin, 21);
+            
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFontSize(8);
+            pdf.text(`Generated on: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, margin, 28);
+            
+            // Analytics Info Box
+            let y = 50;
+            pdf.setFillColor(248, 250, 252);
+            pdf.roundedRect(margin, y, contentWidth, 24, 3, 3, 'F');
+            pdf.setDrawColor(226, 232, 240);
+            pdf.roundedRect(margin, y, contentWidth, 24, 3, 3, 'D');
+            
+            pdf.setTextColor(71, 85, 105);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(9);
+            pdf.text('REPORT SUMMARY', margin + 6, y + 6);
+            
+            pdf.setTextColor(15, 23, 42);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(9);
+            pdf.text(`Category / Group:`, margin + 6, y + 13);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(categoryName, margin + 40, y + 13);
+            
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(`Total Category Members:`, margin + 6, y + 19);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(`${categoryMembers.length} member(s)`, margin + 40, y + 19);
+            
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(`Proportion of Ministry:`, margin + 95, y + 13);
+            pdf.setFont('helvetica', 'bold');
+            const pct = users.length > 0 ? Math.round((categoryMembers.length / users.length) * 100) : 0;
+            pdf.text(`${pct}% (${categoryMembers.length} out of ${users.length} total members)`, margin + 135, y + 13);
+            
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(`Status:`, margin + 95, y + 19);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(categoryName === 'Form Not Filled' ? 'Form Pending' : 'Forms Completed', margin + 135, y + 19);
+            
+            y += 32;
+            
+            // Table Header
+            const headers = ['S.No', 'Member ID', 'Full Name', 'Location', 'Phone', 'Role'];
+            const colWidths = [12, 28, 48, 36, 36, 22]; // Sums to 182
+            
+            const drawTableHeader = (startY: number) => {
+                pdf.setFillColor(26, 27, 75);
+                pdf.rect(margin, startY, contentWidth, 8, 'F');
+                pdf.setTextColor(255, 255, 255);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(8);
+                
+                let curX = margin + 2;
+                headers.forEach((h, idx) => {
+                    pdf.text(h, curX, startY + 5.5);
+                    curX += colWidths[idx];
+                });
+            };
+            
+            drawTableHeader(y);
+            y += 8;
+            
+            // Table Rows
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(8.5);
+            
+            categoryMembers.forEach((m, idx) => {
+                // Check page height limit
+                if (y + 9 > pageHeight - 20) {
+                    // Draw Footer
+                    pdf.setFont('helvetica', 'italic');
+                    pdf.setFontSize(7);
+                    pdf.setTextColor(148, 163, 184);
+                    pdf.text('City of Truth Ministries - Confidential Administrative Report', margin, pageHeight - 10);
+                    pdf.text(`Page ${pdf.internal.pages.length - 1}`, pageWidth - margin - 10, pageHeight - 10);
+                    
+                    pdf.addPage();
+                    y = 20;
+                    drawTableHeader(y);
+                    y += 8;
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(8.5);
+                }
+                
+                // Zebra stripes
+                if (idx % 2 === 0) {
+                    pdf.setFillColor(248, 250, 252);
+                    pdf.rect(margin, y, contentWidth, 8, 'F');
+                } else {
+                    pdf.setFillColor(255, 255, 255);
+                    pdf.rect(margin, y, contentWidth, 8, 'F');
+                }
+                
+                pdf.setDrawColor(241, 245, 249);
+                pdf.line(margin, y + 8, margin + contentWidth, y + 8);
+                
+                pdf.setTextColor(15, 23, 42);
+                let curX = margin + 2;
+                
+                // Col 1: S.No
+                pdf.text(`${idx + 1}`, curX, y + 5.5);
+                curX += colWidths[0];
+                
+                // Col 2: Member ID
+                pdf.setFont('courier', 'bold');
+                pdf.setFontSize(8);
+                pdf.text(m.id || 'N/A', curX, y + 5.5);
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(8.5);
+                curX += colWidths[1];
+                
+                // Col 3: Full Name
+                pdf.setFont('helvetica', 'bold');
+                pdf.text(m.name || 'N/A', curX, y + 5.5);
+                pdf.setFont('helvetica', 'normal');
+                curX += colWidths[2];
+                
+                // Col 4: Location
+                pdf.text(m.location || 'N/A', curX, y + 5.5);
+                curX += colWidths[3];
+                
+                // Col 5: Phone
+                pdf.text(m.phone || 'N/A', curX, y + 5.5);
+                curX += colWidths[4];
+                
+                // Col 6: Role
+                pdf.text(m.role || 'Member', curX, y + 5.5);
+                
+                y += 8;
+            });
+            
+            // Draw last page footer
+            pdf.setFont('helvetica', 'italic');
+            pdf.setFontSize(7);
+            pdf.setTextColor(148, 163, 184);
+            pdf.text('City of Truth Ministries - Confidential Administrative Report', margin, pageHeight - 10);
+            pdf.text(`Page ${pdf.internal.pages.length - 1}`, pageWidth - margin - 10, pageHeight - 10);
+            
+            // Signature Block
+            if (y + 25 > pageHeight - 20) {
+                pdf.addPage();
+                y = 30;
+            } else {
+                y += 10;
+            }
+            
+            pdf.setDrawColor(212, 165, 71);
+            pdf.line(margin, y, margin + 50, y);
+            pdf.line(pageWidth - margin - 50, y, pageWidth - margin, y);
+            
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(7.5);
+            pdf.setTextColor(71, 85, 105);
+            pdf.text('PREPARED BY (ADMINISTRATOR)', margin, y + 4.5);
+            pdf.text('APPROVED BY (PASTOR / BOARD)', pageWidth - margin - 50, y + 4.5);
+            
+            pdf.setFont('helvetica', 'normal');
+            pdf.text('City of Truth Records Dept.', margin, y + 8.5);
+            pdf.text('City of Truth Ministries', pageWidth - margin - 50, y + 8.5);
+            
+            pdf.save(`Ministry_Report_${categoryName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.pdf`);
+        } catch (error) {
+            console.error('Failed to generate report PDF:', error);
+            alert('An error occurred while generating the PDF report. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleBroadcastSubmit = async (e: React.FormEvent, categoryName: string, categoryMembers: User[]) => {
+        e.preventDefault();
+        if (!broadcastSubject.trim()) {
+            alert('Please enter a message subject.');
+            return;
+        }
+        if (!broadcastMessage.trim()) {
+            alert('Please enter your message.');
+            return;
+        }
+        if (categoryMembers.length === 0) {
+            alert('No members in this category to broadcast to.');
+            return;
+        }
+
+        setIsBroadcasting(true);
+        setBroadcastSuccessList([]);
+
+        try {
+            for (let i = 0; i < categoryMembers.length; i++) {
+                const member = categoryMembers[i];
+                await new Promise(resolve => setTimeout(resolve, Math.max(100, Math.min(600, 3000 / categoryMembers.length))));
+                setBroadcastSuccessList(prev => [...prev, member.name]);
+            }
+
+            const logEntry = {
+                id: `BCAST-${Math.floor(1000 + Math.random() * 9000)}`,
+                target: categoryName,
+                count: categoryMembers.length,
+                date: new Date().toLocaleString(),
+                subject: broadcastSubject,
+                status: 'Sent' as const
+            };
+
+            setBroadcastLog(prev => [logEntry, ...prev]);
+            alert(`Successfully broadcasted message to all ${categoryMembers.length} member(s) in category: "${categoryName}"!`);
+            
+            setBroadcastSubject('');
+            setBroadcastMessage('');
+        } catch (error) {
+            console.error('Failed to send broadcast:', error);
+            alert('Failed to send broadcast.');
+        } finally {
+            setIsBroadcasting(false);
+        }
     };
 
     const handleRollRandomCotId = () => {
@@ -1858,10 +2176,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     };
 
     const handleDownloadMemberFormPdf = async (member: User) => {
-        if (member.status !== 'Active') {
-            alert('Member Form PDF is available only for approved users.');
-            return;
-        }
         setDownloadingMemberFormPdfUserId(member.id);
         try {
             const profile = member.communityProfile || {};
@@ -4005,6 +4319,363 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     ))}
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'member-forms' && (
+                    <div className="space-y-6">
+                        {/* Statistics Grid */}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 animate-fade-in">
+                            {[
+                                { 
+                                    label: 'Total Registered Members', 
+                                    value: memberFormStats.total, 
+                                    icon: Users, 
+                                    color: 'from-blue-600 to-indigo-700', 
+                                    bg: 'bg-blue-50 text-blue-600',
+                                    detail: 'All registered database users'
+                                },
+                                { 
+                                    label: 'Filled Member Forms', 
+                                    value: memberFormStats.filled, 
+                                    icon: CheckCircle, 
+                                    color: 'from-emerald-500 to-teal-600', 
+                                    bg: 'bg-emerald-50 text-emerald-600',
+                                    detail: 'Completed community profiles'
+                                },
+                                { 
+                                    label: 'Form Completion Rate', 
+                                    value: `${memberFormStats.rate}%`, 
+                                    icon: Award, 
+                                    color: 'from-amber-500 to-orange-600', 
+                                    bg: 'bg-amber-50 text-amber-600',
+                                    detail: 'Proportion of completed profiles'
+                                },
+                                { 
+                                    label: 'Missing Member Forms', 
+                                    value: memberFormStats.missing, 
+                                    icon: Clock, 
+                                    color: 'from-red-500 to-rose-600', 
+                                    bg: 'bg-red-50 text-red-600',
+                                    detail: 'Pending profile form completion'
+                                },
+                            ].map((stat, i) => (
+                                <motion.div
+                                    key={stat.label}
+                                    initial={{ opacity: 0, y: 15 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: i * 0.08 }}
+                                    className="bg-white p-4 md:p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all relative overflow-hidden"
+                                >
+                                    <div className="flex items-center justify-between mb-2 md:mb-4 relative z-10">
+                                        <div className={`w-10 h-10 md:w-12 md:h-12 ${stat.bg} rounded-2xl flex items-center justify-center`}>
+                                            <stat.icon size={20} />
+                                        </div>
+                                        <div className={`w-2.5 h-2.5 rounded-full bg-gradient-to-r ${stat.color}`}></div>
+                                    </div>
+                                    <div className="text-2xl md:text-3xl font-black text-brand-950 mb-1 relative z-10">{stat.value}</div>
+                                    <div className="text-xs md:text-sm text-slate-700 font-bold relative z-10">{stat.label}</div>
+                                    <div className="text-[10px] text-slate-400 mt-1 relative z-10">{stat.detail}</div>
+                                    <div className="absolute right-0 bottom-0 translate-x-3 translate-y-3 opacity-[0.03] text-brand-950">
+                                        <stat.icon size={90} />
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+
+                        {/* Split-Screen Layout */}
+                        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                            
+                            {/* Left Side: Denomination Category List */}
+                            <div className="xl:col-span-1 space-y-4">
+                                <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
+                                    <h4 className="text-sm font-black text-brand-950 mb-1 uppercase tracking-wider">Denomination Categories</h4>
+                                    <p className="text-xs text-slate-500 mb-4">Click a category below to see detailed member lists, stats, and download reports.</p>
+                                    
+                                    <div className="space-y-3">
+                                        {memberFormStats.groups.map(group => {
+                                            const isActive = selectedDenominationCategory === group.name;
+                                            const isNotFilled = group.name === 'Form Not Filled';
+                                            return (
+                                                <button
+                                                    key={group.name}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedDenominationCategory(group.name);
+                                                        setBroadcastSubject('');
+                                                        setBroadcastMessage('');
+                                                        setBroadcastSuccessList([]);
+                                                    }}
+                                                    className={`w-full text-left p-4 rounded-2xl border transition-all flex flex-col gap-2 relative overflow-hidden ${
+                                                        isActive 
+                                                            ? 'border-brand-500 bg-brand-50/40 shadow-sm ring-1 ring-brand-500' 
+                                                            : 'border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50/50'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <span className={`text-xs font-black uppercase tracking-wide ${
+                                                            isActive ? 'text-brand-900' : isNotFilled ? 'text-amber-800' : 'text-slate-800'
+                                                        }`}>
+                                                            {group.name}
+                                                        </span>
+                                                        <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${
+                                                            isActive
+                                                                ? 'bg-brand-100 text-brand-850 border-brand-200'
+                                                                : isNotFilled
+                                                                    ? 'bg-amber-50 text-amber-850 border-amber-100'
+                                                                    : 'bg-slate-50 text-slate-700 border-slate-200'
+                                                        }`}>
+                                                            {group.count} member(s)
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    {/* Progress bar showing proportion out of total members */}
+                                                    <div className="space-y-1">
+                                                        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                                            <div 
+                                                                className={`h-full rounded-full transition-all duration-500 ${
+                                                                    isNotFilled ? 'bg-amber-500' : 'bg-brand-600'
+                                                                }`}
+                                                                style={{ width: `${group.rate}%` }}
+                                                            ></div>
+                                                        </div>
+                                                        <div className="flex items-center justify-between text-[9px] font-bold text-slate-400">
+                                                            <span>{group.count} / {memberFormStats.total} members</span>
+                                                            <span>{group.rate}%</span>
+                                                        </div>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right Side: Category Detailed View & Messaging Hub */}
+                            <div className="xl:col-span-2 space-y-6">
+                                {(() => {
+                                    const activeGroup = memberFormStats.groups.find(g => g.name === selectedDenominationCategory) || { name: selectedDenominationCategory, count: 0, rate: 0, members: [] };
+                                    const isNotFilled = activeGroup.name === 'Form Not Filled';
+                                    
+                                    return (
+                                        <>
+                                            {/* Summary & Download PDF Banner */}
+                                            <div className="bg-[#1a1b4b] rounded-3xl border border-[#d4a547]/30 shadow-lg overflow-hidden relative">
+                                                <div className="p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative z-10">
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#d4a547]">Category Analysis</span>
+                                                            <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider border ${
+                                                                isNotFilled ? 'bg-amber-950/80 text-amber-400 border-amber-500/30' : 'bg-[#0f766e]/30 text-teal-400 border-teal-500/30'
+                                                            }`}>
+                                                                {isNotFilled ? 'Form Pending' : 'Forms Completed'}
+                                                            </span>
+                                                        </div>
+                                                        <h3 className="text-xl md:text-2xl font-black text-white">{activeGroup.name}</h3>
+                                                        <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+                                                            {isNotFilled 
+                                                                ? `There are ${activeGroup.count} registered member(s) who have NOT completed their profile registration forms yet (representing ${activeGroup.rate}% of the total ${memberFormStats.total} members).`
+                                                                : `There are ${activeGroup.count} member(s) who belong to the '${activeGroup.name}' denomination (representing ${activeGroup.rate}% of the total ${memberFormStats.total} members in the ministry database).`
+                                                            }
+                                                        </p>
+                                                    </div>
+                                                    
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDownloadCategoryReportPdf(activeGroup.name, activeGroup.members)}
+                                                        disabled={activeGroup.count === 0}
+                                                        className="px-5 py-3 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black uppercase tracking-wider transition-colors shadow-lg flex items-center gap-2 border border-amber-500 shrink-0 disabled:opacity-50 disabled:pointer-events-none"
+                                                    >
+                                                        <FileText size={16} />
+                                                        Download PDF Report
+                                                    </button>
+                                                </div>
+                                                <div className="absolute right-0 bottom-0 translate-x-6 translate-y-6 opacity-5 text-white">
+                                                    <FileText size={180} />
+                                                </div>
+                                                <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-500 via-[#d4a547] to-amber-600"></div>
+                                            </div>
+
+                                            {/* Ministry Broadcast Composer */}
+                                            {activeGroup.count > 0 && (
+                                                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-4">
+                                                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-8 h-8 rounded-xl bg-brand-50 flex items-center justify-center text-brand-600">
+                                                                <MessageSquare size={16} />
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="text-sm font-black text-brand-950 uppercase tracking-wider">Announcement Broadcast Hub</h4>
+                                                                <p className="text-[10px] text-slate-400">Target announcements dynamically by group</p>
+                                                            </div>
+                                                        </div>
+                                                        <span className="px-3 py-1 rounded-full bg-brand-50 border border-brand-100 text-[10px] font-black text-brand-850">
+                                                            Sends to {activeGroup.count} member(s)
+                                                        </span>
+                                                    </div>
+
+                                                    <form onSubmit={(e) => handleBroadcastSubmit(e, activeGroup.name, activeGroup.members)} className="space-y-4">
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            <div className="space-y-1.5">
+                                                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Delivery Channel</label>
+                                                                <select
+                                                                    value={broadcastType}
+                                                                    onChange={(e) => setBroadcastType(e.target.value as any)}
+                                                                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 text-xs font-semibold"
+                                                                >
+                                                                    <option value="Email">📧 Email Announcement</option>
+                                                                    <option value="SMS">💬 SMS Broadcast</option>
+                                                                    <option value="Notification">🔔 App Push Notification</option>
+                                                                </select>
+                                                            </div>
+                                                            <div className="space-y-1.5">
+                                                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Message Subject</label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={broadcastSubject}
+                                                                    onChange={(e) => setBroadcastSubject(e.target.value)}
+                                                                    placeholder="e.g. Announcement to members"
+                                                                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 text-xs font-semibold"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="space-y-1.5">
+                                                            <div className="flex justify-between items-center">
+                                                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Message Body</label>
+                                                                {isNotFilled && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setBroadcastSubject('URGENT: Complete Your Member Form - City of Truth Ministries');
+                                                                            setBroadcastMessage('Dear Brother/Sister, Baruch Hashem!\n\nThis is a warm reminder from the City of Truth Ministries Records Department.\n\nPlease log in to your dashboard at http://city-of-truth-ministries.vercel.app/ and complete your Member Form under your profile settings to finalize your record and receive your physical/digital COT ID Card.\n\nThank you and Shalom!\n\nCity of Truth Records Dept.');
+                                                                        }}
+                                                                        className="text-[9px] font-black text-brand-600 hover:text-brand-800 uppercase tracking-wider"
+                                                                    >
+                                                                        ✨ Load Reminder Template
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                            <textarea
+                                                                value={broadcastMessage}
+                                                                onChange={(e) => setBroadcastMessage(e.target.value)}
+                                                                rows={4}
+                                                                placeholder="Type your message here..."
+                                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 text-xs font-semibold resize-none"
+                                                            />
+                                                        </div>
+
+                                                        {isBroadcasting && (
+                                                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
+                                                                <div className="flex items-center justify-between text-[10px] font-bold text-slate-600">
+                                                                    <span className="flex items-center gap-1.5 animate-pulse">
+                                                                        ⚡ Dispatching message queue...
+                                                                    </span>
+                                                                    <span>{broadcastSuccessList.length} / {activeGroup.count} sent</span>
+                                                                </div>
+                                                                <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                                                                    <div 
+                                                                        className="h-full bg-gradient-to-r from-brand-500 to-indigo-600 rounded-full transition-all duration-300"
+                                                                        style={{ width: `${Math.round((broadcastSuccessList.length / activeGroup.count) * 100)}%` }}
+                                                                    ></div>
+                                                                </div>
+                                                                <div className="text-[9px] text-slate-400 font-bold max-h-24 overflow-y-auto space-y-1">
+                                                                    {broadcastSuccessList.map((name, idx) => (
+                                                                        <div key={idx} className="flex items-center gap-1 text-emerald-600">
+                                                                            <Check size={10} /> Sent successfully to: {name}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        <button
+                                                            type="submit"
+                                                            disabled={isBroadcasting || !broadcastSubject.trim() || !broadcastMessage.trim()}
+                                                            className="w-full py-3 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white font-black text-xs uppercase tracking-wider transition-colors disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+                                                        >
+                                                            {isBroadcasting ? (
+                                                                <>🚀 Broadcasting messages...</>
+                                                            ) : (
+                                                                <>
+                                                                    <Send size={14} />
+                                                                    Send Targeted Broadcast ({activeGroup.count} members)
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            )}
+
+                                            {/* Category Member List Directory Grid */}
+                                            <div className="space-y-4">
+                                                <h4 className="text-sm font-black text-brand-950 uppercase tracking-wider">Category Member Directory ({activeGroup.count})</h4>
+                                                
+                                                {activeGroup.count === 0 ? (
+                                                    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-12 text-center text-slate-400 space-y-3">
+                                                        <Users size={40} className="mx-auto text-slate-300" />
+                                                        <p className="text-xs font-semibold">No members match this denomination category.</p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        {activeGroup.members.map(user => (
+                                                            <div key={user.id} className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex items-center gap-4 relative overflow-hidden group">
+                                                                {/* Photo */}
+                                                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-50 to-brand-100 flex items-center justify-center shrink-0 overflow-hidden border border-slate-100 relative shadow-sm">
+                                                                    {user.photo ? (
+                                                                        <img src={user.photo} alt={user.name} className="w-full h-full object-cover" />
+                                                                    ) : (
+                                                                        <span className="text-xl font-black text-brand-600">{user.name.charAt(0)}</span>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Profile brief */}
+                                                                <div className="flex-1 min-w-0 space-y-1">
+                                                                    <h5 className="font-black text-brand-950 text-xs truncate uppercase tracking-wider">{user.name}</h5>
+                                                                    <p className="text-[10px] text-slate-500 font-mono">{user.id}</p>
+                                                                    <div className="flex flex-wrap items-center gap-1.5">
+                                                                        <span className="text-[9px] px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200 text-slate-600 font-bold">
+                                                                            {user.location || 'Unknown'}
+                                                                        </span>
+                                                                        <span className="text-[9px] px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200 text-slate-600 font-bold">
+                                                                            {user.role}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Action overlay / Quick buttons */}
+                                                                <div className="flex flex-col gap-1.5 shrink-0 relative z-10">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setViewingDetailsUser(user)}
+                                                                        className="p-2 rounded-xl bg-slate-50 hover:bg-brand-50 hover:text-brand-700 text-slate-500 border border-slate-150 transition-colors"
+                                                                        title="View Details"
+                                                                    >
+                                                                        <Eye size={14} />
+                                                                    </button>
+                                                                    {user.communityProfile && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleDownloadMemberFormPdf(user)}
+                                                                            disabled={downloadingMemberFormPdfUserId === user.id}
+                                                                            className="p-2 rounded-xl bg-slate-50 hover:bg-amber-50 hover:text-amber-700 text-slate-500 border border-slate-150 transition-colors disabled:opacity-50"
+                                                                            title="Download Member Form PDF"
+                                                                        >
+                                                                            <FileText size={14} />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </>
+                                    );
+                                })()}
+                            </div>
+
                         </div>
                     </div>
                 )}
