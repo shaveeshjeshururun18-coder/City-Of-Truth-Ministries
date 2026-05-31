@@ -1155,7 +1155,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     ))}
 
                     {/* Add Profile button */}
-                    <button onClick={() => setShowFamilyModal(true)} title="Add Family Member"
+                    <button onClick={handleGoToLogin} title="Add Family Member — Login with their account"
                         className="shrink-0 w-10 h-10 rounded-full border-2 border-dashed border-slate-300 bg-white hover:border-brand-400 hover:bg-brand-50 flex items-center justify-center transition-all text-slate-400 hover:text-brand-500">
                         <PlusCircle size={20} />
                     </button>
@@ -1207,7 +1207,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     <div className="bg-white rounded-[24px] shadow-md overflow-hidden">
                         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
                             <h3 className="font-bold text-slate-800 flex items-center gap-2"><Users size={16} className="text-brand-500" /> Family</h3>
-                            <button onClick={() => setShowFamilyModal(true)} className="text-xs font-bold text-brand-600 hover:text-brand-800 flex items-center gap-1">
+                            <button onClick={handleGoToLogin} className="text-xs font-bold text-brand-600 hover:text-brand-800 flex items-center gap-1">
                                 <PlusCircle size={14} /> Add
                             </button>
                         </div>
@@ -1331,7 +1331,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             <div className="md:hidden relative cursor-pointer" onClick={() => setShowCardPreview(true)}>
                                 <div className={`relative w-full flex justify-center origin-top ${!canAccessEntrustFeatures ? 'blur-[2px]' : ''}`}
                                     style={{ height: '220px', overflow: 'hidden' }}>
-                                    <div style={{ transform: 'scale(0.62)', transformOrigin: 'top center', position: 'absolute', top: 0 }}>
+                                    <div style={{ transform: 'scale(0.92)', transformOrigin: 'top center', position: 'absolute', top: 0 }}>
                                         <EntrustCard3D
                                             name={displayProfile.name}
                                             email={user.email}
@@ -1356,8 +1356,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                             {/* Real EntrustCard3D Preview (DESKTOP ONLY) */}
                             <div className="hidden md:block w-full cursor-pointer hover:scale-[1.01] transition-transform duration-300" onClick={() => setShowCardPreview(true)}>
-                                <div className="w-full flex justify-center origin-center relative">
-                                    <div className={!canAccessEntrustFeatures ? 'blur-[2px]' : ''}>
+                                <div className="w-full flex justify-center items-center py-6 md:py-10 lg:py-12 overflow-hidden relative">
+                                    <div className={`transform origin-center transition-all scale-100 md:scale-[1.12] lg:scale-[1.22] xl:scale-[1.35] ${!canAccessEntrustFeatures ? 'blur-[2px]' : ''}`}>
                                         <EntrustCard3D
                                             name={displayProfile.name}
                                             email={user.email}
@@ -1377,7 +1377,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         </div>
                                     )}
                                 </div>
-                                <p className="text-center text-slate-500 text-xs font-bold uppercase tracking-widest mt-3">✨ Click card to Expand / Download ✨</p>
+                                <p className="text-center text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">✨ Click card to Expand / Download ✨</p>
                             </div>
                         </div>
 
