@@ -99,7 +99,7 @@ const TAB_ITEMS: { id: 'users' | 'edit-page' | 'testimonials' | 'ministries' | '
     { id: 'id-cards', label: 'ID Cards', icon: QrCode },
     { id: 'cot-id-manager', label: 'COT ID Manager', icon: Dice6 },
     { id: 'reports', label: 'Monthly Reports', icon: FileText },
-    { id: 'home-layout', label: 'Home Layout', icon: GripVertical },
+    { id: 'home-layout', label: 'Pages & Sections', icon: GripVertical },
     { id: 'menu-editor', label: 'Menu Editor', icon: Filter },
     { id: 'admin-tabs', label: 'Admin Tabs', icon: Settings }
 ];
@@ -127,7 +127,7 @@ const TAMIL_NADU_DISTRICTS = [
 ];
 const MAX_SUGGESTED_COT_IDS = 200;
 const ADMIN_PASSWORD_OVERRIDE_KEY = 'cot_admin_password_override';
-const ADMIN_PASSWORD_CHANGE_PHRASE = 'king steve harrington';
+const ADMIN_PASSWORD_CHANGE_PHRASE = 'steveharrington';
 const SAFE_IMAGE_HOSTS = new Set([
     'firebasestorage.googleapis.com',
     'lh3.googleusercontent.com',
@@ -393,6 +393,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             return false;
         }
     });
+
+    const [sectionsInfo, setSectionsInfo] = useState<Record<string, { name: string; desc: string }>>(() => {
+        try {
+            const saved = localStorage.getItem('cot_sections_info');
+            if (saved) return JSON.parse(saved);
+        } catch {}
+        const initial: Record<string, { name: string; desc: string }> = {};
+        Object.entries(HOME_SECTIONS_INFO).forEach(([key, value]) => {
+            initial[key] = { name: value.name, desc: value.desc };
+        });
+        return initial;
+    });
+
+    const handleSaveSectionInfo = (sectionId: string, name: string, desc: string) => {
+        const next = { ...sectionsInfo, [sectionId]: { name, desc } };
+        setSectionsInfo(next);
+        try {
+            localStorage.setItem('cot_sections_info', JSON.stringify(next));
+        } catch {}
+    };
 
     React.useEffect(() => {
         if (activeTab === 'messages') {
@@ -5113,13 +5133,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <div className="flex items-center justify-between mb-10">
                                 <div>
                                     <h2 className="text-3xl font-serif font-black text-brand-950">Visual Layout Editor</h2>
-                                    <p className="text-slate-500 mt-2 text-sm font-medium">Reorder the home page "seamlessly" by dragging the cards below.</p>
+                                    <p className="text-slate-500 mt-2 text-sm font-medium">Reorder home page sections and customize section titles and descriptions dynamically.</p>
                                 </div>
                                 <div className="flex gap-3">
                                     <button 
                                         onClick={() => {
                                             if (window.confirm("Absolutely sure? This resets the home page for EVERYONE.")) {
                                                 onUpdateHomeSectionsOrder(['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'hebrewPages', 'pastorBaruch', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'verify']);
+                                                const initial: Record<string, { name: string; desc: string }> = {};
+                                                Object.entries(HOME_SECTIONS_INFO).forEach(([key, value]) => {
+                                                    initial[key] = { name: value.name, desc: value.desc };
+                                                });
+                                                setSectionsInfo(initial);
+                                                try {
+                                                    localStorage.removeItem('cot_sections_info');
+                                                } catch {}
                                             }
                                         }}
                                         className="px-6 py-2.5 text-[10px] font-black uppercase tracking-[2px] text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-2xl transition-all border border-transparent hover:border-brand-100"
@@ -5132,7 +5160,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </div>
                             </div>
 
-                            <div className="space-y-3">
+                            <div className="space-y-4">
                                 {homeSectionsOrder.map((sectionId, idx) => {
                                     const info = HOME_SECTIONS_INFO[sectionId] || { name: sectionId, desc: 'Home component', icon: Globe, color: 'bg-brand-500' };
                                     const Icon = info.icon;
@@ -5156,42 +5184,71 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     return (
                                         <div
                                             key={sectionId}
-                                            className="bg-white p-5 rounded-[2rem] border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-6 group hover:border-brand-300 hover:shadow-lg transition-all relative overflow-hidden select-none"
+                                            className="bg-white p-5 md:p-6 rounded-[2rem] border border-slate-100 flex flex-col gap-5 group hover:border-brand-300 hover:shadow-lg transition-all relative overflow-hidden select-none"
                                         >
                                             <div className="absolute top-0 right-0 w-24 h-24 bg-brand-50/30 rounded-full -mr-12 -mt-12 transition-all group-hover:scale-150 pointer-events-none" />
 
-                                            <div className="flex items-center gap-5 flex-1 relative z-10">
-                                                <div className="text-brand-600 font-serif font-black text-lg select-none w-6 text-center shrink-0">
-                                                    {displayIndex}
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                                <div className="flex items-center gap-5 flex-1 relative z-10">
+                                                    <div className="text-brand-600 font-serif font-black text-lg select-none w-6 text-center shrink-0">
+                                                        {displayIndex}
+                                                    </div>
+                                                    <div className={`w-14 h-14 ${info.color} rounded-2xl flex items-center justify-center text-white shadow-lg`}>
+                                                        <Icon size={24} strokeWidth={2.5} />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <h3 className="font-black text-brand-950 text-base md:text-lg leading-tight uppercase tracking-tight">
+                                                            {sectionsInfo[sectionId]?.name || info.name}
+                                                        </h3>
+                                                        <p className="text-slate-400 text-xs font-bold truncate pr-4 mt-0.5">
+                                                            {sectionsInfo[sectionId]?.desc || info.desc}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div className={`w-14 h-14 ${info.color} rounded-2xl flex items-center justify-center text-white shadow-lg`}>
-                                                    <Icon size={24} strokeWidth={2.5} />
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <h3 className="font-black text-brand-950 text-lg leading-tight uppercase tracking-tight">{info.name}</h3>
-                                                    <p className="text-slate-400 text-xs font-bold truncate pr-4 mt-0.5">{info.desc}</p>
+
+                                                <div className="flex items-center gap-2 relative z-10 justify-end shrink-0">
+                                                    <button
+                                                        type="button"
+                                                        onClick={moveUp}
+                                                        disabled={isFirst}
+                                                        className="w-10 h-10 rounded-2xl border-2 border-slate-200 bg-white text-slate-600 flex items-center justify-center hover:bg-brand-600 hover:text-white hover:border-brand-600 disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-90 shadow-sm"
+                                                        aria-label="Move up"
+                                                    >
+                                                        <ChevronUp size={18} />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={moveDown}
+                                                        disabled={isLast}
+                                                        className="w-10 h-10 rounded-2xl border-2 border-slate-200 bg-white text-slate-600 flex items-center justify-center hover:bg-brand-600 hover:text-white hover:border-brand-600 disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-90 shadow-sm"
+                                                        aria-label="Move down"
+                                                    >
+                                                        <ChevronDown size={18} />
+                                                    </button>
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-2 relative z-10 justify-end shrink-0">
-                                                <button
-                                                    type="button"
-                                                    onClick={moveUp}
-                                                    disabled={isFirst}
-                                                    className="w-10 h-10 rounded-2xl border-2 border-slate-200 bg-white text-slate-600 flex items-center justify-center hover:bg-brand-600 hover:text-white hover:border-brand-600 disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-90 shadow-sm"
-                                                    aria-label="Move up"
-                                                >
-                                                    <ChevronUp size={18} />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={moveDown}
-                                                    disabled={isLast}
-                                                    className="w-10 h-10 rounded-2xl border-2 border-slate-200 bg-white text-slate-600 flex items-center justify-center hover:bg-brand-600 hover:text-white hover:border-brand-600 disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-90 shadow-sm"
-                                                    aria-label="Move down"
-                                                >
-                                                    <ChevronDown size={18} />
-                                                </button>
+                                            <div className="bg-slate-50/50 p-4 rounded-[1.5rem] border border-slate-100/80 relative z-10 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="text-[10px] font-black uppercase tracking-[1.5px] text-slate-400">Section Title</label>
+                                                    <input
+                                                        type="text"
+                                                        value={sectionsInfo[sectionId]?.name || ''}
+                                                        onChange={(e) => handleSaveSectionInfo(sectionId, e.target.value, sectionsInfo[sectionId]?.desc || '')}
+                                                        placeholder="Customize section title..."
+                                                        className="w-full bg-white px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-brand-500 mt-1.5 transition-colors"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] font-black uppercase tracking-[1.5px] text-slate-400">Section Subtitle / Description</label>
+                                                    <input
+                                                        type="text"
+                                                        value={sectionsInfo[sectionId]?.desc || ''}
+                                                        onChange={(e) => handleSaveSectionInfo(sectionId, sectionsInfo[sectionId]?.name || '', e.target.value)}
+                                                        placeholder="Customize section description..."
+                                                        className="w-full bg-white px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-brand-500 mt-1.5 transition-colors"
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     );

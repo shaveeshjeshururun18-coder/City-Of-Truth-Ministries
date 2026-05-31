@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type, Volume2, Loader2, Info, Fingerprint, FileImage, Download, Printer } from 'lucide-react';
+import { Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type, Volume2, Loader2, Info, Fingerprint, FileImage, Download, Printer, Globe } from 'lucide-react';
 import { analyzeHebrewWord } from '../services/openRouterService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HebrewYearDropdown } from './HebrewYearDropdown';
@@ -14,6 +14,7 @@ import { User, ViewState } from '../types';
 import { getCalendarData5786 } from './CalendarLogic';
 import { audioService } from '../services/audioService';
 import { HebrewGrammar3D } from './HebrewGrammar3D';
+import { IsraelPage } from './IsraelPage';
 
 const captureNodeToJpeg = async (
     sourceNode: HTMLElement,
@@ -110,7 +111,8 @@ const BIBLICAL_FESTIVALS = [
 ];
 
 const HEBREW_DAYS = [
-    { name: 'Yom Sheni', english: 'Monday', hebrew: 'יוֹם שֵׁנִי' },
+    { name: 'Yom Rishon', english: 'Sunday', hebrew: 'יוֹם רִאשׁוֹன்', tamil: 'யோம் ரிஷோன் (ஞாயிறு)' },
+    { name: 'Yom Sheni', english: 'Monday', hebrew: 'יוֹם שֵׁנִי', tamil: 'யோம் ஷேனி (திங்கள்)' },
     { name: 'Yom Shlishi', english: 'Tuesday', hebrew: 'יוֹם שְׁלִישִׁי' },
     { name: 'Yom Revi\'i', english: 'Wednesday', hebrew: 'יוֹם רְבִיעִי' },
     { name: 'Yom Chamishi', english: 'Thursday', hebrew: 'יוֹם חֲמִישִׁי' },
@@ -2171,16 +2173,17 @@ const HebrewLettersAudioLab: React.FC = () => {
 };
 
 interface HebrewResourcesProps {
-    initialTab?: 'numbers' | 'calendar' | 'clock' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio' | 'grammar';
+    initialTab?: 'numbers' | 'calendar' | 'clock' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio' | 'grammar' | 'israel';
     mode?: 'all' | 'content' | 'tools';
     currentUser?: User;
     currentView?: ViewState;
     setView?: (view: ViewState) => void;
 }
 
-type HebrewResourceTab = 'numbers' | 'calendar' | 'clock' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio' | 'grammar';
+type HebrewResourceTab = 'numbers' | 'calendar' | 'clock' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio' | 'grammar' | 'israel';
 
 const HEBREW_RESOURCE_TABS: ReadonlyArray<{ id: HebrewResourceTab; label: string; icon: React.ReactNode }> = [
+    { id: 'israel', label: 'Eretz Israel', icon: <Globe size={16} /> },
     { id: 'festivals', label: 'Festivals', icon: <Flame size={16} /> },
     { id: 'calendar', label: 'Hebrew Calendar', icon: <CalendarIcon size={16} /> },
     { id: 'clock', label: 'Hebrew Clock', icon: <Clock size={16} /> },
@@ -2192,16 +2195,17 @@ const HEBREW_RESOURCE_TABS: ReadonlyArray<{ id: HebrewResourceTab; label: string
     { id: 'gematria', label: 'Gematria Value', icon: <Calculator size={16} /> },
 ];
 
-const CONTENT_TAB_IDS: HebrewResourceTab[] = ['festivals', 'calendar', 'clock', 'reference', 'grammar'];
+const CONTENT_TAB_IDS: HebrewResourceTab[] = ['israel', 'festivals', 'calendar', 'clock', 'reference', 'grammar'];
 const TOOLS_TAB_IDS: HebrewResourceTab[] = ['words', 'lettersaudio', 'numbers', 'gematria'];
 
 const viewToTabMap: Record<string, HebrewResourceTab> = {
-    [ViewState.ABOUT]: 'calendar',
+    [ViewState.ABOUT]: 'israel',
     [ViewState.HEBREW_CALENDAR]: 'calendar',
     [ViewState.HEBREW_CLOCK]: 'clock',
     [ViewState.HEBREW_FESTIVALS]: 'festivals',
     [ViewState.HEBREW_REFERENCE]: 'reference',
     [ViewState.HEBREW_GRAMMAR]: 'grammar',
+    [ViewState.HEBREW_ISRAEL]: 'israel',
     [ViewState.HEBREW_TOOLS]: 'words',
     [ViewState.HEBREW_WORDS]: 'words',
     [ViewState.HEBREW_LETTERS_AUDIO]: 'lettersaudio',
@@ -2210,6 +2214,7 @@ const viewToTabMap: Record<string, HebrewResourceTab> = {
 };
 
 const tabToViewMap: Record<HebrewResourceTab, ViewState> = {
+    israel: ViewState.HEBREW_ISRAEL,
     calendar: ViewState.HEBREW_CALENDAR,
     clock: ViewState.HEBREW_CLOCK,
     festivals: ViewState.HEBREW_FESTIVALS,
@@ -2279,6 +2284,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
                             transition={{ duration: 0.3 }}
                             className="w-full"
                         >
+                            {tab === 'israel' && <IsraelPage />}
                             {tab === 'festivals' && <FestivalsView />}
                             {tab === 'calendar' && <HebrewCalendarView currentUser={currentUser} />}
                             {tab === 'clock' && <HebrewClockView />}

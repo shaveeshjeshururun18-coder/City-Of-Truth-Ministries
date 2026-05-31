@@ -201,6 +201,7 @@ const isRecycleMessageAlive = (item: { autoDeleteAt?: string }) => {
 };
 
 const HEBREW_RESOURCE_SUBMENU: NavItem[] = [
+  { label: 'Eretz Israel', view: ViewState.HEBREW_ISRAEL },
   { label: 'Festivals & Holy Days', view: ViewState.HEBREW_FESTIVALS },
   { label: 'Biblical Calendar', view: ViewState.HEBREW_CALENDAR },
   { label: 'Hebrew Clock', view: ViewState.HEBREW_CLOCK },
@@ -283,11 +284,11 @@ const ensureHebrewNavItems = (items: NavItem[]): NavItem[] => {
 const DEFAULT_HOME_SECTIONS_ORDER = ['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'hebrewPages', 'pastorBaruch', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'verify'];
 
 const normalizeHomeSectionsOrder = (sections: string[]): string[] => {
+  // Preserve the INPUT order — only deduplicate and add genuinely missing sections
   const uniqueSections = Array.from(new Set(sections));
-  const knownSections = DEFAULT_HOME_SECTIONS_ORDER.filter(sectionId => uniqueSections.includes(sectionId));
-  const missingSections = DEFAULT_HOME_SECTIONS_ORDER.filter(sectionId => !knownSections.includes(sectionId));
-  const extraSections = uniqueSections.filter(sectionId => !DEFAULT_HOME_SECTIONS_ORDER.includes(sectionId));
-  return [...knownSections, ...missingSections, ...extraSections];
+  const validSections = uniqueSections.filter(s => DEFAULT_HOME_SECTIONS_ORDER.includes(s));
+  const missingSections = DEFAULT_HOME_SECTIONS_ORDER.filter(s => !validSections.includes(s));
+  return [...validSections, ...missingSections];
 };
 
 const TestimonialSection: React.FC<TestimonialSectionProps> = ({ currentUser }) => {
@@ -977,6 +978,7 @@ const App: React.FC = () => {
       case ViewState.ABOUT_VALPARAI: return "bg-slate-50 text-brand-950";
       case ViewState.MINISTRIES: return "bg-[#f0f9ff] text-sky-950";
       case ViewState.HEBREW: return "bg-black text-amber-500";
+      case ViewState.HEBREW_ISRAEL: return "bg-[#fffdf6] text-brand-950";
       case ViewState.HEBREW_TOOLS: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.HEBREW_WORDS: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.HEBREW_LETTERS_AUDIO: return "bg-[#fdfcf0] text-brand-950";
@@ -1844,7 +1846,7 @@ const App: React.FC = () => {
             </motion.div>
           )}
 
-          {[ViewState.ABOUT, ViewState.HEBREW_CALENDAR, ViewState.HEBREW_CLOCK, ViewState.HEBREW_FESTIVALS, ViewState.HEBREW_REFERENCE, ViewState.HEBREW_GRAMMAR].includes(currentView) && (
+          {[ViewState.ABOUT, ViewState.HEBREW_CALENDAR, ViewState.HEBREW_CLOCK, ViewState.HEBREW_FESTIVALS, ViewState.HEBREW_REFERENCE, ViewState.HEBREW_GRAMMAR, ViewState.HEBREW_ISRAEL].includes(currentView) && (
             <div key="hebrew-hub-content">
               <HebrewResources mode="content" currentUser={currentUser || undefined} currentView={currentView} setView={setCurrentView} />
             </div>
