@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mail, Church, User, Quote, Send, Sparkles, CheckCircle, ArrowRight } from 'lucide-react';
+import { X, Mail, Church, User, Quote, Send, Sparkles, CheckCircle, ArrowRight, MapPin } from 'lucide-react';
 import { Button } from './Button';
 import { User as UserType } from '../types';
 
@@ -48,10 +48,20 @@ export const CommunityProfileForm: React.FC<CommunityProfileFormProps> = ({ isOp
         'Other',
     ]), []);
 
-    const TOUR_STEPS: Array<{ id: 'denomination' | 'churchName' | 'role' | 'bio' | 'submit'; title: string; text: string }> = useMemo(() => ([
+    const DISTRICT_OPTIONS = useMemo(() => ([
+        'Ariyalur', 'Chengalpattu', 'Chennai', 'Coimbatore', 'Cuddalore', 'Dharmapuri', 'Dindigul',
+        'Erode', 'Kallakurichi', 'Kanchipuram', 'Kanyakumari', 'Karur', 'Krishnagiri', 'Madurai',
+        'Mayiladuthurai', 'Nagapattinam', 'Namakkal', 'Nilgiris', 'Other', 'Perambalur', 'Pudukkottai',
+        'Ramanathapuram', 'Ranipet', 'Salem', 'Sivaganga', 'Tenkasi', 'Thanjavur', 'Theni',
+        'Thoothukudi', 'Tiruchirappalli', 'Tirunelveli', 'Tirupattur', 'Tiruppur', 'Tiruvallur',
+        'Tiruvannamalai', 'Tiruvarur', 'Vellore', 'Viluppuram', 'Virudhunagar', 'Valparai'
+    ].sort()), []);
+
+    const TOUR_STEPS: Array<{ id: 'denomination' | 'churchName' | 'role' | 'district' | 'bio' | 'submit'; title: string; text: string }> = useMemo(() => ([
         { id: 'denomination', title: 'Denomination', text: 'Select your denomination from the full list.' },
         { id: 'churchName', title: 'Church Name', text: 'Enter your current church name clearly.' },
         { id: 'role', title: 'Role in Ministry', text: 'Choose your role from the dropdown options.' },
+        { id: 'district', title: 'District / Zone', text: 'Select your district or zone from the list.' },
         { id: 'bio', title: 'Testimony / Bio', text: 'Add a short testimony or ministry background.' },
         { id: 'submit', title: 'Submit Profile', text: 'Review details and submit your profile to save it.' },
     ]), []);
@@ -60,6 +70,7 @@ export const CommunityProfileForm: React.FC<CommunityProfileFormProps> = ({ isOp
         denomination: initialData?.denomination || '',
         churchName: initialData?.churchName || '',
         role: initialData?.role || '',
+        district: initialData?.district || '',
         bio: initialData?.bio || ''
     });
 
@@ -220,6 +231,29 @@ export const CommunityProfileForm: React.FC<CommunityProfileFormProps> = ({ isOp
                                                 <option>Worship Team</option>
                                                 <option>Regular Member</option>
                                                 <option>Seeker</option>
+                                            </select>
+                                            <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-[#d4a547]">
+                                                <ArrowRight size={18} className="rotate-90" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2 md:space-y-3">
+                                        <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#d4a547] ml-4">
+                                            <MapPin size={14} /> District / Zone
+                                        </label>
+                                        <div className="relative">
+                                            <select 
+                                                id="community-district"
+                                                required
+                                                value={formData.district}
+                                                onChange={e => setFormData({...formData, district: e.target.value})}
+                                                className={`w-full px-6 py-4 md:px-7 md:py-5 bg-white border-2 border-slate-100 rounded-2xl md:rounded-[2rem] outline-none focus:ring-4 focus:ring-[#d4a547]/10 focus:border-[#d4a547] transition-all text-sm font-bold shadow-sm appearance-none cursor-pointer ${isTourActive('district') ? 'ring-4 ring-indigo-200 border-indigo-400' : ''}`}
+                                            >
+                                                <option value="">Select your district or zone</option>
+                                                {DISTRICT_OPTIONS.map((option) => (
+                                                    <option key={option} value={option}>{option}</option>
+                                                ))}
                                             </select>
                                             <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-[#d4a547]">
                                                 <ArrowRight size={18} className="rotate-90" />

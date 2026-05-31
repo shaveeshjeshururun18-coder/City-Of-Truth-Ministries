@@ -71,6 +71,7 @@ export interface User {
     churchName?: string;
     role?: string;
     bio?: string;
+    district?: string;
   };
 }
 

@@ -708,12 +708,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     ['Denomination', formatValue(memberForm?.denomination)],
                     ['Church Name', formatValue(memberForm?.churchName)],
                     ['Role in Ministry', formatValue(memberForm?.role)],
+                    ['District / Zone', formatValue(memberForm?.district)],
                     ['Testimony / Bio', formatValue(memberForm?.bio, 'No testimony submitted yet.')],
                 ];
                 const textWidth = contentWidth - 20;
-                const bioLines = pdf.splitTextToSize(entries[3][1], textWidth);
+                const bioLines = pdf.splitTextToSize(entries[4][1], textWidth);
                 const dynamicBioHeight = Math.max(bioLines.length * 4.2, 12);
-                const cardHeight = 64 + dynamicBioHeight;
+                const cardHeight = 78 + dynamicBioHeight;
 
                 ensureSpace(cardHeight + 10);
 
@@ -755,6 +756,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 drawEntry(entries[1][0], entries[1][1]);
                 drawEntry(entries[2][0], entries[2][1]);
                 drawEntry(entries[3][0], entries[3][1]);
+                drawEntry(entries[4][0], entries[4][1]);
 
                 y += cardHeight + 7;
             };

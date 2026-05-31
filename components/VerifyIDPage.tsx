@@ -131,12 +131,19 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
             const html5Qrcode = new window.Html5Qrcode('qr-reader');
             scannerRef.current = html5Qrcode;
 
-            const detectTorchSupport = () => {
+            // Retry torch detection after camera fully initializes
+            const tryDetectAndEnableTorch = (attemptsLeft = 4) => {
                 const track = getActiveVideoTrack();
                 const capabilities = ((track as any)?.getCapabilities?.() as any) || {};
                 const supported = !!capabilities.torch;
-                setTorchSupported(supported);
-                return supported;
+                if (supported) {
+                    setTorchSupported(true);
+                    applyTorchToActiveTrack(true); // Auto-enable on start
+                } else if (attemptsLeft > 0) {
+                    setTimeout(() => tryDetectAndEnableTorch(attemptsLeft - 1), 600);
+                } else {
+                    setTorchSupported(false);
+                }
             };
 
             html5Qrcode.start(
@@ -155,8 +162,23 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
                 },
                 (_errorMessage: string) => {}
             ).then(() => {
-                const hasTorch = detectTorchSupport();
-                if (hasTorch) applyTorchToActiveTrack(true);
+                // Start torch detection after 800ms delay
+                setTimeout(() => tryDetectAndEnableTorch(), 800);
+
+                // Ambient light sensor — auto torch when dark
+                if ('AmbientLightSensor' in window) {
+                    try {
+                        const sensor = new (window as any).AmbientLightSensor();
+                        sensor.addEventListener('reading', () => {
+                            if (sensor.illuminance < 50) {
+                                applyTorchToActiveTrack(true);
+                            } else {
+                                applyTorchToActiveTrack(false);
+                            }
+                        });
+                        sensor.start();
+                    } catch (_e) { /* sensor not available */ }
+                }
             }).catch((err: any) => {
                 console.error('Scanner Error:', err);
                 setError('Could not access camera. Please allow camera permissions or upload a picture.');
@@ -406,7 +428,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
                                         </div>
                                     </div>
                                     {/* QR reader element with framed overlay */}
-                                    <div className={`relative rounded-2xl overflow-hidden bg-black aspect-square w-full mx-auto transition-all duration-300 ${scannerExpanded ? 'max-w-[280px]' : 'max-w-[170px]'}`}>
+                                    <div className={`relative rounded-2xl overflow-hidden bg-black aspect-square w-full mx-auto transition-all duration-300 ${scannerExpanded ? 'max-w-[280px]' : 'max-w-[140px]'}`}>
                                         <div id="qr-reader" className="absolute inset-0 w-full h-full" />
                                         {/* Corner brackets overlay */}
                                         <div className="absolute inset-0 pointer-events-none">
@@ -421,8 +443,36 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard }) => 
                                             />
                                         </div>
                                     </div>
+
+                                    {/* Torch button — large, prominent, always visible */}
+                                    <div className="flex items-center justify-center gap-3 mt-2">
+                                        <button
+                                            onClick={handleTorchToggle}
+                                            disabled={!torchSupported}
+                                            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg ${
+                                                torchOn
+                                                    ? 'bg-[#f0c040] text-[#1a0d00] shadow-[#f0c040]/50 scale-105'
+                                                    : torchSupported
+                                                        ? 'bg-white/10 border border-white/20 text-white hover:bg-white/20'
+                                                        : 'bg-white/5 border border-white/10 text-white/30 cursor-not-allowed'
+                                            }`}
+                                            title={torchSupported ? (torchOn ? 'Turn flashlight off' : 'Turn flashlight on') : 'Flashlight not supported on this device'}
+                                        >
+                                            {torchOn ? <Flashlight size={16} /> : <FlashlightOff size={16} />}
+                                            {torchOn ? 'Flash ON' : torchSupported ? 'Flash OFF' : 'No Flash'}
+                                        </button>
+                                        <button
+                                            onClick={handleScannerSizeToggle}
+                                            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/10 border border-white/20 text-white/70 hover:bg-white/20 hover:text-white font-black text-xs uppercase tracking-widest transition-all"
+                                            title={scannerExpanded ? 'Minimize scanner' : 'Maximize scanner'}
+                                        >
+                                            {scannerExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                                            {scannerExpanded ? 'Minimize' : 'Maximize'}
+                                        </button>
+                                    </div>
+
                                     <p className="text-center text-white/60 text-xs font-bold uppercase tracking-wider">
-                                        {scannerExpanded ? 'Align QR code within the frame' : 'Scanner minimized — maximize to expand view'}
+                                        {scannerExpanded ? 'Align QR code within the frame' : 'Minimized — tap Maximize to expand'}
                                     </p>
                                 </div>
                             )}
