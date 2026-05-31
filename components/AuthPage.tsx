@@ -579,12 +579,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                             animate={{ opacity: 1, y: 0, scale: 1 }}
                                             exit={{ opacity: 0, y: 20, scale: 0.95 }}
                                             onClick={(e) => e.stopPropagation()}
-                                            className="max-w-3xl mx-auto bg-gradient-to-br from-brand-50 via-white to-brand-100 border-2 border-brand-100 rounded-[1.8rem] md:rounded-[2.2rem] p-5 sm:p-7 md:p-8 shadow-2xl relative overflow-hidden group"
+                                            className="max-w-3xl mx-auto bg-gradient-to-br from-brand-50 via-white to-brand-100 border-2 border-brand-100 rounded-[1.8rem] md:rounded-[2.2rem] p-5 sm:p-7 md:p-8 shadow-2xl relative group"
                                         >
-                                            <button type="button" onClick={() => { setPreviewUser(null); setPreviewProfileId(null); }} className="absolute top-4 right-4 md:top-5 md:right-5 w-9 h-9 rounded-full bg-white border border-brand-100 text-brand-500 hover:text-brand-700 shadow-sm flex items-center justify-center">
-                                                <X size={18} />
+                                            {/* X Close button — large tap target, always on top */}
+                                            <button
+                                                type="button"
+                                                onClick={() => { setPreviewUser(null); setPreviewProfileId(null); }}
+                                                className="absolute -top-4 -right-4 z-[200] w-11 h-11 rounded-full bg-white border-2 border-brand-200 text-brand-600 hover:text-white hover:bg-brand-600 hover:border-brand-600 shadow-lg flex items-center justify-center transition-all active:scale-90"
+                                                aria-label="Close preview"
+                                            >
+                                                <X size={20} />
                                             </button>
-                                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-brand-400/10 to-transparent opacity-50" />
+                                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-brand-400/10 to-transparent opacity-50 rounded-[1.8rem] md:rounded-[2.2rem] pointer-events-none" />
 
                                             <div className="relative z-10 rounded-2xl bg-white/90 border border-brand-100 p-4 md:p-6">
                                                 <div className="flex items-center gap-4">
