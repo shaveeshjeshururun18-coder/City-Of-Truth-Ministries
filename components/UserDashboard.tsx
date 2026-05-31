@@ -829,12 +829,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     };
 
     const handleExportMemberFormPDF = () => {
-        if (!canAccessEntrustFeatures) {
-            handleBlockedFeature();
+        const profile = user.communityProfile || {};
+        const hasFormSubmitted = !!(profile.denomination || profile.churchName || profile.role || profile.bio);
+        if (!hasFormSubmitted) {
+            alert('Please fill out the Member Form first to unlock this download.');
             return;
         }
         try {
-            const profile = user.communityProfile || {};
             const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
             const pageWidth = pdf.internal.pageSize.getWidth();
             const pageHeight = pdf.internal.pageSize.getHeight();
@@ -897,6 +898,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             drawField('Denomination', profile.denomination || '');
             drawField('Church Name', profile.churchName || '');
             drawField('Role in Ministry', profile.role || '');
+            drawField('District / Zone', profile.district || '');
             drawField('Testimony / Bio', profile.bio || '');
 
             pdf.save(`COT-MEMBER-FORM-${user.id}.pdf`);
