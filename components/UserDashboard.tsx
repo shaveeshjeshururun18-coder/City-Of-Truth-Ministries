@@ -1155,7 +1155,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     ))}
 
                     {/* Add Profile button */}
-                    <button onClick={handleGoToLogin} title="Add Family Member — Login with their account"
+                    <button onClick={handleGoToLogin} title="Add Family Member — Register or Login"
                         className="shrink-0 w-10 h-10 rounded-full border-2 border-dashed border-slate-300 bg-white hover:border-brand-400 hover:bg-brand-50 flex items-center justify-center transition-all text-slate-400 hover:text-brand-500">
                         <PlusCircle size={20} />
                     </button>
@@ -1539,24 +1539,24 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     )}
 
                     {/* Interest / Member Form (Mobile priority #2) */}
-                    <button id="dashboard-member-form-btn" onClick={canAccessEntrustFeatures ? () => setShowCommunityProfileForm(true) : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
-                        className={`rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] hover:brightness-110 border border-[#d4a547]/30' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
-                        <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center mb-3"><Users size={18} /></div>
+                    <button id="dashboard-member-form-btn" onClick={() => setShowCommunityProfileForm(true)}
+                        className="rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] hover:brightness-110 border border-[#d4a547]/30 cursor-pointer">
+                        <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center mb-3"><Users size={18} className="text-[#f0c040]" /></div>
                         <p className="font-bold text-sm leading-tight mb-1">Member Form Column</p>
-                        <p className={`${canAccessEntrustFeatures ? 'text-[#f8e7b0]' : 'text-slate-400'} text-[10px]`}>Professional themed profile form for User Book.</p>
-                        <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
-                            <Edit2 size={11} /> {canAccessEntrustFeatures ? 'Open Form' : 'Locked'}
+                        <p className="text-[#f8e7b0] text-[10px]">Professional themed profile form for User Book.</p>
+                        <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5 text-[#f0c040]">
+                            <Edit2 size={11} /> Open Form
                         </span>
                     </button>
 
                     {/* Testimony */}
-                    <button id="dashboard-testimony-btn" onClick={canAccessEntrustFeatures ? () => setShowTestimonialModal(true) : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
-                        className={`rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-brand-700 to-brand-900 text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                    <button id="dashboard-testimony-btn" onClick={() => setShowTestimonialModal(true)}
+                        className="rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group bg-gradient-to-br from-brand-700 to-brand-900 text-white hover:brightness-110 cursor-pointer">
                         <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><MessageSquare size={18} /></div>
                         <p className="font-bold text-sm leading-tight mb-1">Write Testimony</p>
-                        <p className={`${canAccessEntrustFeatures ? 'text-white/70' : 'text-slate-400'} text-[10px]`}>Share what God has done</p>
-                        <span className={`mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest rounded-lg px-2.5 py-1.5 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
-                            <MessageSquare size={11} /> {canAccessEntrustFeatures ? 'Write Now' : 'Locked'}
+                        <p className="text-white/70 text-[10px]">Share what God has done</p>
+                        <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest rounded-lg px-2.5 py-1.5 bg-white/20">
+                            <MessageSquare size={11} /> Write Now
                         </span>
                     </button>
 
@@ -1572,15 +1572,28 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     </button>
 
                     {/* Member Form PDF */}
-                    <button onClick={canAccessEntrustFeatures ? handleExportMemberFormPDF : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
-                        className={`rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] hover:brightness-110 border border-[#d4a547]/30' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
-                        <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center mb-3"><FileText size={18} /></div>
-                        <p className="font-bold text-sm leading-tight mb-1">Member Form PDF</p>
-                        <p className={`${canAccessEntrustFeatures ? 'text-[#f8e7b0]' : 'text-slate-400'} text-[10px]`}>Download your submitted member form details in themed PDF format.</p>
-                        <span className={`mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest rounded-lg px-2.5 py-1.5 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
-                            <Download size={11} /> {canAccessEntrustFeatures ? 'Download PDF' : 'Locked'}
-                        </span>
-                    </button>
+                    {user.communityProfile && (user.communityProfile.denomination || user.communityProfile.churchName || user.communityProfile.role || user.communityProfile.bio) ? (
+                        <button onClick={handleExportMemberFormPDF}
+                            className="rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] hover:brightness-110 border border-[#d4a547]/30 cursor-pointer">
+                            <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center mb-3"><FileText size={18} className="text-[#f0c040]" /></div>
+                            <p className="font-bold text-sm leading-tight mb-1">Member Form PDF</p>
+                            <p className="text-[#f8e7b0] text-[10px]">Download your submitted member form details in themed PDF format.</p>
+                            <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5 text-[#f0c040]">
+                                <Download size={11} /> Download PDF
+                            </span>
+                        </button>
+                    ) : (
+                        <div className="bg-slate-50 border border-slate-200 text-slate-400 rounded-[22px] p-4 flex flex-col justify-between h-full">
+                            <div>
+                                <div className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center mb-3"><FileText size={18} className="text-slate-400" /></div>
+                                <p className="font-bold text-sm text-slate-600 mb-1">Member Form PDF</p>
+                                <p className="text-slate-400 text-[10px] leading-snug">Please fill out the Member Form first to unlock this download.</p>
+                            </div>
+                            <span className="mt-4 inline-flex items-center gap-1 text-[9px] font-black uppercase bg-slate-200 rounded-lg px-2.5 py-1.5 text-slate-400 w-max">
+                                <AlertCircle size={11} /> Locked
+                            </span>
+                        </div>
+                    )}
 
                     {/* Family Portfolio PDF */}
                     <button onClick={canAccessEntrustFeatures ? handleExportProfileDetailsPDF : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
