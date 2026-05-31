@@ -8,3 +8,6 @@ signature.png
 stamp_transparent.png
 *.pdf
 1000*.png
+
+scratch_*.txt
+*.diff.txt
