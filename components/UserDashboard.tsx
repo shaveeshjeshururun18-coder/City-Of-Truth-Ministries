@@ -909,7 +909,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             onGoToLogin();
             return;
         }
-        window.location.href = '/auth?view=login';
+        window.location.href = '/auth?view=choice';
     };
 
     const handleBlockedFeature = () => {
