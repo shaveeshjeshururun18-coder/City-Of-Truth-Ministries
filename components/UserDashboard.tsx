@@ -982,7 +982,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         <div className="min-h-screen pt-28 pb-20 bg-[#f0f2f5] text-slate-900 relative flex flex-col items-center overflow-x-hidden px-3 sm:px-5">
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.06] pointer-events-none z-0" />
             {topNotification && dismissedTopNotificationId !== topNotification.id && (
-                <div className="sticky top-20 z-50 w-full max-w-6xl mb-3">
+                <div className="sticky top-20 z-50 w-full max-w-md lg:max-w-7xl xl:max-w-[88rem] 2xl:max-w-[95rem] mb-3">
                     <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 via-white to-orange-50 shadow-lg px-4 py-3 flex items-start gap-3">
                         <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
                             <MessageSquare size={16} />
@@ -1117,9 +1117,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             {/* ══════════════════════════════════════
                 MAIN CONTENT
             ══════════════════════════════════════ */}
-            <div className={`w-full max-w-md lg:max-w-5xl mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10`}>
+            <div className={`w-full max-w-md lg:max-w-7xl xl:max-w-[88rem] 2xl:max-w-[95rem] mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10`}>
                 {/* ── LEFT COLUMN (Profile, Family, Actions, Logout on Desktop) ── */}
-                <div className={`${user.linkedProfiles && user.linkedProfiles.length > 0 ? 'lg:col-span-4' : 'lg:col-span-5'} flex flex-col gap-5`}>
+                <div className={`${user.linkedProfiles && user.linkedProfiles.length > 0 ? 'lg:col-span-4 xl:col-span-3' : 'lg:col-span-5 xl:col-span-4'} flex flex-col gap-5`}>
 
                 <div className="flex items-center gap-3 mb-5 px-1">
                     {/* Primary profile + family avatars */}
@@ -1252,7 +1252,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 </div>
 
                 {/* ── RIGHT COLUMN (Wallet Card & Content on Desktop) ── */}
-                <div className={`${user.linkedProfiles && user.linkedProfiles.length > 0 ? 'lg:col-span-8' : 'lg:col-span-7'} flex flex-col gap-5`}>
+                <div className={`${user.linkedProfiles && user.linkedProfiles.length > 0 ? 'lg:col-span-8 xl:col-span-9' : 'lg:col-span-7 xl:col-span-8'} flex flex-col gap-5`}>
                 <div id="dashboard-notifications-card" ref={notificationsSectionRef} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
                     <div className="flex items-center justify-between mb-2">
                         <h3 className="text-sm font-black text-brand-950">Notifications</h3>
@@ -1508,7 +1508,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 </div>
 
                 {/* ── ACTION CARDS GRID ── */}
-                    <div id="dashboard-action-cards" className="grid grid-cols-2 gap-4 mb-5">
+                    <div id="dashboard-action-cards" className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
 
                     {/* QR Card (Mobile priority #1) */}
                     {canAccessEntrustFeatures ? (
@@ -1596,7 +1596,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     {/* Jewish Calendar — amber (full width row) */}
                     {activeProfileId === user.id && (
                         <button onClick={canAccessEntrustFeatures ? () => setIsCalendarModalOpen(true) : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
-                            className={`col-span-2 rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#8B4500] via-[#C07000] to-[#D97706] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                            className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#8B4500] via-[#C07000] to-[#D97706] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
                             <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Calendar size={22} /></div>
                             <p className="font-bold text-base leading-tight mb-1">Jewish Calendar 5786</p>
                             <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-0.5`}>Download the official City of Truth Ministries Jewish Calendar.</p>
@@ -1623,7 +1623,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         link.click();
                         document.body.removeChild(link);
                     }}
-                        className={`col-span-2 rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#1a237e] to-[#3949ab] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                        className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#1a237e] to-[#3949ab] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
                         <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3">
                             <svg viewBox="0 0 24 24" className="w-[22px] h-[22px] fill-white"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.38.07 2.33.76 3.13.8 1.18-.25 2.31-.94 3.56-.84 1.5.12 2.63.72 3.37 1.8-3.09 1.85-2.56 5.93.28 7.05-.55 1.5-1.27 2.98-2.34 4.07zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" /></svg>
                         </div>
@@ -1650,7 +1650,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         link.click();
                         document.body.removeChild(link);
                     }}
-                        className={`col-span-2 rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#7c4d00] to-[#f59e0b] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                        className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#7c4d00] to-[#f59e0b] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
                         <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Flag size={22} /></div>
                         <p className="font-bold text-base leading-tight mb-1">Download Menorah Flag</p>
                         <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-3`}>Save the official ministry flag image to your device.</p>

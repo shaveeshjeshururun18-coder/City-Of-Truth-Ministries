@@ -699,13 +699,22 @@ const FestivalsView: React.FC = () => {
                             <h4 className="text-xl font-bold text-brand-950 mb-1 group-hover:text-brand-700 transition-colors">{f.name}</h4>
                             <p className="text-sm font-bold text-blue-600 mb-3">{f.tamil}</p>
                             <p className="text-sm text-slate-500 leading-relaxed font-light group-hover:text-slate-600">{f.desc}</p>
-                            <button
-                                onClick={(e) => { e.stopPropagation(); audioService.playHebrew(f.name); }}
-                                className="mt-3 flex items-center gap-1 text-[10px] text-brand-600 hover:text-brand-800 font-bold transition-colors"
-                                title="Listen in Hebrew"
-                            >
-                                <Volume2 size={12} /> Listen
-                            </button>
+                            <div className="mt-3 flex items-center gap-3">
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); audioService.playHebrew(f.name); }}
+                                    className="flex items-center gap-1 text-[10px] text-brand-600 hover:text-brand-800 font-bold transition-colors"
+                                    title="Listen in Hebrew"
+                                >
+                                    <Volume2 size={12} /> Listen (Hebrew)
+                                </button>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); audioService.playTamil(f.tamil); }}
+                                    className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 font-bold transition-colors"
+                                    title="Listen in Tamil"
+                                >
+                                    <Volume2 size={12} /> கேள் (தமிழ்)
+                                </button>
+                            </div>
                         </div>
                     </motion.div>
                 ))}
