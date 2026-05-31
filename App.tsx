@@ -73,6 +73,7 @@ import { HebrewResources } from './components/HebrewResources';
 import { QRVerifyPage } from './components/QRVerifyPage';
 import { DonationModal } from './components/DonationModal';
 import { PastorPage } from './components/PastorPage';
+import { CommunityProfileForm } from './components/CommunityProfileForm';
 
 import AIChatAssistant from './components/AIChatAssistant';
 import VerifyIDPage from './components/VerifyIDPage';
@@ -201,6 +202,7 @@ const isRecycleMessageAlive = (item: { autoDeleteAt?: string }) => {
 };
 
 const HEBREW_RESOURCE_SUBMENU: NavItem[] = [
+  { label: 'Hebrew Alphabet', view: ViewState.HEBREW },
   { label: 'Eretz Israel', view: ViewState.HEBREW_ISRAEL },
   { label: 'Festivals & Holy Days', view: ViewState.HEBREW_FESTIVALS },
   { label: 'Biblical Calendar', view: ViewState.HEBREW_CALENDAR },
@@ -217,7 +219,9 @@ const HEBREW_TOOLS_SUBMENU: NavItem[] = [
 ];
 
 const withHebrewResourceSubmenu = (items: NavItem[]): NavItem[] =>
-  items.map(item => {
+  items
+  .filter(item => String(item.label || '').toUpperCase().trim() !== 'ALPHABETS')
+  .map(item => {
     const labelUpper = String(item.label || '').toUpperCase().trim();
     if (labelUpper === 'HEBREW CONTENT' || labelUpper === 'HEBREW RESOURCES' || labelUpper === 'HEBREW') {
       return { ...item, submenu: HEBREW_RESOURCE_SUBMENU };
@@ -237,6 +241,10 @@ const VIEW_ALIASES: Record<string, ViewState> = {
   ENTRUSTCARD: ViewState.ID_CARD,
   HEBREW_CONTENT: ViewState.ABOUT,
   HEBREW_RESOURCES: ViewState.ABOUT,
+  MEMBER_FORM: ViewState.MEMBER_FORM,
+  MEMBERFORM: ViewState.MEMBER_FORM,
+  MEMBER_PROFILE: ViewState.MEMBER_FORM,
+  COMMUNITY_PROFILE: ViewState.MEMBER_FORM,
 };
 
 const normalizeViewState = (value: unknown, fallback: ViewState = ViewState.HOME): ViewState => {
@@ -483,7 +491,6 @@ const App: React.FC = () => {
       view: ViewState.HEBREW_TOOLS,
       submenu: HEBREW_TOOLS_SUBMENU
     },
-    { label: 'ALPHABETS', view: ViewState.HEBREW },
     { label: 'VALPARAI', view: ViewState.ABOUT_VALPARAI },
     { label: 'PASTOR', view: ViewState.PASTOR },
     { label: 'MINISTRIES', view: ViewState.MINISTRIES },
@@ -1437,6 +1444,7 @@ const App: React.FC = () => {
     const params = new URLSearchParams(location.search);
     const routeInitial = params.get('view');
     const routeIdentifier = params.get('identifier') || '';
+    const routeAction = params.get('option');
     const initialView = routeInitial === 'login' || routeInitial === 'register' || routeInitial === 'forgot-id'
       ? routeInitial
       : 'login';
@@ -1453,6 +1461,7 @@ const App: React.FC = () => {
         users={users}
         initialView={initialView}
         initialIdentifier={routeIdentifier}
+        initialAction={routeAction === 'scan' || routeAction === 'upload' ? routeAction : undefined}
       />
     );
   }
@@ -1741,7 +1750,7 @@ const App: React.FC = () => {
                                   <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
                                 </button>
                                 <button
-                                  onClick={() => setCurrentView(ViewState.HEBREW_RESOURCES)}
+                                  onClick={() => setCurrentView(ViewState.ABOUT)}
                                   className="group flex items-center gap-2 px-8 py-4 rounded-full border border-white/20 bg-white/5 font-extrabold text-base text-gray-200 hover:bg-white/10 hover:border-amber-400/40 hover:text-amber-300 transition-all"
                                 >
                                   Explore Hebrew Tools
@@ -1762,9 +1771,6 @@ const App: React.FC = () => {
                                   <video
                                     src="/சத்திய_நகரம்_City_of_Truth_Min.mp4"
                                     poster="https://images.unsplash.com/photo-1510590337019-5ef2d39aa786?q=80&w=2670&auto=format&fit=crop"
-                                    controls
-                                    controlsList="nodownload noplaybackrate"
-                                    disablePictureInPicture
                                     autoPlay
                                     loop
                                     muted
@@ -1811,9 +1817,9 @@ const App: React.FC = () => {
                     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
                       {[
                         { id: 'tour-verify-login-card', icon: UserIcon, label: 'Login to Account', desc: 'Access your personal dashboard with your Member ID, phone, or email.', color: 'from-brand-500 to-brand-700', light: 'bg-brand-50 text-brand-600', action: () => navigate('/auth?view=login'), cta: 'Login Now' },
-                        { id: 'tour-verify-upload-card', icon: UploadCloud, label: 'Upload Entrust PDF', desc: 'Upload your Entrust Card PDF to verify your membership document.', color: 'from-accent-500 to-accent-700', light: 'bg-accent-50 text-accent-600', action: () => navigate('/verify-id'), cta: 'Upload File' },
+                        { id: 'tour-verify-upload-card', icon: UploadCloud, label: 'Upload Entrust PDF', desc: 'Upload your Entrust Card PDF to verify your membership document.', color: 'from-accent-500 to-accent-700', light: 'bg-accent-50 text-accent-600', action: () => navigate('/auth?view=login&option=upload'), cta: 'Upload File' },
                       { id: 'tour-verify-card-view', icon: CreditCard, label: 'View Entrust Card', desc: 'Register or view your official digital ID card and QR code.', color: 'from-emerald-500 to-emerald-700', light: 'bg-emerald-50 text-emerald-600', action: () => setCurrentView(ViewState.ID_CARD), cta: 'View Card' },
-                      { id: 'tour-verify-scan-card', icon: CheckCircle, label: 'Scan QR Code', desc: 'Scan any member\'s QR code to instantly verify their identity.', color: 'from-amber-500 to-orange-600', light: 'bg-amber-50 text-amber-600', action: () => navigate('/verify-id'), cta: 'Open Scanner' },
+                      { id: 'tour-verify-scan-card', icon: CheckCircle, label: 'Scan QR Code', desc: 'Scan any member\'s QR code to instantly verify their identity.', color: 'from-amber-500 to-orange-600', light: 'bg-amber-50 text-amber-600', action: () => navigate('/auth?view=login&option=scan'), cta: 'Open Scanner' },
                     ].map((item, i) => (
                       <motion.div
                         id={item.id}
@@ -2002,6 +2008,117 @@ const App: React.FC = () => {
           {currentView === ViewState.VERIFY_ID && (
             <motion.div key="verify-id" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <VerifyIDPage />
+            </motion.div>
+          )}
+
+          {currentView === ViewState.MEMBER_FORM && currentUser && (
+            <motion.div key="member-form-standalone" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="pt-24 md:pt-32 pb-20 bg-slate-50 min-h-screen flex items-center justify-center">
+              <div className="container mx-auto px-6 max-w-4xl relative z-10">
+                <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-xl text-center">
+                  <span className="inline-block bg-[#d4a547]/10 text-[#d4a547] px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest mb-4">
+                    Official Ministry Registration
+                  </span>
+                  <h2 className="text-3xl font-serif font-black text-[#1a1b4b]">Member Profile Form</h2>
+                  <p className="text-slate-500 mt-2 text-sm max-w-lg mx-auto">
+                    Fill out your community, denomination, and ministry details. This is submitted for administrative review and linked to your official ID.
+                  </p>
+                  
+                  <div className="mt-8 flex justify-center">
+                    <button 
+                      onClick={() => {
+                        const btn = document.getElementById('standalone-form-trigger-btn');
+                        if (btn) btn.click();
+                      }}
+                      className="px-8 py-4 bg-gradient-to-r from-brand-600 to-indigo-700 hover:from-brand-700 hover:to-indigo-850 text-white rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg hover:shadow-xl transition-all"
+                    >
+                      Fill Out Form Now
+                    </button>
+                  </div>
+                  
+                  <div className="hidden">
+                    <button id="standalone-form-trigger-btn" onClick={() => {}} />
+                  </div>
+                </div>
+              </div>
+              
+              <CommunityProfileForm
+                isOpen={true}
+                onClose={() => {
+                  if (currentUser.role === 'Admin') {
+                    setCurrentView(ViewState.ADMIN_DASHBOARD);
+                  } else {
+                    setCurrentView(ViewState.USER_DASHBOARD);
+                  }
+                }}
+                onSave={async (communityData) => {
+                  const updatedUser = {
+                    ...currentUser,
+                    communityProfile: communityData,
+                    pendingProfileUpdate: {
+                      ...currentUser.pendingProfileUpdate,
+                      communityProfile: communityData
+                    }
+                  };
+                  await api.updateUser(updatedUser);
+                  setCurrentUser(updatedUser);
+                  setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+                  alert("✅ Your Member Profile Registration Form has been saved successfully and submitted for admin review!");
+                  setCurrentView(ViewState.USER_DASHBOARD);
+                }}
+                initialData={currentUser.communityProfile}
+              />
+            </motion.div>
+          )}
+
+          {currentView === ViewState.MEMBER_FORM && !currentUser && (
+            <motion.div key="member-form-guest" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="pt-24 md:pt-32 pb-20 bg-slate-50 min-h-screen flex items-center justify-center">
+              <div className="container mx-auto px-6 max-w-xl relative z-10">
+                <div className="bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-2xl text-center relative overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-brand-500 via-amber-500 to-indigo-600" />
+                  
+                  <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 mx-auto mb-6 border border-amber-100 shadow-inner">
+                    <Church size={32} />
+                  </div>
+                  
+                  <span className="inline-block bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-3">
+                    Worshipper Portal
+                  </span>
+                  
+                  <h2 className="text-2xl font-serif font-black text-brand-950">Registration Required</h2>
+                  
+                  <p className="text-slate-500 mt-4 text-xs font-semibold leading-relaxed">
+                    To complete your official **Member Profile Registration Form**, you need to have an active worshipper account. This ensures your profile and testimony are securely stored and linked to your custom **Worshipper ID Card**.
+                  </p>
+                  
+                  <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+                    <button
+                      onClick={() => {
+                        navigate('/auth?view=login');
+                        setCurrentView(ViewState.AUTH);
+                      }}
+                      className="px-6 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all border border-slate-200"
+                    >
+                      Login to Account
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigate('/auth?view=register');
+                        setCurrentView(ViewState.AUTH);
+                      }}
+                      className="px-6 py-3.5 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-750 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-md hover:shadow-lg"
+                    >
+                      Create Free Account
+                    </button>
+                  </div>
+                  
+                  <button
+                    onClick={() => setCurrentView(ViewState.HOME)}
+                    className="mt-6 text-[10px] font-black uppercase tracking-wider text-slate-400 hover:text-brand-600 transition-colors bg-transparent border-none outline-none cursor-pointer"
+                  >
+                    ← Return to Home
+                  </button>
+                </div>
+              </div>
             </motion.div>
           )}
 

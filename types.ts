@@ -27,7 +27,8 @@ export enum ViewState {
   USER_DASHBOARD = 'USER_DASHBOARD',
   ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
   VERIFY_ID = 'VERIFY_ID',
-  PASTOR = 'PASTOR'
+  PASTOR = 'PASTOR',
+  MEMBER_FORM = 'MEMBER_FORM'
 }
 
 export interface NavItem {

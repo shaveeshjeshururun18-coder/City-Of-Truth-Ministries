@@ -113,11 +113,11 @@ const BIBLICAL_FESTIVALS = [
 const HEBREW_DAYS = [
     { name: 'Yom Rishon', english: 'Sunday', hebrew: 'יוֹם רִאשׁוֹன்', tamil: 'யோம் ரிஷோன் (ஞாயிறு)' },
     { name: 'Yom Sheni', english: 'Monday', hebrew: 'יוֹם שֵׁנִי', tamil: 'யோம் ஷேனி (திங்கள்)' },
-    { name: 'Yom Shlishi', english: 'Tuesday', hebrew: 'יוֹם שְׁלִישִׁי' },
-    { name: 'Yom Revi\'i', english: 'Wednesday', hebrew: 'יוֹם רְבִיעִי' },
-    { name: 'Yom Chamishi', english: 'Thursday', hebrew: 'יוֹם חֲמִישִׁי' },
-    { name: 'Yom Shishi', english: 'Friday', hebrew: 'יוֹם שִׁשִׁי' },
-    { name: 'Shabbat', english: 'Saturday', hebrew: 'שַׁבָּת' }
+    { name: 'Yom Shlishi', english: 'Tuesday', hebrew: 'יוֹם שְׁלִישִׁי', tamil: 'யோம் ஷ்லிஷி (செவ்வாய்)' },
+    { name: 'Yom Revi\'i', english: 'Wednesday', hebrew: 'יוֹם רְבִיעִי', tamil: 'யோம் ரெவிஈ (புதன்)' },
+    { name: 'Yom Chamishi', english: 'Thursday', hebrew: 'יוֹם חֲמִישִׁי', tamil: 'யோம் ஹாமிஷி (வியாழன்)' },
+    { name: 'Yom Shishi', english: 'Friday', hebrew: 'יוֹם שִׁשִׁי', tamil: 'யோம் ஷிஷி (வெள்ளி)' },
+    { name: 'Shabbat', english: 'Saturday', hebrew: 'שַׁבָּת', tamil: 'ஷப்பாத் (சனி)' }
 ];
 
 
@@ -1830,7 +1830,7 @@ const HebrewLettersAudioLab: React.FC = () => {
         try {
             const parsed = JSON.parse(payload) as { type?: string; payload?: { letter: string; name: string; hebrewName: string } };
             if (parsed?.type === 'cot-hebrew-letter' && parsed?.payload?.letter && parsed?.payload?.name && parsed?.payload?.hebrewName) {
-                addLetter(parsed.payload);
+                addLetter(parsed.payload as any);
             }
         } catch (error) {
             console.warn('Invalid Hebrew letter drop payload format:', error);

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X, UserCheck, UserPlus } from 'lucide-react';
+import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X, UserCheck, UserPlus, Flashlight } from 'lucide-react';
 import { Button } from './Button';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
@@ -15,6 +15,7 @@ interface AuthPageProps {
     users?: any[];
     initialView?: 'choice' | 'login' | 'register' | 'forgot-id';
     initialIdentifier?: string;
+    initialAction?: 'scan' | 'upload';
 }
 
 export const AuthPage: React.FC<AuthPageProps> = ({
@@ -24,7 +25,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     onBack,
     users = [],
     initialView = 'login',
-    initialIdentifier = ''
+    initialIdentifier = '',
+    initialAction
 }) => {
     const [view, setView] = useState<'choice' | 'login' | 'register' | 'forgot-id'>(initialView);
     const [identifier, setIdentifier] = useState('');
@@ -38,6 +40,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     const [loginTourStepIndex, setLoginTourStepIndex] = useState<number | null>(null);
     const [loginTourRect, setLoginTourRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
     const scannerRef = useRef<any>(null);
+    const uploadInputRef = useRef<HTMLInputElement | null>(null);
+    const handledInitialActionRef = useRef<string | null>(null);
     const LOGIN_TOUR_STEPS = [
         { selector: '#auth-login-identifier', title: 'Enter Member Detail', text: 'Type Member ID, phone, name, or email to find your account.' },
         { selector: '#auth-login-verify-btn', title: 'Verify Account', text: 'Click Verify to check your account quickly.' },
@@ -168,6 +172,26 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         setIdentifier(incoming);
         handleSearch(incoming);
     }, [initialIdentifier]);
+
+    useEffect(() => {
+        if (!initialAction || handledInitialActionRef.current === initialAction) return;
+        handledInitialActionRef.current = initialAction;
+        localStorage.setItem('cot_auth_login_tour_seen', '1');
+        setShowLoginIntro(false);
+        setLoginTourStepIndex(null);
+        setLoginTourRect(null);
+        setView('login');
+
+        const timer = window.setTimeout(() => {
+            const targetId = initialAction === 'scan' ? 'auth-login-qr-btn' : 'auth-login-upload-btn';
+            const target = document.getElementById(targetId);
+            target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (initialAction === 'upload') uploadInputRef.current?.focus();
+            else setShowScanner(true);
+        }, 250);
+
+        return () => window.clearTimeout(timer);
+    }, [initialAction]);
 
     useEffect(() => {
         if (view !== 'login') return;
@@ -513,7 +537,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                         <li>• Receive approval/denial and ministry status notifications</li>
                                     </ul>
                                     <button
-                                        id="auth-login-qr-btn"
                                         type="button"
                                         onClick={onNavigateToRegister}
                                         className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-brand-900 font-black text-[11px] uppercase tracking-wider hover:bg-brand-50 transition-colors"
@@ -525,9 +548,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                 {/* Smart Auth Grid */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mt-6 md:mt-12 relative z-10">
                                     <button
+                                        id="auth-login-qr-btn"
                                         type="button"
                                         onClick={() => setShowScanner(!showScanner)}
-                                        className={`group flex flex-col items-center justify-center p-5 md:p-8 border-2 rounded-[1.5rem] md:rounded-[2.5rem] transition-all duration-500 ${showScanner ? 'bg-red-50 border-red-200 text-red-600 shadow-xl scale-[1.02]' : 'bg-white border-brand-50 hover:border-brand-200 hover:shadow-2xl shadow-sm'}`}
+                                        className={`group flex flex-col items-center justify-center p-5 md:p-8 border-2 rounded-[1.5rem] md:rounded-[2.5rem] transition-all duration-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-300/40 ${showScanner ? 'bg-red-50 border-red-200 text-red-600 shadow-xl scale-[1.02]' : 'bg-white border-brand-50 hover:border-brand-200 hover:shadow-2xl shadow-sm'}`}
                                     >
                                         <div className={`w-14 h-14 md:w-20 md:h-20 mb-4 md:mb-6 rounded-2xl md:rounded-3xl flex items-center justify-center transition-all duration-500 ${showScanner ? 'bg-red-100 text-red-600 rotate-90' : 'bg-brand-50 text-brand-400 group-hover:bg-brand-600 group-hover:text-white group-hover:rotate-6'}`}>
                                             {showScanner ? <X size={28} className="md:w-9 md:h-9" /> : <QrCode size={28} className="md:w-9 md:h-9" />}
@@ -536,29 +560,88 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                         <p className="text-[10px] text-brand-300 font-black uppercase tracking-widest">Verify via Digital ID</p>
                                     </button>
 
-                                    <label id="auth-login-upload-btn" className="group flex flex-col items-center justify-center p-5 md:p-8 bg-white border-2 border-brand-50 hover:border-brand-200 rounded-[1.5rem] md:rounded-[2.5rem] shadow-sm hover:shadow-2xl transition-all duration-500 cursor-pointer">
+                                    <label id="auth-login-upload-btn" className="group flex flex-col items-center justify-center p-5 md:p-8 bg-white border-2 border-brand-50 hover:border-brand-200 rounded-[1.5rem] md:rounded-[2.5rem] shadow-sm hover:shadow-2xl transition-all duration-500 cursor-pointer focus-within:ring-4 focus-within:ring-brand-300/40">
                                         <div className="w-14 h-14 md:w-20 md:h-20 mb-4 md:mb-6 rounded-2xl md:rounded-3xl bg-brand-50 text-brand-400 group-hover:bg-brand-600 group-hover:text-white group-hover:-translate-y-1 transition-all duration-500 flex items-center justify-center">
                                             {scanningFile ? <div className="w-8 h-8 md:w-10 md:h-10 border-4 border-brand-400 border-t-transparent rounded-full animate-spin" /> : <UploadCloud size={28} className="md:w-9 md:h-9" />}
                                         </div>
                                         <h4 className="font-black text-lg md:text-xl mb-1 md:mb-2 tracking-tight">Upload Entrust Card</h4>
                                         <p className="text-[10px] text-brand-300 font-black uppercase tracking-widest">Any image/PDF, multiple files supported</p>
-                                        <input type="file" className="hidden" onChange={handleFileQRScan} disabled={scanningFile} multiple accept="image/*,.pdf" />
+                                        <input ref={uploadInputRef} type="file" className="sr-only" onChange={handleFileQRScan} disabled={scanningFile} multiple accept="image/*,.pdf" />
                                     </label>
                                 </div>
                             </div>
 
                             {/* QR Scanner Panel */}
                             {showScanner && (
-                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[120] bg-slate-950">
-                                    <div className="h-full flex flex-col">
-                                        <div className="p-4 bg-slate-900 text-white text-xs text-center font-black uppercase tracking-[0.2em] flex justify-between items-center px-4 md:px-8 border-b border-white/5">
-                                            <span className="flex items-center gap-2 font-serif italic"><span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> Live Scanner</span>
-                                            <button type="button" onClick={() => setShowScanner(false)} className="text-white/60 hover:text-white transition-colors">Close ×</button>
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[9999] bg-black text-white overflow-hidden">
+                                    <style>{`
+                                        #qr-auth-page-reader,
+                                        #qr-auth-page-reader video {
+                                            width: 100% !important;
+                                            height: 100% !important;
+                                            object-fit: cover !important;
+                                        }
+                                        #qr-auth-page-reader__dashboard_section,
+                                        #qr-auth-page-reader__scan_region img,
+                                        #qr-auth-page-reader__status_span {
+                                            display: none !important;
+                                        }
+                                    `}</style>
+                                    <div className="relative h-screen max-w-[560px] mx-auto overflow-hidden bg-black">
+                                        <div id="qr-auth-page-reader" role="region" aria-label="QR code scanner" className="absolute inset-0 bg-black" />
+
+                                        <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 pt-5">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowScanner(false)}
+                                                className="w-11 h-11 rounded-full bg-black/20 text-white flex items-center justify-center"
+                                                aria-label="Close scanner"
+                                            >
+                                                <X size={34} />
+                                            </button>
+                                            <div className="flex items-center gap-5">
+                                                <button
+                                                    type="button"
+                                                    className="w-11 h-11 rounded-full bg-black/20 text-white/55 flex items-center justify-center"
+                                                    aria-label="Flashlight"
+                                                    title="Flashlight depends on device camera support"
+                                                >
+                                                    <Flashlight size={25} />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="w-11 h-11 rounded-full bg-black/20 text-white flex items-center justify-center"
+                                                    aria-label="QR code"
+                                                >
+                                                    <QrCode size={27} />
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div className="flex-1 p-2 sm:p-4 relative">
-                                            <div id="qr-auth-page-reader" role="region" aria-label="QR code scanner" className="w-full h-full min-h-[70vh] rounded-2xl overflow-hidden bg-black" />
-                                            <div className="absolute inset-2 sm:inset-4 border-[40px] sm:border-[60px] border-slate-950/40 pointer-events-none rounded-2xl" />
-                                            <div className="absolute inset-[48px] sm:inset-[72px] border-2 border-brand-500/40 rounded-3xl pointer-events-none animate-pulse" />
+
+                                        <div className="absolute left-1/2 top-[37%] z-10 w-[min(78vw,430px)] aspect-square -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                                            <span className="absolute top-0 left-0 w-[18%] h-[18%] border-t-[8px] border-l-[8px] border-[#ff6b6b] rounded-tl-[28px]" />
+                                            <span className="absolute top-0 right-0 w-[18%] h-[18%] border-t-[8px] border-r-[8px] border-[#ffb020] rounded-tr-[28px]" />
+                                            <span className="absolute bottom-0 left-0 w-[18%] h-[18%] border-b-[8px] border-l-[8px] border-[#4f8cff] rounded-bl-[28px]" />
+                                            <span className="absolute bottom-0 right-0 w-[18%] h-[18%] border-b-[8px] border-r-[8px] border-[#27c46b] rounded-br-[28px]" />
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => uploadInputRef.current?.click()}
+                                            className="absolute left-1/2 bottom-[clamp(230px,31vh,340px)] z-20 -translate-x-1/2 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-lg sm:text-xl font-medium text-slate-700 shadow-xl whitespace-nowrap"
+                                        >
+                                            <UploadCloud size={22} />
+                                            Upload from gallery
+                                        </button>
+
+                                        <div className="absolute inset-x-0 bottom-0 z-20 rounded-t-[34px] bg-[#303030] px-6 pt-5 pb-6 text-center shadow-2xl">
+                                            <div className="mx-auto mb-5 h-1.5 w-16 rounded-full bg-white/80" />
+                                            <p className="text-3xl sm:text-4xl font-medium leading-tight text-white">
+                                                Scan any QR code
+                                            </p>
+                                            <p className="mt-3 text-xl sm:text-2xl font-medium leading-tight text-white/80">
+                                                COT ID · Entrust Card · Member QR
+                                            </p>
                                         </div>
                                     </div>
                                 </motion.div>

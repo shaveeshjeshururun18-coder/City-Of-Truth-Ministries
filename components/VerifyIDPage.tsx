@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, CheckCircle, XCircle, Search, ScanLine, X, LogIn, Flashlight, FlashlightOff, Maximize2, Minimize2, QrCode } from 'lucide-react';
+import { Camera, CheckCircle, XCircle, Search, ScanLine, X, LogIn, Flashlight, FlashlightOff, Maximize2, Minimize2, QrCode, Share2, Download, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
 import { User } from '../types';
@@ -25,8 +25,11 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
     const [torchSupported, setTorchSupported] = useState(false);
     const [torchOn, setTorchOn] = useState(false);
     const [scannerExpanded, setScannerExpanded] = useState(true);
+    const [autoScannerMode, setAutoScannerMode] = useState(true);
+    const [scannerAutoNotice, setScannerAutoNotice] = useState('Auto mode expands first, then keeps scanning compact.');
     const [showMyQr, setShowMyQr] = useState(false);
     const scannerRef = useRef<any>(null);
+    const autoStartRef = useRef(false);
     const isApprovedUser = user?.status === 'Active';
 
     const WEBSITE_URL = 'https://city-of-truth-ministries.vercel.app';
@@ -34,6 +37,8 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
         ? `https://city-of-truth-ministries.vercel.app/verify/${encodeURIComponent(currentUser.id)}`
         : WEBSITE_URL;
     const myQrImage = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(myQrUrl)}&bgcolor=ffffff&color=1a1450&margin=10`;
+    const myQrTitle = currentUser ? currentUser.name : 'City of Truth Ministries';
+    const myQrSubtitle = currentUser ? `COT ID: ${currentUser.id}` : 'Official ministry website';
 
     const handleShareMyQr = async () => {
         const shareData = {
@@ -90,12 +95,26 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
         try {
             await track.applyConstraints({ advanced: [{ torch: enabled } as any] });
             setTorchOn(enabled);
+            if (enabled) {
+                setScannerAutoNotice('Flashlight is on for brighter scanning.');
+            }
             return true;
         } catch (_e) {
             if (!enabled) setTorchOn(false);
             return false;
         }
     };
+
+    useEffect(() => {
+        if (!isScanning || !autoScannerMode) return;
+        setScannerExpanded(true);
+        setScannerAutoNotice('Auto mode enlarged the scanner and is checking flashlight.');
+        const minimizeTimer = window.setTimeout(() => {
+            setScannerExpanded(false);
+            setScannerAutoNotice('Auto minimized. Tap Maximize when you need a larger frame.');
+        }, 3600);
+        return () => window.clearTimeout(minimizeTimer);
+    }, [isScanning, autoScannerMode]);
 
     useEffect(() => {
         const loadScript = () => {
@@ -147,12 +166,13 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
     };
 
     const startScanner = () => {
-        if (!window.Html5Qrcode || !scannerInitialized) return;
+        if (!window.Html5Qrcode || !scannerInitialized || isScanning) return;
         setIsScanning(true);
         setError(null);
         setScannedId(null);
         setUser(null);
         setScannerExpanded(true);
+        setScannerAutoNotice('Starting camera. Auto mode will use flashlight when supported.');
         setTimeout(() => {
             const html5Qrcode = new window.Html5Qrcode('qr-reader');
             scannerRef.current = html5Qrcode;
@@ -164,11 +184,14 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                 const supported = !!capabilities.torch;
                 if (supported) {
                     setTorchSupported(true);
-                    applyTorchToActiveTrack(true); // Auto-enable on start
+                    if (autoScannerMode) {
+                        applyTorchToActiveTrack(true);
+                    }
                 } else if (attemptsLeft > 0) {
                     setTimeout(() => tryDetectAndEnableTorch(attemptsLeft - 1), 600);
                 } else {
                     setTorchSupported(false);
+                    setScannerAutoNotice('Flashlight is not available on this device/browser.');
                 }
             };
 
@@ -181,6 +204,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                         html5Qrcode.stop().then(() => {
                             const normalized = normalizeCotId(extractedId);
                             setIsScanning(false);
+                            setScannerExpanded(false);
                             setScannedId(normalized);
                             verifyID(normalized);
                         });
@@ -196,6 +220,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                     try {
                         const sensor = new (window as any).AmbientLightSensor();
                         sensor.addEventListener('reading', () => {
+                            if (!autoScannerMode) return;
                             if (sensor.illuminance < 50) {
                                 applyTorchToActiveTrack(true);
                             } else {
@@ -215,11 +240,19 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
         }, 300);
     };
 
+    useEffect(() => {
+        if (!scannerInitialized || autoStartRef.current) return;
+        autoStartRef.current = true;
+        const timer = window.setTimeout(() => startScanner(), 450);
+        return () => window.clearTimeout(timer);
+    }, [scannerInitialized]);
+
     const stopScanner = () => {
         const clearScannerState = () => {
             setIsScanning(false);
             setTorchOn(false);
             setTorchSupported(false);
+            setScannerAutoNotice('Auto mode expands first, then keeps scanning compact.');
             setScannerExpanded(true);
             scannerRef.current = null;
         };
@@ -253,8 +286,21 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
     const handleScannerSizeToggle = async () => {
         const nextExpanded = !scannerExpanded;
         setScannerExpanded(nextExpanded);
+        setScannerAutoNotice(nextExpanded ? 'Scanner maximized. Flashlight checked automatically.' : 'Scanner minimized. It will keep scanning.');
         if (torchSupported) {
-            await applyTorchToActiveTrack(nextExpanded);
+            await applyTorchToActiveTrack(true);
+        }
+    };
+
+    const handleAutoScannerToggle = async () => {
+        const nextAutoMode = !autoScannerMode;
+        setAutoScannerMode(nextAutoMode);
+        if (nextAutoMode) {
+            setScannerExpanded(true);
+            setScannerAutoNotice('Auto mode on. Scanner maximizes first and turns on flashlight when supported.');
+            if (torchSupported) await applyTorchToActiveTrack(true);
+        } else {
+            setScannerAutoNotice('Auto mode off. Use Flash and Maximize manually.');
         }
     };
 
@@ -347,19 +393,15 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
         s === 'Active' ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[#06080f] via-[#0d1635] to-[#1a237e] pb-20 relative overflow-x-hidden">
+        <div className="h-screen bg-[#05070c] relative overflow-hidden">
             {/* Hidden HTML5QrCode container */}
             <div id="qr-reader-hidden" style={{ display: 'none' }}></div>
 
-            {/* Ambient glow spheres */}
-            <div className="absolute top-[-80px] left-[-80px] w-[340px] h-[340px] rounded-full bg-[#d4a547]/10 blur-[90px] pointer-events-none" />
-            <div className="absolute bottom-[10%] right-[-60px] w-[260px] h-[260px] rounded-full bg-brand-600/10 blur-[80px] pointer-events-none" />
-
             {/* ── BRANDED HEADER ── */}
-            <header className="sticky top-0 z-40 backdrop-blur-xl bg-black/40 border-b border-white/8">
-                <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+            <header className="hidden">
+                <div className="max-w-6xl mx-auto px-4 h-full flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl overflow-hidden border border-white/20 bg-white/5 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-lg overflow-hidden border border-white/20 bg-white flex items-center justify-center">
                             <img src="/logo.png" alt="COT" className="w-7 h-7 object-contain" />
                         </div>
                         <div>
@@ -371,7 +413,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                         {/* My QR button */}
                         <button
                             onClick={() => setShowMyQr(true)}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#d4a547]/15 border border-[#d4a547]/30 text-[#d4a547] text-xs font-black uppercase tracking-[0.15em] hover:bg-[#d4a547]/25 transition-all"
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white text-slate-950 text-xs font-black uppercase tracking-[0.12em] hover:bg-slate-100 transition-all"
                             title="Show My QR Code"
                         >
                             <QrCode size={14} />
@@ -384,7 +426,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                 </div>
             </header>
 
-            {/* ── MY QR CODE BOTTOM SHEET ── */}
+            {/* ── MY QR CODE STATIC PANEL ── */}
             <AnimatePresence>
                 {showMyQr && (
                     <motion.div
@@ -392,272 +434,169 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end justify-center"
-                        onClick={() => setShowMyQr(false)}
+                        className="fixed inset-0 z-50 bg-white text-slate-950 overflow-hidden"
                     >
-                        <motion.div
-                            key="myqr-sheet"
-                            initial={{ y: '100%', opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            exit={{ y: '100%', opacity: 0 }}
-                            transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-                            className="w-full max-w-sm bg-gradient-to-b from-[#1a1450] to-[#0f0c29] rounded-t-[2.5rem] p-8 pb-10 flex flex-col items-center gap-5 shadow-2xl border-t border-white/10"
-                            onClick={e => e.stopPropagation()}
-                        >
-                            {/* Drag handle */}
-                            <div className="w-12 h-1.5 rounded-full bg-white/20 -mt-2 mb-1" />
-
-                            {/* Header */}
-                            {currentUser ? (
-                                <div className="text-center">
-                                    <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#d4a547]/50 mx-auto mb-3 bg-white/10 flex items-center justify-center">
-                                        {currentUser.photo
-                                            ? <img src={currentUser.photo} alt={currentUser.name} className="w-full h-full object-cover" />
-                                            : <span className="text-2xl font-black text-white">{currentUser.name.charAt(0).toUpperCase()}</span>
-                                        }
-                                    </div>
-                                    <h3 className="text-xl font-black text-white">{currentUser.name}</h3>
-                                    <p className="text-[#d4a547] font-bold text-sm font-mono mt-0.5">{currentUser.id}</p>
-                                    <p className="text-white/40 text-xs mt-1">City of Truth Ministries Member</p>
-                                </div>
-                            ) : (
-                                <div className="text-center">
-                                    <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-[#d4a547]/50 mx-auto mb-3 bg-white/10 flex items-center justify-center">
-                                        <img src="/logo.png" alt="COT" className="w-12 h-12 object-contain" />
-                                    </div>
-                                    <h3 className="text-xl font-black text-white">City of Truth Ministries</h3>
-                                    <p className="text-white/40 text-xs mt-1">Valparai, Tamil Nadu · India</p>
-                                </div>
-                            )}
-
-                            {/* QR Code */}
-                            <div className="bg-white p-4 rounded-3xl shadow-xl">
-                                <img
-                                    src={myQrImage}
-                                    alt="QR Code"
-                                    className="w-56 h-56 object-contain"
-                                />
-                            </div>
-
-                            <p className="text-white/40 text-[11px] text-center font-medium">
-                                {currentUser ? 'Scan to verify this member\'s Entrust ID' : 'Scan to visit our ministry website'}
-                            </p>
-
-                            {/* Share button */}
-                            <button
-                                onClick={handleShareMyQr}
-                                className="w-full flex items-center justify-center gap-3 py-4 bg-gradient-to-r from-[#d4a547] to-[#f0c040] text-[#1a0d00] font-black rounded-2xl text-sm uppercase tracking-widest hover:brightness-110 transition-all shadow-lg shadow-[#d4a547]/30"
-                            >
-                                <ScanLine size={18} /> Share QR Code
-                            </button>
-
+                        <div className="h-14 px-5 flex items-center justify-between border-b border-slate-100">
                             <button
                                 onClick={() => setShowMyQr(false)}
-                                className="text-white/40 text-xs font-bold uppercase tracking-widest hover:text-white/70 transition-colors"
+                                className="w-10 h-10 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-100"
+                                aria-label="Back to scanner"
                             >
-                                Close
+                                <ArrowLeft size={24} />
                             </button>
+                            <div className="flex items-center gap-2 text-sm font-semibold">
+                                <span className="inline-flex w-5 h-5 items-center justify-center rounded-full bg-green-500 text-white">
+                                    <CheckCircle size={14} />
+                                </span>
+                                <span>Secure Environment</span>
+                            </div>
+                            <button
+                                onClick={handleShareMyQr}
+                                className="w-10 h-10 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-100"
+                                aria-label="Share QR code"
+                            >
+                                <Download size={22} />
+                            </button>
+                        </div>
+                        <motion.div
+                            key="myqr-card"
+                            initial={{ opacity: 0, scale: 0.98 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.98 }}
+                            className="h-[calc(100vh-3.5rem)] px-5 py-5 flex flex-col items-center justify-between gap-4"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="w-full max-w-[620px] bg-slate-100 rounded-[1.75rem] p-5 sm:p-8 text-center">
+                                <div className="flex items-center justify-center gap-4 mb-5">
+                                    {currentUser ? (
+                                        <div className="w-12 h-12 rounded-full overflow-hidden bg-orange-600 text-white flex items-center justify-center text-2xl font-semibold border border-orange-200">
+                                            {currentUser.photo
+                                                ? <img src={currentUser.photo} alt={currentUser.name} className="w-full h-full object-cover" />
+                                                : currentUser.name.charAt(0).toUpperCase()
+                                            }
+                                        </div>
+                                    ) : (
+                                        <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 flex items-center justify-center">
+                                            <img src="/logo.png" alt="City of Truth Ministries" className="w-11 h-11 object-contain" />
+                                        </div>
+                                    )}
+                                    <div className="text-left">
+                                        <h3 className="text-3xl sm:text-5xl font-medium tracking-normal leading-tight">{myQrTitle}</h3>
+                                        <p className="text-sm sm:text-lg text-slate-600 mt-1">{myQrSubtitle}</p>
+                                    </div>
+                                </div>
+
+                                <div className="relative mx-auto w-[min(68vw,380px)] aspect-square bg-white p-3 rounded-2xl">
+                                    <img
+                                        src={myQrImage}
+                                        alt={currentUser ? `${currentUser.name} COT ID QR Code` : 'City of Truth website QR Code'}
+                                        className="w-full h-full object-contain"
+                                    />
+                                    <div className="absolute left-1/2 top-1/2 w-16 h-16 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-lg flex items-center justify-center border border-slate-100">
+                                        <img src="/logo.png" alt="" className="w-11 h-11 object-contain" />
+                                    </div>
+                                </div>
+
+                                <p className="mt-4 text-xl sm:text-2xl font-medium">
+                                    {currentUser ? 'Scan to verify COT ID' : 'Scan to open City of Truth Ministries'}
+                                </p>
+                                <p className="mt-2 text-sm sm:text-base text-slate-600 break-all">{myQrUrl}</p>
+                            </div>
+
+                            <div className="w-full max-w-[620px] space-y-4 pb-2">
+                                <button
+                                    onClick={handleShareMyQr}
+                                    className="w-full h-16 rounded-[1.35rem] bg-blue-600 hover:bg-blue-700 text-white text-2xl font-semibold flex items-center justify-center gap-3"
+                                >
+                                    <Share2 size={26} /> Share QR code
+                                </button>
+                                <button
+                                    onClick={() => setShowMyQr(false)}
+                                    className="w-full h-16 rounded-[1.35rem] bg-white hover:bg-slate-50 border-2 border-slate-300 text-blue-700 text-2xl font-semibold flex items-center justify-center gap-3"
+                                >
+                                    <QrCode size={25} /> Open scanner
+                                </button>
+                                <p className="text-center text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Powered by City of Truth Ministries</p>
+                            </div>
                         </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            <div className="max-w-5xl mx-auto pt-8 px-4">
+            <div className="h-screen max-w-[560px] mx-auto overflow-hidden flex flex-col bg-black text-white relative">
 
-                {/* ── PAGE TITLE ── */}
-                <div className="text-center mb-8">
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/60 text-xs font-black uppercase tracking-[0.22em] mb-4">
-                        <ScanLine size={11} /> QR Scanner
-                    </div>
-                    <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-2">
-                        Verify <span className="text-[#d4a547]">Entrust</span> ID
-                    </h1>
-                    <p className="text-white/50 text-sm font-medium">Scan or upload a member's QR code to verify their Entrust identity.</p>
-                </div>
+                {/* ── VERTICAL CAMERA SCANNER ── */}
+                <div className="relative flex-1 min-h-0 bg-black">
+                    <div id="qr-reader" className={`absolute inset-0 bg-black ${isScanning ? 'opacity-100' : 'opacity-0'}`} />
 
-                {/* ── MAIN SCANNER PANEL ── */}
-                <div className="bg-white/5 backdrop-blur-2xl rounded-[28px] border border-white/10 overflow-hidden mb-6 shadow-2xl shadow-black/40">
-                    <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/8">
-
-                        {/* LEFT — Camera Scanner */}
-                        <div className="p-6 flex flex-col items-center justify-center min-h-[340px]">
-                            {!isScanning ? (
-                                <div className="text-center w-full">
-                                    {/* Decorative viewfinder */}
-                                    <div className="relative w-52 h-52 mx-auto mb-6">
-                                        {/* Corner brackets */}
-                                        <span className="absolute top-0 left-0 w-8 h-8 border-t-[3px] border-l-[3px] border-[#d4a547] rounded-tl-lg" />
-                                        <span className="absolute top-0 right-0 w-8 h-8 border-t-[3px] border-r-[3px] border-[#d4a547] rounded-tr-lg" />
-                                        <span className="absolute bottom-0 left-0 w-8 h-8 border-b-[3px] border-l-[3px] border-[#d4a547] rounded-bl-lg" />
-                                        <span className="absolute bottom-0 right-0 w-8 h-8 border-b-[3px] border-r-[3px] border-[#d4a547] rounded-br-lg" />
-                                        {/* Inner area */}
-                                        <div className="absolute inset-4 flex items-center justify-center rounded-xl bg-white/5 border border-white/8">
-                                            <ScanLine className="text-white/20 w-16 h-16" />
-                                        </div>
-                                        {/* Scan line animation */}
-                                        <div
-                                            className="absolute inset-x-4 h-0.5 bg-gradient-to-r from-transparent via-[#d4a547] to-transparent"
-                                            style={{ top: '16px', animation: 'scan-line 2.4s ease-in-out infinite' }}
-                                        />
-                                    </div>
-                                    <h3 className="font-black text-white text-lg mb-1">Camera Scanner</h3>
-                                    <p className="text-white/50 text-xs mb-5 max-w-xs mx-auto">Point your device camera at a member's printed or digital QR code.</p>
-                                    <button
-                                        onClick={startScanner}
-                                        disabled={!scannerInitialized}
-                                        className="inline-flex items-center gap-2 px-7 py-3.5 bg-gradient-to-r from-[#d4a547] to-[#f0c040] text-[#1a0d00] font-black rounded-2xl hover:brightness-110 transition-all shadow-lg shadow-[#d4a547]/25 disabled:opacity-50 text-sm uppercase tracking-widest"
-                                    >
-                                        <Camera size={18} /> Start Scanner
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="w-full flex flex-col gap-3">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <span className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-red-400">
-                                            <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" /> Live Scanning
-                                        </span>
-                                        <div className="flex items-center gap-1.5">
-                                            <button
-                                                onClick={handleScannerSizeToggle}
-                                                className="p-2 rounded-xl bg-white/10 border border-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-all"
-                                                title={scannerExpanded ? 'Minimize scanner' : 'Maximize scanner'}
-                                            >
-                                                {scannerExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-                                            </button>
-                                            <button
-                                                onClick={handleTorchToggle}
-                                                disabled={!torchSupported}
-                                                className="p-2 rounded-xl bg-white/10 border border-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-all disabled:opacity-35 disabled:cursor-not-allowed"
-                                                title={torchSupported ? (torchOn ? 'Turn flashlight off' : 'Turn flashlight on') : 'Flashlight not supported on this device'}
-                                            >
-                                                {torchOn ? <Flashlight size={15} /> : <FlashlightOff size={15} />}
-                                            </button>
-                                            <button
-                                                onClick={stopScanner}
-                                                className="p-2 rounded-xl bg-white/10 border border-white/10 text-white/60 hover:bg-white/20 hover:text-white transition-all"
-                                            >
-                                                <X size={16} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                    {/* QR reader element with framed overlay */}
-                                    <div className={`relative rounded-2xl overflow-hidden bg-black aspect-square w-full mx-auto transition-all duration-300 ${scannerExpanded ? 'max-w-[280px]' : 'max-w-[140px]'}`}>
-                                        <div id="qr-reader" className="absolute inset-0 w-full h-full" />
-                                        {/* Corner brackets overlay */}
-                                        <div className="absolute inset-0 pointer-events-none">
-                                            <span className="absolute top-3 left-3 w-7 h-7 border-t-2 border-l-2 border-[#d4a547] rounded-tl" />
-                                            <span className="absolute top-3 right-3 w-7 h-7 border-t-2 border-r-2 border-[#d4a547] rounded-tr" />
-                                            <span className="absolute bottom-3 left-3 w-7 h-7 border-b-2 border-l-2 border-[#d4a547] rounded-bl" />
-                                            <span className="absolute bottom-3 right-3 w-7 h-7 border-b-2 border-r-2 border-[#d4a547] rounded-br" />
-                                            {/* Scan sweep line */}
-                                            <div
-                                                className="absolute inset-x-6 h-0.5 bg-gradient-to-r from-transparent via-[#f0c040] to-transparent opacity-80"
-                                                style={{ top: '50%', animation: 'scan-sweep 1.8s ease-in-out infinite' }}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Torch button — large, prominent, always visible */}
-                                    <div className="flex items-center justify-center gap-3 mt-2">
-                                        <button
-                                            onClick={handleTorchToggle}
-                                            disabled={!torchSupported}
-                                            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg ${
-                                                torchOn
-                                                    ? 'bg-[#f0c040] text-[#1a0d00] shadow-[#f0c040]/50 scale-105'
-                                                    : torchSupported
-                                                        ? 'bg-white/10 border border-white/20 text-white hover:bg-white/20'
-                                                        : 'bg-white/5 border border-white/10 text-white/30 cursor-not-allowed'
-                                            }`}
-                                            title={torchSupported ? (torchOn ? 'Turn flashlight off' : 'Turn flashlight on') : 'Flashlight not supported on this device'}
-                                        >
-                                            {torchOn ? <Flashlight size={16} /> : <FlashlightOff size={16} />}
-                                            {torchOn ? 'Flash ON' : torchSupported ? 'Flash OFF' : 'No Flash'}
-                                        </button>
-                                        <button
-                                            onClick={handleScannerSizeToggle}
-                                            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/10 border border-white/20 text-white/70 hover:bg-white/20 hover:text-white font-black text-xs uppercase tracking-widest transition-all"
-                                            title={scannerExpanded ? 'Minimize scanner' : 'Maximize scanner'}
-                                        >
-                                            {scannerExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-                                            {scannerExpanded ? 'Minimize' : 'Maximize'}
-                                        </button>
-                                    </div>
-
-                                    <p className="text-center text-white/60 text-xs font-bold uppercase tracking-wider">
-                                        {scannerExpanded ? 'Align QR code within the frame' : 'Minimized — tap Maximize to expand'}
-                                    </p>
-                                </div>
-                            )}
+                    {!isScanning && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black">
+                            <button
+                                onClick={startScanner}
+                                disabled={!scannerInitialized}
+                                className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-black font-bold rounded-full shadow-lg disabled:opacity-50"
+                            >
+                                <Camera size={20} /> Open camera
+                            </button>
                         </div>
+                    )}
 
-                        {/* RIGHT — Upload & Manual */}
-                        <div className="p-6 flex flex-col justify-center gap-5">
-                            {/* Upload */}
-                            <div>
-                                <p className="text-xs font-black uppercase tracking-[0.22em] text-[#d4a547] mb-3 flex items-center gap-2">
-                                    <Camera size={11} /> Upload QR / PDF
-                                </p>
-                                <label className="flex items-center gap-4 w-full p-4 border border-dashed border-white/15 rounded-2xl cursor-pointer hover:bg-white/8 hover:border-[#d4a547]/50 transition-all group bg-white/3">
-                                    <div className="w-11 h-11 rounded-xl bg-white/8 border border-white/10 flex items-center justify-center shrink-0 group-hover:border-[#d4a547]/40 transition-all">
-                                        <Camera size={20} className="text-white/50 group-hover:text-[#d4a547] transition-colors" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <span className="block text-white font-bold text-sm mb-0.5">Select Screenshot or File</span>
-                                        <span className="block text-white/60 text-xs">QR image, PDF, or any file with a COT ID</span>
-                                    </div>
-                                    <input type="file" className="hidden" onChange={handleFileUpload} />
-                                </label>
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                                <div className="h-px bg-white/10 flex-1" />
-                                <span className="text-xs font-black text-white/60 uppercase tracking-[0.28em]">or</span>
-                                <div className="h-px bg-white/10 flex-1" />
-                            </div>
-
-                            {/* Manual entry */}
-                            <div>
-                                <p className="text-xs font-black uppercase tracking-[0.22em] text-[#d4a547] mb-3 flex items-center gap-2">
-                                    <Search size={11} /> Type COT ID
-                                </p>
-                                <form onSubmit={handleManualCheck} className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. COT-1234"
-                                        value={scannedId || ''}
-                                        onChange={(e) => setScannedId(e.target.value)}
-                                        className="flex-1 px-4 py-3 bg-white/5 border border-white/12 rounded-xl outline-none focus:border-[#d4a547]/60 focus:bg-white/8 transition-all font-mono text-white placeholder:text-white/40 text-sm"
-                                    />
-                                    <button
-                                        type="submit"
-                                        disabled={!scannedId || loading}
-                                        className="px-5 py-3 bg-gradient-to-r from-[#d4a547] to-[#f0c040] text-[#1a0d00] font-black rounded-xl hover:brightness-110 transition-all disabled:opacity-40 text-sm"
-                                    >
-                                        Verify
-                                    </button>
-                                </form>
-                            </div>
+                    <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 pt-5">
+                        <button
+                            onClick={stopScanner}
+                            className="w-11 h-11 rounded-full bg-black/20 text-white flex items-center justify-center"
+                            aria-label="Close scanner"
+                        >
+                            <X size={34} />
+                        </button>
+                        <div className="flex items-center gap-5">
+                            <button
+                                onClick={handleTorchToggle}
+                                disabled={!torchSupported}
+                                className={`w-11 h-11 rounded-full flex items-center justify-center ${torchOn ? 'bg-white text-black' : 'bg-black/20 text-white'} disabled:opacity-40`}
+                                aria-label="Flashlight"
+                            >
+                                {torchOn ? <Flashlight size={25} /> : <FlashlightOff size={25} />}
+                            </button>
+                            <button
+                                onClick={() => setShowMyQr(true)}
+                                className="w-11 h-11 rounded-full bg-black/20 text-white flex items-center justify-center"
+                                aria-label="Show QR code"
+                            >
+                                <QrCode size={27} />
+                            </button>
                         </div>
                     </div>
-                </div>
 
-                {/* CSS for scan animations */}
-                <style>{`
-                    @keyframes scan-line {
-                        0%   { top: 16px; opacity: 0; }
-                        10%  { opacity: 1; }
-                        90%  { opacity: 1; }
-                        100% { top: calc(100% - 16px); opacity: 0; }
-                    }
-                    @keyframes scan-sweep {
-                        0%   { top: 20%; opacity: 0.6; }
-                        50%  { top: 80%; opacity: 1; }
-                        100% { top: 20%; opacity: 0.6; }
-                    }
-                `}</style>
+                    <div className="absolute left-1/2 top-[37%] z-10 w-[min(78vw,430px)] aspect-square -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                        <span className="absolute top-0 left-0 w-[18%] h-[18%] border-t-[8px] border-l-[8px] border-[#ff6b6b] rounded-tl-[28px]" />
+                        <span className="absolute top-0 right-0 w-[18%] h-[18%] border-t-[8px] border-r-[8px] border-[#ffb020] rounded-tr-[28px]" />
+                        <span className="absolute bottom-0 left-0 w-[18%] h-[18%] border-b-[8px] border-l-[8px] border-[#4f8cff] rounded-bl-[28px]" />
+                        <span className="absolute bottom-0 right-0 w-[18%] h-[18%] border-b-[8px] border-r-[8px] border-[#27c46b] rounded-br-[28px]" />
+                    </div>
+
+                    <label className="absolute left-1/2 bottom-[clamp(230px,31vh,340px)] z-20 -translate-x-1/2 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-lg sm:text-xl font-medium text-slate-700 shadow-xl cursor-pointer whitespace-nowrap">
+                        <Camera size={22} />
+                        Upload from gallery
+                        <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,.pdf" />
+                    </label>
+
+                    <div className="absolute inset-x-0 bottom-0 z-20 rounded-t-[34px] bg-[#303030] px-6 pt-5 pb-6 text-center shadow-2xl">
+                        <div className="mx-auto mb-5 h-1.5 w-16 rounded-full bg-white/80" />
+                        <p className="text-3xl sm:text-4xl font-medium leading-tight text-white">
+                            Scan any QR code
+                        </p>
+                        <p className="mt-3 text-xl sm:text-2xl font-medium leading-tight text-white/80">
+                            COT ID · Entrust Card · Member QR
+                        </p>
+                        <p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-white/45">
+                            {scannerAutoNotice}
+                        </p>
+                    </div>
+                </div>
 
                 {/* ── RESULT / STATUS AREA ── */}
+                <div className="absolute inset-x-4 top-20 z-40 pointer-events-auto">
                 <AnimatePresence mode="wait">
                     {loading && (
                         <motion.div
@@ -695,7 +634,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                             <h3 className="text-2xl font-black text-white mb-2">Verification Failed</h3>
                             <p className="text-red-300/80 text-sm leading-relaxed mb-6">{error}</p>
                             <button
-                                onClick={() => { setError(null); setScannedId(null); }}
+                                onClick={() => { setError(null); setScannedId(null); startScanner(); }}
                                 className="inline-flex items-center gap-2 px-6 py-3 bg-white/8 border border-white/15 text-white font-bold rounded-xl hover:bg-white/12 transition-all text-sm"
                             >
                                 Try Again
@@ -823,10 +762,8 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                     )}
                 </AnimatePresence>
 
-                <p className="text-center text-white/60 text-xs font-bold uppercase tracking-[0.2em] pt-10 pb-4">
-                    City of Truth Ministries · Secure Identity Verification
-                </p>
             </div>
+        </div>
         </div>
     );
 };

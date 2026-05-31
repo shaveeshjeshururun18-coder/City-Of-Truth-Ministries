@@ -613,8 +613,9 @@ export const api = {
             { id: 'id-cards', label: 'ID Cards', icon: 'QrCode', order: 7, hidden: false },
             { id: 'cot-id-manager', label: 'COT ID Manager', icon: 'Dice6', order: 8, hidden: false },
             { id: 'reports', label: 'Monthly Reports', icon: 'FileText', order: 9, hidden: false },
-            { id: 'home-layout', label: 'Home Layout', icon: 'GripVertical', order: 10, hidden: false },
-            { id: 'menu-editor', label: 'Menu Editor', icon: 'Filter', order: 11, hidden: false }
+            { id: 'home-layout', label: 'Pages & Sections', icon: 'GripVertical', order: 10, hidden: false },
+            { id: 'menu-editor', label: 'Menu Editor', icon: 'Filter', order: 11, hidden: false },
+            { id: 'admin-tabs', label: 'Admin Pages', icon: 'Settings', order: 12, hidden: false }
         ];
         return defaults;
     },

@@ -5,7 +5,7 @@ import {
     ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Filter, Mail, Phone, MapPin, Droplet,
     Calendar, Award, Shield, ShieldCheck, AlertCircle, CheckCircle, QrCode, Download,
     Save, GripVertical, Globe, Plus, ImagePlus, Camera, Image as ImageIcon, MessageSquare, Check, XCircle, FileText,
-    PanelLeft, PanelTop, Database, RotateCcw, Dice6, Eye, EyeOff, Video, Tag, Settings, Crop
+    PanelLeft, PanelTop, Database, RotateCcw, Dice6, Eye, EyeOff, Video, Tag, Settings, Crop, Lock, Send
 } from 'lucide-react';
 import { User, UserRole, UserStatus, Testimonial, Ministry, DeletedUser } from '../types';
 import { Button } from './Button';
@@ -88,7 +88,10 @@ const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any
 
 
 
-const TAB_ITEMS: { id: 'users' | 'edit-page' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin' | 'admin-tabs' | 'member-forms'; label: string; icon: React.ElementType }[] = [
+type AdminTabId = 'users' | 'edit-page' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin' | 'admin-tabs' | 'member-forms';
+type AdminTabConfig = { id: AdminTabId; label: string; icon: string; order: number; hidden: boolean };
+
+const TAB_ITEMS: { id: AdminTabId; label: string; icon: React.ElementType }[] = [
     { id: 'users', label: 'Users', icon: Users },
     { id: 'member-forms', label: 'Member Forms', icon: FileText },
     { id: 'edit-page', label: 'Edit Page', icon: Edit2 },
@@ -101,11 +104,52 @@ const TAB_ITEMS: { id: 'users' | 'edit-page' | 'testimonials' | 'ministries' | '
     { id: 'reports', label: 'Monthly Reports', icon: FileText },
     { id: 'home-layout', label: 'Pages & Sections', icon: GripVertical },
     { id: 'menu-editor', label: 'Menu Editor', icon: Filter },
-    { id: 'admin-tabs', label: 'Admin Tabs', icon: Settings }
+    { id: 'admin-tabs', label: 'Admin Pages', icon: Settings }
 ];
 
 const LUCIDE_ICONS: Record<string, React.ElementType> = {
     Users, Edit2, RotateCcw, Database, MessageSquare, Globe, QrCode, Dice6, FileText, GripVertical, Filter, Settings
+};
+
+const DEFAULT_ADMIN_TABS: AdminTabConfig[] = [
+    { id: 'users', label: 'Users', icon: 'Users', order: 0, hidden: false },
+    { id: 'member-forms', label: 'Member Forms', icon: 'FileText', order: 1, hidden: false },
+    { id: 'edit-page', label: 'Edit Page', icon: 'Edit2', order: 2, hidden: false },
+    { id: 'recycle-bin', label: 'Recycle Bin', icon: 'RotateCcw', order: 3, hidden: false },
+    { id: 'firebase', label: 'Firebase', icon: 'Database', order: 4, hidden: false },
+    { id: 'messages', label: 'Messages', icon: 'MessageSquare', order: 5, hidden: false },
+    { id: 'ministries', label: 'Tab TV + Ministry', icon: 'Globe', order: 6, hidden: false },
+    { id: 'id-cards', label: 'ID Cards', icon: 'QrCode', order: 7, hidden: false },
+    { id: 'cot-id-manager', label: 'COT ID Manager', icon: 'Dice6', order: 8, hidden: false },
+    { id: 'reports', label: 'Monthly Reports', icon: 'FileText', order: 9, hidden: false },
+    { id: 'home-layout', label: 'Pages & Sections', icon: 'GripVertical', order: 10, hidden: false },
+    { id: 'menu-editor', label: 'Menu Editor', icon: 'Filter', order: 11, hidden: false },
+    { id: 'admin-tabs', label: 'Admin Pages', icon: 'Settings', order: 12, hidden: false }
+];
+
+const normalizeAdminTabs = (tabs: any[]): AdminTabConfig[] => {
+    const validIds = new Set(DEFAULT_ADMIN_TABS.map(tab => tab.id));
+    const cleaned = (Array.isArray(tabs) ? tabs : [])
+        .filter(tab => tab && validIds.has(tab.id))
+        .map((tab, index) => {
+            const fallback = DEFAULT_ADMIN_TABS.find(item => item.id === tab.id)!;
+            return {
+                id: tab.id as AdminTabId,
+                label: `${tab.label || fallback.label}`,
+                icon: `${tab.icon || fallback.icon}`,
+                order: Number.isFinite(tab.order) ? tab.order : index,
+                hidden: !!tab.hidden
+            };
+        });
+
+    const byId = new Map(cleaned.map(tab => [tab.id, tab]));
+    DEFAULT_ADMIN_TABS.forEach(defaultTab => {
+        if (!byId.has(defaultTab.id)) byId.set(defaultTab.id, defaultTab);
+    });
+
+    return Array.from(byId.values())
+        .sort((a, b) => a.order - b.order)
+        .map((tab, index) => ({ ...tab, order: index }));
 };
 
 const COMMON_DISAPPROVE_REASONS = [
@@ -128,6 +172,8 @@ const TAMIL_NADU_DISTRICTS = [
 const MAX_SUGGESTED_COT_IDS = 200;
 const ADMIN_PASSWORD_OVERRIDE_KEY = 'cot_admin_password_override';
 const ADMIN_PASSWORD_CHANGE_PHRASE = 'steveharrington';
+const MEMBER_FORM_LOGO_URL = '/assets/member-form-logo.png';
+const MEMBER_FORM_STAMP_URL = '/assets/member-form-authorised-stamp-transparent.png';
 const SAFE_IMAGE_HOSTS = new Set([
     'firebasestorage.googleapis.com',
     'lh3.googleusercontent.com',
@@ -178,6 +224,481 @@ const formatMonthLabel = (monthKey: string) => {
     return parsed.toLocaleString(undefined, { month: 'long', year: 'numeric' });
 };
 
+const SectionMiniPreview: React.FC<{ sectionId: string; customName: string; customDesc: string }> = ({ sectionId, customName, customDesc }) => {
+    switch (sectionId) {
+        case 'hero':
+            return (
+                <div className="w-full bg-gradient-to-r from-brand-900 to-indigo-950 text-white rounded-2xl p-4 relative overflow-hidden shadow-lg border border-brand-800">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-brand-500/10 rounded-full blur-xl pointer-events-none" />
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4 relative z-10">
+                        <div className="flex-1 text-center md:text-left">
+                            <span className="inline-block bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase mb-1">
+                                Welcome Portal
+                            </span>
+                            <h4 className="text-sm md:text-base font-serif font-black text-amber-300 uppercase tracking-tight">
+                                {customName || 'Hero Welcome'}
+                            </h4>
+                            <p className="text-[10px] text-slate-300 font-medium mt-1 max-w-md">
+                                {customDesc || 'Main entrance with video & primary CTA'}
+                            </p>
+                        </div>
+                        <div className="shrink-0 flex gap-2">
+                            <div className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center border border-white/20 transition-all cursor-pointer">
+                                <Video size={12} className="text-amber-400" />
+                            </div>
+                            <div className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-brand-950 font-black text-[9px] tracking-wider uppercase transition-all shadow-md flex items-center gap-1 cursor-pointer">
+                                Enter Sanctuary <ChevronRight size={10} strokeWidth={3} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        case 'about':
+            return (
+                <div className="w-full bg-white rounded-2xl p-4 shadow-md border border-slate-100 flex flex-col md:flex-row gap-4">
+                    <div className="flex-1">
+                        <span className="inline-block bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase mb-1">
+                            Our Foundation
+                        </span>
+                        <h4 className="text-sm font-black text-brand-950 uppercase tracking-tight">
+                            {customName || 'About Ministry'}
+                        </h4>
+                        <p className="text-[10px] text-slate-500 font-medium mt-1 leading-relaxed">
+                            {customDesc || 'Mission, vision and core values'}
+                        </p>
+                        <div className="flex gap-2 mt-2">
+                            <span className="w-2 h-2 rounded-full bg-brand-500" />
+                            <span className="w-2 h-2 rounded-full bg-blue-500" />
+                            <span className="w-2 h-2 rounded-full bg-amber-500" />
+                        </div>
+                    </div>
+                    <div className="flex-1 grid grid-cols-3 gap-2">
+                        {['Truth', 'Worship', 'Love'].map((pill, i) => (
+                            <div key={pill} className="bg-slate-50 border border-slate-100 rounded-xl p-2 flex flex-col items-center justify-center text-center shadow-sm">
+                                <div className={`w-6 h-6 rounded-lg ${i === 0 ? 'bg-brand-100 text-brand-600' : i === 1 ? 'bg-blue-100 text-blue-600' : 'bg-rose-100 text-rose-600'} flex items-center justify-center mb-1`}>
+                                    {i === 0 ? <ShieldCheck size={12} /> : i === 1 ? <Award size={12} /> : <Users size={12} />}
+                                </div>
+                                <span className="text-[8px] font-black text-slate-700 uppercase tracking-wider">{pill}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        case 'menorah':
+            return (
+                <div className="w-full bg-slate-950 text-white rounded-2xl p-4 relative overflow-hidden shadow-lg border border-slate-900">
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 w-20 h-20 bg-amber-500/10 rounded-full blur-xl pointer-events-none" />
+                    <div className="flex items-center justify-between gap-4 relative z-10">
+                        <div className="flex-1">
+                            <span className="inline-block bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase mb-1">
+                                Sacred Symbolism
+                            </span>
+                            <h4 className="text-sm font-serif font-bold text-amber-100 tracking-wide">
+                                {customName || 'Golden Menorah'}
+                            </h4>
+                            <p className="text-[10px] text-slate-400 font-medium mt-1">
+                                {customDesc || 'Spiritual significance and flag'}
+                            </p>
+                            <div className="flex items-center gap-2 mt-3 bg-white/5 border border-white/10 px-2 py-1 rounded-xl w-fit">
+                                <span className="text-[8px] font-black tracking-widest text-slate-300 uppercase">State of Israel Flag</span>
+                                <div className="w-4 h-3 bg-white border border-slate-400 flex flex-col justify-between p-[1px] shrink-0">
+                                    <div className="h-[2px] bg-blue-600" />
+                                    <div className="text-[5px] text-blue-600 font-bold leading-none text-center">✡</div>
+                                    <div className="h-[2px] bg-blue-600" />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="shrink-0 flex items-center justify-center p-2 bg-gradient-to-br from-amber-500/20 to-brand-950 border border-amber-500/30 rounded-2xl shadow-inner">
+                            <svg className="w-10 h-10 text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                <path d="M12 4v16M8 8c0 4 4 4 4 4s4 0 4-4M5 6c0 8 7 8 7 8s7 0 7-8M2 5c0 11 10 11 10 11s10 0 10-11M10 20h4" strokeLinecap="round"/>
+                                <circle cx="12" cy="2" r="0.8" fill="currentColor"/>
+                                <circle cx="8" cy="6" r="0.8" fill="currentColor"/>
+                                <circle cx="16" cy="6" r="0.8" fill="currentColor"/>
+                                <circle cx="5" cy="4" r="0.8" fill="currentColor"/>
+                                <circle cx="19" cy="4" r="0.8" fill="currentColor"/>
+                                <circle cx="2" cy="3" r="0.8" fill="currentColor"/>
+                                <circle cx="22" cy="3" r="0.8" fill="currentColor"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            );
+        case 'highlights':
+            return (
+                <div className="w-full bg-slate-50 rounded-2xl p-4 shadow-inner border border-slate-200/60">
+                    <div className="flex items-center justify-between mb-3">
+                        <div>
+                            <span className="inline-block bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase mb-0.5">
+                                Live Action
+                            </span>
+                            <h4 className="text-xs font-black text-brand-950 uppercase tracking-tight">
+                                {customName || 'Ministry Moments'}
+                            </h4>
+                            <p className="text-[9px] text-slate-400 font-bold truncate max-w-xs">
+                                {customDesc || 'Global highlights and focus'}
+                            </p>
+                        </div>
+                        <span className="text-[8px] font-black text-sky-600 bg-sky-50 px-2 py-1 rounded-lg border border-sky-100 uppercase tracking-wider">
+                            Gallery Mockup
+                        </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                        {[1, 2, 3].map((card) => (
+                            <div key={card} className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm flex flex-col">
+                                <div className="h-10 bg-slate-200 relative overflow-hidden flex items-center justify-center">
+                                    <ImageIcon size={14} className="text-slate-400" />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent" />
+                                    <span className="absolute bottom-1 left-1 text-[6px] font-bold text-white px-1 py-0.5 rounded bg-black/40">Active</span>
+                                </div>
+                                <div className="p-1">
+                                    <div className="w-10 h-1 bg-brand-500 rounded mb-0.5" />
+                                    <div className="w-14 h-1 bg-slate-200 rounded" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        case 'leader':
+            return (
+                <div className="w-full bg-gradient-to-br from-indigo-950 to-brand-950 text-white rounded-2xl p-4 relative overflow-hidden shadow-lg border border-indigo-900">
+                    <div className="flex flex-col md:flex-row gap-4 items-center relative z-10">
+                        <div className="relative shrink-0">
+                            <div className="w-12 h-12 rounded-full bg-slate-300 border-2 border-amber-400/80 shadow-md flex items-center justify-center text-slate-700 font-bold text-xs uppercase overflow-hidden">
+                                <UserIcon size={24} className="text-slate-500" />
+                            </div>
+                            <span className="absolute -bottom-1 -right-1 bg-amber-500 text-[8px] font-bold text-brand-950 px-1 rounded-full border border-brand-950">Leader</span>
+                        </div>
+                        <div className="flex-1 text-center md:text-left">
+                            <span className="inline-block bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase mb-1">
+                                Shepherd's Voice
+                            </span>
+                            <h4 className="text-sm font-bold text-amber-300">
+                                {customName || 'Leader Message'}
+                            </h4>
+                            <p className="text-[10px] text-slate-300 mt-1 italic font-serif">
+                                "{customDesc || 'Direct word from ministry leadership'}"
+                            </p>
+                            <div className="mt-2 text-[8px] font-bold text-slate-400 tracking-wider uppercase flex items-center gap-1.5 justify-center md:justify-start">
+                                <ShieldCheck size={10} className="text-amber-400" /> Authorized Apostolic Seal
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        case 'hebrew':
+            return (
+                <div className="w-full bg-gradient-to-tr from-brand-950 via-purple-950 to-indigo-950 text-white rounded-2xl p-4 relative overflow-hidden shadow-lg border border-purple-900">
+                    <div className="absolute right-2 top-2 text-[48px] font-bold text-amber-500/10 pointer-events-none select-none font-serif leading-none">
+                        א
+                    </div>
+                    <div className="flex items-center justify-between gap-4 relative z-10">
+                        <div className="flex-1">
+                            <span className="inline-block bg-purple-500/25 text-purple-300 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase mb-1 border border-purple-500/20">
+                                Hebrew Heritage
+                            </span>
+                            <h4 className="text-sm font-serif font-black text-amber-300 tracking-wide uppercase">
+                                {customName || 'Hebrew Sanctuary'}
+                            </h4>
+                            <p className="text-[10px] text-slate-300 font-medium mt-1 leading-relaxed">
+                                {customDesc || 'Language and spiritual resources'}
+                            </p>
+                        </div>
+                        <div className="shrink-0 bg-white/5 border border-white/10 rounded-xl p-2.5 text-center flex flex-col items-center justify-center">
+                            <span className="text-[8px] font-bold text-amber-400 uppercase tracking-widest">Alef-Bet</span>
+                            <div className="flex gap-1.5 text-xs font-serif font-bold text-white mt-1">
+                                <span>א</span>
+                                <span>ב</span>
+                                <span>ג</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        case 'hebrewPages':
+            return (
+                <div className="w-full bg-slate-100 rounded-2xl p-4 shadow-inner border border-slate-200">
+                    <div className="flex items-center justify-between mb-3">
+                        <div>
+                            <span className="inline-block bg-fuchsia-100 text-fuchsia-700 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase mb-0.5">
+                                Resources Grid
+                            </span>
+                            <h4 className="text-xs font-black text-brand-950 uppercase tracking-tight">
+                                {customName || 'All Page Previews'}
+                            </h4>
+                            <p className="text-[9px] text-slate-500 truncate max-w-xs">
+                                {customDesc || 'Hebrew content, tools, and page preview cards'}
+                            </p>
+                        </div>
+                        <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">3 Quick Pages</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                        {['Grammar Guide', 'Interactive Map', 'Alef-Bet App'].map((page, i) => (
+                            <div key={page} className="bg-white border border-slate-200 hover:border-brand-300 rounded-xl p-2 shadow-sm flex flex-col items-center text-center cursor-pointer transition-all">
+                                <div className="w-6 h-6 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center mb-1 shrink-0">
+                                    {i === 0 ? <FileText size={12} /> : i === 1 ? <MapPin size={12} /> : <Award size={12} />}
+                                </div>
+                                <span className="text-[8px] font-black text-slate-800 tracking-tight leading-tight uppercase line-clamp-1">{page}</span>
+                                <span className="text-[6px] text-slate-400 mt-0.5 font-bold uppercase">Explore</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        case 'pastorBaruch':
+            return (
+                <div className="w-full bg-white rounded-2xl p-4 shadow-md border border-slate-100">
+                    <div className="flex flex-col md:flex-row gap-4 items-center">
+                        <div className="shrink-0 flex items-center gap-2">
+                            <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-sm shadow-md">
+                                PB
+                            </div>
+                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
+                                <Award size={14} className="text-amber-600" />
+                            </div>
+                        </div>
+                        <div className="flex-1 text-center md:text-left">
+                            <span className="inline-block bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase mb-1">
+                                Ministry Anointing
+                            </span>
+                            <h4 className="text-xs font-black text-brand-950 uppercase tracking-tight">
+                                {customName || 'Pastor & Baruch'}
+                            </h4>
+                            <p className="text-[10px] text-slate-500 font-semibold mt-0.5">
+                                {customDesc || 'Pastor page and worship preview'}
+                            </p>
+                        </div>
+                        <div className="shrink-0 bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 flex items-center gap-2 w-full md:w-auto justify-center">
+                            <div className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
+                            <div className="text-left">
+                                <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Audio Stream</p>
+                                <p className="text-[8px] font-black text-slate-800 uppercase tracking-tight">Baruch Worship Live</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        case 'valparai':
+            return (
+                <div className="w-full bg-gradient-to-br from-emerald-950 to-teal-900 text-white rounded-2xl p-4 relative overflow-hidden shadow-lg border border-emerald-900">
+                    <div className="absolute right-0 bottom-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl pointer-events-none" />
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 relative z-10">
+                        <div className="flex-1 text-center md:text-left">
+                            <span className="inline-block bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase mb-1">
+                                Regional Mission
+                            </span>
+                            <h4 className="text-sm font-serif font-black text-emerald-300 uppercase tracking-tight">
+                                {customName || 'Valparai Presence'}
+                            </h4>
+                            <p className="text-[10px] text-emerald-100/70 font-semibold mt-1">
+                                {customDesc || 'Local impact and community'}
+                            </p>
+                        </div>
+                        <div className="shrink-0 bg-white/5 border border-white/10 rounded-xl p-2.5 flex items-center gap-2.5">
+                            <div className="flex flex-col items-center">
+                                <span className="text-[12px] font-bold text-emerald-400">100%</span>
+                                <span className="text-[6px] font-bold text-slate-300 uppercase tracking-wider">Committed</span>
+                            </div>
+                            <div className="w-[1px] h-6 bg-white/10" />
+                            <div className="flex items-center gap-1 bg-emerald-500/20 px-2 py-1 rounded-lg border border-emerald-500/30 text-[8px] font-bold text-emerald-300 uppercase tracking-wider">
+                                <MapPin size={10} /> Local Map
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        case 'testimonials':
+            return (
+                <div className="w-full bg-slate-50 rounded-2xl p-4 shadow-inner border border-slate-200">
+                    <div className="flex items-center justify-between mb-3">
+                        <div>
+                            <span className="inline-block bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase mb-0.5">
+                                Faithful Hearts
+                            </span>
+                            <h4 className="text-xs font-black text-brand-950 uppercase tracking-tight">
+                                {customName || 'Voices of Faith'}
+                            </h4>
+                            <p className="text-[9px] text-slate-500 truncate max-w-xs">
+                                {customDesc || 'Member stories and testimonies'}
+                            </p>
+                        </div>
+                        <span className="text-[7px] font-black text-teal-600 bg-teal-50 px-2 py-0.5 rounded-lg border border-teal-100 uppercase tracking-wider">
+                            Interactive Bubbles
+                        </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {[
+                            { init: 'AM', text: '“My walk with God has grown immensely through the Hebrew studies here.”', color: 'bg-teal-500' },
+                            { init: 'SJ', text: '“The ID card system gives us such a unified sense of identity!”', color: 'bg-indigo-500' }
+                        ].map((item, idx) => (
+                            <div key={idx} className="bg-white border border-slate-200 rounded-xl p-2 shadow-sm flex items-start gap-2">
+                                <div className={`w-6 h-6 rounded-full ${item.color} text-white flex items-center justify-center font-bold text-[8px] shrink-0 shadow`}>
+                                    {item.init}
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-[8px] text-slate-600 font-bold leading-tight line-clamp-2">{item.text}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        case 'members':
+            return (
+                <div className="w-full bg-slate-900 text-white rounded-2xl p-4 relative overflow-hidden shadow-lg border border-slate-800">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div className="flex-1 text-center md:text-left">
+                            <span className="inline-block bg-orange-500/25 text-orange-300 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase mb-1">
+                                Worshippers Directory
+                            </span>
+                            <h4 className="text-xs font-black text-orange-400 uppercase tracking-tight">
+                                {customName || 'Member Initials'}
+                            </h4>
+                            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                                {customDesc || 'Names with two-letter identity logos'}
+                            </p>
+                        </div>
+                        <div className="shrink-0 flex items-center gap-1.5 bg-white/5 border border-white/10 px-2.5 py-1.5 rounded-xl">
+                            {['BH', 'SJ', 'SH', 'PM', 'ST'].map((init, i) => (
+                                <div 
+                                    key={init} 
+                                    className={`w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-[7px] font-black shadow-md ${
+                                        i === 0 ? 'bg-amber-600' : i === 1 ? 'bg-blue-600' : i === 2 ? 'bg-indigo-600' : i === 3 ? 'bg-emerald-600' : 'bg-rose-600'
+                                    }`}
+                                >
+                                    {init}
+                                </div>
+                            ))}
+                            <span className="text-[7px] font-black text-orange-400 ml-1">+140</span>
+                        </div>
+                    </div>
+                </div>
+            );
+        case 'preview':
+            return (
+                <div className="w-full bg-slate-50 rounded-2xl p-4 shadow-inner border border-slate-200">
+                    <div className="flex items-center justify-between mb-3">
+                        <div>
+                            <span className="inline-block bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase mb-0.5">
+                                Identity Center
+                            </span>
+                            <h4 className="text-xs font-black text-brand-950 uppercase tracking-tight">
+                                {customName || 'Entrust Preview'}
+                            </h4>
+                            <p className="text-[9px] text-slate-500 truncate max-w-xs">
+                                {customDesc || 'Quick overview of community card'}
+                            </p>
+                        </div>
+                        <span className="text-[7px] font-black text-violet-600 bg-violet-50 px-2 py-0.5 rounded-lg border border-violet-100 uppercase tracking-wider">
+                            Entrust Premium Card
+                        </span>
+                    </div>
+                    
+                    <div className="max-w-sm mx-auto bg-gradient-to-br from-amber-600 via-amber-700 to-brand-955 text-white rounded-xl p-3 border border-amber-500/30 shadow-lg relative overflow-hidden">
+                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent pointer-events-none" />
+                        <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-1.5">
+                                <div className="w-4 h-4 bg-amber-400 text-brand-950 flex items-center justify-center font-bold text-[8px] rounded-lg">
+                                    ✡
+                                </div>
+                                <div>
+                                    <h5 className="text-[7px] font-black tracking-widest text-amber-200 uppercase leading-none">CITY OF TRUTH</h5>
+                                    <span className="text-[5px] font-black tracking-widest text-white/50 uppercase leading-none">MINISTRIES</span>
+                                </div>
+                            </div>
+                            <span className="text-[6px] font-black tracking-widest bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-300 border border-amber-500/30 uppercase">
+                                ENTRUST
+                            </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-3 mt-2">
+                            <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-300 shrink-0">
+                                <Users size={16} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <h6 className="text-[8px] font-black tracking-wide leading-none uppercase truncate">Steve Harrington</h6>
+                                <p className="text-[5px] text-amber-200 font-bold uppercase tracking-wider mt-0.5">COT-ID-042</p>
+                                <div className="flex gap-2 mt-1">
+                                    <div>
+                                        <p className="text-[4px] text-white/50 font-black uppercase">Role</p>
+                                        <p className="text-[5px] font-black text-amber-300 uppercase leading-none">Acolyte</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[4px] text-white/50 font-black uppercase">Expires</p>
+                                        <p className="text-[5px] font-black text-amber-300 uppercase leading-none">11/2030</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bg-white p-1 rounded border border-white/20 shrink-0 shadow flex flex-col items-center">
+                                <QrCode size={16} className="text-brand-950" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        case 'donations':
+            return (
+                <div className="w-full bg-white rounded-2xl p-4 shadow-md border border-slate-100">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div className="flex-1 text-center md:text-left">
+                            <span className="inline-block bg-orange-50 text-orange-700 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase mb-1">
+                                Stewardship
+                            </span>
+                            <h4 className="text-xs font-black text-brand-950 uppercase tracking-tight">
+                                {customName || 'Donations'}
+                            </h4>
+                            <p className="text-[10px] text-slate-500 font-semibold mt-0.5">
+                                {customDesc || 'Support boxes and giving section'}
+                            </p>
+                        </div>
+                        <div className="shrink-0 flex gap-2 w-full md:w-auto">
+                            {['Tithes', 'Missions'].map((box) => (
+                                <div key={box} className="bg-slate-50 border border-slate-100 p-2 rounded-xl flex-1 md:flex-none text-center shadow-sm min-w-[70px]">
+                                    <span className="text-[7px] font-black text-slate-400 uppercase tracking-wider block">{box}</span>
+                                    <span className="text-[9px] font-black text-brand-600 block mt-0.5">SUPPORT</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        case 'verify':
+            return (
+                <div className="w-full bg-slate-950 text-white rounded-2xl p-4 relative overflow-hidden shadow-lg border border-slate-900">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div className="flex-1 text-center md:text-left">
+                            <span className="inline-block bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase mb-1">
+                                Secure Gateway
+                            </span>
+                            <h4 className="text-xs font-black text-emerald-300 uppercase tracking-tight">
+                                {customName || 'Verify ID'}
+                            </h4>
+                            <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                {customDesc || 'Security and verification portal'}
+                            </p>
+                        </div>
+                        <div className="shrink-0 flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/25 px-3 py-1.5 rounded-xl">
+                            <div className="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-bold shadow-md shrink-0">
+                                <Check size={12} strokeWidth={3} />
+                            </div>
+                            <div className="text-left">
+                                <p className="text-[7px] font-black text-emerald-400 uppercase tracking-widest">Portal State</p>
+                                <p className="text-[8px] font-black text-white uppercase tracking-tight">256-bit Secured</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        default:
+            return (
+                <div className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 shadow-sm text-center">
+                    <h4 className="text-xs font-black text-brand-950">{customName}</h4>
+                    <p className="text-[9px] text-slate-400 mt-1">{customDesc}</p>
+                </div>
+            );
+    }
+};
+
 const EMPTY_NEW_USER = {
     memberId: '',
     name: '',
@@ -192,6 +713,7 @@ const EMPTY_NEW_USER = {
 };
 
 type UserQuickViewMode = 'photos' | 'ids' | 'cards' | 'locations' | 'join-dates';
+type IdCardVisualMode = 'cards' | 'photos' | 'ids' | 'locations' | 'join-dates';
 
 const USER_QUICK_VIEW_OPTIONS: { id: UserQuickViewMode; label: string; description: string; icon: React.ElementType; accent: string; bg: string }[] = [
     { id: 'photos', label: 'Images', description: 'Show only member photos', icon: ImageIcon, accent: 'text-pink-600', bg: 'bg-pink-50' },
@@ -251,8 +773,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [downloadingMemberFormPdfUserId, setDownloadingMemberFormPdfUserId] = useState<string | null>(null);
     const [failedMinistryImages, setFailedMinistryImages] = useState<Record<string, boolean>>({});
     const [userQuickViewMode, setUserQuickViewMode] = useState<UserQuickViewMode | null>(null);
+    const [idCardVisualMode, setIdCardVisualMode] = useState<IdCardVisualMode>('cards');
 
-    const [activeTab, setActiveTab] = useState<'users' | 'edit-page' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin' | 'admin-tabs' | 'member-forms'>('users');
+    const [activeTab, setActiveTab] = useState<AdminTabId>('users');
     const [menuMode, setMenuMode] = useState<'horizontal' | 'vertical'>(() => {
         try {
             const stored = localStorage.getItem('adminMenuMode');
@@ -292,27 +815,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
     const [renameValue, setRenameValue] = useState('');
 
-    const [dynamicTabs, setDynamicTabs] = useState<any[]>([]);
+    const [dynamicTabs, setDynamicTabs] = useState<AdminTabConfig[]>(DEFAULT_ADMIN_TABS);
 
     React.useEffect(() => {
         api.getAdminTabsConfig().then(config => {
-            setDynamicTabs(config);
+            setDynamicTabs(normalizeAdminTabs(config));
         });
     }, []);
 
     const visibleTabs = useMemo(() => {
-        if (dynamicTabs.length === 0) return TAB_ITEMS;
-        
-        const hasMemberForms = dynamicTabs.some(t => t.id === 'member-forms');
-        let tabs = [...dynamicTabs];
-        if (!hasMemberForms) {
-            tabs.splice(1, 0, { id: 'member-forms', label: 'Member Forms', icon: 'FileText', order: 1, hidden: false });
-        }
-
-        return tabs.filter(t => !t.hidden).map(t => {
+        return normalizeAdminTabs(dynamicTabs).filter(t => !t.hidden).map(t => {
             const item = TAB_ITEMS.find(ti => ti.id === t.id);
             return {
-                id: t.id as any,
+                id: t.id,
                 label: t.label,
                 icon: item ? item.icon : Globe
             };
@@ -377,6 +892,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [showAdminPasswordDraft, setShowAdminPasswordDraft] = useState(false);
     const [showAdminPasswordConfirm, setShowAdminPasswordConfirm] = useState(false);
     const [showAdminPasswordPhrase, setShowAdminPasswordPhrase] = useState(false);
+    const [isAdminPasswordGateOpen, setIsAdminPasswordGateOpen] = useState(false);
+    const [isAdminPasswordUnlocked, setIsAdminPasswordUnlocked] = useState(false);
     const [adminPasswordMessage, setAdminPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const [memberFormPageUser, setMemberFormPageUser] = useState<User | null>(null);
     const [selectedDenominationCategory, setSelectedDenominationCategory] = useState<string>('Form Not Filled');
@@ -1695,9 +2212,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     const handleSaveAdminPassword = () => {
         const nextPassword = adminPasswordDraft.trim();
-        const authPhrase = adminPasswordPhrase.trim().toLowerCase();
-        if (authPhrase !== ADMIN_PASSWORD_CHANGE_PHRASE) {
-            setAdminPasswordMessage({ type: 'error', text: 'Password change phrase is incorrect.' });
+        if (!isAdminPasswordUnlocked) {
+            setAdminPasswordMessage({ type: 'error', text: 'Enter the secret first to unlock password change.' });
             return;
         }
         if (!nextPassword) {
@@ -1718,10 +2234,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             setAdminPasswordDraft('');
             setAdminPasswordConfirm('');
             setAdminPasswordPhrase('');
+            setIsAdminPasswordGateOpen(false);
+            setIsAdminPasswordUnlocked(false);
             setAdminPasswordMessage({ type: 'success', text: 'Admin dashboard password updated successfully.' });
         } catch {
             setAdminPasswordMessage({ type: 'error', text: 'Unable to save password in this browser/session.' });
         }
+    };
+
+    const handleUnlockAdminPasswordChange = () => {
+        if (adminPasswordPhrase.trim().toLowerCase() !== ADMIN_PASSWORD_CHANGE_PHRASE) {
+            setIsAdminPasswordUnlocked(false);
+            setAdminPasswordMessage({ type: 'error', text: 'Secret is incorrect.' });
+            return;
+        }
+        setIsAdminPasswordUnlocked(true);
+        setAdminPasswordPhrase('');
+        setAdminPasswordMessage({ type: 'success', text: 'Password change unlocked. Enter the new password.' });
     };
 
     const handleResetAdminPassword = () => {
@@ -1731,6 +2260,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             setAdminPasswordDraft('');
             setAdminPasswordConfirm('');
             setAdminPasswordPhrase('');
+            setIsAdminPasswordGateOpen(false);
+            setIsAdminPasswordUnlocked(false);
             setAdminPasswordMessage({ type: 'success', text: 'Custom admin password removed. Default password is active.' });
         } catch {
             setAdminPasswordMessage({ type: 'error', text: 'Unable to reset password in this browser/session.' });
@@ -1970,6 +2501,163 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
     };
 
+    const renderAdminPasswordChangePanel = (variant: 'admin-pages' | 'firebase') => {
+        const isFirebase = variant === 'firebase';
+        return (
+            <div className={isFirebase ? 'bg-white rounded-3xl border border-slate-100 shadow-sm p-6' : 'mt-8 p-5 md:p-6 rounded-3xl border border-amber-100 bg-amber-50/60'}>
+                <div className="flex items-center justify-between gap-3 mb-4">
+                    <div>
+                        <h3 className="text-sm font-black uppercase tracking-widest text-brand-700">Admin Dashboard Password</h3>
+                        <p className="text-xs text-slate-500 mt-1">
+                            Click Change Password, enter the secret, then set the new admin password.
+                        </p>
+                    </div>
+                    <span className={`text-[10px] px-2 py-1 rounded-full font-black uppercase tracking-wider ${hasAdminPasswordOverride ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-white text-amber-700 border border-amber-100'}`}>
+                        {hasAdminPasswordOverride ? 'Custom Active' : 'Default Active'}
+                    </span>
+                </div>
+
+                {!isAdminPasswordGateOpen && !isAdminPasswordUnlocked && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsAdminPasswordGateOpen(true);
+                            setAdminPasswordMessage(null);
+                        }}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-black uppercase tracking-wider"
+                    >
+                        <Lock size={14} />
+                        Change Password
+                    </button>
+                )}
+
+                {isAdminPasswordGateOpen && !isAdminPasswordUnlocked && (
+                    <div className="space-y-3">
+                        <div className="relative">
+                            <input
+                                type={showAdminPasswordPhrase ? 'text' : 'password'}
+                                placeholder="Enter secret"
+                                value={adminPasswordPhrase}
+                                onChange={(e) => {
+                                    setAdminPasswordPhrase(e.target.value);
+                                    setAdminPasswordMessage(null);
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleUnlockAdminPasswordChange();
+                                }}
+                                className="w-full px-3 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:border-brand-500"
+                                autoFocus
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowAdminPasswordPhrase(prev => !prev)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800"
+                                title={showAdminPasswordPhrase ? 'Hide secret' : 'Show secret'}
+                                aria-label={showAdminPasswordPhrase ? 'Hide secret' : 'Show secret'}
+                            >
+                                {showAdminPasswordPhrase ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={handleUnlockAdminPasswordChange}
+                                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-black uppercase tracking-wider"
+                            >
+                                <ShieldCheck size={14} />
+                                Unlock
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsAdminPasswordGateOpen(false);
+                                    setAdminPasswordPhrase('');
+                                    setAdminPasswordMessage(null);
+                                }}
+                                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-black uppercase tracking-wider"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {isAdminPasswordUnlocked && (
+                    <div className="space-y-3">
+                        <div className="grid md:grid-cols-2 gap-3">
+                            <div className="relative">
+                                <input
+                                    type={showAdminPasswordDraft ? 'text' : 'password'}
+                                    placeholder="New admin password"
+                                    value={adminPasswordDraft}
+                                    onChange={(e) => {
+                                        setAdminPasswordDraft(e.target.value);
+                                        setAdminPasswordMessage(null);
+                                    }}
+                                    className="w-full px-3 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:border-brand-500"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAdminPasswordDraft(prev => !prev)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800"
+                                    title={showAdminPasswordDraft ? 'Hide password' : 'Show password'}
+                                    aria-label={showAdminPasswordDraft ? 'Hide password' : 'Show password'}
+                                >
+                                    {showAdminPasswordDraft ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                            </div>
+                            <div className="relative">
+                                <input
+                                    type={showAdminPasswordConfirm ? 'text' : 'password'}
+                                    placeholder="Confirm new password"
+                                    value={adminPasswordConfirm}
+                                    onChange={(e) => {
+                                        setAdminPasswordConfirm(e.target.value);
+                                        setAdminPasswordMessage(null);
+                                    }}
+                                    className="w-full px-3 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:border-brand-500"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAdminPasswordConfirm(prev => !prev)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800"
+                                    title={showAdminPasswordConfirm ? 'Hide password' : 'Show password'}
+                                    aria-label={showAdminPasswordConfirm ? 'Hide password' : 'Show password'}
+                                >
+                                    {showAdminPasswordConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={handleSaveAdminPassword}
+                                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-black uppercase tracking-wider"
+                            >
+                                <Save size={14} />
+                                Save Password
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleResetAdminPassword}
+                                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-black uppercase tracking-wider"
+                            >
+                                <RotateCcw size={14} />
+                                Reset Default
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {adminPasswordMessage && (
+                    <p className={`mt-3 text-xs font-bold ${adminPasswordMessage.type === 'success' ? 'text-emerald-700' : 'text-red-600'}`}>
+                        {adminPasswordMessage.text}
+                    </p>
+                )}
+            </div>
+        );
+    };
+
     const toggleSelectUser = (userId: string) => {
         const newSelected = new Set(selectedUsers);
         if (newSelected.has(userId)) {
@@ -2203,64 +2891,212 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
             const pageWidth = pdf.internal.pageSize.getWidth();
             const pageHeight = pdf.internal.pageSize.getHeight();
-            const margin = 14;
-            const contentWidth = pageWidth - margin * 2;
-            let y = 38;
+            const navy = '#1B2A5E';
+            const navyDark = '#0F1A3E';
+            const gold = '#C9963A';
+            const goldLight = '#E8C47A';
+            const cream = '#F9F5EE';
+            const ml = 16;
+            const fieldWidth = pageWidth - (ml * 2);
+            const fieldHeight = 11.5;
+            const labelHeight = 5;
+            const labelGap = 2;
+            const verticalGap = 4.5;
 
-            const addBlock = (label: string, value: string) => {
-                const text = `${value || 'Not provided'}`.trim() || 'Not provided';
-                const lines = pdf.splitTextToSize(text, contentWidth - 8);
-                const blockHeight = Math.max(12, lines.length * 4 + 7);
-                if (y + blockHeight > pageHeight - 14) {
-                    pdf.addPage();
-                    y = 20;
+            const loadImageDataUrl = async (url: string) => {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) return null;
+                    const blob = await response.blob();
+                    return await new Promise<string>((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result as string);
+                        reader.onerror = () => reject(reader.error);
+                        reader.readAsDataURL(blob);
+                    });
+                } catch {
+                    return null;
                 }
-                pdf.setFillColor(248, 250, 252);
-                pdf.roundedRect(margin, y, contentWidth, blockHeight, 3, 3, 'F');
-                pdf.setTextColor(100, 116, 139);
+            };
+
+            const [logoDataUrl, stampDataUrl] = await Promise.all([
+                loadImageDataUrl(MEMBER_FORM_LOGO_URL),
+                loadImageDataUrl(MEMBER_FORM_STAMP_URL)
+            ]);
+
+            const valueOrBlank = (value?: string) => `${value || ''}`.trim();
+            const drawBackground = () => {
+                pdf.setFillColor(cream);
+                pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+                pdf.setFillColor(navyDark);
+                pdf.rect(0, 0, pageWidth, 58, 'F');
+                pdf.setFillColor(gold);
+                pdf.rect(0, 58, pageWidth, 3, 'F');
+                pdf.setDrawColor('#D4C4A0');
+                pdf.setLineWidth(0.4);
+                pdf.line(10, 64, 10, pageHeight - 34);
+                pdf.line(pageWidth - 10, 64, pageWidth - 10, pageHeight - 34);
+                pdf.setFillColor(navyDark);
+                pdf.rect(0, pageHeight - 24, pageWidth, 24, 'F');
+                pdf.setFillColor(gold);
+                pdf.rect(0, pageHeight - 26, pageWidth, 2, 'F');
+            };
+
+            const drawHeader = () => {
+                if (logoDataUrl) {
+                    pdf.addImage(logoDataUrl, 'PNG', 13, 8, 40, 40, undefined, 'FAST');
+                }
+                const tx = 58;
+                pdf.setTextColor(255, 255, 255);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(16);
+                pdf.text('CITY OF TRUTH MINISTRIES', tx, 24);
+                pdf.setTextColor(gold);
+                pdf.setFontSize(9);
+                pdf.text('BUILDING DISCIPLESHIP', tx, 32);
+                pdf.setDrawColor(gold);
+                pdf.setLineWidth(0.8);
+                pdf.line(tx, 35.5, pageWidth - 13, 35.5);
+                pdf.setTextColor(goldLight);
+                pdf.setFontSize(11);
+                pdf.text('MEMBER PROFILE REGISTRATION FORM', tx, 43);
+                pdf.setTextColor('#AAB8D8');
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(7.5);
+                pdf.text('CONFIDENTIAL  -  LEADERSHIP REVIEW ONLY  -  DEDICATED FOR MINISTRY USE ONLY', tx, 49);
+            };
+
+            const drawFooter = () => {
+                pdf.setTextColor(goldLight);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(7);
+                pdf.text('CITY OF TRUTH MINISTRIES  *  BUILDING DISCIPLESHIP', pageWidth / 2, pageHeight - 16, { align: 'center' });
+                pdf.setTextColor('#8899CC');
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(6.5);
+                pdf.text('This form is strictly confidential - For internal ministry use only - Form Ref: COT-MPR-2025 v3.0', pageWidth / 2, pageHeight - 11, { align: 'center' });
+                pdf.setTextColor('#667799');
+                pdf.setFontSize(6);
+                pdf.text('Dedicated for Ministry Use Only', pageWidth / 2, pageHeight - 7, { align: 'center' });
+            };
+
+            const sectionLabel = (label: string, x: number, y: number) => {
+                pdf.setFillColor(gold);
+                pdf.rect(x, y - 1, 3, 8.5, 'F');
+                pdf.setTextColor(navyDark);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(7.6);
+                pdf.text(label.toUpperCase(), x + 6, y + 1);
+            };
+
+            const fieldBox = (x: number, y: number, width: number, height: number, value = '', placeholder = '', isMultiline = false) => {
+                const cleanValue = valueOrBlank(value);
+                pdf.setFillColor('#D8D0C0');
+                pdf.roundedRect(x + 1, y + 1.5, width, height, 4, 4, 'F');
+                pdf.setFillColor(255, 255, 255);
+                pdf.setDrawColor(navy);
+                pdf.setLineWidth(1.2);
+                pdf.roundedRect(x, y, width, height, 4, 4, 'FD');
+                if (cleanValue) {
+                    pdf.setTextColor(navyDark);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(isMultiline ? 9.2 : 9.5);
+                    const lines = pdf.splitTextToSize(cleanValue, width - 10);
+                    pdf.text(lines.slice(0, isMultiline ? 4 : 1), x + 5, y + (isMultiline ? 8 : height / 2 + 3.1));
+                } else if (placeholder) {
+                    pdf.setTextColor('#AAAAAA');
+                    pdf.setFont('helvetica', 'italic');
+                    pdf.setFontSize(9);
+                    pdf.text(placeholder, x + 5, y + (isMultiline ? 8 : height / 2 + 3.1));
+                }
+            };
+
+            const dropdownBox = (x: number, y: number, width: number, height: number, value = '', placeholder = '') => {
+                fieldBox(x, y, width, height, value, placeholder);
+                const arrowWidth = 8;
+                pdf.setFillColor(gold);
+                pdf.roundedRect(x + width - arrowWidth - 2, y + 2, arrowWidth, height - 4, 3, 3, 'F');
+                pdf.setTextColor(255, 255, 255);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(9);
+                pdf.text('v', x + width - arrowWidth / 2 - 3, y + height / 2 + 3, { align: 'center' });
+            };
+
+            const divider = (y: number) => {
+                pdf.setDrawColor(goldLight);
+                pdf.setLineWidth(0.6);
+                pdf.line(16, y, pageWidth - 16, y);
+            };
+
+            const drawSignatureStamp = (x: number, y: number, width: number) => {
+                const stampWidth = 40;
+                const signatureWidth = width - stampWidth - 8;
+                const blockHeight = 27;
+                pdf.setFillColor('#D8D0C0');
+                pdf.roundedRect(x + 1, y + 1.5, signatureWidth, blockHeight, 4, 4, 'F');
+                pdf.setFillColor(255, 255, 255);
+                pdf.setDrawColor(navy);
+                pdf.setLineWidth(1.2);
+                pdf.roundedRect(x, y, signatureWidth, blockHeight, 4, 4, 'FD');
+                pdf.setFillColor(gold);
+                pdf.rect(x, y, signatureWidth, 9, 'F');
+                pdf.setTextColor(navyDark);
                 pdf.setFont('helvetica', 'bold');
                 pdf.setFontSize(8);
-                pdf.text(label, margin + 4, y + 4.2);
-                pdf.setTextColor(15, 23, 42);
-                pdf.setFont('helvetica', 'normal');
-                pdf.setFontSize(10);
-                pdf.text(lines, margin + 4, y + 8.8);
-                y += blockHeight + 3;
+                pdf.text('AUTHORISED BY:', x + 4, y + 6);
+                pdf.setTextColor('#0F6432');
+                pdf.setFont('times', 'italic');
+                pdf.setFontSize(21);
+                pdf.text('Shaveesh Jeshurun', x + signatureWidth / 2, y + 20, { align: 'center', angle: -2 });
+                pdf.setDrawColor('#0F6432');
+                pdf.setLineWidth(1);
+                pdf.line(x + 6, y + 22.3, x + signatureWidth - 6, y + 22.3);
+                pdf.setTextColor(navyDark);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(6.5);
+                pdf.text('Senior Pastor  -  City of Truth Ministries', x + 4, y + 25.7);
+                if (stampDataUrl) {
+                    pdf.addImage(stampDataUrl, 'PNG', x + signatureWidth + 8, y - 8, stampWidth, stampWidth, undefined, 'FAST');
+                }
             };
 
-            const phoneWithCountryCode = (value?: string) => {
-                const digits = `${value || ''}`.replace(/\D/g, '');
-                if (!digits) return '';
-                if (digits.startsWith('91') && digits.length === 12) return `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`;
-                if (digits.length === 10) return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
-                return value || '';
-            };
+            drawBackground();
+            drawHeader();
+            drawFooter();
 
-            pdf.setFillColor(26, 27, 75);
-            pdf.rect(0, 0, pageWidth, 34, 'F');
-            pdf.setFillColor(212, 165, 71);
-            pdf.rect(0, 31, pageWidth, 3, 'F');
-            pdf.setTextColor(255, 255, 255);
-            pdf.setFont('helvetica', 'bold');
-            pdf.setFontSize(14);
-            pdf.text('Member Form Submission', margin, 13.5);
-            pdf.setFont('helvetica', 'normal');
-            pdf.setFontSize(9);
-            pdf.text('Themed ministry style • Admin Download', margin, 19.5);
-            pdf.text(`Generated: ${new Date().toLocaleString()}`, margin, 24.5);
-            pdf.text(`Member: ${member.name} • ${member.id}`, margin, 29.5);
+            let y = 68;
+            sectionLabel('Member', ml, y);
+            y += labelHeight + labelGap;
+            fieldBox(ml, y, fieldWidth, fieldHeight, `${member.name}  -  ${member.id}`);
+            y += fieldHeight + verticalGap;
 
-            addBlock('Member ID', member.id);
-            addBlock('Name', member.name);
-            addBlock('Phone', phoneWithCountryCode(member.phone || member.emergency));
-            addBlock('Email', member.email);
-            addBlock('Location', member.location);
-            addBlock('Member Since', member.memberSince || member.joinedDate);
-            addBlock('Denomination', profile.denomination || '');
-            addBlock('Church Name', profile.churchName || '');
-            addBlock('Role in Ministry', profile.role || '');
-            addBlock('District / Zone', profile.district || '');
-            addBlock('Testimony / Bio', profile.bio || '');
+            sectionLabel('Denomination', ml, y);
+            y += labelHeight + labelGap;
+            dropdownBox(ml, y, fieldWidth, fieldHeight, valueOrBlank(profile.denomination), 'Select denomination');
+            y += fieldHeight + verticalGap;
+
+            sectionLabel('Church Name', ml, y);
+            y += labelHeight + labelGap;
+            fieldBox(ml, y, fieldWidth, fieldHeight, valueOrBlank(profile.churchName), 'Enter your church name');
+            y += fieldHeight + verticalGap;
+
+            sectionLabel('Your Role in Ministry', ml, y);
+            y += labelHeight + labelGap;
+            dropdownBox(ml, y, fieldWidth, fieldHeight, valueOrBlank(profile.role), 'Select role');
+            y += fieldHeight + verticalGap;
+
+            sectionLabel('District / Zone', ml, y);
+            y += labelHeight + labelGap;
+            dropdownBox(ml, y, fieldWidth, fieldHeight, valueOrBlank(profile.district || member.location), 'Select your district or zone');
+            y += fieldHeight + verticalGap;
+
+            sectionLabel('Brief Testimony / Bio', ml, y);
+            y += labelHeight + labelGap;
+            fieldBox(ml, y, fieldWidth, 21, valueOrBlank(profile.bio), 'Share your testimony or brief bio here...', true);
+            y += 21 + verticalGap + 2;
+
+            divider(y);
+            drawSignatureStamp(ml, Math.max(y + 7, 234), fieldWidth);
 
             pdf.save(`COT-MEMBER-FORM-${member.id}.pdf`);
         } catch (error) {
@@ -2728,7 +3564,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             return (
                                 <button
                                     key={option.id}
-                                    onClick={() => setUserQuickViewMode(prev => (prev === option.id ? null : option.id))}
+                                    onClick={() => {
+                                        if (option.id === 'photos') setIdCardVisualMode('photos');
+                                        if (option.id === 'cards') setIdCardVisualMode('cards');
+                                        if (option.id === 'ids') setIdCardVisualMode('ids');
+                                        if (option.id === 'locations') setIdCardVisualMode('locations');
+                                        if (option.id === 'join-dates') setIdCardVisualMode('join-dates');
+                                        setUserQuickViewMode(prev => (prev === option.id ? null : option.id));
+                                    }}
                                     className={`bg-white p-4 rounded-2xl border shadow-sm hover:shadow-md transition-all text-left ${userQuickViewMode === option.id ? 'border-brand-300 ring-2 ring-brand-100' : 'border-slate-100 hover:border-brand-200'}`}
                                 >
                                     <div className={`w-11 h-11 rounded-2xl ${option.bg} ${option.accent} flex items-center justify-center mb-3`}>
@@ -3839,6 +4682,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <div className="px-4 py-3 bg-brand-50 text-brand-700 rounded-xl flex items-center gap-2 font-black text-xs uppercase tracking-widest whitespace-nowrap">
                                         <Users size={14} /> {filteredUsers.length} Cards
                                     </div>
+                                    <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIdCardVisualMode('cards')}
+                                            className={`px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${idCardVisualMode === 'cards' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                                        >
+                                            Entrust
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIdCardVisualMode('photos')}
+                                            className={`px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${idCardVisualMode === 'photos' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                                        >
+                                            Images
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIdCardVisualMode('ids')}
+                                            className={`px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${idCardVisualMode === 'ids' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                                        >
+                                            COT ID
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIdCardVisualMode('locations')}
+                                            className={`px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${idCardVisualMode === 'locations' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                                        >
+                                            Location
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIdCardVisualMode('join-dates')}
+                                            className={`px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${idCardVisualMode === 'join-dates' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                                        >
+                                            Since
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -3860,19 +4740,125 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         className="relative group w-full"
                                         onClick={() => setViewingDetailsUser(user)}
                                     >
-                                        <div className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98] w-full">
-                                            <AdminIDCard
-                                                user={{
-                                                    id: user.id,
-                                                    name: user.name,
-                                                    role: user.role,
-                                                    photo: user.photo,
-                                                    location: user.location,
-                                                    phone: user.phone,
-                                                    memberSince: user.memberSince
+                                        {idCardVisualMode === 'cards' ? (
+                                            <div className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98] w-full">
+                                                <AdminIDCard
+                                                    user={{
+                                                        id: user.id,
+                                                        name: user.name,
+                                                        role: user.role,
+                                                        photo: user.photo,
+                                                        location: user.location,
+                                                        phone: user.phone,
+                                                        memberSince: user.memberSince
+                                                    }}
+                                                    onPhotoClick={() => setIdCardVisualMode('photos')}
+                                                    onCotIdClick={() => setIdCardVisualMode('ids')}
+                                                    onLocationClick={() => setIdCardVisualMode('locations')}
+                                                    onMemberSinceClick={() => setIdCardVisualMode('join-dates')}
+                                                />
+                                            </div>
+                                        ) : idCardVisualMode === 'photos' ? (
+                                            <button
+                                                type="button"
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    setIdCardVisualMode('cards');
                                                 }}
-                                            />
-                                        </div>
+                                                className="group/image w-full text-left rounded-3xl overflow-hidden bg-gradient-to-br from-sky-50 via-blue-50 to-sky-100 border border-sky-200 shadow-xl transition-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-300/60"
+                                                title="Show Entrust card preview"
+                                            >
+                                                <div className="bg-gradient-to-r from-sky-500 to-blue-600 px-5 py-3 flex items-center justify-between">
+                                                    <div>
+                                                        <p className="text-[9px] font-black uppercase tracking-[0.25em] text-sky-100">City of Truth</p>
+                                                        <p className="text-[11px] font-bold text-white uppercase tracking-widest leading-tight">Ministries</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur px-2.5 py-1 rounded-full border border-white/30">
+                                                        <ImageIcon size={11} className="text-white" />
+                                                        <span className="text-[10px] font-black text-white uppercase tracking-wider">Image</span>
+                                                    </div>
+                                                </div>
+                                                <div className="p-5">
+                                                    <div className="aspect-[4/3] rounded-2xl border-4 border-white shadow-lg overflow-hidden bg-sky-100 flex items-center justify-center">
+                                                        {user.photo ? (
+                                                            <img src={user.photo} alt={user.name} className="w-full h-full object-cover group-hover/image:scale-105 transition-transform duration-500" />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center text-5xl font-black text-sky-300">
+                                                                {user.name.charAt(0)}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="mt-4 flex items-end justify-between gap-3">
+                                                        <div className="min-w-0">
+                                                            <h3 className="font-black text-blue-900 text-base leading-tight uppercase truncate">{user.name}</h3>
+                                                            <p className="mt-1 text-[10px] font-mono text-sky-600 bg-sky-100 border border-sky-200 px-2 py-0.5 rounded-lg inline-block">
+                                                                ID: {user.id.split('-').pop()}
+                                                            </p>
+                                                        </div>
+                                                        <span className="text-[9px] font-black uppercase tracking-widest text-sky-500 shrink-0">Tap for card</span>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    setIdCardVisualMode('cards');
+                                                }}
+                                                className="group/meta w-full text-left rounded-3xl overflow-hidden bg-gradient-to-br from-sky-50 via-blue-50 to-sky-100 border border-sky-200 shadow-xl transition-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-300/60"
+                                                title="Show Entrust card preview"
+                                            >
+                                                <div className="bg-gradient-to-r from-sky-500 to-blue-600 px-5 py-3 flex items-center justify-between">
+                                                    <div>
+                                                        <p className="text-[9px] font-black uppercase tracking-[0.25em] text-sky-100">City of Truth</p>
+                                                        <p className="text-[11px] font-bold text-white uppercase tracking-widest leading-tight">Ministries</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur px-2.5 py-1 rounded-full border border-white/30">
+                                                        {idCardVisualMode === 'ids' && <Shield size={11} className="text-white" />}
+                                                        {idCardVisualMode === 'locations' && <MapPin size={11} className="text-white" />}
+                                                        {idCardVisualMode === 'join-dates' && <Calendar size={11} className="text-white" />}
+                                                        <span className="text-[10px] font-black text-white uppercase tracking-wider">
+                                                            {idCardVisualMode === 'ids' ? 'COT ID' : idCardVisualMode === 'locations' ? 'Location' : 'Since'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="p-5">
+                                                    <div className="rounded-2xl border-4 border-white shadow-lg bg-white/80 min-h-[11rem] flex flex-col items-center justify-center text-center px-5">
+                                                        {idCardVisualMode === 'ids' && (
+                                                            <>
+                                                                <Shield size={34} className="text-sky-500 mb-3" />
+                                                                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-sky-500 mb-2">Official COT ID</p>
+                                                                <p className="text-3xl font-black text-blue-900 font-mono tracking-tight">{user.id}</p>
+                                                            </>
+                                                        )}
+                                                        {idCardVisualMode === 'locations' && (
+                                                            <>
+                                                                <MapPin size={34} className="text-sky-500 mb-3" />
+                                                                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-sky-500 mb-2">Member Location</p>
+                                                                <p className="text-3xl font-black text-blue-900 tracking-tight">{user.location || 'Unknown'}</p>
+                                                            </>
+                                                        )}
+                                                        {idCardVisualMode === 'join-dates' && (
+                                                            <>
+                                                                <Calendar size={34} className="text-sky-500 mb-3" />
+                                                                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-sky-500 mb-2">Member Since</p>
+                                                                <p className="text-3xl font-black text-blue-900 tracking-tight">{formatDateValue(user.memberSince || user.joinedDate)}</p>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                    <div className="mt-4 flex items-end justify-between gap-3">
+                                                        <div className="min-w-0">
+                                                            <h3 className="font-black text-blue-900 text-base leading-tight uppercase truncate">{user.name}</h3>
+                                                            <p className="mt-1 text-[10px] font-mono text-sky-600 bg-sky-100 border border-sky-200 px-2 py-0.5 rounded-lg inline-block">
+                                                                {user.id}
+                                                            </p>
+                                                        </div>
+                                                        <span className="text-[9px] font-black uppercase tracking-widest text-sky-500 shrink-0">Tap for card</span>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        )}
 
                                         {/* Quick Actions Hover Overlay */}
                                         <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-2 z-20">
@@ -4676,17 +5662,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                                     >
                                                                         <Eye size={14} />
                                                                     </button>
-                                                                    {user.communityProfile && (
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => handleDownloadMemberFormPdf(user)}
-                                                                            disabled={downloadingMemberFormPdfUserId === user.id}
-                                                                            className="p-2 rounded-xl bg-slate-50 hover:bg-amber-50 hover:text-amber-700 text-slate-500 border border-slate-150 transition-colors disabled:opacity-50"
-                                                                            title="Download Member Form PDF"
-                                                                        >
-                                                                            <FileText size={14} />
-                                                                        </button>
-                                                                    )}
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleDownloadMemberFormPdf(user)}
+                                                                        disabled={downloadingMemberFormPdfUserId === user.id}
+                                                                        className="p-2 rounded-xl bg-slate-50 hover:bg-amber-50 hover:text-amber-700 text-slate-500 border border-slate-150 transition-colors disabled:opacity-50"
+                                                                        title="Download Member Form PDF"
+                                                                    >
+                                                                        <FileText size={14} />
+                                                                    </button>
                                                                 </div>
                                                             </div>
                                                         ))}
@@ -5160,7 +6144,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </div>
                             </div>
 
-                            <div className="space-y-4">
+                            <Reorder.Group
+                                axis="y"
+                                values={homeSectionsOrder}
+                                onReorder={onUpdateHomeSectionsOrder}
+                                className="space-y-4"
+                            >
                                 {homeSectionsOrder.map((sectionId, idx) => {
                                     const info = HOME_SECTIONS_INFO[sectionId] || { name: sectionId, desc: 'Home component', icon: Globe, color: 'bg-brand-500' };
                                     const Icon = info.icon;
@@ -5182,14 +6171,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     };
 
                                     return (
-                                        <div
+                                        <Reorder.Item
                                             key={sectionId}
-                                            className="bg-white p-5 md:p-6 rounded-[2rem] border border-slate-100 flex flex-col gap-5 group hover:border-brand-300 hover:shadow-lg transition-all relative overflow-hidden select-none"
+                                            value={sectionId}
+                                            whileDrag={{ scale: 1.02, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)" }}
+                                            className="bg-white p-5 md:p-6 rounded-[2rem] border border-slate-100 flex flex-col gap-5 group hover:border-brand-300 hover:shadow-lg transition-all relative overflow-hidden cursor-grab active:cursor-grabbing select-none"
                                         >
                                             <div className="absolute top-0 right-0 w-24 h-24 bg-brand-50/30 rounded-full -mr-12 -mt-12 transition-all group-hover:scale-150 pointer-events-none" />
 
                                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                                 <div className="flex items-center gap-5 flex-1 relative z-10">
+                                                    <div className="text-slate-300 group-hover:text-brand-500 transition-colors shrink-0">
+                                                        <GripVertical size={24} />
+                                                    </div>
                                                     <div className="text-brand-600 font-serif font-black text-lg select-none w-6 text-center shrink-0">
                                                         {displayIndex}
                                                     </div>
@@ -5209,7 +6203,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 <div className="flex items-center gap-2 relative z-10 justify-end shrink-0">
                                                     <button
                                                         type="button"
-                                                        onClick={moveUp}
+                                                        onClick={(e) => { e.stopPropagation(); moveUp(); }}
                                                         disabled={isFirst}
                                                         className="w-10 h-10 rounded-2xl border-2 border-slate-200 bg-white text-slate-600 flex items-center justify-center hover:bg-brand-600 hover:text-white hover:border-brand-600 disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-90 shadow-sm"
                                                         aria-label="Move up"
@@ -5218,7 +6212,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                     </button>
                                                     <button
                                                         type="button"
-                                                        onClick={moveDown}
+                                                        onClick={(e) => { e.stopPropagation(); moveDown(); }}
                                                         disabled={isLast}
                                                         className="w-10 h-10 rounded-2xl border-2 border-slate-200 bg-white text-slate-600 flex items-center justify-center hover:bg-brand-600 hover:text-white hover:border-brand-600 disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-90 shadow-sm"
                                                         aria-label="Move down"
@@ -5228,7 +6222,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 </div>
                                             </div>
 
-                                            <div className="bg-slate-50/50 p-4 rounded-[1.5rem] border border-slate-100/80 relative z-10 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div 
+                                                className="bg-slate-50/50 p-4 rounded-[1.5rem] border border-slate-100/80 relative z-10 grid grid-cols-1 md:grid-cols-2 gap-4"
+                                                onPointerDown={(e) => e.stopPropagation()}
+                                            >
                                                 <div>
                                                     <label className="text-[10px] font-black uppercase tracking-[1.5px] text-slate-400">Section Title</label>
                                                     <input
@@ -5250,10 +6247,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                     />
                                                 </div>
                                             </div>
-                                        </div>
+
+                                            {/* Live Real-Time Visual Preview */}
+                                            <div 
+                                                className="bg-slate-50/30 p-4 rounded-[1.5rem] border border-slate-100/60 relative z-10"
+                                                onPointerDown={(e) => e.stopPropagation()}
+                                            >
+                                                <label className="text-[10px] font-black uppercase tracking-[1.5px] text-slate-400 mb-2 block">✨ Real-Time Visual Preview</label>
+                                                <SectionMiniPreview 
+                                                    sectionId={sectionId}
+                                                    customName={sectionsInfo[sectionId]?.name || info.name}
+                                                    customDesc={sectionsInfo[sectionId]?.desc || info.desc}
+                                                />
+                                            </div>
+                                        </Reorder.Item>
                                     );
                                 })}
-                            </div>
+                            </Reorder.Group>
 
                             <div className="mt-12 p-8 bg-brand-950 rounded-[2.5rem] border border-brand-800 shadow-2xl flex items-start gap-6 relative overflow-hidden">
                                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none" />
@@ -5502,21 +6512,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         >
                             <div className="flex items-center justify-between mb-10">
                                 <div>
-                                    <h2 className="text-3xl font-serif font-black text-brand-950">Sidebar Navigation Configuration</h2>
-                                    <p className="text-slate-500 mt-2 text-sm font-medium">Customize sidebar tab names, toggle visibility, and adjust order with Up/Down buttons.</p>
+                                    <h2 className="text-3xl font-serif font-black text-brand-950">Admin Pages</h2>
+                                    <p className="text-slate-500 mt-2 text-sm font-medium">Edit admin dashboard page names, show or hide pages, and change each page position.</p>
                                 </div>
                                 <div className="w-14 h-14 bg-brand-50 text-brand-600 rounded-[1.25rem] flex items-center justify-center shadow-inner border border-brand-100">
                                     <Settings size={28} />
                                 </div>
                             </div>
 
-                            <div className="space-y-4">
-                                {dynamicTabs.map((tab, index) => {
+                            <Reorder.Group
+                                axis="y"
+                                values={normalizeAdminTabs(dynamicTabs)}
+                                onReorder={(nextTabs) => setDynamicTabs(nextTabs.map((tab, idx) => ({ ...tab, order: idx })))}
+                                className="space-y-4"
+                            >
+                                {normalizeAdminTabs(dynamicTabs).map((tab, index) => {
                                     const IconComponent = LUCIDE_ICONS[tab.icon] || Globe;
                                     
                                     return (
-                                        <div key={tab.id} className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                        <Reorder.Item
+                                            key={tab.id}
+                                            value={tab}
+                                            whileDrag={{ scale: 1.015, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.12), 0 8px 10px -6px rgb(0 0 0 / 0.1)" }}
+                                            className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-grab active:cursor-grabbing"
+                                        >
                                             <div className="flex items-center gap-4 flex-1">
+                                                <div className="text-slate-300 hover:text-brand-500 transition-colors shrink-0" title="Drag page">
+                                                    <GripVertical size={22} />
+                                                </div>
                                                 <div className="w-10 h-10 bg-brand-500 text-white rounded-xl flex items-center justify-center shadow-sm">
                                                     <IconComponent size={20} />
                                                 </div>
@@ -5526,7 +6549,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                         type="text" 
                                                         value={tab.label}
                                                         onChange={(e) => {
-                                                            const copy = [...dynamicTabs];
+                                                            const copy = normalizeAdminTabs(dynamicTabs);
                                                             copy[index] = { ...copy[index], label: e.target.value };
                                                             setDynamicTabs(copy);
                                                         }}
@@ -5535,10 +6558,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center justify-end gap-4 shrink-0">
+                                            <div className="flex flex-wrap items-center justify-end gap-3 shrink-0">
+                                                <label className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-[10px] font-black uppercase tracking-wider text-slate-500">
+                                                    Position
+                                                    <input
+                                                        type="number"
+                                                        min={1}
+                                                        max={dynamicTabs.length}
+                                                        value={index + 1}
+                                                        onChange={(e) => {
+                                                            const target = Math.max(1, Math.min(dynamicTabs.length, Number(e.target.value) || index + 1)) - 1;
+                                                            const updated = moveArrayItem(normalizeAdminTabs(dynamicTabs), index, target).map((t, idx) => ({ ...t, order: idx }));
+                                                            setDynamicTabs(updated);
+                                                        }}
+                                                        className="w-14 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-center text-xs font-black text-slate-700 outline-none focus:border-brand-500"
+                                                        aria-label={`Position for ${tab.label}`}
+                                                    />
+                                                </label>
+
                                                 <button
                                                     onClick={() => {
-                                                        const copy = [...dynamicTabs];
+                                                        const copy = normalizeAdminTabs(dynamicTabs);
                                                         copy[index] = { ...copy[index], hidden: !copy[index].hidden };
                                                         setDynamicTabs(copy);
                                                     }}
@@ -5554,9 +6594,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                                                 <div className="flex items-center gap-1.5">
                                                     <button
-                                                        onClick={() => {
-                                                            if (index === 0) return;
-                                                            const copy = [...dynamicTabs];
+                                                    onClick={() => {
+                                                        if (index === 0) return;
+                                                            const copy = normalizeAdminTabs(dynamicTabs);
                                                             const temp = copy[index];
                                                             copy[index] = copy[index - 1];
                                                             copy[index - 1] = temp;
@@ -5570,9 +6610,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                         <ChevronUp size={16} />
                                                     </button>
                                                     <button
-                                                        onClick={() => {
-                                                            if (index === dynamicTabs.length - 1) return;
-                                                            const copy = [...dynamicTabs];
+                                                    onClick={() => {
+                                                        if (index === dynamicTabs.length - 1) return;
+                                                            const copy = normalizeAdminTabs(dynamicTabs);
                                                             const temp = copy[index];
                                                             copy[index] = copy[index + 1];
                                                             copy[index + 1] = temp;
@@ -5587,17 +6627,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                     </button>
                                                 </div>
                                             </div>
-                                        </div>
+                                        </Reorder.Item>
                                     );
                                 })}
-                            </div>
+                            </Reorder.Group>
+
+                            {renderAdminPasswordChangePanel('admin-pages')}
 
                             <div className="flex flex-wrap gap-4 mt-10 pt-8 border-t border-slate-100">
                                 <button
                                     onClick={async () => {
                                         try {
-                                            await api.updateAdminTabsConfig(dynamicTabs);
-                                            alert("Tabs configuration successfully saved globally to Firestore!");
+                                            const normalizedTabs = normalizeAdminTabs(dynamicTabs);
+                                            setDynamicTabs(normalizedTabs);
+                                            await api.updateAdminTabsConfig(normalizedTabs);
+                                            alert("Admin pages configuration successfully saved globally to Firestore!");
                                         } catch (e) {
                                             alert("Failed to save configuration. Please try again.");
                                         }
@@ -5609,21 +6653,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <button
                                     onClick={() => {
                                         if (window.confirm("Restore factory default sidebar tab layouts? This resets all tab names and ordering.")) {
-                                            const defaults = [
-                                                { id: 'users', label: 'Users', icon: 'Users', order: 0, hidden: false },
-                                                { id: 'edit-page', label: 'Edit Page', icon: 'Edit2', order: 1, hidden: false },
-                                                { id: 'recycle-bin', label: 'Recycle Bin', icon: 'RotateCcw', order: 2, hidden: false },
-                                                { id: 'firebase', label: 'Firebase', icon: 'Database', order: 3, hidden: false },
-                                                { id: 'messages', label: 'Messages', icon: 'MessageSquare', order: 4, hidden: false },
-                                                { id: 'ministries', label: 'Tab TV + Ministry', icon: 'Globe', order: 5, hidden: false },
-                                                { id: 'id-cards', label: 'ID Cards', icon: 'QrCode', order: 6, hidden: false },
-                                                { id: 'cot-id-manager', label: 'COT ID Manager', icon: 'Dice6', order: 7, hidden: false },
-                                                { id: 'reports', label: 'Monthly Reports', icon: 'FileText', order: 8, hidden: false },
-                                                { id: 'home-layout', label: 'Home Layout', icon: 'GripVertical', order: 9, hidden: false },
-                                                { id: 'menu-editor', label: 'Menu Editor', icon: 'Filter', order: 10, hidden: false },
-                                                { id: 'admin-tabs', label: 'Admin Tabs', icon: 'Settings', order: 11, hidden: false }
-                                            ];
-                                            setDynamicTabs(defaults);
+                                            setDynamicTabs(DEFAULT_ADMIN_TABS);
                                         }
                                     }}
                                     className="px-6 py-3 rounded-full border border-slate-200 text-slate-500 font-extrabold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
@@ -5751,100 +6781,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <p className="text-slate-500 text-sm">Live Firebase project and storage configuration used by this admin dashboard.</p>
                         </div>
 
-                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
-                            <div className="flex items-center justify-between gap-3 mb-4">
-                                <h3 className="text-sm font-black uppercase tracking-widest text-brand-600">Admin Dashboard Password</h3>
-                                <span className={`text-[10px] px-2 py-1 rounded-full font-black uppercase tracking-wider ${hasAdminPasswordOverride ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
-                                    {hasAdminPasswordOverride ? 'Custom Password Active' : 'Default Password Active'}
-                                </span>
-                            </div>
-                            <p className="text-xs text-slate-500 mb-4">
-                                Set a custom admin password for this browser/device. This updates access for the admin login modal.
-                            </p>
-                            <div className="grid md:grid-cols-2 gap-3">
-                                <div className="relative">
-                                    <input
-                                        type={showAdminPasswordDraft ? 'text' : 'password'}
-                                        placeholder="New admin password"
-                                        value={adminPasswordDraft}
-                                        onChange={(e) => {
-                                            setAdminPasswordDraft(e.target.value);
-                                            setAdminPasswordMessage(null);
-                                        }}
-                                        className="w-full px-3 pr-10 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowAdminPasswordDraft(prev => !prev)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800"
-                                    >
-                                        {showAdminPasswordDraft ? <EyeOff size={16} /> : <Eye size={16} />}
-                                    </button>
-                                </div>
-                                <div className="relative">
-                                    <input
-                                        type={showAdminPasswordConfirm ? 'text' : 'password'}
-                                        placeholder="Confirm new password"
-                                        value={adminPasswordConfirm}
-                                        onChange={(e) => {
-                                            setAdminPasswordConfirm(e.target.value);
-                                            setAdminPasswordMessage(null);
-                                        }}
-                                        className="w-full px-3 pr-10 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowAdminPasswordConfirm(prev => !prev)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800"
-                                    >
-                                        {showAdminPasswordConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="relative mt-3">
-                                <input
-                                    type={showAdminPasswordPhrase ? 'text' : 'password'}
-                                    placeholder="Enter password-change phrase"
-                                    value={adminPasswordPhrase}
-                                    onChange={(e) => {
-                                        setAdminPasswordPhrase(e.target.value);
-                                        setAdminPasswordMessage(null);
-                                    }}
-                                    className="w-full px-3 pr-10 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-brand-500"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowAdminPasswordPhrase(prev => !prev)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800"
-                                >
-                                    {showAdminPasswordPhrase ? <EyeOff size={16} /> : <Eye size={16} />}
-                                </button>
-                            </div>
-                            <p className="text-[11px] text-slate-500 mt-2">Password-change phrase is required before saving.</p>
-                            <div className="flex flex-wrap items-center gap-2 mt-3">
-                                <button
-                                    type="button"
-                                    onClick={handleSaveAdminPassword}
-                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-black"
-                                >
-                                    <Save size={14} />
-                                    Save Password
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleResetAdminPassword}
-                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black"
-                                >
-                                    <RotateCcw size={14} />
-                                    Reset to Default
-                                </button>
-                            </div>
-                            {adminPasswordMessage && (
-                                <p className={`mt-3 text-xs font-bold ${adminPasswordMessage.type === 'success' ? 'text-emerald-700' : 'text-red-600'}`}>
-                                    {adminPasswordMessage.text}
-                                </p>
-                            )}
-                        </div>
+                        {renderAdminPasswordChangePanel('firebase')}
 
                         <div className="grid md:grid-cols-2 gap-4">
                             <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
@@ -6397,21 +7334,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                             </div>
 
-                            {viewingDetailsUser.communityProfile && (
-                                <div className="mt-8 pt-6 border-t border-slate-200">
-                                    <h4 className="text-sm font-bold text-brand-950 mb-3 uppercase tracking-wider">Member Form Submission</h4>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setMemberFormPageUser(viewingDetailsUser);
-                                            setViewingDetailsUser(null);
-                                        }}
-                                        className="w-full px-4 py-3 rounded-2xl bg-amber-50 text-amber-800 border border-amber-200 text-sm font-black hover:bg-amber-100 transition-colors"
-                                    >
-                                        Open Member Form on Separate Page
-                                    </button>
-                                </div>
-                            )}
+                            <div className="mt-8 pt-6 border-t border-slate-200">
+                                <h4 className="text-sm font-bold text-brand-950 mb-3 uppercase tracking-wider">Member Form Submission</h4>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setMemberFormPageUser(viewingDetailsUser);
+                                        setViewingDetailsUser(null);
+                                    }}
+                                    className="w-full px-4 py-3 rounded-2xl bg-amber-50 text-amber-800 border border-amber-200 text-sm font-black hover:bg-amber-100 transition-colors"
+                                >
+                                    Open Member Form on Separate Page
+                                </button>
+                            </div>
 
                             {/* QR Code Section in Details */}
                             <div className="mt-8 pt-6 border-t border-slate-200">
@@ -6499,8 +7434,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             {userQuickViewMode === 'photos' && (
                                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                                     {filteredUsers.map(user => (
-                                        <div key={user.id} className="rounded-3xl overflow-hidden border border-slate-100 bg-slate-50">
-                                            <div className="aspect-square bg-slate-100">
+                                        <button
+                                            key={user.id}
+                                            type="button"
+                                            onClick={() => {
+                                                setIdCardVisualMode('cards');
+                                                setUserQuickViewMode('cards');
+                                            }}
+                                            className="rounded-3xl overflow-hidden border border-sky-200 bg-gradient-to-br from-sky-50 via-blue-50 to-sky-100 text-left shadow-sm hover:shadow-xl transition-all focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-300/60"
+                                            title="Show Entrust card preview"
+                                        >
+                                            <div className="bg-gradient-to-r from-sky-500 to-blue-600 px-4 py-3 flex items-center justify-between">
+                                                <div className="text-[9px] font-black uppercase tracking-[0.22em] text-white leading-tight">City of Truth<br />Ministries</div>
+                                                <span className="rounded-full bg-white/20 border border-white/30 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white">Image</span>
+                                            </div>
+                                            <div className="aspect-square bg-sky-100 m-4 rounded-2xl overflow-hidden border-4 border-white shadow-lg">
                                                 {user.photo ? (
                                                     <img src={user.photo} alt={user.name} className="w-full h-full object-cover" />
                                                 ) : (
@@ -6512,8 +7460,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <div className="px-4 py-3">
                                                 <div className="font-bold text-sm text-brand-950 truncate">{user.name}</div>
                                                 <div className="text-[11px] text-slate-500 font-mono">{user.id}</div>
+                                                <div className="mt-2 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap for Entrust Card</div>
                                             </div>
-                                        </div>
+                                        </button>
                                     ))}
                                 </div>
                             )}
@@ -6521,9 +7470,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             {userQuickViewMode === 'ids' && (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                     {filteredUsers.map(user => (
-                                        <div key={user.id} className="px-4 py-4 rounded-2xl border border-slate-100 bg-slate-50">
-                                            <div className="text-lg font-black text-brand-950 font-mono">{user.id}</div>
-                                        </div>
+                                        <button
+                                            key={user.id}
+                                            type="button"
+                                            onClick={() => {
+                                                setIdCardVisualMode('cards');
+                                                setUserQuickViewMode('cards');
+                                            }}
+                                            className="px-5 py-5 rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 via-blue-50 to-sky-100 text-left shadow-sm hover:shadow-xl transition-all focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-300/60"
+                                            title="Show Entrust card preview"
+                                        >
+                                            <div className="flex items-center gap-3 text-sky-600 mb-3">
+                                                <Shield size={18} />
+                                                <span className="text-[10px] font-black uppercase tracking-[0.22em]">Official COT ID</span>
+                                            </div>
+                                            <div className="text-2xl font-black text-blue-900 font-mono">{user.id}</div>
+                                            <div className="mt-2 text-sm font-bold text-blue-800 truncate">{user.name}</div>
+                                            <div className="mt-3 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap for Entrust Card</div>
+                                        </button>
                                     ))}
                                 </div>
                             )}
@@ -6531,10 +7495,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             {userQuickViewMode === 'cards' && (
                                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                                     {filteredUsers.map(user => (
-                                        <div key={user.id} className="bg-slate-50 border border-slate-100 rounded-3xl p-4">
+                                        <button
+                                            key={user.id}
+                                            type="button"
+                                            onClick={() => {
+                                                setIdCardVisualMode('photos');
+                                                setUserQuickViewMode('photos');
+                                            }}
+                                            className="bg-slate-50 border border-slate-100 rounded-3xl p-4 text-left hover:border-sky-200 hover:shadow-xl transition-all focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-300/60"
+                                            title="Show image preview"
+                                        >
                                             <div className="mb-3">
                                                 <div className="font-bold text-brand-950">{user.name}</div>
                                                 <div className="text-xs font-mono text-slate-500">{user.id}</div>
+                                                <div className="mt-1 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap for Image Preview</div>
                                             </div>
                                             <div className="overflow-x-auto">
                                                 <div className="min-w-[340px]">
@@ -6551,7 +7525,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                     />
                                                 </div>
                                             </div>
-                                        </div>
+                                        </button>
                                     ))}
                                 </div>
                             )}
@@ -6559,14 +7533,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             {userQuickViewMode === 'locations' && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                                     {filteredUsers.map(user => (
-                                        <div key={user.id} className="p-4 rounded-2xl border border-slate-100 bg-slate-50">
-                                            <div className="flex items-center gap-2 text-emerald-600 font-bold mb-2">
-                                                <MapPin size={16} />
+                                        <button
+                                            key={user.id}
+                                            type="button"
+                                            onClick={() => {
+                                                setIdCardVisualMode('cards');
+                                                setUserQuickViewMode('cards');
+                                            }}
+                                            className="p-5 rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 via-blue-50 to-sky-100 text-left shadow-sm hover:shadow-xl transition-all focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-300/60"
+                                            title="Show Entrust card preview"
+                                        >
+                                            <div className="flex items-center gap-2 text-sky-600 font-bold mb-2">
+                                                <MapPin size={18} />
                                                 <span>{user.location || 'Unknown'}</span>
                                             </div>
                                             <div className="text-sm font-semibold text-brand-950">{user.name}</div>
                                             <div className="text-[11px] font-mono text-slate-500 mt-1">{user.id}</div>
-                                        </div>
+                                            <div className="mt-3 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap for Entrust Card</div>
+                                        </button>
                                     ))}
                                 </div>
                             )}
@@ -6574,16 +7558,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             {userQuickViewMode === 'join-dates' && (
                                 <div className="space-y-3">
                                     {filteredUsers.map(user => (
-                                        <div key={user.id} className="flex items-center justify-between gap-3 p-4 rounded-2xl border border-slate-100 bg-slate-50">
+                                        <button
+                                            key={user.id}
+                                            type="button"
+                                            onClick={() => {
+                                                setIdCardVisualMode('cards');
+                                                setUserQuickViewMode('cards');
+                                            }}
+                                            className="flex items-center justify-between gap-3 p-4 rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 via-blue-50 to-sky-100 text-left shadow-sm hover:shadow-xl transition-all focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-300/60"
+                                            title="Show Entrust card preview"
+                                        >
                                             <div>
                                                 <div className="font-bold text-brand-950">{user.name}</div>
                                                 <div className="text-[11px] font-mono text-slate-500">{user.id}</div>
+                                                <div className="mt-2 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap for Entrust Card</div>
                                             </div>
                                             <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-700">
                                                 <Calendar size={14} className="text-slate-400" />
-                                                {formatDateValue(user.joinedDate)}
+                                                {formatDateValue(user.memberSince || user.joinedDate)}
                                             </div>
-                                        </div>
+                                        </button>
                                     ))}
                                 </div>
                             )}

@@ -12,9 +12,13 @@ interface AdminIDCardProps {
         phone?: string;
         memberSince?: string;
     };
+    onPhotoClick?: () => void;
+    onCotIdClick?: () => void;
+    onLocationClick?: () => void;
+    onMemberSinceClick?: () => void;
 }
 
-export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user }) => {
+export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user, onPhotoClick, onCotIdClick, onLocationClick, onMemberSinceClick }) => {
     const qrData = `CITY OF TRUTH MINISTRIES\nID: ${user.id}\nName: ${user.name}\nRole: ${user.role}`;
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrData)}&bgcolor=dbeafe&color=1d4ed8&margin=2`;
 
@@ -39,13 +43,22 @@ export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user }) => {
             <div className="p-5 flex gap-4">
                 {/* Photo */}
                 <div className="shrink-0 flex flex-col items-center gap-2">
-                    <div className="w-20 h-20 rounded-2xl border-4 border-white shadow-lg overflow-hidden bg-sky-100 flex items-center justify-center">
+                    <button
+                        type="button"
+                        onClick={(event) => {
+                            if (!onPhotoClick) return;
+                            event.stopPropagation();
+                            onPhotoClick();
+                        }}
+                        className="w-20 h-20 rounded-2xl border-4 border-white shadow-lg overflow-hidden bg-sky-100 flex items-center justify-center transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-300/60"
+                        title="Show image preview"
+                    >
                         {user.photo ? (
                             <img src={user.photo} alt={user.name} className="w-full h-full object-cover" />
                         ) : (
                             <UserIcon size={30} className="text-sky-300" />
                         )}
-                    </div>
+                    </button>
                     {/* QR Code */}
                     <div className="w-16 h-16 bg-white rounded-xl border border-sky-200 shadow-sm p-1 overflow-hidden">
                         <img src={qrCodeUrl} alt="QR" className="w-full h-full object-contain" />
@@ -58,24 +71,51 @@ export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user }) => {
                         <h3 className="font-black text-blue-900 text-base leading-tight uppercase truncate">
                             {user.name}
                         </h3>
-                        <div className="mt-1 text-[10px] font-mono text-sky-600 bg-sky-100 border border-sky-200 px-2 py-0.5 rounded-lg inline-block">
+                        <button
+                            type="button"
+                            onClick={(event) => {
+                                if (!onCotIdClick) return;
+                                event.stopPropagation();
+                                onCotIdClick();
+                            }}
+                            className="mt-1 text-[10px] font-mono text-sky-600 bg-sky-100 border border-sky-200 px-2 py-0.5 rounded-lg inline-block hover:bg-sky-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                            title="Show COT ID preview"
+                        >
                             ID: {user.id.split('-').pop()}
-                        </div>
+                        </button>
                     </div>
 
                     <div className="mt-3 grid grid-cols-1 gap-2">
-                        <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={(event) => {
+                                if (!onLocationClick) return;
+                                event.stopPropagation();
+                                onLocationClick();
+                            }}
+                            className="flex items-center gap-2 text-left rounded-lg hover:bg-sky-100/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                            title="Show location preview"
+                        >
                             <MapPin size={11} className="text-sky-500 shrink-0" />
                             <span className="text-[11px] font-semibold text-blue-800 truncate">{user.location || 'N/A'}</span>
-                        </div>
+                        </button>
                         <div className="flex items-center gap-2">
                             <Phone size={11} className="text-sky-500 shrink-0" />
                             <span className="text-[11px] font-semibold text-blue-800 truncate">{user.phone || 'N/A'}</span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={(event) => {
+                                if (!onMemberSinceClick) return;
+                                event.stopPropagation();
+                                onMemberSinceClick();
+                            }}
+                            className="flex items-center gap-2 text-left rounded-lg hover:bg-sky-100/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                            title="Show member since preview"
+                        >
                             <Calendar size={11} className="text-sky-500 shrink-0" />
                             <span className="text-[11px] font-semibold text-blue-800">Since {user.memberSince || '2024'}</span>
-                        </div>
+                        </button>
                     </div>
                 </div>
             </div>

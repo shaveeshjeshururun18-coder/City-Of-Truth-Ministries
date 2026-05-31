@@ -177,56 +177,16 @@ export const IsraelPage: React.FC = () => {
                             <Sparkles size={14} className="text-amber-500" /> COT Golden Menorah Flag
                         </h3>
                         
-                        {/* Waving Golden Menorah Flag */}
-                        <div className="relative w-full max-w-[280px] aspect-[3/2] overflow-hidden rounded-lg shadow-lg border border-slate-200 group-hover:scale-[1.02] transition-transform duration-500">
-                            <div className="w-full h-full bg-gradient-to-br from-[#0c0813] to-[#1e1330] relative flex flex-col justify-between py-[12%] animate-flag-wave overflow-hidden">
-                                <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-black/10 z-10 pointer-events-none" />
-                                
-                                {/* Top Hebrew Stripe */}
-                                <div className="text-center font-bold text-[8px] text-amber-400 tracking-widest bg-amber-500/10 py-1">
-                                    יהוה · YHWH · יהוה · YHWH
-                                </div>
-
-                                {/* Menorah Silhouette */}
-                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none scale-75">
-                                    <svg className="w-[35%] aspect-square text-amber-400" viewBox="0 0 100 100" fill="currentColor">
-                                        {/* Menorah Base */}
-                                        <path d="M 40,85 L 60,85 L 55,75 L 45,75 Z" />
-                                        {/* Stem */}
-                                        <rect x="47" y="30" width="6" height="45" />
-                                        {/* Outer Branches */}
-                                        <path d="M 50,75 C 25,70 25,45 25,45 L 29,45 C 29,45 29,66 50,71 Z" />
-                                        <path d="M 50,75 C 75,70 75,45 75,45 L 71,45 C 71,45 71,66 50,71 Z" />
-                                        {/* Mid Branches */}
-                                        <path d="M 50,68 C 33,64 33,45 33,45 L 37,45 C 37,45 37,60 50,64 Z" />
-                                        <path d="M 50,68 C 67,64 67,45 67,45 L 63,45 C 63,45 63,60 50,64 Z" />
-                                        {/* Inner Branches */}
-                                        <path d="M 50,60 C 40,56 40,45 40,45 L 44,45 C 44,45 44,53 50,56 Z" />
-                                        <path d="M 50,60 C 60,56 60,45 60,45 L 56,45 C 56,45 56,53 50,56 Z" />
-                                        {/* Candles */}
-                                        <rect x="23" y="38" width="4" height="7" />
-                                        <rect x="31" y="38" width="4" height="7" />
-                                        <rect x="38" y="38" width="4" height="7" />
-                                        <rect x="48" y="23" width="4" height="7" />
-                                        <rect x="58" y="38" width="4" height="7" />
-                                        <rect x="65" y="38" width="4" height="7" />
-                                        <rect x="73" y="38" width="4" height="7" />
-                                        {/* Flames */}
-                                        <path d="M 25,32 Q 22,35 25,38 Q 28,35 25,32 Z" fill="#F59E0B" />
-                                        <path d="M 33,32 Q 30,35 33,38 Q 36,35 33,32 Z" fill="#F59E0B" />
-                                        <path d="M 40,32 Q 37,35 40,38 Q 43,35 40,32 Z" fill="#F59E0B" />
-                                        <path d="M 50,17 Q 47,20 50,23 Q 53,20 50,17 Z" fill="#F59E0B" />
-                                        <path d="M 60,32 Q 57,35 60,38 Q 63,35 60,32 Z" fill="#F59E0B" />
-                                        <path d="M 67,32 Q 64,35 67,38 Q 70,35 67,32 Z" fill="#F59E0B" />
-                                        <path d="M 75,32 Q 72,35 75,38 Q 78,35 75,32 Z" fill="#F59E0B" />
-                                    </svg>
-                                </div>
-                                
-                                {/* Bottom Hebrew Stripe */}
-                                <div className="text-center font-bold text-[8px] text-amber-400 tracking-widest bg-amber-500/10 py-1">
-                                    ஊழியங்கள் · MINISTRY · ஊழியங்கள்
-                                </div>
-                            </div>
+                        {/* Waving Golden Menorah Flag - Dynamic Video */}
+                        <div className="relative w-full max-w-[280px] aspect-[3/2] overflow-hidden rounded-lg shadow-lg border border-slate-200 group-hover:scale-[1.02] transition-transform duration-500 bg-black">
+                            <video
+                                src="/gemini_generated_video_cf07149d.mp4"
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                className="w-full h-full object-cover"
+                            />
                         </div>
                         <p className="text-xs font-semibold text-slate-500 mt-4 text-center leading-relaxed">
                             Our high-anointing royal flag, honoring the seven-branched golden menorah and the holy Hebrew name YHWH.
