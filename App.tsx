@@ -1108,7 +1108,7 @@ const App: React.FC = () => {
       setSelectedDashboardProfileId(match?.profileId || user.id);
       setCelebrationMode('welcome');
       setShowCelebration(true);
-      setCurrentView(ViewState.HOME);
+      setCurrentView(ViewState.USER_DASHBOARD);
       navigate('/');
     } else {
       alert("Account not found. Please check your Member ID, Email, Phone, or Name.");
@@ -1233,7 +1233,7 @@ const App: React.FC = () => {
       alert("Registration successful! Your COT ID will be generated after admin approval.");
       setCelebrationMode('welcome');
       setShowCelebration(true);
-      setCurrentView(ViewState.HOME);
+      setCurrentView(ViewState.USER_DASHBOARD);
       navigate('/');
     } catch (e) {
       console.error(e);
@@ -1973,6 +1973,7 @@ const App: React.FC = () => {
                   const safeUpdatedUser = existingUserRecord && updatedUser.pendingProfileUpdate
                     ? {
                       ...existingUserRecord,
+                      photo: updatedUser.photo ?? existingUserRecord.photo,
                       linkedProfiles: updatedUser.linkedProfiles ?? existingUserRecord.linkedProfiles,
                       verificationDoc: updatedUser.verificationDoc ?? existingUserRecord.verificationDoc,
                       communityProfile: updatedUser.communityProfile ?? existingUserRecord.communityProfile,

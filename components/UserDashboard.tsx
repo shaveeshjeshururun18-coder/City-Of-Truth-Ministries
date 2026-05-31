@@ -69,6 +69,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [cropTarget, setCropTarget] = useState<{ type: 'primary' | 'linked-profile' | 'new-family-member'; profileId?: string; isNewUpload?: boolean } | null>(null);
     const [adminReply, setAdminReply] = useState('');
     const [dismissedTopNotificationId, setDismissedTopNotificationId] = useState<string | null>(null);
+    const [wasEditingBeforeCrop, setWasEditingBeforeCrop] = useState(false);
     const notificationsSectionRef = React.useRef<HTMLDivElement | null>(null);
     const hasPermanentCotId = /^COT-\d{4,}$/.test((user.id || '').trim());
     const canAccessEntrustFeatures = user.status === 'Active' && hasPermanentCotId;
@@ -242,11 +243,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     };
 
     const handleCropComplete = (croppedImg: string) => {
+        const isAdminUser = user.role === 'Admin';
+        const requiresApproval = cropTarget?.isNewUpload && !isAdminUser;
+
         if (cropTarget?.type === 'new-family-member') {
             setSubProfileForm(prev => ({ ...prev, photo: croppedImg }));
         } else if (cropTarget?.type === 'linked-profile' && cropTarget.profileId) {
             const updatedProfiles = user.linkedProfiles?.map(p => p.id === cropTarget.profileId ? { ...p, photo: croppedImg } : p) || [];
-            if (cropTarget.isNewUpload) {
+            if (requiresApproval) {
                 onUpdate({
                     ...user,
                     pendingProfileUpdate: {
@@ -263,7 +267,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 alert('Linked member photo cropped successfully.');
             }
         } else {
-            if (cropTarget?.isNewUpload) {
+            if (requiresApproval) {
                 onUpdate({
                     ...user,
                     pendingProfileUpdate: {
@@ -282,6 +286,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         }
         setCroppingImage(null);
         setCropTarget(null);
+        if (wasEditingBeforeCrop) {
+            setIsEditing(true);
+            setWasEditingBeforeCrop(false);
+        }
     };
 
     const handleDownloadPDF = async () => {
@@ -997,7 +1005,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             )}
 
             {/* Off-screen capture nodes */}
-            {croppingImage && <div className="z-[100] relative"><ImageCropper imageSrc={croppingImage} onCropComplete={handleCropComplete} onCancel={() => { setCroppingImage(null); setCropTarget(null); }} /></div>}
+            {croppingImage && <div className="z-[100] relative"><ImageCropper imageSrc={croppingImage} onCropComplete={handleCropComplete} onCancel={() => { setCroppingImage(null); setCropTarget(null); if (wasEditingBeforeCrop) { setIsEditing(true); setWasEditingBeforeCrop(false); } }} /></div>}
             <TestimonialModal isOpen={showTestimonialModal} onClose={() => setShowTestimonialModal(false)} user={user} />
             <CommunityProfileForm
                 isOpen={showCommunityProfileForm}
@@ -1117,12 +1125,23 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     {/* Primary profile + family avatars */}
                     <div className="relative group shrink-0">
                         <div className="w-14 h-14 rounded-full overflow-hidden border-[3px] border-white shadow-lg bg-brand-100">
-                            {renderAvatarContent(displayProfile.photo, displayProfile.name, 'text-sm', 'from-brand-600 to-violet-700')}
+                            {renderAvatarContent(user.photo, user.name, 'text-sm', 'from-brand-600 to-violet-700')}
                         </div>
-                        <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 cursor-pointer transition-all">
+                        <div 
+                            onClick={() => {
+                                if (!user.photo) {
+                                    alert('No existing photo to crop. Please use the "Add New Photo" button in Edit Details.');
+                                    return;
+                                }
+                                setCropTarget({ type: 'primary', isNewUpload: false });
+                                setCroppingImage(user.photo);
+                                setIsEditing(false);
+                            }}
+                            className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 cursor-pointer transition-all"
+                            title="Crop Profile Photo"
+                        >
                             <Camera size={14} className="text-white" />
-                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoUpload(e)} />
-                        </label>
+                        </div>
                         {/* Active indicator */}
                         <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white ${user.status === 'Active' ? 'bg-green-500' : user.status === 'Rejected' ? 'bg-red-500' : 'bg-amber-400'}`} />
                     </div>
@@ -1167,9 +1186,19 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         ))}
                     </div>
                 )}
-                {activeProfileId === user.id && user.pendingProfileUpdate && (
-                    <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-4 py-3 text-xs font-semibold">
-                        Your profile update request is pending admin approval.
+                 {activeProfileId === user.id && user.pendingProfileUpdate && Object.keys(user.pendingProfileUpdate).length > 0 && (
+                    <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-4 py-3 text-xs font-semibold flex items-center justify-between gap-3">
+                        <span>Your profile update request is pending admin approval.</span>
+                        <button 
+                            onClick={() => {
+                                if (window.confirm('Are you sure you want to cancel and reset your pending profile and photo updates?')) {
+                                    onUpdate({ ...user, pendingProfileUpdate: {} } as User);
+                                }
+                            }}
+                            className="shrink-0 px-2.5 py-1 bg-white border border-amber-300 text-amber-900 rounded-lg hover:bg-amber-100 transition-colors font-bold text-[10px] uppercase tracking-wider"
+                        >
+                            Cancel & Reset
+                        </button>
                     </div>
                 )}
 
@@ -1749,6 +1778,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             alert('No existing photo to crop. Use "Add New Photo" first.');
                                             return;
                                         }
+                                        setWasEditingBeforeCrop(true);
                                         setCropTarget(activeProfileId === user.id
                                             ? { type: 'primary', isNewUpload: false }
                                             : { type: 'linked-profile', profileId: activeProfileId, isNewUpload: false });
@@ -1760,12 +1790,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                     <Camera size={14} /> Edit/Crop Current Photo
                                 </button>
                                 <label className="flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100 cursor-pointer">
-                                    <UploadCloud size={14} /> Add New Photo (Approval)
+                                    <UploadCloud size={14} /> {user.role === 'Admin' ? 'Add New Photo (Direct)' : 'Add New Photo (Approval)'}
                                     <input
                                         type="file"
                                         accept="image/*"
                                         className="hidden"
                                         onChange={(e) => {
+                                            setWasEditingBeforeCrop(true);
                                             handlePhotoUpload(e);
                                             setIsEditing(false);
                                         }}
