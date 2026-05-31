@@ -66,7 +66,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [qrImageUnavailable, setQrImageUnavailable] = useState(false);
     const [cardFlipped, setCardFlipped] = useState(false);
     const [showCommunityProfileForm, setShowCommunityProfileForm] = useState(false);
-    const [cropTarget, setCropTarget] = useState<{ type: 'primary' | 'linked-profile' | 'new-family-member'; profileId?: string } | null>(null);
+    const [cropTarget, setCropTarget] = useState<{ type: 'primary' | 'linked-profile' | 'new-family-member'; profileId?: string; isNewUpload?: boolean } | null>(null);
     const [adminReply, setAdminReply] = useState('');
     const [dismissedTopNotificationId, setDismissedTopNotificationId] = useState<string | null>(null);
     const notificationsSectionRef = React.useRef<HTMLDivElement | null>(null);
@@ -232,8 +232,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             const reader = new FileReader();
             reader.onloadend = () => {
                 setCropTarget(target === 'linked-profile'
-                    ? { type: target, profileId: activeProfileId }
-                    : { type: target });
+                    ? { type: target, profileId: activeProfileId, isNewUpload: true }
+                    : { type: target, isNewUpload: true });
                 setCroppingImage(reader.result as string);
                 e.target.value = '';
             };
@@ -246,23 +246,39 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             setSubProfileForm(prev => ({ ...prev, photo: croppedImg }));
         } else if (cropTarget?.type === 'linked-profile' && cropTarget.profileId) {
             const updatedProfiles = user.linkedProfiles?.map(p => p.id === cropTarget.profileId ? { ...p, photo: croppedImg } : p) || [];
-            onUpdate({
-                ...user,
-                pendingProfileUpdate: {
-                    ...(user.pendingProfileUpdate || {}),
+            if (cropTarget.isNewUpload) {
+                onUpdate({
+                    ...user,
+                    pendingProfileUpdate: {
+                        ...(user.pendingProfileUpdate || {}),
+                        linkedProfiles: updatedProfiles
+                    }
+                } as User);
+                alert('Linked profile photo update submitted for admin approval.');
+            } else {
+                onUpdate({
+                    ...user,
                     linkedProfiles: updatedProfiles
-                }
-            } as User);
-            alert('Linked profile photo update submitted for admin approval.');
+                } as User);
+                alert('Linked member photo cropped successfully.');
+            }
         } else {
-            onUpdate({
-                ...user,
-                pendingProfileUpdate: {
-                    ...(user.pendingProfileUpdate || {}),
+            if (cropTarget?.isNewUpload) {
+                onUpdate({
+                    ...user,
+                    pendingProfileUpdate: {
+                        ...(user.pendingProfileUpdate || {}),
+                        photo: croppedImg
+                    }
+                } as User);
+                alert('Photo update submitted for admin approval.');
+            } else {
+                onUpdate({
+                    ...user,
                     photo: croppedImg
-                }
-            } as User);
-            alert('Photo update submitted for admin approval.');
+                } as User);
+                alert('Profile photo cropped successfully.');
+            }
         }
         setCroppingImage(null);
         setCropTarget(null);
@@ -1614,16 +1630,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         </span>
                     </button>
 
-                    {/* Go To Login */}
-                    <button id="dashboard-login-btn" onClick={handleGoToLogin}
-                        className="col-span-2 bg-gradient-to-br from-slate-700 to-slate-900 text-white rounded-[22px] p-5 text-left shadow-xl hover:brightness-110 transition-all relative overflow-hidden group">
-                        <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><LogIn size={22} /></div>
-                        <p className="font-bold text-base leading-tight mb-1">Profile Login</p>
-                        <p className="text-white/80 text-[11px] mb-3">Open default login page to switch or sign in with another profile.</p>
-                        <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/20 rounded-xl px-4 py-2">
-                            <LogIn size={12} /> Open Login
-                        </span>
-                    </button>
+
                 </div>
 
                 </div>
@@ -1743,8 +1750,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             return;
                                         }
                                         setCropTarget(activeProfileId === user.id
-                                            ? { type: 'primary' }
-                                            : { type: 'linked-profile', profileId: activeProfileId });
+                                            ? { type: 'primary', isNewUpload: false }
+                                            : { type: 'linked-profile', profileId: activeProfileId, isNewUpload: false });
                                         setCroppingImage(displayProfile.photo);
                                         setIsEditing(false);
                                     }}
