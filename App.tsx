@@ -87,6 +87,7 @@ const MAX_STORED_CONTACT_MESSAGES = 200;
 const MESSAGE_RECYCLE_RETENTION_DAYS = 30;
 const MESSAGE_RECYCLE_RETENTION_MS = MESSAGE_RECYCLE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 const REJECTED_ACCESS_MESSAGE = 'Your account was rejected. Dashboard access is blocked. Please contact admin.';
+const TOUR_MENU_DEPENDENT_SELECTORS = new Set(['#nav-mobile-profile-card']);
 
 const RevealText: React.FC<{ text: string; className?: string; delay?: number }> = ({ text, className = "", delay = 0 }) => {
   return (
@@ -584,13 +585,12 @@ const App: React.FC = () => {
   }, [currentView, dashboardFocusSection]);
 
   const TOUR_STEPS = [
-    { selector: '#nav-hamburger-btn', title: 'Main Menu', text: 'Start with the hamburger menu to access all main sections quickly.' },
-    { selector: '#nav-mobile-profile-card', title: 'User Dashboard', text: 'Inside the menu, open this card to go to your user dashboard and profile tools.' },
-    { selector: '#tour-verify-upload-card', title: 'Upload Entrust Card', text: 'From Home, use this card to go straight to Entrust Card upload verification.' },
+    { selector: '#nav-hamburger-btn', title: 'Main Menu', text: 'Start with the hamburger menu to access all main sections quickly.', actionType: 'open-menu', actionLabel: 'Open Menu' },
+    { selector: '#nav-mobile-profile-card', title: 'User Dashboard', text: 'Inside the menu, tap this card to enter your user dashboard.', actionType: 'open-dashboard', actionLabel: 'Open Dashboard' },
+    { selector: '#tour-verify-upload-card', title: 'Upload Entrust Card', text: 'From Home, use this card to go straight to Entrust Card upload verification.', actionType: 'open-upload', actionLabel: 'Open Upload' },
   ];
-
   const ensureTourTargetVisible = useCallback((selector: string) => {
-    if (selector !== '#nav-mobile-profile-card') return;
+    if (!TOUR_MENU_DEPENDENT_SELECTORS.has(selector)) return;
     if (document.querySelector(selector)) return;
     const hamburger = document.getElementById('nav-hamburger-btn') as HTMLButtonElement | null;
     hamburger?.click();
@@ -607,6 +607,39 @@ const App: React.FC = () => {
   const closeTour = () => {
     setTourStepIndex(null);
     setTourRect(null);
+  };
+
+  const runTourStepAction = () => {
+    if (tourStepIndex === null) return;
+    const step = TOUR_STEPS[tourStepIndex];
+    if (!step?.actionType) return;
+
+    if (step.actionType === 'open-menu') {
+      const hamburger = document.getElementById('nav-hamburger-btn') as HTMLButtonElement | null;
+      hamburger?.click();
+      setTourStepIndex(prev => {
+        if (prev === null) return prev;
+        return Math.min(prev + 1, TOUR_STEPS.length - 1);
+      });
+      return;
+    }
+
+    if (step.actionType === 'open-dashboard') {
+      ensureTourTargetVisible('#nav-mobile-profile-card');
+      const profileCard = document.getElementById('nav-mobile-profile-card') as HTMLButtonElement | null;
+      if (profileCard) {
+        profileCard.click();
+      } else {
+        setCurrentView(ViewState.USER_DASHBOARD);
+      }
+      closeTour();
+      return;
+    }
+
+    if (step.actionType === 'open-upload') {
+      closeTour();
+      navigate('/auth?view=login&option=upload');
+    }
   };
 
   const skipIntro = () => {
@@ -2585,19 +2618,29 @@ const App: React.FC = () => {
                 >
                   Skip tour
                 </button>
-                <button
-                  onClick={() => {
-                    const isLastStep = tourStepIndex >= TOUR_STEPS.length - 1;
-                    if (isLastStep) {
-                      closeTour();
-                    } else {
-                      setTourStepIndex(tourStepIndex + 1);
-                    }
-                  }}
-                  className="px-4 py-2 text-sm font-bold rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors"
-                >
-                  {tourStepIndex >= TOUR_STEPS.length - 1 ? 'Done' : 'Next'}
-                </button>
+                <div className="flex items-center gap-2">
+                  {TOUR_STEPS[tourStepIndex]?.actionLabel && (
+                    <button
+                      onClick={runTourStepAction}
+                      className="px-4 py-2 text-sm font-bold rounded-xl bg-amber-500 text-brand-950 hover:bg-amber-400 transition-colors"
+                    >
+                      {TOUR_STEPS[tourStepIndex].actionLabel}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      const isLastStep = tourStepIndex >= TOUR_STEPS.length - 1;
+                      if (isLastStep) {
+                        closeTour();
+                      } else {
+                        setTourStepIndex(tourStepIndex + 1);
+                      }
+                    }}
+                    className="px-4 py-2 text-sm font-bold rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors"
+                  >
+                    {tourStepIndex >= TOUR_STEPS.length - 1 ? 'Done' : 'Next'}
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>
