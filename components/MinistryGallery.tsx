@@ -45,7 +45,7 @@ export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items }) => {
         return () => window.removeEventListener('keydown', handleKey);
     }, [lightboxIndex, closeLightbox, prevItem, nextItem]);
 
-    const activeLightboxItem = lightboxIndex !== null ? items[lightboxIndex] : null;
+    const activeLightboxItem = (lightboxIndex !== null && lightboxIndex >= 0 && lightboxIndex < items.length) ? items[lightboxIndex] : null;
 
     return (
         <>
@@ -177,7 +177,7 @@ export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items }) => {
 
             {/* ─── Lightbox Modal ─── */}
             <AnimatePresence>
-                {activeLightboxItem && lightboxIndex !== null && (
+                {activeLightboxItem && lightboxIndex !== null && lightboxIndex >= 0 && lightboxIndex < items.length && (
                     <motion.div
                         key="lightbox-backdrop"
                         initial={{ opacity: 0 }}

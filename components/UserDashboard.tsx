@@ -16,6 +16,9 @@ import { addCenteredCardPage, waitForNodeImages } from './pdfCardUtils';
 import { CommunityProfileForm } from './CommunityProfileForm';
 import { GuidedTour, WelcomeTourModal, useTour } from './GuidedTour';
 
+const MEMBER_FORM_LOGO_URL = '/assets/member-form-logo.png';
+const MEMBER_FORM_STAMP_URL = '/assets/member-form-authorised-stamp-transparent.png';
+
 interface UserDashboardProps {
     user: User;
     onEdit: () => void;
@@ -29,6 +32,7 @@ interface UserDashboardProps {
     onMarkNotificationsRead?: () => void;
     onDeleteNotification?: (notificationId: string) => void;
     focusSection?: 'notifications' | null;
+    onDeleteAccount?: () => Promise<void>;
 }
 
 const FAMILY_RELATIONSHIP_OPTIONS = {
@@ -45,7 +49,7 @@ const TAMIL_NADU_LOCATIONS = [
     'Pudukkottai', 'Perambalur', 'Tenkasi', 'Ranipet', 'Tirupattur', 'Mayiladuthurai', 'Valparai'
 ];
 
-export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, onOpenScanner, initialProfileId, onGoToLogin, notifications = [], onSendReply, onMarkNotificationsRead, onDeleteNotification, focusSection = null }) => {
+export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, onOpenScanner, initialProfileId, onGoToLogin, notifications = [], onSendReply, onMarkNotificationsRead, onDeleteNotification, focusSection = null, onDeleteAccount }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [showTestimonialModal, setShowTestimonialModal] = useState(false);
     const [formData, setFormData] = useState<Partial<User>>({});
@@ -70,6 +74,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [adminReply, setAdminReply] = useState('');
     const [dismissedTopNotificationId, setDismissedTopNotificationId] = useState<string | null>(null);
     const [wasEditingBeforeCrop, setWasEditingBeforeCrop] = useState(false);
+    const [showFormSubmittedBanner, setShowFormSubmittedBanner] = useState(false);
     const notificationsSectionRef = React.useRef<HTMLDivElement | null>(null);
     const hasPermanentCotId = /^COT-\d{4,}$/.test((user.id || '').trim());
     const canAccessEntrustFeatures = user.status === 'Active' && hasPermanentCotId;
@@ -828,85 +833,234 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         }
     };
 
-    const handleExportMemberFormPDF = () => {
+    const handleExportMemberFormPDF = async () => {
         const profile = user.communityProfile || {};
         const hasFormSubmitted = !!(profile.denomination || profile.churchName || profile.role || profile.bio);
         if (!hasFormSubmitted) {
             alert('Please fill out the Member Form first to unlock this download.');
             return;
         }
+        setIsProcessing(true);
         try {
             const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
             const pageWidth = pdf.internal.pageSize.getWidth();
             const pageHeight = pdf.internal.pageSize.getHeight();
-            const margin = 14;
-            const contentWidth = pageWidth - margin * 2;
-            let y = 38;
+            const navy = '#1B2A5E';
+            const navyDark = '#0F1A3E';
+            const gold = '#C9963A';
+            const goldLight = '#E8C47A';
+            const cream = '#F9F5EE';
+            const ml = 16;
+            const fieldWidth = pageWidth - (ml * 2);
+            const fieldHeight = 11.5;
+            const labelHeight = 5;
+            const labelGap = 2;
+            const verticalGap = 4.5;
+
+            const loadImageDataUrl = async (url: string) => {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) return null;
+                    const blob = await response.blob();
+                    return await new Promise<string>((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result as string);
+                        reader.onerror = () => reject(reader.error);
+                        reader.readAsDataURL(blob);
+                    });
+                } catch {
+                    return null;
+                }
+            };
+
+            const [logoDataUrl, stampDataUrl] = await Promise.all([
+                loadImageDataUrl(MEMBER_FORM_LOGO_URL),
+                loadImageDataUrl(MEMBER_FORM_STAMP_URL)
+            ]);
+
+            const valueOrBlank = (value?: string) => `${value || ''}`.trim();
+            const drawBackground = () => {
+                pdf.setFillColor(cream);
+                pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+                pdf.setFillColor(navyDark);
+                pdf.rect(0, 0, pageWidth, 58, 'F');
+                pdf.setFillColor(gold);
+                pdf.rect(0, 58, pageWidth, 3, 'F');
+                pdf.setDrawColor('#D4C4A0');
+                pdf.setLineWidth(0.4);
+                pdf.line(10, 64, 10, pageHeight - 34);
+                pdf.line(pageWidth - 10, 64, pageWidth - 10, pageHeight - 34);
+                pdf.setFillColor(navyDark);
+                pdf.rect(0, pageHeight - 24, pageWidth, 24, 'F');
+                pdf.setFillColor(gold);
+                pdf.rect(0, pageHeight - 26, pageWidth, 2, 'F');
+            };
 
             const drawHeader = () => {
-                pdf.setFillColor(26, 27, 75);
-                pdf.rect(0, 0, pageWidth, 34, 'F');
-                pdf.setFillColor(212, 165, 71);
-                pdf.rect(0, 31, pageWidth, 3, 'F');
+                if (logoDataUrl) {
+                    pdf.addImage(logoDataUrl, 'PNG', 13, 8, 40, 40, undefined, 'FAST');
+                }
+                const tx = 58;
                 pdf.setTextColor(255, 255, 255);
                 pdf.setFont('helvetica', 'bold');
-                pdf.setFontSize(14);
-                pdf.text('Member Form Submission', margin, 13.5);
-                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(16);
+                pdf.text('CITY OF TRUTH MINISTRIES', tx, 24);
+                pdf.setTextColor(gold);
                 pdf.setFontSize(9);
-                pdf.text('Themed ministry style • User Download', margin, 19.5);
-                pdf.text(`Generated: ${new Date().toLocaleString()}`, margin, 24.5);
-                pdf.text(`Member: ${user.name} • ${user.id}`, margin, 29.5);
-                y = 36;
-            };
-            const phoneWithCountryCode = (value?: string) => {
-                const digits = `${value || ''}`.replace(/\D/g, '');
-                if (!digits) return '';
-                if (digits.startsWith('91') && digits.length === 12) return `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`;
-                if (digits.length === 10) return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
-                return value || '';
+                pdf.text('BUILDING DISCIPLESHIP', tx, 32);
+                pdf.setDrawColor(gold);
+                pdf.setLineWidth(0.8);
+                pdf.line(tx, 35.5, pageWidth - 13, 35.5);
+                pdf.setTextColor(goldLight);
+                pdf.setFontSize(11);
+                pdf.text('MEMBER PROFILE REGISTRATION FORM', tx, 43);
+                pdf.setTextColor('#AAB8D8');
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(7.5);
+                pdf.text('CONFIDENTIAL  -  LEADERSHIP REVIEW ONLY  -  DEDICATED FOR MINISTRY USE ONLY', tx, 49);
             };
 
-            const drawField = (label: string, value: string) => {
-                const text = `${value || 'Not provided'}`.trim() || 'Not provided';
-                const lines = pdf.splitTextToSize(text, contentWidth - 8);
-                const blockHeight = Math.max(12, lines.length * 4 + 7);
-                if (y + blockHeight > pageHeight - 14) {
-                    pdf.addPage();
-                    drawHeader();
+            const drawFooter = () => {
+                pdf.setTextColor(goldLight);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(7);
+                pdf.text('CITY OF TRUTH MINISTRIES  *  BUILDING DISCIPLESHIP', pageWidth / 2, pageHeight - 16, { align: 'center' });
+                pdf.setTextColor('#8899CC');
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(6.5);
+                pdf.text('This form is strictly confidential - For internal ministry use only - Form Ref: COT-MPR-2025 v3.0', pageWidth / 2, pageHeight - 11, { align: 'center' });
+                pdf.setTextColor('#667799');
+                pdf.setFontSize(6);
+                pdf.text('Dedicated for Ministry Use Only', pageWidth / 2, pageHeight - 7, { align: 'center' });
+            };
+
+            const sectionLabel = (label: string, x: number, y: number) => {
+                pdf.setFillColor(gold);
+                pdf.rect(x, y - 1, 3, 8.5, 'F');
+                pdf.setTextColor(navyDark);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(7.6);
+                pdf.text(label.toUpperCase(), x + 6, y + 1);
+            };
+
+            const fieldBox = (x: number, y: number, width: number, height: number, value = '', placeholder = '', isMultiline = false) => {
+                const cleanValue = valueOrBlank(value);
+                pdf.setFillColor('#D8D0C0');
+                pdf.roundedRect(x + 1, y + 1.5, width, height, 4, 4, 'F');
+                pdf.setFillColor(255, 255, 255);
+                pdf.setDrawColor(navy);
+                pdf.setLineWidth(1.2);
+                pdf.roundedRect(x, y, width, height, 4, 4, 'FD');
+                if (cleanValue) {
+                    pdf.setTextColor(navyDark);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(isMultiline ? 9.2 : 9.5);
+                    const lines = pdf.splitTextToSize(cleanValue, width - 10);
+                    pdf.text(lines.slice(0, isMultiline ? 4 : 1), x + 5, y + (isMultiline ? 8 : height / 2 + 3.1));
+                } else if (placeholder) {
+                    pdf.setTextColor('#AAAAAA');
+                    pdf.setFont('helvetica', 'italic');
+                    pdf.setFontSize(9);
+                    pdf.text(placeholder, x + 5, y + (isMultiline ? 8 : height / 2 + 3.1));
                 }
-                pdf.setFillColor(248, 250, 252);
-                pdf.roundedRect(margin, y, contentWidth, blockHeight, 3, 3, 'F');
-                pdf.setTextColor(100, 116, 139);
+            };
+
+            const dropdownBox = (x: number, y: number, width: number, height: number, value = '', placeholder = '') => {
+                fieldBox(x, y, width, height, value, placeholder);
+                const arrowWidth = 8;
+                pdf.setFillColor(gold);
+                pdf.roundedRect(x + width - arrowWidth - 2, y + 2, arrowWidth, height - 4, 3, 3, 'F');
+                pdf.setTextColor(255, 255, 255);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(9);
+                pdf.text('v', x + width - arrowWidth / 2 - 3, y + height / 2 + 3, { align: 'center' });
+            };
+
+            const divider = (y: number) => {
+                pdf.setDrawColor(goldLight);
+                pdf.setLineWidth(0.6);
+                pdf.line(16, y, pageWidth - 16, y);
+            };
+
+            const drawSignatureStamp = (x: number, y: number, width: number) => {
+                const stampWidth = 40;
+                const signatureWidth = width - stampWidth - 8;
+                const blockHeight = 27;
+                pdf.setFillColor('#D8D0C0');
+                pdf.roundedRect(x + 1, y + 1.5, signatureWidth, blockHeight, 4, 4, 'F');
+                pdf.setFillColor(255, 255, 255);
+                pdf.setDrawColor(navy);
+                pdf.setLineWidth(1.2);
+                pdf.roundedRect(x, y, signatureWidth, blockHeight, 4, 4, 'FD');
+                pdf.setFillColor(gold);
+                pdf.rect(x, y, signatureWidth, 9, 'F');
+                pdf.setTextColor(navyDark);
                 pdf.setFont('helvetica', 'bold');
                 pdf.setFontSize(8);
-                pdf.text(label, margin + 4, y + 4.2);
-                pdf.setTextColor(15, 23, 42);
-                pdf.setFont('helvetica', 'normal');
-                pdf.setFontSize(10);
-                pdf.text(lines, margin + 4, y + 8.8);
-                y += blockHeight + 3;
+                pdf.text('AUTHORISED BY:', x + 4, y + 6);
+                pdf.setTextColor('#0F6432');
+                pdf.setFont('times', 'italic');
+                pdf.setFontSize(21);
+                pdf.text('Shaveesh Jeshurun', x + signatureWidth / 2, y + 19, { align: 'center' });
+                pdf.setDrawColor('#0F6432');
+                pdf.setLineWidth(1);
+                pdf.line(x + 12, y + 21, x + signatureWidth - 12, y + 21);
+                pdf.setTextColor(navyDark);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(6.5);
+                pdf.text('Senior Pastor  -  City of Truth Ministries', x + 4, y + 25.7);
+                if (stampDataUrl) {
+                    pdf.addImage(stampDataUrl, 'PNG', x + signatureWidth + 8, y - 8, stampWidth, stampWidth, undefined, 'FAST');
+                }
             };
 
+            drawBackground();
             drawHeader();
-            drawField('Member ID', user.id);
-            drawField('Name', user.name);
-            drawField('Phone', phoneWithCountryCode(user.phone || user.emergency));
-            drawField('Email', user.email);
-            drawField('Location', user.location);
-            drawField('Member Since', user.memberSince || user.joinedDate);
-            drawField('Denomination', profile.denomination || '');
-            drawField('Church Name', profile.churchName || '');
-            drawField('Role in Ministry', profile.role || '');
-            drawField('District / Zone', profile.district || '');
-            drawField('Testimony / Bio', profile.bio || '');
+            drawFooter();
+
+            let y = 68;
+            sectionLabel('Member', ml, y);
+            y += labelHeight + labelGap;
+            fieldBox(ml, y, fieldWidth, fieldHeight, `${user.name}  -  ${user.id}`);
+            y += fieldHeight + verticalGap;
+
+            sectionLabel('Denomination', ml, y);
+            y += labelHeight + labelGap;
+            dropdownBox(ml, y, fieldWidth, fieldHeight, valueOrBlank(profile.denomination), 'Select denomination');
+            y += fieldHeight + verticalGap;
+
+            sectionLabel('Church Name', ml, y);
+            y += labelHeight + labelGap;
+            fieldBox(ml, y, fieldWidth, fieldHeight, valueOrBlank(profile.churchName), 'Enter your church name');
+            y += fieldHeight + verticalGap;
+
+            sectionLabel('Your Role in Ministry', ml, y);
+            y += labelHeight + labelGap;
+            dropdownBox(ml, y, fieldWidth, fieldHeight, valueOrBlank(profile.role), 'Select role');
+            y += fieldHeight + verticalGap;
+
+            sectionLabel('District / Zone', ml, y);
+            y += labelHeight + labelGap;
+            dropdownBox(ml, y, fieldWidth, fieldHeight, valueOrBlank(profile.district || user.location), 'Select your district or zone');
+            y += fieldHeight + verticalGap;
+
+            sectionLabel('Brief Testimony / Bio', ml, y);
+            y += labelHeight + labelGap;
+            fieldBox(ml, y, fieldWidth, 21, valueOrBlank(profile.bio), 'Share your testimony or brief bio here...', true);
+            y += 21 + verticalGap + 2;
+
+            divider(y);
+            drawSignatureStamp(ml, Math.max(y + 7, 234), fieldWidth);
 
             pdf.save(`COT-MEMBER-FORM-${user.id}.pdf`);
         } catch (error) {
             console.error('Member form PDF generation failed', error);
-            alert('Unable to generate Member Form PDF right now. Please try again.');
+            alert('Failed to generate Member Form PDF. Please try again.');
+        } finally {
+            setIsProcessing(false);
         }
     };
+
 
     const handleGoToLogin = () => {
         if (onGoToLogin) {
@@ -1008,6 +1162,39 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 </div>
             )}
 
+            {showFormSubmittedBanner && (
+                <div className="sticky top-20 z-50 w-full max-w-md lg:max-w-7xl xl:max-w-[88rem] 2xl:max-w-[95rem] mb-3">
+                    <div className="rounded-2xl border border-green-200 bg-gradient-to-r from-green-50 via-white to-emerald-50 shadow-lg px-4 py-3 flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-green-100 text-green-700 flex items-center justify-center shrink-0">
+                                <FileText size={16} />
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-[10px] font-black uppercase tracking-wider text-green-700">Member Form Submitted</p>
+                                <p className="text-sm text-slate-700">Your Member Profile Registration Form was submitted successfully! You can download your official form now.</p>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        handleExportMemberFormPDF();
+                                    }}
+                                    className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"
+                                >
+                                    <Download size={12} /> Download Member Form PDF
+                                </button>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setShowFormSubmittedBanner(false)}
+                            className="p-1.5 rounded-lg text-slate-500 hover:bg-white border border-slate-200"
+                            title="Dismiss notification"
+                        >
+                            <X size={14} />
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Off-screen capture nodes */}
             {croppingImage && <div className="z-[100] relative"><ImageCropper imageSrc={croppingImage} onCropComplete={handleCropComplete} onCancel={() => { setCroppingImage(null); setCropTarget(null); if (wasEditingBeforeCrop) { setIsEditing(true); setWasEditingBeforeCrop(false); } }} /></div>}
             <TestimonialModal isOpen={showTestimonialModal} onClose={() => setShowTestimonialModal(false)} user={user} />
@@ -1017,17 +1204,17 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 initialData={user.communityProfile}
                 onSave={(communityData) => {
                     onUpdate({ ...user, communityProfile: communityData } as User);
-                    alert('Member form submitted successfully. Admin can view it in dashboard.');
+                    setShowFormSubmittedBanner(true);
                 }}
             />
             <CalendarCustomizationModal isOpen={isCalendarModalOpen} onClose={() => setIsCalendarModalOpen(false)} onDownload={handleDownloadCalendar} />
 
             <div className="fixed left-[-9999px] top-0 pointer-events-none z-0">
                 <div id="capture-front" className="bg-white">
-                    <EntrustCard3D name={displayProfile.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={displayProfile.id} memberSince={user.memberSince} photo={displayProfile.photo} status={user.status} isStatic={true} isBackSide={false} />
+                    <EntrustCard3D name={displayProfile.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={displayProfile.id} memberSince={user.joinedDate || user.memberSince} photo={displayProfile.photo} status={user.status} isStatic={true} isBackSide={false} />
                 </div>
                 <div id="capture-back" className="bg-white">
-                    <EntrustCard3D name={displayProfile.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={displayProfile.id} memberSince={user.memberSince} photo={displayProfile.photo} status={user.status} isStatic={true} isBackSide={true} />
+                    <EntrustCard3D name={displayProfile.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={displayProfile.id} memberSince={user.joinedDate || user.memberSince} photo={displayProfile.photo} status={user.status} isStatic={true} isBackSide={true} />
                 </div>
             </div>
             <div className="fixed left-[-10000px] top-0 pointer-events-none opacity-100 z-0">
@@ -1332,7 +1519,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         {/* Left: Card Preview */}
                         <div className="w-full xl:w-3/5">
                             {/* Card Preview (MOBILE) — shows real card scaled down */}
-                            <div className="md:hidden relative cursor-pointer" onClick={() => setShowCardPreview(true)}>
+                            <div className="md:hidden relative cursor-pointer" onClick={canAccessEntrustFeatures ? handleDownloadPDF : handleBlockedFeature}>
                                 <div className={`relative w-full flex justify-center origin-top ${!canAccessEntrustFeatures ? 'blur-[2px]' : ''}`}
                                     style={{ height: '220px', overflow: 'hidden' }}>
                                     <div style={{ transform: 'scale(0.92)', transformOrigin: 'top center', position: 'absolute', top: 0 }}>
@@ -1342,7 +1529,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             location={user.location}
                                             emergency={user.emergency}
                                             uniqueId={displayProfile.id}
-                                            memberSince={user.memberSince}
+                                            memberSince={user.joinedDate || user.memberSince}
                                             photo={displayProfile.photo}
                                             status={user.status}
                                             isStatic={true}
@@ -1355,11 +1542,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         <span className="bg-black/55 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">Awaiting Approval</span>
                                     </div>
                                 )}
-                                <p className="text-center text-slate-500 text-xs font-semibold mt-2 mb-1">Tap card to expand &amp; download ✨</p>
+                                <p className="text-center text-slate-500 text-xs font-semibold mt-2 mb-1">Tap card to download instantly ✨</p>
                             </div>
 
                             {/* Real EntrustCard3D Preview (DESKTOP ONLY) */}
-                            <div className="hidden md:block w-full cursor-pointer hover:scale-[1.01] transition-transform duration-300" onClick={() => setShowCardPreview(true)}>
+                            <div className="hidden md:block w-full cursor-pointer hover:scale-[1.01] transition-transform duration-300" onClick={canAccessEntrustFeatures ? handleDownloadPDF : handleBlockedFeature}>
                                 <div className="w-full flex justify-center items-center py-6 md:py-10 lg:py-12 overflow-hidden relative">
                                     <div className={`transform origin-center transition-all scale-100 md:scale-[1.12] lg:scale-[1.22] xl:scale-[1.35] ${!canAccessEntrustFeatures ? 'blur-[2px]' : ''}`}>
                                         <EntrustCard3D
@@ -1368,7 +1555,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             location={user.location}
                                             emergency={user.emergency}
                                             uniqueId={displayProfile.id}
-                                            memberSince={user.memberSince}
+                                            memberSince={user.joinedDate || user.memberSince}
                                             photo={displayProfile.photo}
                                             status={user.status}
                                             isStatic={true}
@@ -1381,7 +1568,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         </div>
                                     )}
                                 </div>
-                                <p className="text-center text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">✨ Click card to Expand / Download ✨</p>
+                                <p className="text-center text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">✨ Click card to download instantly ✨</p>
                             </div>
                         </div>
 
@@ -1402,9 +1589,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         ) : (
                                             <button
                                                 type="button"
-                                                onClick={handleOpenQrPreview}
+                                                onClick={handleDownloadQrCode}
                                                 className="rounded-[24px] border border-slate-200 bg-white p-3 shadow-inner cursor-zoom-in hover:scale-[1.01] transition-transform"
-                                                title="Click to view QR code with link"
+                                                title="Click to download QR code"
                                             >
                                                 <img
                                                     src={qrImgSrc}
@@ -1492,13 +1679,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                     {/* Action buttons row (mAadhaar style) */}
                     {canAccessEntrustFeatures && (
-                        <div id="dashboard-actions-row" className="grid grid-cols-5 gap-1 px-4 pb-5 pt-3">
+                        <div id="dashboard-actions-row" className={`grid ${user.communityProfile ? 'grid-cols-5' : 'grid-cols-4'} gap-1 px-4 pb-5 pt-3`}>
                             {[
                                 { icon: <Share2 size={20} />, label: 'Share', action: handleShare, id: 'dashboard-share-top-btn' },
                                 { icon: <Download size={20} />, label: 'Download', action: handleDownloadPDF, loading: isProcessing },
                                 { icon: <FileText size={20} />, label: 'Details PDF', action: handleExportProfileDetailsPDF },
                                 { icon: <QrCode size={20} />, label: 'Download QR', action: handleDownloadQrCode, id: 'dashboard-scanner-btn' },
-                                { icon: <FileText size={20} />, label: 'Member Form PDF', action: handleExportMemberFormPDF },
+                                ...(user.communityProfile ? [{ icon: <FileText size={20} />, label: 'Member Form PDF', action: handleExportMemberFormPDF }] : []),
                             ].map(({ icon, label, action, loading, id }, i) => (
                                 <button id={id} key={i} onClick={action} disabled={loading}
                                     className="flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-2xl bg-slate-50 hover:bg-brand-50 hover:text-brand-700 text-slate-600 transition-all disabled:opacity-60 border border-transparent hover:border-brand-100">
@@ -1874,7 +2061,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 </select>
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Member Since</label>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Joined Date</label>
                                 <input type="text" value={(formData as any).memberSince ?? user.memberSince ?? ''} onChange={e => setFormData(p => ({ ...p, memberSince: e.target.value } as any))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
                             </div>
                             <div>
@@ -1886,6 +2073,34 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700 font-medium">
                                 ⚠️ Detail changes require admin approval and will be reflected after review.
                             </div>
+
+                            {onDeleteAccount && activeProfileId === user.id && (
+                                <div className="mt-8 pt-6 border-t border-red-100">
+                                    <h4 className="text-sm font-bold text-red-600 uppercase tracking-wider mb-2">Danger Zone</h4>
+                                    <p className="text-xs text-slate-500 mb-4">Once you delete your account, it is permanently deleted. This action is irreversible.</p>
+                                    <button
+                                        type="button"
+                                        onClick={async () => {
+                                            if (window.confirm("Are you absolutely sure you want to permanently delete your account? This action cannot be undone.")) {
+                                                if (window.confirm("Confirming again: All your profile data and registration will be permanently erased. Do you wish to proceed?")) {
+                                                    try {
+                                                        setIsProcessing(true);
+                                                        await onDeleteAccount();
+                                                    } catch (err) {
+                                                        console.error(err);
+                                                        alert("Failed to delete account. Please try again.");
+                                                    } finally {
+                                                        setIsProcessing(false);
+                                                    }
+                                                }
+                                            }
+                                        }}
+                                        className="w-full sm:w-auto px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                                    >
+                                        Delete Account Permanently
+                                    </button>
+                                </div>
+                            )}
 
                             <div className="flex gap-3 pt-2">
                                 <button type="button" onClick={cancelEditing} className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">Cancel</button>

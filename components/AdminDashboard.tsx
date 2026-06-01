@@ -708,7 +708,7 @@ const EMPTY_NEW_USER = {
     role: 'Member' as UserRole,
     photo: '',
     emergency: '',
-    memberSince: new Date().getFullYear().toString(),
+    memberSince: new Date().toLocaleDateString('en-GB'),
     joinedDate: new Date().toISOString().split('T')[0],
 };
 
@@ -2270,9 +2270,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     const handleSaveEdit = async () => {
         if (!editingUser) return;
+        const cleanedPhone = editingUser.phone.replace(/\D/g, '');
+        if (cleanedPhone.length !== 10) {
+            alert('Phone number must be exactly 10 digits.');
+            return;
+        }
         setIsLoading(true);
         try {
-            await onUpdateUser(editingUser);
+            const updatedUser = { 
+                ...editingUser, 
+                phone: cleanedPhone, 
+                emergency: cleanedPhone 
+            };
+            await onUpdateUser(updatedUser);
             setEditingUser(null);
         } catch (error) {
             alert('Failed to update user');
@@ -2298,6 +2308,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const handleAddNewUser = async () => {
         if (!newUserData.name.trim()) { alert('Name is required.'); return; }
         if (!newUserData.phone.trim()) { alert('Phone number is required.'); return; }
+        const cleanedPhone = newUserData.phone.replace(/\D/g, '');
+        if (cleanedPhone.length !== 10) {
+            alert('Phone number must be exactly 10 digits.');
+            return;
+        }
         if (!newUserData.location) { alert('Please select a district.'); return; }
 
         setIsLoading(true);
@@ -2328,10 +2343,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             const user: User = {
                 id: newId,
                 name: newUserData.name.trim(),
-                phone: newUserData.phone.trim(),
+                phone: cleanedPhone,
                 email: newUserData.email.trim(),
                 location: newUserData.location,
-                emergency: newUserData.phone.trim(),
+                emergency: cleanedPhone,
                 role: newUserData.role,
                 status: 'Active',
                 photo: newUserData.photo || '',
@@ -2898,10 +2913,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             const cream = '#F9F5EE';
             const ml = 16;
             const fieldWidth = pageWidth - (ml * 2);
-            const fieldHeight = 11.5;
-            const labelHeight = 5;
-            const labelGap = 2;
-            const verticalGap = 4.5;
+            const fieldHeight = 11.0;
+            const labelHeight = 4.0;
+            const labelGap = 2.0;
+            const verticalGap = 7.0;
 
             const loadImageDataUrl = async (url: string) => {
                 try {
@@ -2982,11 +2997,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             const sectionLabel = (label: string, x: number, y: number) => {
                 pdf.setFillColor(gold);
-                pdf.rect(x, y - 1, 3, 8.5, 'F');
+                pdf.rect(x, y + 1, 2, 3.8, 'F');
                 pdf.setTextColor(navyDark);
                 pdf.setFont('helvetica', 'bold');
                 pdf.setFontSize(7.6);
-                pdf.text(label.toUpperCase(), x + 6, y + 1);
+                pdf.text(label.toUpperCase(), x + 5, y + 4.0);
             };
 
             const fieldBox = (x: number, y: number, width: number, height: number, value = '', placeholder = '', isMultiline = false) => {
@@ -3013,13 +3028,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             const dropdownBox = (x: number, y: number, width: number, height: number, value = '', placeholder = '') => {
                 fieldBox(x, y, width, height, value, placeholder);
-                const arrowWidth = 8;
                 pdf.setFillColor(gold);
-                pdf.roundedRect(x + width - arrowWidth - 2, y + 2, arrowWidth, height - 4, 3, 3, 'F');
-                pdf.setTextColor(255, 255, 255);
-                pdf.setFont('helvetica', 'bold');
-                pdf.setFontSize(9);
-                pdf.text('v', x + width - arrowWidth / 2 - 3, y + height / 2 + 3, { align: 'center' });
+                const arrowX = x + width - 10;
+                const arrowY = y + height / 2 - 1.5;
+                pdf.triangle(
+                    arrowX, arrowY,
+                    arrowX + 5, arrowY,
+                    arrowX + 2.5, arrowY + 3.2,
+                    'F'
+                );
             };
 
             const divider = (y: number) => {
@@ -3031,7 +3048,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             const drawSignatureStamp = (x: number, y: number, width: number) => {
                 const stampWidth = 40;
                 const signatureWidth = width - stampWidth - 8;
-                const blockHeight = 27;
+                const blockHeight = 25;
                 pdf.setFillColor('#D8D0C0');
                 pdf.roundedRect(x + 1, y + 1.5, signatureWidth, blockHeight, 4, 4, 'F');
                 pdf.setFillColor(255, 255, 255);
@@ -3039,22 +3056,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 pdf.setLineWidth(1.2);
                 pdf.roundedRect(x, y, signatureWidth, blockHeight, 4, 4, 'FD');
                 pdf.setFillColor(gold);
-                pdf.rect(x, y, signatureWidth, 9, 'F');
+                pdf.rect(x, y, signatureWidth, 8, 'F');
                 pdf.setTextColor(navyDark);
                 pdf.setFont('helvetica', 'bold');
                 pdf.setFontSize(8);
-                pdf.text('AUTHORISED BY:', x + 4, y + 6);
+                pdf.text('AUTHORISED BY:', x + 4, y + 5.5);
                 pdf.setTextColor('#0F6432');
                 pdf.setFont('times', 'italic');
-                pdf.setFontSize(21);
-                pdf.text('Shaveesh Jeshurun', x + signatureWidth / 2, y + 20, { align: 'center', angle: -2 });
+                pdf.setFontSize(19);
+                pdf.text('Shaveesh Jeshurun', x + signatureWidth / 2, y + 17.5, { align: 'center', angle: -2 });
                 pdf.setDrawColor('#0F6432');
-                pdf.setLineWidth(1);
-                pdf.line(x + 6, y + 22.3, x + signatureWidth - 6, y + 22.3);
+                pdf.setLineWidth(0.8);
+                pdf.line(x + 6, y + 19.8, x + signatureWidth - 6, y + 19.8);
                 pdf.setTextColor(navyDark);
                 pdf.setFont('helvetica', 'bold');
                 pdf.setFontSize(6.5);
-                pdf.text('Senior Pastor  -  City of Truth Ministries', x + 4, y + 25.7);
+                pdf.text('Senior Pastor  -  City of Truth Ministries', x + 4, y + 23.5);
                 if (stampDataUrl) {
                     pdf.addImage(stampDataUrl, 'PNG', x + signatureWidth + 8, y - 8, stampWidth, stampWidth, undefined, 'FAST');
                 }
@@ -3064,7 +3081,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             drawHeader();
             drawFooter();
 
-            let y = 68;
+            let y = 66;
             sectionLabel('Member', ml, y);
             y += labelHeight + labelGap;
             fieldBox(ml, y, fieldWidth, fieldHeight, `${member.name}  -  ${member.id}`);
@@ -3092,11 +3109,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             sectionLabel('Brief Testimony / Bio', ml, y);
             y += labelHeight + labelGap;
-            fieldBox(ml, y, fieldWidth, 21, valueOrBlank(profile.bio), 'Share your testimony or brief bio here...', true);
-            y += 21 + verticalGap + 2;
+            fieldBox(ml, y, fieldWidth, 20, valueOrBlank(profile.bio), 'Share your testimony or brief bio here...', true);
+            y += 20 + 6;
 
             divider(y);
-            drawSignatureStamp(ml, Math.max(y + 7, 234), fieldWidth);
+            drawSignatureStamp(ml, 223, fieldWidth);
 
             pdf.save(`COT-MEMBER-FORM-${member.id}.pdf`);
         } catch (error) {
@@ -3327,7 +3344,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 location={user.location}
                                 emergency={user.emergency}
                                 uniqueId={user.id}
-                                memberSince={user.memberSince}
+                                memberSince={user.joinedDate || user.memberSince}
                                 photo={user.photo}
                                 isStatic={true}
                                 isBackSide={false}
@@ -3340,7 +3357,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 location={user.location}
                                 emergency={user.emergency}
                                 uniqueId={user.id}
-                                memberSince={user.memberSince}
+                                memberSince={user.joinedDate || user.memberSince}
                                 photo={user.photo}
                                 isStatic={true}
                                 isBackSide={true}
@@ -3558,7 +3575,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 )}
 
                 {activeTab === 'id-cards' && (
-                    <div className="grid grid-cols-2 xl:grid-cols-5 gap-3 md:gap-4 mb-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 mb-6">
                         {USER_QUICK_VIEW_OPTIONS.map(option => {
                             const Icon = option.icon;
                             return (
@@ -3572,7 +3589,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         if (option.id === 'join-dates') setIdCardVisualMode('join-dates');
                                         setUserQuickViewMode(prev => (prev === option.id ? null : option.id));
                                     }}
-                                    className={`bg-white p-4 rounded-2xl border shadow-sm hover:shadow-md transition-all text-left ${userQuickViewMode === option.id ? 'border-brand-300 ring-2 ring-brand-100' : 'border-slate-100 hover:border-brand-200'}`}
+                                    className={`bg-white p-4 rounded-2xl border shadow-sm hover:shadow-md transition-all text-left ${userQuickViewMode === option.id ? 'border-brand-300 ring-2 ring-brand-100' : 'border-slate-100 hover:border-brand-200'} ${option.id === 'join-dates' ? 'col-span-2 sm:col-span-1' : ''}`}
                                 >
                                     <div className={`w-11 h-11 rounded-2xl ${option.bg} ${option.accent} flex items-center justify-center mb-3`}>
                                         <Icon size={20} />
@@ -3693,12 +3710,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                                     <td className="px-3 py-2.5 font-bold text-slate-700">{label}</td>
                                                                     <td className="px-3 py-2.5 text-slate-600">
                                                                         {isPhotoField ? (
-                                                                            <span>{safeOriginalPhoto ? 'Photo available' : (originalRaw ? 'Invalid image source' : '—')}</span>
+                                                                            <div className="w-16 h-16 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center">
+                                                                                <img 
+                                                                                    src={safeOriginalPhoto || '/logo.png'} 
+                                                                                    alt="Original Photo" 
+                                                                                    className="w-full h-full object-cover" 
+                                                                                    onError={(e) => {
+                                                                                        (e.target as HTMLImageElement).src = '/logo.png';
+                                                                                    }}
+                                                                                />
+                                                                            </div>
                                                                         ) : (originalRaw || '—')}
                                                                     </td>
                                                                     <td className="px-3 py-2.5 text-brand-700 font-semibold">
                                                                         {isPhotoField ? (
-                                                                            <span>{safeEditedPhoto ? 'Photo update submitted' : (editedRaw ? 'Invalid image source' : '—')}</span>
+                                                                            <div className="w-16 h-16 rounded-xl overflow-hidden border border-brand-200 bg-brand-50 flex items-center justify-center">
+                                                                                <img 
+                                                                                    src={safeEditedPhoto || '/logo.png'} 
+                                                                                    alt="Edited Photo" 
+                                                                                    className="w-full h-full object-cover" 
+                                                                                    onError={(e) => {
+                                                                                        (e.target as HTMLImageElement).src = '/logo.png';
+                                                                                    }}
+                                                                                />
+                                                                            </div>
                                                                         ) : (editedRaw || '—')}
                                                                     </td>
                                                                 </tr>
@@ -4650,11 +4685,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors"
                                     />
                                 </div>
-                                <div className="flex gap-2 w-full md:w-auto">
+                                <div className="flex flex-wrap gap-2.5 w-full md:w-auto items-center">
                                     <select
                                         value={filterStatus}
                                         onChange={(e) => setFilterStatus(e.target.value as UserStatus | 'All')}
-                                        className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 text-sm font-bold"
+                                        className="flex-1 min-w-[100px] text-xs py-2.5 px-3 md:text-sm bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 font-bold"
                                     >
                                         <option value="All">All Status</option>
                                         <option value="Active">Active</option>
@@ -4663,7 +4698,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <select
                                         value={filterLocation}
                                         onChange={(e) => setFilterLocation(e.target.value)}
-                                        className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 text-sm font-bold"
+                                        className="flex-1 min-w-[100px] text-xs py-2.5 px-3 md:text-sm bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 font-bold"
                                     >
                                         <option value="All">All Locations</option>
                                         {userLocationOptions.map(location => (
@@ -4673,7 +4708,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <select
                                         value={userSortMode}
                                         onChange={(e) => setUserSortMode(e.target.value as 'status' | 'cot-id' | 'member-since')}
-                                        className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 text-sm font-bold"
+                                        className="flex-1 min-w-[100px] text-xs py-2.5 px-3 md:text-sm bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 font-bold"
                                     >
                                         <option value="status">Status</option>
                                         <option value="cot-id">COT ID</option>
@@ -4842,8 +4877,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                         {idCardVisualMode === 'join-dates' && (
                                                             <>
                                                                 <Calendar size={34} className="text-sky-500 mb-3" />
-                                                                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-sky-500 mb-2">Member Since</p>
-                                                                <p className="text-3xl font-black text-blue-900 tracking-tight">{formatDateValue(user.memberSince || user.joinedDate)}</p>
+                                                                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-sky-500 mb-2">Joined Date</p>
+                                                                <p className="text-3xl font-black text-blue-900 tracking-tight">{formatDateValue(user.joinedDate || user.memberSince)}</p>
                                                             </>
                                                         )}
                                                     </div>
@@ -6971,18 +7006,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <input
                                             type="tel"
                                             value={editingUser.phone}
-                                            onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value })}
+                                            onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                                            maxLength={10}
+                                            placeholder="10-digit number"
                                             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500"
                                         />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-slate-500 uppercase">Location</label>
-                                        <input
-                                            type="text"
+                                        <select
                                             value={editingUser.location}
                                             onChange={(e) => setEditingUser({ ...editingUser, location: e.target.value })}
-                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500"
-                                        />
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 font-semibold text-slate-800"
+                                        >
+                                            <option value="" disabled>Select District</option>
+                                            {TAMIL_NADU_DISTRICTS.map(district => (
+                                                <option key={district} value={district}>{district}</option>
+                                            ))}
+                                        </select>
                                     </div>
 
                                     <div className="space-y-2">
@@ -7518,7 +7559,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                         location={user.location}
                                                         emergency={user.emergency}
                                                         uniqueId={user.id}
-                                                        memberSince={user.memberSince}
+                                                        memberSince={user.joinedDate || user.memberSince}
                                                         photo={user.photo}
                                                         status={user.status}
                                                         isStatic={true}
@@ -7887,7 +7928,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             type="tel"
                                             placeholder="e.g. 9876543210"
                                             value={newUserData.phone}
-                                            onChange={(e) => setNewUserData(d => ({ ...d, phone: e.target.value }))}
+                                            onChange={(e) => setNewUserData(d => ({ ...d, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
+                                            maxLength={10}
                                             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
                                         />
                                     </div>

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Star, ArrowRight, BookOpen, MapPin, Globe, Sparkles, MessageSquare, QrCode, Heart, Users } from 'lucide-react';
 import { ViewState, User } from '../types';
 import { MessageFromLeader } from './MessageFromLeader';
+import { HEBREW_PAGES } from '../hebrewRegistry';
 
 const useSectionInfo = (sectionId: string, defaultName: string, defaultDesc: string) => {
     return React.useMemo(() => {
@@ -187,11 +188,11 @@ export const HebrewPagesPreviewSection: React.FC<SectionProps> = ({ setView }) =
             ctaView: ViewState.ABOUT,
             items: [
                 { name: 'Hebrew Hub', view: ViewState.ABOUT, description: 'Main Hebrew learning landing page' },
-                { name: 'Biblical Calendar', view: ViewState.HEBREW_CALENDAR, description: 'Holy dates and month flow' },
-                { name: 'Hebrew Clock', view: ViewState.HEBREW_CLOCK, description: 'Sacred time preview' },
-                { name: 'Festivals & Holy Days', view: ViewState.HEBREW_FESTIVALS, description: 'Feasts and appointed times' },
-                { name: 'Month/Year Reference', view: ViewState.HEBREW_REFERENCE, description: 'Months, years, and mappings' },
-                { name: 'Hebrew Grammar', view: ViewState.HEBREW_GRAMMAR, description: 'Study core grammar patterns' },
+                ...HEBREW_PAGES.filter(p => p.type === 'content').map(p => ({
+                    name: p.label,
+                    view: p.view,
+                    description: p.description
+                }))
             ],
         },
         {
@@ -205,11 +206,11 @@ export const HebrewPagesPreviewSection: React.FC<SectionProps> = ({ setView }) =
             ctaView: ViewState.HEBREW_TOOLS,
             items: [
                 { name: 'Tools Hub', view: ViewState.HEBREW_TOOLS, description: 'Launch all Hebrew study tools' },
-                { name: 'Alphabet Page', view: ViewState.HEBREW, description: 'Letters and character learning' },
-                { name: 'Hebrew Words', view: ViewState.HEBREW_WORDS, description: 'Search meaningful words' },
-                { name: 'Letters Audio Lab', view: ViewState.HEBREW_LETTERS_AUDIO, description: 'Hear the sounds clearly' },
-                { name: 'Hebrew Numbers', view: ViewState.HEBREW_NUMBERS, description: 'Number forms and values' },
-                { name: 'Gematria Value', view: ViewState.HEBREW_GEMATRIA, description: 'Explore word values' },
+                ...HEBREW_PAGES.filter(p => p.type === 'tools').map(p => ({
+                    name: p.label,
+                    view: p.view,
+                    description: p.description
+                }))
             ],
         },
         {

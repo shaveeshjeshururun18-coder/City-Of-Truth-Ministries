@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X, UserCheck, UserPlus, Flashlight } from 'lucide-react';
+import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X, UserCheck, UserPlus, Flashlight, FlashlightOff, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from './Button';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
@@ -39,6 +39,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     const [showLoginIntro, setShowLoginIntro] = useState(false);
     const [loginTourStepIndex, setLoginTourStepIndex] = useState<number | null>(null);
     const [loginTourRect, setLoginTourRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
+    const [torchOn, setTorchOn] = useState(false);
+    const [torchSupported, setTorchSupported] = useState(false);
+    const [scannerExpanded, setScannerExpanded] = useState(true);
+    const [authScannerNotice, setAuthScannerNotice] = useState('Point camera at any QR code to scan.');
     const scannerRef = useRef<any>(null);
     const uploadInputRef = useRef<HTMLInputElement | null>(null);
     const handledInitialActionRef = useRef<string | null>(null);
@@ -114,7 +118,31 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         throw new Error('No usable member details found in this file. Upload an Entrust card image/PDF or a file that includes COT ID/phone/email.');
     };
 
+    const getAuthVideoTrack = (): MediaStreamTrack | null => {
+        const videoElement = document.querySelector<HTMLVideoElement>('#qr-auth-page-reader video');
+        const stream = videoElement?.srcObject as MediaStream | null;
+        return stream?.getVideoTracks?.()[0] || null;
+    };
+
+    const applyAuthTorch = async (enabled: boolean) => {
+        const track = getAuthVideoTrack();
+        if (!track) return false;
+        try {
+            await track.applyConstraints({ advanced: [{ torch: enabled } as any] });
+            setTorchOn(enabled);
+            return true;
+        } catch (_e) {
+            if (!enabled) setTorchOn(false);
+            return false;
+        }
+    };
+
     const stopScanner = () => {
+        applyAuthTorch(false).catch(() => {});
+        setTorchOn(false);
+        setTorchSupported(false);
+        setScannerExpanded(true);
+        setAuthScannerNotice('Point camera at any QR code to scan.');
         if (scannerRef.current) {
             scannerRef.current.stop().then(() => {
                 scannerRef.current = null;
@@ -125,19 +153,59 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     };
 
     const startLiveScanner = () => {
+        setTorchOn(false);
+        setTorchSupported(false);
+        setScannerExpanded(true);
+        setAuthScannerNotice('Starting camera…');
         const h5 = new (window as any).Html5Qrcode('qr-auth-page-reader');
         scannerRef.current = h5;
+
+        const tryDetectTorch = (attemptsLeft = 5) => {
+            const track = getAuthVideoTrack();
+            const caps = ((track as any)?.getCapabilities?.() as any) || {};
+            if (caps.torch) {
+                setTorchSupported(true);
+                applyAuthTorch(true);
+                setAuthScannerNotice('Flashlight on. Auto-minimizing soon…');
+            } else if (attemptsLeft > 0) {
+                setTimeout(() => tryDetectTorch(attemptsLeft - 1), 600);
+            } else {
+                setTorchSupported(false);
+                setAuthScannerNotice('Point camera at any QR code to scan.');
+            }
+        };
+
         h5.start(
             { facingMode: 'environment' },
             { fps: 10, qrbox: { width: 260, height: 260 } },
             (decodedText: string) => {
                 const qrData = extractIdentifier(decodedText);
+                applyAuthTorch(false).catch(() => {});
                 setIdentifier(qrData);
                 setShowScanner(false);
                 handleSearch(qrData);
             },
             () => {}
-        ).catch(() => {
+        ).then(() => {
+            // Detect torch after camera warms up
+            setTimeout(() => tryDetectTorch(), 800);
+            // Auto-minimize after 3.6s
+            setTimeout(() => {
+                setScannerExpanded(false);
+                setAuthScannerNotice('Scanner compact. Tap ⊕ to expand.');
+            }, 3600);
+            // Ambient light sensor auto-torch
+            if ('AmbientLightSensor' in window) {
+                try {
+                    const sensor = new (window as any).AmbientLightSensor();
+                    sensor.addEventListener('reading', () => {
+                        if (sensor.illuminance < 50) { applyAuthTorch(true); }
+                        else { applyAuthTorch(false); }
+                    });
+                    sensor.start();
+                } catch (_e) {}
+            }
+        }).catch(() => {
             setShowScanner(false);
         });
     };
@@ -587,37 +655,63 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                             display: none !important;
                                         }
                                     `}</style>
-                                    <div className="relative h-screen max-w-[560px] mx-auto overflow-hidden bg-black">
+                                    <div
+                                        className="relative max-w-[560px] mx-auto overflow-hidden bg-black transition-all duration-500"
+                                        style={{ height: scannerExpanded ? '100vh' : '55vh' }}
+                                    >
                                         <div id="qr-auth-page-reader" role="region" aria-label="QR code scanner" className="absolute inset-0 bg-black" />
 
+                                        {/* Top controls bar */}
                                         <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 pt-5">
                                             <button
                                                 type="button"
-                                                onClick={() => setShowScanner(false)}
-                                                className="w-11 h-11 rounded-full bg-black/20 text-white flex items-center justify-center"
+                                                onClick={() => { stopScanner(); setShowScanner(false); }}
+                                                className="w-11 h-11 rounded-full bg-black/25 backdrop-blur-sm text-white flex items-center justify-center active:scale-95 transition-transform"
                                                 aria-label="Close scanner"
                                             >
-                                                <X size={34} />
+                                                <X size={28} />
                                             </button>
-                                            <div className="flex items-center gap-5">
+                                            <div className="flex items-center gap-3">
+                                                {/* Flashlight toggle */}
                                                 <button
                                                     type="button"
-                                                    className="w-11 h-11 rounded-full bg-black/20 text-white/55 flex items-center justify-center"
-                                                    aria-label="Flashlight"
-                                                    title="Flashlight depends on device camera support"
+                                                    onClick={() => {
+                                                        if (!torchSupported) return;
+                                                        const next = !torchOn;
+                                                        applyAuthTorch(next);
+                                                        setAuthScannerNotice(next ? 'Flashlight on ✦' : 'Flashlight off.');
+                                                    }}
+                                                    disabled={!torchSupported}
+                                                    className={`w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95 ${
+                                                        torchOn
+                                                            ? 'bg-yellow-400 text-black shadow-lg shadow-yellow-400/50'
+                                                            : torchSupported
+                                                                ? 'bg-black/25 backdrop-blur-sm text-white hover:bg-white/20'
+                                                                : 'bg-black/15 text-white/30 cursor-not-allowed'
+                                                    }`}
+                                                    aria-label={torchOn ? 'Turn off flashlight' : 'Turn on flashlight'}
+                                                    title={torchSupported ? (torchOn ? 'Turn off flashlight' : 'Turn on flashlight') : 'Flashlight not available on this device'}
                                                 >
-                                                    <Flashlight size={25} />
+                                                    {torchOn ? <Flashlight size={24} /> : <FlashlightOff size={24} />}
                                                 </button>
+                                                {/* Minimize / Maximize toggle */}
                                                 <button
                                                     type="button"
-                                                    className="w-11 h-11 rounded-full bg-black/20 text-white flex items-center justify-center"
-                                                    aria-label="QR code"
+                                                    onClick={() => {
+                                                        const next = !scannerExpanded;
+                                                        setScannerExpanded(next);
+                                                        setAuthScannerNotice(next ? 'Scanner expanded. Flashlight checked.' : 'Scanner compact. Tap ⊕ to expand.');
+                                                        if (next && torchSupported) applyAuthTorch(true);
+                                                    }}
+                                                    className="w-11 h-11 rounded-full bg-black/25 backdrop-blur-sm text-white flex items-center justify-center active:scale-95 transition-transform hover:bg-white/20"
+                                                    aria-label={scannerExpanded ? 'Minimize scanner' : 'Maximize scanner'}
                                                 >
-                                                    <QrCode size={27} />
+                                                    {scannerExpanded ? <Minimize2 size={22} /> : <Maximize2 size={22} />}
                                                 </button>
                                             </div>
                                         </div>
 
+                                        {/* Scan frame corners */}
                                         <div className="absolute left-1/2 top-[37%] z-10 w-[min(78vw,430px)] aspect-square -translate-x-1/2 -translate-y-1/2 pointer-events-none">
                                             <span className="absolute top-0 left-0 w-[18%] h-[18%] border-t-[8px] border-l-[8px] border-[#ff6b6b] rounded-tl-[28px]" />
                                             <span className="absolute top-0 right-0 w-[18%] h-[18%] border-t-[8px] border-r-[8px] border-[#ffb020] rounded-tr-[28px]" />
@@ -625,22 +719,32 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                             <span className="absolute bottom-0 right-0 w-[18%] h-[18%] border-b-[8px] border-r-[8px] border-[#27c46b] rounded-br-[28px]" />
                                         </div>
 
+                                        {/* Torch glow when torch is on */}
+                                        {torchOn && (
+                                            <div className="absolute inset-0 z-5 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, rgba(255,240,100,0.08) 0%, transparent 70%)' }} />
+                                        )}
+
+                                        {/* Upload button */}
                                         <button
                                             type="button"
                                             onClick={() => uploadInputRef.current?.click()}
-                                            className="absolute left-1/2 bottom-[clamp(230px,31vh,340px)] z-20 -translate-x-1/2 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-lg sm:text-xl font-medium text-slate-700 shadow-xl whitespace-nowrap"
+                                            className="absolute left-1/2 bottom-[clamp(180px,27vh,300px)] z-20 -translate-x-1/2 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-lg sm:text-xl font-medium text-slate-700 shadow-xl whitespace-nowrap"
                                         >
                                             <UploadCloud size={22} />
                                             Upload from gallery
                                         </button>
 
-                                        <div className="absolute inset-x-0 bottom-0 z-20 rounded-t-[34px] bg-[#303030] px-6 pt-5 pb-6 text-center shadow-2xl">
-                                            <div className="mx-auto mb-5 h-1.5 w-16 rounded-full bg-white/80" />
+                                        {/* Bottom tray */}
+                                        <div className="absolute inset-x-0 bottom-0 z-20 rounded-t-[34px] bg-[#232323] px-6 pt-5 pb-6 text-center shadow-2xl">
+                                            <div className="mx-auto mb-4 h-1.5 w-16 rounded-full bg-white/70" />
                                             <p className="text-3xl sm:text-4xl font-medium leading-tight text-white">
                                                 Scan any QR code
                                             </p>
-                                            <p className="mt-3 text-xl sm:text-2xl font-medium leading-tight text-white/80">
+                                            <p className="mt-2 text-xl sm:text-2xl font-medium leading-tight text-white/70">
                                                 COT ID · Entrust Card · Member QR
+                                            </p>
+                                            <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.2em] text-white/40">
+                                                {authScannerNotice}
                                             </p>
                                         </div>
                                     </div>

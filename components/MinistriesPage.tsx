@@ -156,60 +156,7 @@ export const MinistriesPage: React.FC = () => {
                 </p>
             </div>
 
-            {/* Dynamic Ministries Section */}
-            {visibleDynamicMinistries.length > 0 && (
-                <div className="container mx-auto px-6 mb-32">
-                    <div className="flex items-center gap-4 mb-16">
-                        <div className="w-12 h-px bg-brand-950/20" />
-                        <span className="text-xs font-bold text-brand-950 uppercase tracking-widest font-sans">All Ministry Media</span>
-                    </div>
-                    <div className="bg-white rounded-3xl border border-slate-100 p-4 md:p-6 shadow-sm">
-                        <div className="flex flex-col md:flex-row gap-3 md:gap-4 mb-6">
-                            <select
-                                value={mediaTypeFilter}
-                                onChange={(e) => setMediaTypeFilter(e.target.value as 'all' | 'image' | 'video')}
-                                className="px-4 py-3 rounded-2xl border border-slate-200 text-sm font-bold text-slate-700 bg-slate-50"
-                            >
-                                <option value="all">All Media</option>
-                                <option value="image">Photos</option>
-                                <option value="video">Videos</option>
-                            </select>
-                            <select
-                                value={mediaCategoryFilter}
-                                onChange={(e) => setMediaCategoryFilter(e.target.value)}
-                                className="px-4 py-3 rounded-2xl border border-slate-200 text-sm font-bold text-slate-700 bg-slate-50"
-                            >
-                                <option value="all">All Categories</option>
-                                {dynamicMediaCategoryOptions.map((category) => (
-                                    <option key={category} value={category}>
-                                        {category}
-                                    </option>
-                                ))}
-                            </select>
-                            <select
-                                value={mediaDateFilter}
-                                onChange={(e) => setMediaDateFilter(e.target.value)}
-                                className="px-4 py-3 rounded-2xl border border-slate-200 text-sm font-bold text-slate-700 bg-slate-50"
-                            >
-                                <option value="all">All Dates</option>
-                                {dynamicMediaDateOptions.map((dateValue) => (
-                                    <option key={dateValue} value={dateValue}>
-                                        {formatDisplayDate(dateValue)}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        {filteredDynamicMediaItems.length > 0 ? (
-                            <MinistryGallery items={filteredDynamicMediaItems} />
-                        ) : (
-                            <div className="text-center py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                                <Sparkles className="mx-auto mb-3 text-slate-300" />
-                                <p className="text-slate-500 font-medium">No media found for this filter.</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
+
 
             {/* Specialized Ministry Sections */}
             <div className="space-y-0 pb-20">

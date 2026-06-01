@@ -526,7 +526,10 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
             <div className="h-screen max-w-[560px] mx-auto overflow-hidden flex flex-col bg-black text-white relative">
 
                 {/* ── VERTICAL CAMERA SCANNER ── */}
-                <div className="relative flex-1 min-h-0 bg-black">
+                <div
+                    className="relative bg-black transition-all duration-500 ease-in-out"
+                    style={{ height: scannerExpanded ? '100vh' : '55vh' }}
+                >
                     <div id="qr-reader" className={`absolute inset-0 bg-black ${isScanning ? 'opacity-100' : 'opacity-0'}`} />
 
                     {!isScanning && (
@@ -544,23 +547,39 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                     <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 pt-5">
                         <button
                             onClick={stopScanner}
-                            className="w-11 h-11 rounded-full bg-black/20 text-white flex items-center justify-center"
+                            className="w-11 h-11 rounded-full bg-black/25 backdrop-blur-sm text-white flex items-center justify-center active:scale-95 transition-transform"
                             aria-label="Close scanner"
                         >
-                            <X size={34} />
+                            <X size={28} />
                         </button>
-                        <div className="flex items-center gap-5">
+                        <div className="flex items-center gap-3">
+                            {/* Flashlight toggle */}
                             <button
                                 onClick={handleTorchToggle}
                                 disabled={!torchSupported}
-                                className={`w-11 h-11 rounded-full flex items-center justify-center ${torchOn ? 'bg-white text-black' : 'bg-black/20 text-white'} disabled:opacity-40`}
-                                aria-label="Flashlight"
+                                className={`w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95 ${
+                                    torchOn
+                                        ? 'bg-yellow-400 text-black shadow-lg shadow-yellow-400/50'
+                                        : torchSupported
+                                            ? 'bg-black/25 backdrop-blur-sm text-white hover:bg-white/20'
+                                            : 'bg-black/15 text-white/30 cursor-not-allowed'
+                                }`}
+                                aria-label={torchOn ? 'Turn off flashlight' : 'Turn on flashlight'}
+                                title={torchSupported ? (torchOn ? 'Tap to turn off flashlight' : 'Tap to turn on flashlight') : 'Flashlight not supported on this device'}
                             >
                                 {torchOn ? <Flashlight size={25} /> : <FlashlightOff size={25} />}
                             </button>
+                            {/* Minimize / Maximize */}
+                            <button
+                                onClick={handleScannerSizeToggle}
+                                className="w-11 h-11 rounded-full bg-black/25 backdrop-blur-sm text-white flex items-center justify-center active:scale-95 transition-transform hover:bg-white/20"
+                                aria-label={scannerExpanded ? 'Minimize scanner' : 'Maximize scanner'}
+                            >
+                                {scannerExpanded ? <Minimize2 size={22} /> : <Maximize2 size={22} />}
+                            </button>
                             <button
                                 onClick={() => setShowMyQr(true)}
-                                className="w-11 h-11 rounded-full bg-black/20 text-white flex items-center justify-center"
+                                className="w-11 h-11 rounded-full bg-black/25 backdrop-blur-sm text-white flex items-center justify-center active:scale-95 transition-transform hover:bg-white/20"
                                 aria-label="Show QR code"
                             >
                                 <QrCode size={27} />
@@ -575,21 +594,26 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                         <span className="absolute bottom-0 right-0 w-[18%] h-[18%] border-b-[8px] border-r-[8px] border-[#27c46b] rounded-br-[28px]" />
                     </div>
 
+                    {/* Torch glow overlay */}
+                    {torchOn && (
+                        <div className="absolute inset-0 z-5 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, rgba(255,240,100,0.07) 0%, transparent 65%)' }} />
+                    )}
+
                     <label className="absolute left-1/2 bottom-[clamp(230px,31vh,340px)] z-20 -translate-x-1/2 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-lg sm:text-xl font-medium text-slate-700 shadow-xl cursor-pointer whitespace-nowrap">
                         <Camera size={22} />
                         Upload from gallery
                         <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,.pdf" />
                     </label>
 
-                    <div className="absolute inset-x-0 bottom-0 z-20 rounded-t-[34px] bg-[#303030] px-6 pt-5 pb-6 text-center shadow-2xl">
-                        <div className="mx-auto mb-5 h-1.5 w-16 rounded-full bg-white/80" />
+                    <div className="absolute inset-x-0 bottom-0 z-20 rounded-t-[34px] bg-[#232323] px-6 pt-5 pb-6 text-center shadow-2xl">
+                        <div className="mx-auto mb-4 h-1.5 w-16 rounded-full bg-white/70" />
                         <p className="text-3xl sm:text-4xl font-medium leading-tight text-white">
                             Scan any QR code
                         </p>
-                        <p className="mt-3 text-xl sm:text-2xl font-medium leading-tight text-white/80">
+                        <p className="mt-2 text-xl sm:text-2xl font-medium leading-tight text-white/70">
                             COT ID · Entrust Card · Member QR
                         </p>
-                        <p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-white/45">
+                        <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.2em] text-white/40">
                             {scannerAutoNotice}
                         </p>
                     </div>
@@ -714,7 +738,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                                         )}
                                         {user.memberSince && (
                                             <div className="bg-white/5 border border-white/8 rounded-2xl p-3">
-                                                <p className="text-xs font-black text-white/60 uppercase tracking-[0.2em] mb-0.5">Member Since</p>
+                                                <p className="text-xs font-black text-white/60 uppercase tracking-[0.2em] mb-0.5">Joined Date</p>
                                                 <p className="font-bold text-white text-sm">{user.memberSince}</p>
                                             </div>
                                         )}

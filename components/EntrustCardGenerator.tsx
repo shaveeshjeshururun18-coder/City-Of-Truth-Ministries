@@ -20,7 +20,7 @@ export const EntrustCardGenerator: React.FC = () => {
     location: '',
     gender: '',
     bloodGroup: '',
-    memberSince: new Date().getFullYear().toString(),
+    memberSince: new Date().toLocaleDateString('en-GB'),
     emergency: '',
     role: ''
   });

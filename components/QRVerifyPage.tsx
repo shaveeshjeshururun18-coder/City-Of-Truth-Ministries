@@ -117,10 +117,10 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack, onPr
             {user && isApprovedUser && (
                 <div className="fixed left-[-9999px] top-0 pointer-events-none z-0">
                     <div id="qr-verify-front" className="bg-white">
-                        <EntrustCard3D name={user.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={user.id} memberSince={user.memberSince} photo={user.photo} status={user.status} isStatic={true} isBackSide={false} />
+                        <EntrustCard3D name={user.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={user.id} memberSince={user.joinedDate || user.memberSince} photo={user.photo} status={user.status} isStatic={true} isBackSide={false} />
                     </div>
                     <div id="qr-verify-back" className="bg-white">
-                        <EntrustCard3D name={user.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={user.id} memberSince={user.memberSince} photo={user.photo} status={user.status} isStatic={true} isBackSide={true} />
+                        <EntrustCard3D name={user.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={user.id} memberSince={user.joinedDate || user.memberSince} photo={user.photo} status={user.status} isStatic={true} isBackSide={true} />
                     </div>
                 </div>
             )}
@@ -233,7 +233,7 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack, onPr
                             <div className="grid grid-cols-2 gap-3">
                                 {[
                                     { label: 'Location', value: user.location },
-                                    { label: 'Member Since', value: user.memberSince },
+                                    { label: 'Joined Date', value: user.memberSince },
                                 ].map(item => item.value && (
                                     <div key={item.label} className="bg-slate-50 rounded-xl p-3 border border-slate-100">
                                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{item.label}</p>

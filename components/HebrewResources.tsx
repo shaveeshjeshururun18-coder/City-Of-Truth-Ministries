@@ -11,6 +11,7 @@ import { PrintableReferenceGuide, HEBREW_MONTHS_DATA, KEY_DETAILS } from './Prin
 import { toPng, toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { User, ViewState } from '../types';
+import { HEBREW_PAGES } from '../hebrewRegistry';
 import { getCalendarData5786 } from './CalendarLogic';
 import { audioService } from '../services/audioService';
 import { HebrewGrammar3D } from './HebrewGrammar3D';
@@ -1415,38 +1416,66 @@ const HebrewConverterNumbers: React.FC = () => {
     }, [search, referenceNums]);
 
     return (
-        <div className="space-y-12 py-8">
-            <div className="text-center space-y-3">
-                <h2 className="text-4xl md:text-5xl font-serif font-bold text-brand-950">Number → <span className="text-accent-600">Hebrew Numeral</span></h2>
-                <p className="text-slate-500 text-base max-w-xl mx-auto">Convert any number to its sacred Hebrew representation</p>
+        <div className="space-y-10 bg-slate-950 text-white rounded-[2.5rem] p-6 md:p-10 border border-white/10 shadow-2xl relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
+            
+            <div className="text-center relative z-10 space-y-2">
+                <h2 className="text-3xl md:text-5xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 drop-shadow-md">Number → Hebrew Numeral</h2>
+                <p className="text-slate-400 text-xs sm:text-sm max-w-xl mx-auto">Convert any number to its sacred Hebrew representation</p>
             </div>
-            <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100 flex flex-col md:flex-row items-center gap-12">
-                <div className="flex-1 w-full space-y-4">
-                    <label className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><Hash size={16} className="text-brand-500" /> Enter Number</label>
-                    <input type="number" placeholder="e.g. 2026" className="w-full text-4xl md:text-6xl font-mono bg-transparent border-b-2 border-slate-100 py-4 outline-none focus:border-brand-500 transition-colors text-brand-950 placeholder:text-slate-100" value={input} onChange={e => setInput(e.target.valueAsNumber || '')} />
-                </div>
-                <div className="hidden md:block w-px h-32 bg-slate-100" />
-                <div className="flex-1 w-full text-center md:text-right space-y-4">
-                    <label className="text-sm font-bold text-slate-400 uppercase tracking-widest block">Hebrew Numeral</label>
-                    <div className="text-6xl md:text-8xl font-serif text-accent-600 min-h-[1.5em] flex items-center justify-center md:justify-end">{hebrewResult || '—'}</div>
+
+            {/* Converter Card */}
+            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 md:p-8 shadow-xl relative z-10 hover:border-amber-500/10 transition-all">
+                <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
+                    <div className="flex-1 w-full space-y-4">
+                        <label className="text-xs font-bold text-[#C5A880] uppercase tracking-widest flex items-center gap-2">
+                            <Hash size={14} className="text-[#C5A880]" /> Enter Number
+                        </label>
+                        <input 
+                            type="number" 
+                            placeholder="e.g. 2026" 
+                            className="w-full text-4xl md:text-6xl font-mono bg-transparent border-b-2 border-white/10 py-4 outline-none focus:border-[#C5A880] transition-colors text-white placeholder:text-slate-700" 
+                            value={input} 
+                            onChange={e => setInput(e.target.valueAsNumber || '')} 
+                        />
+                    </div>
+                    <div className="hidden md:block w-px h-28 bg-white/10" />
+                    <div className="flex-1 w-full text-center md:text-right space-y-2">
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block">Hebrew Numeral</label>
+                        <div className="text-6xl md:text-8xl font-serif text-amber-400 font-black min-h-[1.5em] flex items-center justify-center md:justify-end drop-shadow-md">
+                            {hebrewResult || '—'}
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div className="space-y-6">
+
+            {/* Numeral Reference Guide */}
+            <div className="space-y-6 relative z-10 pt-4">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                    <h3 className="text-2xl font-serif font-bold text-brand-950">Numeral Reference Guide</h3>
+                    <h3 className="text-lg font-serif font-bold text-[#C5A880]">Numeral Reference Guide</h3>
                     <div className="relative w-full md:w-72">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                        <input type="text" placeholder="Find number or character…" className="w-full pl-11 pr-5 py-3 bg-white border border-slate-200 rounded-full outline-none focus:border-brand-500 text-sm shadow-sm" value={search} onChange={e => setSearch(e.target.value)} />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                        <input 
+                            type="text" 
+                            placeholder="Find number or character…" 
+                            className="w-full pl-11 pr-5 py-2.5 bg-white/5 border border-white/10 rounded-full outline-none focus:border-[#C5A880] text-sm text-white placeholder:text-slate-600 shadow-inner" 
+                            value={search} 
+                            onChange={e => setSearch(e.target.value)} 
+                        />
                     </div>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     {filtered.map(item => (
-                        <div key={item.num} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center gap-2 text-center hover:bg-brand-50 hover:scale-105 transition-all">
-                            <span className="text-2xl text-slate-400 font-serif">{item.hebrew}</span>
-                            <span className="text-3xl font-bold text-brand-950 font-mono">{item.num}</span>
+                        <div key={item.num} className="bg-white/5 p-5 rounded-2xl border border-white/10 shadow-sm flex flex-col items-center gap-2 text-center hover:bg-white/10 hover:scale-105 hover:border-[#C5A880]/30 transition-all">
+                            <span className="text-3xl text-amber-400 font-serif font-bold">{item.hebrew}</span>
+                            <span className="text-xl font-bold text-white font-mono">{item.num}</span>
                         </div>
                     ))}
-                    {filtered.length === 0 && <div className="col-span-full text-center py-16 text-slate-400 italic">No results for "{search}"</div>}
+                    {filtered.length === 0 && (
+                        <div className="col-span-full text-center py-16 text-slate-500 italic bg-white/5 border border-white/10 rounded-2xl">
+                            No results for "{search}"
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -2182,49 +2211,45 @@ interface HebrewResourcesProps {
 
 type HebrewResourceTab = 'numbers' | 'calendar' | 'clock' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio' | 'grammar' | 'israel';
 
-const HEBREW_RESOURCE_TABS: ReadonlyArray<{ id: HebrewResourceTab; label: string; icon: React.ReactNode }> = [
-    { id: 'israel', label: 'Eretz Israel', icon: <Globe size={16} /> },
-    { id: 'festivals', label: 'Festivals', icon: <Flame size={16} /> },
-    { id: 'calendar', label: 'Hebrew Calendar', icon: <CalendarIcon size={16} /> },
-    { id: 'clock', label: 'Hebrew Clock', icon: <Clock size={16} /> },
-    { id: 'reference', label: 'Month & Days', icon: <BookOpen size={16} /> },
-    { id: 'grammar', label: 'Grammar', icon: <BookOpen size={16} /> },
-    { id: 'words', label: 'Hebrew Word', icon: <Type size={16} /> },
-    { id: 'lettersaudio', label: 'Audio Lab', icon: <Volume2 size={16} /> },
-    { id: 'numbers', label: 'Numbers', icon: <Hash size={16} /> },
-    { id: 'gematria', label: 'Gematria Value', icon: <Calculator size={16} /> },
-];
-
-const CONTENT_TAB_IDS: HebrewResourceTab[] = ['israel', 'festivals', 'calendar', 'clock', 'reference', 'grammar'];
-const TOOLS_TAB_IDS: HebrewResourceTab[] = ['words', 'lettersaudio', 'numbers', 'gematria'];
-
-const viewToTabMap: Record<string, HebrewResourceTab> = {
-    [ViewState.ABOUT]: 'israel',
-    [ViewState.HEBREW_CALENDAR]: 'calendar',
-    [ViewState.HEBREW_CLOCK]: 'clock',
-    [ViewState.HEBREW_FESTIVALS]: 'festivals',
-    [ViewState.HEBREW_REFERENCE]: 'reference',
-    [ViewState.HEBREW_GRAMMAR]: 'grammar',
-    [ViewState.HEBREW_ISRAEL]: 'israel',
-    [ViewState.HEBREW_TOOLS]: 'words',
-    [ViewState.HEBREW_WORDS]: 'words',
-    [ViewState.HEBREW_LETTERS_AUDIO]: 'lettersaudio',
-    [ViewState.HEBREW_NUMBERS]: 'numbers',
-    [ViewState.HEBREW_GEMATRIA]: 'gematria',
+const getHebrewTabIcon = (iconName: string): React.ReactNode => {
+    switch (iconName) {
+        case 'israel': return <Globe size={16} />;
+        case 'festivals': return <Flame size={16} />;
+        case 'calendar': return <CalendarIcon size={16} />;
+        case 'clock': return <Clock size={16} />;
+        case 'reference': return <BookOpen size={16} />;
+        case 'grammar': return <BookOpen size={16} />;
+        case 'words': return <Type size={16} />;
+        case 'lettersaudio': return <Volume2 size={16} />;
+        case 'numbers': return <Hash size={16} />;
+        case 'gematria': return <Calculator size={16} />;
+        default: return <BookOpen size={16} />;
+    }
 };
 
-const tabToViewMap: Record<HebrewResourceTab, ViewState> = {
-    israel: ViewState.HEBREW_ISRAEL,
-    calendar: ViewState.HEBREW_CALENDAR,
-    clock: ViewState.HEBREW_CLOCK,
-    festivals: ViewState.HEBREW_FESTIVALS,
-    reference: ViewState.HEBREW_REFERENCE,
-    grammar: ViewState.HEBREW_GRAMMAR,
-    words: ViewState.HEBREW_WORDS,
-    lettersaudio: ViewState.HEBREW_LETTERS_AUDIO,
-    numbers: ViewState.HEBREW_NUMBERS,
-    gematria: ViewState.HEBREW_GEMATRIA,
-};
+// Filter out standalone pages (e.g. alphabet) for internal tab rendering
+const tabbedPages = HEBREW_PAGES.filter(p => !p.isStandalone);
+
+const HEBREW_RESOURCE_TABS: ReadonlyArray<{ id: HebrewResourceTab; label: string; icon: React.ReactNode }> = tabbedPages.map(p => ({
+    id: p.id as HebrewResourceTab,
+    label: p.label,
+    icon: getHebrewTabIcon(p.iconName)
+}));
+
+const CONTENT_TAB_IDS: HebrewResourceTab[] = tabbedPages.filter(p => p.type === 'content').map(p => p.id as HebrewResourceTab);
+const TOOLS_TAB_IDS: HebrewResourceTab[] = tabbedPages.filter(p => p.type === 'tools').map(p => p.id as HebrewResourceTab);
+
+const viewToTabMap: Record<string, HebrewResourceTab> = {};
+tabbedPages.forEach(p => {
+    viewToTabMap[p.view] = p.id as HebrewResourceTab;
+});
+viewToTabMap[ViewState.ABOUT] = 'israel';
+viewToTabMap[ViewState.HEBREW_TOOLS] = 'words';
+
+const tabToViewMap: Record<HebrewResourceTab, ViewState> = {} as any;
+tabbedPages.forEach(p => {
+    tabToViewMap[p.id as HebrewResourceTab] = p.view;
+});
 
 export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mode = 'all', currentUser, currentView, setView }) => {
     const availableTabs = HEBREW_RESOURCE_TABS.filter(tabItem => {

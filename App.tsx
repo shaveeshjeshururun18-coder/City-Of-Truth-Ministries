@@ -51,6 +51,7 @@ import {
   Globe
 } from 'lucide-react';
 import { ViewState, User, UserRole, UserStatus, NavItem, DeletedUser, SubProfile } from './types';
+import { HEBREW_PAGES } from './hebrewRegistry';
 import { Navbar } from './components/Navbar';
 import { Button } from './components/Button';
 import { AuthPage } from './components/AuthPage';
@@ -201,22 +202,15 @@ const isRecycleMessageAlive = (item: { autoDeleteAt?: string }) => {
   return Number.isFinite(expiresAt) ? expiresAt > Date.now() : true;
 };
 
-const HEBREW_RESOURCE_SUBMENU: NavItem[] = [
-  { label: 'Hebrew Alphabet', view: ViewState.HEBREW },
-  { label: 'Eretz Israel', view: ViewState.HEBREW_ISRAEL },
-  { label: 'Festivals & Holy Days', view: ViewState.HEBREW_FESTIVALS },
-  { label: 'Biblical Calendar', view: ViewState.HEBREW_CALENDAR },
-  { label: 'Hebrew Clock', view: ViewState.HEBREW_CLOCK },
-  { label: 'Month/Year Reference', view: ViewState.HEBREW_REFERENCE },
-  { label: 'Hebrew Grammar', view: ViewState.HEBREW_GRAMMAR },
-];
+const HEBREW_RESOURCE_SUBMENU: NavItem[] = HEBREW_PAGES.filter(p => p.type === 'content').map(p => ({
+  label: p.label,
+  view: p.view
+}));
 
-const HEBREW_TOOLS_SUBMENU: NavItem[] = [
-  { label: 'Hebrew Words', view: ViewState.HEBREW_WORDS },
-  { label: 'Letters Audio Lab', view: ViewState.HEBREW_LETTERS_AUDIO },
-  { label: 'Hebrew Numbers', view: ViewState.HEBREW_NUMBERS },
-  { label: 'Gematria Value', view: ViewState.HEBREW_GEMATRIA },
-];
+const HEBREW_TOOLS_SUBMENU: NavItem[] = HEBREW_PAGES.filter(p => p.type === 'tools').map(p => ({
+  label: p.label,
+  view: p.view
+}));
 
 const withHebrewResourceSubmenu = (items: NavItem[]): NavItem[] =>
   items
@@ -553,6 +547,13 @@ const App: React.FC = () => {
       navigate('/auth?view=login');
     }
   }, [currentView, currentUser, navigate]);
+
+  useEffect(() => {
+    if (currentView === ViewState.HEBREW) {
+      setCurrentView(ViewState.HOME);
+      navigate('/hebrew-alphabet');
+    }
+  }, [currentView, navigate]);
 
   useEffect(() => {
     localStorage.setItem('cot_contact_messages', JSON.stringify(contactMessages));
@@ -977,6 +978,7 @@ const App: React.FC = () => {
   const verifyUserId = verifyMatch ? verifyMatch[1] : null;
   const isAuthRoute = location.pathname === '/auth';
   const isVerifyScannerRoute = location.pathname === '/verify-id';
+  const isHebrewAlphabetRoute = location.pathname === '/hebrew-alphabet';
 
   const getThemeClass = () => {
     switch (currentView) {
@@ -1188,7 +1190,7 @@ const App: React.FC = () => {
       status: 'Pending Verification',
       location: data.location,
       emergency: data.emergency,
-      memberSince: new Date().getFullYear().toString(),
+      memberSince: new Date().toLocaleDateString('en-GB'),
       joinedDate: new Date().toISOString().split('T')[0],
       photo: data.photo || ''
     };
@@ -1276,6 +1278,9 @@ const App: React.FC = () => {
       await api.deleteUser(userId);
       setUsers(users.filter(u => u.id !== userId));
       setDeletedUsers(await api.getDeletedUsers());
+      if (currentUser?.id === userId) {
+        handleLogout();
+      }
     } catch (error) {
       console.error('Failed to delete user:', error);
       throw error;
@@ -1295,6 +1300,9 @@ const App: React.FC = () => {
   const handlePermanentlyDeleteDeletedUser = async (userId: string) => {
     await api.permanentlyDeleteDeletedUser(userId);
     setDeletedUsers(await api.getDeletedUsers());
+    if (currentUser?.id === userId) {
+      handleLogout();
+    }
   };
 
   const handleAdminAuthenticated = () => {
@@ -1468,6 +1476,10 @@ const App: React.FC = () => {
 
   if (isVerifyScannerRoute) {
     return <VerifyIDPage onProceedToDashboard={handleLogin} currentUser={currentUser} />;
+  }
+
+  if (isHebrewAlphabetRoute) {
+    return <HebrewAlphabetPage onBack={() => navigate('/')} />;
   }
 
   return (
@@ -1866,7 +1878,7 @@ const App: React.FC = () => {
 
           {currentView === ViewState.HEBREW && (
             <div key="alphabet">
-              <HebrewAlphabetPage />
+              <HebrewAlphabetPage onBack={() => setCurrentView(ViewState.HOME)} />
             </div>
           )}
 
@@ -1976,6 +1988,19 @@ const App: React.FC = () => {
                 onSendReply={(message) => handleUserReplyToAdmin(currentUser.id, message)}
                 onMarkNotificationsRead={() => handleMarkUserNotificationsRead(currentUser.id)}
                 onDeleteNotification={(notificationId) => handleDeleteUserNotification(currentUser.id, notificationId)}
+                onDeleteAccount={async () => {
+                  try {
+                    await api.deleteUser(currentUser.id);
+                    await api.permanentlyDeleteDeletedUser(currentUser.id);
+                    setUsers(prev => prev.filter(u => u.id !== currentUser.id));
+                    setDeletedUsers(prev => prev.filter(u => u.id !== currentUser.id));
+                    handleLogout();
+                    alert("Your account has been deleted permanently.");
+                  } catch (err) {
+                    console.error("Failed to delete account:", err);
+                    alert("Failed to delete account. Please try again.");
+                  }
+                }}
                 onUpdate={async (updatedUser) => {
                   const existingUserRecord = users.find(u => u.id === updatedUser.id) || currentUser;
                   const safeUpdatedUser = existingUserRecord && updatedUser.pendingProfileUpdate
