@@ -584,12 +584,17 @@ const App: React.FC = () => {
   }, [currentView, dashboardFocusSection]);
 
   const TOUR_STEPS = [
-    { selector: '#tour-register-btn', title: 'Start Here', text: 'Tap Register Now to create your member profile.' },
-    { selector: '#tour-login-btn', title: 'Returning Member Login', text: 'Use Login if you already have an account.' },
-    { selector: '#tour-verify-login-card', title: 'Verification Hub', text: 'Use this section to login and verify membership access.' },
-    { selector: '#tour-hebrew-content-open', title: 'Hebrew Content', text: 'Open Hebrew content hub previews and learning pages from this card.' },
-    { selector: '#tour-hebrew-tools-open', title: 'Hebrew Tools', text: 'Open Hebrew tools previews and jump into study tools directly.' },
+    { selector: '#nav-hamburger-btn', title: 'Main Menu', text: 'Start with the hamburger menu to access all main sections quickly.' },
+    { selector: '#nav-mobile-profile-card', title: 'User Dashboard', text: 'Inside the menu, open this card to go to your user dashboard and profile tools.' },
+    { selector: '#tour-verify-upload-card', title: 'Upload Entrust Card', text: 'From Home, use this card to go straight to Entrust Card upload verification.' },
   ];
+
+  const ensureTourTargetVisible = useCallback((selector: string) => {
+    if (selector !== '#nav-mobile-profile-card') return;
+    if (document.querySelector(selector)) return;
+    const hamburger = document.getElementById('nav-hamburger-btn') as HTMLButtonElement | null;
+    hamburger?.click();
+  }, []);
 
   const markVisitorAsSeen = () => {
     try {
@@ -801,11 +806,12 @@ const App: React.FC = () => {
   useEffect(() => {
     if (tourStepIndex === null || currentView !== ViewState.HOME) return;
     const step = TOUR_STEPS[tourStepIndex];
+    ensureTourTargetVisible(step.selector);
     const target = document.querySelector(step.selector) as HTMLElement | null;
     if (target) {
       target.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-  }, [tourStepIndex, currentView]);
+  }, [tourStepIndex, currentView, ensureTourTargetVisible]);
 
   useEffect(() => {
     if (!showCelebration) return;
@@ -819,6 +825,7 @@ const App: React.FC = () => {
 
     const updateRect = () => {
       const step = TOUR_STEPS[tourStepIndex];
+      ensureTourTargetVisible(step.selector);
       const target = document.querySelector(step.selector) as HTMLElement | null;
       if (!target) {
         setTourRect(null);
@@ -841,7 +848,7 @@ const App: React.FC = () => {
       window.removeEventListener('resize', updateRect);
       window.removeEventListener('scroll', updateRect, true);
     };
-  }, [tourStepIndex, currentView]);
+  }, [tourStepIndex, currentView, ensureTourTargetVisible]);
 
   // Fetch navigation layout from Firestore on mount
   useEffect(() => {

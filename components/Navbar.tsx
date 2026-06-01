@@ -273,6 +273,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                 <div className="w-full space-y-2">
                     {/* Primary profile card */}
                     <div
+                        id="nav-mobile-profile-card"
                         onClick={() => { 
                             if (currentUser) { setView(ViewState.USER_DASHBOARD); } 
                             else { setView(ViewState.ID_CARD); }

@@ -186,7 +186,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             const targetId = initialAction === 'scan' ? 'auth-login-qr-btn' : 'auth-login-upload-btn';
             const target = document.getElementById(targetId);
             target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            if (initialAction === 'upload') uploadInputRef.current?.focus();
+            if (initialAction === 'upload') {
+                uploadInputRef.current?.focus();
+                uploadInputRef.current?.click();
+            }
             else setShowScanner(true);
         }, 250);
 
