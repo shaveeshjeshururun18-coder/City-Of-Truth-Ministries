@@ -213,6 +213,7 @@ const HEBREW_RESOURCE_SUBMENU: NavItem[] = [
 ];
 
 const HEBREW_TOOLS_SUBMENU: NavItem[] = [
+  { label: 'Hebrew Alphabet', view: ViewState.HEBREW },
   { label: 'Hebrew Words', view: ViewState.HEBREW_WORDS },
   { label: 'Letters Audio Lab', view: ViewState.HEBREW_LETTERS_AUDIO },
   { label: 'Hebrew Numbers', view: ViewState.HEBREW_NUMBERS },
@@ -1389,6 +1390,7 @@ const App: React.FC = () => {
 
   const footerHebrewToolPages: Array<{ label: string; view: ViewState }> = [
     { label: 'Hebrew Tools Hub', view: ViewState.HEBREW_TOOLS },
+    { label: 'Hebrew Alphabet', view: ViewState.HEBREW },
     { label: 'Hebrew Words', view: ViewState.HEBREW_WORDS },
     { label: 'Letters Audio Lab', view: ViewState.HEBREW_LETTERS_AUDIO },
     { label: 'Hebrew Numbers', view: ViewState.HEBREW_NUMBERS },
