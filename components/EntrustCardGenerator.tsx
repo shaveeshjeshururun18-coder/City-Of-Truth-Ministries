@@ -20,7 +20,7 @@ export const EntrustCardGenerator: React.FC = () => {
     location: '',
     gender: '',
     bloodGroup: '',
-    memberSince: new Date().toLocaleDateString('en-GB'),
+    memberSince: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }),
     emergency: '',
     role: ''
   });
@@ -128,8 +128,10 @@ export const EntrustCardGenerator: React.FC = () => {
                 <div className="bg-brand-950 px-5 py-4 flex items-center gap-3 text-white">
                   <div className="p-1.5 bg-brand-600 rounded-lg text-white border border-brand-400"><Church size={20} strokeWidth={2} /></div>
                   <div>
-                    <h4 className="text-[10px] font-bold tracking-widest uppercase leading-none mb-1">City of Truth Ministries</h4>
-                    <p className="text-[10px] font-medium text-brand-300 leading-none">சத்திய நகரம் ஊழியங்கள்</p>
+                    <h4 className="text-[10px] font-bold tracking-widest uppercase leading-none mb-1 text-white drop-shadow-lg">City of Truth Ministries</h4>
+                    <p className="text-[10px] font-bold text-brand-300 leading-none drop-shadow-sm">
+                      <span className="font-black text-amber-300 drop-shadow-[0_0_4px_rgba(245,158,11,0.8)]">சத்திய நகரம் ஊழியங்கள்</span>
+                    </p>
                   </div>
                 </div>
 

@@ -63,8 +63,21 @@ export const api = {
                 ...userData,
                 id: id
             } as User;
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating user:', error);
+            if (error.code === 'permission-denied' || error.message?.includes('network')) {
+                console.warn('⚠️ Firestore error. Falling back to local json-server...');
+                try {
+                    const response = await fetch('http://localhost:4000/users', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(user)
+                    });
+                    if (response.ok) return user;
+                } catch (e) {
+                    console.error('Fallback create failed:', e);
+                }
+            }
             throw error;
         }
     },
@@ -80,8 +93,21 @@ export const api = {
             await updateDoc(userDoc, userData);
 
             return user;
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error updating user:', error);
+            if (error.code === 'permission-denied' || error.message?.includes('network')) {
+                console.warn('⚠️ Firestore error. Falling back to local json-server...');
+                try {
+                    const response = await fetch(`http://localhost:4000/users/${user.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(user)
+                    });
+                    if (response.ok) return user;
+                } catch (e) {
+                    console.error('Fallback update failed:', e);
+                }
+            }
             throw error;
         }
     },
@@ -130,8 +156,37 @@ export const api = {
                 ...mergedUserData,
                 id: newUserId
             } as User;
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error reassigning user ID:', error);
+            if (error.code === 'permission-denied' || error.message?.includes('network') || error.message?.includes('not found') || error.message?.includes('permission')) {
+                console.warn('⚠️ Firestore error during reassign. Falling back to local json-server...');
+                try {
+                    const getRes = await fetch(`http://localhost:4000/users/${oldUserId}`);
+                    let oldUser: any;
+                    if (getRes.ok) {
+                        oldUser = await getRes.json();
+                    } else {
+                        if (userDataOverride) oldUser = userDataOverride;
+                        else throw new Error(`User ${oldUserId} not found in json-server fallback.`);
+                    }
+                    const mergedData = userDataOverride || { ...oldUser, id: newUserId };
+
+                    const createRes = await fetch(`http://localhost:4000/users`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...mergedData, id: newUserId })
+                    });
+
+                    if (createRes.ok) {
+                        await fetch(`http://localhost:4000/users/${oldUserId}`, {
+                            method: 'DELETE'
+                        });
+                        return { ...mergedData, id: newUserId } as User;
+                    }
+                } catch (e) {
+                    console.error('Fallback reassignment failed:', e);
+                }
+            }
             throw error;
         }
     },
@@ -158,8 +213,19 @@ export const api = {
 
             batch.delete(userDoc);
             await batch.commit();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error deleting user:', error);
+            if (error.code === 'permission-denied' || error.message?.includes('network')) {
+                console.warn('⚠️ Firestore error. Falling back to local json-server...');
+                try {
+                    const response = await fetch(`http://localhost:4000/users/${userId}`, {
+                        method: 'DELETE'
+                    });
+                    if (response.ok) return;
+                } catch (e) {
+                    console.error('Fallback delete failed:', e);
+                }
+            }
             throw error;
         }
     },
@@ -635,5 +701,36 @@ export const api = {
         try {
             localStorage.setItem('cot_admin_tabs_config', JSON.stringify(tabs));
         } catch {}
+    },
+
+    // Fetch the home page sections hidden state from Firestore
+    getHomeSectionsHidden: async (): Promise<Record<string, boolean> | null> => {
+        try {
+            const layoutDoc = doc(db, 'config', 'home_layout');
+            const snapshot = await getDoc(layoutDoc);
+            
+            if (snapshot.exists()) {
+                const data = snapshot.data();
+                return data.hidden as Record<string, boolean> || null;
+            }
+            return null;
+        } catch (error) {
+            console.error('Error fetching home sections hidden:', error);
+            return null;
+        }
+    },
+
+    // Save the home page sections hidden state to Firestore
+    updateHomeSectionsHidden: async (hidden: Record<string, boolean>): Promise<void> => {
+        try {
+            const layoutDoc = doc(db, 'config', 'home_layout');
+            await setDoc(layoutDoc, { 
+                hidden,
+                updatedAt: new Date().toISOString()
+            }, { merge: true });
+        } catch (error) {
+            console.error('Error updating home sections hidden:', error);
+            throw error;
+        }
     }
 };

@@ -27,6 +27,25 @@ export default function AIChatAssistant() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const dragControls = useDragControls();
+    const greetingTimerRef = useRef<number | null>(null);
+
+    const seedGreeting = () => {
+        // Always show a friendly starting point so "Clear chat" never leaves a blank panel.
+        const greeting: Message = {
+            id: `${Date.now()}-greeting`,
+            text: "Hi! I'm your City of Truth assistant. How can I help you today?",
+            sender: 'bot',
+            timestamp: new Date(),
+            options: [
+                "Learn about our ministry",
+                "Service times & location",
+                "Hebrew studies",
+                "Contact information"
+            ]
+        };
+        setMessages([greeting]);
+        setIsTyping(false);
+    };
 
     // Persist messages
     useEffect(() => {
@@ -38,8 +57,11 @@ export default function AIChatAssistant() {
     }, [messages]);
 
     const handleClearChat = () => {
-        setMessages([]);
+        setInputValue('');
+        setIsTyping(false);
         localStorage.removeItem('divine_chat_widget_history');
+        // Immediately re-seed the greeting to avoid a blank/white chat area.
+        seedGreeting();
     };
 
     const handleDeleteMessage = (id: string) => {
@@ -55,21 +77,19 @@ export default function AIChatAssistant() {
     }, [messages]);
 
     useEffect(() => {
-        if (isOpen && messages.length === 0) {
-            // Initial greeting
-            setTimeout(() => {
-                addBotMessage(
-                    "Hi! 👋 I'm your City of Truth assistant. How can I bring light to your day?",
-                    [
-                        "Learn about our ministry",
-                        "Service times & location",
-                        "Hebrew studies",
-                        "Contact information"
-                    ]
-                );
-            }, 500);
-        }
-    }, [isOpen]);
+        if (!isOpen) return;
+        if (messages.length > 0) return;
+
+        if (greetingTimerRef.current) window.clearTimeout(greetingTimerRef.current);
+        greetingTimerRef.current = window.setTimeout(() => {
+            seedGreeting();
+        }, 150);
+
+        return () => {
+            if (greetingTimerRef.current) window.clearTimeout(greetingTimerRef.current);
+            greetingTimerRef.current = null;
+        };
+    }, [isOpen, messages.length]);
 
     const addBotMessage = (text: string, options?: string[]) => {
         const newMessage: Message = {

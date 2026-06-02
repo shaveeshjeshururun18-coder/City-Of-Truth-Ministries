@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 
-export const IMAGE_LOAD_TIMEOUT_MS = 3000;
+export const IMAGE_LOAD_TIMEOUT_MS = 2000; // Reduced from 3000 to 2000ms for faster processing
 export const PDF_PAGE_MARGIN_MM = 8;
 
 /**
@@ -9,7 +9,7 @@ export const PDF_PAGE_MARGIN_MM = 8;
  * @param timeoutMs Max wait per image before continuing (default: IMAGE_LOAD_TIMEOUT_MS).
  * @returns Promise that resolves after every image is settled, avoiding stalled captures.
  */
-export const waitForNodeImages = async (node: HTMLElement, timeoutMs: number = IMAGE_LOAD_TIMEOUT_MS) => {
+export const waitForNodeImages = async (node: HTMLElement, timeoutMs: number = 2000) => { // Reduced from 3000 to 2000ms
     const images = Array.from(node.querySelectorAll('img')) as HTMLImageElement[];
     await Promise.all(images.map((img) => (
         img.complete && img.naturalWidth > 0
@@ -48,5 +48,7 @@ export const addCenteredCardPage = (
     const renderHeight = img.height * scale;
     const x = (pageWidth - renderWidth) / 2;
     const y = (pageHeight - renderHeight) / 2;
-    pdfDoc.addImage(dataUrl, format, x, y, renderWidth, renderHeight, undefined, 'FAST');
+    
+    // Use 'MEDIUM' compression for balanced quality and speed
+    pdfDoc.addImage(dataUrl, format, x, y, renderWidth, renderHeight, undefined, 'MEDIUM');
 };

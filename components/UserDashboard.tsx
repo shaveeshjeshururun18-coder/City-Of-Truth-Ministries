@@ -18,6 +18,7 @@ import { GuidedTour, WelcomeTourModal, useTour } from './GuidedTour';
 
 const MEMBER_FORM_LOGO_URL = '/assets/member-form-logo.png';
 const MEMBER_FORM_STAMP_URL = '/assets/member-form-authorised-stamp-transparent.png';
+const MEMBER_FORM_SIGNATURE_URL = '/assets/signature.png';
 
 interface UserDashboardProps {
     user: User;
@@ -27,7 +28,7 @@ interface UserDashboardProps {
     onOpenScanner?: () => void;
     initialProfileId?: string;
     onGoToLogin?: () => void;
-    notifications?: { id: string; message: string; createdAt: string; read?: boolean }[];
+    notifications?: { id: string; message: string; createdAt: string; read?: boolean; kind?: 'message' | 'approved' | 'disapproved' | 'recycle' | 'recycle-removed' | 'leader'; ctaView?: string }[];
     onSendReply?: (message: string) => void;
     onMarkNotificationsRead?: () => void;
     onDeleteNotification?: (notificationId: string) => void;
@@ -49,7 +50,7 @@ const TAMIL_NADU_LOCATIONS = [
     'Pudukkottai', 'Perambalur', 'Tenkasi', 'Ranipet', 'Tirupattur', 'Mayiladuthurai', 'Valparai'
 ];
 
-export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, onOpenScanner, initialProfileId, onGoToLogin, notifications = [], onSendReply, onMarkNotificationsRead, onDeleteNotification, focusSection = null, onDeleteAccount }) => {
+export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, onOpenScanner, initialProfileId, onGoToLogin, notifications = [], onSendReply, onMarkNotificationsRead, onDeleteNotification, focusSection = null, onDeleteAccount, allUsers = [] }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [showTestimonialModal, setShowTestimonialModal] = useState(false);
     const [formData, setFormData] = useState<Partial<User>>({});
@@ -76,8 +77,106 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [wasEditingBeforeCrop, setWasEditingBeforeCrop] = useState(false);
     const [showFormSubmittedBanner, setShowFormSubmittedBanner] = useState(false);
     const notificationsSectionRef = React.useRef<HTMLDivElement | null>(null);
-    const hasPermanentCotId = /^COT-\d{4,}$/.test((user.id || '').trim());
-    const canAccessEntrustFeatures = user.status === 'Active' && hasPermanentCotId;
+    
+    // Global Mobile Toast state
+    const [mobileToast, setMobileToast] = useState<{ message: string, type: 'success' | 'error' | 'info', id: string } | null>(null);
+
+    const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+        const id = Math.random().toString(36).substr(2, 9);
+        setMobileToast({ message, type, id });
+    };
+
+    useEffect(() => {
+        if (!mobileToast) return;
+        const timer = setTimeout(() => {
+            setMobileToast(null);
+        }, 60000); // Disappear after 1 minute
+        return () => clearTimeout(timer);
+    }, [mobileToast]);
+
+    useEffect(() => {
+        // Show rejection notification on mount if the active profile's form is rejected
+        if (displayProfile?.communityProfile?.status === 'Rejected') {
+            showToast('Your Member Form was rejected by Admin. Please review and fill it again.', 'error');
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [displayProfile?.communityProfile?.status]);
+
+    const getDisplayProfile = () => {
+        if (activeProfileId === user.id) return user;
+        const sub = user.linkedProfiles?.find(p => p.id === activeProfileId);
+        if (sub) {
+            const realUser = allUsers?.find(u => u.id === sub.id);
+            if (realUser) {
+                return { 
+                    ...user, 
+                    id: realUser.id, 
+                    name: realUser.name, 
+                    photo: realUser.photo, 
+                    bloodGroup: realUser.bloodGroup || sub.bloodGroup, 
+                    dob: realUser.dob || sub.dob,
+                    status: realUser.status, 
+                    emergency: realUser.emergency || user.emergency,
+                    phone: realUser.phone || user.phone,
+                    location: realUser.location || user.location,
+                    joinedDate: realUser.joinedDate || user.joinedDate,
+                    memberSince: realUser.memberSince || user.memberSince
+                };
+            }
+            return { ...user, id: sub.id, name: sub.name, photo: sub.photo, bloodGroup: sub.bloodGroup, dob: sub.dob, status: 'Pending Verification' as const };
+        }
+        return user;
+    };
+    const getAvatarInitials = (name?: string) => {
+        const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+        if (parts.length >= 2) return `${parts[0][0] || 'C'}${parts[1][0] || 'T'}`.toUpperCase();
+        return ((parts[0] || 'CT').slice(0, 2)).toUpperCase();
+    };
+    const renderAvatarContent = (
+        photo: string | undefined,
+        name: string,
+        initialClass = 'text-sm',
+        gradientClass = 'from-brand-600 to-violet-700'
+    ) => {
+        const candidate = (photo || '').trim();
+        if (candidate) {
+            if (/^data:image\/(?:png|jpe?g|webp|gif|bmp);base64,/i.test(candidate)) {
+                return <img src={candidate} alt="Profile photo" className="w-full h-full object-cover" loading="lazy" />;
+            }
+            if (/^https?:\/\//i.test(candidate)) {
+                try {
+                    const parsed = new URL(candidate);
+                    const allowedHosts = new Set([
+                        'firebasestorage.googleapis.com',
+                        'lh3.googleusercontent.com',
+                        'avatars.githubusercontent.com',
+                        'user-attachments.githubusercontent.com',
+                        'raw.githubusercontent.com',
+                        'ui-avatars.com',
+                    ]);
+                    if (allowedHosts.has(parsed.hostname)) {
+                        return <img src={parsed.toString()} alt="Profile photo" className="w-full h-full object-cover" loading="lazy" />;
+                    }
+                } catch {
+                }
+            }
+        }
+        return (
+            <div className={`w-full h-full bg-gradient-to-br ${gradientClass} flex items-center justify-center text-white ${initialClass} font-black tracking-[0.2em]`}>
+                {getAvatarInitials(name)}
+            </div>
+        );
+    };
+    const displayProfile = getDisplayProfile();
+
+    const hasPermanentCotId = /^COT-\d{4,}$/.test((displayProfile.id || '').trim());
+    const canAccessEntrustFeatures = displayProfile.status === 'Active' && hasPermanentCotId;
+    const hasMemberFormSubmitted = !!(displayProfile.communityProfile && (
+        (displayProfile.communityProfile.denomination || '').trim() ||
+        (displayProfile.communityProfile.churchName || '').trim() ||
+        (displayProfile.communityProfile.role || '').trim() ||
+        (displayProfile.communityProfile.bio || '').trim()
+    ));
 
     // ── Guided Tour ──
     const dashboardTour = useTour('user_dashboard');
@@ -158,6 +257,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     }, [focusSection]);
 
     const topNotification = notifications.length > 0 ? notifications[0] : null;
+    const topToneClass = topNotification?.kind === 'approved'
+        ? 'border-emerald-200 from-emerald-50 via-white to-green-50'
+        : topNotification?.kind === 'disapproved'
+            ? 'border-red-200 from-red-50 via-white to-rose-50'
+            : topNotification?.kind === 'recycle'
+                ? 'border-amber-200 from-amber-50 via-white to-orange-50'
+                : 'border-indigo-200 from-indigo-50 via-white to-violet-50';
 
     useEffect(() => {
         if (!topNotification) {
@@ -177,56 +283,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         }, 60000);
         return () => window.clearTimeout(timer);
     }, [topNotification, dismissedTopNotificationId]);
-
-
-    const getDisplayProfile = () => {
-        if (activeProfileId === user.id) return user;
-        const sub = user.linkedProfiles?.find(p => p.id === activeProfileId);
-        if (sub) return { ...user, id: sub.id, name: sub.name, photo: sub.photo, bloodGroup: sub.bloodGroup, dob: sub.dob };
-        return user;
-    };
-    const getAvatarInitials = (name?: string) => {
-        const parts = (name || '').trim().split(/\s+/).filter(Boolean);
-        if (parts.length >= 2) return `${parts[0][0] || 'C'}${parts[1][0] || 'T'}`.toUpperCase();
-        return ((parts[0] || 'CT').slice(0, 2)).toUpperCase();
-    };
-    const renderAvatarContent = (
-        photo: string | undefined,
-        name: string,
-        initialClass = 'text-sm',
-        gradientClass = 'from-brand-600 to-violet-700'
-    ) => {
-        const candidate = (photo || '').trim();
-        if (candidate) {
-            if (/^data:image\/(?:png|jpe?g|webp|gif|bmp);base64,/i.test(candidate)) {
-                return <img src={candidate} alt="Profile photo" className="w-full h-full object-cover" loading="lazy" />;
-            }
-            if (/^https?:\/\//i.test(candidate)) {
-                try {
-                    const parsed = new URL(candidate);
-                    const allowedHosts = new Set([
-                        'firebasestorage.googleapis.com',
-                        'lh3.googleusercontent.com',
-                        'avatars.githubusercontent.com',
-                        'user-attachments.githubusercontent.com',
-                        'raw.githubusercontent.com',
-                        'ui-avatars.com',
-                    ]);
-                    if (allowedHosts.has(parsed.hostname)) {
-                        return <img src={parsed.toString()} alt="Profile photo" className="w-full h-full object-cover" loading="lazy" />;
-                    }
-                } catch {
-                    // Fall back to initials when the URL is invalid.
-                }
-            }
-        }
-        return (
-            <div className={`w-full h-full bg-gradient-to-br ${gradientClass} flex items-center justify-center text-white ${initialClass} font-black tracking-[0.2em]`}>
-                {getAvatarInitials(name)}
-            </div>
-        );
-    };
-    const displayProfile = getDisplayProfile();
 
 
     const handlePhotoUpload = (
@@ -307,25 +363,59 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         const backNode = document.getElementById('capture-back');
         if (frontNode && backNode) {
             try {
-                await Promise.all([waitForNodeImages(frontNode), waitForNodeImages(backNode)]);
-                await new Promise(r => setTimeout(r, 600));
-                // Explicit dimensions ensure off-screen nodes render correctly in all browsers
-                const opts = { pixelRatio: 3, quality: 1, backgroundColor: '#ffffff', cacheBust: true, width: 680, height: 430 };
+                // Reduced wait time for images and shorter overall timeout
+                await Promise.all([waitForNodeImages(frontNode, 1500), waitForNodeImages(backNode, 1500)]);
+                await new Promise(r => setTimeout(r, 300)); // Reduced from 600ms to 300ms
+                
+                // Optimized PNG export with balanced quality and speed
+                const opts = { 
+                    pixelRatio: 2.5, // Further reduced from 3 to 2.5 for faster processing
+                    quality: 0.9, // Reduced from 0.95 to 0.9 for faster processing
+                    backgroundColor: '#ffffff', 
+                    cacheBust: true, 
+                    width: 340, 
+                    height: 215,
+                    skipFonts: false,
+                    style: {
+                        transform: 'scale(1)',
+                        transformOrigin: 'top left'
+                    }
+                };
                 const frontDataUrl = await toPng(frontNode, opts);
                 const backDataUrl = await toPng(backNode, opts);
-                const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
+                const pdf = new jsPDF({ 
+                    orientation: 'landscape', 
+                    unit: 'mm', 
+                    format: 'a4', 
+                    compress: true,
+                    precision: 6 // Further reduced from 8 to 6 for faster processing
+                });
                 addCenteredCardPage(pdf, frontDataUrl, 'PNG', true);
                 addCenteredCardPage(pdf, backDataUrl, 'PNG', false);
                 pdf.save(`ENTRUST-CARD-${displayProfile.id}.pdf`);
             } catch (err: any) {
                 console.error('PDF generation failed', err);
-                // Fallback: try jpeg instead of png
+                // Fallback: try jpeg with even faster settings
                 try {
                     const { toJpeg: toJpeg2 } = await import('html-to-image');
-                    const opts2 = { pixelRatio: 2, quality: 0.95, backgroundColor: '#ffffff', cacheBust: true, width: 680, height: 430 };
+                    const opts2 = { 
+                        pixelRatio: 2, // Further reduced from 2.5 to 2 for faster processing
+                        quality: 0.85, // Reduced from 0.92 to 0.85 for faster processing
+                        backgroundColor: '#ffffff', 
+                        cacheBust: true, 
+                        width: 340, 
+                        height: 215,
+                        skipFonts: false
+                    };
                     const frontDataUrl2 = await toJpeg2(frontNode!, opts2);
                     const backDataUrl2 = await toJpeg2(backNode!, opts2);
-                    const pdf2 = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
+                    const pdf2 = new jsPDF({ 
+                        orientation: 'landscape', 
+                        unit: 'mm', 
+                        format: 'a4', 
+                        compress: true,
+                        precision: 6
+                    });
                     addCenteredCardPage(pdf2, frontDataUrl2, 'JPEG', true);
                     addCenteredCardPage(pdf2, backDataUrl2, 'JPEG', false);
                     pdf2.save(`ENTRUST-CARD-${displayProfile.id}.pdf`);
@@ -342,12 +432,26 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const handleDownloadCalendar = async (options: CalendarOptions) => {
         setIsGeneratingCalendar(true); setGenerationProgress(0); setIsCalendarModalOpen(false);
         try {
-            const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
+            const pdf = new jsPDF({ 
+                orientation: 'landscape', 
+                unit: 'mm', 
+                format: 'a4', 
+                compress: true, // Re-enable compression for faster processing
+                precision: 8 // Reduced from 16 to 8
+            });
             const captureAndAddPage = async (isFirstPage: boolean) => {
                 const node = document.getElementById('printable-calendar-dashboard');
                 if (!node) throw new Error('Calendar element not found');
                 await new Promise(resolve => setTimeout(resolve, 300));
-                const dataUrl = await toJpeg(node, { width: 1122, height: 793, pixelRatio: 3.0, quality: 1.0, backgroundColor: '#ffffff', cacheBust: true });
+                const dataUrl = await toJpeg(node, { 
+                    width: 1122, 
+                    height: 793, 
+                    pixelRatio: 2.5, // Reduced from 4.0 to 2.5 for faster processing
+                    quality: 0.9, // Reduced from 1.0 to 0.9 for faster processing
+                    backgroundColor: '#ffffff', 
+                    cacheBust: true,
+                    skipFonts: false
+                });
                 const imgProps = pdf.getImageProperties(dataUrl);
                 const pdfWidth = pdf.internal.pageSize.getWidth();
                 const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
@@ -382,7 +486,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 try {
                     const refNode = document.getElementById('printable-reference-guide-dashboard');
                     if (refNode) {
-                        const refDataUrl = await toJpeg(refNode, { pixelRatio: 3.0, quality: 1.0, backgroundColor: '#ffffff', cacheBust: true, width: 800 });
+                        const refDataUrl = await toJpeg(refNode, { 
+                            pixelRatio: 2.5, // Reduced from 4.0 to 2.5 for faster processing
+                            quality: 0.9, // Reduced from 1.0 to 0.9 for faster processing
+                            backgroundColor: '#ffffff', 
+                            cacheBust: true, 
+                            width: 800,
+                            skipFonts: false
+                        });
                         pdf.addPage('a4', 'portrait');
                         const pW = pdf.internal.pageSize.getWidth();
                         const rp = pdf.getImageProperties(refDataUrl);
@@ -398,23 +509,49 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     };
 
     const startEditing = () => {
-        const pending = user.pendingProfileUpdate || {};
-        setFormData({
-            name: pending.name ?? user.name,
-            phone: pending.phone ?? user.phone,
-            email: pending.email ?? user.email,
-            location: pending.location ?? user.location,
-            emergency: pending.emergency ?? user.emergency,
-            photo: user.photo,
-            dob: (pending as any).dob ?? (user as any).dob ?? '',
-            memberSince: (pending as any).memberSince ?? user.memberSince ?? '',
-            joinedDate: (pending as any).joinedDate ?? user.joinedDate ?? ''
-        });
+        if (activeProfileId === user.id) {
+            const pending = user.pendingProfileUpdate || {};
+            setFormData({
+                name: pending.name ?? user.name,
+                phone: pending.phone ?? user.phone,
+                email: pending.email ?? user.email,
+                location: pending.location ?? user.location,
+                emergency: pending.emergency ?? user.emergency,
+                photo: user.photo,
+                dob: (pending as any).dob ?? (user as any).dob ?? '',
+                memberSince: (pending as any).memberSince ?? user.memberSince ?? '',
+                joinedDate: (pending as any).joinedDate ?? user.joinedDate ?? ''
+            });
+        } else {
+            // It's a linked profile
+            const sub = user.linkedProfiles?.find(p => p.id === activeProfileId);
+            if (sub) {
+                // If there's a pending update for this subprofile in user.pendingProfileUpdate... 
+                // Currently, pending updates for linked profiles aren't structured well, so we just edit the original
+                setFormData({
+                    name: sub.name,
+                    role: sub.role,
+                    photo: sub.photo,
+                    dob: sub.dob,
+                    bloodGroup: sub.bloodGroup
+                });
+            }
+        }
         setIsEditing(true);
     };
     const cancelEditing = () => { setIsEditing(false); setFormData({}); };
-    const saveChanges = (e: React.FormEvent) => { e.preventDefault(); onUpdate({ ...user, ...formData } as User); setIsEditing(false); };
-
+    const saveChanges = (e: React.FormEvent) => { 
+        e.preventDefault(); 
+        if (activeProfileId === user.id) {
+            onUpdate({ ...user, ...formData } as User); 
+        } else {
+            const updatedLinkedProfiles = (user.linkedProfiles || []).map(p => 
+                p.id === activeProfileId ? { ...p, ...formData } : p
+            );
+            onUpdate({ ...user, linkedProfiles: updatedLinkedProfiles });
+        }
+        setIsEditing(false); 
+    };
     const handleAddSubProfile = (e: React.FormEvent) => {
         e.preventDefault();
         const trimmedName = (subProfileForm.name || '').trim();
@@ -463,7 +600,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
     const handleExportProfileDetailsPDF = () => {
         try {
-            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+            const pdf = new jsPDF({ 
+                orientation: 'portrait', 
+                unit: 'mm', 
+                format: 'a4', 
+                compress: true, // Re-enable compression for faster processing
+                precision: 8 // Reduced from 16 to 8
+            });
             const pageWidth = pdf.internal.pageSize.getWidth();
             const pageHeight = pdf.internal.pageSize.getHeight();
             const margin = 14;
@@ -790,7 +933,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 dob: user.dob,
                 status: user.status,
             }, [
-                ['Member Since', formatValue(user.memberSince || user.joinedDate)],
+                ['Joined Date', formatValue(user.joinedDate || user.memberSince)],
                 ['Status', formatValue(user.status)],
             ]);
 
@@ -842,7 +985,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         }
         setIsProcessing(true);
         try {
-            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+            const pdf = new jsPDF({ 
+                orientation: 'portrait', 
+                unit: 'mm', 
+                format: 'a4', 
+                compress: true, // Re-enable compression for faster processing
+                precision: 8 // Reduced from 16 to 8
+            });
             const pageWidth = pdf.internal.pageSize.getWidth();
             const pageHeight = pdf.internal.pageSize.getHeight();
             const navy = '#1B2A5E';
@@ -852,10 +1001,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             const cream = '#F9F5EE';
             const ml = 16;
             const fieldWidth = pageWidth - (ml * 2);
-            const fieldHeight = 11.5;
-            const labelHeight = 5;
-            const labelGap = 2;
-            const verticalGap = 4.5;
+            const fieldHeight = 11.0;
+            const labelHeight = 4.0;
+            const labelGap = 2.0;
+            const verticalGap = 7.0;
 
             const loadImageDataUrl = async (url: string) => {
                 try {
@@ -873,9 +1022,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 }
             };
 
-            const [logoDataUrl, stampDataUrl] = await Promise.all([
+            const [logoDataUrl, stampDataUrl, signatureDataUrl] = await Promise.all([
                 loadImageDataUrl(MEMBER_FORM_LOGO_URL),
-                loadImageDataUrl(MEMBER_FORM_STAMP_URL)
+                loadImageDataUrl(MEMBER_FORM_STAMP_URL),
+                loadImageDataUrl(MEMBER_FORM_SIGNATURE_URL)
             ]);
 
             const valueOrBlank = (value?: string) => `${value || ''}`.trim();
@@ -985,7 +1135,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             const drawSignatureStamp = (x: number, y: number, width: number) => {
                 const stampWidth = 40;
                 const signatureWidth = width - stampWidth - 8;
-                const blockHeight = 27;
+                const blockHeight = 28;
                 pdf.setFillColor('#D8D0C0');
                 pdf.roundedRect(x + 1, y + 1.5, signatureWidth, blockHeight, 4, 4, 'F');
                 pdf.setFillColor(255, 255, 255);
@@ -993,22 +1143,28 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 pdf.setLineWidth(1.2);
                 pdf.roundedRect(x, y, signatureWidth, blockHeight, 4, 4, 'FD');
                 pdf.setFillColor(gold);
-                pdf.rect(x, y, signatureWidth, 9, 'F');
+                pdf.rect(x, y, signatureWidth, 8, 'F');
                 pdf.setTextColor(navyDark);
                 pdf.setFont('helvetica', 'bold');
                 pdf.setFontSize(8);
-                pdf.text('AUTHORISED BY:', x + 4, y + 6);
-                pdf.setTextColor('#0F6432');
-                pdf.setFont('times', 'italic');
-                pdf.setFontSize(21);
-                pdf.text('Shaveesh Jeshurun', x + signatureWidth / 2, y + 19, { align: 'center' });
-                pdf.setDrawColor('#0F6432');
-                pdf.setLineWidth(1);
-                pdf.line(x + 12, y + 21, x + signatureWidth - 12, y + 21);
+                pdf.text('AUTHORISED BY:', x + 4, y + 5.5);
+                
+                if (signatureDataUrl) {
+                    pdf.addImage(signatureDataUrl, 'PNG', x + (signatureWidth - 45) / 2, y + 9.5, 45, 12, undefined, 'FAST');
+                } else {
+                    pdf.setTextColor('#0F6432');
+                    pdf.setFont('times', 'italic');
+                    pdf.setFontSize(21);
+                    pdf.text('Shaveesh Jeshurun', x + signatureWidth / 2, y + 18, { align: 'center' });
+                    pdf.setDrawColor('#0F6432');
+                    pdf.setLineWidth(0.8);
+                    pdf.line(x + 12, y + 20, x + signatureWidth - 12, y + 20);
+                }
+                
                 pdf.setTextColor(navyDark);
                 pdf.setFont('helvetica', 'bold');
                 pdf.setFontSize(6.5);
-                pdf.text('Senior Pastor  -  City of Truth Ministries', x + 4, y + 25.7);
+                pdf.text('Senior Pastor  -  City of Truth Ministries', x + 4, y + 25.5);
                 if (stampDataUrl) {
                     pdf.addImage(stampDataUrl, 'PNG', x + signatureWidth + 8, y - 8, stampWidth, stampWidth, undefined, 'FAST');
                 }
@@ -1018,7 +1174,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             drawHeader();
             drawFooter();
 
-            let y = 68;
+            let y = 66;
             sectionLabel('Member', ml, y);
             y += labelHeight + labelGap;
             fieldBox(ml, y, fieldWidth, fieldHeight, `${user.name}  -  ${user.id}`);
@@ -1046,11 +1202,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
             sectionLabel('Brief Testimony / Bio', ml, y);
             y += labelHeight + labelGap;
-            fieldBox(ml, y, fieldWidth, 21, valueOrBlank(profile.bio), 'Share your testimony or brief bio here...', true);
-            y += 21 + verticalGap + 2;
+            fieldBox(ml, y, fieldWidth, 20, valueOrBlank(profile.bio), 'Share your testimony or brief bio here...', true);
+            y += 20 + 6;
 
             divider(y);
-            drawSignatureStamp(ml, Math.max(y + 7, 234), fieldWidth);
+            drawSignatureStamp(ml, 223, fieldWidth);
 
             pdf.save(`COT-MEMBER-FORM-${user.id}.pdf`);
         } catch (error) {
@@ -1110,7 +1266,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     };
 
     const qrUrl = `${window.location.origin}/verify/${displayProfile.id}`;
-    const qrImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(qrUrl)}&bgcolor=ffffff&color=1a237e&margin=5&format=png&cb=${encodeURIComponent(displayProfile.id)}`;
+    const qrImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(qrUrl)}&bgcolor=ffffff&color=1a237e&margin=0&format=png&cb=${encodeURIComponent(displayProfile.id)}`;
 
     useEffect(() => {
         setQrImageUnavailable(false);
@@ -1126,6 +1282,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     };
 
     const handleCopyQrLink = async () => {
+        if (!canAccessEntrustFeatures) {
+            alert('Copying verification link is disabled for unverified, temporary, or restricted accounts.');
+            return;
+        }
         try {
             await navigator.clipboard.writeText(qrUrl);
             setQrLinkCopied(true);
@@ -1141,24 +1301,32 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.06] pointer-events-none z-0" />
             {topNotification && dismissedTopNotificationId !== topNotification.id && (
                 <div className="sticky top-20 z-50 w-full max-w-md lg:max-w-7xl xl:max-w-[88rem] 2xl:max-w-[95rem] mb-3">
-                    <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 via-white to-orange-50 shadow-lg px-4 py-3 flex items-start gap-3">
+                    <button
+                        type="button"
+                        onClick={() => notificationsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                        className={`w-full text-left rounded-2xl border bg-gradient-to-r ${topToneClass} shadow-lg px-4 py-3 flex items-start gap-3`}
+                    >
                         <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
                             <MessageSquare size={16} />
                         </div>
                         <div className="min-w-0 flex-1">
-                            <p className="text-[10px] font-black uppercase tracking-wider text-amber-700">New Admin Notification</p>
-                            <p className="text-sm text-slate-700 whitespace-pre-wrap break-words">{topNotification.message}</p>
+                            <p className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                                {topNotification.kind === 'approved' ? 'Approved Notification' : topNotification.kind === 'disapproved' ? 'Disapproved Notification' : topNotification.kind === 'recycle' ? 'Recycle Bin Notice' : 'New Admin Notification'}
+                            </p>
+                            <p className="text-sm font-semibold text-slate-700 whitespace-pre-wrap break-words">{topNotification.message}</p>
                             <p className="text-[10px] text-slate-400 mt-1">Auto closes in 1 minute</p>
                         </div>
-                        <button
-                            type="button"
-                            onClick={() => setDismissedTopNotificationId(topNotification.id)}
-                            className="p-1.5 rounded-lg text-slate-500 hover:bg-white border border-slate-200"
+                        <span
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setDismissedTopNotificationId(topNotification.id);
+                            }}
+                            className="inline-flex p-1.5 rounded-lg text-slate-500 hover:bg-white border border-slate-200 cursor-pointer"
                             title="Dismiss notification"
                         >
                             <X size={14} />
-                        </button>
-                    </div>
+                        </span>
+                    </button>
                 </div>
             )}
 
@@ -1201,20 +1369,30 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             <CommunityProfileForm
                 isOpen={showCommunityProfileForm}
                 onClose={() => setShowCommunityProfileForm(false)}
-                initialData={user.communityProfile}
-                onSave={(communityData) => {
-                    onUpdate({ ...user, communityProfile: communityData } as User);
+                initialData={displayProfile.communityProfile}
+                onSave={(data) => {
+                    if (activeProfileId === user.id) {
+                        onUpdate({ ...user, communityProfile: { ...data, status: 'Pending' } } as User);
+                    } else {
+                        const updatedLinkedProfiles = (user.linkedProfiles || []).map(p => 
+                            p.id === activeProfileId ? { ...p, communityProfile: { ...data, status: 'Pending' } } : p
+                        );
+                        onUpdate({ ...user, linkedProfiles: updatedLinkedProfiles } as User);
+                    }
                     setShowFormSubmittedBanner(true);
+                    setTimeout(() => setShowFormSubmittedBanner(false), 5000);
+                    setGlobalToast({ message: 'Member Form submitted successfully! Admin will review it shortly.', type: 'success' });
+                    setTimeout(() => setGlobalToast(null), 5000);
                 }}
             />
             <CalendarCustomizationModal isOpen={isCalendarModalOpen} onClose={() => setIsCalendarModalOpen(false)} onDownload={handleDownloadCalendar} />
 
             <div className="fixed left-[-9999px] top-0 pointer-events-none z-0">
-                <div id="capture-front" className="bg-white">
-                    <EntrustCard3D name={displayProfile.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={displayProfile.id} memberSince={user.joinedDate || user.memberSince} photo={displayProfile.photo} status={user.status} isStatic={true} isBackSide={false} />
+                <div id="capture-front" className="bg-white inline-block w-[340px] h-[215px] overflow-hidden rounded-xl">
+                    <EntrustCard3D name={displayProfile.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={displayProfile.id} memberSince={user.joinedDate || user.memberSince} photo={displayProfile.photo} status={user.status} isStatic={true} isBackSide={false} cardThemeTone="blue" cardLayoutMode={user.cardLayoutMode} cardShapeMode={user.cardShapeMode} cardSizeMode={user.cardSizeMode} />
                 </div>
-                <div id="capture-back" className="bg-white">
-                    <EntrustCard3D name={displayProfile.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={displayProfile.id} memberSince={user.joinedDate || user.memberSince} photo={displayProfile.photo} status={user.status} isStatic={true} isBackSide={true} />
+                <div id="capture-back" className="bg-white inline-block w-[340px] h-[215px] overflow-hidden rounded-xl">
+                    <EntrustCard3D name={displayProfile.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={displayProfile.id} memberSince={user.joinedDate || user.memberSince} photo={displayProfile.photo} status={user.status} isStatic={true} isBackSide={true} cardThemeTone="blue" cardLayoutMode={user.cardLayoutMode} cardShapeMode={user.cardShapeMode} cardSizeMode={user.cardSizeMode} />
                 </div>
             </div>
             <div className="fixed left-[-10000px] top-0 pointer-events-none opacity-100 z-0">
@@ -1357,11 +1535,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     </div>
 
                     {/* Edit button */}
-                    {activeProfileId === user.id && (
-                        <button onClick={startEditing} className="shrink-0 text-slate-400 hover:text-brand-600 p-2 rounded-full hover:bg-white transition-all">
-                            <Edit2 size={18} />
-                        </button>
-                    )}
+                    <button onClick={startEditing} className="shrink-0 text-slate-400 hover:text-brand-600 p-2 rounded-full hover:bg-white transition-all">
+                        <Edit2 size={18} />
+                    </button>
                 </div>
 
                 {/* ── PROFILE SWITCHER TABS ── */}
@@ -1377,25 +1553,66 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         ))}
                     </div>
                 )}
-                 {activeProfileId === user.id && user.pendingProfileUpdate && Object.keys(user.pendingProfileUpdate).length > 0 && (
-                    <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-4 py-3 text-xs font-semibold flex items-center justify-between gap-3">
-                        <span>Your profile update request is pending admin approval.</span>
-                        <button 
-                            onClick={() => {
-                                if (window.confirm('Are you sure you want to cancel and reset your pending profile and photo updates?')) {
-                                    onUpdate({ ...user, pendingProfileUpdate: {} } as User);
-                                }
-                            }}
-                            className="shrink-0 px-2.5 py-1 bg-white border border-amber-300 text-amber-900 rounded-lg hover:bg-amber-100 transition-colors font-bold text-[10px] uppercase tracking-wider"
-                        >
-                            Cancel & Reset
-                        </button>
-                    </div>
-                )}
+                 {(() => {
+                    const hasPrimaryPending = activeProfileId === user.id && user.pendingProfileUpdate && Object.keys(user.pendingProfileUpdate).filter(k => k !== 'linkedProfiles').length > 0;
+                    const activeFamilyPending = activeProfileId !== user.id && user.pendingProfileUpdate?.linkedProfiles?.find(p => p.id === activeProfileId);
+                    const hasFamilyPending = !!activeFamilyPending;
+
+                    if (hasPrimaryPending) {
+                        return (
+                            <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-4 py-3 text-xs font-semibold flex items-center justify-between gap-3">
+                                <span>Your profile update request is pending admin approval.</span>
+                                <button 
+                                    onClick={() => {
+                                        if (window.confirm('Are you sure you want to cancel and reset your pending profile and photo updates?')) {
+                                            const newPending = { ...(user.pendingProfileUpdate || {}) };
+                                            Object.keys(newPending).forEach(k => {
+                                                if (k !== 'linkedProfiles') {
+                                                    delete (newPending as any)[k];
+                                                }
+                                            });
+                                            onUpdate({ ...user, pendingProfileUpdate: newPending } as User);
+                                        }
+                                    }}
+                                    className="shrink-0 px-2.5 py-1 bg-white border border-amber-300 text-amber-900 rounded-lg hover:bg-amber-100 transition-colors font-bold text-[10px] uppercase tracking-wider"
+                                >
+                                    Cancel & Reset
+                                </button>
+                            </div>
+                        );
+                    }
+
+                    if (hasFamilyPending) {
+                        return (
+                            <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-4 py-3 text-xs font-semibold flex items-center justify-between gap-3">
+                                <span>This family member's profile update request is pending admin approval.</span>
+                                <button 
+                                    onClick={() => {
+                                        if (window.confirm("Are you sure you want to cancel and reset this family member's pending profile and photo updates?")) {
+                                            const newPending = { ...(user.pendingProfileUpdate || {}) };
+                                            if (newPending.linkedProfiles) {
+                                                newPending.linkedProfiles = newPending.linkedProfiles.filter(p => p.id !== activeProfileId);
+                                                if (newPending.linkedProfiles.length === 0) {
+                                                    delete newPending.linkedProfiles;
+                                                }
+                                            }
+                                            onUpdate({ ...user, pendingProfileUpdate: newPending } as User);
+                                        }
+                                    }}
+                                    className="shrink-0 px-2.5 py-1 bg-white border border-amber-300 text-amber-900 rounded-lg hover:bg-amber-100 transition-colors font-bold text-[10px] uppercase tracking-wider"
+                                >
+                                    Cancel & Reset
+                                </button>
+                            </div>
+                        );
+                    }
+
+                    return null;
+                 })()}
 
                 {/* ── FAMILY MEMBERS LIST ── */}
                 {user.linkedProfiles && user.linkedProfiles.length > 0 && (
-                    <div className="bg-white rounded-[24px] shadow-md overflow-hidden">
+                    <div className="bg-white rounded-[24px] shadow-md overflow-hidden mt-8">
                         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
                             <h3 className="font-bold text-slate-800 flex items-center gap-2"><Users size={16} className="text-brand-500" /> Family</h3>
                             <button onClick={handleGoToLogin} className="text-xs font-bold text-brand-600 hover:text-brand-800 flex items-center gap-1">
@@ -1413,25 +1630,36 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 </div>
                                 {activeProfileId === user.id && <CheckCircle size={16} className="text-brand-500 shrink-0" />}
                             </button>
-                            {user.linkedProfiles.map((pf, index) => (
-                                <div key={pf.id} className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all group ${activeProfileId === pf.id ? 'bg-accent-50 border-accent-200' : 'bg-white border-slate-200 hover:border-accent-200'}`}>
-                                    <button onClick={() => setActiveProfileId(pf.id)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
-                                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-100 shrink-0">
-                                            {renderAvatarContent(pf.photo, pf.name, 'text-[10px]', 'from-violet-600 to-fuchsia-700')}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="font-bold text-slate-900 text-sm truncate">{pf.name}</p>
-                                            <p className="text-[10px] text-slate-500 font-medium">
-                                                {(index === 0 ? 'First Family Member' : `Additional Member ${index}`)} · {pf.role || 'Family'}
-                                            </p>
-                                        </div>
-                                        {activeProfileId === pf.id && <CheckCircle size={16} className="text-accent-500 shrink-0" />}
-                                    </button>
-                                    <button onClick={() => handleDeleteSubProfile(pf.id)} aria-label={`Remove ${pf.name}`} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1.5 rounded-lg text-red-300 hover:text-red-500 hover:bg-red-50 transition-all ml-2 shrink-0">
-                                        <Trash2 size={14} />
-                                    </button>
-                                </div>
-                            ))}
+                            {user.linkedProfiles.map((pf, index) => {
+                                const pendingPf = user.pendingProfileUpdate?.linkedProfiles?.find(p => p.id === pf.id);
+                                const isPending = !!pendingPf;
+                                const displayPhoto = pendingPf?.photo || pf.photo;
+
+                                return (
+                                    <div key={pf.id} className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all group ${activeProfileId === pf.id ? 'bg-accent-50 border-accent-200' : 'bg-white border-slate-200 hover:border-accent-200'} ${isPending ? 'ring-2 ring-amber-300 ring-offset-2' : ''}`}>
+                                        <button onClick={() => setActiveProfileId(pf.id)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                                            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-100 shrink-0 relative">
+                                                {renderAvatarContent(displayPhoto, pf.name, 'text-[10px]', 'from-violet-600 to-fuchsia-700')}
+                                                {isPending && (
+                                                    <div className="absolute inset-0 bg-amber-500/25 flex items-center justify-center">
+                                                        <span className="text-[6px] bg-amber-500 text-white font-black px-1 rounded-full leading-none tracking-widest scale-75">PENDING</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-bold text-slate-900 text-sm truncate">{pf.name}</p>
+                                                <p className="text-[10px] text-slate-500 font-medium">
+                                                    {(index === 0 ? 'First Family Member' : `Additional Member ${index}`)} · {pf.role || 'Family'}
+                                                </p>
+                                            </div>
+                                            {activeProfileId === pf.id && <CheckCircle size={16} className="text-accent-500 shrink-0" />}
+                                        </button>
+                                        <button onClick={() => handleDeleteSubProfile(pf.id)} aria-label={`Remove ${pf.name}`} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1.5 rounded-lg text-red-300 hover:text-red-500 hover:bg-red-50 transition-all ml-2 shrink-0">
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 )}
@@ -1454,9 +1682,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     ) : (
                         <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
                             {notifications.slice(0, 8).map(note => (
-                                <div key={note.id} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                                <div key={note.id} className={`rounded-xl border px-3 py-2 ${note.kind === 'message' ? 'border-indigo-200 bg-gradient-to-r from-indigo-50 to-white shadow-sm' : note.kind === 'approved' ? 'border-emerald-200 bg-emerald-50/70' : note.kind === 'disapproved' ? 'border-red-200 bg-red-50/70' : note.kind === 'recycle' ? 'border-amber-200 bg-amber-50/70' : 'border-slate-100 bg-slate-50'}`}>
                                     <div className="flex items-start justify-between gap-2">
-                                        <p className="text-xs text-slate-700 whitespace-pre-wrap break-words">{note.message}</p>
+                                        <p className={`text-xs whitespace-pre-wrap break-words ${note.kind === 'message' ? 'text-indigo-900 font-bold' : 'text-slate-700'}`}>{note.message}</p>
                                         {onDeleteNotification && (
                                             <button
                                                 type="button"
@@ -1514,7 +1742,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     </div>
 
                     {/* Desktop Content Row: 3D Preview + QR */}
-                    <div className="flex flex-col xl:flex-row items-center justify-between p-4 md:p-6 lg:p-10 gap-6">
+                    <div className="flex flex-col xl:flex-row items-center xl:items-start justify-between p-4 md:p-6 lg:p-10 gap-6">
 
                         {/* Left: Card Preview */}
                         <div className="w-full xl:w-3/5">
@@ -1534,6 +1762,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             status={user.status}
                                             isStatic={true}
                                             isBackSide={false}
+                                            cardThemeTone="blue"
+                                            cardLayoutMode={user.cardLayoutMode}
+                                            cardShapeMode={user.cardShapeMode}
+                                            cardSizeMode={user.cardSizeMode}
                                         />
                                     </div>
                                 </div>
@@ -1560,6 +1792,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             status={user.status}
                                             isStatic={true}
                                             isBackSide={cardFlipped}
+                                            cardThemeTone="blue"
+                                            cardLayoutMode={user.cardLayoutMode}
+                                            cardShapeMode={user.cardShapeMode}
+                                            cardSizeMode={user.cardSizeMode}
                                         />
                                     </div>
                                     {!canAccessEntrustFeatures && (
@@ -1569,6 +1805,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                     )}
                                 </div>
                                 <p className="text-center text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">✨ Click card to download instantly ✨</p>
+                            </div>
+
+                            {/* Edit Details Action (Directly below card preview to balance layout) */}
+                            <div className="flex justify-center mt-6">
+                                <button id="dashboard-edit-btn" onClick={startEditing} className="flex items-center gap-2 cursor-pointer bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 text-slate-500 hover:text-brand-600 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all shadow-sm">
+                                    <Edit2 size={13} /> Edit Details
+                                </button>
                             </div>
                         </div>
 
@@ -1670,22 +1913,17 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         </div>
                     </div>
 
-                    {/* Edit Details button below card + QR */}
-                    <div className="flex justify-center pb-2">
-                        <button id="dashboard-edit-btn" onClick={startEditing} className="flex items-center gap-2 cursor-pointer bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 text-slate-500 hover:text-brand-600 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all shadow-sm">
-                            <Edit2 size={13} /> Edit Details
-                        </button>
-                    </div>
+
 
                     {/* Action buttons row (mAadhaar style) */}
                     {canAccessEntrustFeatures && (
-                        <div id="dashboard-actions-row" className={`grid ${user.communityProfile ? 'grid-cols-5' : 'grid-cols-4'} gap-1 px-4 pb-5 pt-3`}>
+                        <div id="dashboard-actions-row" className={`grid ${activeProfileId === user.id && hasMemberFormSubmitted ? 'grid-cols-5' : 'grid-cols-4'} gap-1 px-4 pb-5 pt-3`}>
                             {[
                                 { icon: <Share2 size={20} />, label: 'Share', action: handleShare, id: 'dashboard-share-top-btn' },
                                 { icon: <Download size={20} />, label: 'Download', action: handleDownloadPDF, loading: isProcessing },
                                 { icon: <FileText size={20} />, label: 'Details PDF', action: handleExportProfileDetailsPDF },
                                 { icon: <QrCode size={20} />, label: 'Download QR', action: handleDownloadQrCode, id: 'dashboard-scanner-btn' },
-                                ...(user.communityProfile ? [{ icon: <FileText size={20} />, label: 'Member Form PDF', action: handleExportMemberFormPDF }] : []),
+                                ...(activeProfileId === user.id && hasMemberFormSubmitted ? [{ icon: <FileText size={20} />, label: 'Member Form PDF', action: handleExportMemberFormPDF }] : []),
                             ].map(({ icon, label, action, loading, id }, i) => (
                                 <button id={id} key={i} onClick={action} disabled={loading}
                                     className="flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-2xl bg-slate-50 hover:bg-brand-50 hover:text-brand-700 text-slate-600 transition-all disabled:opacity-60 border border-transparent hover:border-brand-100">
@@ -1730,26 +1968,37 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     )}
 
                     {/* Interest / Member Form (Mobile priority #2) */}
-                    <button id="dashboard-member-form-btn" onClick={() => setShowCommunityProfileForm(true)}
-                        className="rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] hover:brightness-110 border border-[#d4a547]/30 cursor-pointer">
-                        <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center mb-3"><Users size={18} className="text-[#f0c040]" /></div>
-                        <p className="font-bold text-sm leading-tight mb-1">Member Form Column</p>
-                        <p className="text-[#f8e7b0] text-[10px]">Professional themed profile form for User Book.</p>
-                        <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5 text-[#f0c040]">
-                            <Edit2 size={11} /> Open Form
-                        </span>
-                    </button>
+                            className="rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] hover:brightness-110 border border-[#d4a547]/30 cursor-pointer">
+                            <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center mb-3"><Users size={18} className="text-[#f0c040]" /></div>
+                            <p className="font-bold text-sm leading-tight mb-1">Member Form Column</p>
+                            <p className="text-[#f8e7b0] text-[10px]">Professional themed profile form for User Book.</p>
+                            <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5 text-[#f0c040]">
+                                <Edit2 size={11} /> Open Form
+                            </span>
+                        </button>
+                    )}
 
                     {/* Testimony */}
-                    <button id="dashboard-testimony-btn" onClick={() => setShowTestimonialModal(true)}
-                        className="rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group bg-gradient-to-br from-brand-700 to-brand-900 text-white hover:brightness-110 cursor-pointer">
-                        <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><MessageSquare size={18} /></div>
-                        <p className="font-bold text-sm leading-tight mb-1">Write Testimony</p>
-                        <p className="text-white/70 text-[10px]">Share what God has done</p>
-                        <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest rounded-lg px-2.5 py-1.5 bg-white/20">
-                            <MessageSquare size={11} /> Write Now
-                        </span>
-                    </button>
+                    {canAccessEntrustFeatures ? (
+                        <button id="dashboard-testimony-btn" onClick={() => setShowTestimonialModal(true)}
+                            className="rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group bg-gradient-to-br from-brand-700 to-brand-900 text-white hover:brightness-110 cursor-pointer">
+                            <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><MessageSquare size={18} /></div>
+                            <p className="font-bold text-sm leading-tight mb-1">Write Testimony</p>
+                            <p className="text-white/70 text-[10px]">Share what God has done</p>
+                            <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest rounded-lg px-2.5 py-1.5 bg-white/20">
+                                <MessageSquare size={11} /> Write Now
+                            </span>
+                        </button>
+                    ) : (
+                        <div className="bg-slate-100 rounded-[22px] p-4 border border-slate-200">
+                            <div className="w-9 h-9 bg-slate-200 rounded-xl flex items-center justify-center mb-3"><MessageSquare size={18} className="text-slate-400" /></div>
+                            <p className="font-bold text-sm text-slate-500 mb-1">Write Testimony</p>
+                            <p className="text-slate-400 text-[10px]">Share what God has done (Restricted)</p>
+                            <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase bg-slate-200 rounded-lg px-2.5 py-1.5 text-slate-400">
+                                <AlertCircle size={11} /> Locked
+                            </span>
+                        </div>
+                    )}
 
                     {/* Share Profile Link */}
                     <button id="dashboard-share-btn" onClick={canAccessEntrustFeatures ? handleShare : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
@@ -1763,7 +2012,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     </button>
 
                     {/* Member Form PDF */}
-                    {user.communityProfile && (user.communityProfile.denomination || user.communityProfile.churchName || user.communityProfile.role || user.communityProfile.bio) ? (
+                    {activeProfileId === user.id && hasMemberFormSubmitted && (
                         <button onClick={handleExportMemberFormPDF}
                             className="rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] hover:brightness-110 border border-[#d4a547]/30 cursor-pointer">
                             <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center mb-3"><FileText size={18} className="text-[#f0c040]" /></div>
@@ -1773,17 +2022,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 <Download size={11} /> Download PDF
                             </span>
                         </button>
-                    ) : (
-                        <div className="bg-slate-50 border border-slate-200 text-slate-400 rounded-[22px] p-4 flex flex-col justify-between h-full">
-                            <div>
-                                <div className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center mb-3"><FileText size={18} className="text-slate-400" /></div>
-                                <p className="font-bold text-sm text-slate-600 mb-1">Member Form PDF</p>
-                                <p className="text-slate-400 text-[10px] leading-snug">Please fill out the Member Form first to unlock this download.</p>
-                            </div>
-                            <span className="mt-4 inline-flex items-center gap-1 text-[9px] font-black uppercase bg-slate-200 rounded-lg px-2.5 py-1.5 text-slate-400 w-max">
-                                <AlertCircle size={11} /> Locked
-                            </span>
-                        </div>
                     )}
 
                     {/* Family Portfolio PDF */}
@@ -1922,6 +2160,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                     status={user.status}
                                     isStatic={false}
                                     isBackSide={cardFlipped}
+                                    cardThemeTone="blue"
+                                    cardLayoutMode={user.cardLayoutMode}
+                                    cardShapeMode={user.cardShapeMode}
+                                    cardSizeMode={user.cardSizeMode}
                                 />
                                 <p className="text-center text-white/60 text-xs mt-3">Tap card to flip</p>
                             </div>
@@ -1969,46 +2211,139 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             <button onClick={cancelEditing} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
                         </div>
 
-                        {/* Photo section */}
-                        <div className="flex flex-col items-center gap-3 mb-7">
-                            <div className="w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-slate-100 shadow-lg">
-                                {renderAvatarContent(displayProfile.photo, displayProfile.name, 'text-2xl', 'from-brand-600 via-brand-700 to-violet-800')}
+                        {/* Comparison and Photo Section */}
+                        {(() => {
+                            const pendingPhoto = activeProfileId === user.id
+                                ? user.pendingProfileUpdate?.photo
+                                : user.pendingProfileUpdate?.linkedProfiles?.find(p => p.id === activeProfileId)?.photo;
+
+                            if (pendingPhoto) {
+                                return (
+                                    <div className="flex flex-col items-center gap-4 mb-7 bg-slate-50 border border-slate-100 p-5 rounded-[2rem] w-full">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Photo Update Comparison</span>
+                                        <div className="flex items-center justify-center gap-8 sm:gap-12 w-full">
+                                            <div className="flex flex-col items-center gap-2">
+                                                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-slate-200 shadow-inner bg-slate-100">
+                                                    {renderAvatarContent(displayProfile.photo, displayProfile.name, 'text-xl', 'from-slate-400 to-slate-500')}
+                                                </div>
+                                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">Original</span>
+                                            </div>
+                                            <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-sm font-bold font-mono">→</div>
+                                            <div className="flex flex-col items-center gap-2">
+                                                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-amber-300 shadow-lg shadow-amber-500/10 ring-4 ring-amber-100/50 bg-amber-50">
+                                                    {renderAvatarContent(pendingPhoto, displayProfile.name, 'text-xl', 'from-amber-500 to-orange-600')}
+                                                </div>
+                                                <span className="text-[9px] font-black text-amber-600 uppercase tracking-wider">Proposed</span>
+                                            </div>
+                                        </div>
+                                        <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (!displayProfile.photo) {
+                                                        alert('No existing photo to crop. Use "Add New Photo" first.');
+                                                        return;
+                                                    }
+                                                    setWasEditingBeforeCrop(true);
+                                                    setCropTarget(activeProfileId === user.id
+                                                        ? { type: 'primary', isNewUpload: false }
+                                                        : { type: 'linked-profile', profileId: activeProfileId, isNewUpload: false });
+                                                    setCroppingImage(displayProfile.photo);
+                                                    setIsEditing(false);
+                                                }}
+                                                className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-100"
+                                            >
+                                                <Camera size={14} /> Recrop Original Photo
+                                            </button>
+                                            <label className="flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-bold text-amber-800 hover:bg-amber-100 cursor-pointer">
+                                                <UploadCloud size={14} /> Replace Proposed Photo
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    onChange={(e) => {
+                                                        setWasEditingBeforeCrop(true);
+                                                        handlePhotoUpload(e);
+                                                        setIsEditing(false);
+                                                    }}
+                                                />
+                                            </label>
+                                        </div>
+                                        <p className="text-slate-400 text-[10px] text-center">Your photo update will take effect after admin approval.</p>
+                                    </div>
+                                );
+                            }
+
+                            return (
+                                <div className="flex flex-col items-center gap-3 mb-7">
+                                    <div className="w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-slate-100 shadow-lg">
+                                        {renderAvatarContent(displayProfile.photo, displayProfile.name, 'text-2xl', 'from-brand-600 via-brand-700 to-violet-800')}
+                                    </div>
+                                    <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (!displayProfile.photo) {
+                                                    alert('No existing photo to crop. Use "Add New Photo" first.');
+                                                    return;
+                                                }
+                                                setWasEditingBeforeCrop(true);
+                                                setCropTarget(activeProfileId === user.id
+                                                    ? { type: 'primary', isNewUpload: false }
+                                                    : { type: 'linked-profile', profileId: activeProfileId, isNewUpload: false });
+                                                setCroppingImage(displayProfile.photo);
+                                                setIsEditing(false);
+                                            }}
+                                            className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
+                                        >
+                                            <Camera size={14} /> Edit/Crop Current Photo
+                                        </button>
+                                        <label className="flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100 cursor-pointer">
+                                            <UploadCloud size={14} /> {user.role === 'Admin' ? 'Add New Photo (Direct)' : 'Add New Photo (Approval)'}
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                onChange={(e) => {
+                                                    setWasEditingBeforeCrop(true);
+                                                    handlePhotoUpload(e);
+                                                    setIsEditing(false);
+                                                }}
+                                            />
+                                        </label>
+                                    </div>
+                                    <p className="text-slate-400 text-xs text-center">All photo and profile changes are sent to admin for approval.</p>
+                                </div>
+                            );
+                        })()}
+
+                        {/* Details Comparison Section if there is a pending text detail */}
+                        {user.pendingProfileUpdate && Object.keys(user.pendingProfileUpdate).filter(k => k !== 'photo' && k !== 'linkedProfiles').some(k => (user.pendingProfileUpdate as any)[k] !== (user as any)[k]) && (
+                            <div className="mb-7 bg-amber-50/50 border border-amber-100/60 p-5 rounded-[2rem] w-full">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                                    <h4 className="text-xs font-black text-amber-700 uppercase tracking-widest">Pending Profile Changes Awaiting Approval</h4>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-medium">
+                                    {Object.entries(user.pendingProfileUpdate)
+                                        .filter(([key]) => key !== 'photo' && key !== 'linkedProfiles')
+                                        .map(([key, pendingVal]) => {
+                                            const originalVal = (user as any)[key];
+                                            if (pendingVal && pendingVal !== originalVal) {
+                                                const label = key === 'emergency' ? 'Emergency Contact' : key.charAt(0).toUpperCase() + key.slice(1);
+                                                return (
+                                                    <div key={key} className="bg-white border border-amber-200/50 rounded-2xl p-3 shadow-sm flex flex-col">
+                                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">{label}</span>
+                                                        <span className="text-slate-500 line-through">Original: {originalVal || 'Not provided'}</span>
+                                                        <span className="text-amber-700 font-bold mt-0.5">Proposed: {pendingVal}</span>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        })}
+                                </div>
                             </div>
-                            <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        if (!displayProfile.photo) {
-                                            alert('No existing photo to crop. Use "Add New Photo" first.');
-                                            return;
-                                        }
-                                        setWasEditingBeforeCrop(true);
-                                        setCropTarget(activeProfileId === user.id
-                                            ? { type: 'primary', isNewUpload: false }
-                                            : { type: 'linked-profile', profileId: activeProfileId, isNewUpload: false });
-                                        setCroppingImage(displayProfile.photo);
-                                        setIsEditing(false);
-                                    }}
-                                    className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
-                                >
-                                    <Camera size={14} /> Edit/Crop Current Photo
-                                </button>
-                                <label className="flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100 cursor-pointer">
-                                    <UploadCloud size={14} /> {user.role === 'Admin' ? 'Add New Photo (Direct)' : 'Add New Photo (Approval)'}
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        className="hidden"
-                                        onChange={(e) => {
-                                            setWasEditingBeforeCrop(true);
-                                            handlePhotoUpload(e);
-                                            setIsEditing(false);
-                                        }}
-                                    />
-                                </label>
-                            </div>
-                            <p className="text-slate-400 text-xs text-center">All photo and profile changes are sent to admin for approval.</p>
-                        </div>
+                        )}
 
                         <form onSubmit={(e) => {
                             e.preventDefault();
@@ -2026,48 +2361,91 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             setIsEditing(false);
                         }} className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Full Name</label>
-                                <input type="text" value={formData.name ?? user.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Phone / Contact</label>
-                                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl overflow-hidden focus-within:border-brand-500">
-                                    <span className="px-3 py-3 text-sm font-bold text-slate-500 bg-slate-100 border-r border-slate-200 shrink-0">+91</span>
-                                    <input type="tel" value={((formData.emergency ?? user.emergency) || '').replace(/^\+91/, '')} onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 10); setFormData(p => ({ ...p, emergency: `+91${v}`, phone: `+91${v}` })); }} className="flex-1 px-3 py-3 bg-transparent outline-none text-sm font-medium text-slate-800" />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Email Address</label>
-                                <input type="email" value={formData.email ?? user.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Date of Birth</label>
-                                <input type="date" value={(formData as any).dob ?? (user as any).dob ?? ''} onChange={e => setFormData(p => ({ ...p, dob: e.target.value } as any))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Location</label>
-                                <select
-                                    value={formData.location ?? user.location}
-                                    onChange={e => setFormData(p => ({ ...p, location: e.target.value }))}
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500"
-                                >
-                                    {!TAMIL_NADU_LOCATIONS.includes((formData.location ?? user.location) || '') && (
-                                        <option value={formData.location ?? user.location}>{formData.location ?? user.location}</option>
-                                    )}
-                                    {TAMIL_NADU_LOCATIONS.map(location => (
-                                        <option key={location} value={location}>{location}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Joined Date</label>
-                                <input type="text" value={(formData as any).memberSince ?? user.memberSince ?? ''} onChange={e => setFormData(p => ({ ...p, memberSince: e.target.value } as any))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Joined Date</label>
-                                <input type="date" value={(formData as any).joinedDate ?? user.joinedDate ?? ''} onChange={e => setFormData(p => ({ ...p, joinedDate: e.target.value } as any))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
-                            </div>
+                            {activeProfileId === user.id ? (
+                                <>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Full Name</label>
+                                        <input type="text" value={formData.name ?? user.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Phone / Contact</label>
+                                        <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl overflow-hidden focus-within:border-brand-500">
+                                            <span className="px-3 py-3 text-sm font-bold text-slate-500 bg-slate-100 border-r border-slate-200 shrink-0">+91</span>
+                                            <input type="tel" value={((formData.emergency ?? user.emergency) || '').replace(/^\+91/, '')} onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 10); setFormData(p => ({ ...p, emergency: `+91${v}`, phone: `+91${v}` })); }} className="flex-1 px-3 py-3 bg-transparent outline-none text-sm font-medium text-slate-800" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Email Address</label>
+                                        <input type="email" value={formData.email ?? user.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Date of Birth</label>
+                                        <input type="date" value={(formData as any).dob ?? (user as any).dob ?? ''} onChange={e => setFormData(p => ({ ...p, dob: e.target.value } as any))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Location</label>
+                                        <select
+                                            value={formData.location ?? user.location}
+                                            onChange={e => setFormData(p => ({ ...p, location: e.target.value }))}
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500"
+                                        >
+                                            {!TAMIL_NADU_LOCATIONS.includes((formData.location ?? user.location) || '') && (
+                                                <option value={formData.location ?? user.location}>{formData.location ?? user.location}</option>
+                                            )}
+                                            {TAMIL_NADU_LOCATIONS.map(location => (
+                                                <option key={location} value={location}>{location}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Joined Date</label>
+                                        <input type="date" value={(formData as any).joinedDate ?? user.joinedDate ?? ''} onChange={e => setFormData(p => ({ ...p, joinedDate: e.target.value } as any))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Full Name</label>
+                                        <input type="text" value={formData.name || ''} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Role / Relationship</label>
+                                        <select
+                                            value={(formData as any).role || ''}
+                                            onChange={e => setFormData(p => ({ ...p, role: e.target.value } as any))}
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500"
+                                        >
+                                            <option value="">Select Relationship</option>
+                                            <option value="Spouse">Spouse</option>
+                                            <option value="Child">Child</option>
+                                            <option value="Parent">Parent</option>
+                                            <option value="Sibling">Sibling</option>
+                                            <option value="Relative">Relative</option>
+                                            <option value="Dependent">Dependent</option>
+                                            <option value="Guardian">Guardian</option>
+                                            <option value="Ministry Partner">Ministry Partner</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Date of Birth</label>
+                                        <input type="date" value={(formData as any).dob || ''} onChange={e => setFormData(p => ({ ...p, dob: e.target.value } as any))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Blood Group</label>
+                                        <select value={(formData as any).bloodGroup || ''} onChange={e => setFormData(p => ({ ...p, bloodGroup: e.target.value } as any))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500">
+                                            <option value="">Select Blood Group</option>
+                                            <option value="A+">A+</option>
+                                            <option value="A-">A-</option>
+                                            <option value="B+">B+</option>
+                                            <option value="B-">B-</option>
+                                            <option value="AB+">AB+</option>
+                                            <option value="AB-">AB-</option>
+                                            <option value="O+">O+</option>
+                                            <option value="O-">O-</option>
+                                        </select>
+                                    </div>
+                                </>
+                            )}
                             </div>
 
                             <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700 font-medium">

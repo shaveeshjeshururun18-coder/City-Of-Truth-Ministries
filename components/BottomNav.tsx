@@ -26,7 +26,7 @@ const getBNavIconComponent = (iconName: string): LucideIcon => {
     }
 };
 
-const HEBREW_RESOURCE_ITEMS = HEBREW_PAGES.filter(p => p.type === 'content').map(p => ({
+const HEBREW_RESOURCE_ITEMS = HEBREW_PAGES.filter(p => p.type === 'content' && !p.isStandalone).map(p => ({
     id: p.id,
     label: p.shortLabel || p.label,
     Icon: getBNavIconComponent(p.iconName),

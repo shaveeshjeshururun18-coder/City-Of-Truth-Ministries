@@ -20,7 +20,7 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack, onPr
     const [error, setError] = useState<string | null>(null);
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloaded, setDownloaded] = useState(false);
-    const isApprovedUser = user?.status === 'Active';
+    const isApprovedUser = user?.status === 'Active' && !user.id.toUpperCase().startsWith('TEMP-');
 
     useEffect(() => {
         const loadUser = async () => {
@@ -55,6 +55,10 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack, onPr
     const handleDownloadPDF = async () => {
         if (!user || user.status !== 'Active') {
             alert('Entrust card download is available only after admin approval.');
+            return;
+        }
+        if (user.id.toUpperCase().startsWith('TEMP-')) {
+            alert('Temporary accounts are banned from downloading Entrust cards. Please contact admin for a permanent COT ID.');
             return;
         }
         setIsDownloading(true);
@@ -117,10 +121,10 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack, onPr
             {user && isApprovedUser && (
                 <div className="fixed left-[-9999px] top-0 pointer-events-none z-0">
                     <div id="qr-verify-front" className="bg-white">
-                        <EntrustCard3D name={user.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={user.id} memberSince={user.joinedDate || user.memberSince} photo={user.photo} status={user.status} isStatic={true} isBackSide={false} />
+                        <EntrustCard3D name={user.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={user.id} memberSince={user.joinedDate || user.memberSince} photo={user.photo} status={user.status} isStatic={true} isBackSide={false} cardThemeTone="blue" cardLayoutMode={user.cardLayoutMode} cardShapeMode={user.cardShapeMode} cardSizeMode={user.cardSizeMode} />
                     </div>
                     <div id="qr-verify-back" className="bg-white">
-                        <EntrustCard3D name={user.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={user.id} memberSince={user.joinedDate || user.memberSince} photo={user.photo} status={user.status} isStatic={true} isBackSide={true} />
+                        <EntrustCard3D name={user.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={user.id} memberSince={user.joinedDate || user.memberSince} photo={user.photo} status={user.status} isStatic={true} isBackSide={true} cardThemeTone="blue" cardLayoutMode={user.cardLayoutMode} cardShapeMode={user.cardShapeMode} cardSizeMode={user.cardSizeMode} />
                     </div>
                 </div>
             )}
@@ -255,6 +259,10 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack, onPr
                                     memberSince={user.memberSince}
                                     photo={user.photo}
                                     status={user.status}
+                                    cardThemeTone="blue"
+                                    cardLayoutMode={user.cardLayoutMode}
+                                    cardShapeMode={user.cardShapeMode}
+                                    cardSizeMode={user.cardSizeMode}
                                 />
                             </div>
                         ) : (

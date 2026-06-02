@@ -9,6 +9,7 @@ export interface HebrewPage {
   description: string;
   iconName: string;
   isStandalone?: boolean; // If true, this page is rendered outside the standard tabbed HebrewResources component
+  route?: string; // Dedicated URL when standalone (e.g. /hebrew-alphabet)
 }
 
 export const HEBREW_PAGES: HebrewPage[] = [
@@ -21,7 +22,8 @@ export const HEBREW_PAGES: HebrewPage[] = [
     type: 'content',
     description: 'Letters, characters, and learning building blocks',
     iconName: 'alphabet',
-    isStandalone: true
+    isStandalone: true,
+    route: '/hebrew-alphabet',
   },
   {
     id: 'israel',

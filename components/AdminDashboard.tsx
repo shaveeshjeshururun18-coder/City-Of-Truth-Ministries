@@ -5,7 +5,9 @@ import {
     ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Filter, Mail, Phone, MapPin, Droplet,
     Calendar, Award, Shield, ShieldCheck, AlertCircle, CheckCircle, QrCode, Download,
     Save, GripVertical, Globe, Plus, ImagePlus, Camera, Image as ImageIcon, MessageSquare, Check, XCircle, FileText,
-    PanelLeft, PanelTop, Database, RotateCcw, Dice6, Eye, EyeOff, Video, Tag, Settings, Crop, Lock, Send
+    PanelLeft, PanelTop, Database, RotateCcw, Dice6, Eye, EyeOff, Video, Tag, Settings, Crop, Lock, Send,
+    Sparkles, CircleUser, Menu, Youtube, Facebook, Instagram, UploadCloud, Zap, 
+    Type, Volume2, Hash, Calculator, BookOpen, Languages, Clock3, Flame, ExternalLink
 } from 'lucide-react';
 import { User, UserRole, UserStatus, Testimonial, Ministry, DeletedUser } from '../types';
 import { Button } from './Button';
@@ -18,6 +20,8 @@ import { ImageCropper } from './ImageCropper';
 import { EntrustCard3D } from './WorshipperIDCard';
 import { AdminIDCard } from './AdminIDCard';
 import { CotIdEpicDice } from './CotIdEpicDice';
+import { HEBREW_PAGES } from '../hebrewRegistry';
+import { CommunityProfileForm } from './CommunityProfileForm';
 
 interface ContactMessage {
     id: string;
@@ -723,6 +727,153 @@ const USER_QUICK_VIEW_OPTIONS: { id: UserQuickViewMode; label: string; descripti
     { id: 'join-dates', label: 'Join Dates', description: 'Show all member join dates', icon: Calendar, accent: 'text-amber-600', bg: 'bg-amber-50' },
 ];
 
+const HomeSectionItem: React.FC<{
+    sectionId: string;
+    idx: number;
+    homeSectionsOrder: string[];
+    homeSectionsHidden?: Record<string, boolean>;
+    sectionsInfo: Record<string, { name: string; desc: string }>;
+    onUpdateHomeSectionsOrder: (newOrder: string[]) => Promise<void>;
+    onUpdateHomeSectionsHidden?: (nextHidden: Record<string, boolean>) => Promise<void>;
+    handleSaveSectionInfo: (sectionId: string, name: string, desc: string) => void;
+}> = ({
+    sectionId,
+    idx,
+    homeSectionsOrder,
+    homeSectionsHidden = {},
+    sectionsInfo,
+    onUpdateHomeSectionsOrder,
+    onUpdateHomeSectionsHidden,
+    handleSaveSectionInfo
+}) => {
+    const info = HOME_SECTIONS_INFO[sectionId] || { name: sectionId, desc: 'Home component', icon: Globe, color: 'bg-brand-500' };
+    const Icon = info.icon;
+    const displayIndex = (idx + 1).toString().padStart(2, '0');
+    const isFirst = idx === 0;
+    const isLast = idx === homeSectionsOrder.length - 1;
+    const isHidden = !!homeSectionsHidden?.[sectionId];
+    const [isHovered, setIsHovered] = useState(false);
+
+    const moveUp = () => {
+        if (isFirst) return;
+        const next = [...homeSectionsOrder];
+        [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+        onUpdateHomeSectionsOrder(next);
+    };
+    const moveDown = () => {
+        if (isLast) return;
+        const next = [...homeSectionsOrder];
+        [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+        onUpdateHomeSectionsOrder(next);
+    };
+    const toggleHidden = () => {
+        if (!onUpdateHomeSectionsHidden) return;
+        const next = { ...(homeSectionsHidden || {}) };
+        next[sectionId] = !isHidden;
+        onUpdateHomeSectionsHidden(next);
+    };
+
+    return (
+        <Reorder.Item
+            key={sectionId}
+            value={sectionId}
+            whileDrag={{ scale: 1.02, boxShadow: "0 10px 30px -5px rgba(0,0,0,0.2)" }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            onTouchStart={() => setIsHovered(true)}
+            onTouchEnd={() => setIsHovered(false)}
+            className={`bg-white rounded-2xl border-2 transition-all cursor-grab active:cursor-grabbing select-none ${
+                isHovered ? 'border-brand-500 shadow-lg' : 'border-slate-200 shadow-sm'
+            }`}
+        >
+            {/* Compact Header */}
+            <div className="flex items-center gap-3 p-3 md:p-4">
+                <GripVertical size={20} className={`shrink-0 ${isHovered ? 'text-brand-500' : 'text-slate-300'}`} />
+                <div className="text-brand-600 font-black text-sm w-8 text-center shrink-0">{displayIndex}</div>
+                <div className={`w-10 h-10 md:w-12 md:h-12 ${info.color} rounded-xl flex items-center justify-center text-white shadow-md shrink-0`}>
+                    <Icon size={20} strokeWidth={2.5} />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <h3 className="font-black text-brand-950 text-sm md:text-base leading-tight uppercase truncate">
+                        {sectionsInfo[sectionId]?.name || info.name}
+                    </h3>
+                    <p className="text-slate-400 text-[10px] md:text-xs font-medium truncate mt-0.5">
+                        {sectionsInfo[sectionId]?.desc || info.desc}
+                    </p>
+                </div>
+                <div className="flex gap-1.5 shrink-0">
+                    {onUpdateHomeSectionsHidden && (
+                        <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); toggleHidden(); }}
+                            className={`w-8 h-8 md:w-9 md:h-9 rounded-lg flex items-center justify-center transition-all ${
+                                isHidden ? 'bg-red-50 text-red-600 border-2 border-red-200' : 'bg-slate-100 text-slate-600 border-2 border-slate-200'
+                            }`}
+                        >
+                            {isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                    )}
+                    <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); moveUp(); }}
+                        disabled={isFirst}
+                        className="w-8 h-8 md:w-9 md:h-9 rounded-lg bg-slate-100 border-2 border-slate-200 flex items-center justify-center hover:bg-brand-500 hover:text-white hover:border-brand-500 disabled:opacity-25 transition-all"
+                    >
+                        <ChevronUp size={16} />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); moveDown(); }}
+                        disabled={isLast}
+                        className="w-8 h-8 md:w-9 md:h-9 rounded-lg bg-slate-100 border-2 border-slate-200 flex items-center justify-center hover:bg-brand-500 hover:text-white hover:border-brand-500 disabled:opacity-25 transition-all"
+                    >
+                        <ChevronDown size={16} />
+                    </button>
+                </div>
+            </div>
+
+            {/* Edit Inputs */}
+            <div 
+                className="px-3 md:px-4 pb-3 md:pb-4 space-y-2"
+                onPointerDown={(e) => e.stopPropagation()}
+            >
+                <input
+                    type="text"
+                    value={sectionsInfo[sectionId]?.name || ''}
+                    onChange={(e) => handleSaveSectionInfo(sectionId, e.target.value, sectionsInfo[sectionId]?.desc || '')}
+                    placeholder="Section title..."
+                    className="w-full bg-slate-50 px-3 py-2 border border-slate-200 rounded-lg text-xs font-bold outline-none focus:border-brand-500 focus:bg-white transition-colors"
+                />
+                <input
+                    type="text"
+                    value={sectionsInfo[sectionId]?.desc || ''}
+                    onChange={(e) => handleSaveSectionInfo(sectionId, sectionsInfo[sectionId]?.name || '', e.target.value)}
+                    placeholder="Section description..."
+                    className="w-full bg-slate-50 px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium outline-none focus:border-brand-500 focus:bg-white transition-colors"
+                />
+            </div>
+
+            {/* Mini Preview (only on hover/touch on mobile) */}
+            {isHovered && (
+                <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="px-3 md:px-4 pb-3 md:pb-4"
+                    onPointerDown={(e) => e.stopPropagation()}
+                >
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 md:p-3">
+                        <SectionMiniPreview 
+                            sectionId={sectionId}
+                            customName={sectionsInfo[sectionId]?.name || info.name}
+                            customDesc={sectionsInfo[sectionId]?.desc || info.desc}
+                        />
+                    </div>
+                </motion.div>
+            )}
+        </Reorder.Item>
+    );
+};
+
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     users,
     deletedUsers = [],
@@ -751,7 +902,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [filterStatus, setFilterStatus] = useState<UserStatus | 'All'>('All');
     const [filterRole, setFilterRole] = useState<UserRole | 'All'>('All');
     const [filterLocation, setFilterLocation] = useState<string>('All');
-    const [userSortMode, setUserSortMode] = useState<'status' | 'cot-id' | 'member-since'>('status');
+    const [userSortMode, setUserSortMode] = useState<'status' | 'cot-id' | 'joined-date'>('status');
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [deletingUser, setDeletingUser] = useState<User | null>(null);
     const [viewingQrUser, setViewingQrUser] = useState<User | null>(null);
@@ -857,7 +1008,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     // Navigation Menu selection tab
     const [selectedMenuEditTab, setSelectedMenuEditTab] = useState<'main' | 'hebrew-content' | 'hebrew-tools'>('main');
-
+    const [websiteUrl, setWebsiteUrl] = useState(() => typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173'); // Add websiteUrl state at main level
     const [hasOrderChanges, setHasOrderChanges] = useState(false);
     const [isCropping, setIsCropping] = useState(false);
     const [cropImage, setCropImage] = useState<string | null>(null);
@@ -879,6 +1030,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [diceTargetUserId, setDiceTargetUserId] = useState('');
     const [dicePickedCotId, setDicePickedCotId] = useState('');
     const [diceManualInput, setDiceManualInput] = useState('');
+    const [requestManualInputs, setRequestManualInputs] = useState<Record<string, string>>({});
     const [messageRestoreUserFilter, setMessageRestoreUserFilter] = useState('');
     const [selectedMessageLocations, setSelectedMessageLocations] = useState<string[]>([]);
     const [selectedMessageYears, setSelectedMessageYears] = useState<string[]>([]);
@@ -895,7 +1047,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [isAdminPasswordGateOpen, setIsAdminPasswordGateOpen] = useState(false);
     const [isAdminPasswordUnlocked, setIsAdminPasswordUnlocked] = useState(false);
     const [adminPasswordMessage, setAdminPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-    const [memberFormPageUser, setMemberFormPageUser] = useState<User | null>(null);
+    const [memberFormPageUser, setMemberFormPageUser] = useState<any | null>(null);
+    const [showMemberFormEditor, setShowMemberFormEditor] = useState(false);
+    const [memberFormPageParentId, setMemberFormPageParentId] = useState<string | null>(null);
     const [selectedDenominationCategory, setSelectedDenominationCategory] = useState<string>('Form Not Filled');
     const [broadcastSubject, setBroadcastSubject] = useState('');
     const [broadcastMessage, setBroadcastMessage] = useState('');
@@ -1108,7 +1262,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             throw new Error('Unsupported file type for upload');
         }
 
-        const objectPath = `ministries/${Date.now()}-${safeName}`;
+        const objectPath = `ministries/${Date.now()}-${Math.random().toString(36).substring(2, 7)}-${safeName}`;
         const mediaRef = storageRef(storage, objectPath);
         await uploadBytes(mediaRef, blob, { contentType });
         return getDownloadURL(mediaRef);
@@ -1233,8 +1387,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }), [users]);
 
     const memberFormStats = useMemo(() => {
-        const total = users.length;
-        const filledUsers = users.filter(u => u.communityProfile && (u.communityProfile.denomination || u.communityProfile.churchName || u.communityProfile.role || u.communityProfile.bio));
+        const allProfiles: any[] = [];
+        users.forEach(u => {
+            allProfiles.push({ ...u, isSubProfile: false, parentUserId: u.id });
+            if (u.linkedProfiles) {
+                u.linkedProfiles.forEach(lp => {
+                    allProfiles.push({ 
+                        ...lp, 
+                        isSubProfile: true, 
+                        parentUserId: u.id, 
+                        email: u.email,
+                        phone: (lp as any).phone || u.phone 
+                    });
+                });
+            }
+        });
+
+        const total = allProfiles.length;
+        const filledUsers = allProfiles.filter(u => u.communityProfile && (u.communityProfile.denomination || u.communityProfile.churchName || u.communityProfile.role || u.communityProfile.bio));
         const filled = filledUsers.length;
         const missing = total - filled;
         const rate = total > 0 ? Math.round((filled / total) * 100) : 0;
@@ -1248,8 +1418,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             'Non-denominational'
         ];
 
-        const groupCounts: Record<string, User[]> = {
-            'Form Not Filled': users.filter(u => !u.communityProfile || !(u.communityProfile.denomination || u.communityProfile.churchName || u.communityProfile.role || u.communityProfile.bio))
+        const groupCounts: Record<string, any[]> = {
+            'Form Not Filled': allProfiles.filter(u => !u.communityProfile || !(u.communityProfile.denomination || u.communityProfile.churchName || u.communityProfile.role || u.communityProfile.bio))
         };
 
         STANDARD_DENOMINATIONS.forEach(denom => {
@@ -1295,7 +1465,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }, [users]);
 
     const locationStats = useMemo(() => {
-        const counts = users.reduce<Record<string, number>>((acc, user) => {
+        const counts = users.reduce((acc: Record<string, number>, user) => {
             const key = user.location?.trim() || 'Unknown';
             acc[key] = (acc[key] || 0) + 1;
             return acc;
@@ -1303,10 +1473,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         return Object.entries(counts)
             .map(([location, count]) => ({ location, count }))
-            .sort((a, b) => b.count - a.count || a.location.localeCompare(b.location));
+            .sort((a, b) => (b.count as number) - (a.count as number) || a.location.localeCompare(b.location));
     }, [users]);
     const userLocationOptions = useMemo(
-        () => Array.from(new Set(users.map(user => (user.location || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
+        () => Array.from(new Set(users.map(user => (user.location || '').trim()).filter(Boolean))).sort((a, b) => (a as string).localeCompare(b as string)),
         [users]
     );
 
@@ -2128,10 +2298,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         if (userSortMode === 'cot-id') {
             return filtered.sort((a, b) => (a.id || '').localeCompare((b.id || ''), undefined, { numeric: true, sensitivity: 'base' }));
         }
-        if (userSortMode === 'member-since') {
+        if (userSortMode === 'joined-date') {
             return filtered.sort((a, b) => {
-                const aDate = new Date(a.memberSince || a.joinedDate || '').getTime();
-                const bDate = new Date(b.memberSince || b.joinedDate || '').getTime();
+                const aDate = new Date(a.joinedDate || a.memberSince || '').getTime();
+                const bDate = new Date(b.joinedDate || b.memberSince || '').getTime();
                 const safeA = Number.isNaN(aDate) ? 0 : aDate;
                 const safeB = Number.isNaN(bDate) ? 0 : bDate;
                 return safeB - safeA;
@@ -2265,6 +2435,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             setAdminPasswordMessage({ type: 'success', text: 'Custom admin password removed. Default password is active.' });
         } catch {
             setAdminPasswordMessage({ type: 'error', text: 'Unable to reset password in this browser/session.' });
+        }
+    };
+
+    const handleRejectMemberForm = async () => {
+        if (!memberFormPageUser) return;
+        setIsLoading(true);
+        try {
+            const parent = users.find(u => u.id === memberFormPageUser.parentUserId);
+            if (!parent) throw new Error('Parent user not found');
+
+            let updatedParent = { ...parent };
+            if (memberFormPageUser.isSubProfile) {
+                updatedParent.linkedProfiles = (updatedParent.linkedProfiles || []).map(p => 
+                    p.id === memberFormPageUser.id ? { ...p, communityProfile: { ...p.communityProfile, status: 'Rejected' as any } } : p
+                );
+            } else {
+                updatedParent.communityProfile = { ...updatedParent.communityProfile, status: 'Rejected' as any };
+            }
+            await onUpdateUser(updatedParent);
+            setMemberFormPageUser({ ...memberFormPageUser, communityProfile: { ...memberFormPageUser.communityProfile, status: 'Rejected' } });
+            alert('Member Form rejected. The user will be notified to refill it.');
+        } catch (err) {
+            console.error(err);
+            alert('Failed to reject member form.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -3145,16 +3341,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         const newQueueItems: any[] = [];
         try {
             for (const file of files) {
-                const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|webm|ogg|m4v)$/i.test(file.name);
+                const isVideo = (file as File).type.startsWith('video/') || /\.(mp4|mov|webm|ogg|m4v)$/i.test((file as File).name);
                 const mediaType = isVideo ? 'video' : 'image';
                 const detectedDate = detectDate(file);
-                const preview = URL.createObjectURL(file);
+                const preview = URL.createObjectURL(file as Blob);
                 let videoDurationSeconds = 0;
                 let duration = '';
 
                 if (isVideo) {
                     try {
-                        videoDurationSeconds = await getVideoDuration(file);
+                        videoDurationSeconds = await getVideoDuration(file as File);
                         duration = formatDuration(videoDurationSeconds);
                     } catch (err) {
                         console.error(err);
@@ -3165,7 +3361,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     id: Math.random().toString(36).substring(7),
                     file,
                     preview,
-                    name: getFileBaseName(file.name),
+                    name: getFileBaseName((file as File).name),
                     date: detectedDate,
                     category: 'Highlights',
                     mediaType,
@@ -3256,7 +3452,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         const total = bulkQueue.length;
 
         try {
-            for (const item of bulkQueue) {
+            const uploadAndCreate = async (item: typeof bulkQueue[0], index: number) => {
                 const mediaUrl = await uploadMinistryFile(item.file);
                 let finalDuration = item.duration;
 
@@ -3276,15 +3472,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     category: item.category,
                     hidden: item.hidden,
                     description: '',
-                    order: ministries.length + completed + 1
+                    order: ministries.length + index + 1
                 };
 
                 const newMinistry = await api.createMinistry(payload as Omit<Ministry, 'id'>);
-                setMinistries(prev => [...prev, newMinistry]);
-
+                
                 completed++;
                 setBulkUploadProgress(Math.round((completed / total) * 100));
-            }
+                
+                return newMinistry;
+            };
+
+            const newMinistries = await Promise.all(
+                bulkQueue.map((item, index) => uploadAndCreate(item, index))
+            );
+
+            setMinistries(prev => [...prev, ...newMinistries]);
 
             bulkQueue.forEach(item => {
                 if (item.preview.startsWith('blob:')) {
@@ -3326,7 +3529,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const appOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://city-of-truth-ministries.vercel.app';
     const getVerificationUrl = (memberId: string) => `${appOrigin}/verify/${encodeURIComponent(memberId)}`;
     const getQrImageUrl = (memberId: string, size = 220) =>
-        `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(getVerificationUrl(memberId))}&bgcolor=ffffff&color=1a237e&margin=2&format=png&cb=${encodeURIComponent(memberId)}`;
+        `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(getVerificationUrl(memberId))}&bgcolor=ffffff&color=1a237e&margin=0&format=png&cb=${encodeURIComponent(memberId)}`;
     const editingMinistryMediaType = editingMinistry ? inferMinistryMediaType(editingMinistry) : 'image';
     // Use source-based inference for previews so manual metadata changes don't mis-render the actual media.
     const previewMinistryMediaType = editingMinistry ? inferMinistryMediaType({ ...editingMinistry, mediaType: undefined }) : 'image';
@@ -3838,12 +4041,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </select>
                                 <select
                                     value={userSortMode}
-                                    onChange={(e) => setUserSortMode(e.target.value as 'status' | 'cot-id' | 'member-since')}
+                                    onChange={(e) => setUserSortMode(e.target.value as 'status' | 'cot-id' | 'joined-date')}
                                     className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors text-sm"
                                 >
                                     <option value="status">Sort: Status</option>
                                     <option value="cot-id">Sort: COT ID</option>
-                                    <option value="member-since">Sort: Member Since</option>
+                                    <option value="joined-date">Sort: Joined Date</option>
                                 </select>
                             </div>
 
@@ -3909,7 +4112,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Role</th>
                                         <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Location</th>
                                         <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                                        <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Member Since</th>
+                                        <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Joined Date</th>
                                         <th className="text-right px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
@@ -3982,7 +4185,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-sm text-slate-600">
-                                                {new Date(user.memberSince || user.joinedDate).toLocaleDateString()}
+                                                {formatDateValue(user.joinedDate || user.memberSince)}
                                             </td>
                                             <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                                                 <div className="flex items-center justify-end gap-2">
@@ -4197,7 +4400,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     </div>
                                     <div className="flex items-center gap-2 text-sm text-slate-600">
                                         <Calendar size={14} className="text-slate-400" />
-                                        Member since {new Date(user.memberSince || user.joinedDate).toLocaleDateString()}
+                                        Joined {formatDateValue(user.joinedDate || user.memberSince)}
                                     </div>
                                 </div>
 
@@ -4283,7 +4486,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         </button>
                                     </div>
                                 )}
-                                <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 pt-4 border-t border-slate-100">
+                                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-4 border-t border-slate-100">
                                     <button
                                         onClick={(e) => { e.stopPropagation(); setViewingDetailsUser(user); }}
                                         className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-green-50 text-green-600 rounded-xl font-medium text-sm hover:bg-green-100 transition-colors"
@@ -4387,13 +4590,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         {tab.label}
                                     </button>
                                 ))}
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                                <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100 text-[11px] font-bold">Today Requests: {cotIdRequestInsights.today}</span>
-                                <span className="px-2.5 py-1 rounded-full bg-violet-50 text-violet-700 border border-violet-100 text-[11px] font-bold">Total Requests: {cotIdRequestInsights.total}</span>
-                                <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 text-[11px] font-bold">Today Not Pending: {cotIdRequestInsights.todayNotPending}</span>
-                                <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100 text-[11px] font-bold">Pending Users: {cotIdRequestInsights.pendingUsers}</span>
-                                <span className="px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-100 text-[11px] font-bold">Dislike ID: {cotIdRequestInsights.categories.dislike}</span>
                             </div>
 
                             {cotManagerMode === 'manual' && (
@@ -4607,33 +4803,113 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     </div>
                                 <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                                     {cotIdRequestInsights.items.map(note => (
-                                        <div key={note.id} className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 flex items-start justify-between gap-3">
-                                            <div className="min-w-0">
-                                                <div className="flex flex-wrap items-center gap-2 mb-1">
-                                                    <p className="text-xs font-black text-amber-900 truncate">{note.user?.name || note.userId}</p>
-                                                    <span className="px-2 py-0.5 rounded-full bg-white border border-amber-200 text-[10px] font-black text-amber-800">{note.category}</span>
-                                                    {note.isToday && <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-[10px] font-black text-emerald-700">Today</span>}
+                                        <div key={note.id} className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 flex flex-col gap-3">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                                                        <p className="text-xs font-black text-amber-900 truncate">{note.user?.name || note.userId}</p>
+                                                        <span className="px-2 py-0.5 rounded-full bg-white border border-amber-200 text-[10px] font-black text-amber-800">{note.category}</span>
+                                                        {note.isToday && <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-[10px] font-black text-emerald-700">Today</span>}
+                                                    </div>
+                                                    <p className="text-[11px] text-amber-900/90 whitespace-pre-wrap break-words">{note.message}</p>
+                                                    <p className="text-[10px] text-amber-700 mt-1">{new Date(note.createdAt).toLocaleString()}</p>
                                                 </div>
-                                                <p className="text-[11px] text-amber-900/90 whitespace-pre-wrap break-words">{note.message}</p>
-                                                <p className="text-[10px] text-amber-700 mt-1">{new Date(note.createdAt).toLocaleString()}</p>
+                                                <div className="flex flex-col sm:flex-row gap-1.5 shrink-0">
+                                                    <button
+                                                        onClick={() => {
+                                                            setCotManagerMode('manual');
+                                                            setCotManagerQuery((note.user?.name || note.userId || '').trim());
+                                                            if (note.user?.id) setCotManagerSelectedUserId(note.user.id);
+                                                        }}
+                                                        className="px-2.5 py-1.5 rounded-lg bg-white border border-amber-200 text-amber-800 text-[11px] font-bold hover:bg-amber-100"
+                                                    >
+                                                        Open User
+                                                    </button>
+                                                    {note.user && (
+                                                        <button
+                                                            onClick={() => setViewingDetailsUser(note.user as User)}
+                                                            className="px-2.5 py-1.5 rounded-lg bg-white border border-amber-200 text-brand-700 text-[11px] font-bold hover:bg-brand-50"
+                                                        >
+                                                            View Profile
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <button
-                                                onClick={() => {
-                                                    setCotManagerMode('manual');
-                                                    setCotManagerQuery((note.user?.name || note.userId || '').trim());
-                                                    if (note.user?.id) setCotManagerSelectedUserId(note.user.id);
-                                                }}
-                                                className="shrink-0 px-2.5 py-1.5 rounded-lg bg-white border border-amber-200 text-amber-800 text-[11px] font-bold hover:bg-amber-100"
-                                            >
-                                                Open User
-                                            </button>
+
                                             {note.user && (
-                                                <button
-                                                    onClick={() => setViewingDetailsUser(note.user as User)}
-                                                    className="shrink-0 px-2.5 py-1.5 rounded-lg bg-white border border-amber-200 text-brand-700 text-[11px] font-bold hover:bg-brand-50"
-                                                >
-                                                    View Profile
-                                                </button>
+                                                <div className="pt-2.5 border-t border-amber-200/60 flex flex-wrap items-center justify-between gap-2.5">
+                                                    <div className="text-[11px] font-bold text-amber-900 flex items-center gap-1.5">
+                                                        <span>Current:</span>
+                                                        <span className="font-mono bg-white/70 px-1.5 py-0.5 rounded border border-amber-100">{note.user.id}</span>
+                                                    </div>
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={async () => {
+                                                                const generatedCotId = getRandomAvailableCotId();
+                                                                if (!generatedCotId) {
+                                                                    alert('No available COT IDs found.');
+                                                                    return;
+                                                                }
+                                                                if (window.confirm(`Roll and reassign a random COT ID to ${note.user!.name}? New ID: ${generatedCotId}`)) {
+                                                                    try {
+                                                                        await onReassignUserId!(note.user!.id, generatedCotId, { ...note.user!, id: generatedCotId });
+                                                                        alert(`Successfully reassigned ${note.user!.name} to ${generatedCotId}.`);
+                                                                    } catch (err) {
+                                                                        console.error(err);
+                                                                        alert('Failed to reassign COT ID.');
+                                                                    }
+                                                                }
+                                                            }}
+                                                            className="px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold transition-all flex items-center gap-1"
+                                                            disabled={!onReassignUserId}
+                                                        >
+                                                            🎲 Roll Dice ID
+                                                        </button>
+                                                        <div className="flex items-center gap-1">
+                                                            <input
+                                                                type="text"
+                                                                maxLength={4}
+                                                                placeholder="4-digit (e.g. 1960)"
+                                                                value={requestManualInputs[note.id] || ''}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value.replace(/\D/g, '');
+                                                                    setRequestManualInputs(prev => ({ ...prev, [note.id]: val }));
+                                                                }}
+                                                                className="w-24 px-2 py-1 text-[11px] font-mono border border-slate-200 rounded-lg bg-white outline-none focus:border-brand-500 text-center"
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={async () => {
+                                                                    const rawInput = requestManualInputs[note.id] || '';
+                                                                    if (rawInput.length !== 4) {
+                                                                        alert('Please enter exactly 4 digits.');
+                                                                        return;
+                                                                    }
+                                                                    const formattedId = formatCotId(Number(rawInput));
+                                                                    if (existingCotIds.has(formattedId)) {
+                                                                        alert(`The ID ${formattedId} is already occupied.`);
+                                                                        return;
+                                                                    }
+                                                                    if (window.confirm(`Assign manual ID ${formattedId} to ${note.user!.name}?`)) {
+                                                                        try {
+                                                                            await onReassignUserId!(note.user!.id, formattedId, { ...note.user!, id: formattedId });
+                                                                            setRequestManualInputs(prev => ({ ...prev, [note.id]: '' }));
+                                                                            alert(`Successfully assigned ${formattedId} to ${note.user!.name}.`);
+                                                                        } catch (err) {
+                                                                            console.error(err);
+                                                                            alert('Failed to reassign COT ID.');
+                                                                        }
+                                                                    }
+                                                                }}
+                                                                className="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold transition-all disabled:opacity-60"
+                                                                disabled={!onReassignUserId || (requestManualInputs[note.id] || '').length !== 4}
+                                                            >
+                                                                Save
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             )}
                                         </div>
                                     ))}
@@ -4707,12 +4983,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     </select>
                                     <select
                                         value={userSortMode}
-                                        onChange={(e) => setUserSortMode(e.target.value as 'status' | 'cot-id' | 'member-since')}
+                                        onChange={(e) => setUserSortMode(e.target.value as 'status' | 'cot-id' | 'joined-date')}
                                         className="flex-1 min-w-[100px] text-xs py-2.5 px-3 md:text-sm bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 font-bold"
                                     >
                                         <option value="status">Status</option>
                                         <option value="cot-id">COT ID</option>
-                                        <option value="member-since">Member Since</option>
+                                        <option value="joined-date">Joined Date</option>
                                     </select>
                                     <div className="px-4 py-3 bg-brand-50 text-brand-700 rounded-xl flex items-center gap-2 font-black text-xs uppercase tracking-widest whitespace-nowrap">
                                         <Users size={14} /> {filteredUsers.length} Cards
@@ -4776,22 +5052,59 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         onClick={() => setViewingDetailsUser(user)}
                                     >
                                         {idCardVisualMode === 'cards' ? (
-                                            <div className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98] w-full">
-                                                <AdminIDCard
-                                                    user={{
-                                                        id: user.id,
-                                                        name: user.name,
-                                                        role: user.role,
-                                                        photo: user.photo,
-                                                        location: user.location,
-                                                        phone: user.phone,
-                                                        memberSince: user.memberSince
-                                                    }}
-                                                    onPhotoClick={() => setIdCardVisualMode('photos')}
-                                                    onCotIdClick={() => setIdCardVisualMode('ids')}
-                                                    onLocationClick={() => setIdCardVisualMode('locations')}
-                                                    onMemberSinceClick={() => setIdCardVisualMode('join-dates')}
-                                                />
+                                            <div className="flex flex-col gap-3 w-full">
+                                                <div className="cursor-pointer transition-transform hover:scale-[1.01] active:scale-[0.99] w-full">
+                                                    <AdminIDCard
+                                                        user={{
+                                                            id: user.id,
+                                                            name: user.name,
+                                                            role: user.role,
+                                                            photo: user.photo,
+                                                            location: user.location,
+                                                            phone: user.phone,
+                                                            memberSince: user.memberSince,
+                                                            cardThemeTone: user.cardThemeTone,
+                                                            status: user.status
+                                                        }}
+                                                        onPhotoClick={() => setIdCardVisualMode('photos')}
+                                                        onCotIdClick={() => setIdCardVisualMode('ids')}
+                                                        onLocationClick={() => setIdCardVisualMode('locations')}
+                                                        onMemberSinceClick={() => setIdCardVisualMode('join-dates')}
+                                                    />
+                                                </div>
+                                                {/* Sleek, Premium Color Customizer Bar */}
+                                                <div 
+                                                    onClick={(e) => e.stopPropagation()} 
+                                                    className="bg-slate-50 border border-slate-200/60 rounded-2xl p-2.5 flex items-center justify-between shadow-sm transition-all hover:bg-slate-100/50"
+                                                >
+                                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                                                        <Sparkles size={12} className="text-amber-500 animate-pulse" /> Customize Theme
+                                                    </span>
+                                                    <div className="flex items-center gap-1.5">
+                                                        {(['blue', 'purple', 'green', 'red', 'gold'] as const).map((tone) => (
+                                                            <button
+                                                                key={tone}
+                                                                type="button"
+                                                                onClick={async (event) => {
+                                                                    event.stopPropagation();
+                                                                    await onUpdateUser({ ...user, cardThemeTone: tone });
+                                                                }}
+                                                                className={`w-5.5 h-5.5 rounded-full border transition-all ${
+                                                                    tone === 'blue' ? 'bg-blue-500 border-blue-600 shadow-blue-500/20' :
+                                                                    tone === 'purple' ? 'bg-purple-500 border-purple-600 shadow-purple-500/20' :
+                                                                    tone === 'green' ? 'bg-emerald-500 border-emerald-600 shadow-emerald-500/20' :
+                                                                    tone === 'red' ? 'bg-rose-500 border-rose-600 shadow-rose-500/20' :
+                                                                    'bg-amber-400 border-amber-500 shadow-amber-500/20'
+                                                                } ${user.cardThemeTone === tone || (!user.cardThemeTone && tone === 'blue') ? 'ring-2 ring-indigo-500 ring-offset-2 scale-110' : 'hover:scale-105 opacity-80 hover:opacity-100'} shadow-sm flex items-center justify-center`}
+                                                                title={`Set card theme to ${tone}`}
+                                                            >
+                                                                {(user.cardThemeTone === tone || (!user.cardThemeTone && tone === 'blue')) && (
+                                                                    <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                                                                )}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
                                             </div>
                                         ) : idCardVisualMode === 'photos' ? (
                                             <button
@@ -5987,7 +6300,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         >
                                             <option value="all">All Months 📅</option>
                                             {uniqueMediaMonths.map((mMonth) => {
-                                                const [yr, mn] = mMonth.split('-');
+                                                const [yr, mn] = (mMonth as string).split('-');
                                                 const monthName = new Date(parseInt(yr, 10), parseInt(mn, 10) - 1, 1).toLocaleString('en-US', { month: 'long' });
                                                 return (
                                                     <option key={mMonth} value={mMonth}>{`${monthName} ${yr}`}</option>
@@ -6142,163 +6455,346 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     );
                 })()}
 
-                {activeTab === 'home-layout' && (
-                    <div className="max-w-5xl mx-auto">
-                        <motion.div 
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="bg-white p-6 md:p-10 rounded-[3rem] border border-slate-100 shadow-xl border-b-8 border-b-brand-600"
+                {activeTab === 'home-layout' && (() => {
+                    return (
+                    <div className="w-full max-w-[100vw] -mx-6 md:-mx-8 px-2 md:px-4">
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="bg-white rounded-2xl md:rounded-3xl border border-slate-100 shadow-lg overflow-hidden"
                         >
-                            <div className="flex items-center justify-between mb-10">
+                            {/* Header */}
+                            <div className="bg-gradient-to-r from-brand-900 to-brand-700 px-4 md:px-8 py-5">
                                 <div>
-                                    <h2 className="text-3xl font-serif font-black text-brand-950">Visual Layout Editor</h2>
-                                    <p className="text-slate-500 mt-2 text-sm font-medium">Reorder home page sections and customize section titles and descriptions dynamically.</p>
-                                </div>
-                                <div className="flex gap-3">
-                                    <button 
-                                        onClick={() => {
-                                            if (window.confirm("Absolutely sure? This resets the home page for EVERYONE.")) {
-                                                onUpdateHomeSectionsOrder(['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'hebrewPages', 'pastorBaruch', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'verify']);
-                                                const initial: Record<string, { name: string; desc: string }> = {};
-                                                Object.entries(HOME_SECTIONS_INFO).forEach(([key, value]) => {
-                                                    initial[key] = { name: value.name, desc: value.desc };
-                                                });
-                                                setSectionsInfo(initial);
-                                                try {
-                                                    localStorage.removeItem('cot_sections_info');
-                                                } catch {}
-                                            }
-                                        }}
-                                        className="px-6 py-2.5 text-[10px] font-black uppercase tracking-[2px] text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-2xl transition-all border border-transparent hover:border-brand-100"
-                                    >
-                                        Factory Reset
-                                    </button>
-                                    <div className="w-14 h-14 bg-brand-50 text-brand-600 rounded-[1.25rem] flex items-center justify-center shadow-inner border border-brand-100">
-                                        <GripVertical size={28} />
-                                    </div>
+                                    <h2 className="text-xl md:text-3xl font-serif font-black text-white">Live Website Mini View (Home Sections)</h2>
+                                    <p className="text-brand-100 text-xs md:text-sm mt-1 font-medium">Drag to reorder · customize titles · see live mini-preview</p>
                                 </div>
                             </div>
 
-                            <Reorder.Group
-                                axis="y"
-                                values={homeSectionsOrder}
-                                onReorder={onUpdateHomeSectionsOrder}
-                                className="space-y-4"
-                            >
-                                {homeSectionsOrder.map((sectionId, idx) => {
-                                    const info = HOME_SECTIONS_INFO[sectionId] || { name: sectionId, desc: 'Home component', icon: Globe, color: 'bg-brand-500' };
-                                    const Icon = info.icon;
-                                    const displayIndex = (idx + 1).toString().padStart(2, '0');
-                                    const isFirst = idx === 0;
-                                    const isLast = idx === homeSectionsOrder.length - 1;
+                            {/* Split View */}
+                            <div className="flex flex-col lg:flex-row min-h-[70vh]">
+                                {/* LEFT — Drag editor */}
+                                <div className="w-full lg:w-1/2 bg-slate-50 overflow-y-auto p-4 md:p-6">
+                                    <Reorder.Group
+                                        axis="y"
+                                        values={homeSectionsOrder}
+                                        onReorder={(newOrder) => {
+                                            console.log('Sections reordered:', newOrder);
+                                            onUpdateHomeSectionsOrder(newOrder);
+                                            
+                                            // Communicate with live website iframe
+                                            setTimeout(() => {
+                                                const iframe = document.getElementById('home-website-preview') as HTMLIFrameElement;
+                                                if (iframe && iframe.contentWindow) {
+                                                    try {
+                                                        iframe.contentWindow.postMessage({
+                                                            action: 'update-sections-order',
+                                                            order: newOrder,
+                                                            source: 'admin-dashboard'
+                                                        }, '*');
+                                                        console.log('Sent sections order to iframe:', newOrder);
+                                                    } catch (error) {
+                                                        console.log('Could not communicate with iframe:', error);
+                                                    }
+                                                }
+                                            }, 100);
+                                        }}
+                                        className="space-y-4"
+                                    >
+                                        {homeSectionsOrder.map((sectionId, index) => {
+                                            const info = HOME_SECTIONS_INFO[sectionId] || { name: 'Unknown', desc: '', icon: Globe, color: 'bg-gray-500' };
+                                            const IconComponent = info.icon;
+                                            const canMoveUp = index > 0;
+                                            const canMoveDown = index < homeSectionsOrder.length - 1;
 
-                                    const moveUp = () => {
-                                        if (isFirst) return;
-                                        const next = [...homeSectionsOrder];
-                                        [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
-                                        onUpdateHomeSectionsOrder(next);
-                                    };
-                                    const moveDown = () => {
-                                        if (isLast) return;
-                                        const next = [...homeSectionsOrder];
-                                        [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
-                                        onUpdateHomeSectionsOrder(next);
-                                    };
+                                            return (
+                                                <Reorder.Item
+                                                    key={sectionId}
+                                                    value={sectionId}
+                                                    whileDrag={{ scale: 1.02, boxShadow: '0 10px 30px -5px rgba(0,0,0,0.18)' }}
+                                                    className="bg-white rounded-2xl border-2 border-slate-200 hover:border-blue-400 hover:shadow-md transition-all cursor-grab active:cursor-grabbing"
+                                                >
+                                                    <div className="p-4 flex items-center gap-4">
+                                                        <div className="text-slate-300 hover:text-brand-500 transition-colors shrink-0">
+                                                            <GripVertical size={22} />
+                                                        </div>
+                                                        <div className={`w-12 h-12 ${info.color} text-white rounded-2xl flex items-center justify-center shadow-md`}>
+                                                            <IconComponent size={24} />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <h3 className="font-black text-brand-950 text-sm uppercase tracking-wider">
+                                                                {sectionsInfo[sectionId]?.name || info.name}
+                                                            </h3>
+                                                            <p className="text-xs text-slate-500 font-medium mt-0.5 leading-relaxed">
+                                                                {sectionsInfo[sectionId]?.desc || info.desc}
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 shrink-0">
+                                                            <button
+                                                                onClick={() => {
+                                                                    if (canMoveUp) {
+                                                                        const newOrder = [...homeSectionsOrder];
+                                                                        [newOrder[index-1], newOrder[index]] = [newOrder[index], newOrder[index-1]];
+                                                                        onUpdateHomeSectionsOrder(newOrder);
+                                                                        
+                                                                        // Communicate with live website iframe
+                                                                        setTimeout(() => {
+                                                                            const iframe = document.getElementById('home-website-preview') as HTMLIFrameElement;
+                                                                            if (iframe && iframe.contentWindow) {
+                                                                                try {
+                                                                                    iframe.contentWindow.postMessage({
+                                                                                        action: 'update-sections-order',
+                                                                                        order: newOrder,
+                                                                                        source: 'admin-dashboard'
+                                                                                    }, '*');
+                                                                                    console.log('Moved section up, updated iframe:', sectionId);
+                                                                                } catch (error) {
+                                                                                    console.log('Could not communicate with iframe:', error);
+                                                                                }
+                                                                            }
+                                                                        }, 100);
+                                                                    }
+                                                                }}
+                                                                disabled={!canMoveUp}
+                                                                className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-all ${
+                                                                    canMoveUp 
+                                                                        ? 'bg-slate-100 border-slate-200 hover:bg-blue-500 hover:text-white hover:border-blue-500 text-slate-600' 
+                                                                        : 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed'
+                                                                }`}
+                                                                title="Move up"
+                                                                aria-label="Move up"
+                                                            >
+                                                                <ChevronUp size={18} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    if (canMoveDown) {
+                                                                        const newOrder = [...homeSectionsOrder];
+                                                                        [newOrder[index], newOrder[index+1]] = [newOrder[index+1], newOrder[index]];
+                                                                        onUpdateHomeSectionsOrder(newOrder);
+                                                                        
+                                                                        // Communicate with live website iframe
+                                                                        setTimeout(() => {
+                                                                            const iframe = document.getElementById('home-website-preview') as HTMLIFrameElement;
+                                                                            if (iframe && iframe.contentWindow) {
+                                                                                try {
+                                                                                    iframe.contentWindow.postMessage({
+                                                                                        action: 'update-sections-order',
+                                                                                        order: newOrder,
+                                                                                        source: 'admin-dashboard'
+                                                                                    }, '*');
+                                                                                    console.log('Moved section down, updated iframe:', sectionId);
+                                                                                } catch (error) {
+                                                                                    console.log('Could not communicate with iframe:', error);
+                                                                                }
+                                                                            }
+                                                                        }, 100);
+                                                                    }
+                                                                }}
+                                                                disabled={!canMoveDown}
+                                                                className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-all ${
+                                                                    canMoveDown 
+                                                                        ? 'bg-slate-100 border-slate-200 hover:bg-blue-500 hover:text-white hover:border-blue-500 text-slate-600' 
+                                                                        : 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed'
+                                                                }`}
+                                                                title="Move down"
+                                                                aria-label="Move down"
+                                                            >
+                                                                <ChevronDown size={18} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
 
-                                    return (
-                                        <Reorder.Item
-                                            key={sectionId}
-                                            value={sectionId}
-                                            whileDrag={{ scale: 1.02, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)" }}
-                                            className="bg-white p-5 md:p-6 rounded-[2rem] border border-slate-100 flex flex-col gap-5 group hover:border-brand-300 hover:shadow-lg transition-all relative overflow-hidden cursor-grab active:cursor-grabbing select-none"
-                                        >
-                                            <div className="absolute top-0 right-0 w-24 h-24 bg-brand-50/30 rounded-full -mr-12 -mt-12 transition-all group-hover:scale-150 pointer-events-none" />
-
-                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                                <div className="flex items-center gap-5 flex-1 relative z-10">
-                                                    <div className="text-slate-300 group-hover:text-brand-500 transition-colors shrink-0">
-                                                        <GripVertical size={24} />
-                                                    </div>
-                                                    <div className="text-brand-600 font-serif font-black text-lg select-none w-6 text-center shrink-0">
-                                                        {displayIndex}
-                                                    </div>
-                                                    <div className={`w-14 h-14 ${info.color} rounded-2xl flex items-center justify-center text-white shadow-lg`}>
-                                                        <Icon size={24} strokeWidth={2.5} />
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <h3 className="font-black text-brand-950 text-base md:text-lg leading-tight uppercase tracking-tight">
-                                                            {sectionsInfo[sectionId]?.name || info.name}
-                                                        </h3>
-                                                        <p className="text-slate-400 text-xs font-bold truncate pr-4 mt-0.5">
-                                                            {sectionsInfo[sectionId]?.desc || info.desc}
-                                                        </p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-center gap-2 relative z-10 justify-end shrink-0">
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => { e.stopPropagation(); moveUp(); }}
-                                                        disabled={isFirst}
-                                                        className="w-10 h-10 rounded-2xl border-2 border-slate-200 bg-white text-slate-600 flex items-center justify-center hover:bg-brand-600 hover:text-white hover:border-brand-600 disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-90 shadow-sm"
-                                                        aria-label="Move up"
+                                                    <div 
+                                                        className="bg-slate-50/50 p-4 rounded-[1.5rem] border border-slate-100/80 relative z-10 grid grid-cols-1 md:grid-cols-2 gap-4"
+                                                        onPointerDown={(e) => e.stopPropagation()}
                                                     >
-                                                        <ChevronUp size={18} />
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => { e.stopPropagation(); moveDown(); }}
-                                                        disabled={isLast}
-                                                        className="w-10 h-10 rounded-2xl border-2 border-slate-200 bg-white text-slate-600 flex items-center justify-center hover:bg-brand-600 hover:text-white hover:border-brand-600 disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-90 shadow-sm"
-                                                        aria-label="Move down"
+                                                        <div>
+                                                            <label className="text-[10px] font-black uppercase tracking-[1.5px] text-slate-400">Section Title</label>
+                                                            <input
+                                                                type="text"
+                                                                value={sectionsInfo[sectionId]?.name || ''}
+                                                                onChange={(e) => handleSaveSectionInfo(sectionId, e.target.value, sectionsInfo[sectionId]?.desc || '')}
+                                                                placeholder="Customize section title..."
+                                                                className="w-full bg-white px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-brand-500 mt-1.5 transition-colors"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] font-black uppercase tracking-[1.5px] text-slate-400">Section Subtitle / Description</label>
+                                                            <input
+                                                                type="text"
+                                                                value={sectionsInfo[sectionId]?.desc || ''}
+                                                                onChange={(e) => handleSaveSectionInfo(sectionId, sectionsInfo[sectionId]?.name || '', e.target.value)}
+                                                                placeholder="Customize section description..."
+                                                                className="w-full bg-white px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-brand-500 mt-1.5 transition-colors"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Live Real-Time Visual Preview */}
+                                                    <div 
+                                                        className="bg-slate-50/30 p-4 rounded-[1.5rem] border border-slate-100/60 relative z-10"
+                                                        onPointerDown={(e) => e.stopPropagation()}
                                                     >
-                                                        <ChevronDown size={18} />
-                                                    </button>
-                                                </div>
-                                            </div>
+                                                        <label className="text-[10px] font-black uppercase tracking-[1.5px] text-slate-400 mb-2 block">✨ Real-Time Visual Preview</label>
+                                                        <SectionMiniPreview 
+                                                            sectionId={sectionId}
+                                                            customName={sectionsInfo[sectionId]?.name || info.name}
+                                                            customDesc={sectionsInfo[sectionId]?.desc || info.desc}
+                                                        />
+                                                    </div>
+                                                </Reorder.Item>
+                                            );
+                                        })}
+                                    </Reorder.Group>
+                                </div>
 
-                                            <div 
-                                                className="bg-slate-50/50 p-4 rounded-[1.5rem] border border-slate-100/80 relative z-10 grid grid-cols-1 md:grid-cols-2 gap-4"
-                                                onPointerDown={(e) => e.stopPropagation()}
+                                {/* RIGHT — Live Website Preview */}
+                                <div className="w-full lg:w-1/2 bg-slate-100 border-t lg:border-t-0 lg:border-l border-slate-200 overflow-hidden flex flex-col">
+                                    <div className="sticky top-0 bg-white border-b border-slate-200 px-4 py-2.5 z-10 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"/>
+                                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-600">Live Website Mini View</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => setWebsiteUrl(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? window.location.origin : 'http://localhost:8888')}
+                                                className={`px-2 py-1 text-[9px] font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center gap-1 ${websiteUrl.includes('localhost') ? 'bg-blue-500 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
                                             >
-                                                <div>
-                                                    <label className="text-[10px] font-black uppercase tracking-[1.5px] text-slate-400">Section Title</label>
-                                                    <input
-                                                        type="text"
-                                                        value={sectionsInfo[sectionId]?.name || ''}
-                                                        onChange={(e) => handleSaveSectionInfo(sectionId, e.target.value, sectionsInfo[sectionId]?.desc || '')}
-                                                        placeholder="Customize section title..."
-                                                        className="w-full bg-white px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-brand-500 mt-1.5 transition-colors"
-                                                    />
+                                                <Globe size={10}/>
+                                                Localhost
+                                            </button>
+                                            <button
+                                                onClick={() => setWebsiteUrl('https://city-of-truth-ministries.vercel.app')}
+                                                className={`px-2 py-1 text-[9px] font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center gap-1 ${websiteUrl.includes('vercel.app') || websiteUrl.includes('web.app') ? 'bg-green-500 text-white' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+                                            >
+                                                <Globe size={10}/>
+                                                Live Site
+                                            </button>
+                                            <a 
+                                                href={websiteUrl} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors flex items-center gap-1"
+                                                title="Open in new tab"
+                                            >
+                                                <ExternalLink size={10}/>
+                                                New Tab
+                                            </a>
+                                        </div>
+                                    </div>
+ 
+                                    {/* Live Website Frame */}
+                                    <div className="flex-1 p-4">
+                                        <div className="bg-white rounded-xl shadow-lg border border-slate-300 overflow-hidden h-full min-h-[600px]">
+                                            {/* Website URL Bar */}
+                                            <div className="bg-slate-50 border-b border-slate-200 px-3 py-2 flex items-center gap-2">
+                                                <div className="flex gap-1.5">
+                                                    <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                                                    <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                                                    <div className="w-3 h-3 rounded-full bg-green-400"></div>
                                                 </div>
-                                                <div>
-                                                    <label className="text-[10px] font-black uppercase tracking-[1.5px] text-slate-400">Section Subtitle / Description</label>
-                                                    <input
-                                                        type="text"
-                                                        value={sectionsInfo[sectionId]?.desc || ''}
-                                                        onChange={(e) => handleSaveSectionInfo(sectionId, sectionsInfo[sectionId]?.name || '', e.target.value)}
-                                                        placeholder="Customize section description..."
-                                                        className="w-full bg-white px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-brand-500 mt-1.5 transition-colors"
-                                                    />
+                                                <div className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-1 text-[10px] text-slate-600 font-mono">
+                                                    🌐 {websiteUrl.includes('localhost') ? 'localhost:8888' : 'city-of-truth-ministries.vercel.app'} / Home Sections Preview
                                                 </div>
+                                                <button
+                                                    onClick={() => {
+                                                        const iframe = document.getElementById('home-website-preview') as HTMLIFrameElement;
+                                                        if (iframe) {
+                                                            iframe.src = websiteUrl + '?t=' + Date.now();
+                                                            console.log('Refreshing home sections preview:', websiteUrl);
+                                                        }
+                                                    }}
+                                                    className="w-6 h-6 rounded-md bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
+                                                    title="Refresh website"
+                                                >
+                                                    <RotateCcw size={12} className="text-slate-600"/>
+                                                </button>
                                             </div>
-
-                                            {/* Live Real-Time Visual Preview */}
-                                            <div 
-                                                className="bg-slate-50/30 p-4 rounded-[1.5rem] border border-slate-100/60 relative z-10"
-                                                onPointerDown={(e) => e.stopPropagation()}
-                                            >
-                                                <label className="text-[10px] font-black uppercase tracking-[1.5px] text-slate-400 mb-2 block">✨ Real-Time Visual Preview</label>
-                                                <SectionMiniPreview 
-                                                    sectionId={sectionId}
-                                                    customName={sectionsInfo[sectionId]?.name || info.name}
-                                                    customDesc={sectionsInfo[sectionId]?.desc || info.desc}
+                                            
+                                            {/* Website Iframe */}
+                                            <div className="h-full bg-white relative">
+                                                <iframe
+                                                    id="home-website-preview"
+                                                    src={websiteUrl}
+                                                    className="w-full h-full border-0 min-h-[550px]"
+                                                    title="Live Home Sections Preview"
+                                                    onLoad={(e) => {
+                                                        console.log('Home sections website loaded:', websiteUrl);
+                                                        const iframe = e.target as HTMLIFrameElement;
+                                                        
+                                                        // Send current sections order to iframe
+                                                        try {
+                                                            iframe.contentWindow?.postMessage({
+                                                                action: 'update-sections-order',
+                                                                order: homeSectionsOrder,
+                                                                source: 'admin-dashboard'
+                                                            }, '*');
+                                                        } catch (error) {
+                                                            console.log('Cross-origin communication limited:', error);
+                                                        }
+                                                    }}
+                                                    onError={(e) => {
+                                                        console.log('Home iframe loading error, trying fallback...', e);
+                                                        const iframe = e.target as HTMLIFrameElement;
+                                                        if (iframe.src.includes('localhost')) {
+                                                            console.log('Switching to live site due to localhost error');
+                                                            setWebsiteUrl('https://city-of-truth-ministries.web.app');
+                                                        }
+                                                    }}
                                                 />
+                                                
+                                                {/* Loading overlay */}
+                                                <div className="absolute inset-0 bg-white flex items-center justify-center opacity-0 transition-opacity pointer-events-none" id="home-iframe-loading">
+                                                    <div className="flex items-center gap-2 text-slate-500">
+                                                        <RotateCcw size={16} className="animate-spin"/>
+                                                        <span className="text-sm font-medium">Loading home sections...</span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </Reorder.Item>
-                                    );
-                                })}
-                            </Reorder.Group>
+                                        </div>
+                                    </div>
+
+                                    {/* Quick Section Navigation */}
+                                    <div className="p-4 border-t border-slate-200 bg-slate-50">
+                                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-3">🏠 Quick Section Navigation</p>
+                                        <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto">
+                                            {homeSectionsOrder.map((sectionId, index) => {
+                                                const info = HOME_SECTIONS_INFO[sectionId] || { name: 'Unknown', desc: '', icon: Globe, color: 'bg-gray-500' };
+                                                const IconComponent = info.icon;
+                                                return (
+                                                    <button
+                                                        key={`nav-${sectionId}-${index}`}
+                                                        onClick={() => {
+                                                            const iframe = document.getElementById('home-website-preview') as HTMLIFrameElement;
+                                                            if (iframe && iframe.contentWindow) {
+                                                                try {
+                                                                    iframe.contentWindow.postMessage({
+                                                                        action: 'scroll-to-section',
+                                                                        sectionId: sectionId,
+                                                                        index: index
+                                                                    }, '*');
+                                                                } catch (e) {
+                                                                    console.log('Section navigation failed:', e);
+                                                                }
+                                                            }
+                                                        }}
+                                                        className="flex items-center gap-2 px-3 py-2 text-[8px] font-bold uppercase tracking-wider bg-white border border-slate-200 rounded-lg hover:bg-brand-50 hover:border-brand-300 transition-all group"
+                                                    >
+                                                        <div className={`w-4 h-4 ${info.color} text-white rounded-md flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                                                            <IconComponent size={10} />
+                                                        </div>
+                                                        <span className="flex-1 text-left truncate">
+                                                            {sectionsInfo[sectionId]?.name || info.name}
+                                                        </span>
+                                                        <span className="text-slate-400 group-hover:text-brand-500">#{index + 1}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
                             <div className="mt-12 p-8 bg-brand-950 rounded-[2.5rem] border border-brand-800 shadow-2xl flex items-start gap-6 relative overflow-hidden">
                                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none" />
@@ -6318,225 +6814,650 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </div>
                         </motion.div>
                     </div>
-                )}
+                );
+                })()}
 
                 {activeTab === 'menu-editor' && (() => {
-                    const getActiveEditMenuItems = (): any[] => {
+                    try {
+                        /* ── Import exact Hebrew structure from BottomNav ── */
+                        const HEBREW_RESOURCE_ITEMS = HEBREW_PAGES.filter(p => p.type === 'content' && !p.isStandalone).map(p => ({
+                            id: p.id,
+                            label: p.shortLabel || p.label,
+                            view: p.view,
+                            iconName: p.iconName
+                        }));
+
+                        const HEBREW_TOOL_ITEMS = HEBREW_PAGES.filter(p => p.type === 'tools').map(p => ({
+                            id: p.id,
+                            label: p.shortLabel || p.label,
+                            view: p.view,
+                            iconName: p.iconName
+                        }));
+                    
+                    /* ── helpers ── */
+                    const getItems = (): any[] => {
                         if (!navItems) return [];
                         if (selectedMenuEditTab === 'main') return navItems;
                         if (selectedMenuEditTab === 'hebrew-content') {
-                            const contentItem = navItems.find(item => item.label === 'HEBREW RESOURCES' || item.label === 'HEBREW CONTENT' || item.label === 'HEBREW');
-                            return contentItem?.submenu || [];
+                            const hebrewItem = navItems.find((i: any) => ['HEBREW RESOURCES','HEBREW CONTENT','HEBREW'].includes(i.label));
+                            return hebrewItem?.submenu || HEBREW_RESOURCE_ITEMS;
                         }
                         if (selectedMenuEditTab === 'hebrew-tools') {
-                            const toolsItem = navItems.find(item => item.label === 'HEBREW TOOLS');
-                            return toolsItem?.submenu || [];
+                            const toolsItem = navItems.find((i: any) => i.label === 'HEBREW TOOLS');
+                            return toolsItem?.submenu || HEBREW_TOOL_ITEMS;
                         }
                         return [];
                     };
-
-                    const handleUpdateMenuOrder = (newOrder: any[]) => {
+                    const saveItems = (next: any[]) => {
                         if (!onUpdateNavItems || !navItems) return;
+                        if (selectedMenuEditTab === 'main') { onUpdateNavItems(next); return; }
+                        if (selectedMenuEditTab === 'hebrew-content') {
+                            onUpdateNavItems(navItems.map((i: any) => ['HEBREW RESOURCES','HEBREW CONTENT','HEBREW'].includes(i.label) ? { ...i, submenu: next } : i));
+                            return;
+                        }
+                        if (selectedMenuEditTab === 'hebrew-tools') {
+                            onUpdateNavItems(navItems.map((i: any) => i.label === 'HEBREW TOOLS' ? { ...i, submenu: next } : i));
+                        }
+                    };
+                    const rename = (idx: number, val: string) => saveItems(getItems().map((x: any, i: number) => i === idx ? { ...x, label: val } : x));
+                    const toggle = (idx: number) => saveItems(getItems().map((x: any, i: number) => i === idx ? { ...x, hidden: !x.hidden } : x));
+                    const remove = (idx: number) => {
+                        const a = getItems();
+                        if (!window.confirm(`Delete "${a[idx]?.label || 'item'}"?`)) return;
+                        saveItems(a.filter((_: any, i: number) => i !== idx));
+                    };
+                    const moveUp = (idx: number) => { if (idx <= 0) return; const a = [...getItems()]; [a[idx-1],a[idx]]=[a[idx],a[idx-1]]; saveItems(a); };
+                    const moveDown = (idx: number) => { const a = [...getItems()]; if (idx >= a.length-1) return; [a[idx],a[idx+1]]=[a[idx+1],a[idx]]; saveItems(a); };
+                    
+                    /* ── NEW: Make Separate / Make Submenu Functions ── */
+                    const makeSeparate = (idx: number) => {
+                        if (!onUpdateNavItems || !navItems) return;
+                        const currentItems = getItems();
+                        const itemToMove = currentItems[idx];
+                        if (!itemToMove) return;
                         
-                        if (selectedMenuEditTab === 'main') {
-                            onUpdateNavItems(newOrder);
-                        } else if (selectedMenuEditTab === 'hebrew-content') {
-                            const updated = navItems.map(item => {
-                                if (item.label === 'HEBREW RESOURCES' || item.label === 'HEBREW CONTENT' || item.label === 'HEBREW') {
-                                    return { ...item, submenu: newOrder };
+                        if (window.confirm(`Make "${itemToMove.label}" a separate main menu item?`)) {
+                            // Remove from current submenu
+                            const remainingSubmenuItems = currentItems.filter((_: any, i: number) => i !== idx);
+                            
+                            // Add to main menu
+                            const newMainItem = { ...itemToMove, submenu: [] };
+                            const updatedNavItems = [...navItems, newMainItem];
+                            
+                            // Update the submenu we're removing from
+                            if (selectedMenuEditTab === 'hebrew-content') {
+                                const updatedWithSubmenu = updatedNavItems.map((i: any) => 
+                                    ['HEBREW RESOURCES','HEBREW CONTENT','HEBREW'].includes(i.label) 
+                                        ? { ...i, submenu: remainingSubmenuItems } 
+                                        : i
+                                );
+                                onUpdateNavItems(updatedWithSubmenu);
+                            } else if (selectedMenuEditTab === 'hebrew-tools') {
+                                const updatedWithSubmenu = updatedNavItems.map((i: any) => 
+                                    i.label === 'HEBREW TOOLS' 
+                                        ? { ...i, submenu: remainingSubmenuItems } 
+                                        : i
+                                );
+                                onUpdateNavItems(updatedWithSubmenu);
+                            }
+                        }
+                    };
+                    
+                    const makeSubmenu = (idx: number) => {
+                        if (!onUpdateNavItems || !navItems) return;
+                        const currentItems = getItems();
+                        const itemToMove = currentItems[idx];
+                        if (!itemToMove) return;
+                        
+                        // Show dialog to choose which submenu to add to
+                        const targetSubmenu = window.prompt(
+                            `Move "${itemToMove.label}" to which submenu?\n\n` +
+                            'Options:\n' +
+                            '1. hebrew-content (Hebrew Resources)\n' +
+                            '2. hebrew-tools (Hebrew Tools)\n\n' +
+                            'Enter 1 or 2:'
+                        );
+                        
+                        if (targetSubmenu === '1' || targetSubmenu === '2') {
+                            // Remove from main menu
+                            const remainingMainItems = currentItems.filter((_: any, i: number) => i !== idx);
+                            
+                            // Add to chosen submenu
+                            const targetLabel = targetSubmenu === '1' ? 'HEBREW RESOURCES' : 'HEBREW TOOLS';
+                            const updatedNavItems = remainingMainItems.map((item: any) => {
+                                if (['HEBREW RESOURCES','HEBREW CONTENT','HEBREW'].includes(item.label) && targetSubmenu === '1') {
+                                    return { ...item, submenu: [...(item.submenu || []), itemToMove] };
+                                } else if (item.label === 'HEBREW TOOLS' && targetSubmenu === '2') {
+                                    return { ...item, submenu: [...(item.submenu || []), itemToMove] };
                                 }
                                 return item;
                             });
-                            onUpdateNavItems(updated);
-                        } else if (selectedMenuEditTab === 'hebrew-tools') {
-                            const updated = navItems.map(item => {
-                                if (item.label === 'HEBREW TOOLS') {
-                                    return { ...item, submenu: newOrder };
-                                }
-                                return item;
-                            });
-                            onUpdateNavItems(updated);
+                            
+                            onUpdateNavItems(updatedNavItems);
+                        }
+                    };
+                    const items2 = getItems();
+
+                    const getBNavIconComponent = (iconName: string) => {
+                        switch (iconName) {
+                            case 'israel': return Globe;
+                            case 'festivals': return Flame;
+                            case 'calendar': return Calendar;
+                            case 'clock': return Clock3;
+                            case 'reference': return BookOpen;
+                            case 'grammar': return Languages;
+                            case 'alphabet': return BookOpen;
+                            case 'words': return Type;
+                            case 'lettersaudio': return Volume2;
+                            case 'numbers': return Hash;
+                            case 'gematria': return Calculator;
+                            default: return BookOpen;
                         }
                     };
 
-                    const handleRenameMenuItem = (index: number, newLabel: string) => {
-                        const currentItems = getActiveEditMenuItems();
-                        const updated = currentItems.map((item, idx) => idx === index ? { ...item, label: newLabel } : item);
-                        handleUpdateMenuOrder(updated);
-                    };
-
-                    const handleToggleMenuItemVisibility = (index: number) => {
-                        const currentItems = getActiveEditMenuItems();
-                        const updated = currentItems.map((item, idx) => idx === index ? { ...item, hidden: !item.hidden } : item);
-                        handleUpdateMenuOrder(updated);
-                    };
-
-                    const currentItems = getActiveEditMenuItems();
-
+                    /* ── Live Website State ── */
+                    // Moved to main component scope - using websiteUrl from parent
                     return (
-                        <div className="max-w-3xl mx-auto">
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl border-b-8 border-b-brand-600"
-                            >
-                                <div className="flex items-center justify-between mb-10">
-                                    <div>
-                                        <h2 className="text-3xl font-serif font-black text-brand-950">Navigation Menu Editor</h2>
-                                        <p className="text-slate-500 mt-2 text-sm font-medium">Configure items, submenus, direct renaming, visibility hide toggles, and multi-directional reordering controls.</p>
-                                    </div>
-                                    <div className="w-14 h-14 bg-brand-50 text-brand-600 rounded-[1.25rem] flex items-center justify-center shadow-inner border border-brand-100">
-                                        <Filter size={26} />
-                                    </div>
-                                </div>
-
-                                {/* Segmented Menu Selector */}
-                                <div className="flex border-b border-slate-100 mb-8">
-                                    {[
-                                        { id: 'main', label: 'Main Menu 🌐' },
-                                        { id: 'hebrew-content', label: 'Hebrew Content 📜' },
-                                        { id: 'hebrew-tools', label: 'Hebrew Tools 🛠️' }
-                                    ].map((tab) => (
-                                        <button
-                                            key={tab.id}
-                                            onClick={() => setSelectedMenuEditTab(tab.id as any)}
-                                            className={`flex-1 text-center py-3.5 text-xs font-black uppercase tracking-wider transition-all border-b-2 ${
-                                                selectedMenuEditTab === tab.id
-                                                    ? 'border-brand-600 text-brand-600 font-extrabold'
-                                                    : 'border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-200'
-                                            }`}
-                                        >
-                                            {tab.label}
+                      <div className="w-full max-w-[100vw] -mx-6 md:-mx-8 px-2 md:px-4">
+                        <motion.div initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
+                          className="bg-white rounded-2xl md:rounded-3xl border border-slate-100 shadow-lg overflow-hidden">
+                          {/* Header */}
+                          <div className="bg-gradient-to-r from-brand-900 to-brand-700 px-4 md:px-8 py-5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                            <div>
+                              <h2 className="text-xl md:text-3xl font-serif font-black text-white">Navigation Menu Editor</h2>
+                              <p className="text-brand-100 text-xs md:text-sm mt-1 font-medium">Drag to reorder · rename inline · toggle visibility · make separate/submenu</p>
+                            </div>
+                            <div className="flex gap-1 bg-white/10 p-1 rounded-xl border border-white/20">
+                              {[{id:'main',label:'Main'},{id:'hebrew-content',label:'Hebrew ▾'},{id:'hebrew-tools',label:'Tools ▾'}].map(tab => (
+                                <button key={tab.id} onClick={() => setSelectedMenuEditTab(tab.id as any)}
+                                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${selectedMenuEditTab===tab.id?'bg-white text-brand-700 shadow-sm':'text-white/70 hover:text-white hover:bg-white/10'}`}>
+                                  {tab.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          {/* Split View */}
+                          <div className="flex flex-col lg:flex-row min-h-[70vh]">
+                            {/* LEFT — Drag editor */}
+                            <div className="w-full lg:w-1/2 bg-slate-50 overflow-y-auto p-4 md:p-6">
+                              <Reorder.Group axis="y" values={items2} onReorder={saveItems} className="space-y-2.5">
+                                {items2.map((item: any, idx: number) => (
+                                  <Reorder.Item key={`${item.view||item.label}-${idx}`} value={item}
+                                    whileDrag={{ scale:1.02, boxShadow:'0 10px 30px -5px rgba(0,0,0,0.18)' }}
+                                    className={`bg-white rounded-xl border-2 transition-all cursor-grab active:cursor-grabbing select-none ${item.hidden?'opacity-50 border-slate-200':'border-slate-200 hover:border-blue-400 hover:shadow-md'}`}>
+                                    <div className="flex items-center gap-2.5 p-3">
+                                      <GripVertical size={18} className="text-slate-300 shrink-0"/>
+                                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-black shrink-0 ${item.hidden?'bg-slate-400':'bg-blue-600'}`}>
+                                        {(item.label||'?').charAt(0)}
+                                      </div>
+                                      <div className="flex-1 min-w-0" onPointerDown={e=>e.stopPropagation()}>
+                                        <input type="text" value={item.label} onChange={e=>rename(idx,e.target.value)}
+                                          className="w-full font-black text-[#1a1a2e] text-[11px] uppercase tracking-wide bg-transparent border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-blue-500 focus:bg-white transition-colors"/>
+                                        {selectedMenuEditTab==='main' && item.submenu && item.submenu.length>0 && (
+                                          <p className="text-[9px] text-slate-400 mt-0.5 truncate flex items-center gap-1">
+                                            <ChevronDown size={10} className="text-blue-500"/>
+                                            <span className="text-blue-500 font-bold">HAS SUBMENU:</span>
+                                            {item.submenu.map((s:any)=>s.label).join(' · ')}
+                                          </p>
+                                        )}
+                                        {selectedMenuEditTab!=='main' && (
+                                          <p className="text-[9px] text-amber-500 mt-0.5 flex items-center gap-1">
+                                            <ChevronUp size={10}/>
+                                            <span className="font-bold">SUBMENU ITEM</span>
+                                          </p>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-1 shrink-0" onPointerDown={e=>e.stopPropagation()}>
+                                        <button type="button" onClick={e=>{e.stopPropagation();toggle(idx);}}
+                                          className={`w-7 h-7 rounded-lg flex items-center justify-center border-2 transition-all ${item.hidden?'bg-red-50 border-red-200 text-red-500':'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
+                                          {item.hidden?<EyeOff size={13}/>:<Eye size={13}/>}
                                         </button>
-                                    ))}
+                                        <button type="button" onClick={e=>{e.stopPropagation();moveUp(idx);}} disabled={idx<=0}
+                                          className="w-7 h-7 rounded-lg bg-slate-100 border-2 border-slate-200 flex items-center justify-center hover:bg-blue-500 hover:text-white hover:border-blue-500 disabled:opacity-25 transition-all">
+                                          <ChevronUp size={13}/>
+                                        </button>
+                                        <button type="button" onClick={e=>{e.stopPropagation();moveDown(idx);}} disabled={idx>=items2.length-1}
+                                          className="w-7 h-7 rounded-lg bg-slate-100 border-2 border-slate-200 flex items-center justify-center hover:bg-blue-500 hover:text-white hover:border-blue-500 disabled:opacity-25 transition-all">
+                                          <ChevronDown size={13}/>
+                                        </button>
+                                        <button type="button" onClick={e=>{e.stopPropagation();remove(idx);}}
+                                          className="w-7 h-7 rounded-lg bg-red-50 border-2 border-red-200 text-red-500 flex items-center justify-center hover:bg-red-100 transition-all">
+                                          <Trash2 size={12}/>
+                                        </button>
+                                        {/* NEW: Make Separate / Make Submenu buttons */}
+                                        {selectedMenuEditTab === 'main' ? (
+                                          <button type="button" onClick={e=>{e.stopPropagation();makeSubmenu(idx);}}
+                                            className="w-7 h-7 rounded-lg bg-purple-50 border-2 border-purple-200 text-purple-500 flex items-center justify-center hover:bg-purple-100 transition-all"
+                                            title="Convert to submenu item">
+                                            <ChevronDown size={12}/>
+                                          </button>
+                                        ) : (
+                                          <button type="button" onClick={e=>{e.stopPropagation();makeSeparate(idx);}}
+                                            className="w-7 h-7 rounded-lg bg-green-50 border-2 border-green-200 text-green-500 flex items-center justify-center hover:bg-green-100 transition-all"
+                                            title="Make separate main menu item">
+                                            <ChevronUp size={12}/>
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </Reorder.Item>
+                                ))}
+                              </Reorder.Group>
+                              {items2.length === 0 && (
+                                <div className="text-center py-16 text-slate-400">
+                                  <Filter size={36} className="mx-auto mb-3 opacity-30" />
+                                  <p className="text-sm font-medium">No items.</p>
                                 </div>
-
-                                {currentItems && currentItems.length > 0 ? (
-                                    <Reorder.Group
-                                        axis="y"
-                                        values={currentItems}
-                                        onReorder={handleUpdateMenuOrder}
-                                        className="space-y-4"
+                              )}
+                              
+                              {/* NEW: Add Item Button */}
+                              <div className="mt-6 pt-4 border-t border-slate-200">
+                                <button 
+                                  onClick={() => {
+                                    const newLabel = window.prompt('Enter new menu item label:');
+                                    if (newLabel && newLabel.trim()) {
+                                      const newItem = {
+                                        label: newLabel.trim(),
+                                        view: `CUSTOM_${Date.now()}`,
+                                        hidden: false,
+                                        submenu: []
+                                      };
+                                      saveItems([...getItems(), newItem]);
+                                    }
+                                  }}
+                                  className="w-full p-3 border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-xl text-slate-500 hover:text-blue-600 font-bold text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 hover:bg-blue-50"
+                                >
+                                  <Plus size={16}/>
+                                  Add New {selectedMenuEditTab==='main' ? 'Menu' : selectedMenuEditTab.replace('-',' ')} Item
+                                </button>
+                              </div>
+                            </div>
+                            {/* RIGHT — Live Website Mini View */}
+                            <div className="w-full lg:w-1/2 bg-slate-100 border-t lg:border-t-0 lg:border-l border-slate-200 overflow-hidden flex flex-col">
+                              <div className="sticky top-0 bg-white border-b border-slate-200 px-4 py-2.5 z-10 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"/>
+                                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-600">Live Website Mini View</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => setWebsiteUrl('http://localhost:5173')}
+                                    className={`px-2 py-1 text-[9px] font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center gap-1 ${websiteUrl.includes('localhost') ? 'bg-blue-500 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
+                                  >
+                                    <Globe size={10}/>
+                                    Localhost
+                                  </button>
+                                  <button
+                                    onClick={() => setWebsiteUrl('https://city-of-truth-ministries.web.app')}
+                                    className={`px-2 py-1 text-[9px] font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center gap-1 ${websiteUrl.includes('web.app') ? 'bg-green-500 text-white' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+                                  >
+                                    <Globe size={10}/>
+                                    Live Site
+                                  </button>
+                                  <a 
+                                    href={websiteUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors flex items-center gap-1"
+                                    title="Open in new tab"
+                                  >
+                                    <ExternalLink size={10}/>
+                                    New Tab
+                                  </a>
+                                </div>
+                              </div>
+                              
+                              {/* Live Website Frame */}
+                              <div className="flex-1 p-4">
+                                <div className="bg-white rounded-xl shadow-lg border border-slate-300 overflow-hidden h-full min-h-[600px]">
+                                  {/* Website URL Bar */}
+                                  <div className="bg-slate-50 border-b border-slate-200 px-3 py-2 flex items-center gap-2">
+                                    <div className="flex gap-1.5">
+                                      <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                                      <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                                      <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                                    </div>
+                                    <div className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-1 text-[10px] text-slate-600 font-mono">
+                                      🌐 {websiteUrl.includes('localhost') ? 'localhost:5173' : 'city-of-truth-ministries.web.app'} / Live Website
+                                    </div>
+                                    <button
+                                      onClick={() => {
+                                        const iframe = document.getElementById('website-preview') as HTMLIFrameElement;
+                                        if (iframe) {
+                                          iframe.src = websiteUrl + '?t=' + Date.now(); // Refresh iframe with cache bust
+                                          console.log('Refreshing website preview:', websiteUrl);
+                                        }
+                                      }}
+                                      className="w-6 h-6 rounded-md bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
+                                      title="Refresh website"
                                     >
-                                        {currentItems.map((item, index) => (
-                                            <Reorder.Item
-                                                key={`${item.view || item.label}-${index}`}
-                                                value={item}
-                                                whileDrag={{ scale: 1.02, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)" }}
-                                                className={`bg-white p-5 rounded-[2rem] border border-slate-100 flex items-center gap-6 group hover:border-brand-300 hover:shadow-lg transition-all cursor-grab active:cursor-grabbing relative overflow-hidden ${item.hidden ? 'opacity-65 bg-slate-50/50' : ''}`}
+                                      <RotateCcw size={12} className="text-slate-600"/>
+                                    </button>
+                                  </div>
+                                  
+                                  {/* Website Iframe */}
+                                  <div className="h-full bg-white relative">
+                                    <iframe
+                                      id="website-preview"
+                                      src={websiteUrl}
+                                      className="w-full h-full border-0 min-h-[550px]"
+                                      title="Live Website Preview"
+                                      onLoad={(e) => {
+                                        console.log('Website loaded successfully:', websiteUrl);
+                                        const iframe = e.target as HTMLIFrameElement;
+                                        
+                                        // Try to communicate with the iframe for navigation
+                                        try {
+                                          iframe.contentWindow?.postMessage({
+                                            action: 'admin-connected',
+                                            source: 'admin-dashboard'
+                                          }, '*');
+                                        } catch (error) {
+                                          console.log('Cross-origin communication limited:', error);
+                                        }
+                                      }}
+                                      onError={(e) => {
+                                        console.log('Iframe loading error, trying fallback...', e);
+                                        const iframe = e.target as HTMLIFrameElement;
+                                        if (iframe.src.includes('localhost')) {
+                                          console.log('Switching to live site due to localhost error');
+                                          setWebsiteUrl('https://city-of-truth-ministries.web.app');
+                                        }
+                                      }}
+                                    />
+                                    
+                                    {/* Loading overlay */}
+                                    <div className="absolute inset-0 bg-white flex items-center justify-center opacity-0 transition-opacity pointer-events-none" id="iframe-loading">
+                                      <div className="flex items-center gap-2 text-slate-500">
+                                        <RotateCcw size={16} className="animate-spin"/>
+                                        <span className="text-sm font-medium">Loading website...</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* Quick Nav Preview Tabs */}
+                              <div className="p-4 border-t border-slate-200 bg-slate-50">
+                                <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-2">📱 Quick Navigation Test</p>
+                                <div className="flex flex-wrap gap-2">
+                                      {selectedMenuEditTab === 'main' && items2.filter((i:any)=>!i.hidden).slice(0,4).map((item:any, i:number) => (
+                                    <button
+                                      key={i}
+                                      onClick={() => {
+                                        const iframe = document.getElementById('website-preview') as HTMLIFrameElement;
+                                        if (iframe && iframe.contentWindow) {
+                                          try {
+                                            iframe.contentWindow.postMessage({ action: 'navigate', view: item.view || item.label, source: 'admin-dashboard' }, '*');
+                                          } catch (e) {
+                                            console.log('Navigation message failed:', e);
+                                          }
+                                        }
+                                      }}
+                                      className="px-3 py-1.5 text-[8px] font-bold uppercase tracking-wider bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-brand-300 transition-all flex items-center gap-1"
+                                    >
+                                      <Globe size={10} className="text-blue-500"/>
+                                      {item.label}
+                                      <span className="text-[6px] text-blue-500 bg-blue-50 px-1 rounded">MAIN</span>
+                                    </button>
+                                  ))}
+                                  
+                                  {(selectedMenuEditTab === 'hebrew-content' || selectedMenuEditTab === 'hebrew-tools') && (
+                                    <div className="w-full">
+                                      <p className="text-[8px] font-bold text-slate-500 mb-2 uppercase">
+                                        Hebrew {selectedMenuEditTab.replace('hebrew-', '').replace('-', ' ')} Submenu Items
+                                      </p>
+                                      <div className="grid grid-cols-2 gap-2">
+                                        {items2.filter((i:any)=>!i.hidden).slice(0,4).map((item:any, i:number) => {
+                                          const IconComponent = getBNavIconComponent(item.iconName || 'reference');
+                                          return (
+                                            <button
+                                              key={i}
+                                              onClick={() => {
+                                                const iframe = document.getElementById('website-preview') as HTMLIFrameElement;
+                                                if (iframe && iframe.contentWindow) {
+                                                  try {
+                                                    iframe.contentWindow.postMessage({ action: 'navigate', view: item.view || item.id, source: 'admin-dashboard' }, '*');
+                                                  } catch (e) {
+                                                    console.log('Hebrew navigation failed:', e);
+                                                  }
+                                                }
+                                              }}
+                                              className="flex items-center gap-2 px-2 py-1.5 text-[8px] font-bold uppercase tracking-wider bg-white border border-slate-200 rounded-lg hover:bg-amber-50 hover:border-amber-300 transition-all"
                                             >
-                                                <div className="absolute top-0 right-0 w-24 h-24 bg-brand-50/30 rounded-full -mr-12 -mt-12 transition-all group-hover:scale-150 pointer-events-none" />
-
-                                                <div className="flex items-center gap-5 flex-1 relative z-10">
-                                                    <div className="text-slate-300 group-hover:text-brand-500 transition-colors shrink-0">
-                                                        <GripVertical size={24} />
-                                                    </div>
-
-                                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg text-lg font-black shrink-0 ${item.hidden ? 'bg-slate-400' : 'bg-brand-600'}`}>
-                                                        {item.label.charAt(0)}
-                                                    </div>
-
-                                                    <div className="min-w-0 flex-1">
-                                                        <input
-                                                            type="text"
-                                                            value={item.label}
-                                                            onChange={(e) => handleRenameMenuItem(index, e.target.value)}
-                                                            className="w-full font-black text-brand-950 text-base uppercase tracking-tight bg-transparent border border-slate-200 rounded-xl px-3 py-1.5 outline-none focus:border-brand-500"
-                                                        />
-                                                        {item.submenu && item.submenu.length > 0 && selectedMenuEditTab === 'main' && (
-                                                            <p className="text-slate-400 text-xs font-bold pr-4 mt-1 leading-relaxed whitespace-normal break-words">
-                                                                {item.submenu.map((sub: any) => sub.label).join(' • ')}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-center gap-3 relative z-10 shrink-0">
-                                                    {/* Eye Hide/Show */}
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleToggleMenuItemVisibility(index);
-                                                        }}
-                                                        className={`w-10 h-10 rounded-full flex items-center justify-center border transition-all ${
-                                                            item.hidden
-                                                                ? 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100'
-                                                                : 'bg-emerald-50 border-emerald-200 text-emerald-500 hover:bg-emerald-100'
-                                                        }`}
-                                                        title={item.hidden ? 'Show Link' : 'Hide Link'}
-                                                    >
-                                                        {item.hidden ? <EyeOff size={16} /> : <Eye size={16} />}
-                                                    </button>
-
-                                                    {/* Direct Position Arrow reordering */}
-                                                    <div className="flex items-center gap-1">
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                if (index <= 0) return;
-                                                                const next = [...currentItems];
-                                                                const temp = next[index];
-                                                                next[index] = next[index - 1];
-                                                                next[index - 1] = temp;
-                                                                handleUpdateMenuOrder(next);
-                                                            }}
-                                                            disabled={index <= 0}
-                                                            className="w-8 h-8 rounded-full border border-slate-200 text-slate-600 flex items-center justify-center hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer"
-                                                            title="Move Up"
-                                                        >
-                                                            <ChevronUp size={14} />
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                if (index >= currentItems.length - 1) return;
-                                                                const next = [...currentItems];
-                                                                const temp = next[index];
-                                                                next[index] = next[index + 1];
-                                                                next[index + 1] = temp;
-                                                                handleUpdateMenuOrder(next);
-                                                            }}
-                                                            disabled={index >= currentItems.length - 1}
-                                                            className="w-8 h-8 rounded-full border border-slate-200 text-slate-600 flex items-center justify-center hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer"
-                                                            title="Move Down"
-                                                        >
-                                                            <ChevronDown size={14} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </Reorder.Item>
-                                        ))}
-                                    </Reorder.Group>
-                                ) : (
-                                    <div className="text-center py-16 text-slate-400">
-                                        <Filter size={40} className="mx-auto mb-4 opacity-30" />
-                                        <p className="font-medium">No items found in this menu category.</p>
+                                              <IconComponent size={12} className="text-slate-500"/>
+                                              {item.label}
+                                              <span className="text-[6px] text-amber-600 bg-amber-50 px-1 rounded">SUB</span>
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
                                     </div>
-                                )}
-
-                                <div className="mt-12 p-8 bg-brand-950 rounded-[2.5rem] border border-brand-800 shadow-2xl flex items-start gap-6 relative overflow-hidden">
-                                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none" />
-                                    <div className="w-14 h-14 bg-brand-500/20 backdrop-blur-xl border border-brand-500/30 rounded-2xl flex items-center justify-center text-brand-400 shadow-xl shrink-0">
-                                        <Globe size={28} />
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          {/* Footer */}
+                          <div className="bg-gradient-to-r from-brand-950 to-brand-900 px-4 md:px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-brand-500/20 border border-brand-500/30 rounded-lg flex items-center justify-center">
+                                <Globe size={16} className="text-brand-400"/>
+                              </div>
+                              <div>
+                                <h4 className="font-black text-white text-xs md:text-sm">Cloud Global Sync</h4>
+                                <p className="text-brand-200 text-[10px]">Changes reflect on all visitor devices instantly</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 bg-brand-500/10 px-3 py-1.5 rounded-full border border-brand-500/20">
+                              <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"/>
+                              <span className="text-[10px] font-black text-brand-300 uppercase tracking-widest">Live</span>
+                            </div>
+                          </div>
+                        </motion.div>
+                        
+                        {/* BOTTOM LIVE PREVIEW SECTION - Hebrew Menus with exact BottomNav theme */}
+                        <motion.div 
+                          initial={{ opacity: 0, y: 20 }} 
+                          animate={{ opacity: 1, y: 0 }} 
+                          transition={{ delay: 0.2 }}
+                          className="mt-6 bg-slate-900 rounded-2xl md:rounded-3xl border border-slate-700 shadow-2xl overflow-hidden"
+                        >
+                          <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-4 md:px-6 py-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"/>
+                              <h3 className="font-black text-white text-sm md:text-base">📱 Hebrew Navigation - Live BottomNav Preview</h3>
+                            </div>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Exact Original Theme</span>
+                          </div>
+                          <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            
+                            {/* Hebrew Content Resources - exact BottomNav theme */}
+                            {selectedMenuEditTab === 'hebrew-content' && (
+                              <div>
+                                <p className="text-[10px] font-black uppercase tracking-wider text-slate-300 mb-3 flex items-center gap-2">
+                                  <BookOpen size={12} className="text-amber-400"/>
+                                  Hebrew Content Resources
+                                </p>
+                                <div className="bg-white/96 backdrop-blur-3xl rounded-[1.75rem] shadow-[0_-2px_20px_rgba(0,0,0,0.08),0_8px_32px_rgba(0,0,0,0.12)] border border-slate-100/80 p-2">
+                                  <div className="space-y-2.5">
+                                    <div className="space-y-1.5">
+                                      <div className="px-1.5 text-[8px] font-black uppercase tracking-[0.28em] text-slate-400">Resources</div>
+                                      <div className={`grid grid-cols-${Math.min(items2.filter((i:any)=>!i.hidden).length, 6)} gap-1.5`}>
+                                        {items2.filter((i:any)=>!i.hidden).map((item:any, i:number) => {
+                                          const IconComponent = getBNavIconComponent(item.iconName || 'reference');
+                                          const isActive = i === 1; // Highlight second item for demo
+                                          return (
+                                            <button key={item.id || i} className="relative min-w-0 min-h-[58px] rounded-[1.1rem] px-1.5 py-2 transition-all duration-200 active:scale-95">
+                                              {isActive && (
+                                                <div className="absolute inset-0 bg-gradient-to-b from-amber-400/20 to-amber-500/10 rounded-[1.1rem]"/>
+                                              )}
+                                              {isActive && (
+                                                <div className="absolute top-0 left-2 right-2 h-[2px] bg-gradient-to-r from-amber-400 to-orange-500 rounded-full"/>
+                                              )}
+                                              <div className="relative z-10 flex h-full flex-col items-center justify-center gap-1">
+                                                <div className="h-6 flex items-center justify-center">
+                                                  <IconComponent
+                                                    size={18}
+                                                    strokeWidth={isActive ? 2.3 : 1.7}
+                                                    className={`transition-all duration-200 ${
+                                                      isActive
+                                                        ? 'text-amber-600 drop-shadow-[0_1px_4px_rgba(217,119,6,0.35)]'
+                                                        : 'text-slate-400'
+                                                    }`}
+                                                  />
+                                                </div>
+                                                <span className={`text-[8px] font-bold uppercase tracking-wide leading-none text-center ${
+                                                  isActive ? 'text-amber-700' : 'text-slate-400'
+                                                }`}>
+                                                  {item.label}
+                                                </span>
+                                              </div>
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
                                     </div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <h4 className="font-black text-white text-xl">Cloud Global Sync</h4>
-                                            <div className="flex items-center gap-2 bg-brand-500/10 px-3 py-1 rounded-full border border-brand-500/20">
-                                                <div className="w-1.5 h-1.5 bg-brand-400 rounded-full animate-pulse" />
-                                                <span className="text-[10px] font-black text-brand-400 uppercase tracking-widest">Live Cloud Connection</span>
+                                  </div>
+                                  <div className="h-safe-area-inset-bottom bg-transparent"/>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Hebrew Tools - exact BottomNav theme */}
+                            {selectedMenuEditTab === 'hebrew-tools' && (
+                              <div>
+                                <p className="text-[10px] font-black uppercase tracking-wider text-slate-300 mb-3 flex items-center gap-2">
+                                  <Zap size={12} className="text-amber-400"/>
+                                  Hebrew Tools
+                                </p>
+                                <div className="bg-white/96 backdrop-blur-3xl rounded-[1.75rem] shadow-[0_-2px_20px_rgba(0,0,0,0.08),0_8px_32px_rgba(0,0,0,0.12)] border border-slate-100/80 p-2">
+                                  <div className="space-y-2.5">
+                                    <div className="space-y-1.5">
+                                      <div className="px-1.5 text-[8px] font-black uppercase tracking-[0.28em] text-slate-400">Tools</div>
+                                      <div className={`grid grid-cols-${Math.min(items2.filter((i:any)=>!i.hidden).length, 4)} gap-1.5`}>
+                                        {items2.filter((i:any)=>!i.hidden).map((item:any, i:number) => {
+                                          const IconComponent = getBNavIconComponent(item.iconName || 'words');
+                                          const isActive = i === 1; // Highlight Audio for demo
+                                          return (
+                                            <button key={item.id || i} className="relative min-w-0 min-h-[58px] rounded-[1.1rem] px-1.5 py-2 transition-all duration-200 active:scale-95">
+                                              {isActive && (
+                                                <div className="absolute inset-0 bg-gradient-to-b from-amber-400/20 to-amber-500/10 rounded-[1.1rem]"/>
+                                              )}
+                                              {isActive && (
+                                                <div className="absolute top-0 left-2 right-2 h-[2px] bg-gradient-to-r from-amber-400 to-orange-500 rounded-full"/>
+                                              )}
+                                              <div className="relative z-10 flex h-full flex-col items-center justify-center gap-1">
+                                                <div className="h-6 flex items-center justify-center">
+                                                  <IconComponent
+                                                    size={18}
+                                                    strokeWidth={isActive ? 2.3 : 1.7}
+                                                    className={`transition-all duration-200 ${
+                                                      isActive
+                                                        ? 'text-amber-600 drop-shadow-[0_1px_4px_rgba(217,119,6,0.35)]'
+                                                        : 'text-slate-400'
+                                                    }`}
+                                                  />
+                                                </div>
+                                                <span className={`text-[8px] font-bold uppercase tracking-wide leading-none text-center ${
+                                                  isActive ? 'text-amber-700' : 'text-slate-400'
+                                                }`}>
+                                                  {item.label}
+                                                </span>
+                                              </div>
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="h-safe-area-inset-bottom bg-transparent"/>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Full Desktop Navbar (only when editing main menu) */}
+                            {selectedMenuEditTab === 'main' && (
+                              <div className="lg:col-span-2">
+                                <p className="text-[10px] font-black uppercase tracking-wider text-slate-300 mb-3 flex items-center gap-2">
+                                  🖥️ Full Desktop Navigation Bar
+                                </p>
+                                <div className="bg-white rounded-xl shadow-lg border border-slate-600 overflow-hidden">
+                                  <div className="px-6 py-4 flex items-center justify-between montserrat" style={{fontFamily:'Montserrat,sans-serif'}}>
+                                    {/* Logo */}
+                                    <div className="flex items-center gap-[10px]">
+                                      <div className="w-10 h-10 rounded-lg flex items-center justify-center">
+                                        <img src="/logo.png" alt="COT Logo" className="w-full h-full object-contain"/>
+                                      </div>
+                                      <div className="flex flex-col justify-center">
+                                        <span className="font-bold text-[1.1rem] leading-[1.1] tracking-[-0.5px] text-[#1a1a2e]">City of Truth</span>
+                                        <span className="text-[0.65rem] font-bold tracking-[1px] uppercase text-[#5D5FEF]">MINISTRIES</span>
+                                      </div>
+                                    </div>
+                                    
+                                    {/* All nav items */}
+                                    <div className="flex items-center gap-[3px] flex-wrap">
+                                      {items2.filter((i:any)=>!i.hidden).map((item:any, i:number)=>{
+                                        const hasSubmenu = item.submenu && item.submenu.filter((s:any)=>!s.hidden).length > 0;
+                                        const isActive = i === 1;
+                                        return (
+                                          <div key={i} className="relative group">
+                                            <div className={`text-[0.65rem] font-extrabold uppercase tracking-[0.5px] px-[12px] py-2 rounded-[20px] transition-all duration-300 whitespace-nowrap flex items-center gap-1 ${
+                                              isActive
+                                                ? 'bg-brand-50 text-brand-600 shadow-sm border border-brand-100'
+                                                : 'text-slate-600 hover:text-brand-600 hover:bg-slate-50'
+                                            }`}>
+                                              {item.label}
+                                              {hasSubmenu && <ChevronDown size={10} className="transition-transform duration-300"/>}
                                             </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                    
+                                    {/* Right actions */}
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-3 p-1.5 rounded-2xl backdrop-blur-md border bg-white/95 border-brand-200/80">
+                                        <button className="bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 border border-blue-300/50 px-3.5 h-10 rounded-2xl shadow-[0_14px_24px_-12px_rgba(37,99,235,0.7)] flex items-center gap-2 transition-all duration-300">
+                                          <CircleUser size={16} className="text-white"/>
+                                          <span className="text-white text-[11px] font-black uppercase tracking-wide">Register</span>
+                                        </button>
+                                        <button className="w-11 h-11 rounded-2xl cursor-pointer flex items-center justify-center border border-blue-300/50 bg-gradient-to-r from-blue-700 via-blue-600 to-blue-800 text-white shadow-[0_12px_22px_-12px_rgba(37,99,235,0.75)]">
+                                          <Menu size={18} strokeWidth={2.25} className="text-white"/>
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+                      </div>
+                    );
+                    } catch (error) {
+                        console.error('Menu editor error:', error);
+                        return (
+                            <div className="max-w-4xl mx-auto">
+                                <div className="bg-white p-6 rounded-3xl border border-red-200 shadow-lg">
+                                    <div className="text-center">
+                                        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <Filter size={32} className="text-red-500"/>
                                         </div>
-                                        <p className="text-sm text-brand-100/60 leading-relaxed font-medium">Reordering menu links syncs instantly to Firestore. All visitors see the new menu order on their next page load.</p>
+                                        <h3 className="text-xl font-bold text-red-600 mb-2">Menu Editor Error</h3>
+                                        <p className="text-slate-600 mb-4">There was an error loading the menu editor. Please refresh the page.</p>
+                                        <button 
+                                            onClick={() => window.location.reload()}
+                                            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                        >
+                                            Refresh Page
+                                        </button>
                                     </div>
                                 </div>
-                            </motion.div>
-                        </div>
-                    );
-                })()}
+                            </div>
+                        );
+                    }
+                  })()}
 
                 {activeTab === 'admin-tabs' && (
                     <div className="max-w-4xl mx-auto">
@@ -7270,20 +8191,72 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <p className="text-[10px] font-black uppercase tracking-widest text-[#d4a547] mb-1">Testimony / Bio</p>
                                         <p className="text-sm text-slate-700 whitespace-pre-wrap">{memberFormPageUser.communityProfile?.bio || 'N/A'}</p>
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleDownloadMemberFormPdf(memberFormPageUser)}
-                                        disabled={downloadingMemberFormPdfUserId === memberFormPageUser.id}
-                                        className="w-full mt-2 px-5 py-3 rounded-2xl bg-amber-600 text-white font-black hover:bg-amber-700 transition-colors"
-                                    >
-                                        {downloadingMemberFormPdfUserId === memberFormPageUser.id ? 'Generating Member Form PDF...' : 'Download Member Form PDF'}
-                                    </button>
+                                    <div className="flex flex-col gap-2 mt-4">
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowMemberFormEditor(true)}
+                                                className="flex-1 px-5 py-3 rounded-2xl bg-indigo-600 text-white font-black hover:bg-indigo-700 transition-colors shadow-lg"
+                                            >
+                                                {memberFormPageUser.communityProfile ? 'Edit Member Form' : 'Fill Member Form'}
+                                            </button>
+                                            {memberFormPageUser.communityProfile && memberFormPageUser.communityProfile.status !== 'Rejected' && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleRejectMemberForm}
+                                                    disabled={isLoading}
+                                                    className="flex-1 px-5 py-3 rounded-2xl bg-red-100 text-red-600 font-black hover:bg-red-200 transition-colors"
+                                                >
+                                                    {isLoading ? 'Processing...' : 'Reject & Request Refill'}
+                                                </button>
+                                            )}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDownloadMemberFormPdf(memberFormPageUser)}
+                                            disabled={downloadingMemberFormPdfUserId === memberFormPageUser.id}
+                                            className="w-full px-5 py-3 rounded-2xl bg-amber-600 text-white font-black hover:bg-amber-700 transition-colors"
+                                        >
+                                            {downloadingMemberFormPdfUserId === memberFormPageUser.id ? 'Generating Member Form PDF...' : 'Download Member Form PDF'}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 )}
             </AnimatePresence>
+
+            <CommunityProfileForm
+                isOpen={showMemberFormEditor}
+                onClose={() => setShowMemberFormEditor(false)}
+                initialData={memberFormPageUser?.communityProfile}
+                onSave={async (data) => {
+                    if (!memberFormPageUser) return;
+                    setIsLoading(true);
+                    try {
+                        const parent = users.find(u => u.id === memberFormPageUser.parentUserId);
+                        if (!parent) throw new Error('Parent user not found');
+
+                        let updatedParent = { ...parent };
+                        if (memberFormPageUser.isSubProfile) {
+                            updatedParent.linkedProfiles = (updatedParent.linkedProfiles || []).map(p => 
+                                p.id === memberFormPageUser.id ? { ...p, communityProfile: { ...data, status: 'Approved' } as any } : p
+                            );
+                        } else {
+                            updatedParent.communityProfile = { ...data, status: 'Approved' } as any;
+                        }
+                        await onUpdateUser(updatedParent);
+                        setMemberFormPageUser({ ...memberFormPageUser, communityProfile: { ...data, status: 'Approved' } });
+                        alert('Member Form updated successfully.');
+                    } catch (err) {
+                        console.error(err);
+                        alert('Failed to update member form.');
+                    } finally {
+                        setIsLoading(false);
+                    }
+                }}
+            />
 
             {/* View Details Modal */}
             <AnimatePresence>
@@ -7357,18 +8330,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Member Since</label>
-                                    <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
-                                        <Calendar size={16} className="text-slate-400" />
-                                        <span className="text-sm text-slate-700">{viewingDetailsUser.memberSince || 'N/A'}</span>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
                                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Joined Date</label>
                                     <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
                                         <Calendar size={16} className="text-slate-400" />
-                                        <span className="text-sm text-slate-700">{formatDateValue(viewingDetailsUser.joinedDate)}</span>
+                                        <span className="text-sm text-slate-700">{formatDateValue(viewingDetailsUser.joinedDate || viewingDetailsUser.memberSince)}</span>
                                     </div>
                                 </div>
 
@@ -8065,7 +9030,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 {/* Media details column */}
                                                 <div className="flex gap-4 items-start">
                                                     {/* Thumbnail preview with Crop simulation */}
-                                                    <div className="w-32 h-32 rounded-2xl bg-black border border-white/10 overflow-hidden shrink-0 relative flex items-center justify-center">
+                                                    <div className="w-32 h-32 rounded-2xl bg-black border border-white/10 overflow-hidden shrink-0 relative flex items-center justify-center group">
                                                         {item.mediaType === 'video' ? (
                                                             <video
                                                                 src={item.preview}
@@ -8089,7 +9054,60 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                                 <div className="absolute inset-2 border border-dashed border-yellow-400/50 pointer-events-none rounded" />
                                                             </div>
                                                         )}
-                                                        <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded bg-black/80 border border-white/20 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-white">
+                                                        
+                                                        {/* Sleek tactile hover overlay for re-selecting file */}
+                                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-1 select-none z-10">
+                                                            <label className="w-9 h-9 bg-yellow-500 hover:bg-yellow-600 text-brand-950 rounded-full flex items-center justify-center cursor-pointer transition-colors shadow-lg" title="Change Image/Media">
+                                                                <Camera size={16} />
+                                                                <input
+                                                                    type="file"
+                                                                    className="hidden"
+                                                                    accept="image/*,video/*"
+                                                                    disabled={isBulkUploading}
+                                                                    onChange={async (e) => {
+                                                                        const file = e.target.files?.[0];
+                                                                        if (!file) return;
+                                                                        
+                                                                        if (item.preview.startsWith('blob:')) {
+                                                                            URL.revokeObjectURL(item.preview);
+                                                                        }
+                                                                        
+                                                                        const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|webm|ogg|m4v)$/i.test(file.name);
+                                                                        const mediaType = isVideo ? 'video' : 'image';
+                                                                        const url = URL.createObjectURL(file);
+                                                                        const detectedDate = detectDate(file) || item.date;
+                                                                        const detectedName = getFileBaseName(file.name) || item.name;
+                                                                        
+                                                                        let duration = '';
+                                                                        let videoDurationSeconds = 0;
+                                                                        if (isVideo) {
+                                                                            try {
+                                                                                videoDurationSeconds = await getVideoDuration(file);
+                                                                                duration = formatDuration(videoDurationSeconds);
+                                                                            } catch (err) {
+                                                                                console.error(err);
+                                                                            }
+                                                                        }
+                                                                        
+                                                                        handleUpdateQueueItem(item.id, {
+                                                                            file,
+                                                                            preview: url,
+                                                                            name: detectedName,
+                                                                            date: detectedDate,
+                                                                            mediaType,
+                                                                            duration,
+                                                                            videoDurationSeconds,
+                                                                            videoTrimStart: 0,
+                                                                            videoTrimEnd: 100,
+                                                                            cropZoom: 1
+                                                                        });
+                                                                    }}
+                                                                />
+                                                            </label>
+                                                            <span className="text-[9px] font-black uppercase tracking-wider text-yellow-400">Change</span>
+                                                        </div>
+
+                                                        <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded bg-black/80 border border-white/20 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-white z-10">
                                                             {item.mediaType}
                                                         </span>
                                                     </div>

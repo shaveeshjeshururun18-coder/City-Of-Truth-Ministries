@@ -15,10 +15,11 @@ interface MinistryGalleryProps {
     items: MediaItem[];
 }
 
-export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items }) => {
+export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items = [] }) => {
     const [hoveredId, setHoveredId] = useState<string | null>(null);
     const [failedMedia, setFailedMedia] = useState<Record<string, boolean>>({});
-    const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+    const [lightboxIndex, setLightboxIndex] = useState<number>(0);
+    const [isOpen, setIsOpen] = useState<boolean>(false);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     const scroll = (direction: 'left' | 'right') => {
@@ -28,14 +29,17 @@ export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items }) => {
         }
     };
 
-    const openLightbox = useCallback((index: number) => setLightboxIndex(index), []);
-    const closeLightbox = useCallback(() => setLightboxIndex(null), []);
-    const prevItem = useCallback(() => setLightboxIndex(i => (i !== null && i > 0 ? i - 1 : i)), []);
-    const nextItem = useCallback(() => setLightboxIndex(i => (i !== null && i < items.length - 1 ? i + 1 : i)), [items.length]);
+    const openLightbox = useCallback((index: number) => {
+        setLightboxIndex(index);
+        setIsOpen(true);
+    }, []);
+    const closeLightbox = useCallback(() => setIsOpen(false), []);
+    const prevItem = useCallback(() => setLightboxIndex(i => (i > 0 ? i - 1 : i)), []);
+    const nextItem = useCallback(() => setLightboxIndex(i => (i < items.length - 1 ? i + 1 : i)), [items.length]);
 
     // Keyboard navigation
     useEffect(() => {
-        if (lightboxIndex === null) return;
+        if (!isOpen) return;
         const handleKey = (e: KeyboardEvent) => {
             if (e.key === 'Escape') closeLightbox();
             if (e.key === 'ArrowLeft') prevItem();
@@ -43,9 +47,21 @@ export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items }) => {
         };
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
-    }, [lightboxIndex, closeLightbox, prevItem, nextItem]);
+    }, [isOpen, closeLightbox, prevItem, nextItem]);
 
-    const activeLightboxItem = (lightboxIndex !== null && lightboxIndex >= 0 && lightboxIndex < items.length) ? items[lightboxIndex] : null;
+    // Hide navigation menu when lightbox is open
+    useEffect(() => {
+        if (isOpen) {
+            document.body.classList.add('lightbox-open');
+        } else {
+            document.body.classList.remove('lightbox-open');
+        }
+        return () => {
+            document.body.classList.remove('lightbox-open');
+        };
+    }, [isOpen]);
+
+    const activeLightboxItem = (lightboxIndex >= 0 && lightboxIndex < items.length) ? items[lightboxIndex] : null;
 
     return (
         <>
@@ -177,7 +193,7 @@ export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items }) => {
 
             {/* ─── Lightbox Modal ─── */}
             <AnimatePresence>
-                {activeLightboxItem && lightboxIndex !== null && lightboxIndex >= 0 && lightboxIndex < items.length && (
+                {isOpen && activeLightboxItem && (
                     <motion.div
                         key="lightbox-backdrop"
                         initial={{ opacity: 0 }}
@@ -230,44 +246,48 @@ export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items }) => {
                             className="relative max-w-5xl w-full flex flex-col items-center gap-4"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            {activeLightboxItem.type === 'video' ? (
-                                <video
-                                    src={activeLightboxItem.src}
-                                    controls
-                                    autoPlay
-                                    playsInline
-                                    className="w-full max-h-[78vh] rounded-2xl shadow-[0_40px_80px_rgba(0,0,0,0.6)] object-contain bg-black"
-                                />
-                            ) : (
-                                <img
-                                    src={activeLightboxItem.src}
-                                    alt="Ministry Moment"
-                                    className="max-w-full max-h-[78vh] rounded-2xl shadow-[0_40px_80px_rgba(0,0,0,0.6)] object-contain"
-                                />
-                            )}
+                            {activeLightboxItem ? (
+                                <>
+                                    {activeLightboxItem.type === 'video' ? (
+                                        <video
+                                            src={activeLightboxItem.src}
+                                            controls
+                                            autoPlay
+                                            playsInline
+                                            className="w-full max-h-[78vh] rounded-2xl shadow-[0_40px_80px_rgba(0,0,0,0.6)] object-contain bg-black"
+                                        />
+                                    ) : (
+                                        <img
+                                            src={activeLightboxItem.src}
+                                            alt="Ministry Moment"
+                                            className="max-w-full max-h-[78vh] rounded-2xl shadow-[0_40px_80px_rgba(0,0,0,0.6)] object-contain"
+                                        />
+                                    )}
 
-                            {/* Caption bar */}
-                            <div className="flex items-center gap-3 flex-wrap justify-center">
-                                {activeLightboxItem.category && (
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 border border-white/20 rounded-full text-[10px] font-black uppercase tracking-widest text-white">
-                                        <Tag size={10} /> {activeLightboxItem.category}
-                                    </span>
-                                )}
-                                {activeLightboxItem.type === 'video' && activeLightboxItem.duration && (
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 border border-white/20 rounded-full text-[10px] font-black uppercase tracking-widest text-white">
-                                        <Clock size={10} /> {activeLightboxItem.duration}
-                                    </span>
-                                )}
-                                {activeLightboxItem.date && (
-                                    <span className="text-white/60 text-sm font-medium">
-                                        {activeLightboxItem.date}
-                                    </span>
-                                )}
-                            </div>
+                                    {/* Caption bar */}
+                                    <div className="flex items-center gap-3 flex-wrap justify-center">
+                                        {activeLightboxItem.category && (
+                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 border border-white/20 rounded-full text-[10px] font-black uppercase tracking-widest text-white">
+                                                <Tag size={10} /> {activeLightboxItem.category}
+                                            </span>
+                                        )}
+                                        {activeLightboxItem.type === 'video' && activeLightboxItem.duration && (
+                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 border border-white/20 rounded-full text-[10px] font-black uppercase tracking-widest text-white">
+                                                <Clock size={10} /> {activeLightboxItem.duration}
+                                            </span>
+                                        )}
+                                        {activeLightboxItem.date && (
+                                            <span className="text-white/60 text-sm font-medium">
+                                                {activeLightboxItem.date}
+                                            </span>
+                                        )}
+                                    </div>
 
-                            <p className="text-white/30 text-[11px] font-bold tracking-widest uppercase">
-                                Press Esc to close · ← → to navigate
-                            </p>
+                                    <p className="text-white/30 text-[11px] font-bold tracking-widest uppercase">
+                                        Press Esc to close · ← → to navigate
+                                    </p>
+                                </>
+                            ) : null}
                         </motion.div>
                     </motion.div>
                 )}

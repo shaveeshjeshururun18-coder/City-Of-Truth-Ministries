@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type, Volume2, Loader2, Info, Fingerprint, FileImage, Download, Printer, Globe } from 'lucide-react';
 import { analyzeHebrewWord } from '../services/openRouterService';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { HebrewYearDropdown } from './HebrewYearDropdown';
 import { HebrewConverter } from './HebrewConverter';
 import { HebrewWordHub } from './HebrewWordHub';
@@ -1384,6 +1384,8 @@ const GrammarView: React.FC = () => {
 const HebrewConverterNumbers: React.FC = () => {
     const [input, setInput] = useState<number | ''>('');
     const [search, setSearch] = useState('');
+    const [isExportingNumbers, setIsExportingNumbers] = useState(false);
+    const numbersExportRef = useRef<HTMLDivElement>(null);
 
     const toHebrew = (num: number): string => {
         if (num <= 0) return '';
@@ -1414,6 +1416,65 @@ const HebrewConverterNumbers: React.FC = () => {
         if (!search) return referenceNums.slice(0, 50);
         return referenceNums.filter(i => i.num.toString().includes(search) || i.hebrew.includes(search));
     }, [search, referenceNums]);
+
+    const handleNumbersExport = async () => {
+        if (!numbersExportRef.current || !input || !hebrewResult) return;
+        setIsExportingNumbers(true);
+        try {
+            const dataUrl = await captureNodeToJpeg(numbersExportRef.current, { backgroundColor: '#020617', width: 900 });
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            const pdfW = pdf.internal.pageSize.getWidth();
+            const pageH = pdf.internal.pageSize.getHeight();
+
+            const img = new Image();
+            img.src = dataUrl;
+            await new Promise<void>((resolve, reject) => {
+                img.onload = () => resolve();
+                img.onerror = () => reject(new Error('Failed to load Numbers export image.'));
+            });
+
+            const footerH = 20;
+            const maxImgH = pageH - footerH;
+            const rawPdfH = (img.height * pdfW) / img.width;
+            const pdfH = Math.min(rawPdfH, maxImgH);
+
+            pdf.setFillColor(2, 6, 23);
+            pdf.rect(0, 0, pdfW, pageH, 'F');
+
+            const imgY = (maxImgH - pdfH) / 2;
+            pdf.addImage(dataUrl, 'JPEG', 0, imgY, pdfW, pdfH);
+
+            const footerY = pageH - footerH;
+            pdf.setFillColor(15, 23, 42);
+            pdf.rect(0, footerY, pdfW, footerH, 'F');
+            pdf.setDrawColor(217, 119, 6);
+            pdf.setLineWidth(0.4);
+            pdf.line(10, footerY + 0.6, pdfW - 10, footerY + 0.6);
+
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(8);
+            pdf.setTextColor(251, 191, 36);
+            pdf.text('CITY OF TRUTH MINISTRIES', pdfW / 2, footerY + 6.4, { align: 'center' });
+
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(6.4);
+            pdf.setTextColor(148, 163, 184);
+            pdf.text(`© ${new Date().getFullYear()} City of Truth Ministries. All rights reserved.`, pdfW / 2, footerY + 11.6, { align: 'center' });
+
+            pdf.setFontSize(5.6);
+            pdf.setTextColor(100, 116, 139);
+            pdf.text('https://city-of-truth-ministries.vercel.app/', pdfW / 2, footerY + 16.2, { align: 'center', maxWidth: pdfW - 20 } as any);
+            pdf.text('YouTube: City of Truth Ministries • வால்பாறை (Valparai)', pdfW / 2, footerY + 19.0, { align: 'center', maxWidth: pdfW - 20 } as any);
+
+            const safeNum = String(input).replace(/[^0-9]/g, '') || 'number';
+            pdf.save(`COT-Hebrew-Numbers-${safeNum}.pdf`);
+        } catch (error) {
+            console.error('Numbers export failed:', error);
+            alert('Could not export Numbers result. Please try again.');
+        } finally {
+            setIsExportingNumbers(false);
+        }
+    };
 
     return (
         <div className="space-y-10 bg-slate-950 text-white rounded-[2.5rem] p-6 md:p-10 border border-white/10 shadow-2xl relative overflow-hidden">
@@ -1448,6 +1509,79 @@ const HebrewConverterNumbers: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Export PDF */}
+            {input && hebrewResult && (
+                <div className="relative z-10 -mt-2">
+                    <button
+                        onClick={handleNumbersExport}
+                        disabled={isExportingNumbers}
+                        className="px-5 py-2.5 rounded-full bg-gradient-to-r from-emerald-400 via-sky-500 to-indigo-500 text-white font-bold text-sm shadow-lg disabled:opacity-50 flex items-center gap-2 cursor-pointer active:scale-95"
+                    >
+                        {isExportingNumbers ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                        Export PDF Study Card
+                    </button>
+                </div>
+            )}
+
+            {/* Hidden/offscreen premium render card for capture */}
+            {input && hebrewResult && (
+                <div style={{ position: 'fixed', left: '-9999px', top: 0, width: '900px', pointerEvents: 'none', zIndex: -1 }}>
+                    <div
+                        ref={numbersExportRef}
+                        style={{
+                            width: '900px',
+                            background: 'linear-gradient(135deg, #0f0c29 0%, #1a1450 50%, #0f0c29 100%)',
+                            padding: '48px',
+                            fontFamily: 'Georgia, serif',
+                            color: '#ffffff',
+                            borderRadius: '24px',
+                            position: 'relative',
+                            overflow: 'hidden'
+                        }}
+                    >
+                        <div style={{ position: 'absolute', inset: 0, opacity: 0.04, backgroundImage: 'repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)', backgroundSize: '12px 12px', borderRadius: '24px' }} />
+
+                        {/* Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', paddingBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                <img src="/logo.png" alt="COT Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '12px', background: 'rgba(255,255,255,0.08)', padding: '6px' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                                <div>
+                                    <div style={{ fontSize: '18px', fontWeight: 900, letterSpacing: '0.06em', color: '#f0c040', textTransform: 'uppercase' }}>City of Truth Ministries</div>
+                                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: '3px' }}>வால்பாறை (Valparai) &bull; Tamil Nadu &bull; India</div>
+                                </div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '3px' }}>Hebrew Numbers Study</div>
+                                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)' }}>Number → Hebrew Numeral</div>
+                            </div>
+                        </div>
+
+                        {/* Hero */}
+                        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+                            <div style={{ fontSize: '12px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '12px' }}>Number</div>
+                            <div style={{ fontSize: '80px', fontWeight: 900, color: '#f0c040', letterSpacing: '0.04em', lineHeight: 1.05, marginBottom: '10px', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace' }}>
+                                {String(input)}
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '18px' }}>
+                            <div style={{ width: '220px', height: '2px', background: 'linear-gradient(90deg, transparent, rgba(240,192,64,0.9), transparent)' }} />
+                        </div>
+
+                        <div style={{ textAlign: 'center', marginBottom: '34px' }}>
+                            <div style={{ fontSize: '12px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '12px' }}>Hebrew Numeral</div>
+                            <div style={{ fontSize: '92px', fontWeight: 900, color: '#f0c040', letterSpacing: '0.08em', lineHeight: 1.05, direction: 'rtl', fontFamily: 'serif' }}>
+                                {hebrewResult}
+                            </div>
+                        </div>
+
+                        <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', textAlign: 'center', fontSize: '11px', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.05em' }}>
+                            City of Truth Ministries &bull; வால்பாறை (Valparai), Tamil Nadu, India &bull; https://city-of-truth-ministries.vercel.app/ &bull; YouTube: City of Truth Ministries
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Numeral Reference Guide */}
             <div className="space-y-6 relative z-10 pt-4">
@@ -1518,24 +1652,62 @@ const HebrewGematriaCalc: React.FC = () => {
         if (!gematriaExportRef.current || !word.trim()) return;
         setIsExportingGematria(true);
         try {
-            const image = await toPng(gematriaExportRef.current, { pixelRatio: 2.5, cacheBust: true, backgroundColor: '#0f172a' });
-            const fileBase = `COT-Hebrew-Gematria-${word.trim()}-${Date.now()}`;
+            const dataUrl = await captureNodeToJpeg(gematriaExportRef.current, { backgroundColor: '#020617', width: 900 });
+            const safeWord = word.trim().replace(/[^a-zA-Z0-9\u0590-\u05FF]/g, '') || 'Hebrew-Word';
+            const fileBase = `COT-Hebrew-Gematria-${safeWord}-${Date.now()}`;
             if (format === 'png') {
                 const link = document.createElement('a');
-                link.href = image;
-                link.download = `${fileBase}.png`;
+                link.href = dataUrl;
+                link.download = `${fileBase}.jpg`;
                 link.click();
             } else {
                 const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-                const width = pdf.internal.pageSize.getWidth();
+                const pdfW = pdf.internal.pageSize.getWidth();
+                const pageH = pdf.internal.pageSize.getHeight();
                 const img = new Image();
-                img.src = image;
+                img.src = dataUrl;
                 await new Promise<void>((resolve, reject) => {
                     img.onload = () => resolve();
                     img.onerror = () => reject(new Error('Failed to load Gematria image for PDF export.'));
                 });
-                const height = Math.min((img.height * width) / img.width, pdf.internal.pageSize.getHeight());
-                pdf.addImage(image, 'PNG', 0, 0, width, height);
+
+                // Reserve space for copyright/footer area
+                const footerH = 20;
+                const maxImgH = pageH - footerH;
+                const rawPdfH = (img.height * pdfW) / img.width;
+                const pdfH = Math.min(rawPdfH, maxImgH);
+
+                // Fill background (avoid white gap)
+                pdf.setFillColor(2, 6, 23);
+                pdf.rect(0, 0, pdfW, pageH, 'F');
+
+                // Center the study card in available area
+                const imgY = (maxImgH - pdfH) / 2;
+                pdf.addImage(dataUrl, 'JPEG', 0, imgY, pdfW, pdfH);
+
+                // Footer background + divider
+                const footerY = pageH - footerH;
+                pdf.setFillColor(15, 23, 42);
+                pdf.rect(0, footerY, pdfW, footerH, 'F');
+                pdf.setDrawColor(217, 119, 6);
+                pdf.setLineWidth(0.4);
+                pdf.line(10, footerY + 0.6, pdfW - 10, footerY + 0.6);
+
+                // Footer text
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(8);
+                pdf.setTextColor(251, 191, 36);
+                pdf.text('CITY OF TRUTH MINISTRIES', pdfW / 2, footerY + 6.4, { align: 'center' });
+
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(6.4);
+                pdf.setTextColor(148, 163, 184);
+                pdf.text(`© ${new Date().getFullYear()} City of Truth Ministries. All rights reserved.`, pdfW / 2, footerY + 11.6, { align: 'center' });
+
+                pdf.setFontSize(5.6);
+                pdf.setTextColor(100, 116, 139);
+                pdf.text('https://city-of-truth-ministries.vercel.app/', pdfW / 2, footerY + 16.2, { align: 'center', maxWidth: pdfW - 20 } as any);
+                pdf.text('YouTube: City of Truth Ministries • வால்பாறை (Valparai)', pdfW / 2, footerY + 19.0, { align: 'center', maxWidth: pdfW - 20 } as any);
                 pdf.save(`${fileBase}.pdf`);
             }
         } catch (error) {
@@ -1660,7 +1832,7 @@ const HebrewGematriaCalc: React.FC = () => {
                                 <img src="/logo.png" alt="COT Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '12px', background: 'rgba(255,255,255,0.08)', padding: '6px' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                                 <div>
                                     <div style={{ fontSize: '18px', fontWeight: 900, letterSpacing: '0.06em', color: '#f0c040', textTransform: 'uppercase' }}>City of Truth Ministries</div>
-                                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: '3px' }}>Valparai &bull; India</div>
+                                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: '3px' }}>வால்பாறை (Valparai) &bull; Tamil Nadu &bull; India</div>
                                 </div>
                             </div>
                             <div style={{ textAlign: 'right' }}>
@@ -1707,7 +1879,7 @@ const HebrewGematriaCalc: React.FC = () => {
                         </div>
 
                         <div style={{ marginTop: '40px', textAlign: 'center', fontSize: '11px', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.05em' }}>
-                            City of Truth Ministries &bull; Valparai, Tamil Nadu, India &bull; Study and grow in wisdom.
+                            City of Truth Ministries &bull; வால்பாறை (Valparai), Tamil Nadu, India &bull; https://city-of-truth-ministries.vercel.app/ &bull; YouTube: City of Truth Ministries
                         </div>
                     </div>
                 </div>
@@ -1754,8 +1926,6 @@ const RAINBOW_GRADIENTS = [
 
 const HebrewLettersAudioLab: React.FC = () => {
     const [selectedLetters, setSelectedLetters] = useState<{ letter: string; name: string; hebrewName: string; key: number }[]>([]);
-    const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
-    const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
     const [isBuilderDragOver, setIsBuilderDragOver] = useState(false);
     const [builderSticky, setBuilderSticky] = useState(true);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -1776,8 +1946,8 @@ const HebrewLettersAudioLab: React.FC = () => {
         setAiError(null);
     };
 
-    const removeLetter = (idx: number) => {
-        setSelectedLetters(prev => prev.filter((_, i) => i !== idx));
+    const removeLetterByKey = (key: number) => {
+        setSelectedLetters(prev => prev.filter((item) => item.key !== key));
         setAiResult(null);
         setAiError(null);
     };
@@ -1814,32 +1984,6 @@ const HebrewLettersAudioLab: React.FC = () => {
         }
     };
 
-    const handleDragStart = (e: React.DragEvent, idx: number) => {
-        setDraggingIdx(idx);
-        e.dataTransfer.effectAllowed = 'move';
-    };
-
-    const handleDragOver = (e: React.DragEvent, idx: number) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        setDragOverIdx(idx);
-    };
-
-    const handleDrop = (e: React.DragEvent, dropIdx: number) => {
-        e.preventDefault();
-        if (draggingIdx === null || draggingIdx === dropIdx) { setDraggingIdx(null); setDragOverIdx(null); return; }
-        setSelectedLetters(prev => {
-            const next = [...prev];
-            const [removed] = next.splice(draggingIdx, 1);
-            next.splice(dropIdx, 0, removed);
-            return next;
-        });
-        setDraggingIdx(null);
-        setDragOverIdx(null);
-    };
-
-    const handleDragEnd = () => { setDraggingIdx(null); setDragOverIdx(null); };
-
     const handleSourceLetterDragStart = (e: React.DragEvent, item: (typeof HEBREW_AUDIO_LETTERS)[number]) => {
         e.dataTransfer.effectAllowed = 'copy';
         e.dataTransfer.setData('application/json', JSON.stringify({ type: 'cot-hebrew-letter', payload: item }));
@@ -1848,7 +1992,7 @@ const HebrewLettersAudioLab: React.FC = () => {
     const handleBuilderDragOver = (e: React.DragEvent) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
-        setIsBuilderDragOver(true);
+        setIsBuilderDragOver(prev => !prev ? true : prev);
     };
 
     const handleBuilderDrop = (e: React.DragEvent) => {
@@ -1864,17 +2008,6 @@ const HebrewLettersAudioLab: React.FC = () => {
         } catch (error) {
             console.warn('Invalid Hebrew letter drop payload format:', error);
         }
-    };
-
-    const moveLetter = (idx: number, direction: -1 | 1) => {
-        setSelectedLetters(prev => {
-            const targetIdx = idx + direction;
-            if (targetIdx < 0 || targetIdx >= prev.length) return prev;
-            const next = [...prev];
-            const [removed] = next.splice(idx, 1);
-            next.splice(targetIdx, 0, removed);
-            return next;
-        });
     };
 
     useEffect(() => {
@@ -1900,16 +2033,55 @@ const HebrewLettersAudioLab: React.FC = () => {
             } else {
                 const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
                 const pdfW = pdf.internal.pageSize.getWidth();
+                const pageH = pdf.internal.pageSize.getHeight();
                 const img = new Image();
                 img.src = dataUrl;
                 await new Promise<void>((resolve, reject) => {
                     img.onload = () => resolve();
                     img.onerror = () => reject(new Error('Failed to load insight image for PDF export'));
                 });
+
+                // Reserve space for copyright footer
+                const footerH = 18;
+                const maxImgH = pageH - footerH;
                 const rawPdfH = (img.height * pdfW) / img.width;
-                const pageH = pdf.internal.pageSize.getHeight();
-                const pdfH = Math.min(rawPdfH, pageH);
-                pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfW, pdfH);
+                const pdfH = Math.min(rawPdfH, maxImgH);
+
+                // Dark background for entire page
+                pdf.setFillColor(2, 6, 23); // slate-950
+                pdf.rect(0, 0, pdfW, pageH, 'F');
+
+                // Card image centered vertically in top area
+                const imgY = (maxImgH - pdfH) / 2;
+                pdf.addImage(dataUrl, 'JPEG', 0, imgY, pdfW, pdfH);
+
+                // Copyright footer
+                const footerY = pageH - footerH;
+                pdf.setFillColor(15, 23, 42); // slate-900
+                pdf.rect(0, footerY, pdfW, footerH, 'F');
+
+                // Gold divider line
+                pdf.setDrawColor(217, 119, 6);
+                pdf.setLineWidth(0.4);
+                pdf.line(10, footerY + 0.5, pdfW - 10, footerY + 0.5);
+
+                // Website name
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(8);
+                pdf.setTextColor(251, 191, 36); // amber-400
+                pdf.text('CITY OF TRUTH MINISTRIES', pdfW / 2, footerY + 6, { align: 'center' });
+
+                // Copyright line
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(6.5);
+                pdf.setTextColor(148, 163, 184); // slate-400
+                pdf.text(`© ${new Date().getFullYear()} City of Truth Ministries. All rights reserved.`, pdfW / 2, footerY + 11, { align: 'center' });
+
+                // Website URL
+                pdf.setFontSize(6);
+                pdf.setTextColor(100, 116, 139); // slate-500
+                pdf.text('www.cityoftruthministries.com', pdfW / 2, footerY + 15.5, { align: 'center' });
+
                 pdf.save(`${filename}.pdf`);
             }
         } catch (error) {
@@ -1954,51 +2126,41 @@ const HebrewLettersAudioLab: React.FC = () => {
                                 </div>
                             ) : (
                                 <div
-                                    className={`flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 pr-1 rounded-xl transition-colors ${isBuilderDragOver ? 'bg-brand-50/70' : ''}`}
+                                    className={`overflow-x-auto no-scrollbar pb-1 pr-1 rounded-xl transition-colors ${isBuilderDragOver ? 'bg-brand-50/70' : ''}`}
                                     dir="rtl"
                                     onDragOver={handleBuilderDragOver}
                                     onDrop={handleBuilderDrop}
                                     onDragLeave={() => setIsBuilderDragOver(false)}
                                 >
-                                    {selectedLetters.map((l, idx) => (
-                                        <div
-                                            key={l.key}
-                                            draggable
-                                            onDragStart={e => handleDragStart(e, idx)}
-                                            onDragOver={e => handleDragOver(e, idx)}
-                                            onDrop={e => handleDrop(e, idx)}
-                                            onDragEnd={handleDragEnd}
-                                            className={`shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-2xl border-2 cursor-grab active:cursor-grabbing select-none transition-all ${dragOverIdx === idx ? 'border-brand-400 bg-brand-50 scale-105' : 'border-slate-200 bg-slate-50 hover:border-brand-300'} ${draggingIdx === idx ? 'opacity-40' : ''}`}
-                                        >
-                                            <span className="text-2xl font-serif text-brand-950 leading-none">{l.letter}</span>
-                                            <span className="text-[9px] font-bold text-slate-400 uppercase">{l.name}</span>
-                                            <div className="flex items-center gap-0.5 ml-1">
+                                    <Reorder.Group
+                                        axis="x"
+                                        values={selectedLetters}
+                                        onReorder={(next) => {
+                                            setSelectedLetters(next);
+                                            setAiResult(null);
+                                            setAiError(null);
+                                        }}
+                                        className={`flex items-center gap-2 min-w-max ${isBuilderDragOver ? 'py-1' : ''}`}
+                                    >
+                                        {selectedLetters.map((l) => (
+                                            <Reorder.Item
+                                                key={l.key}
+                                                value={l}
+                                                whileDrag={{ scale: 1.03, boxShadow: '0 10px 30px rgba(15,23,42,0.15)' }}
+                                                className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-2xl border-2 border-slate-200 bg-slate-50 hover:border-brand-300 cursor-grab active:cursor-grabbing select-none transition-colors duration-200 touch-pan-x"
+                                            >
+                                                <span className="text-2xl font-serif text-brand-950 leading-none">{l.letter}</span>
+                                                <span className="text-[9px] font-bold text-slate-400 uppercase">{l.name}</span>
                                                 <button
-                                                    onClick={() => moveLetter(idx, -1)}
-                                                    disabled={idx === 0}
-                                                    className="w-5 h-5 rounded-full bg-slate-200 hover:bg-brand-100 disabled:opacity-40 text-slate-500 flex items-center justify-center transition-colors"
-                                                    title={`Move ${l.name} left`}
-                                                >
-                                                    <ChevronLeft size={10} />
-                                                </button>
-                                                <button
-                                                    onClick={() => moveLetter(idx, 1)}
-                                                    disabled={idx === selectedLetters.length - 1}
-                                                    className="w-5 h-5 rounded-full bg-slate-200 hover:bg-brand-100 disabled:opacity-40 text-slate-500 flex items-center justify-center transition-colors"
-                                                    title={`Move ${l.name} right`}
-                                                >
-                                                    <ChevronRight size={10} />
-                                                </button>
-                                                <button
-                                                    onClick={() => removeLetter(idx)}
-                                                    className="w-5 h-5 rounded-full bg-slate-200 hover:bg-red-100 hover:text-red-500 text-slate-400 flex items-center justify-center transition-colors text-[10px] font-black"
+                                                    onClick={() => removeLetterByKey(l.key)}
+                                                    className="w-5 h-5 rounded-full bg-slate-200 hover:bg-red-100 hover:text-red-500 text-slate-400 flex items-center justify-center transition-colors text-[10px] font-black ml-1"
                                                     title={`Remove ${l.name}`}
                                                 >
                                                     ✕
                                                 </button>
-                                            </div>
-                                        </div>
-                                    ))}
+                                            </Reorder.Item>
+                                        ))}
+                                    </Reorder.Group>
                                 </div>
                             )}
                             {selectedLetters.length > 0 && (
@@ -2037,9 +2199,9 @@ const HebrewLettersAudioLab: React.FC = () => {
             </div>
 
             {/* ── LOWER GRID (Compact Hebrew Letters grid on left, AI Insights on right) ── */}
-            <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+            <div className={`grid gap-6 ${aiResult || aiError ? 'lg:grid-cols-2 lg:items-start' : ''}`}>
                 {/* ── COMPACT HEBREW LETTERS GRID ("Short Below") ── */}
-                <div className="bg-white rounded-[2.5rem] border border-slate-100 p-5 sm:p-8 shadow-xl">
+                <div className={`bg-white rounded-[2.5rem] border border-slate-100 p-5 sm:p-8 shadow-xl ${aiResult || aiError ? '' : 'lg:col-span-2'}`}>
                     <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-6 text-center">Tap a letter to add it to your word</p>
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-6 gap-3">
                         {HEBREW_AUDIO_LETTERS.map((item, index) => (
@@ -2076,6 +2238,7 @@ const HebrewLettersAudioLab: React.FC = () => {
                 </div>
 
                 {/* ── AI ANALYSIS & ERRORS COLUMN ── */}
+                {(aiResult || aiError) && (
                 <div className="space-y-6">
                     {/* ── AI ERROR ── */}
                     {aiError && (
@@ -2196,6 +2359,7 @@ const HebrewLettersAudioLab: React.FC = () => {
                         )}
                     </AnimatePresence>
                 </div>
+                )}
             </div>
         </div>
     );
@@ -2273,13 +2437,28 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
         }
     };
 
+    const [tabNavVisible, setTabNavVisible] = useState(true);
+    useEffect(() => {
+        let lastY = window.scrollY;
+        const onScroll = () => {
+            const current = window.scrollY;
+            if (current > lastY && current > 120) {
+                setTabNavVisible(false);
+            } else {
+                setTabNavVisible(true);
+            }
+            lastY = current;
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
 
     return (
         <div className="min-h-screen pt-24 md:pt-32 pb-32 md:pb-20 w-full px-3 md:px-6 font-sans bg-[#fffdf6]">
             <div className={`mx-auto flex flex-col items-center ${tab === 'calendar' ? 'max-w-5xl' : 'max-w-7xl'}`}>
                 
-                {/* Horizontal navigation menu: Sticky on Desktop, standard scroll on Mobile */}
-                <div className="relative md:sticky top-auto md:top-[84px] z-auto md:z-30 w-full bg-[#fffdf6] md:bg-[#fffdf6]/90 md:backdrop-blur-md py-3.5 md:py-5 flex flex-wrap items-center justify-center gap-2 md:gap-3 mb-6 md:mb-10 border-b border-transparent md:border-amber-500/5 shadow-none md:shadow-[0_4px_20px_-10px_rgba(217,119,6,0.05)] transition-all duration-300">
+                {/* Horizontal navigation menu: Sticky, hides on scroll-down, appears on scroll-up */}
+                <div className={`sticky top-[60px] md:top-[84px] z-30 w-full bg-[#fffdf6]/95 backdrop-blur-md py-3.5 md:py-5 flex flex-wrap items-center justify-center gap-2 md:gap-3 mb-6 md:mb-10 border-b border-amber-500/5 shadow-[0_4px_20px_-10px_rgba(217,119,6,0.05)] transition-all duration-300 ${tabNavVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'}`}>
                     {availableTabs.map((t) => {
                         const isActive = tab === t.id;
                         return (

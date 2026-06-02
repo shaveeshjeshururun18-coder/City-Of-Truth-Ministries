@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X, UserCheck, UserPlus, Flashlight, FlashlightOff, Maximize2, Minimize2 } from 'lucide-react';
+import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X, UserCheck, UserPlus, Flashlight, FlashlightOff, Maximize2, Minimize2, Share2, Download } from 'lucide-react';
 import { Button } from './Button';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
@@ -13,10 +13,13 @@ interface AuthPageProps {
     onAdminClick: () => void;
     onBack: () => void;
     users?: any[];
+    sessionUser?: { id: string; name: string; photo?: string } | null;
     initialView?: 'choice' | 'login' | 'register' | 'forgot-id';
     initialIdentifier?: string;
     initialAction?: 'scan' | 'upload';
 }
+
+const WEBSITE_URL = 'https://city-of-truth-ministries.vercel.app';
 
 export const AuthPage: React.FC<AuthPageProps> = ({
     onLogin,
@@ -24,6 +27,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     onAdminClick,
     onBack,
     users = [],
+    sessionUser = null,
     initialView = 'login',
     initialIdentifier = '',
     initialAction
@@ -35,16 +39,23 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     const [searching, setSearching] = useState(false);
     const [notFound, setNotFound] = useState(false);
     const [showScanner, setShowScanner] = useState(false);
+    const [showMyQr, setShowMyQr] = useState(false);
     const [scanningFile, setScanningFile] = useState(false);
     const [showLoginIntro, setShowLoginIntro] = useState(false);
     const [loginTourStepIndex, setLoginTourStepIndex] = useState<number | null>(null);
     const [loginTourRect, setLoginTourRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
     const [torchOn, setTorchOn] = useState(false);
     const [torchSupported, setTorchSupported] = useState(false);
-    const [scannerExpanded, setScannerExpanded] = useState(true);
-    const [authScannerNotice, setAuthScannerNotice] = useState('Point camera at any QR code to scan.');
+    const [scannerExpanded, setScannerExpanded] = useState(false);
+    const [autoScannerMode, setAutoScannerMode] = useState(true);
+    const [authScannerNotice, setAuthScannerNotice] = useState('Auto mode: expand, light on, then compact.');
     const scannerRef = useRef<any>(null);
     const uploadInputRef = useRef<HTMLInputElement | null>(null);
+    const userAdjustedSizeRef = useRef(false);
+    const userAdjustedTorchRef = useRef(false);
+    const ambientSensorRef = useRef<{ stop: () => void } | null>(null);
+    const autoMinimizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const AUTO_EXPAND_DURATION_MS = 3600;
     const handledInitialActionRef = useRef<string | null>(null);
     const LOGIN_TOUR_STEPS = [
         { selector: '#auth-login-identifier', title: 'Enter Member Detail', text: 'Type Member ID, phone, name, or email to find your account.' },
@@ -94,6 +105,75 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         return null;
     };
 
+    const registeredMemberForQr = useMemo(() => {
+        if (sessionUser?.id) {
+            return { id: sessionUser.id, name: sessionUser.name, photo: sessionUser.photo };
+        }
+        if (previewUser) {
+            const memberId = previewProfileId || previewUser.id;
+            const linked = (previewUser.linkedProfiles || []).find((sp: any) => sp.id === memberId);
+            return {
+                id: memberId,
+                name: linked?.name || previewUser.name,
+                photo: linked?.photo || previewUser.photo,
+            };
+        }
+        const query = identifier.trim();
+        if (query) {
+            const match = findUserByQuery(query);
+            if (match) {
+                const u = match.user;
+                const linked = (u.linkedProfiles || []).find((sp: any) => sp.id === match.profileId);
+                return {
+                    id: match.profileId,
+                    name: linked?.name || u.name,
+                    photo: linked?.photo || u.photo,
+                };
+            }
+        }
+        return null;
+    }, [sessionUser, previewUser, previewProfileId, identifier, users]);
+
+    const myQrUrl = registeredMemberForQr
+        ? `${WEBSITE_URL}/verify/${encodeURIComponent(registeredMemberForQr.id)}`
+        : WEBSITE_URL;
+    const myQrImage = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(myQrUrl)}&bgcolor=ffffff&color=1a1450&margin=1`;
+    const myQrTitle = registeredMemberForQr ? registeredMemberForQr.name : 'City of Truth Ministries';
+    const myQrSubtitle = registeredMemberForQr ? `COT ID: ${registeredMemberForQr.id}` : 'Official ministry website';
+
+    const handleShareMyQr = async () => {
+        const shareData = {
+            title: registeredMemberForQr
+                ? `${registeredMemberForQr.name} — City of Truth Ministries`
+                : 'City of Truth Ministries',
+            text: registeredMemberForQr
+                ? `Verify my Entrust ID: ${registeredMemberForQr.id}`
+                : 'Visit City of Truth Ministries',
+            url: myQrUrl,
+        };
+        try {
+            if (navigator.share) {
+                await navigator.share(shareData);
+            } else {
+                await navigator.clipboard.writeText(myQrUrl);
+                alert('Link copied to clipboard!');
+            }
+        } catch (_e) {
+            try {
+                await navigator.clipboard.writeText(myQrUrl);
+                alert('Link copied!');
+            } catch (_err) { /* ignore */ }
+        }
+    };
+
+    const openMyQrPanel = () => {
+        setShowMyQr(true);
+    };
+
+    const closeMyQrPanel = () => {
+        setShowMyQr(false);
+    };
+
     const extractIdentifierFromText = (text: string) => {
         if (!text) return '';
         const idMatch = text.match(/\bCOT-?[A-Z0-9]{3,}\b/i);
@@ -137,12 +217,59 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         }
     };
 
+    const clearAuthAutoMinimizeTimer = () => {
+        if (autoMinimizeTimerRef.current != null) {
+            window.clearTimeout(autoMinimizeTimerRef.current);
+            autoMinimizeTimerRef.current = null;
+        }
+    };
+
+    const teardownAuthAmbientSensor = () => {
+        if (ambientSensorRef.current) {
+            try { ambientSensorRef.current.stop(); } catch (_e) { /* ignore */ }
+            ambientSensorRef.current = null;
+        }
+    };
+
+    const setupAuthAmbientSensor = () => {
+        if (!autoScannerMode || userAdjustedTorchRef.current || ambientSensorRef.current) return;
+        if (!('AmbientLightSensor' in window)) return;
+        try {
+            const sensor = new (window as any).AmbientLightSensor();
+            sensor.addEventListener('reading', () => {
+                if (!autoScannerMode || userAdjustedTorchRef.current) return;
+                if (sensor.illuminance < 50) applyAuthTorch(true);
+                else if (sensor.illuminance > 120) applyAuthTorch(false);
+            });
+            sensor.start();
+            ambientSensorRef.current = sensor;
+        } catch (_e) { /* ignore */ }
+    };
+
+    const runAuthAutoSizeCycle = () => {
+        if (!autoScannerMode || userAdjustedSizeRef.current) return;
+        clearAuthAutoMinimizeTimer();
+        setScannerExpanded(true);
+        setAuthScannerNotice('Auto expanded · turning on flashlight…');
+        if (torchSupported && !userAdjustedTorchRef.current) {
+            applyAuthTorch(true);
+        }
+        autoMinimizeTimerRef.current = window.setTimeout(() => {
+            if (!userAdjustedSizeRef.current) {
+                setScannerExpanded(false);
+                setAuthScannerNotice('Scanner compact · tap ⊕ to expand');
+            }
+        }, AUTO_EXPAND_DURATION_MS);
+    };
+
     const stopScanner = () => {
+        clearAuthAutoMinimizeTimer();
+        teardownAuthAmbientSensor();
         applyAuthTorch(false).catch(() => {});
         setTorchOn(false);
         setTorchSupported(false);
         setScannerExpanded(true);
-        setAuthScannerNotice('Point camera at any QR code to scan.');
+        setAuthScannerNotice(autoScannerMode ? 'Auto mode: expand, light on, then compact.' : 'Point camera at any QR code to scan.');
         if (scannerRef.current) {
             scannerRef.current.stop().then(() => {
                 scannerRef.current = null;
@@ -155,7 +282,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     const startLiveScanner = () => {
         setTorchOn(false);
         setTorchSupported(false);
-        setScannerExpanded(true);
+        userAdjustedSizeRef.current = false;
+        userAdjustedTorchRef.current = false;
+        if (autoScannerMode) {
+            setScannerExpanded(true);
+        }
         setAuthScannerNotice('Starting camera…');
         const h5 = new (window as any).Html5Qrcode('qr-auth-page-reader');
         scannerRef.current = h5;
@@ -165,13 +296,17 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             const caps = ((track as any)?.getCapabilities?.() as any) || {};
             if (caps.torch) {
                 setTorchSupported(true);
-                applyAuthTorch(true);
-                setAuthScannerNotice('Flashlight on. Auto-minimizing soon…');
+                if (autoScannerMode && !userAdjustedTorchRef.current) {
+                    applyAuthTorch(true);
+                    setAuthScannerNotice('Auto light on · will compact shortly…');
+                } else {
+                    setAuthScannerNotice('Tap flash for light · point at QR code');
+                }
             } else if (attemptsLeft > 0) {
                 setTimeout(() => tryDetectTorch(attemptsLeft - 1), 600);
             } else {
                 setTorchSupported(false);
-                setAuthScannerNotice('Point camera at any QR code to scan.');
+                setAuthScannerNotice(autoScannerMode ? 'Auto compact soon · no flash on this device' : 'Point camera at any QR code to scan.');
             }
         };
 
@@ -187,28 +322,32 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             },
             () => {}
         ).then(() => {
-            // Detect torch after camera warms up
             setTimeout(() => tryDetectTorch(), 800);
-            // Auto-minimize after 3.6s
-            setTimeout(() => {
-                setScannerExpanded(false);
-                setAuthScannerNotice('Scanner compact. Tap ⊕ to expand.');
-            }, 3600);
-            // Ambient light sensor auto-torch
-            if ('AmbientLightSensor' in window) {
-                try {
-                    const sensor = new (window as any).AmbientLightSensor();
-                    sensor.addEventListener('reading', () => {
-                        if (sensor.illuminance < 50) { applyAuthTorch(true); }
-                        else { applyAuthTorch(false); }
-                    });
-                    sensor.start();
-                } catch (_e) {}
+            if (autoScannerMode) {
+                runAuthAutoSizeCycle();
+                setupAuthAmbientSensor();
             }
         }).catch(() => {
             setShowScanner(false);
         });
     };
+
+    useEffect(() => {
+        if (!showScanner && !showMyQr) return;
+        const html = document.documentElement;
+        const body = document.body;
+        const prevHtmlOverflow = html.style.overflow;
+        const prevBodyOverflow = body.style.overflow;
+        const prevTouchAction = body.style.touchAction;
+        html.style.overflow = 'hidden';
+        body.style.overflow = 'hidden';
+        body.style.touchAction = 'none';
+        return () => {
+            html.style.overflow = prevHtmlOverflow;
+            body.style.overflow = prevBodyOverflow;
+            body.style.touchAction = prevTouchAction;
+        };
+    }, [showScanner, showMyQr]);
 
     useEffect(() => {
         if (!showScanner) {
@@ -310,7 +449,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     };
 
     const handleFileQRScan = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = Array.from(e.target.files || []);
+        const files = Array.from(e.target.files || []) as File[];
         if (!files.length) return;
         setScanningFile(true);
 
@@ -338,7 +477,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     if (!context) continue;
                     canvas.width = Math.ceil(viewport.width);
                     canvas.height = Math.ceil(viewport.height);
-                    await page.render({ canvasContext: context, viewport }).promise;
+                    await page.render({ canvasContext: context, viewport } as any).promise;
                     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
                     if (!blob) continue;
                     try {
@@ -371,7 +510,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     try {
                         const foundId = await scanSingleFile(file);
                         if (foundId) return foundId;
-                    } catch (error) {
+                    } catch (error: any) {
                         console.warn(`Scan failed for file "${file.name}", trying next file.`, error);
                     }
                 }
@@ -639,9 +778,109 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                 </div>
                             </div>
 
-                            {/* QR Scanner Panel */}
+                            {/* My QR — member COT ID or ministry website */}
+                            <AnimatePresence>
+                                {showMyQr && (
+                                    <motion.div
+                                        key="auth-myqr"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        className="fixed inset-0 z-[10001] bg-[#f2f2f7] text-slate-950 overflow-hidden flex flex-col"
+                                    >
+                                        <div className="shrink-0 h-14 px-4 flex items-center justify-between border-b border-slate-200/80 bg-white">
+                                            <button
+                                                type="button"
+                                                onClick={closeMyQrPanel}
+                                                className="w-10 h-10 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-100"
+                                                aria-label="Back to scanner"
+                                            >
+                                                <ArrowLeft size={22} />
+                                            </button>
+                                            <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                                                <span className="inline-flex w-5 h-5 items-center justify-center rounded-full bg-green-500 text-white">
+                                                    <CheckCircle size={13} />
+                                                </span>
+                                                Secure Environment
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={handleShareMyQr}
+                                                className="w-10 h-10 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-100"
+                                                aria-label="Share QR code"
+                                            >
+                                                <Download size={22} />
+                                            </button>
+                                        </div>
+
+                                        <div className="flex-1 min-h-0 flex flex-col items-center justify-between px-4 py-5 w-full max-w-lg mx-auto">
+                                            <div className="w-full flex-1 flex flex-col justify-center">
+                                                <div className="w-full bg-white rounded-3xl p-5 shadow-sm border border-slate-100 text-center">
+                                                    <div className="flex items-center justify-center gap-3 mb-4">
+                                                        {registeredMemberForQr ? (
+                                                            <div className="w-12 h-12 rounded-full overflow-hidden bg-[#e38200] text-white flex items-center justify-center text-xl font-semibold shrink-0">
+                                                                {registeredMemberForQr.photo
+                                                                    ? <img src={registeredMemberForQr.photo} alt="" className="w-full h-full object-cover" />
+                                                                    : registeredMemberForQr.name.charAt(0).toUpperCase()
+                                                                }
+                                                            </div>
+                                                        ) : (
+                                                            <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                                                                <img src="/logo.png" alt="" className="w-9 h-9 object-contain" />
+                                                            </div>
+                                                        )}
+                                                        <div className="text-left min-w-0">
+                                                            <h2 className="text-xl font-semibold text-slate-900 truncate">{myQrTitle}</h2>
+                                                            <p className="text-sm text-slate-500 truncate">{myQrSubtitle}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="relative mx-auto w-[min(72vw,280px)] aspect-square bg-white p-2 rounded-2xl border border-slate-100">
+                                                        <img src={myQrImage} alt="" className="w-full h-full object-contain" />
+                                                        <div className="absolute left-1/2 top-1/2 w-12 h-12 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-md flex items-center justify-center border border-slate-100">
+                                                            <img src="/logo.png" alt="" className="w-8 h-8 object-contain" />
+                                                        </div>
+                                                    </div>
+
+                                                    <p className="mt-4 text-base font-medium text-slate-800">
+                                                        {registeredMemberForQr ? 'Scan to verify COT ID' : 'Scan to open City of Truth Ministries'}
+                                                    </p>
+                                                    <p className="mt-1 text-xs text-slate-500 break-all px-1">{myQrUrl}</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="w-full shrink-0 space-y-3 pt-4">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleShareMyQr}
+                                                    className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold flex items-center justify-center gap-2"
+                                                >
+                                                    <Share2 size={22} /> Share QR code
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={closeMyQrPanel}
+                                                    className="w-full h-14 rounded-2xl bg-white border-2 border-slate-200 text-blue-700 text-lg font-semibold flex items-center justify-center gap-2"
+                                                >
+                                                    <QrCode size={22} /> Open scanner
+                                                </button>
+                                                <p className="text-center text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 pb-1">
+                                                    Powered by City of Truth Ministries
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            {/* QR Scanner — full-screen static layout (no page scroll) */}
                             {showScanner && (
-                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[9999] bg-black text-white overflow-hidden">
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="fixed inset-0 z-[9999] bg-black text-white overflow-hidden touch-none overscroll-none"
+                                >
                                     <style>{`
                                         #qr-auth-page-reader,
                                         #qr-auth-page-reader video {
@@ -651,102 +890,146 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                         }
                                         #qr-auth-page-reader__dashboard_section,
                                         #qr-auth-page-reader__scan_region img,
-                                        #qr-auth-page-reader__status_span {
+                                        #qr-auth-page-reader__status_span,
+                                        #qr-auth-page-reader img[alt="Info icon"] {
                                             display: none !important;
                                         }
+                                        #qr-auth-page-reader__scan_region {
+                                            border: none !important;
+                                            box-shadow: none !important;
+                                        }
                                     `}</style>
-                                    <div
-                                        className="relative max-w-[560px] mx-auto overflow-hidden bg-black transition-all duration-500"
-                                        style={{ height: scannerExpanded ? '100vh' : '55vh' }}
-                                    >
-                                        <div id="qr-auth-page-reader" role="region" aria-label="QR code scanner" className="absolute inset-0 bg-black" />
 
-                                        {/* Top controls bar */}
-                                        <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 pt-5">
-                                            <button
-                                                type="button"
-                                                onClick={() => { stopScanner(); setShowScanner(false); }}
-                                                className="w-11 h-11 rounded-full bg-black/25 backdrop-blur-sm text-white flex items-center justify-center active:scale-95 transition-transform"
-                                                aria-label="Close scanner"
-                                            >
-                                                <X size={28} />
-                                            </button>
-                                            <div className="flex items-center gap-3">
-                                                {/* Flashlight toggle */}
+                                    <div className="h-[100dvh] w-full flex flex-col overflow-hidden bg-black">
+                                        {/* Camera — flex grows/shrinks with expand/compact */}
+                                        <div
+                                            className={`relative min-h-0 bg-black transition-[flex] duration-300 ease-out ${
+                                                scannerExpanded ? 'flex-[1_1_72%]' : 'flex-[1_1_52%]'
+                                            }`}
+                                        >
+                                            <div id="qr-auth-page-reader" role="region" aria-label="QR code scanner" className="absolute inset-0 bg-black" />
+
+                                            <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-4 pt-4 pb-2">
                                                 <button
                                                     type="button"
-                                                    onClick={() => {
-                                                        if (!torchSupported) return;
-                                                        const next = !torchOn;
-                                                        applyAuthTorch(next);
-                                                        setAuthScannerNotice(next ? 'Flashlight on ✦' : 'Flashlight off.');
-                                                    }}
-                                                    disabled={!torchSupported}
-                                                    className={`w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95 ${
-                                                        torchOn
-                                                            ? 'bg-yellow-400 text-black shadow-lg shadow-yellow-400/50'
-                                                            : torchSupported
-                                                                ? 'bg-black/25 backdrop-blur-sm text-white hover:bg-white/20'
-                                                                : 'bg-black/15 text-white/30 cursor-not-allowed'
-                                                    }`}
-                                                    aria-label={torchOn ? 'Turn off flashlight' : 'Turn on flashlight'}
-                                                    title={torchSupported ? (torchOn ? 'Turn off flashlight' : 'Turn on flashlight') : 'Flashlight not available on this device'}
+                                                    onClick={() => { stopScanner(); setShowScanner(false); }}
+                                                    className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center active:scale-95 border border-white/10"
+                                                    aria-label="Close scanner"
                                                 >
-                                                    {torchOn ? <Flashlight size={24} /> : <FlashlightOff size={24} />}
+                                                    <X size={22} />
                                                 </button>
-                                                {/* Minimize / Maximize toggle */}
+                                                <div className="flex items-center gap-2.5">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (!torchSupported) return;
+                                                            userAdjustedTorchRef.current = true;
+                                                            const next = !torchOn;
+                                                            applyAuthTorch(next);
+                                                            setAuthScannerNotice(next ? 'Flashlight on' : 'Flashlight off');
+                                                        }}
+                                                        disabled={!torchSupported}
+                                                        className={`w-10 h-10 rounded-full flex items-center justify-center active:scale-95 ${
+                                                            torchOn
+                                                                ? 'bg-yellow-400 text-black shadow-lg shadow-yellow-400/40'
+                                                                : torchSupported
+                                                                    ? 'bg-black/40 backdrop-blur-md text-white border border-white/10'
+                                                                    : 'bg-black/25 text-white/30 cursor-not-allowed border border-white/5'
+                                                        }`}
+                                                        aria-label={torchOn ? 'Turn off flashlight' : 'Turn on flashlight'}
+                                                        title={torchSupported ? (torchOn ? 'Flashlight on' : 'Flashlight off') : 'Flashlight not available on this device'}
+                                                    >
+                                                        {torchOn ? <Flashlight size={20} /> : <FlashlightOff size={20} />}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            userAdjustedSizeRef.current = true;
+                                                            clearAuthAutoMinimizeTimer();
+                                                            const next = !scannerExpanded;
+                                                            setScannerExpanded(next);
+                                                            setAuthScannerNotice(
+                                                                next ? 'Scanner expanded · tap ⊖ to compact' : 'Scanner compact · tap ⊕ to expand'
+                                                            );
+                                                            if (autoScannerMode && next && torchSupported && !userAdjustedTorchRef.current) {
+                                                                applyAuthTorch(true);
+                                                            }
+                                                        }}
+                                                        className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center active:scale-95 border border-white/10"
+                                                        aria-label={scannerExpanded ? 'Minimize scanner' : 'Maximize scanner'}
+                                                    >
+                                                        {scannerExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={openMyQrPanel}
+                                                        className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center active:scale-95 border border-white/10"
+                                                        aria-label={registeredMemberForQr ? 'Show my COT ID QR code' : 'Show ministry website QR code'}
+                                                        title={registeredMemberForQr ? 'My QR code' : 'Ministry website QR'}
+                                                    >
+                                                        <QrCode size={20} />
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Scan frame — centered in camera area only */}
+                                            <div className="absolute left-1/2 top-1/2 z-10 w-[min(68vw,280px)] aspect-square -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                                                <span className="absolute top-0 left-0 w-[22%] h-[22%] border-t-[5px] border-l-[5px] border-[#ff6b6b] rounded-tl-2xl" />
+                                                <span className="absolute top-0 right-0 w-[22%] h-[22%] border-t-[5px] border-r-[5px] border-[#ffb020] rounded-tr-2xl" />
+                                                <span className="absolute bottom-0 left-0 w-[22%] h-[22%] border-b-[5px] border-l-[5px] border-[#4f8cff] rounded-bl-2xl" />
+                                                <span className="absolute bottom-0 right-0 w-[22%] h-[22%] border-b-[5px] border-r-[5px] border-[#27c46b] rounded-br-2xl" />
+                                                <div className="absolute inset-0 border border-white/10 rounded-2xl" />
+                                            </div>
+
+                                            {torchOn && (
+                                                <div className="absolute inset-0 z-[5] pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, rgba(255,240,100,0.08) 0%, transparent 70%)' }} />
+                                            )}
+
+                                            <div className="absolute inset-x-0 bottom-3 z-20 flex justify-center px-4">
                                                 <button
                                                     type="button"
-                                                    onClick={() => {
-                                                        const next = !scannerExpanded;
-                                                        setScannerExpanded(next);
-                                                        setAuthScannerNotice(next ? 'Scanner expanded. Flashlight checked.' : 'Scanner compact. Tap ⊕ to expand.');
-                                                        if (next && torchSupported) applyAuthTorch(true);
-                                                    }}
-                                                    className="w-11 h-11 rounded-full bg-black/25 backdrop-blur-sm text-white flex items-center justify-center active:scale-95 transition-transform hover:bg-white/20"
-                                                    aria-label={scannerExpanded ? 'Minimize scanner' : 'Maximize scanner'}
+                                                    onClick={() => uploadInputRef.current?.click()}
+                                                    className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-800 shadow-lg active:scale-[0.98]"
                                                 >
-                                                    {scannerExpanded ? <Minimize2 size={22} /> : <Maximize2 size={22} />}
+                                                    <UploadCloud size={18} />
+                                                    Upload from gallery
                                                 </button>
                                             </div>
                                         </div>
 
-                                        {/* Scan frame corners */}
-                                        <div className="absolute left-1/2 top-[37%] z-10 w-[min(78vw,430px)] aspect-square -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                                            <span className="absolute top-0 left-0 w-[18%] h-[18%] border-t-[8px] border-l-[8px] border-[#ff6b6b] rounded-tl-[28px]" />
-                                            <span className="absolute top-0 right-0 w-[18%] h-[18%] border-t-[8px] border-r-[8px] border-[#ffb020] rounded-tr-[28px]" />
-                                            <span className="absolute bottom-0 left-0 w-[18%] h-[18%] border-b-[8px] border-l-[8px] border-[#4f8cff] rounded-bl-[28px]" />
-                                            <span className="absolute bottom-0 right-0 w-[18%] h-[18%] border-b-[8px] border-r-[8px] border-[#27c46b] rounded-br-[28px]" />
-                                        </div>
-
-                                        {/* Torch glow when torch is on */}
-                                        {torchOn && (
-                                            <div className="absolute inset-0 z-5 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, rgba(255,240,100,0.08) 0%, transparent 70%)' }} />
-                                        )}
-
-                                        {/* Upload button */}
-                                        <button
-                                            type="button"
-                                            onClick={() => uploadInputRef.current?.click()}
-                                            className="absolute left-1/2 bottom-[clamp(180px,27vh,300px)] z-20 -translate-x-1/2 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-lg sm:text-xl font-medium text-slate-700 shadow-xl whitespace-nowrap"
+                                        {/* Info panel — fixed height, not overlapping camera */}
+                                        <section
+                                            className={`shrink-0 rounded-t-[28px] bg-[#232323] px-5 shadow-[0_-8px_32px_rgba(0,0,0,0.45)] transition-all duration-300 ${
+                                                scannerExpanded ? 'pt-3 pb-3' : 'pt-4 pb-4'
+                                            }`}
                                         >
-                                            <UploadCloud size={22} />
-                                            Upload from gallery
-                                        </button>
-
-                                        {/* Bottom tray */}
-                                        <div className="absolute inset-x-0 bottom-0 z-20 rounded-t-[34px] bg-[#232323] px-6 pt-5 pb-6 text-center shadow-2xl">
-                                            <div className="mx-auto mb-4 h-1.5 w-16 rounded-full bg-white/70" />
-                                            <p className="text-3xl sm:text-4xl font-medium leading-tight text-white">
-                                                Scan any QR code
-                                            </p>
-                                            <p className="mt-2 text-xl sm:text-2xl font-medium leading-tight text-white/70">
-                                                COT ID · Entrust Card · Member QR
-                                            </p>
-                                            <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.2em] text-white/40">
+                                            <div className="mx-auto mb-3 h-1 w-12 rounded-full bg-white/50" />
+                                            {!scannerExpanded && (
+                                                <>
+                                                    <p className="text-center text-xl font-semibold text-white leading-snug">Scan any QR code</p>
+                                                    <p className="mt-1 text-center text-sm text-white/65">COT ID · Entrust Card · Member QR</p>
+                                                </>
+                                            )}
+                                            {scannerExpanded && (
+                                                <p className="text-center text-sm font-medium text-white/80">Scan any QR code</p>
+                                            )}
+                                            <p className="mt-2 text-center text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">
                                                 {authScannerNotice}
                                             </p>
-                                        </div>
+                                        </section>
+
+                                        <footer className="shrink-0 bg-black border-t border-white/10 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                                            <div className="flex items-center gap-2.5 mb-2.5">
+                                                <img src="/logo.png" alt="" className="w-7 h-7 object-contain rounded-full bg-white/10 p-0.5" />
+                                                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/90">
+                                                    City of Truth Ministries © {new Date().getFullYear()}
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.16em] text-white/55">
+                                                <span className="hover:text-white transition-colors cursor-pointer">Privacy Seal</span>
+                                                <span className="hover:text-white transition-colors cursor-pointer">Digital Covenant</span>
+                                            </div>
+                                        </footer>
                                     </div>
                                 </motion.div>
                             )}

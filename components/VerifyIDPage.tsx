@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Camera, CheckCircle, XCircle, Search, ScanLine, X, LogIn, Flashlight, FlashlightOff, Maximize2, Minimize2, QrCode, Share2, Download, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Camera, CheckCircle, XCircle, ScanLine, X, LogIn, Flashlight, FlashlightOff, Maximize2, Minimize2, QrCode, Share2, Download, ArrowLeft, UploadCloud } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
 import { User } from '../types';
@@ -13,9 +14,11 @@ GlobalWorkerOptions.workerSrc = pdfWorker;
 interface VerifyIDPageProps {
     onProceedToDashboard?: (identifier: string) => void;
     currentUser?: { id: string; name: string; photo?: string; status?: string } | null;
+    onClose?: () => void;
 }
 
-const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, currentUser }) => {
+const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, currentUser, onClose }) => {
+    const navigate = useNavigate();
     const [scannedId, setScannedId] = useState<string | null>(null);
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(false);
@@ -24,19 +27,25 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
     const [scannerInitialized, setScannerInitialized] = useState(false);
     const [torchSupported, setTorchSupported] = useState(false);
     const [torchOn, setTorchOn] = useState(false);
-    const [scannerExpanded, setScannerExpanded] = useState(true);
+    const [scannerExpanded, setScannerExpanded] = useState(false);
     const [autoScannerMode, setAutoScannerMode] = useState(true);
-    const [scannerAutoNotice, setScannerAutoNotice] = useState('Auto mode expands first, then keeps scanning compact.');
     const [showMyQr, setShowMyQr] = useState(false);
     const scannerRef = useRef<any>(null);
     const autoStartRef = useRef(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const userAdjustedSizeRef = useRef(false);
+    const userAdjustedTorchRef = useRef(false);
+    const ambientSensorRef = useRef<{ stop: () => void } | null>(null);
+    const autoMinimizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const AUTO_EXPAND_DURATION_MS = 3600;
     const isApprovedUser = user?.status === 'Active';
 
     const WEBSITE_URL = 'https://city-of-truth-ministries.vercel.app';
     const myQrUrl = currentUser
         ? `https://city-of-truth-ministries.vercel.app/verify/${encodeURIComponent(currentUser.id)}`
         : WEBSITE_URL;
-    const myQrImage = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(myQrUrl)}&bgcolor=ffffff&color=1a1450&margin=10`;
+    const myQrImage = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(myQrUrl)}&bgcolor=ffffff&color=1a1450&margin=1`;
     const myQrTitle = currentUser ? currentUser.name : 'City of Truth Ministries';
     const myQrSubtitle = currentUser ? `COT ID: ${currentUser.id}` : 'Official ministry website';
 
@@ -95,9 +104,6 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
         try {
             await track.applyConstraints({ advanced: [{ torch: enabled } as any] });
             setTorchOn(enabled);
-            if (enabled) {
-                setScannerAutoNotice('Flashlight is on for brighter scanning.');
-            }
             return true;
         } catch (_e) {
             if (!enabled) setTorchOn(false);
@@ -105,16 +111,96 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
         }
     };
 
-    useEffect(() => {
-        if (!isScanning || !autoScannerMode) return;
+    const clearAutoMinimizeTimer = () => {
+        if (autoMinimizeTimerRef.current != null) {
+            window.clearTimeout(autoMinimizeTimerRef.current);
+            autoMinimizeTimerRef.current = null;
+        }
+    };
+
+    const teardownAmbientSensor = () => {
+        if (ambientSensorRef.current) {
+            try { ambientSensorRef.current.stop(); } catch (_e) { /* ignore */ }
+            ambientSensorRef.current = null;
+        }
+    };
+
+    const setupAmbientSensor = () => {
+        if (!autoScannerMode || userAdjustedTorchRef.current || ambientSensorRef.current) return;
+        if (!('AmbientLightSensor' in window)) return;
+        try {
+            const sensor = new (window as any).AmbientLightSensor();
+            sensor.addEventListener('reading', () => {
+                if (!autoScannerMode || userAdjustedTorchRef.current) return;
+                if (sensor.illuminance < 50) {
+                    applyTorchToActiveTrack(true);
+                } else if (sensor.illuminance > 120) {
+                    applyTorchToActiveTrack(false);
+                }
+            });
+            sensor.start();
+            ambientSensorRef.current = sensor;
+        } catch (_e) { /* sensor not available */ }
+    };
+
+    const tryDetectTorchSupport = (attemptsLeft = 5) => {
+        const track = getActiveVideoTrack();
+        const capabilities = ((track as any)?.getCapabilities?.() as any) || {};
+        if (capabilities.torch) {
+            setTorchSupported(true);
+            if (autoScannerMode && !userAdjustedTorchRef.current) {
+                applyTorchToActiveTrack(true);
+            }
+        } else if (attemptsLeft > 0) {
+            window.setTimeout(() => tryDetectTorchSupport(attemptsLeft - 1), 600);
+        } else {
+            setTorchSupported(false);
+        }
+    };
+
+    const runAutoSizeCycle = () => {
+        if (!autoScannerMode || !isScanning || userAdjustedSizeRef.current) return;
+        clearAutoMinimizeTimer();
         setScannerExpanded(true);
-        setScannerAutoNotice('Auto mode enlarged the scanner and is checking flashlight.');
-        const minimizeTimer = window.setTimeout(() => {
-            setScannerExpanded(false);
-            setScannerAutoNotice('Auto minimized. Tap Maximize when you need a larger frame.');
-        }, 3600);
-        return () => window.clearTimeout(minimizeTimer);
-    }, [isScanning, autoScannerMode]);
+        if (torchSupported && !userAdjustedTorchRef.current) {
+            applyTorchToActiveTrack(true);
+        }
+        autoMinimizeTimerRef.current = window.setTimeout(() => {
+            if (!userAdjustedSizeRef.current) {
+                setScannerExpanded(false);
+            }
+        }, AUTO_EXPAND_DURATION_MS);
+    };
+
+    const scannerStatusLine = useMemo(() => {
+        if (loading) return 'Verifying member record…';
+        if (!autoScannerMode) {
+            if (torchOn) return 'Flashlight on · tap flash to turn off';
+            return scannerExpanded
+                ? 'Manual expanded · tap ⊖ to compact'
+                : 'Manual compact · tap ⊕ to expand';
+        }
+        if (torchOn) return 'Auto light on · point camera at the QR code';
+        if (scannerExpanded) return 'Auto expanded · will compact & recheck light shortly';
+        if (torchSupported) return 'Scanner compact · auto flash ready · tap ⊕ to expand';
+        return 'Scanner compact · tap ⊕ to expand · auto mode on';
+    }, [loading, torchOn, torchSupported, scannerExpanded, autoScannerMode]);
+
+    useEffect(() => {
+        const html = document.documentElement;
+        const body = document.body;
+        const prevHtmlOverflow = html.style.overflow;
+        const prevBodyOverflow = body.style.overflow;
+        const prevTouchAction = body.style.touchAction;
+        html.style.overflow = 'hidden';
+        body.style.overflow = 'hidden';
+        body.style.touchAction = 'none';
+        return () => {
+            html.style.overflow = prevHtmlOverflow;
+            body.style.overflow = prevBodyOverflow;
+            body.style.touchAction = prevTouchAction;
+        };
+    }, []);
 
     useEffect(() => {
         const loadScript = () => {
@@ -130,11 +216,19 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
         };
         loadScript();
         return () => {
+            clearAutoMinimizeTimer();
+            teardownAmbientSensor();
             if (scannerRef.current) {
                 try { scannerRef.current.stop().catch(console.error); } catch (e) { console.error(e); }
             }
         };
     }, []);
+
+    useEffect(() => {
+        if (!isScanning || !autoScannerMode) return;
+        runAutoSizeCycle();
+        return () => clearAutoMinimizeTimer();
+    }, [isScanning, autoScannerMode]);
 
     const verifyID = async (idToVerify: string) => {
         const normalizedId = normalizeCotId(idToVerify);
@@ -171,33 +265,26 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
         setError(null);
         setScannedId(null);
         setUser(null);
-        setScannerExpanded(true);
-        setScannerAutoNotice('Starting camera. Auto mode will use flashlight when supported.');
+        userAdjustedSizeRef.current = false;
+        userAdjustedTorchRef.current = false;
+        if (autoScannerMode) {
+            setScannerExpanded(true);
+        }
         setTimeout(() => {
             const html5Qrcode = new window.Html5Qrcode('qr-reader');
             scannerRef.current = html5Qrcode;
-
-            // Retry torch detection after camera fully initializes
-            const tryDetectAndEnableTorch = (attemptsLeft = 4) => {
-                const track = getActiveVideoTrack();
-                const capabilities = ((track as any)?.getCapabilities?.() as any) || {};
-                const supported = !!capabilities.torch;
-                if (supported) {
-                    setTorchSupported(true);
-                    if (autoScannerMode) {
-                        applyTorchToActiveTrack(true);
-                    }
-                } else if (attemptsLeft > 0) {
-                    setTimeout(() => tryDetectAndEnableTorch(attemptsLeft - 1), 600);
-                } else {
-                    setTorchSupported(false);
-                    setScannerAutoNotice('Flashlight is not available on this device/browser.');
-                }
-            };
+            const readerEl = document.getElementById('qr-reader');
+            const boxSize = Math.max(
+                180,
+                Math.min(
+                    280,
+                    Math.floor(Math.min(readerEl?.clientWidth ?? 280, readerEl?.clientHeight ?? 280) * 0.62)
+                )
+            );
 
             html5Qrcode.start(
                 { facingMode: 'environment' },
-                { fps: 10, qrbox: { width: 250, height: 250 } },
+                { fps: 12, qrbox: { width: boxSize, height: boxSize }, aspectRatio: 1 },
                 (decodedText: string) => {
                     const extractedId = extractMemberId(decodedText);
                     if (extractedId) {
@@ -212,23 +299,10 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                 },
                 (_errorMessage: string) => {}
             ).then(() => {
-                // Start torch detection after 800ms delay
-                setTimeout(() => tryDetectAndEnableTorch(), 800);
-
-                // Ambient light sensor — auto torch when dark
-                if ('AmbientLightSensor' in window) {
-                    try {
-                        const sensor = new (window as any).AmbientLightSensor();
-                        sensor.addEventListener('reading', () => {
-                            if (!autoScannerMode) return;
-                            if (sensor.illuminance < 50) {
-                                applyTorchToActiveTrack(true);
-                            } else {
-                                applyTorchToActiveTrack(false);
-                            }
-                        });
-                        sensor.start();
-                    } catch (_e) { /* sensor not available */ }
+                window.setTimeout(() => tryDetectTorchSupport(), 800);
+                if (autoScannerMode) {
+                    runAutoSizeCycle();
+                    setupAmbientSensor();
                 }
             }).catch((err: any) => {
                 console.error('Scanner Error:', err);
@@ -247,13 +321,13 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
         return () => window.clearTimeout(timer);
     }, [scannerInitialized]);
 
-    const stopScanner = () => {
+    const stopScanner = (): Promise<void> => {
+        clearAutoMinimizeTimer();
+        teardownAmbientSensor();
         const clearScannerState = () => {
             setIsScanning(false);
             setTorchOn(false);
             setTorchSupported(false);
-            setScannerAutoNotice('Auto mode expands first, then keeps scanning compact.');
-            setScannerExpanded(true);
             scannerRef.current = null;
         };
 
@@ -262,8 +336,12 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
         };
 
         if (scannerRef.current) {
-            disableTorchIfPossible()
-                .finally(() => scannerRef.current.stop())
+            return disableTorchIfPossible()
+                .finally(() => {
+                    if (scannerRef.current) {
+                        return scannerRef.current.stop();
+                    }
+                })
                 .then(clearScannerState)
                 .catch((e: any) => {
                     console.error(e);
@@ -271,37 +349,40 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                 });
         } else {
             clearScannerState();
+            return Promise.resolve();
         }
     };
 
     const handleTorchToggle = async () => {
         if (!isScanning || !torchSupported) return;
+        userAdjustedTorchRef.current = true;
         const next = !torchOn;
         const applied = await applyTorchToActiveTrack(next);
         if (!applied && next) {
-            if (next) setError('Flashlight control is not supported on this device/browser.');
+            setError('Flashlight control is not supported on this device/browser.');
         }
     };
 
     const handleScannerSizeToggle = async () => {
+        userAdjustedSizeRef.current = true;
+        clearAutoMinimizeTimer();
         const nextExpanded = !scannerExpanded;
         setScannerExpanded(nextExpanded);
-        setScannerAutoNotice(nextExpanded ? 'Scanner maximized. Flashlight checked automatically.' : 'Scanner minimized. It will keep scanning.');
-        if (torchSupported) {
+        if (autoScannerMode && torchSupported && !userAdjustedTorchRef.current) {
             await applyTorchToActiveTrack(true);
         }
     };
 
-    const handleAutoScannerToggle = async () => {
-        const nextAutoMode = !autoScannerMode;
-        setAutoScannerMode(nextAutoMode);
-        if (nextAutoMode) {
-            setScannerExpanded(true);
-            setScannerAutoNotice('Auto mode on. Scanner maximizes first and turns on flashlight when supported.');
-            if (torchSupported) await applyTorchToActiveTrack(true);
-        } else {
-            setScannerAutoNotice('Auto mode off. Use Flash and Maximize manually.');
-        }
+    const handleCloseScanner = () => {
+        stopScanner().then(() => {
+            if (onClose) {
+                onClose();
+            } else if (window.history.length > 1) {
+                navigate(-1);
+            } else {
+                navigate('/');
+            }
+        });
     };
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -330,7 +411,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                 if (!context) continue;
                 canvas.width = Math.ceil(viewport.width);
                 canvas.height = Math.ceil(viewport.height);
-                await page.render({ canvasContext: context, viewport }).promise;
+                await page.render({ canvasContext: context, viewport } as any).promise;
                 const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
                 if (!blob) continue;
                 const pageImage = new File([blob], `page-${pageNum}.png`, { type: 'image/png' });
@@ -392,8 +473,28 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
     const statusIcon = (s?: string) =>
         s === 'Active' ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />;
 
+    const showResultOverlay = loading || !!error || !!user;
+
     return (
-        <div className="h-screen bg-[#05070c] relative overflow-hidden">
+        <div className="fixed inset-0 z-[200] h-[100dvh] bg-black overflow-hidden touch-none overscroll-none">
+            <style>{`
+                #qr-reader,
+                #qr-reader video {
+                    width: 100% !important;
+                    height: 100% !important;
+                    object-fit: cover !important;
+                }
+                #qr-reader__dashboard_section,
+                #qr-reader__scan_region img,
+                #qr-reader__status_span,
+                #qr-reader img[alt="Info icon"] {
+                    display: none !important;
+                }
+                #qr-reader__scan_region {
+                    border: none !important;
+                    box-shadow: none !important;
+                }
+            `}</style>
             {/* Hidden HTML5QrCode container */}
             <div id="qr-reader-hidden" style={{ display: 'none' }}></div>
 
@@ -434,7 +535,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 bg-white text-slate-950 overflow-hidden"
+                        className="fixed inset-0 z-[250] bg-[#f2f2f7] text-slate-950 overflow-hidden flex flex-col w-full"
                     >
                         <div className="h-14 px-5 flex items-center justify-between border-b border-slate-100">
                             <button
@@ -463,7 +564,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                             initial={{ opacity: 0, scale: 0.98 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.98 }}
-                            className="h-[calc(100vh-3.5rem)] px-5 py-5 flex flex-col items-center justify-between gap-4"
+                            className="flex-1 min-h-0 h-[calc(100dvh-3.5rem)] px-4 py-5 flex flex-col items-center justify-between gap-4 w-full max-w-lg mx-auto"
                             onClick={e => e.stopPropagation()}
                         >
                             <div className="w-full max-w-[620px] bg-slate-100 rounded-[1.75rem] p-5 sm:p-8 text-center">
@@ -523,104 +624,167 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                 )}
             </AnimatePresence>
 
-            <div className="h-screen max-w-[560px] mx-auto overflow-hidden flex flex-col bg-black text-white relative">
+            <div className="h-[100dvh] w-full flex flex-col overflow-hidden bg-black text-white">
 
-                {/* ── VERTICAL CAMERA SCANNER ── */}
+                {/* ── CAMERA (flex — no page scroll) ── */}
                 <div
-                    className="relative bg-black transition-all duration-500 ease-in-out"
-                    style={{ height: scannerExpanded ? '100vh' : '55vh' }}
+                    className={`relative min-h-0 bg-black transition-[flex] duration-300 ease-out ${
+                        scannerExpanded ? 'flex-[1_1_72%]' : 'flex-[1_1_52%]'
+                    }`}
                 >
                     <div id="qr-reader" className={`absolute inset-0 bg-black ${isScanning ? 'opacity-100' : 'opacity-0'}`} />
 
                     {!isScanning && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black">
+                        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-black px-6">
+                            <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/15 flex items-center justify-center">
+                                <ScanLine className="text-[#d4a547]" size={32} />
+                            </div>
+                            <p className="text-sm text-white/60 text-center max-w-[260px]">Allow camera access to scan COT ID, Entrust Card, or member QR codes.</p>
                             <button
                                 onClick={startScanner}
                                 disabled={!scannerInitialized}
-                                className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-black font-bold rounded-full shadow-lg disabled:opacity-50"
+                                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black text-sm font-bold rounded-full shadow-lg disabled:opacity-50"
                             >
-                                <Camera size={20} /> Open camera
+                                <Camera size={18} /> {scannerInitialized ? 'Open camera' : 'Loading scanner…'}
                             </button>
                         </div>
                     )}
 
-                    <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 pt-5">
+                    <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-4 pt-4 pb-2 safe-area-top">
                         <button
-                            onClick={stopScanner}
-                            className="w-11 h-11 rounded-full bg-black/25 backdrop-blur-sm text-white flex items-center justify-center active:scale-95 transition-transform"
+                            type="button"
+                            onClick={handleCloseScanner}
+                            className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center active:scale-95 transition-transform border border-white/10"
                             aria-label="Close scanner"
                         >
-                            <X size={28} />
+                            <X size={22} />
                         </button>
-                        <div className="flex items-center gap-3">
-                            {/* Flashlight toggle */}
+                        <div className="flex items-center gap-2.5">
                             <button
+                                type="button"
                                 onClick={handleTorchToggle}
                                 disabled={!torchSupported}
-                                className={`w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95 ${
+                                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-95 ${
                                     torchOn
-                                        ? 'bg-yellow-400 text-black shadow-lg shadow-yellow-400/50'
+                                        ? 'bg-yellow-400 text-black shadow-lg shadow-yellow-400/40'
                                         : torchSupported
-                                            ? 'bg-black/25 backdrop-blur-sm text-white hover:bg-white/20'
-                                            : 'bg-black/15 text-white/30 cursor-not-allowed'
+                                            ? 'bg-black/40 backdrop-blur-md text-white border border-white/10'
+                                            : 'bg-black/25 text-white/30 cursor-not-allowed border border-white/5'
                                 }`}
                                 aria-label={torchOn ? 'Turn off flashlight' : 'Turn on flashlight'}
-                                title={torchSupported ? (torchOn ? 'Tap to turn off flashlight' : 'Tap to turn on flashlight') : 'Flashlight not supported on this device'}
+                                title={torchSupported ? (torchOn ? 'Flashlight on' : 'Flashlight off') : 'Flashlight not available'}
                             >
-                                {torchOn ? <Flashlight size={25} /> : <FlashlightOff size={25} />}
+                                {torchOn ? <Flashlight size={20} /> : <FlashlightOff size={20} />}
                             </button>
-                            {/* Minimize / Maximize */}
                             <button
+                                type="button"
                                 onClick={handleScannerSizeToggle}
-                                className="w-11 h-11 rounded-full bg-black/25 backdrop-blur-sm text-white flex items-center justify-center active:scale-95 transition-transform hover:bg-white/20"
+                                className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center active:scale-95 border border-white/10"
                                 aria-label={scannerExpanded ? 'Minimize scanner' : 'Maximize scanner'}
                             >
-                                {scannerExpanded ? <Minimize2 size={22} /> : <Maximize2 size={22} />}
+                                {scannerExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
                             </button>
                             <button
+                                type="button"
                                 onClick={() => setShowMyQr(true)}
-                                className="w-11 h-11 rounded-full bg-black/25 backdrop-blur-sm text-white flex items-center justify-center active:scale-95 transition-transform hover:bg-white/20"
-                                aria-label="Show QR code"
+                                className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center active:scale-95 border border-white/10"
+                                aria-label={currentUser ? 'Show my COT ID QR code' : 'Show ministry website QR code'}
+                                title={currentUser ? 'My QR code' : 'Ministry website QR'}
                             >
-                                <QrCode size={27} />
+                                <QrCode size={20} />
                             </button>
                         </div>
                     </div>
 
-                    <div className="absolute left-1/2 top-[37%] z-10 w-[min(78vw,430px)] aspect-square -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                        <span className="absolute top-0 left-0 w-[18%] h-[18%] border-t-[8px] border-l-[8px] border-[#ff6b6b] rounded-tl-[28px]" />
-                        <span className="absolute top-0 right-0 w-[18%] h-[18%] border-t-[8px] border-r-[8px] border-[#ffb020] rounded-tr-[28px]" />
-                        <span className="absolute bottom-0 left-0 w-[18%] h-[18%] border-b-[8px] border-l-[8px] border-[#4f8cff] rounded-bl-[28px]" />
-                        <span className="absolute bottom-0 right-0 w-[18%] h-[18%] border-b-[8px] border-r-[8px] border-[#27c46b] rounded-br-[28px]" />
+                    <div className="absolute left-1/2 top-1/2 z-10 w-[min(72vw,300px)] aspect-square -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                        <span className="absolute top-0 left-0 w-[22%] h-[22%] border-t-[5px] border-l-[5px] border-[#ff6b6b] rounded-tl-2xl" />
+                        <span className="absolute top-0 right-0 w-[22%] h-[22%] border-t-[5px] border-r-[5px] border-[#ffb020] rounded-tr-2xl" />
+                        <span className="absolute bottom-0 left-0 w-[22%] h-[22%] border-b-[5px] border-l-[5px] border-[#4f8cff] rounded-bl-2xl" />
+                        <span className="absolute bottom-0 right-0 w-[22%] h-[22%] border-b-[5px] border-r-[5px] border-[#27c46b] rounded-br-2xl" />
+                        <div className="absolute inset-0 border border-white/10 rounded-2xl" />
                     </div>
 
-                    {/* Torch glow overlay */}
                     {torchOn && (
-                        <div className="absolute inset-0 z-5 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, rgba(255,240,100,0.07) 0%, transparent 65%)' }} />
+                        <div className="absolute inset-0 z-[5] pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, rgba(255,240,100,0.08) 0%, transparent 70%)' }} />
                     )}
 
-                    <label className="absolute left-1/2 bottom-[clamp(230px,31vh,340px)] z-20 -translate-x-1/2 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-lg sm:text-xl font-medium text-slate-700 shadow-xl cursor-pointer whitespace-nowrap">
-                        <Camera size={22} />
-                        Upload from gallery
-                        <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,.pdf" />
-                    </label>
-
-                    <div className="absolute inset-x-0 bottom-0 z-20 rounded-t-[34px] bg-[#232323] px-6 pt-5 pb-6 text-center shadow-2xl">
-                        <div className="mx-auto mb-4 h-1.5 w-16 rounded-full bg-white/70" />
-                        <p className="text-3xl sm:text-4xl font-medium leading-tight text-white">
-                            Scan any QR code
-                        </p>
-                        <p className="mt-2 text-xl sm:text-2xl font-medium leading-tight text-white/70">
-                            COT ID · Entrust Card · Member QR
-                        </p>
-                        <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.2em] text-white/40">
-                            {scannerAutoNotice}
-                        </p>
+                    <div className="absolute inset-x-0 bottom-3 z-20 flex justify-center px-4">
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-800 shadow-lg active:scale-[0.98] transition-transform"
+                        >
+                            <UploadCloud size={18} />
+                            Upload from gallery
+                        </button>
+                        <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} accept="image/*,.pdf" />
                     </div>
                 </div>
 
-                {/* ── RESULT / STATUS AREA ── */}
-                <div className="absolute inset-x-4 top-20 z-40 pointer-events-auto">
+                {/* ── INFO PANEL (fixed height) ── */}
+                <section
+                    className={`shrink-0 rounded-t-[28px] bg-[#232323] px-5 shadow-[0_-8px_32px_rgba(0,0,0,0.45)] transition-all duration-300 ${
+                        scannerExpanded ? 'pt-3 pb-3' : 'pt-4 pb-4'
+                    }`}
+                >
+                    <div className="mx-auto mb-3 h-1 w-12 rounded-full bg-white/50" />
+                    {!scannerExpanded && (
+                        <>
+                            <h1 className="text-center text-xl font-semibold leading-snug text-white">
+                                Scan any QR code
+                            </h1>
+                            <p className="mt-1 text-center text-sm text-white/65">
+                                COT ID · Entrust Card · Member QR
+                            </p>
+                        </>
+                    )}
+                    {scannerExpanded && (
+                        <p className="text-center text-sm font-medium text-white/80">Scan any QR code</p>
+                    )}
+                    <p className="mt-2 text-center text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">
+                        {scannerStatusLine}
+                    </p>
+                </section>
+
+                {/* ── FOOTER (fixed) ── */}
+                <footer className="shrink-0 bg-black border-t border-white/10 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                    <div className="flex items-center gap-2.5 mb-2.5">
+                        <img src="/logo.png" alt="" className="w-7 h-7 object-contain rounded-full bg-white/10 p-0.5" />
+                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/90">
+                            City of Truth Ministries © {new Date().getFullYear()}
+                        </p>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.16em] text-white/55">
+                        <button type="button" className="hover:text-white transition-colors">Privacy Seal</button>
+                        <button type="button" className="hover:text-white transition-colors">Digital Covenant</button>
+                    </div>
+                </footer>
+            </div>
+
+            {/* ── RESULT OVERLAY (modal — scanner stays fixed behind) ── */}
+            <AnimatePresence>
+                {showResultOverlay && (
+                    <motion.div
+                        key="verify-overlay"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-sm p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+                        onClick={() => {
+                            if (loading) return;
+                            setUser(null);
+                            setError(null);
+                            setScannedId(null);
+                            if (!isScanning && scannerInitialized) startScanner();
+                        }}
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, y: 24 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 16 }}
+                            onClick={e => e.stopPropagation()}
+                            className="w-full max-w-md max-h-[min(82dvh,640px)] overflow-y-auto no-scrollbar rounded-[24px] border border-white/10 bg-[#0d1635] shadow-2xl"
+                        >
                 <AnimatePresence mode="wait">
                     {loading && (
                         <motion.div
@@ -628,7 +792,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                             initial={{ opacity: 0, y: 16 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -16 }}
-                            className="flex flex-col items-center gap-5 py-16 text-center"
+                            className="flex flex-col items-center gap-5 p-8 text-center"
                         >
                             <div className="relative w-20 h-20">
                                 <div className="absolute inset-0 rounded-full border-4 border-[#d4a547]/20 animate-pulse" />
@@ -650,7 +814,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                             initial={{ opacity: 0, y: 16, scale: 0.97 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: -16 }}
-                            className="bg-red-500/10 backdrop-blur-xl border border-red-400/25 rounded-[24px] p-8 text-center max-w-xl mx-auto shadow-2xl shadow-red-900/20"
+                            className="p-6 text-center"
                         >
                             <div className="w-16 h-16 bg-red-500/15 border border-red-400/30 rounded-full flex items-center justify-center mx-auto mb-5">
                                 <XCircle className="text-red-400 w-8 h-8" />
@@ -699,16 +863,16 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                                 <div className="ml-auto">{statusIcon(user.status)}</div>
                             </div>
 
-                            <div className="p-6 flex flex-col md:flex-row gap-8 items-center">
+                            <div className="p-5 flex flex-col gap-5 items-center">
                                 {/* Photo */}
                                 <div className="relative shrink-0">
                                     <div className={`absolute -inset-2 rounded-full blur-xl opacity-30 ${
                                         user.status === 'Active' ? 'bg-green-400' : user.status === 'Rejected' ? 'bg-red-400' : 'bg-amber-400'
                                     }`} />
-                                    <div className="w-36 h-36 rounded-full overflow-hidden border-4 border-white/20 shadow-2xl relative z-10">
+                                    <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white/20 shadow-2xl relative z-10">
                                         {user.photo
                                             ? <img src={user.photo} alt={user.name} className="w-full h-full object-cover" />
-                                            : <div className="w-full h-full bg-white/10 flex items-center justify-center text-5xl font-black text-white/50">{user.name.charAt(0).toUpperCase()}</div>
+                                            : <div className="w-full h-full bg-white/10 flex items-center justify-center text-3xl font-black text-white/50">{user.name.charAt(0).toUpperCase()}</div>
                                         }
                                     </div>
                                     <div className={`absolute -bottom-1 -right-1 z-20 p-2 rounded-full border-4 border-[#0d1635] ${
@@ -719,9 +883,9 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                                 </div>
 
                                 {/* Info */}
-                                <div className="flex-1 text-center md:text-left">
-                                    <h4 className="text-3xl font-black text-white tracking-tight mb-1">{user.name}</h4>
-                                    <p className={`font-bold text-base mb-4 ${
+                                <div className="w-full text-center">
+                                    <h4 className="text-xl font-black text-white tracking-tight mb-1">{user.name}</h4>
+                                    <p className={`font-bold text-sm mb-3 ${
                                         user.status === 'Active' ? 'text-green-400' : user.status === 'Rejected' ? 'text-red-400' : 'text-amber-400'
                                     }`}>{user.role || 'Worshipper'}</p>
 
@@ -785,9 +949,10 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                         </motion.div>
                     )}
                 </AnimatePresence>
-
-            </div>
-        </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

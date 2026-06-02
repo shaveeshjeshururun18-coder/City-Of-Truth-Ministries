@@ -56,7 +56,7 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
     const letterCount = HEBREW_LETTERS.length;
 
     return (
-        <div className="min-h-screen bg-[#000000] text-[#e5e5e5] pb-24 overflow-hidden relative">
+        <div className="min-h-[100dvh] w-full bg-[#000000] text-[#e5e5e5] pb-24 overflow-x-hidden relative">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/5 via-white/0 to-transparent pointer-events-none"></div>
             
             {onBack && (
@@ -69,7 +69,7 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                 </button>
             )}
 
-            <div className="container mx-auto px-6 max-w-6xl relative z-10 pt-24 md:pt-28">
+            <div className="w-full mx-auto px-4 sm:px-6 max-w-6xl relative z-10 pt-24 md:pt-28">
                 <header className="text-center mb-16 space-y-4">
                     <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="w-20 h-20 md:w-24 md:h-24 mx-auto bg-gradient-to-br from-white/10 to-white/5 rounded-full flex items-center justify-center border border-white/15 shadow-[0_0_40px_rgba(255,255,255,0.08)] mb-6">
                         <Scroll size={36} strokeWidth={1.5} className="text-white/80" />

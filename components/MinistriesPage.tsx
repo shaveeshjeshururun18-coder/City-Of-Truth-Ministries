@@ -62,11 +62,11 @@ export const MinistriesPage: React.FC = () => {
         return parsed.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     };
     const dynamicMediaDateOptions = useMemo(() => {
-        const uniqueDates = Array.from(
+        const uniqueDates = Array.from<string>(
             new Set(
                 visibleDynamicMinistries
                     .map((m) => (m.date || '').trim())
-                    .filter(Boolean)
+                    .filter(Boolean) as string[]
             )
         );
         return uniqueDates.sort((a, b) => {
@@ -78,11 +78,11 @@ export const MinistriesPage: React.FC = () => {
         });
     }, [visibleDynamicMinistries]);
     const dynamicMediaCategoryOptions = useMemo(() => {
-        const categories = Array.from(
+        const categories = Array.from<string>(
             new Set(
                 visibleDynamicMinistries
                     .map((m) => (m.category || '').trim())
-                    .filter(Boolean)
+                    .filter(Boolean) as string[]
             )
         );
         return categories.sort((a, b) => a.localeCompare(b));

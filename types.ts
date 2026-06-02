@@ -34,6 +34,8 @@ export enum ViewState {
 export interface NavItem {
   label: string;
   view: ViewState;
+  href?: string;
+  hidden?: boolean;
   submenu?: NavItem[];
 }
 
@@ -74,7 +76,12 @@ export interface User {
     role?: string;
     bio?: string;
     district?: string;
+    status?: 'Pending' | 'Approved' | 'Rejected';
   };
+  cardThemeTone?: 'blue' | 'purple' | 'green' | 'red' | 'gold';
+  cardLayoutMode?: 'classic' | 'compact' | 'wide';
+  cardShapeMode?: 'rounded' | 'soft' | 'sharp';
+  cardSizeMode?: 'sm' | 'md' | 'lg';
 }
 
 export interface DeletedUser extends User {
@@ -89,6 +96,14 @@ export interface SubProfile {
   photo?: string;
   dob?: string;
   bloodGroup?: string;
+  communityProfile?: {
+    denomination?: string;
+    churchName?: string;
+    role?: string;
+    bio?: string;
+    district?: string;
+    status?: 'Pending' | 'Approved' | 'Rejected';
+  };
 }
 
 export interface MemberData {

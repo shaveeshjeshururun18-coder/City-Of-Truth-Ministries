@@ -264,11 +264,41 @@ export const HebrewWordHub: React.FC = () => {
                     img.onload = () => resolve();
                     img.onerror = () => reject(new Error('Failed to load export image'));
                 });
-                // Create PDF page exactly sized to the image (no white gap)
+                // Create PDF page exactly sized to image + copyright footer (no white gap)
                 const A4_W_MM = 210;
-                const pdfH = (img.height * A4_W_MM) / img.width;
-                const pdf = new jsPDF({ orientation: pdfH > A4_W_MM ? 'portrait' : 'landscape', unit: 'mm', format: [A4_W_MM, pdfH] });
-                pdf.addImage(dataUrl, 'JPEG', 0, 0, A4_W_MM, pdfH);
+                const footerH = 18;
+                const imgH = (img.height * A4_W_MM) / img.width;
+                const totalH = imgH + footerH;
+                const pdf = new jsPDF({ orientation: totalH > A4_W_MM ? 'portrait' : 'landscape', unit: 'mm', format: [A4_W_MM, totalH] });
+
+                // Dark background
+                pdf.setFillColor(2, 6, 23);
+                pdf.rect(0, 0, A4_W_MM, totalH, 'F');
+
+                pdf.addImage(dataUrl, 'JPEG', 0, 0, A4_W_MM, imgH);
+
+                // Copyright footer
+                pdf.setFillColor(15, 23, 42);
+                pdf.rect(0, imgH, A4_W_MM, footerH, 'F');
+
+                pdf.setDrawColor(217, 119, 6);
+                pdf.setLineWidth(0.4);
+                pdf.line(10, imgH + 0.5, A4_W_MM - 10, imgH + 0.5);
+
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(8);
+                pdf.setTextColor(251, 191, 36);
+                pdf.text('CITY OF TRUTH MINISTRIES', A4_W_MM / 2, imgH + 6, { align: 'center' });
+
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(6.5);
+                pdf.setTextColor(148, 163, 184);
+                pdf.text(`© ${new Date().getFullYear()} City of Truth Ministries. All rights reserved.`, A4_W_MM / 2, imgH + 11, { align: 'center' });
+
+                pdf.setFontSize(6);
+                pdf.setTextColor(100, 116, 139);
+                pdf.text('www.cityoftruthministries.com', A4_W_MM / 2, imgH + 15.5, { align: 'center' });
+
                 pdf.save(`${filename}.pdf`);
             }
         } catch (err) {

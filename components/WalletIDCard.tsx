@@ -22,7 +22,7 @@ export const WalletIDCard: React.FC<WalletIDCardProps> = ({ id, status, onDownlo
 
     // Use the same production QR URL pattern used everywhere else in the app
     const verificationUrl = `https://city-of-truth-ministries.vercel.app/verify/${id}`;
-    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(verificationUrl)}&bgcolor=ffffff&color=${status === 'Active' ? '1e1b4b' : '94a3b8'}&margin=4&format=png`;
+    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(verificationUrl)}&bgcolor=ffffff&color=${status === 'Active' ? '1e1b4b' : '94a3b8'}&margin=0&format=png`;
 
     return (
         <div className="w-full mx-auto bg-[#F9F7F5] rounded-3xl p-4 shadow-xl shadow-brand-900/10 flex flex-col gap-4 border border-brand-100">

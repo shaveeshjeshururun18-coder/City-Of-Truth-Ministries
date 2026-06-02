@@ -182,6 +182,8 @@ interface MemberNotification {
   from: 'admin' | 'user';
   message: string;
   createdAt: string;
+  kind?: 'message' | 'approved' | 'disapproved' | 'recycle' | 'recycle-removed' | 'leader';
+  ctaView?: ViewState;
   read?: boolean;
   deletedAt?: string;
   autoDeleteAt?: string;
@@ -202,10 +204,16 @@ const isRecycleMessageAlive = (item: { autoDeleteAt?: string }) => {
   return Number.isFinite(expiresAt) ? expiresAt > Date.now() : true;
 };
 
-const HEBREW_RESOURCE_SUBMENU: NavItem[] = HEBREW_PAGES.filter(p => p.type === 'content').map(p => ({
+const HEBREW_RESOURCE_SUBMENU: NavItem[] = HEBREW_PAGES.filter(p => p.type === 'content' && !p.isStandalone).map(p => ({
   label: p.label,
   view: p.view
 }));
+
+const HEBREW_ALPHABET_NAV: NavItem = {
+  label: 'ALPHABET',
+  view: ViewState.HOME,
+  href: '/hebrew-alphabet',
+};
 
 const HEBREW_TOOLS_SUBMENU: NavItem[] = HEBREW_PAGES.filter(p => p.type === 'tools').map(p => ({
   label: p.label,
@@ -214,7 +222,10 @@ const HEBREW_TOOLS_SUBMENU: NavItem[] = HEBREW_PAGES.filter(p => p.type === 'too
 
 const withHebrewResourceSubmenu = (items: NavItem[]): NavItem[] =>
   items
-  .filter(item => String(item.label || '').toUpperCase().trim() !== 'ALPHABETS')
+  .filter(item => {
+    const label = String(item.label || '').toUpperCase().trim();
+    return label !== 'ALPHABETS' && label !== 'ALPHABET';
+  })
   .map(item => {
     const labelUpper = String(item.label || '').toUpperCase().trim();
     if (labelUpper === 'HEBREW CONTENT' || labelUpper === 'HEBREW RESOURCES' || labelUpper === 'HEBREW') {
@@ -256,15 +267,19 @@ const normalizeNavItems = (items: unknown): NavItem[] => {
     .map((item) => {
       const label = typeof item.label === 'string' && item.label.trim() ? item.label : 'HOME';
       const view = normalizeViewState(item.view, ViewState.HOME);
+      const href = typeof (item as { href?: unknown }).href === 'string' && (item as { href: string }).href.trim()
+        ? (item as { href: string }).href.trim()
+        : undefined;
       const submenu = Array.isArray(item.submenu)
         ? item.submenu
-            .filter((sub): sub is { label?: unknown; view?: unknown } => !!sub && typeof sub === 'object')
+            .filter((sub): sub is { label?: unknown; view?: unknown; href?: unknown } => !!sub && typeof sub === 'object')
             .map((sub) => ({
               label: typeof sub.label === 'string' && sub.label.trim() ? sub.label : label,
               view: normalizeViewState(sub.view, view),
+              href: typeof sub.href === 'string' && sub.href.trim() ? sub.href.trim() : undefined,
             }))
         : undefined;
-      return { label, view, submenu };
+      return { label, view, href, submenu };
     });
 };
 
@@ -280,7 +295,13 @@ const ensureHebrewNavItems = (items: NavItem[]): NavItem[] => {
   if (!hasHebrewTools) {
     next.splice(2, 0, { label: 'HEBREW TOOLS', view: ViewState.HEBREW_TOOLS, submenu: HEBREW_TOOLS_SUBMENU });
   }
-  return withHebrewResourceSubmenu(next);
+  const withMenus = withHebrewResourceSubmenu(next);
+  const hasAlphabetNav = withMenus.some(item => item.href === '/hebrew-alphabet');
+  if (!hasAlphabetNav) {
+    const insertAt = Math.min(2, withMenus.length);
+    withMenus.splice(insertAt, 0, HEBREW_ALPHABET_NAV);
+  }
+  return withMenus;
 };
 
 const DEFAULT_HOME_SECTIONS_ORDER = ['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'hebrewPages', 'pastorBaruch', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'verify'];
@@ -475,6 +496,7 @@ const App: React.FC = () => {
 
   const [navigationItems, setNavigationItems] = useState<NavItem[]>(ensureHebrewNavItems([
     { label: 'HOME', view: ViewState.HOME },
+    HEBREW_ALPHABET_NAV,
     {
       label: 'HEBREW RESOURCES',
       view: ViewState.ABOUT,
@@ -503,6 +525,7 @@ const App: React.FC = () => {
       return [];
     }
   });
+  const [dismissedFloatingNotificationId, setDismissedFloatingNotificationId] = useState<string | null>(null);
   const [deletedContactMessages, setDeletedContactMessages] = useState<ContactMessage[]>(() => {
     try {
       const saved = localStorage.getItem('cot_deleted_contact_messages');
@@ -535,12 +558,52 @@ const App: React.FC = () => {
     }
   });
 
+  const [homeSectionsHidden, setHomeSectionsHidden] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('cot_home_sections_hidden');
+      const parsed = saved ? JSON.parse(saved) : {};
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  });
+
   useEffect(() => {
     const nextOrder = normalizeHomeSectionsOrder(homeSectionsOrder);
     if (JSON.stringify(nextOrder) === JSON.stringify(homeSectionsOrder)) return;
     setHomeSectionsOrder(nextOrder);
     localStorage.setItem('cot_home_sections_order', JSON.stringify(nextOrder));
   }, [homeSectionsOrder]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cot_home_sections_hidden', JSON.stringify(homeSectionsHidden || {}));
+    } catch {
+      // ignore quota/storage errors
+    }
+  }, [homeSectionsHidden]);
+
+  const isFrame = typeof window !== 'undefined' && window.self !== window.top;
+
+  // Listen for admin preview messages (sections reordering and navigation)
+  useEffect(() => {
+    const handleAdminMessage = (event: MessageEvent) => {
+      const { action, order, view, source } = event.data || {};
+      if (source === 'admin-dashboard') {
+        console.log('Received admin preview message:', event.data);
+        if (action === 'admin-connected') {
+          console.log('Admin dashboard connected in iframe mode');
+        } else if (action === 'update-sections-order' && Array.isArray(order)) {
+          setHomeSectionsOrder(order);
+        } else if (action === 'navigate' && view) {
+          setCurrentView(normalizeViewState(view));
+        }
+      }
+    };
+
+    window.addEventListener('message', handleAdminMessage);
+    return () => window.removeEventListener('message', handleAdminMessage);
+  }, []);
 
   useEffect(() => {
     if (currentView === ViewState.USER_DASHBOARD && !currentUser) {
@@ -657,10 +720,40 @@ const App: React.FC = () => {
       from: 'admin',
       message: trimmed,
       createdAt,
+      kind: 'message',
+      ctaView: ViewState.USER_DASHBOARD,
       read: false
     }));
 
     setMemberNotifications(prev => [...nextNotifications, ...prev].slice(0, 1000));
+  };
+
+  const pushAdminNotification = (
+    userId: string,
+    message: string,
+    kind: MemberNotification['kind'] = 'message',
+    ctaView: ViewState = ViewState.USER_DASHBOARD
+  ) => {
+    const trimmed = message.trim();
+    if (!trimmed || !userId) return;
+    const createdAt = new Date().toISOString();
+    const next: MemberNotification = {
+      id: `NTF-AUTO-${Date.now()}-${Math.floor(Math.random() * 1000)}-${userId}`,
+      userId,
+      from: 'admin',
+      message: trimmed,
+      createdAt,
+      kind,
+      ctaView,
+      read: false
+    };
+    setMemberNotifications(prev => [next, ...prev].slice(0, 1000));
+  };
+
+  const getRecycleDaysRemaining = (autoDeleteAt?: string) => {
+    if (!autoDeleteAt) return 0;
+    const diff = new Date(autoDeleteAt).getTime() - Date.now();
+    return Math.max(0, Math.ceil(diff / (24 * 60 * 60 * 1000)));
   };
 
   const handleUserReplyToAdmin = (userId: string, message: string) => {
@@ -782,6 +875,18 @@ const App: React.FC = () => {
         }
       } catch (error) {
         console.error('Failed to fetch remote home layout:', error);
+      }
+
+      try {
+        if (api.getHomeSectionsHidden) {
+          const remoteHidden = await api.getHomeSectionsHidden();
+          if (remoteHidden) {
+            setHomeSectionsHidden(remoteHidden);
+            localStorage.setItem('cot_home_sections_hidden', JSON.stringify(remoteHidden));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch remote home sections hidden:', error);
       }
     };
     fetchLayout();
@@ -919,6 +1024,21 @@ const App: React.FC = () => {
             } else if (me.status !== currentUser.status) {
               setCurrentUser(me);
             }
+          } else if (currentUser.role !== 'Admin') {
+            console.warn("⚠️ Current logged-in user not found in active users during status polling. Checking deleted/recycle bin...");
+            const removedUsers = await api.getDeletedUsers();
+            const isDeleted = removedUsers.some(u => u.id === currentUser.id);
+            
+            setCurrentUser(null);
+            setSelectedDashboardProfileId(null);
+            setCurrentView(ViewState.HOME);
+            localStorage.removeItem('cot_current_user');
+            
+            if (isDeleted) {
+              alert("Your account was moved to the recycle bin by the administrative team. Access is restricted.");
+            } else {
+              alert("Your account has been deleted permanently. Access is restricted.");
+            }
           }
         } catch (e) { /* silent */ }
       };
@@ -944,18 +1064,60 @@ const App: React.FC = () => {
     }
   }, [currentView, currentUser?.status]);
 
+  const activeFloatingNotification = currentUser
+    ? memberNotifications.find(note => note.userId === currentUser.id && note.from === 'admin' && !note.read)
+    : null;
+
+  useEffect(() => {
+    if (!activeFloatingNotification) {
+      setDismissedFloatingNotificationId(null);
+      return;
+    }
+    if (dismissedFloatingNotificationId === activeFloatingNotification.id) return;
+    const timer = window.setTimeout(() => {
+      setDismissedFloatingNotificationId(activeFloatingNotification.id);
+    }, 60_000);
+    return () => window.clearTimeout(timer);
+  }, [activeFloatingNotification?.id, dismissedFloatingNotificationId]);
+
   // Load users from backend on mount
+  // Load users and perform dynamic session validation on mount/updates
   useEffect(() => {
     const loadUsers = async () => {
-      const [activeUsers, removedUsers] = await Promise.all([
-        api.getUsers(),
-        api.getDeletedUsers()
-      ]);
-      setUsers(activeUsers);
-      setDeletedUsers(removedUsers);
+      try {
+        const [activeUsers, removedUsers] = await Promise.all([
+          api.getUsers(),
+          api.getDeletedUsers()
+        ]);
+        setUsers(activeUsers);
+        setDeletedUsers(removedUsers);
+
+        // Dynamic session check: If a member is logged in, verify they still exist and are active in the database
+        if (currentUser && currentUser.role !== 'Admin') {
+          const stillExists = activeUsers.some(u => u.id === currentUser.id);
+          const isDeleted = removedUsers.some(u => u.id === currentUser.id);
+          const freshUser = activeUsers.find(u => u.id === currentUser.id);
+          const isDisapproved = freshUser?.status === 'Rejected';
+
+          if (!stillExists || isDeleted || isDisapproved) {
+            console.warn("⚠️ Logged-in session user no longer exists in database, is deleted, or is disapproved. Logging out...");
+            setCurrentUser(null);
+            setSelectedDashboardProfileId(null);
+            setCurrentView(ViewState.HOME);
+            localStorage.removeItem('cot_current_user');
+            if (isDisapproved) {
+              alert("Your account verification has been disapproved by the administrative team. Access is restricted.");
+            } else {
+              alert("Your account has been deleted permanently. Access is restricted.");
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load users for session check:", err);
+      }
     };
     loadUsers();
-  }, []);
+  }, [currentUser]);
 
   // Persist currentUser to localStorage whenever it changes
   useEffect(() => {
@@ -1190,9 +1352,13 @@ const App: React.FC = () => {
       status: 'Pending Verification',
       location: data.location,
       emergency: data.emergency,
-      memberSince: new Date().toLocaleDateString('en-GB'),
+      memberSince: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }),
       joinedDate: new Date().toISOString().split('T')[0],
-      photo: data.photo || ''
+      photo: data.photo || '',
+      cardThemeTone: data.cardThemeTone || 'blue',
+      cardLayoutMode: data.cardLayoutMode || 'classic',
+      cardShapeMode: data.cardShapeMode || 'rounded',
+      cardSizeMode: data.cardSizeMode || 'md'
     };
 
     try {
@@ -1275,9 +1441,20 @@ const App: React.FC = () => {
 
   const handleDeleteUser = async (userId: string) => {
     try {
+      const target = users.find(u => u.id === userId);
       await api.deleteUser(userId);
       setUsers(users.filter(u => u.id !== userId));
-      setDeletedUsers(await api.getDeletedUsers());
+      const removedUsers = await api.getDeletedUsers();
+      setDeletedUsers(removedUsers);
+      const deletedMeta = removedUsers.find(u => u.id === userId);
+      if (target) {
+        const daysLeft = getRecycleDaysRemaining(deletedMeta?.autoDeleteAt);
+        pushAdminNotification(
+          target.id,
+          `Your account was moved to recycle bin by admin. It will be permanently deleted in ${daysLeft} day${daysLeft === 1 ? '' : 's'} unless restored.`,
+          'recycle'
+        );
+      }
       if (currentUser?.id === userId) {
         handleLogout();
       }
@@ -1298,8 +1475,13 @@ const App: React.FC = () => {
   };
 
   const handlePermanentlyDeleteDeletedUser = async (userId: string) => {
+    const target = deletedUsers.find(u => u.id === userId);
     await api.permanentlyDeleteDeletedUser(userId);
     setDeletedUsers(await api.getDeletedUsers());
+    setMemberNotifications(prev => prev.filter(note => note.userId !== userId));
+    if (target) {
+      setDeletedMemberNotifications(prev => prev.filter(note => note.userId !== target.id));
+    }
     if (currentUser?.id === userId) {
       handleLogout();
     }
@@ -1330,9 +1512,9 @@ const App: React.FC = () => {
     }
   };
 
-  const footerMainPages: Array<{ label: string; view: ViewState }> = [
+  const footerMainPages: Array<{ label: string; view?: ViewState; href?: string }> = [
     { label: 'Home', view: ViewState.HOME },
-    { label: 'Alphabets', view: ViewState.HEBREW },
+    { label: 'Hebrew Alphabet', href: '/hebrew-alphabet' },
     { label: 'Valparai', view: ViewState.ABOUT_VALPARAI },
     { label: 'Pastor', view: ViewState.PASTOR },
     { label: 'Ministries', view: ViewState.MINISTRIES },
@@ -1343,7 +1525,8 @@ const App: React.FC = () => {
     { label: 'Contact', view: ViewState.CONTACT },
   ];
 
-  const footerHebrewContentPages: Array<{ label: string; view: ViewState }> = [
+  const footerHebrewContentPages: Array<{ label: string; view?: ViewState; href?: string }> = [
+    { label: 'Hebrew Alphabet', href: '/hebrew-alphabet' },
     { label: 'Hebrew Content Hub', view: ViewState.ABOUT },
     { label: 'Festivals & Holy Days', view: ViewState.HEBREW_FESTIVALS },
     { label: 'Biblical Calendar', view: ViewState.HEBREW_CALENDAR },
@@ -1407,8 +1590,29 @@ const App: React.FC = () => {
         onDeleteMemberNotification={handleDeleteMemberNotification}
         onRestoreMemberNotification={handleRestoreMemberNotification}
         onUpdateUser={async (user) => {
+          const prevUser = users.find(u => u.id === user.id);
           await api.updateUser(user);
           setUsers(prev => prev.map(u => u.id === user.id ? user : u));
+          if (prevUser && prevUser.status !== user.status) {
+            if (user.status === 'Active') {
+              pushAdminNotification(
+                user.id,
+                "Approved! Welcome to City of Truth Ministries. Please fill your Member Form now to complete your profile.",
+                'approved'
+              );
+              pushAdminNotification(
+                user.id,
+                "Leader Message: Congratulations! Please complete your Member Form beautifully to unlock all ministry features.",
+                'leader'
+              );
+            } else if (user.status === 'Rejected') {
+              pushAdminNotification(
+                user.id,
+                "Your account was disapproved by admin. Please review the disapproval reason, update details, and contact support.",
+                'disapproved'
+              );
+            }
+          }
         }}
         onCreateUser={async (user) => {
           const created = await api.createUser(user);
@@ -1420,6 +1624,7 @@ const App: React.FC = () => {
         onPermanentlyDeleteUser={handlePermanentlyDeleteDeletedUser}
         onBack={handleBackFromAdmin}
         homeSectionsOrder={homeSectionsOrder}
+        homeSectionsHidden={homeSectionsHidden}
         onUpdateHomeSectionsOrder={async (newOrder) => {
           setHomeSectionsOrder(newOrder);
           localStorage.setItem('cot_home_sections_order', JSON.stringify(newOrder));
@@ -1427,6 +1632,17 @@ const App: React.FC = () => {
             await api.updateHomeLayout(newOrder);
           } catch (error) {
             console.error('Failed to save layout to cloud:', error);
+          }
+        }}
+        onUpdateHomeSectionsHidden={async (nextHidden) => {
+          setHomeSectionsHidden(nextHidden);
+          localStorage.setItem('cot_home_sections_hidden', JSON.stringify(nextHidden || {}));
+          try {
+            if (api.updateHomeSectionsHidden) {
+              await api.updateHomeSectionsHidden(nextHidden);
+            }
+          } catch (error) {
+            console.error('Failed to save hidden sections to cloud:', error);
           }
         }}
         navItems={navigationItems}
@@ -1467,6 +1683,7 @@ const App: React.FC = () => {
         onAdminClick={() => navigate('/admin')}
         onBack={() => navigate('/')}
         users={users}
+        sessionUser={currentUser ? { id: currentUser.id, name: currentUser.name, photo: currentUser.photo } : null}
         initialView={initialView}
         initialIdentifier={routeIdentifier}
         initialAction={routeAction === 'scan' || routeAction === 'upload' ? routeAction : undefined}
@@ -1484,14 +1701,58 @@ const App: React.FC = () => {
 
   return (
     <div className={`min-h-screen transition-colors duration-1000 ease-in-out font-sans ${getThemeClass()}`}>
-      <Navbar
-        currentView={currentView}
-        setView={(view) => setCurrentView(normalizeViewState(view))}
-        onLoginClick={() => navigate('/auth?view=login')}
-        onLogoutClick={handleLogout}
-        currentUser={currentUser}
-        navItems={navigationItems}
-      />
+      {!isFrame && (
+        <>
+          <Navbar
+            currentView={currentView}
+            setView={(view) => setCurrentView(normalizeViewState(view))}
+            onLoginClick={() => navigate('/auth?view=login')}
+            onLogoutClick={handleLogout}
+            currentUser={currentUser}
+            navItems={navigationItems}
+          />
+
+          {activeFloatingNotification && dismissedFloatingNotificationId !== activeFloatingNotification.id && (
+            <div className="fixed top-20 right-3 sm:right-6 z-[95] w-[min(92vw,420px)]">
+              <button
+                type="button"
+                onClick={() => {
+                  if (currentUser?.status === 'Rejected') {
+                    alert(REJECTED_ACCESS_MESSAGE);
+                    return;
+                  }
+                  setDashboardFocusSection('notifications');
+                  setCurrentView(ViewState.USER_DASHBOARD);
+                  setDismissedFloatingNotificationId(activeFloatingNotification.id);
+                }}
+                className="w-full text-left rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50 via-white to-violet-50 shadow-2xl px-4 py-3 hover:shadow-indigo-200/60 transition-all"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                    🔔
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-indigo-700">
+                      {activeFloatingNotification.kind === 'approved' ? 'Account Approved' : activeFloatingNotification.kind === 'disapproved' ? 'Account Disapproved' : 'Admin Notification'}
+                    </p>
+                    <p className="text-sm font-semibold text-slate-800 whitespace-pre-wrap break-words">{activeFloatingNotification.message}</p>
+                    <p className="text-[10px] mt-1 text-slate-500 uppercase tracking-[0.12em]">Tap to open dashboard • auto close in 1 min</p>
+                  </div>
+                  <span
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setDismissedFloatingNotificationId(activeFloatingNotification.id);
+                    }}
+                    className="inline-flex w-6 h-6 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-white"
+                  >
+                    ✕
+                  </span>
+                </div>
+              </button>
+            </div>
+          )}
+        </>
+      )}
 
       <main className="relative">
         <AnimatePresence mode="wait">
@@ -1503,6 +1764,7 @@ const App: React.FC = () => {
                 onAdminClick={() => navigate('/admin')}
                 onBack={() => setCurrentView(ViewState.HOME)}
                 users={users}
+                sessionUser={currentUser ? { id: currentUser.id, name: currentUser.name, photo: currentUser.photo } : null}
                 initialView={authInitialView}
                 initialIdentifier=""
               />
@@ -1514,7 +1776,45 @@ const App: React.FC = () => {
               key="home"
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
             >
+              {/* Recycle Bin Notice Floating Banner */}
+              {!isFrame && deletedUsers && deletedUsers.length > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -50, x: '-50%' }}
+                  animate={{ opacity: 1, y: 0, x: '-50%' }}
+                  transition={{ type: 'spring', damping: 15 }}
+                  className="fixed top-24 left-1/2 z-50 w-[90%] max-w-lg"
+                >
+                  <div className="bg-gradient-to-r from-red-950/95 via-[#2a080c]/95 to-red-950/95 border border-red-500/40 text-white rounded-3xl px-5 py-3.5 shadow-[0_20px_50px_rgba(239,68,68,0.3)] backdrop-blur-xl flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-2xl bg-red-500/20 flex items-center justify-center text-red-400 border border-red-500/40 shrink-0">
+                        <AlertCircle size={18} className="animate-pulse" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-400">Recycle Bin Notice</p>
+                        <p className="text-[11px] font-bold text-red-100 truncate">
+                          {deletedUsers.length} {deletedUsers.length === 1 ? 'member' : 'members'} scheduled for permanent deletion.
+                        </p>
+                      </div>
+                    </div>
+                    {currentUser?.role === 'Admin' ? (
+                      <button
+                        onClick={() => {
+                          setCurrentView(ViewState.ADMIN_DASHBOARD);
+                          navigate('/admin');
+                        }}
+                        className="bg-gradient-to-r from-red-600 to-rose-600 hover:brightness-110 active:scale-95 px-3 py-2 rounded-2xl text-[9px] font-black uppercase tracking-wider transition-all shrink-0 shadow-lg shadow-red-500/25 border-none cursor-pointer"
+                      >
+                        Manage Bin
+                      </button>
+                    ) : (
+                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping shrink-0" />
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
               {homeSectionsOrder.map((sectionId) => {
+                if (homeSectionsHidden?.[sectionId]) return null;
                 switch (sectionId) {
                   case 'hero':
                     return (
@@ -1876,12 +2176,6 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {currentView === ViewState.HEBREW && (
-            <div key="alphabet">
-              <HebrewAlphabetPage onBack={() => setCurrentView(ViewState.HOME)} />
-            </div>
-          )}
-
           {currentView === ViewState.ABOUT_VALPARAI && (
             <motion.div key="valparai" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <ValparaiPage />
@@ -1939,9 +2233,30 @@ const App: React.FC = () => {
                 onDeleteMemberNotification={handleDeleteMemberNotification}
                 onRestoreMemberNotification={handleRestoreMemberNotification}
                 onUpdateUser={async (user) => {
+                  const prevUser = users.find(u => u.id === user.id);
                   await api.updateUser(user);
                   setUsers(prev => prev.map(u => u.id === user.id ? user : u));
                   setCurrentUser(prev => prev && prev.id === user.id ? user : prev);
+                  if (prevUser && prevUser.status !== user.status) {
+                    if (user.status === 'Active') {
+                      pushAdminNotification(
+                        user.id,
+                        "Approved! Welcome to City of Truth Ministries. Please fill your Member Form now to complete your profile.",
+                        'approved'
+                      );
+                      pushAdminNotification(
+                        user.id,
+                        "Leader Message: Congratulations! Please complete your Member Form beautifully to unlock all ministry features.",
+                        'leader'
+                      );
+                    } else if (user.status === 'Rejected') {
+                      pushAdminNotification(
+                        user.id,
+                        "Your account was disapproved by admin. Please review the disapproval reason, update details, and contact support.",
+                        'disapproved'
+                      );
+                    }
+                  }
                 }}
                 onDeleteUser={async (userId) => {
                   await handleDeleteUser(userId);
@@ -1978,6 +2293,7 @@ const App: React.FC = () => {
             <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <UserDashboard
                 user={currentUser}
+                allUsers={users}
                 initialProfileId={selectedDashboardProfileId || undefined}
                 onEdit={() => { }}
                 onLogout={handleLogout}
@@ -2031,9 +2347,17 @@ const App: React.FC = () => {
 
 
           {currentView === ViewState.VERIFY_ID && (
-            <motion.div key="verify-id" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <VerifyIDPage />
-            </motion.div>
+            <VerifyIDPage 
+              currentUser={currentUser} 
+              onProceedToDashboard={handleLogin} 
+              onClose={() => {
+                if (currentUser) {
+                  setCurrentView(ViewState.USER_DASHBOARD);
+                } else {
+                  setCurrentView(ViewState.HOME);
+                }
+              }}
+            />
           )}
 
           {currentView === ViewState.MEMBER_FORM && currentUser && (
@@ -2307,7 +2631,9 @@ const App: React.FC = () => {
 
         </AnimatePresence>
       </main>
-      <footer className="bg-brand-950 text-white pt-32 pb-16 relative overflow-hidden">
+      {!isFrame && (
+        <>
+          <footer className="bg-brand-950 text-white pt-32 pb-16 relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10"></div>
         <div className="absolute bottom-0 left-0 w-full h-[500px] bg-gradient-to-t from-black/80 to-transparent"></div>
 
@@ -2344,7 +2670,10 @@ const App: React.FC = () => {
                 {footerMainPages.map(item => (
                   <li key={item.label}>
                     <button
-                      onClick={() => { setCurrentView(item.view); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                      onClick={() => {
+                        if (item.href) { navigate(item.href); return; }
+                        if (item.view) { setCurrentView(item.view); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+                      }}
                       className="hover:text-white transition-colors flex items-center gap-2 text-left"
                     >
                       <div className="w-1.5 h-1.5 rounded-full bg-accent-500/50"></div>
@@ -2399,7 +2728,10 @@ const App: React.FC = () => {
                     {footerHebrewContentPages.map(item => (
                       <li key={item.label}>
                         <button
-                          onClick={() => { setCurrentView(item.view); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          onClick={() => {
+                            if (item.href) { navigate(item.href); return; }
+                            if (item.view) { setCurrentView(item.view); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+                          }}
                           className="hover:text-white transition-colors flex items-center gap-2 text-left"
                         >
                           <div className="w-1.5 h-1.5 rounded-full bg-amber-400/70"></div>
@@ -2771,6 +3103,8 @@ const App: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+        </>
+      )}
     </div >
   );
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Church, Home, Info, Heart, Flame, Phone, ChevronRight, CreditCard, Facebook, Youtube, Instagram, MapPin, Languages, Zap, Sparkles, Send, Globe, LogIn, CircleUser, LogOut, ChevronDown, Calendar, Clock, Hash, Star, BookOpen, ExternalLink, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ViewState, NavItem } from '../types';
@@ -53,6 +54,16 @@ const getInitials = (name?: string) => {
 };
 
 export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginClick, onLogoutClick, currentUser, navItems }) => {
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const openNavItem = (item: NavItem) => {
+        if (item.href) {
+            navigate(item.href);
+            return;
+        }
+        setView(item.view);
+    };
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeMobileSubmenu, setActiveMobileSubmenu] = useState<string | null>(null);
   const [desktopHoverMenu, setDesktopHoverMenu] = useState<string | null>(null);
@@ -70,7 +81,17 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      const currentScrollY = window.scrollY;
+      setIsScrolled(currentScrollY > 20);
+      
+      setLastScrollY((prev) => {
+        if (currentScrollY > prev && currentScrollY > 80) {
+          setIsVisible(false);
+        } else {
+          setIsVisible(true);
+        }
+        return currentScrollY;
+      });
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -100,7 +121,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
       `}} />
 
       {/* Hero-transparent or solid-white navbar */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 flex justify-between items-center transition-all duration-500 px-4 md:px-8 montserrat ${
+      <nav
+        style={{ transform: isVisible ? 'translateY(0)' : 'translateY(-100%)' }}
+        className={`fixed top-0 left-0 right-0 z-50 flex justify-between items-center transition-all duration-500 px-4 md:px-8 montserrat ${
         isTransparentNavbar
           ? 'py-4 bg-transparent backdrop-blur-md border-b border-white/10'
           : 'py-2.5 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100'
@@ -123,7 +146,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
         {/* MENU LINKS STYLING (Restored for Desktop) */}
         <ul className="hidden xl:flex items-center gap-[3px] 2xl:gap-[8px] list-none">
           {navItems.filter(item => !item.hidden).map((item) => {
-            const isActive = currentView === item.view || item.submenu?.filter(s => !s.hidden).some(s => s.view === currentView);
+            const isActive = item.href
+              ? location.pathname === item.href
+              : currentView === item.view || item.submenu?.filter(s => !s.hidden).some(s => s.href ? location.pathname === s.href : s.view === currentView);
             const hasSubmenu = item.submenu && item.submenu.filter(s => !s.hidden).length > 0;
 
             return (
@@ -135,9 +160,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
               >
                 <button
                   id={item.view === 'HEBREW' || item.label === 'Hebrew' ? 'nav-hebrew-btn' : undefined}
-                  onClick={() => {
-                    setView(item.view);
-                  }}
+                  onClick={() => openNavItem(item)}
                   className={`text-[0.58rem] 2xl:text-[0.65rem] font-extrabold uppercase tracking-[0.2px] 2xl:tracking-[0.5px] px-[8px] 2xl:px-[12px] py-1.5 2xl:py-2 rounded-[20px] transition-all duration-300 no-underline whitespace-nowrap flex items-center gap-0.5 2xl:gap-1 ${
                     isActive
                       ? (isTransparentNavbar
@@ -166,7 +189,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                           <button
                             key={sub.label}
                             onClick={() => {
-                              setView(sub.view);
+                              openNavItem(sub);
                               setDesktopHoverMenu(null);
                             }}
                             className="w-full text-left px-5 py-2.5 text-[9px] font-black text-slate-500 hover:bg-brand-50 hover:text-brand-600 transition-all uppercase tracking-widest flex items-center gap-2 group"
@@ -339,7 +362,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                 {navItems.filter(item => !item.hidden).map((item) => {
                   const hasSubmenu = item.submenu && item.submenu.filter(s => !s.hidden).length > 0;
                   const isSubmenuOpen = activeMobileSubmenu === item.label;
-                  const isMobileActive = currentView === item.view || item.submenu?.filter(s => !s.hidden).some(s => s.view === currentView);
+                  const isMobileActive = item.href
+                    ? location.pathname === item.href
+                    : currentView === item.view || item.submenu?.filter(s => !s.hidden).some(s => s.href ? location.pathname === s.href : s.view === currentView);
 
                   return (
                     <div key={item.label} className="space-y-1">
@@ -348,7 +373,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                           if (hasSubmenu) {
                             setActiveMobileSubmenu(isSubmenuOpen ? null : item.label);
                           } else {
-                            setView(item.view);
+                            openNavItem(item);
                             setMobileMenuOpen(false);
                           }
                         }}
@@ -384,7 +409,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                                 <button
                                   key={sub.label}
                                   onClick={() => {
-                                    setView(sub.view);
+                                    openNavItem(sub);
                                     setMobileMenuOpen(false);
                                   }}
                                   className="w-full text-left p-2 text-[10px] font-bold text-gray-500 hover:text-brand-600 transition-colors uppercase tracking-wider"

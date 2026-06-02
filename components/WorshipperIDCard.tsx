@@ -1,11 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Church, RefreshCw, User, X, Phone, Mail, MapPin, UploadCloud, CheckCircle, ArrowRight, Download, Sparkles, Youtube, FileText, Lock, Eye, EyeOff, Users, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Church, RefreshCw, User, X, Phone, Mail, MapPin, UploadCloud, CheckCircle, ArrowRight, Download, Sparkles, Youtube, FileText, Lock, Eye, EyeOff, Users, Plus, Trash2, ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react';
 import { Button } from './Button';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import menorahBack from '/entrust-card-flag.png';
 import { ImageCropper } from './ImageCropper';
+
+// Utility function to format date to DD-MM-YYYY
+const formatDateToDDMMYYYY = (dateStr?: string): string => {
+    if (!dateStr) return '';
+    
+    // Handle various date formats
+    let date: Date;
+    
+    // If it's just a year (like "2024")
+    if (/^\d{4}$/.test(dateStr.trim())) {
+        date = new Date(parseInt(dateStr), 0, 1); // January 1st of that year
+    }
+    // If it's already in YYYY-MM-DD format
+    else if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        date = new Date(dateStr);
+    }
+    // If it's in DD/MM/YYYY or DD-MM-YYYY format
+    else if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}$/.test(dateStr)) {
+        const parts = dateStr.split(/[\/\-]/);
+        date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+    }
+    // Try to parse as a regular date string
+    else {
+        date = new Date(dateStr);
+    }
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+        return dateStr; // Return original if can't parse
+    }
+    
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    
+    return `${day}-${month}-${year}`;
+};
 
 type RegistrationType = 'individual' | 'family';
 
@@ -30,6 +67,10 @@ interface EntrustCardProps {
     isStatic?: boolean;
     registrationType?: RegistrationType;
     familyMembers?: FamilyCardMember[];
+    cardThemeTone?: 'blue' | 'purple' | 'green' | 'red' | 'gold';
+    cardLayoutMode?: 'classic' | 'compact' | 'wide';
+    cardShapeMode?: 'rounded' | 'soft' | 'sharp';
+    cardSizeMode?: 'sm' | 'md' | 'lg';
 }
 
 export const EntrustCard3D: React.FC<EntrustCardProps> = ({
@@ -46,11 +87,43 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
     isBackSide = false,
     isStatic = false,
     registrationType = 'individual',
-    familyMembers = []
+    familyMembers = [],
+    cardThemeTone = 'blue',
+    cardLayoutMode = 'classic',
+    cardShapeMode = 'rounded',
+    cardSizeMode = 'md'
 }) => {
     const [isFlipped, setIsFlipped] = useState(isBackSide);
     const [showQrFullScreen, setShowQrFullScreen] = useState(false);
     const qrModalTitle = 'Scan Entrust QR';
+    const innerThemeFilterMap = {
+        blue: 'none',
+        purple: 'hue-rotate(42deg) saturate(1.1)',
+        green: 'hue-rotate(115deg) saturate(1.2)',
+        red: 'hue-rotate(185deg) saturate(1.2)',
+        gold: 'hue-rotate(-30deg) saturate(1.12) contrast(1.05)',
+    };
+    const innerScaleClassMap = {
+        sm: 'scale-[0.9]',
+        md: 'scale-100',
+        lg: 'scale-[1.08]',
+    };
+    const innerLayoutClassMap = {
+        classic: '',
+        compact: 'scale-[0.95] origin-center',
+        wide: 'scale-x-[1.06] origin-center',
+    };
+    const innerShapeClassMap = {
+        rounded: 'rounded-[1.25rem]',
+        soft: 'rounded-[2rem]',
+        sharp: 'rounded-md',
+    };
+
+    const finalShapeClass = cardShapeMode ? innerShapeClassMap[cardShapeMode] : '';
+    const finalScaleClass = cardSizeMode ? innerScaleClassMap[cardSizeMode] : '';
+    const finalLayoutClass = cardLayoutMode ? innerLayoutClassMap[cardLayoutMode] : '';
+    const cardTransformClass = `${finalShapeClass} ${finalScaleClass} ${finalLayoutClass}`;
+    const cardFilterStyle = { filter: 'none' };
     const formatIndianPhoneForCard = (value?: string) => {
         const raw = `${value || ''}`.trim();
         const digits = raw.replace(/\D/g, '');
@@ -63,6 +136,32 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
         return raw || '—';
     };
     const formattedEmergency = formatIndianPhoneForCard(emergency);
+
+    const renderStatusPill = (cardStatus?: string) => {
+        const normalized = (cardStatus || '').toLowerCase().trim();
+        if (normalized === 'active' || normalized === 'approved') {
+            return (
+                <div className="relative inline-flex h-5 items-center justify-center rounded-full bg-emerald-500/10 px-2 text-[6px] font-black uppercase tracking-wider text-emerald-600 border border-emerald-500/20 overflow-hidden group shadow-[0_0_8px_rgba(16,185,129,0.15)] shrink-0">
+                    <span className="relative z-10 flex items-center gap-1"><ShieldCheck size={8} className="animate-pulse" /> Approved</span>
+                    <div className="absolute inset-0 bg-emerald-400/20 w-0 group-hover:w-full transition-all duration-500 ease-out z-0" />
+                </div>
+            );
+        } else if (normalized === 'rejected' || normalized === 'disapproved') {
+            return (
+                <div className="relative inline-flex h-5 items-center justify-center rounded-full bg-rose-500/10 px-2 text-[6px] font-black uppercase tracking-wider text-rose-600 border border-rose-500/20 overflow-hidden group shadow-[0_0_8px_rgba(225,29,72,0.15)] shrink-0">
+                    <span className="relative z-10 flex items-center gap-1"><div className="w-1 h-1 rounded-full bg-rose-500" /> Disapproved</span>
+                    <div className="absolute inset-0 bg-rose-400/20 w-0 group-hover:w-full transition-all duration-500 ease-out z-0" />
+                </div>
+            );
+        } else {
+            return (
+                <div className="relative inline-flex h-5 items-center justify-center rounded-full bg-amber-500/10 px-2 text-[6px] font-black uppercase tracking-wider text-amber-600 border border-amber-500/20 overflow-hidden group shadow-[0_0_8px_rgba(245,158,11,0.15)] shrink-0">
+                    <span className="relative z-10 flex items-center gap-1"><div className="w-1 h-1 rounded-full bg-amber-500 animate-ping" /> Pending</span>
+                    <div className="absolute inset-0 bg-amber-400/20 w-0 group-hover:w-full transition-all duration-500 ease-out z-0" />
+                </div>
+            );
+        }
+    };
 
     useEffect(() => {
         if (isStatic) setIsFlipped(isBackSide);
@@ -90,10 +189,10 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
         }
         return null;
     })();
-    const fullDetails = `CITY OF TRUTH MINISTRIES\nID: ${uniqueId}\nName: ${name}\nLocation: ${location}\nPhone: ${formattedEmergency}\nMember Since: ${memberSince}`.trim();
+    const fullDetails = `CITY OF TRUTH MINISTRIES\nID: ${uniqueId}\nName: ${name}\nLocation: ${location}\nPhone: ${formattedEmergency}\nJoined Date: ${formatDateToDDMMYYYY(memberSince)}`.trim();
     const appOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://city-of-truth-ministries.vercel.app';
     const verifyUrl = `${appOrigin}/verify/${uniqueId}`;
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(verifyUrl)}&bgcolor=ffffff&color=2c298c&margin=2&format=png&cb=${encodeURIComponent(uniqueId || 'COT-SAMPLE')}`;
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(verifyUrl)}&bgcolor=ffffff&color=2c298c&margin=0&format=png&cb=${encodeURIComponent(uniqueId || 'COT-SAMPLE')}`;
     const sanitizedFamilyMembers = familyMembers.filter(member => member.name.trim());
     const memberCount = sanitizedFamilyMembers.length + 1;
     const memberNames = sanitizedFamilyMembers
@@ -103,14 +202,17 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
 
     const IndividualFrontFace = () => {
         return (
-            <div className="absolute inset-0 bg-white rounded-xl overflow-hidden border border-gray-200 shadow-2xl flex flex-col" style={{ backfaceVisibility: 'hidden' }}>
+            <div className="absolute inset-0 bg-white rounded-[inherit] overflow-hidden border border-gray-200 shadow-2xl flex flex-col" style={{ backfaceVisibility: 'hidden' }}>
                 {/* Header */}
                 <div className="bg-brand-900 text-white px-3 py-2 flex items-center justify-between shrink-0 relative z-20">
                     <div className="flex items-center gap-2">
                         <img src="/logo.png" alt="Logo" className="w-7 h-7 object-contain" />
                         <div>
-                            <h2 className="font-bold text-[8px] uppercase tracking-wider leading-none">City of Truth Ministries</h2>
-                            <p className="text-[6px] text-accent-200 font-medium mt-0.5">சத்திய நகரம் ஊழியங்கள் வால்பாறை</p>
+                            <h2 className="font-bold text-[8px] uppercase tracking-wider leading-none text-white drop-shadow-lg">City of Truth Ministries</h2>
+                            <p className="text-[6px] text-accent-200 font-bold mt-0.5 drop-shadow-sm">
+                                <span className="font-black text-amber-300 drop-shadow-[0_0_4px_rgba(245,158,11,0.8)]">சத்திய நகரம் ஊழியங்கள்</span>{' '}
+                                <span className="font-extrabold text-white bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent drop-shadow-lg">வால்பாறை</span>
+                            </p>
                         </div>
                     </div>
                     <div className="bg-accent-50 px-4 py-1 rounded-full whitespace-nowrap min-w-0">
@@ -124,15 +226,15 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                 </div>
 
                 {/* Main Content - Horizontal Layout */}
-                <div className="flex-1 flex p-2 gap-2 relative z-10">
+                <div className="flex-1 flex p-2 gap-1.5 relative z-10">
                     {/* Left: Photo */}
                     <div className="w-24 h-28 bg-slate-50 rounded-lg border-2 border-slate-100 flex items-center justify-center text-slate-300 overflow-hidden shadow-sm shrink-0">
                         {safePhotoSrc ? <img src={safePhotoSrc} alt="P" className="w-full h-full object-cover" /> : <User size={32} />}
                     </div>
 
                     {/* Right: Details */}
-                    <div className="flex-1 flex flex-col justify-start min-w-0 space-y-1.5 pt-1">
-                        <div className="flex items-center justify-between">
+                    <div className="flex-1 flex flex-col justify-start min-w-0 space-y-1 pt-0.5">
+                        <div className="flex items-center justify-between gap-2">
                             <div className="text-[9px] font-mono font-black text-brand-800 bg-brand-50 px-2 py-0.5 rounded border border-brand-100 inline-block shadow-sm">
                                 ID: {uniqueId}
                             </div>
@@ -143,10 +245,10 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                             <p className="text-[11px] font-black text-brand-950 leading-tight truncate">{name || '—'}</p>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-1">
+                        <div className="grid grid-cols-2 gap-0.5">
                             <div>
                                 <label className="text-[6px] font-bold text-slate-400 uppercase block">Joined Date</label>
-                                <p className="text-[9px] font-bold text-slate-700">{memberSince || '—'}</p>
+                                <p className="text-[9px] font-bold text-slate-700">{formatDateToDDMMYYYY(memberSince) || '—'}</p>
                             </div>
                             <div>
                                 <label className="text-[6px] font-bold text-slate-400 uppercase block">Location</label>
@@ -167,7 +269,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                             e.stopPropagation();
                             setShowQrFullScreen(true);
                         }}
-                        className="absolute bottom-2 right-2 bg-white p-1 border border-slate-100 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+                        className="absolute bottom-2 right-2 bg-white p-0.5 border border-slate-100 rounded-lg shadow-sm hover:shadow-md transition-shadow"
                         aria-label="Open QR code"
                     >
                         <div className="relative inline-block w-14 h-14">
@@ -192,7 +294,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                 </div>
 
                 {/* Footer */}
-                <div className="bg-brand-950 px-3 py-1.5 flex justify-between items-center border-t-2 border-accent-400 relative overflow-hidden">
+                <div className="bg-brand-950 px-3 py-1 flex justify-between items-center border-t-2 border-accent-400 relative overflow-hidden">
                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20"></div>
                     <span className="text-[5px] font-bold tracking-wider text-accent-300 uppercase italic z-10 shrink-0">தூய மனதால் இணைவோம்; உயிர்மெய் அருள் ஒளியை பெறுவோம்</span>
                     <div className="text-[5px] text-slate-300 font-medium tracking-tight z-10 flex flex-col items-end leading-tight">
@@ -206,13 +308,15 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
 
     const FamilyFrontFace = () => {
         return (
-            <div className="absolute inset-0 bg-white rounded-xl overflow-hidden border border-gray-200 shadow-2xl flex flex-col" style={{ backfaceVisibility: 'hidden' }}>
+            <div className="absolute inset-0 bg-white rounded-[inherit] overflow-hidden border border-gray-200 shadow-2xl flex flex-col" style={{ backfaceVisibility: 'hidden' }}>
                 <div className="bg-brand-900 text-white px-3 py-1.5 flex items-center justify-between shrink-0 relative z-20">
                     <div className="flex items-center gap-2">
                         <img src="/logo.png" alt="Logo" className="w-6 h-6 object-contain" />
                         <div>
-                            <h2 className="font-bold text-[7px] uppercase tracking-wider leading-none">City of Truth Ministries</h2>
-                            <p className="text-[6px] text-accent-200 font-medium mt-0.5">சத்திய நகரம் ஊழியங்கள்</p>
+                            <h2 className="font-bold text-[7px] uppercase tracking-wider leading-none text-white drop-shadow-lg">City of Truth Ministries</h2>
+                            <p className="text-[6px] text-accent-200 font-bold mt-0.5 drop-shadow-sm">
+                                <span className="font-black text-amber-300 drop-shadow-[0_0_4px_rgba(245,158,11,0.8)]">சத்திய நகரம் ஊழியங்கள்</span>
+                            </p>
                         </div>
                     </div>
                     <div className="bg-accent-50 px-2 py-1 rounded-full">
@@ -226,7 +330,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
 
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/subtle-white-feathers.png')] opacity-20 pointer-events-none z-0"></div>
 
-                <div className="flex-1 p-2 relative z-10 flex gap-2">
+                <div className="flex-1 p-2 relative z-10 flex gap-1.5">
                     <div className="w-[40%] flex flex-col">
                         <div className="flex-1 min-h-0 rounded-lg border border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center">
                             {safePhotoSrc ? <img src={safePhotoSrc} alt="Family Head" className="w-full h-full object-cover" /> : <User size={30} className="text-slate-300" />}
@@ -238,8 +342,8 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                     </div>
 
                     <div className="w-[60%] min-w-0 flex flex-col justify-between">
-                        <div className="space-y-1">
-                            <div className="grid grid-cols-2 gap-1">
+                        <div className="space-y-0.5">
+                            <div className="grid grid-cols-2 gap-0.5">
                                 <div className="bg-white/90 border border-slate-200 rounded-md px-1.5 py-1">
                                     <p className="text-[5px] uppercase tracking-wider text-slate-500 font-bold">Family ID</p>
                                     <p className="text-[7px] font-black text-brand-900 truncate">{uniqueId}</p>
@@ -253,8 +357,8 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                                     <p className="text-[7px] font-bold text-slate-700">{memberCount}</p>
                                 </div>
                                 <div className="bg-white/90 border border-slate-200 rounded-md px-1.5 py-1">
-                                    <p className="text-[5px] uppercase tracking-wider text-slate-500 font-bold">Since</p>
-                                    <p className="text-[7px] font-bold text-slate-700">{memberSince || '—'}</p>
+                                    <p className="text-[5px] uppercase tracking-wider text-slate-500 font-bold">Joined</p>
+                                    <p className="text-[7px] font-bold text-slate-700">{formatDateToDDMMYYYY(memberSince) || '—'}</p>
                                 </div>
                             </div>
                             <div className="bg-white/90 border border-slate-200 rounded-md px-2 py-1">
@@ -271,15 +375,17 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                             </div>
                         </div>
 
-                        <div className="flex items-end justify-between gap-2">
-                            <span className="text-[6px] font-bold text-brand-700 bg-brand-100 border border-brand-200 rounded-full px-2 py-0.5 whitespace-nowrap" aria-label={`${memberCount} family members`}>👨‍👩‍👧 {familyBadge}</span>
+                        <div className="flex items-end justify-between gap-1.5">
+                            <div className="flex flex-col gap-0.5 items-start">
+                                <span className="text-[6px] font-bold text-brand-700 bg-brand-100 border border-brand-200 rounded-full px-2 py-0.5 whitespace-nowrap" aria-label={`${memberCount} family members`}>👨‍👩‍👧 {familyBadge}</span>
+                            </div>
                             <button
                                 type="button"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     setShowQrFullScreen(true);
                                 }}
-                                className="bg-white p-1 border border-slate-200 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+                                className="bg-white p-0.5 border border-slate-200 rounded-lg shadow-sm hover:shadow-md transition-shadow"
                                 aria-label="Open QR code"
                             >
                                 <div className="relative inline-block w-12 h-12">
@@ -303,7 +409,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
     const BackFace = () => {
         return (
             <div
-                className="absolute inset-0 rounded-xl overflow-hidden border border-brand-900 shadow-2xl"
+                className="absolute inset-0 rounded-[inherit] overflow-hidden border border-brand-900 shadow-2xl"
                 style={{ backfaceVisibility: 'hidden', transform: isStatic ? 'none' : 'rotateY(180deg)' }}
             >
                 {registrationType === 'family' ? (
@@ -313,7 +419,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                             <span className="text-[6px] bg-white/15 border border-white/20 rounded-full px-2 py-0.5">{memberCount} Total</span>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2 flex-1">
+                        <div className="grid grid-cols-2 gap-1.5 flex-1">
                             {sanitizedFamilyMembers.slice(0, 4).map((member, index) => (
                                 <div key={index} className="bg-white/10 border border-white/20 rounded-lg p-1.5 backdrop-blur-sm">
                                     <div className="w-8 h-8 rounded-full bg-white/20 border border-white/30 overflow-hidden flex items-center justify-center text-white/70 mb-1">
@@ -325,7 +431,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                             ))}
                         </div>
 
-                        <div className="mt-2 pt-2 border-t border-white/20 flex items-end justify-between gap-2">
+                        <div className="mt-1.5 pt-1.5 border-t border-white/20 flex items-end justify-between gap-1.5">
                             <div className="min-w-0">
                                 <p className="text-[6px] uppercase tracking-widest text-accent-200 font-bold">Vision</p>
                                 <p className="text-[6px] text-white/90 leading-tight">Households rooted in truth and grace.</p>
@@ -350,7 +456,10 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
     if (isStatic) {
         return (
             <>
-                <div className={`relative w-[340px] h-[215px] bg-slate-100 rounded-xl`}>
+                <div 
+                    className={`relative w-[340px] h-[215px] bg-slate-100 overflow-hidden ${cardTransformClass}`} 
+                    style={cardFilterStyle}
+                >
                     {isBackSide ? <BackFace /> : <FrontFace />}
                 </div>
                 <AnimatePresence>
@@ -398,7 +507,10 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                     <div className="w-full h-full">
                         {/* Scale standard 340x215 card to fill 380x240 container if on sm+ screens */}
                         <div className="w-full h-full origin-top-left sm:scale-[1.117]">
-                            <div style={{ width: '340px', height: '215px' }}>
+                            <div 
+                                style={{ width: '340px', height: '215px', ...cardFilterStyle }}
+                                className={`overflow-hidden ${cardTransformClass}`}
+                            >
                                 <FrontFace />
                                 <BackFace />
                             </div>
@@ -478,6 +590,11 @@ const RELATIONSHIP_OPTIONS = [
 ];
 
 export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, onLogin, currentUser }) => {
+    const [panelTab, setPanelTab] = useState<'register' | 'customize'>('register');
+    const [cardThemeTone, setCardThemeTone] = useState<'blue' | 'purple' | 'green' | 'red' | 'gold'>('blue');
+    const [cardLayoutMode, setCardLayoutMode] = useState<'classic' | 'compact' | 'wide'>('classic');
+    const [cardShapeMode, setCardShapeMode] = useState<'rounded' | 'soft' | 'sharp'>('rounded');
+    const [cardSizeMode, setCardSizeMode] = useState<'sm' | 'md' | 'lg'>('md');
     const [uniqueId, setUniqueId] = useState('');
     const [registrationType, setRegistrationType] = useState<RegistrationType>('individual');
     const [formData, setFormData] = useState({
@@ -562,6 +679,30 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
         setEntrustTourStepIndex(null);
         setEntrustTourRect(null);
     };
+
+    const cardThemeFilterMap: Record<typeof cardThemeTone, string> = {
+        blue: 'none',
+        purple: 'hue-rotate(42deg) saturate(1.1)',
+        green: 'hue-rotate(115deg) saturate(1.2)',
+        red: 'hue-rotate(185deg) saturate(1.2)',
+        gold: 'hue-rotate(-30deg) saturate(1.12) contrast(1.05)',
+    };
+    const cardScaleClassMap: Record<typeof cardSizeMode, string> = {
+        sm: 'scale-[0.9]',
+        md: 'scale-100',
+        lg: 'scale-[1.08]',
+    };
+    const cardLayoutClassMap: Record<typeof cardLayoutMode, string> = {
+        classic: '',
+        compact: 'scale-[0.95] origin-center',
+        wide: 'scale-x-[1.06] origin-center',
+    };
+    const cardShapeClassMap: Record<typeof cardShapeMode, string> = {
+        rounded: 'rounded-[1.25rem]',
+        soft: 'rounded-[2rem]',
+        sharp: 'rounded-md',
+    };
+    const previewWrapClass = `${cardShapeClassMap[cardShapeMode]} ${cardScaleClassMap[cardSizeMode]} ${cardLayoutClassMap[cardLayoutMode]}`;
 
     // Helper for cropping logic could go here, but for now relying on basic photo upload as per user request flow adjustment
     // The user mentioned "able to crop and edit their photo", so we might need a library or just a simple preview with scale.
@@ -665,7 +806,9 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                     cacheBust: true,
                     pixelRatio: 4,
                     quality: 1,
-                    backgroundColor: '#ffffff'
+                    backgroundColor: '#ffffff',
+                    width: 340,
+                    height: 215
                 });
                 const link = document.createElement('a');
                 link.download = `ENTRUST-FRONT-HD-${uniqueId}.png`;
@@ -702,7 +845,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                 await Promise.all([waitForNodeImages(frontNode), waitForNodeImages(backNode)]);
                 await new Promise(resolve => setTimeout(resolve, 300));
 
-                const captureOptions = { pixelRatio: 4, quality: 1, backgroundColor: '#ffffff', cacheBust: true, width: 680, height: 430 };
+                const captureOptions = { pixelRatio: 4, quality: 1, backgroundColor: '#ffffff', cacheBust: true, width: 340, height: 215 };
                 const frontDataUrl = await toPng(frontNode, captureOptions);
                 const backDataUrl = await toPng(backNode, captureOptions);
 
@@ -737,7 +880,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                 pdf.save(`ENTRUST-CARD-HD-FULL-${uniqueId}.pdf`);
 
                 if (onRegister) {
-                    onRegister({ ...formData, uniqueId, photo });
+                    onRegister({ ...formData, uniqueId, photo, cardThemeTone, cardLayoutMode, cardShapeMode, cardSizeMode });
                 }
             } catch (err) {
                 console.error('PDF generation failed', err);
@@ -769,7 +912,20 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                         </div>
                         <div className="p-8 bg-slate-50 flex justify-center">
                             <div className="transform scale-90">
-                                <EntrustCard3D {...formData} uniqueId={uniqueId} photo={previewPhoto} status="Pending" registrationType={registrationType} familyMembers={familyMembers} isStatic={true} isBackSide={false} />
+                                <EntrustCard3D
+                                    {...formData}
+                                    uniqueId={uniqueId}
+                                    photo={previewPhoto}
+                                    status="Pending"
+                                    registrationType={registrationType}
+                                    familyMembers={familyMembers}
+                                    isStatic={true}
+                                    isBackSide={false}
+                                    cardThemeTone={cardThemeTone}
+                                    cardLayoutMode={cardLayoutMode}
+                                    cardShapeMode={cardShapeMode}
+                                    cardSizeMode={cardSizeMode}
+                                />
                             </div>
                         </div>
                         <div className="p-6 bg-white border-t border-gray-100 flex gap-3">
@@ -785,11 +941,11 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
             )}
             {/* HIDDEN CAPTURE AREA */}
             <div className="fixed left-[-9999px] top-0 pointer-events-none">
-                <div id="capture-front" className="bg-white">
-                    <EntrustCard3D {...formData} uniqueId={uniqueId} photo={photo} status="Pending" registrationType={registrationType} familyMembers={familyMembers} isStatic={true} isBackSide={false} />
+                <div id="capture-front" className="bg-white inline-block w-[340px] h-[215px] overflow-hidden rounded-xl">
+                    <EntrustCard3D {...formData} uniqueId={uniqueId} photo={photo} status="Pending" registrationType={registrationType} familyMembers={familyMembers} isStatic={true} isBackSide={false} cardThemeTone={cardThemeTone} cardLayoutMode={cardLayoutMode} cardShapeMode={cardShapeMode} cardSizeMode={cardSizeMode} />
                 </div>
-                <div id="capture-back" className="bg-white">
-                    <EntrustCard3D {...formData} uniqueId={uniqueId} photo={photo} status="Pending" registrationType={registrationType} familyMembers={familyMembers} isStatic={true} isBackSide={true} />
+                <div id="capture-back" className="bg-white inline-block w-[340px] h-[215px] overflow-hidden rounded-xl">
+                    <EntrustCard3D {...formData} uniqueId={uniqueId} photo={photo} status="Pending" registrationType={registrationType} familyMembers={familyMembers} isStatic={true} isBackSide={true} cardThemeTone={cardThemeTone} cardLayoutMode={cardLayoutMode} cardShapeMode={cardShapeMode} cardSizeMode={cardSizeMode} />
                 </div>
             </div>
 
@@ -814,6 +970,121 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                 </div>
 
                 <div className="max-w-xl mx-auto">
+                    <motion.div
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-white p-4 sm:p-5 md:p-6 rounded-[1.5rem] md:rounded-[2rem] shadow-xl border border-slate-100 mb-4 md:mb-6"
+                    >
+                        <div className="grid grid-cols-2 bg-slate-100 rounded-2xl p-1 mb-4">
+                            <button
+                                type="button"
+                                onClick={() => setPanelTab('register')}
+                                className={`py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${panelTab === 'register' ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-500'}`}
+                            >
+                                Register
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setPanelTab('customize')}
+                                className={`py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${panelTab === 'customize' ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-500'}`}
+                            >
+                                Customize Card
+                            </button>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-8 pb-4 pt-2">
+                            <div className="flex flex-col items-center gap-2">
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Front Side</span>
+                                <div>
+                                    <EntrustCard3D
+                                        {...formData}
+                                        uniqueId={uniqueId}
+                                        photo={photo}
+                                        status="Pending"
+                                        registrationType={registrationType}
+                                        familyMembers={familyMembers}
+                                        isStatic={true}
+                                        isBackSide={false}
+                                        cardThemeTone={cardThemeTone}
+                                        cardLayoutMode={cardLayoutMode}
+                                        cardShapeMode={cardShapeMode}
+                                        cardSizeMode={cardSizeMode}
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex flex-col items-center gap-2">
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Back Side</span>
+                                <div>
+                                    <EntrustCard3D
+                                        {...formData}
+                                        uniqueId={uniqueId}
+                                        photo={photo}
+                                        status="Pending"
+                                        registrationType={registrationType}
+                                        familyMembers={familyMembers}
+                                        isStatic={true}
+                                        isBackSide={true}
+                                        cardThemeTone={cardThemeTone}
+                                        cardLayoutMode={cardLayoutMode}
+                                        cardShapeMode={cardShapeMode}
+                                        cardSizeMode={cardSizeMode}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {panelTab === 'customize' && (
+                            <div className="space-y-4 border-t border-slate-100 pt-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div>
+                                        <label className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 block mb-2">Layout</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {(['classic', 'compact', 'wide'] as const).map((mode) => (
+                                                <button
+                                                    key={mode}
+                                                    type="button"
+                                                    onClick={() => setCardLayoutMode(mode)}
+                                                    className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold capitalize border ${cardLayoutMode === mode ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-slate-600 border-slate-200'}`}
+                                                >
+                                                    {mode}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 block mb-2">Shape</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {(['rounded', 'soft', 'sharp'] as const).map((mode) => (
+                                                <button
+                                                    key={mode}
+                                                    type="button"
+                                                    onClick={() => setCardShapeMode(mode)}
+                                                    className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold capitalize border ${cardShapeMode === mode ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-slate-600 border-slate-200'}`}
+                                                >
+                                                    {mode}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 block mb-2">Size</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {(['sm', 'md', 'lg'] as const).map((mode) => (
+                                                <button
+                                                    key={mode}
+                                                    type="button"
+                                                    onClick={() => setCardSizeMode(mode)}
+                                                    className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold uppercase border ${cardSizeMode === mode ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-slate-600 border-slate-200'}`}
+                                                >
+                                                    {mode}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </motion.div>
 
                     {/* Form Left */}
                     <motion.div
@@ -1050,7 +1321,11 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                                 phone: `+91${trimmedEmergency}`,
                                                 password: finalPassword,
                                                 uniqueId,
-                                                photo
+                                                photo,
+                                                cardThemeTone,
+                                                cardLayoutMode,
+                                                cardShapeMode,
+                                                cardSizeMode
                                             });
                                         }
                                     }}

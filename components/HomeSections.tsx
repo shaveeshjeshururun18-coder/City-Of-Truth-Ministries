@@ -90,6 +90,7 @@ export const MinistryHighlights: React.FC<SectionProps> = ({ setView }) => {
 };
 
 export const HebrewSanctuaryIntro: React.FC<SectionProps> = ({ setView }) => {
+    const navigate = useNavigate();
     const { name, desc } = useSectionInfo('hebrew', 'Hebrew Hub', 'Sacred Scriptures Decoded');
     return (
         <section className="py-12 md:py-20 bg-[#fdfcf0]">
@@ -137,7 +138,7 @@ export const HebrewSanctuaryIntro: React.FC<SectionProps> = ({ setView }) => {
                                 <ArrowRight size={18} />
                             </button>
                             <button
-                                onClick={() => setView(ViewState.HEBREW)}
+                                onClick={() => navigate('/hebrew-alphabet')}
                                 className="border-2 border-brand-950 text-brand-950 px-6 md:px-8 py-3 md:py-4 rounded-full font-bold text-sm hover:bg-brand-950 hover:text-white transition-all"
                             >
                                 Alphabet Page
@@ -190,7 +191,8 @@ export const HebrewPagesPreviewSection: React.FC<SectionProps> = ({ setView }) =
                 { name: 'Hebrew Hub', view: ViewState.ABOUT, description: 'Main Hebrew learning landing page' },
                 ...HEBREW_PAGES.filter(p => p.type === 'content').map(p => ({
                     name: p.label,
-                    view: p.view,
+                    view: p.isStandalone ? undefined : p.view,
+                    href: p.route,
                     description: p.description
                 }))
             ],

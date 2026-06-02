@@ -79,6 +79,18 @@ export const CommunityProfileForm: React.FC<CommunityProfileFormProps> = ({ isOp
     const [tourStepIndex, setTourStepIndex] = useState(0);
 
     useEffect(() => {
+        if (isOpen) {
+            setFormData({
+                denomination: initialData?.denomination || '',
+                churchName: initialData?.churchName || '',
+                role: initialData?.role || '',
+                district: initialData?.district || '',
+                bio: initialData?.bio || ''
+            });
+        }
+    }, [isOpen, initialData]);
+
+    useEffect(() => {
         if (!isOpen) return;
         const key = 'cot_member_form_tour_seen';
         const alreadySeen = localStorage.getItem(key) === '1';
