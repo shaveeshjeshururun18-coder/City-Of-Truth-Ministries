@@ -6,6 +6,7 @@ export interface CalendarDay {
     isShabbat: boolean;
     festivals: string[];
     gregorianDate?: string;
+    gregorianYear?: number;
 }
 
 export interface HebrewMonth {
@@ -170,7 +171,8 @@ export const getCalendarData5786 = (year: number = 5786): any[] => {
                 day: d,
                 isShabbat,
                 festivals,
-                gregorianDate
+                gregorianDate,
+                gregorianYear: currentDate.getFullYear()
             };
 
             // Increment date for next loop

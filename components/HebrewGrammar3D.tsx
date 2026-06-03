@@ -107,6 +107,14 @@ export const HebrewGrammar3D: React.FC = () => {
         <motion.p 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="text-2xl md:text-3xl font-bold text-blue-600 mb-4"
+        >
+          எபிரேய இலக்கண கட்டமைப்பு
+        </motion.p>
+        <motion.p 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
           className="text-lg text-slate-500 font-medium tracking-wide max-w-2xl mx-auto"
         >

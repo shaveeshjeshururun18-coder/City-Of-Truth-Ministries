@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Scroll, Volume2, Sparkles, ArrowLeft } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { Scroll, Volume2, Sparkles, ArrowLeft, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { audioService } from '../services/audioService';
+import { MouthPronunciationAnimator, HEBREW_LETTER_PHONEMES } from './MouthPronunciationAnimator';
 
 const HEBREW_LETTERS = [
     { letter: "א", name: "ALEPH", hebrewName: "אלף", number: 1, latinPronunciation: "Ah-lef", tamilPronunciation: "ஆலெஃப்", tamilGuide: "ஆலெஃப். வாயை திறந்து மெதுவாக ஆ ஒலி சொல்லி, பிறகு லெஃப் சொல்லுங்கள்." },
@@ -28,6 +29,9 @@ const HEBREW_LETTERS = [
     { letter: "ת", name: "TAV", hebrewName: "תו", number: 400, latinPronunciation: "Tav", tamilPronunciation: "தாவ்", tamilGuide: "தாவ். தா என்று கூறி, வ் ஒலி மெதுவாக முடிக்கவும்." },
 ];
 
+// Responsive column counts for breakpoints
+const COLS_MAP = { default: 2, sm: 3, md: 4, lg: 5 };
+
 export interface HebrewAlphabetPageProps {
     onBack?: () => void;
 }
@@ -35,6 +39,31 @@ export interface HebrewAlphabetPageProps {
 export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }) => {
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+    const [cols, setCols] = useState(COLS_MAP.default);
+    const panelRef = useRef<HTMLDivElement>(null);
+
+    // Responsive column detection
+    useEffect(() => {
+        const updateCols = () => {
+            const w = window.innerWidth;
+            if (w >= 1024) setCols(COLS_MAP.lg);
+            else if (w >= 768) setCols(COLS_MAP.md);
+            else if (w >= 640) setCols(COLS_MAP.sm);
+            else setCols(COLS_MAP.default);
+        };
+        updateCols();
+        window.addEventListener('resize', updateCols);
+        return () => window.removeEventListener('resize', updateCols);
+    }, []);
+
+    // Scroll to the expanded panel when it appears
+    useEffect(() => {
+        if (selectedIndex !== null && panelRef.current) {
+            setTimeout(() => {
+                panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 150);
+        }
+    }, [selectedIndex]);
 
     const handlePlay = async (index: number, hebrewText: string, rate: number = 0.8) => {
         setActiveIndex(index);
@@ -54,6 +83,18 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
 
     const selectedLetter = selectedIndex !== null ? HEBREW_LETTERS[selectedIndex] : null;
     const letterCount = HEBREW_LETTERS.length;
+
+    // Determine which row the selected letter is in
+    const selectedRow = selectedIndex !== null ? Math.floor(selectedIndex / cols) : -1;
+
+    // Build rows of letter indices
+    const rows: number[][] = useMemo(() => {
+        const r: number[][] = [];
+        for (let i = 0; i < HEBREW_LETTERS.length; i += cols) {
+            r.push(HEBREW_LETTERS.slice(i, i + cols).map((_, j) => i + j));
+        }
+        return r;
+    }, [cols]);
 
     return (
         <div className="min-h-[100dvh] w-full bg-[#000000] text-[#e5e5e5] pb-24 overflow-x-hidden relative">
@@ -87,98 +128,185 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                     </div>
                 </header>
 
-                {selectedLetter && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="mb-10 rounded-3xl border border-[#F59E0B]/30 bg-gradient-to-br from-[#F59E0B]/10 to-white/[0.03] p-6 md:p-8"
-                    >
-                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                            <div className="space-y-2">
-                                <div className="text-[10px] uppercase tracking-[0.28em] text-[#F59E0B]/60 font-black">Selected Letter Teaching</div>
-                                <div className="flex items-end gap-3">
-                                    <span className="text-5xl md:text-6xl font-serif text-[#FBBF24]">{selectedLetter.letter}</span>
-                                    <div className="space-y-0.5 pb-1">
-                                        <div className="text-base md:text-lg font-black tracking-[0.14em] text-white">{selectedLetter.name}</div>
-                                        <div className="text-sm text-[#F59E0B]/80">{selectedLetter.hebrewName}</div>
-                                    </div>
-                                </div>
-                                <p className="text-sm text-white/80"><span className="text-[#F59E0B]/80 font-bold">English pronunciation:</span> {selectedLetter.latinPronunciation}</p>
-                                <p className="text-sm text-white/80"><span className="text-[#F59E0B]/80 font-bold">தமிழ் உச்சரிப்பு:</span> {selectedLetter.tamilPronunciation}</p>
-                                <p className="text-xs md:text-sm text-white/70 leading-relaxed">{selectedLetter.tamilGuide}</p>
+                {/* LETTER GRID — rendered row by row to insert pronunciation panel between rows */}
+                <div className="max-w-6xl mx-auto space-y-5 md:space-y-7">
+                    {rows.map((rowIndices, rowIdx) => (
+                        <React.Fragment key={rowIdx}>
+                            {/* Letter cards for this row */}
+                            <div className="grid gap-5 md:gap-7" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+                                {rowIndices.map(index => {
+                                    if (index >= HEBREW_LETTERS.length) return <div key={index} />;
+                                    const item = HEBREW_LETTERS[index];
+                                    return (
+                                        <motion.div
+                                            key={item.letter}
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: index * 0.03 }}
+                                            whileHover={{ scale: 1.05, y: -5 }}
+                                            whileTap={{ scale: 0.95 }}
+                                            onClick={() => {
+                                                if (selectedIndex === index) {
+                                                    setSelectedIndex(null);
+                                                } else {
+                                                    setSelectedIndex(index);
+                                                    handlePlay(index, item.hebrewName);
+                                                }
+                                            }}
+                                            className={`bg-gradient-to-br from-white/[0.04] to-white/[0.02] border rounded-[2rem] p-6 md:p-8 flex flex-col items-center justify-center transition-all cursor-pointer relative overflow-hidden backdrop-blur-sm group
+                                                ${selectedIndex === index
+                                                    ? 'border-[#FBBF24]/70 bg-gradient-to-br from-[#F59E0B]/15 to-[#D97706]/10 shadow-[0_0_50px_rgba(245,158,11,0.25),inset_0_0_20px_rgba(245,158,11,0.08)] ring-2 ring-[#F59E0B]/30'
+                                                    : activeIndex === index
+                                                        ? 'border-white/30 bg-gradient-to-br from-white/10 to-white/5 shadow-[0_0_40px_rgba(255,255,255,0.2),inset_0_0_20px_rgba(255,255,255,0.08)]'
+                                                        : 'border-[#F59E0B]/40 bg-gradient-to-br from-[#F59E0B]/10 to-[#D97706]/5 shadow-[0_0_30px_rgba(245,158,11,0.12)] hover:border-white/30 hover:bg-gradient-to-br hover:from-white/10 hover:to-white/5 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]'
+                                                }`}
+                                        >
+                                            {/* Selection indicator arrow */}
+                                            {selectedIndex === index && (
+                                                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#F59E0B]/10 border-l border-b border-[#F59E0B]/40 rotate-[-45deg] z-10" />
+                                            )}
+                                            <button
+                                                onClick={(event) => handleAudioButtonClick(event, index, item.hebrewName)}
+                                                className={`absolute top-4 right-4 p-2 rounded-full transition-all duration-300 ${activeIndex === index ? 'opacity-100 bg-white/20 scale-110' : 'bg-[#F59E0B]/20 opacity-100 group-hover:bg-white/20'}`}
+                                                title={`Play ${item.name}`}
+                                                aria-label={`Play ${item.name} pronunciation`}
+                                            >
+                                                <Volume2 size={14} className="text-[#F59E0B]" />
+                                            </button>
+                                            <span className={`text-6xl md:text-[5rem] text-transparent bg-clip-text mb-5 font-serif transition-transform duration-500 drop-shadow-lg leading-none ${
+                                                selectedIndex === index
+                                                    ? 'bg-gradient-to-b from-[#FBBF24] to-[#F59E0B] scale-110'
+                                                    : activeIndex === index
+                                                        ? 'bg-gradient-to-b from-white to-white/70 scale-110'
+                                                        : 'bg-gradient-to-b from-[#FBBF24] to-[#F59E0B] group-hover:from-white group-hover:to-white/70 group-hover:scale-110'
+                                            }`}>
+                                                {item.letter}
+                                            </span>
+                                            <div className="text-center space-y-1">
+                                                <strong className="block text-[#F59E0B] text-sm md:text-base tracking-[0.2em] font-bold uppercase group-hover:text-white/90 transition-colors">{item.name}</strong>
+                                                <span className="block text-[#F59E0B]/70 text-xs md:text-sm tracking-wide group-hover:text-white/60 transition-colors">{item.tamilPronunciation}</span>
+                                                <div className="mt-3 inline-block bg-[#F59E0B]/10 group-hover:bg-white/10 px-3 py-1 rounded-full border border-[#F59E0B]/30 group-hover:border-white/25 transition-all">
+                                                    <span className="text-xs text-[#F59E0B]/80 group-hover:text-white/60 font-mono tracking-widest transition-colors">VALUE: {item.number}</span>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    );
+                                })}
                             </div>
 
-                            <div className="flex flex-wrap gap-2 md:justify-end">
-                                <button
-                                    onClick={() => {
-                                        if (selectedIndex === null) return;
-                                        handlePlay(selectedIndex, selectedLetter.hebrewName);
-                                    }}
-                                    className="h-9 px-3 rounded-xl bg-[#F59E0B]/15 border border-[#F59E0B]/40 text-[#FBBF24] text-xs font-bold tracking-wide hover:bg-[#F59E0B]/25 transition-colors"
-                                >
-                                    Hebrew Audio
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        if (selectedIndex === null) return;
-                                        handlePlay(selectedIndex, selectedLetter.hebrewName, 0.55);
-                                    }}
-                                    className="h-9 px-3 rounded-xl bg-white/10 border border-white/20 text-white text-xs font-bold tracking-wide hover:bg-white/20 transition-colors"
-                                >
-                                    Slow Audio
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        if (!selectedLetter) return;
-                                        audioService.playTamil(selectedLetter.tamilGuide, 0.78);
-                                    }}
-                                    className="h-9 px-3 rounded-xl bg-[#22c55e]/10 border border-[#22c55e]/40 text-[#86efac] text-xs font-bold tracking-wide hover:bg-[#22c55e]/20 transition-colors"
-                                >
-                                    தமிழ் Teaching Audio
-                                </button>
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
+                            {/* INLINE PRONUNCIATION PANEL — appears after the row containing the selected letter */}
+                            <AnimatePresence>
+                                {selectedRow === rowIdx && selectedLetter && (
+                                    <motion.div
+                                        ref={panelRef}
+                                        key={`panel-${selectedIndex}`}
+                                        initial={{ opacity: 0, height: 0, scaleY: 0.9 }}
+                                        animate={{ opacity: 1, height: 'auto', scaleY: 1 }}
+                                        exit={{ opacity: 0, height: 0, scaleY: 0.9 }}
+                                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                                        className="overflow-hidden origin-top"
+                                    >
+                                        <div className="rounded-[2rem] border border-[#F59E0B]/30 bg-gradient-to-br from-[#0d0a00] to-[#000000] p-5 md:p-8 relative">
+                                            {/* Decorative top connector line */}
+                                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-[2px] bg-gradient-to-r from-transparent via-[#F59E0B]/50 to-transparent" />
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5 md:gap-7 max-w-6xl mx-auto">
-                    {HEBREW_LETTERS.map((item, index) => (
-                        <motion.div
-                            key={item.letter}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.03 }}
-                            whileHover={{ scale: 1.05, y: -5 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => {
-                                setSelectedIndex(index);
-                                handlePlay(index, item.hebrewName);
-                            }}
-                            className={`bg-gradient-to-br from-white/[0.04] to-white/[0.02] border rounded-[2rem] p-6 md:p-8 flex flex-col items-center justify-center transition-all cursor-pointer relative overflow-hidden backdrop-blur-sm group
-                                ${activeIndex === index
-                                    ? 'border-white/30 bg-gradient-to-br from-white/10 to-white/5 shadow-[0_0_40px_rgba(255,255,255,0.2),inset_0_0_20px_rgba(255,255,255,0.08)]'
-                                    : 'border-[#F59E0B]/40 bg-gradient-to-br from-[#F59E0B]/10 to-[#D97706]/5 shadow-[0_0_30px_rgba(245,158,11,0.12)] hover:border-white/30 hover:bg-gradient-to-br hover:from-white/10 hover:to-white/5 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]'
-                                }`}
-                        >
-                            <button
-                                onClick={(event) => handleAudioButtonClick(event, index, item.hebrewName)}
-                                className={`absolute top-4 right-4 p-2 rounded-full transition-all duration-300 ${activeIndex === index ? 'opacity-100 bg-white/20 scale-110' : 'bg-[#F59E0B]/20 opacity-100 group-hover:bg-white/20'}`}
-                                title={`Play ${item.name}`}
-                                aria-label={`Play ${item.name} pronunciation`}
-                            >
-                                <Volume2 size={14} className="text-[#F59E0B]" />
-                            </button>
-                            <span className={`text-6xl md:text-[5rem] text-transparent bg-clip-text mb-5 font-serif transition-transform duration-500 drop-shadow-lg leading-none ${activeIndex === index ? 'bg-gradient-to-b from-white to-white/70 scale-110' : 'bg-gradient-to-b from-[#FBBF24] to-[#F59E0B] group-hover:from-white group-hover:to-white/70 group-hover:scale-110'}`}>
-                                {item.letter}
-                            </span>
-                            <div className="text-center space-y-1">
-                                <strong className="block text-[#F59E0B] text-sm md:text-base tracking-[0.2em] font-bold uppercase group-hover:text-white/90 transition-colors">{item.name}</strong>
-                                <span className="block text-[#F59E0B]/70 text-xs md:text-sm tracking-wide group-hover:text-white/60 transition-colors">{item.tamilPronunciation}</span>
-                                <div className="mt-3 inline-block bg-[#F59E0B]/10 group-hover:bg-white/10 px-3 py-1 rounded-full border border-[#F59E0B]/30 group-hover:border-white/25 transition-all">
-                                    <span className="text-xs text-[#F59E0B]/80 group-hover:text-white/60 font-mono tracking-widest transition-colors">VALUE: {item.number}</span>
-                                </div>
-                            </div>
-                        </motion.div>
+                                            {/* Close button */}
+                                            <button
+                                                onClick={() => setSelectedIndex(null)}
+                                                className="absolute top-4 right-4 p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all text-white/40 hover:text-white/70 z-10"
+                                            >
+                                                <X size={14} />
+                                            </button>
+
+                                            <div className="text-[10px] uppercase tracking-[0.28em] text-[#F59E0B]/50 font-black mb-4">
+                                                Pronunciation Guide · உச்சரிப்பு வழிகாட்டி
+                                            </div>
+
+                                            <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
+                                                {/* LEFT: Letter info + details */}
+                                                <div className="flex-1 min-w-0 space-y-4">
+                                                    <div className="flex items-end gap-4">
+                                                        <span className="text-6xl md:text-7xl font-serif text-[#FBBF24] leading-none drop-shadow-[0_0_20px_rgba(251,191,36,0.3)]">
+                                                            {selectedLetter.letter}
+                                                        </span>
+                                                        <div className="space-y-0.5 pb-1">
+                                                            <div className="text-lg md:text-xl font-black tracking-[0.14em] text-white">{selectedLetter.name}</div>
+                                                            <div className="text-base text-[#F59E0B]/80 font-serif">{selectedLetter.hebrewName}</div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Pronunciation details */}
+                                                    <div className="space-y-2.5">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[10px] font-black text-[#F59E0B]/50 uppercase tracking-widest w-20 shrink-0">English</span>
+                                                            <span className="text-sm text-white/90 font-bold">{selectedLetter.latinPronunciation}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[10px] font-black text-[#F59E0B]/50 uppercase tracking-widest w-20 shrink-0">தமிழ்</span>
+                                                            <span className="text-sm text-[#F59E0B]/80 font-bold">{selectedLetter.tamilPronunciation}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Tamil guide */}
+                                                    <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
+                                                        <div className="text-[10px] font-black text-emerald-400/60 uppercase tracking-widest mb-1.5">Tamil Pronunciation Guide</div>
+                                                        <p className="text-xs text-white/60 leading-relaxed">{selectedLetter.tamilGuide}</p>
+                                                    </div>
+
+                                                    {/* Audio buttons */}
+                                                    <div className="flex flex-wrap gap-2">
+                                                        <button
+                                                            onClick={() => {
+                                                                if (selectedIndex === null) return;
+                                                                handlePlay(selectedIndex, selectedLetter.hebrewName);
+                                                            }}
+                                                            className="h-9 px-3.5 rounded-xl bg-[#F59E0B]/15 border border-[#F59E0B]/40 text-[#FBBF24] text-xs font-bold tracking-wide hover:bg-[#F59E0B]/25 transition-colors flex items-center gap-1.5"
+                                                        >
+                                                            <Volume2 size={12} /> Hebrew Audio
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                if (selectedIndex === null) return;
+                                                                // Strip vowels and space out letters to force spelling
+                                                                const consonants = selectedLetter.hebrewName.replace(/[\u0591-\u05C7]/g, '');
+                                                                handlePlay(selectedIndex, consonants.split('').join(' '), 0.55);
+                                                            }}
+                                                            className="h-9 px-3.5 rounded-xl bg-white/10 border border-white/20 text-white text-xs font-bold tracking-wide hover:bg-white/20 transition-colors flex items-center gap-1.5"
+                                                        >
+                                                            <Volume2 size={12} /> Slow Audio
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                if (!selectedLetter) return;
+                                                                audioService.playTamil(selectedLetter.tamilGuide, 0.78);
+                                                            }}
+                                                            className="h-9 px-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-300 text-xs font-bold tracking-wide hover:bg-emerald-500/20 transition-colors flex items-center gap-1.5"
+                                                        >
+                                                            <Volume2 size={12} /> தமிழ் Teaching Audio
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* RIGHT: Mouth Pronunciation Animator */}
+                                                <div className="flex-shrink-0 w-full md:w-auto flex justify-center">
+                                                    <MouthPronunciationAnimator
+                                                        phonemeSequence={HEBREW_LETTER_PHONEMES[selectedLetter.letter] || []}
+                                                        wordText={selectedLetter.hebrewName}
+                                                        phonetic={selectedLetter.latinPronunciation}
+                                                        tamilPhonetic={selectedLetter.tamilPronunciation}
+                                                        lang="he"
+                                                        theme="blue"
+                                                        autoPlay={true}
+                                                        showControls={true}
+                                                        size={180}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </React.Fragment>
                     ))}
                 </div>
 
@@ -200,7 +328,7 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                             <p className="text-[10px] md:text-xs font-black tracking-[0.14em] uppercase text-emerald-200/80 mt-2">Final Forms</p>
                         </div>
                     </div>
-                    <p className="text-white/30 text-[11px] md:text-xs font-bold">Tap a letter card to learn pronunciation instantly.</p>
+                    <p className="text-white/30 text-[11px] md:text-xs font-bold">Tap a letter card to learn pronunciation with mouth animation.</p>
                 </div>
             </div>
         </div>

@@ -143,10 +143,21 @@ export const PrintableHebrewCalendar = forwardRef<HTMLDivElement, PrintableHebre
             {/* Calendar Grid */}
             <div className="flex-1 w-full relative z-10 bg-white/50 backdrop-blur-sm rounded-lg overflow-hidden border border-brand-200 shadow-sm">
                 {/* Weekday Headers */}
-                <div className="grid grid-cols-7 bg-brand-900 text-amber-50">
-                    {['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'].map(d => (
-                        <div key={d} className="py-2 text-center text-xs font-bold tracking-widest border-r border-brand-800 last:border-0">
-                            {d}
+                <div className="grid grid-cols-7 bg-brand-900 text-amber-50 py-1">
+                    {[
+                        { eng: 'SUN', heb: 'ראשון', trans: 'Yom Rishon', tamil: 'யோம் ரிஷோன்' },
+                        { eng: 'MON', heb: 'שனி', trans: 'Yom Sheni', tamil: 'யோம் ஷேனி' },
+                        { eng: 'TUE', heb: 'שלישי', trans: 'Yom Shlishi', tamil: 'யோம் ஷ்லிஷி' },
+                        { eng: 'WED', heb: 'רביעי', trans: 'Yom Revi\'i', tamil: 'யோம் ரெவிஈ' },
+                        { eng: 'THU', heb: 'חמישי', trans: 'Yom Chamishi', tamil: 'யோம் ஹாமிஷி' },
+                        { eng: 'FRI', heb: 'שישי', trans: 'Yom Shishi', tamil: 'யோம் ஷிஷி' },
+                        { eng: 'SAT', heb: 'שבת', trans: 'Shabbat', tamil: 'ஷப்பாத்' }
+                    ].map(d => (
+                        <div key={d.eng} className="py-1 text-center border-r border-brand-800 last:border-0 flex flex-col items-center justify-center">
+                            <span className="text-[10px] font-black tracking-widest uppercase">{d.eng}</span>
+                            <span className="text-[11px] font-bold text-amber-300 leading-none mt-0.5">{d.heb}</span>
+                            <span className="text-[8px] font-medium text-amber-100/70 uppercase tracking-wider leading-none mt-0.5">{d.trans}</span>
+                            <span className="text-[8px] font-semibold text-blue-200 leading-none mt-0.5">{d.tamil}</span>
                         </div>
                     ))}
                 </div>

@@ -6,10 +6,10 @@ import {
     Calendar, Award, Shield, ShieldCheck, AlertCircle, CheckCircle, QrCode, Download,
     Save, GripVertical, Globe, Plus, ImagePlus, Camera, Image as ImageIcon, MessageSquare, Check, XCircle, FileText,
     PanelLeft, PanelTop, Database, RotateCcw, Dice6, Eye, EyeOff, Video, Tag, Settings, Crop, Lock, Send,
-    Sparkles, CircleUser, Menu, Youtube, Facebook, Instagram, UploadCloud, Zap, 
-    Type, Volume2, Hash, Calculator, BookOpen, Languages, Clock3, Flame, ExternalLink
+    Sparkles, CircleUser, Menu, Youtube, Facebook, Instagram, UploadCloud, Zap, Share2,
+    Type, Volume2, Hash, Calculator, BookOpen, Languages, Clock3, Flame, ExternalLink, AlertTriangle
 } from 'lucide-react';
-import { User, UserRole, UserStatus, Testimonial, Ministry, DeletedUser } from '../types';
+import { User, UserRole, UserStatus, Testimonial, Ministry, DeletedUser, Permalink } from '../types';
 import { Button } from './Button';
 import { api } from '../services/api';
 import { firebaseConfig, storage } from '../services/firebase';
@@ -22,6 +22,8 @@ import { AdminIDCard } from './AdminIDCard';
 import { CotIdEpicDice } from './CotIdEpicDice';
 import { HEBREW_PAGES } from '../hebrewRegistry';
 import { CommunityProfileForm } from './CommunityProfileForm';
+import { PermalinkManager } from './PermalinkManager';
+import { CompleteRebootModal } from './CompleteRebootModal';
 
 interface ContactMessage {
     id: string;
@@ -92,8 +94,15 @@ const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any
 
 
 
-type AdminTabId = 'users' | 'edit-page' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin' | 'admin-tabs' | 'member-forms';
+type AdminTabId = 'users' | 'edit-page' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin' | 'admin-tabs' | 'member-forms' | 'permalinks' | 'widgets';
 type AdminTabConfig = { id: AdminTabId; label: string; icon: string; order: number; hidden: boolean };
+
+type WidgetSettingsConfig = {
+    shareVisible: boolean;
+    shareSize: number;
+    aiVisible: boolean;
+    aiSize: number;
+};
 
 const TAB_ITEMS: { id: AdminTabId; label: string; icon: React.ElementType }[] = [
     { id: 'users', label: 'Users', icon: Users },
@@ -108,11 +117,13 @@ const TAB_ITEMS: { id: AdminTabId; label: string; icon: React.ElementType }[] = 
     { id: 'reports', label: 'Monthly Reports', icon: FileText },
     { id: 'home-layout', label: 'Pages & Sections', icon: GripVertical },
     { id: 'menu-editor', label: 'Menu Editor', icon: Filter },
+    { id: 'permalinks', label: 'Permalinks', icon: ExternalLink },
+    { id: 'widgets', label: 'Widgets', icon: GripVertical },
     { id: 'admin-tabs', label: 'Admin Pages', icon: Settings }
 ];
 
 const LUCIDE_ICONS: Record<string, React.ElementType> = {
-    Users, Edit2, RotateCcw, Database, MessageSquare, Globe, QrCode, Dice6, FileText, GripVertical, Filter, Settings
+    Users, Edit2, RotateCcw, Database, MessageSquare, Globe, QrCode, Dice6, FileText, GripVertical, Filter, Settings, ExternalLink
 };
 
 const DEFAULT_ADMIN_TABS: AdminTabConfig[] = [
@@ -128,7 +139,9 @@ const DEFAULT_ADMIN_TABS: AdminTabConfig[] = [
     { id: 'reports', label: 'Monthly Reports', icon: 'FileText', order: 9, hidden: false },
     { id: 'home-layout', label: 'Pages & Sections', icon: 'GripVertical', order: 10, hidden: false },
     { id: 'menu-editor', label: 'Menu Editor', icon: 'Filter', order: 11, hidden: false },
-    { id: 'admin-tabs', label: 'Admin Pages', icon: 'Settings', order: 12, hidden: false }
+    { id: 'permalinks', label: 'Permalinks', icon: 'ExternalLink', order: 12, hidden: false },
+    { id: 'widgets', label: 'Widgets', icon: 'GripVertical', order: 13, hidden: false },
+    { id: 'admin-tabs', label: 'Admin Pages', icon: 'Settings', order: 14, hidden: false }
 ];
 
 const normalizeAdminTabs = (tabs: any[]): AdminTabConfig[] => {
@@ -162,6 +175,116 @@ const COMMON_DISAPPROVE_REASONS = [
     'Duplicate account or conflicting member details',
     'Manual ministry review required before approval',
 ];
+
+const ROYAL_CARD_THEMES: ReadonlyArray<{
+    tone: NonNullable<User['cardThemeTone']>;
+    name: string;
+    label: string;
+    description: string;
+    swatch: string;
+    ring: string;
+}> = [
+    {
+        tone: 'gold',
+        name: 'Royal Gold',
+        label: 'Gold',
+        description: 'Warm crown finish',
+        swatch: 'from-[#fff7d6] via-[#f6c453] to-[#8a4b08]',
+        ring: 'ring-amber-400'
+    },
+    {
+        tone: 'purple',
+        name: 'Imperial Violet',
+        label: 'Violet',
+        description: 'Deep palace violet',
+        swatch: 'from-[#f8e8ff] via-[#a855f7] to-[#34145f]',
+        ring: 'ring-violet-400'
+    },
+    {
+        tone: 'blue',
+        name: 'Sapphire Crest',
+        label: 'Sapphire',
+        description: 'Premium royal blue',
+        swatch: 'from-[#e0f2fe] via-[#2563eb] to-[#0f172a]',
+        ring: 'ring-blue-400'
+    },
+    {
+        tone: 'green',
+        name: 'Emerald Seal',
+        label: 'Emerald',
+        description: 'Rich official green',
+        swatch: 'from-[#d1fae5] via-[#10b981] to-[#064e3b]',
+        ring: 'ring-emerald-400'
+    }
+];
+
+const ROYAL_PREVIEW_THEME_CLASSES: Record<NonNullable<User['cardThemeTone']>, {
+    shell: string;
+    header: string;
+    accentText: string;
+    panel: string;
+    icon: string;
+    title: string;
+    badge: string;
+    photoBg: string;
+    focus: string;
+}> = {
+    gold: {
+        shell: 'bg-gradient-to-br from-[#1f1305] via-[#4a2d07] to-[#d97706] border-amber-300/60',
+        header: 'bg-gradient-to-r from-[#2a1606] via-[#a16207] to-[#fbbf24]',
+        accentText: 'text-amber-100',
+        panel: 'border-amber-100 bg-white/12',
+        icon: 'text-amber-200',
+        title: 'text-white',
+        badge: 'text-amber-100 bg-amber-300/15 border-amber-200/40',
+        photoBg: 'bg-amber-950',
+        focus: 'focus-visible:ring-amber-300/70'
+    },
+    purple: {
+        shell: 'bg-gradient-to-br from-[#180b35] via-[#34145f] to-[#6d28d9] border-fuchsia-300/50',
+        header: 'bg-gradient-to-r from-[#1f1147] via-[#6d28d9] to-[#d946ef]',
+        accentText: 'text-fuchsia-100',
+        panel: 'border-fuchsia-100 bg-white/12',
+        icon: 'text-fuchsia-200',
+        title: 'text-white',
+        badge: 'text-fuchsia-100 bg-fuchsia-300/15 border-fuchsia-200/40',
+        photoBg: 'bg-purple-950',
+        focus: 'focus-visible:ring-fuchsia-300/70'
+    },
+    blue: {
+        shell: 'bg-gradient-to-br from-slate-950 via-blue-950 to-sky-900 border-sky-300/50',
+        header: 'bg-gradient-to-r from-slate-950 via-blue-900 to-sky-600',
+        accentText: 'text-sky-100',
+        panel: 'border-sky-100 bg-white/12',
+        icon: 'text-sky-200',
+        title: 'text-white',
+        badge: 'text-sky-100 bg-sky-400/15 border-sky-200/40',
+        photoBg: 'bg-sky-950',
+        focus: 'focus-visible:ring-sky-300/70'
+    },
+    green: {
+        shell: 'bg-gradient-to-br from-[#052e24] via-emerald-950 to-teal-800 border-emerald-300/50',
+        header: 'bg-gradient-to-r from-emerald-950 via-emerald-800 to-teal-500',
+        accentText: 'text-emerald-100',
+        panel: 'border-emerald-100 bg-white/12',
+        icon: 'text-emerald-200',
+        title: 'text-white',
+        badge: 'text-emerald-100 bg-emerald-300/15 border-emerald-200/40',
+        photoBg: 'bg-emerald-950',
+        focus: 'focus-visible:ring-emerald-300/70'
+    },
+    red: {
+        shell: 'bg-gradient-to-br from-rose-950 via-red-900 to-rose-700 border-rose-300/50',
+        header: 'bg-gradient-to-r from-rose-950 via-red-800 to-rose-500',
+        accentText: 'text-rose-100',
+        panel: 'border-rose-100 bg-white/12',
+        icon: 'text-rose-200',
+        title: 'text-white',
+        badge: 'text-rose-100 bg-rose-300/15 border-rose-200/40',
+        photoBg: 'bg-rose-950',
+        focus: 'focus-visible:ring-rose-300/70'
+    }
+};
 
 const TAMIL_NADU_DISTRICTS = [
     'Ariyalur', 'Chengalpattu', 'Chennai', 'Coimbatore', 'Cuddalore',
@@ -925,6 +1048,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [failedMinistryImages, setFailedMinistryImages] = useState<Record<string, boolean>>({});
     const [userQuickViewMode, setUserQuickViewMode] = useState<UserQuickViewMode | null>(null);
     const [idCardVisualMode, setIdCardVisualMode] = useState<IdCardVisualMode>('cards');
+    const [applyingCardThemeTone, setApplyingCardThemeTone] = useState<User['cardThemeTone'] | null>(null);
 
     const [activeTab, setActiveTab] = useState<AdminTabId>('users');
     const [menuMode, setMenuMode] = useState<'horizontal' | 'vertical'>(() => {
@@ -949,6 +1073,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [ministries, setMinistries] = useState<Ministry[]>([]);
     const [editingMinistry, setEditingMinistry] = useState<Partial<Ministry> | null>(null);
     
+    // Permalinks state
+    const [permalinks, setPermalinks] = useState<Permalink[]>([]);
+    
     // Premium gallery states
     const [mediaTypeFilter, setMediaTypeFilter] = useState<'all' | 'image' | 'video'>('all');
     const [mediaSortOrder, setMediaSortOrder] = useState<'newest' | 'oldest'>('newest');
@@ -967,6 +1094,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [renameValue, setRenameValue] = useState('');
 
     const [dynamicTabs, setDynamicTabs] = useState<AdminTabConfig[]>(DEFAULT_ADMIN_TABS);
+
+    // Complete Reboot state
+    const [showCompleteRebootModal, setShowCompleteRebootModal] = useState(false);
+
+    // Widget Settings State
+    const [widgetSettings, setWidgetSettings] = useState<WidgetSettingsConfig>(() => {
+        try {
+            const saved = localStorage.getItem('cot_widget_settings');
+            return saved ? JSON.parse(saved) : { shareVisible: true, shareSize: 1, aiVisible: true, aiSize: 1 };
+        } catch {
+            return { shareVisible: true, shareSize: 1, aiVisible: true, aiSize: 1 };
+        }
+    });
+
+    const updateWidgetSettings = (updates: Partial<WidgetSettingsConfig>) => {
+        setWidgetSettings(prev => {
+            const next = { ...prev, ...updates };
+            try {
+                localStorage.setItem('cot_widget_settings', JSON.stringify(next));
+                window.dispatchEvent(new Event('widget-settings-updated'));
+            } catch (e) {}
+            return next;
+        });
+    };
 
     React.useEffect(() => {
         api.getAdminTabsConfig().then(config => {
@@ -1023,6 +1174,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [cotDraftIds, setCotDraftIds] = useState<Record<string, string>>({});
     const [cotManagerMode, setCotManagerMode] = useState<'manual' | 'random' | 'requests'>('manual');
     const [cotManagerSelectedUserId, setCotManagerSelectedUserId] = useState('');
+    const [cotInventoryOpen, setCotInventoryOpen] = useState(false);
+    const [cotInventoryQuery, setCotInventoryQuery] = useState('');
+    const [cotInventoryAssignMode, setCotInventoryAssignMode] = useState<'manual' | 'random' | null>(null);
+    const [cotInventoryManualInput, setCotInventoryManualInput] = useState('');
+    const [cotInventorySelectedId, setCotInventorySelectedId] = useState('');
+    const [cotInventorySequenceMode, setCotInventorySequenceMode] = useState<'available' | 'numeric' | 'random'>('available');
+    const [cotInventoryCelebration, setCotInventoryCelebration] = useState<{ id: string; userName: string } | null>(null);
     const [cotIdSearchInput, setCotIdSearchInput] = useState('');
     const [cotIdSearchFeedback, setCotIdSearchFeedback] = useState<{ type: 'occupied' | 'available' | 'invalid'; message: string } | null>(null);
     const [diceRolling, setDiceRolling] = useState(false);
@@ -1065,7 +1223,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
     });
 
-    const [sectionsInfo, setSectionsInfo] = useState<Record<string, { name: string; desc: string }>>(() => {
+    const [sectionsInfo, setSectionsInfo] = useState<Record<string, { name: string; desc: string; hidden?: boolean }>>(() => {
         try {
             const saved = localStorage.getItem('cot_sections_info');
             if (saved) return JSON.parse(saved);
@@ -1077,8 +1235,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         return initial;
     });
 
-    const handleSaveSectionInfo = (sectionId: string, name: string, desc: string) => {
-        const next = { ...sectionsInfo, [sectionId]: { name, desc } };
+    const handleSaveSectionInfo = (sectionId: string, name: string, desc: string, hidden?: boolean) => {
+        const currentInfo = sectionsInfo[sectionId] || {};
+        const next = { 
+            ...sectionsInfo, 
+            [sectionId]: { 
+                name, 
+                desc,
+                hidden: hidden !== undefined ? hidden : currentInfo.hidden
+            } 
+        };
         setSectionsInfo(next);
         try {
             localStorage.setItem('cot_sections_info', JSON.stringify(next));
@@ -1090,6 +1256,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             api.getTestimonials().then(setTestimonials);
         } else if (activeTab === 'ministries') {
             api.getMinistries().then(setMinistries);
+        } else if (activeTab === 'permalinks') {
+            api.getPermalinks().then(setPermalinks);
         }
     }, [activeTab]);
 
@@ -1378,6 +1546,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
     };
 
+    // Permalink handlers
+    const handleCreatePermalink = async (permalink: Omit<Permalink, 'id' | 'createdAt' | 'updatedAt'>) => {
+        try {
+            const newPermalink = await api.createPermalink(permalink);
+            setPermalinks(prev => [newPermalink, ...prev]);
+        } catch (error) {
+            console.error('Failed to create permalink:', error);
+            throw error;
+        }
+    };
+
+    const handleUpdatePermalink = async (permalink: Permalink) => {
+        try {
+            const updated = await api.updatePermalink(permalink);
+            setPermalinks(prev => prev.map(p => p.id === updated.id ? updated : p));
+        } catch (error) {
+            console.error('Failed to update permalink:', error);
+            throw error;
+        }
+    };
+
+    const handleDeletePermalink = async (permalinkId: string) => {
+        try {
+            await api.deletePermalink(permalinkId);
+            setPermalinks(prev => prev.filter(p => p.id !== permalinkId));
+        } catch (error) {
+            console.error('Failed to delete permalink:', error);
+            throw error;
+        }
+    };
+
     // Statistics
     const stats = useMemo(() => ({
         total: users.length,
@@ -1492,7 +1691,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const formatDateValue = (value?: string) => {
         if (!value) return 'Not provided';
         const parsed = new Date(value);
-        return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString();
+        if (Number.isNaN(parsed.getTime())) return value;
+        
+        // Format as DD-MM-YYYY
+        const day = parsed.getDate().toString().padStart(2, '0');
+        const month = (parsed.getMonth() + 1).toString().padStart(2, '0');
+        const year = parsed.getFullYear();
+        return `${day}-${month}-${year}`;
     };
 
     const formatCotId = (num: number) => `COT-${String(num).padStart(4, '0')}`;
@@ -1512,6 +1717,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         if (!match) return null;
         const num = Number(match[1]);
         return Number.isFinite(num) && num > 0 ? num : null;
+    };
+
+    // Extract just the 4-digit number from COT ID (e.g., "COT-2826" -> "2826")
+    const extractCotNumber = (id: string): string => {
+        const match = /^COT-(\d{4,})$/i.exec((id || '').trim());
+        return match ? match[1] : id;
     };
 
     const existingCotIds = useMemo(() => {
@@ -1558,27 +1769,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
         return shuffled.slice(0, MAX_SUGGESTED_COT_IDS);
     }, [allAvailableCotIds]);
-
-    const cotIdInventory = useMemo(
-        () => Array.from({ length: maxOccupiedCotNumber }, (_, index) => formatCotId(index + 1)),
-        [maxOccupiedCotNumber]
-    );
-    const cotIdOwnerById = useMemo(() => {
-        const map = new Map<string, User>();
-        users.forEach((user) => {
-            const key = (user.id || '').toUpperCase();
-            if (/^COT-\d{4,}$/.test(key)) map.set(key, user);
-        });
-        return map;
-    }, [users]);
-    const shuffledCotIdInventory = useMemo(() => {
-        const items = [...cotIdInventory];
-        for (let i = items.length - 1; i > 0; i -= 1) {
-            const rand = Math.floor(Math.random() * (i + 1));
-            [items[i], items[rand]] = [items[rand], items[i]];
-        }
-        return items;
-    }, [cotIdInventory]);
 
     const getRandomAvailableCotId = () => {
         if (allAvailableCotIds.length === 0) return null;
@@ -2314,6 +2504,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         });
     }, [users, searchQuery, filterStatus, filterRole, filterLocation, userSortMode]);
 
+    const handleApplyBulkCardTheme = async (tone: NonNullable<User['cardThemeTone']>) => {
+        if (filteredUsers.length === 0) {
+            alert('No ID cards match the current filters.');
+            return;
+        }
+
+        setApplyingCardThemeTone(tone);
+        try {
+            await Promise.all(filteredUsers.map(user => onUpdateUser({ ...user, cardThemeTone: tone })));
+        } catch (error) {
+            console.error('Failed to apply bulk card theme:', error);
+            alert('Failed to apply the theme to all filtered cards. Please try again.');
+        } finally {
+            setApplyingCardThemeTone(null);
+        }
+    };
+
     const cotManagerUsers = useMemo(() => {
         const query = cotManagerQuery.trim().toLowerCase();
         const ordered = [...users].sort((a, b) => a.name.localeCompare(b.name));
@@ -2339,6 +2546,87 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             return haystack.includes(query);
         });
     }, [cotManagerAssignableUsers, diceUserQuery]);
+
+    const cotInventoryUsers = useMemo(() => {
+        const query = cotInventoryQuery.trim().toLowerCase();
+        const ordered = [...users].sort((a, b) => (a.id || '').localeCompare((b.id || ''), undefined, { numeric: true, sensitivity: 'base' }));
+        if (!query) return ordered;
+        return ordered.filter((user) => {
+            const haystack = `${user.name || ''} ${user.id || ''} ${user.phone || ''} ${user.email || ''} ${user.location || ''} ${user.status || ''} ${user.role || ''}`.toLowerCase();
+            return haystack.includes(query);
+        });
+    }, [users, cotInventoryQuery]);
+
+    const cotInventorySelectedUser = useMemo(
+        () => users.find(user => user.id === cotManagerSelectedUserId) || null,
+        [users, cotManagerSelectedUserId]
+    );
+
+    const cotInventoryDisplayIds = useMemo(() => {
+        const numericIds = Array.from({ length: cotIdInventoryUpperBound }, (_, index) => formatCotId(index + 1));
+        const source = cotInventorySequenceMode === 'available'
+            ? allAvailableCotIds
+            : numericIds;
+
+        if (cotInventorySequenceMode !== 'random') return source;
+
+        const shuffled = [...source];
+        for (let i = shuffled.length - 1; i > 0; i -= 1) {
+            const rand = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[rand]] = [shuffled[rand], shuffled[i]];
+        }
+        return shuffled;
+    }, [allAvailableCotIds, cotIdInventoryUpperBound, cotInventorySequenceMode]);
+
+    const triggerCotInventoryCelebration = (id: string, userName: string) => {
+        setCotInventoryCelebration({ id, userName });
+        window.setTimeout(() => setCotInventoryCelebration(null), 2100);
+    };
+
+    const applyInventoryCotId = async (rawId: string) => {
+        if (!cotInventorySelectedUser) {
+            alert('Select a member first.');
+            return;
+        }
+        if (!onReassignUserId) {
+            alert('ID reassignment is not available in this environment.');
+            return;
+        }
+        const nextId = normalizeCotIdInput(rawId);
+        if (!isCotId(nextId)) {
+            alert('Please choose or type a valid COT ID like COT-1960.');
+            return;
+        }
+        const currentId = (cotInventorySelectedUser.id || '').toUpperCase();
+        if (nextId !== currentId && existingCotIds.has(nextId)) {
+            alert(`${nextId} is already used. Choose another COT ID.`);
+            return;
+        }
+        if (nextId === currentId) return;
+
+        await onReassignUserId(cotInventorySelectedUser.id, nextId, { ...cotInventorySelectedUser, id: nextId });
+        setCotInventoryManualInput(nextId);
+        setCotInventorySelectedId(nextId);
+        setCotIdSearchInput(nextId);
+        setCotIdSearchFeedback({ type: 'occupied', message: `${nextId} has been selected for ${cotInventorySelectedUser.name}.` });
+        triggerCotInventoryCelebration(nextId, cotInventorySelectedUser.name);
+    };
+
+    const rollInventoryCotId = () => {
+        const next = getRandomAvailableCotId();
+        if (!next) {
+            alert('No available COT IDs found.');
+            return;
+        }
+        setDiceRolling(true);
+        setDicePickedCotId('');
+        window.setTimeout(() => {
+            setDicePickedCotId(next);
+            setCotInventorySelectedId(next);
+            setCotInventoryManualInput(next);
+            setDiceRolling(false);
+        }, 950);
+    };
 
     const handleSearchCotId = () => {
         const normalized = normalizeCotIdInput(cotIdSearchInput);
@@ -3044,7 +3332,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             drawField('Location', member.location);
             drawField('Emergency Contact', member.emergency);
             drawField('Member Since', member.memberSince);
-            drawField('Joined Date', member.joinedDate ? new Date(member.joinedDate).toLocaleDateString() : '');
+            drawField('Joined Date', member.joinedDate ? (() => {
+                const d = new Date(member.joinedDate);
+                const day = d.getDate().toString().padStart(2, '0');
+                const month = (d.getMonth() + 1).toString().padStart(2, '0');
+                const year = d.getFullYear();
+                return `${day}-${month}-${year}`;
+            })() : '');
 
             if (member.communityProfile) {
                 y += 2;
@@ -4696,39 +4990,366 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <div className="text-sm text-slate-400 text-center py-4">No users found.</div>
                                         )}
                                     </div>
-                                    <details className="rounded-xl border border-slate-200 bg-white p-3 mt-2">
-                                        <summary className="cursor-pointer text-xs font-bold text-slate-700">
-                                            COT ID inventory (random sequence) • click occupied IDs to view profile
-                                        </summary>
-                                        <div className="mt-3 max-h-44 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pr-1">
-                                            {shuffledCotIdInventory.length === 0 && (
-                                                <p className="text-xs text-slate-400">No occupied COT IDs yet.</p>
+                                    <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+                                        <button
+                                            type="button"
+                                            onClick={() => setCotInventoryOpen(prev => !prev)}
+                                            className="w-full px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-left hover:bg-slate-50 transition-colors"
+                                        >
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-brand-500/20">
+                                                    <Hash size={18} />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-black text-brand-950">COT ID Member Inventory</p>
+                                                    <p className="text-[11px] text-slate-500 truncate">Click to search all users, select a member, and manage their COT ID.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-[11px] font-black border border-slate-200">
+                                                    {users.length} users
+                                                </span>
+                                                <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-black border border-emerald-100">
+                                                    {allAvailableCotIds.length} free
+                                                </span>
+                                                <ChevronDown size={18} className={`text-slate-400 transition-transform ${cotInventoryOpen ? 'rotate-180' : ''}`} />
+                                            </div>
+                                        </button>
+
+                                        <AnimatePresence initial={false}>
+                                            {cotInventoryOpen && (
+                                                <motion.div
+                                                    initial={{ height: 0, opacity: 0 }}
+                                                    animate={{ height: 'auto', opacity: 1 }}
+                                                    exit={{ height: 0, opacity: 0 }}
+                                                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                                                    className="overflow-hidden border-t border-slate-100"
+                                                >
+                                                    <div className="p-4 space-y-4 bg-gradient-to-b from-slate-50 to-white">
+                                                        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3">
+                                                            <div className="relative">
+                                                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                                                <input
+                                                                    type="text"
+                                                                    value={cotInventoryQuery}
+                                                                    onChange={(e) => setCotInventoryQuery(e.target.value)}
+                                                                    placeholder="Type any detail: name, COT ID, phone, email, location, or status..."
+                                                                    className="w-full pl-10 pr-3 py-3 rounded-xl border border-slate-200 bg-white outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100 text-sm"
+                                                                />
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setCotInventoryQuery('');
+                                                                    setCotManagerSelectedUserId('');
+                                                                    setCotManagerQuery('');
+                                                                    setDiceTargetUserId('');
+                                                                    setCotInventoryAssignMode(null);
+                                                                    setCotInventoryManualInput('');
+                                                                    setCotInventorySelectedId('');
+                                                                }}
+                                                                className="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-black hover:bg-slate-50"
+                                                            >
+                                                                Clear Selection
+                                                            </button>
+                                                        </div>
+
+                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                                            {[
+                                                                { label: 'Matched', value: cotInventoryUsers.length, tone: 'bg-indigo-50 text-indigo-700 border-indigo-100' },
+                                                                { label: 'Active', value: cotInventoryUsers.filter(user => user.status === 'Active').length, tone: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
+                                                                { label: 'Pending', value: cotInventoryUsers.filter(user => user.status === 'Pending Verification').length, tone: 'bg-amber-50 text-amber-700 border-amber-100' },
+                                                                { label: 'Rejected', value: cotInventoryUsers.filter(user => user.status === 'Rejected').length, tone: 'bg-rose-50 text-rose-700 border-rose-100' }
+                                                            ].map(stat => (
+                                                                <div key={stat.label} className={`rounded-xl border px-3 py-2 ${stat.tone}`}>
+                                                                    <p className="text-[10px] font-black uppercase tracking-widest">{stat.label}</p>
+                                                                    <p className="text-lg font-black leading-tight">{stat.value}</p>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+
+                                                        <AnimatePresence>
+                                                            {cotInventorySelectedUser && (
+                                                                <motion.div
+                                                                    initial={{ opacity: 0, scale: 0.96, y: 18 }}
+                                                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                                    exit={{ opacity: 0, scale: 0.96, y: -12 }}
+                                                                    className="relative overflow-hidden rounded-3xl border border-brand-200 bg-gradient-to-br from-brand-950 via-indigo-950 to-slate-950 p-4 md:p-5 text-white shadow-2xl shadow-brand-950/20"
+                                                                >
+                                                                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(250,204,21,0.18),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.22),transparent_30%)]" />
+                                                                    <div className="relative z-10 grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+                                                                        <div className="flex items-center gap-3 min-w-0">
+                                                                            <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl overflow-hidden border border-white/20 bg-white/10 flex items-center justify-center shrink-0 shadow-lg">
+                                                                                {cotInventorySelectedUser.photo ? (
+                                                                                    <img src={cotInventorySelectedUser.photo} alt={cotInventorySelectedUser.name} className="w-full h-full object-cover" />
+                                                                                ) : (
+                                                                                    <span className="text-xl font-black">{(cotInventorySelectedUser.name || 'U').charAt(0)}</span>
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="min-w-0">
+                                                                                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-amber-200">Selected Member</p>
+                                                                                <h4 className="mt-1 text-xl md:text-2xl font-black truncate">{cotInventorySelectedUser.name}</h4>
+                                                                                <p className="text-xs md:text-sm font-mono text-white/60 truncate">{cotInventorySelectedUser.id}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="grid grid-cols-2 gap-2 min-w-[min(100%,360px)]">
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => setCotInventoryAssignMode('manual')}
+                                                                                className={`rounded-2xl border px-4 py-3 text-left transition-all hover:-translate-y-0.5 ${cotInventoryAssignMode === 'manual' ? 'bg-amber-400 text-brand-950 border-amber-200 shadow-lg shadow-amber-500/30' : 'bg-white/10 text-white border-white/15 hover:bg-white/15'}`}
+                                                                            >
+                                                                                <Hash size={18} />
+                                                                                <p className="mt-2 text-sm font-black">Manual Select</p>
+                                                                                <p className="text-[10px] font-semibold opacity-70">See all COT IDs</p>
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    setCotInventoryAssignMode('random');
+                                                                                    setDiceTargetUserId(cotInventorySelectedUser.id);
+                                                                                }}
+                                                                                className={`rounded-2xl border px-4 py-3 text-left transition-all hover:-translate-y-0.5 ${cotInventoryAssignMode === 'random' ? 'bg-violet-400 text-brand-950 border-violet-200 shadow-lg shadow-violet-500/30' : 'bg-white/10 text-white border-white/15 hover:bg-white/15'}`}
+                                                                            >
+                                                                                <Dice6 size={18} />
+                                                                                <p className="mt-2 text-sm font-black">Random Dice</p>
+                                                                                <p className="text-[10px] font-semibold opacity-70">Big roll effect</p>
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <AnimatePresence>
+                                                                        {cotInventoryAssignMode === 'manual' && (
+                                                                            <motion.div
+                                                                                initial={{ opacity: 0, y: 18 }}
+                                                                                animate={{ opacity: 1, y: 0 }}
+                                                                                exit={{ opacity: 0, y: -10 }}
+                                                                                className="relative z-10 mt-5 rounded-3xl border border-white/15 bg-white/95 p-3 md:p-4 text-slate-900 shadow-xl"
+                                                                            >
+                                                                                <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-2 mb-3">
+                                                                                    <div className="relative">
+                                                                                        <Hash size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-500" />
+                                                                                        <input
+                                                                                            list="manual-cot-id-options"
+                                                                                            value={cotInventoryManualInput}
+                                                                                            onChange={(event) => {
+                                                                                                setCotInventoryManualInput(event.target.value);
+                                                                                                setCotInventorySelectedId(normalizeCotIdInput(event.target.value));
+                                                                                            }}
+                                                                                            placeholder="Type COT ID here, example COT-1960"
+                                                                                            className="w-full pl-10 pr-3 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-sm font-mono outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
+                                                                                        />
+                                                                                    </div>
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() => applyInventoryCotId(cotInventoryManualInput || cotInventorySelectedId)}
+                                                                                        disabled={!onReassignUserId || !(cotInventoryManualInput || cotInventorySelectedId)}
+                                                                                        className="px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-black shadow-lg shadow-emerald-500/25 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 transition-transform"
+                                                                                    >
+                                                                                        Use It
+                                                                                    </button>
+                                                                                </div>
+                                                                                <div className="flex flex-wrap gap-2 mb-3">
+                                                                                    {[
+                                                                                        { id: 'available', label: 'Available IDs' },
+                                                                                        { id: 'numeric', label: 'All Sequence' },
+                                                                                        { id: 'random', label: 'Random Sequence' }
+                                                                                    ].map(mode => (
+                                                                                        <button
+                                                                                            key={mode.id}
+                                                                                            type="button"
+                                                                                            onClick={() => setCotInventorySequenceMode(mode.id as 'available' | 'numeric' | 'random')}
+                                                                                            className={`px-3 py-1.5 rounded-full border text-[11px] font-black transition-colors ${cotInventorySequenceMode === mode.id ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                                                                                        >
+                                                                                            {mode.label}
+                                                                                        </button>
+                                                                                    ))}
+                                                                                </div>
+                                                                                <div className="max-h-72 overflow-y-auto rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-2">
+                                                                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-7 gap-2">
+                                                                                        {cotInventoryDisplayIds.map((id, index) => {
+                                                                                            const isTaken = existingCotIds.has(id);
+                                                                                            const isCurrent = id === (cotInventorySelectedUser.id || '').toUpperCase();
+                                                                                            const isChosen = id === cotInventorySelectedId;
+                                                                                            return (
+                                                                                                <motion.button
+                                                                                                    key={`${id}-${index}`}
+                                                                                                    type="button"
+                                                                                                    initial={{ opacity: 0, y: 8 }}
+                                                                                                    animate={{ opacity: 1, y: 0 }}
+                                                                                                    transition={{ delay: Math.min(index * 0.006, 0.18) }}
+                                                                                                    onClick={() => {
+                                                                                                        if (isTaken && !isCurrent) return;
+                                                                                                        setCotInventorySelectedId(id);
+                                                                                                        setCotInventoryManualInput(id);
+                                                                                                    }}
+                                                                                                    disabled={isTaken && !isCurrent}
+                                                                                                    className={`relative overflow-hidden rounded-xl border px-2 py-2 text-center font-mono text-[11px] font-black transition-all ${
+                                                                                                        isChosen
+                                                                                                            ? 'border-amber-400 bg-amber-300 text-brand-950 shadow-lg shadow-amber-300/40 scale-[1.03]'
+                                                                                                            : isTaken
+                                                                                                                ? 'border-slate-200 bg-slate-100 text-slate-400 opacity-60'
+                                                                                                                : 'border-emerald-100 bg-emerald-50 text-emerald-700 hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-100'
+                                                                                                    }`}
+                                                                                                >
+                                                                                                    {extractCotNumber(id)}
+                                                                                                    {isChosen && <span className="absolute inset-x-2 bottom-1 h-0.5 rounded-full bg-brand-700" />}
+                                                                                                </motion.button>
+                                                                                            );
+                                                                                        })}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </motion.div>
+                                                                        )}
+
+                                                                        {cotInventoryAssignMode === 'random' && (
+                                                                            <motion.div
+                                                                                initial={{ opacity: 0, scale: 0.94, y: 18 }}
+                                                                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                                                exit={{ opacity: 0, scale: 0.94, y: -10 }}
+                                                                                className="relative z-10 mt-5 rounded-3xl border border-white/15 bg-gradient-to-br from-violet-600 via-indigo-600 to-brand-700 p-5 text-white shadow-2xl"
+                                                                            >
+                                                                                <div className="flex flex-col lg:flex-row lg:items-center gap-5">
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={rollInventoryCotId}
+                                                                                        disabled={diceRolling}
+                                                                                        className={`min-h-28 lg:min-h-36 px-8 rounded-3xl text-2xl md:text-3xl font-black border border-white/20 shadow-2xl transition-all ${diceRolling ? 'bg-amber-400 text-brand-950 animate-pulse' : 'bg-white text-brand-950 hover:scale-[1.03]'}`}
+                                                                                    >
+                                                                                        <span className="block text-5xl mb-2">🎲</span>
+                                                                                        {diceRolling ? 'Rolling...' : 'Roll Big Dice'}
+                                                                                    </button>
+                                                                                    <div className="flex-1 flex flex-col items-center justify-center rounded-3xl bg-white/10 border border-white/15 p-5 min-h-36">
+                                                                                        <div className="scale-[1.45] md:scale-[1.8] my-6">
+                                                                                            <CotIdEpicDice isRolling={diceRolling} result={dicePickedCotId || cotInventorySelectedId || '— — — —'} />
+                                                                                        </div>
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => applyInventoryCotId(dicePickedCotId || cotInventorySelectedId)}
+                                                                                            disabled={!onReassignUserId || !(dicePickedCotId || cotInventorySelectedId)}
+                                                                                            className="mt-4 px-6 py-3 rounded-2xl bg-amber-300 text-brand-950 text-sm font-black shadow-xl shadow-amber-500/30 hover:scale-[1.03] disabled:opacity-50 disabled:hover:scale-100 transition-transform"
+                                                                                        >
+                                                                                            Use This Random COT ID
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </motion.div>
+                                                                        )}
+                                                                    </AnimatePresence>
+                                                                </motion.div>
+                                                            )}
+                                                        </AnimatePresence>
+
+                                                        <div className="max-h-[420px] overflow-y-auto pr-1">
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                                                {cotInventoryUsers.map((user, index) => {
+                                                                    const currentId = (user.id || '').toUpperCase();
+                                                                    const isSelected = cotManagerSelectedUserId === user.id;
+                                                                    const hasCotId = isCotId(currentId);
+                                                                    return (
+                                                                        <motion.button
+                                                                            key={user.id}
+                                                                            type="button"
+                                                                            initial={{ opacity: 0, y: 12 }}
+                                                                            animate={{ opacity: 1, y: 0 }}
+                                                                            transition={{ delay: Math.min(index * 0.025, 0.25) }}
+                                                                            onClick={() => {
+                                                                                setCotManagerSelectedUserId(user.id);
+                                                                                setCotManagerQuery(user.name);
+                                                                                setDiceTargetUserId(user.id);
+                                                                                setCotInventoryAssignMode(null);
+                                                                                setCotInventoryManualInput('');
+                                                                                setCotInventorySelectedId('');
+                                                                                setCotIdSearchInput(currentId);
+                                                                                setCotIdSearchFeedback({
+                                                                                    type: hasCotId ? 'occupied' : 'invalid',
+                                                                                    message: hasCotId ? `${currentId} is selected for ${user.name}.` : `${user.name} does not have a valid COT ID format yet.`
+                                                                                });
+                                                                            }}
+                                                                            className={`group text-left rounded-2xl border p-3 transition-all hover:-translate-y-0.5 hover:shadow-lg ${
+                                                                                isSelected
+                                                                                    ? 'border-brand-400 bg-brand-50 shadow-md shadow-brand-500/10 ring-2 ring-brand-100'
+                                                                                    : 'border-slate-200 bg-white hover:border-brand-200'
+                                                                            }`}
+                                                                        >
+                                                                            <div className="flex items-start gap-3">
+                                                                                <div className="relative shrink-0">
+                                                                                    <div className="w-12 h-12 rounded-2xl overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 border border-white shadow-sm flex items-center justify-center">
+                                                                                        {user.photo ? (
+                                                                                            <img src={user.photo} alt={user.name} className="w-full h-full object-cover" />
+                                                                                        ) : (
+                                                                                            <span className="text-base font-black text-brand-700">{(user.name || 'U').charAt(0)}</span>
+                                                                                        )}
+                                                                                    </div>
+                                                                                    <span className={`absolute -right-1 -bottom-1 w-4 h-4 rounded-full border-2 border-white ${user.status === 'Active' ? 'bg-emerald-500' : user.status === 'Rejected' ? 'bg-rose-500' : 'bg-amber-500'}`} />
+                                                                                </div>
+                                                                                <div className="min-w-0 flex-1">
+                                                                                    <div className="flex items-start justify-between gap-2">
+                                                                                        <div className="min-w-0">
+                                                                                            <p className="text-sm font-black text-brand-950 truncate">{user.name}</p>
+                                                                                            <p className="text-[11px] font-mono text-slate-500 truncate">{currentId ? extractCotNumber(currentId) : 'No COT ID'}</p>
+                                                                                        </div>
+                                                                                        {isSelected && <CheckCircle size={18} className="text-brand-600 shrink-0" />}
+                                                                                    </div>
+                                                                                    <div className="mt-2 flex flex-wrap gap-1.5">
+                                                                                        <span className={`px-2 py-0.5 rounded-full border text-[10px] font-black ${getStatusColor(user.status)}`}>
+                                                                                            {user.status}
+                                                                                        </span>
+                                                                                        <span className="px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200 text-[10px] font-bold text-slate-600">
+                                                                                            {user.role}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="mt-3 grid grid-cols-1 gap-1.5 text-[11px] text-slate-500">
+                                                                                <div className="flex items-center gap-2 min-w-0">
+                                                                                    <Phone size={12} className="text-slate-400 shrink-0" />
+                                                                                    <span className="truncate">{user.phone || user.emergency || 'No phone'}</span>
+                                                                                </div>
+                                                                                <div className="flex items-center gap-2 min-w-0">
+                                                                                    <MapPin size={12} className="text-slate-400 shrink-0" />
+                                                                                    <span className="truncate">{user.location || 'No location'}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="mt-3 flex items-center gap-2">
+                                                                                <span className={`flex-1 text-center px-3 py-2 rounded-xl text-[11px] font-black transition-colors ${isSelected ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600 group-hover:bg-brand-50 group-hover:text-brand-700'}`}>
+                                                                                    {isSelected ? 'Selected' : 'Select Member'}
+                                                                                </span>
+                                                                                <span
+                                                                                    role="button"
+                                                                                    tabIndex={0}
+                                                                                    onClick={(event) => {
+                                                                                        event.stopPropagation();
+                                                                                        setViewingDetailsUser(user);
+                                                                                    }}
+                                                                                    onKeyDown={(event) => {
+                                                                                        if (event.key === 'Enter' || event.key === ' ') {
+                                                                                            event.preventDefault();
+                                                                                            event.stopPropagation();
+                                                                                            setViewingDetailsUser(user);
+                                                                                        }
+                                                                                    }}
+                                                                                    className="px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-brand-700 hover:border-brand-200 text-[11px] font-black"
+                                                                                >
+                                                                                    View
+                                                                                </span>
+                                                                            </div>
+                                                                        </motion.button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                            {cotInventoryUsers.length === 0 && (
+                                                                <div className="text-center py-10 rounded-2xl border border-dashed border-slate-200 bg-white">
+                                                                    <Users size={36} className="mx-auto text-slate-300 mb-3" />
+                                                                    <p className="text-sm font-bold text-slate-500">No matching members found.</p>
+                                                                    <p className="text-xs text-slate-400 mt-1">Try a name, phone number, district, email, or COT ID.</p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
                                             )}
-                                            {shuffledCotIdInventory.map((id) => {
-                                                const owner = cotIdOwnerById.get(id);
-                                                const occupied = !!owner;
-                                                return (
-                                                    <button
-                                                        key={id}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setCotIdSearchInput(id);
-                                                            setCotManagerSelectedUserId(owner?.id || '');
-                                                            if (owner) {
-                                                                setViewingDetailsUser(owner);
-                                                                setCotIdSearchFeedback({ type: 'occupied', message: `${id} is occupied by ${owner.name}.` });
-                                                            } else {
-                                                                setCotIdSearchFeedback({ type: 'available', message: `${id} is available.` });
-                                                            }
-                                                        }}
-                                                        className={`text-left px-2 py-1.5 rounded-lg border text-[11px] font-mono transition-colors ${occupied ? 'border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100' : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}
-                                                    >
-                                                        {id} • {occupied ? 'Occupied' : 'Free'}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </details>
+                                        </AnimatePresence>
+                                    </div>
                                 </>
                             )}
 
@@ -5038,9 +5659,64 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         {/* ID Cards Grid */}
                         {activeTab === 'id-cards' && (
                         <>
+                        <div className="relative overflow-hidden rounded-3xl border border-amber-200/60 bg-[#111827] shadow-2xl shadow-slate-900/15">
+                            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
+                            <div className="absolute right-0 top-0 h-32 w-32 rounded-bl-full bg-amber-300/10" />
+                            <div className="p-5 md:p-6">
+                                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-5">
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-2 text-amber-200">
+                                            <Sparkles size={16} />
+                                            <p className="text-[11px] font-black uppercase tracking-[0.28em]">Royal Entrust Themes</p>
+                                        </div>
+                                        <h3 className="mt-2 text-xl md:text-2xl font-black text-white tracking-tight">Bulk card theme studio</h3>
+                                        <p className="mt-1 text-xs md:text-sm font-semibold text-slate-300">
+                                            Applies to {filteredUsers.length} filtered card{filteredUsers.length === 1 ? '' : 's'}.
+                                        </p>
+                                    </div>
+                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 w-full xl:max-w-4xl">
+                                        {ROYAL_CARD_THEMES.map(theme => {
+                                            const isApplying = applyingCardThemeTone === theme.tone;
+                                            const isUnified = filteredUsers.length > 0 && filteredUsers.every(user => (user.cardThemeTone || 'blue') === theme.tone);
+                                            return (
+                                                <button
+                                                    key={theme.tone}
+                                                    type="button"
+                                                    onClick={() => handleApplyBulkCardTheme(theme.tone)}
+                                                    disabled={!!applyingCardThemeTone || filteredUsers.length === 0}
+                                                    className={`group/theme relative overflow-hidden rounded-2xl border px-3 py-3 text-left transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
+                                                        isUnified
+                                                            ? `border-white/80 bg-white text-slate-950 ring-2 ${theme.ring} ring-offset-2 ring-offset-slate-950`
+                                                            : 'border-white/10 bg-white/8 text-white hover:-translate-y-0.5 hover:border-amber-200/70 hover:bg-white/12'
+                                                    }`}
+                                                    title={`Apply ${theme.name} to all filtered cards`}
+                                                >
+                                                    <div className={`mb-3 h-10 rounded-xl bg-gradient-to-r ${theme.swatch} shadow-lg`} />
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <div className="min-w-0">
+                                                            <p className="text-sm font-black truncate">{theme.name}</p>
+                                                            <p className={`mt-0.5 text-[10px] font-bold uppercase tracking-widest ${isUnified ? 'text-slate-500' : 'text-slate-300'}`}>
+                                                                {isApplying ? 'Applying...' : theme.description}
+                                                            </p>
+                                                        </div>
+                                                        <span className={`h-6 w-6 rounded-full border flex items-center justify-center shrink-0 ${
+                                                            isUnified ? 'border-emerald-300 bg-emerald-100 text-emerald-700' : 'border-white/20 bg-white/10 text-white/70'
+                                                        }`}>
+                                                            {isUnified ? <Check size={13} /> : <Sparkles size={12} />}
+                                                        </span>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-8">
                             <AnimatePresence mode='popLayout'>
-                                {filteredUsers.map((user, index) => (
+                                {filteredUsers.map((user, index) => {
+                                    const previewTheme = ROYAL_PREVIEW_THEME_CLASSES[user.cardThemeTone || 'blue'];
+                                    return (
                                     <motion.div
                                         key={user.id}
                                         layout
@@ -5072,39 +5748,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                         onMemberSinceClick={() => setIdCardVisualMode('join-dates')}
                                                     />
                                                 </div>
-                                                {/* Sleek, Premium Color Customizer Bar */}
-                                                <div 
-                                                    onClick={(e) => e.stopPropagation()} 
-                                                    className="bg-slate-50 border border-slate-200/60 rounded-2xl p-2.5 flex items-center justify-between shadow-sm transition-all hover:bg-slate-100/50"
-                                                >
-                                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                                                        <Sparkles size={12} className="text-amber-500 animate-pulse" /> Customize Theme
-                                                    </span>
-                                                    <div className="flex items-center gap-1.5">
-                                                        {(['blue', 'purple', 'green', 'red', 'gold'] as const).map((tone) => (
-                                                            <button
-                                                                key={tone}
-                                                                type="button"
-                                                                onClick={async (event) => {
-                                                                    event.stopPropagation();
-                                                                    await onUpdateUser({ ...user, cardThemeTone: tone });
-                                                                }}
-                                                                className={`w-5.5 h-5.5 rounded-full border transition-all ${
-                                                                    tone === 'blue' ? 'bg-blue-500 border-blue-600 shadow-blue-500/20' :
-                                                                    tone === 'purple' ? 'bg-purple-500 border-purple-600 shadow-purple-500/20' :
-                                                                    tone === 'green' ? 'bg-emerald-500 border-emerald-600 shadow-emerald-500/20' :
-                                                                    tone === 'red' ? 'bg-rose-500 border-rose-600 shadow-rose-500/20' :
-                                                                    'bg-amber-400 border-amber-500 shadow-amber-500/20'
-                                                                } ${user.cardThemeTone === tone || (!user.cardThemeTone && tone === 'blue') ? 'ring-2 ring-indigo-500 ring-offset-2 scale-110' : 'hover:scale-105 opacity-80 hover:opacity-100'} shadow-sm flex items-center justify-center`}
-                                                                title={`Set card theme to ${tone}`}
-                                                            >
-                                                                {(user.cardThemeTone === tone || (!user.cardThemeTone && tone === 'blue')) && (
-                                                                    <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                                                                )}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
                                             </div>
                                         ) : idCardVisualMode === 'photos' ? (
                                             <button
@@ -5113,37 +5756,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                     event.stopPropagation();
                                                     setIdCardVisualMode('cards');
                                                 }}
-                                                className="group/image w-full text-left rounded-3xl overflow-hidden bg-gradient-to-br from-sky-50 via-blue-50 to-sky-100 border border-sky-200 shadow-xl transition-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-300/60"
+                                                className={`group/image w-full text-left rounded-3xl overflow-hidden border shadow-xl transition-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 ${previewTheme.focus} ${previewTheme.shell}`}
                                                 title="Show Entrust card preview"
                                             >
-                                                <div className="bg-gradient-to-r from-sky-500 to-blue-600 px-5 py-3 flex items-center justify-between">
+                                                <div className={`${previewTheme.header} px-5 py-3 flex items-center justify-between`}>
                                                     <div>
-                                                        <p className="text-[9px] font-black uppercase tracking-[0.25em] text-sky-100">City of Truth</p>
+                                                        <p className={`text-[9px] font-black uppercase tracking-[0.25em] ${previewTheme.accentText}`}>City of Truth</p>
                                                         <p className="text-[11px] font-bold text-white uppercase tracking-widest leading-tight">Ministries</p>
                                                     </div>
-                                                    <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur px-2.5 py-1 rounded-full border border-white/30">
+                                                    <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur px-2.5 py-1 rounded-full border border-white/30">
                                                         <ImageIcon size={11} className="text-white" />
                                                         <span className="text-[10px] font-black text-white uppercase tracking-wider">Image</span>
                                                     </div>
                                                 </div>
                                                 <div className="p-5">
-                                                    <div className="aspect-[4/3] rounded-2xl border-4 border-white shadow-lg overflow-hidden bg-sky-100 flex items-center justify-center">
+                                                    <div className={`aspect-[4/3] rounded-2xl border-4 shadow-lg overflow-hidden flex items-center justify-center ${previewTheme.panel} ${previewTheme.photoBg}`}>
                                                         {user.photo ? (
                                                             <img src={user.photo} alt={user.name} className="w-full h-full object-cover group-hover/image:scale-105 transition-transform duration-500" />
                                                         ) : (
-                                                            <div className="w-full h-full flex items-center justify-center text-5xl font-black text-sky-300">
+                                                            <div className={`w-full h-full flex items-center justify-center text-5xl font-black ${previewTheme.icon}`}>
                                                                 {user.name.charAt(0)}
                                                             </div>
                                                         )}
                                                     </div>
                                                     <div className="mt-4 flex items-end justify-between gap-3">
                                                         <div className="min-w-0">
-                                                            <h3 className="font-black text-blue-900 text-base leading-tight uppercase truncate">{user.name}</h3>
-                                                            <p className="mt-1 text-[10px] font-mono text-sky-600 bg-sky-100 border border-sky-200 px-2 py-0.5 rounded-lg inline-block">
+                                                            <h3 className={`font-black ${previewTheme.title} text-base leading-tight uppercase truncate`}>{user.name}</h3>
+                                                            <p className={`mt-1 text-[10px] font-mono border px-2 py-0.5 rounded-lg inline-block ${previewTheme.badge}`}>
                                                                 ID: {user.id.split('-').pop()}
                                                             </p>
                                                         </div>
-                                                        <span className="text-[9px] font-black uppercase tracking-widest text-sky-500 shrink-0">Tap for card</span>
+                                                        <span className={`text-[9px] font-black uppercase tracking-widest ${previewTheme.accentText} shrink-0`}>Tap for card</span>
                                                     </div>
                                                 </div>
                                             </button>
@@ -5154,15 +5797,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                     event.stopPropagation();
                                                     setIdCardVisualMode('cards');
                                                 }}
-                                                className="group/meta w-full text-left rounded-3xl overflow-hidden bg-gradient-to-br from-sky-50 via-blue-50 to-sky-100 border border-sky-200 shadow-xl transition-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-300/60"
+                                                className={`group/meta w-full text-left rounded-3xl overflow-hidden border shadow-xl transition-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 ${previewTheme.focus} ${previewTheme.shell}`}
                                                 title="Show Entrust card preview"
                                             >
-                                                <div className="bg-gradient-to-r from-sky-500 to-blue-600 px-5 py-3 flex items-center justify-between">
+                                                <div className={`${previewTheme.header} px-5 py-3 flex items-center justify-between`}>
                                                     <div>
-                                                        <p className="text-[9px] font-black uppercase tracking-[0.25em] text-sky-100">City of Truth</p>
+                                                        <p className={`text-[9px] font-black uppercase tracking-[0.25em] ${previewTheme.accentText}`}>City of Truth</p>
                                                         <p className="text-[11px] font-bold text-white uppercase tracking-widest leading-tight">Ministries</p>
                                                     </div>
-                                                    <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur px-2.5 py-1 rounded-full border border-white/30">
+                                                    <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur px-2.5 py-1 rounded-full border border-white/30">
                                                         {idCardVisualMode === 'ids' && <Shield size={11} className="text-white" />}
                                                         {idCardVisualMode === 'locations' && <MapPin size={11} className="text-white" />}
                                                         {idCardVisualMode === 'join-dates' && <Calendar size={11} className="text-white" />}
@@ -5172,37 +5815,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                     </div>
                                                 </div>
                                                 <div className="p-5">
-                                                    <div className="rounded-2xl border-4 border-white shadow-lg bg-white/80 min-h-[11rem] flex flex-col items-center justify-center text-center px-5">
+                                                    <div className={`rounded-2xl border-4 shadow-lg min-h-[11rem] flex flex-col items-center justify-center text-center px-5 ${previewTheme.panel}`}>
                                                         {idCardVisualMode === 'ids' && (
                                                             <>
-                                                                <Shield size={34} className="text-sky-500 mb-3" />
-                                                                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-sky-500 mb-2">Official COT ID</p>
-                                                                <p className="text-3xl font-black text-blue-900 font-mono tracking-tight">{user.id}</p>
+                                                                <Shield size={34} className={`${previewTheme.icon} mb-3`} />
+                                                                <p className={`text-[10px] font-black uppercase tracking-[0.25em] ${previewTheme.accentText} mb-2`}>Official COT ID</p>
+                                                                <p className={`text-3xl font-black ${previewTheme.title} font-mono tracking-tight`}>{user.id}</p>
                                                             </>
                                                         )}
                                                         {idCardVisualMode === 'locations' && (
                                                             <>
-                                                                <MapPin size={34} className="text-sky-500 mb-3" />
-                                                                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-sky-500 mb-2">Member Location</p>
-                                                                <p className="text-3xl font-black text-blue-900 tracking-tight">{user.location || 'Unknown'}</p>
+                                                                <MapPin size={34} className={`${previewTheme.icon} mb-3`} />
+                                                                <p className={`text-[10px] font-black uppercase tracking-[0.25em] ${previewTheme.accentText} mb-2`}>Member Location</p>
+                                                                <p className={`text-3xl font-black ${previewTheme.title} tracking-tight`}>{user.location || 'Unknown'}</p>
                                                             </>
                                                         )}
                                                         {idCardVisualMode === 'join-dates' && (
                                                             <>
-                                                                <Calendar size={34} className="text-sky-500 mb-3" />
-                                                                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-sky-500 mb-2">Joined Date</p>
-                                                                <p className="text-3xl font-black text-blue-900 tracking-tight">{formatDateValue(user.joinedDate || user.memberSince)}</p>
+                                                                <Calendar size={34} className={`${previewTheme.icon} mb-3`} />
+                                                                <p className={`text-[10px] font-black uppercase tracking-[0.25em] ${previewTheme.accentText} mb-2`}>Joined Date</p>
+                                                                <p className={`text-3xl font-black ${previewTheme.title} tracking-tight`}>{formatDateValue(user.joinedDate || user.memberSince)}</p>
                                                             </>
                                                         )}
                                                     </div>
                                                     <div className="mt-4 flex items-end justify-between gap-3">
                                                         <div className="min-w-0">
-                                                            <h3 className="font-black text-blue-900 text-base leading-tight uppercase truncate">{user.name}</h3>
-                                                            <p className="mt-1 text-[10px] font-mono text-sky-600 bg-sky-100 border border-sky-200 px-2 py-0.5 rounded-lg inline-block">
+                                                            <h3 className={`font-black ${previewTheme.title} text-base leading-tight uppercase truncate`}>{user.name}</h3>
+                                                            <p className={`mt-1 text-[10px] font-mono border px-2 py-0.5 rounded-lg inline-block ${previewTheme.badge}`}>
                                                                 {user.id}
                                                             </p>
                                                         </div>
-                                                        <span className="text-[9px] font-black uppercase tracking-widest text-sky-500 shrink-0">Tap for card</span>
+                                                        <span className={`text-[9px] font-black uppercase tracking-widest ${previewTheme.accentText} shrink-0`}>Tap for card</span>
                                                     </div>
                                                 </div>
                                             </button>
@@ -5230,7 +5873,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             </button>
                                         </div>
                                     </motion.div>
-                                ))}
+                                    );
+                                })}
                             </AnimatePresence>
                         </div>
 
@@ -6000,8 +6644,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                                     </div>
                                                                 </div>
 
-                                                                {/* Action overlay / Quick buttons */}
                                                                 <div className="flex flex-col gap-1.5 shrink-0 relative z-10">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setMemberFormPageUser(user);
+                                                                            setMemberFormPageParentId(user.parentUserId || user.id);
+                                                                        }}
+                                                                        className="p-2 rounded-xl bg-slate-50 hover:bg-purple-50 hover:text-purple-700 text-slate-500 border border-slate-150 transition-colors"
+                                                                        title="View/Edit Member Form"
+                                                                    >
+                                                                        <FileText size={14} />
+                                                                    </button>
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => setViewingDetailsUser(user)}
@@ -6017,7 +6671,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                                         className="p-2 rounded-xl bg-slate-50 hover:bg-amber-50 hover:text-amber-700 text-slate-500 border border-slate-150 transition-colors disabled:opacity-50"
                                                                         title="Download Member Form PDF"
                                                                     >
-                                                                        <FileText size={14} />
+                                                                        <Download size={14} />
                                                                     </button>
                                                                 </div>
                                                             </div>
@@ -6512,7 +7166,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                     key={sectionId}
                                                     value={sectionId}
                                                     whileDrag={{ scale: 1.02, boxShadow: '0 10px 30px -5px rgba(0,0,0,0.18)' }}
-                                                    className="bg-white rounded-2xl border-2 border-slate-200 hover:border-blue-400 hover:shadow-md transition-all cursor-grab active:cursor-grabbing"
+                                                    className={`rounded-2xl border-2 hover:border-blue-400 hover:shadow-md transition-all cursor-grab active:cursor-grabbing ${
+                                                        sectionsInfo[sectionId]?.hidden 
+                                                            ? 'bg-slate-100 border-slate-300 opacity-60' 
+                                                            : 'bg-white border-slate-200'
+                                                    }`}
                                                 >
                                                     <div className="p-4 flex items-center gap-4">
                                                         <div className="text-slate-300 hover:text-brand-500 transition-colors shrink-0">
@@ -6522,9 +7180,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                             <IconComponent size={24} />
                                                         </div>
                                                         <div className="flex-1">
-                                                            <h3 className="font-black text-brand-950 text-sm uppercase tracking-wider">
-                                                                {sectionsInfo[sectionId]?.name || info.name}
-                                                            </h3>
+                                                            <div className="flex items-center gap-2">
+                                                                <h3 className="font-black text-brand-950 text-sm uppercase tracking-wider">
+                                                                    {sectionsInfo[sectionId]?.name || info.name}
+                                                                </h3>
+                                                                {sectionsInfo[sectionId]?.hidden && (
+                                                                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[9px] font-black uppercase tracking-wider rounded-full border border-amber-200">
+                                                                        Hidden
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                             <p className="text-xs text-slate-500 font-medium mt-0.5 leading-relaxed">
                                                                 {sectionsInfo[sectionId]?.desc || info.desc}
                                                             </p>
@@ -6601,6 +7266,53 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                                 aria-label="Move down"
                                                             >
                                                                 <ChevronDown size={18} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    // Toggle section visibility/hide
+                                                                    const currentInfo = sectionsInfo[sectionId] || {};
+                                                                    const isHidden = currentInfo.hidden || false;
+                                                                    handleSaveSectionInfo(
+                                                                        sectionId, 
+                                                                        currentInfo.name || '', 
+                                                                        currentInfo.desc || '',
+                                                                        !isHidden
+                                                                    );
+                                                                }}
+                                                                className="w-8 h-8 rounded-lg border-2 bg-slate-100 border-slate-200 hover:bg-amber-500 hover:text-white hover:border-amber-500 text-slate-600 flex items-center justify-center transition-all"
+                                                                title={sectionsInfo[sectionId]?.hidden ? "Show section" : "Hide section"}
+                                                                aria-label={sectionsInfo[sectionId]?.hidden ? "Show section" : "Hide section"}
+                                                            >
+                                                                {sectionsInfo[sectionId]?.hidden ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    if (confirm(`Are you sure you want to delete the "${sectionsInfo[sectionId]?.name || info.name}" section from the home page?`)) {
+                                                                        const newOrder = homeSectionsOrder.filter(id => id !== sectionId);
+                                                                        onUpdateHomeSectionsOrder(newOrder);
+                                                                        
+                                                                        // Communicate with iframe
+                                                                        setTimeout(() => {
+                                                                            const iframe = document.getElementById('home-website-preview') as HTMLIFrameElement;
+                                                                            if (iframe && iframe.contentWindow) {
+                                                                                try {
+                                                                                    iframe.contentWindow.postMessage({
+                                                                                        action: 'update-sections-order',
+                                                                                        order: newOrder,
+                                                                                        source: 'admin-dashboard'
+                                                                                    }, '*');
+                                                                                } catch (error) {
+                                                                                    console.log('Could not communicate with iframe:', error);
+                                                                                }
+                                                                            }
+                                                                        }, 100);
+                                                                    }
+                                                                }}
+                                                                className="w-8 h-8 rounded-lg border-2 bg-slate-100 border-slate-200 hover:bg-red-500 hover:text-white hover:border-red-500 text-slate-600 flex items-center justify-center transition-all"
+                                                                title="Delete section"
+                                                                aria-label="Delete section"
+                                                            >
+                                                                <Trash2 size={18} />
                                                             </button>
                                                         </div>
                                                     </div>
@@ -6701,7 +7413,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                     onClick={() => {
                                                         const iframe = document.getElementById('home-website-preview') as HTMLIFrameElement;
                                                         if (iframe) {
-                                                            iframe.src = websiteUrl + '?t=' + Date.now();
+                                                            iframe.src = websiteUrl + (websiteUrl.includes('?') ? '&' : '?') + 'preview=true&t=' + Date.now();
                                                             console.log('Refreshing home sections preview:', websiteUrl);
                                                         }
                                                     }}
@@ -6716,7 +7428,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <div className="h-full bg-white relative">
                                                 <iframe
                                                     id="home-website-preview"
-                                                    src={websiteUrl}
+                                                    src={websiteUrl + (websiteUrl.includes('?') ? '&' : '?') + 'preview=true'}
                                                     className="w-full h-full border-0 min-h-[550px]"
                                                     title="Live Home Sections Preview"
                                                     onLoad={(e) => {
@@ -7124,7 +7836,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                       onClick={() => {
                                         const iframe = document.getElementById('website-preview') as HTMLIFrameElement;
                                         if (iframe) {
-                                          iframe.src = websiteUrl + '?t=' + Date.now(); // Refresh iframe with cache bust
+                                          iframe.src = websiteUrl + (websiteUrl.includes('?') ? '&' : '?') + 'preview=true&t=' + Date.now(); // Refresh iframe with cache bust
                                           console.log('Refreshing website preview:', websiteUrl);
                                         }
                                       }}
@@ -7139,7 +7851,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   <div className="h-full bg-white relative">
                                     <iframe
                                       id="website-preview"
-                                      src={websiteUrl}
+                                      src={websiteUrl + (websiteUrl.includes('?') ? '&' : '?') + 'preview=true'}
                                       className="w-full h-full border-0 min-h-[550px]"
                                       title="Live Website Preview"
                                       onLoad={(e) => {
@@ -7283,19 +7995,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   <div className="space-y-2.5">
                                     <div className="space-y-1.5">
                                       <div className="px-1.5 text-[8px] font-black uppercase tracking-[0.28em] text-slate-400">Resources</div>
-                                      <div className={`grid grid-cols-${Math.min(items2.filter((i:any)=>!i.hidden).length, 6)} gap-1.5`}>
+                                      <Reorder.Group as="div" axis="x" values={items2.filter((i:any)=>!i.hidden)} onReorder={(newVisible) => { const hidden = items2.filter((i:any)=>i.hidden); saveItems([...newVisible, ...hidden]); }} className={`grid grid-cols-${Math.min(items2.filter((i:any)=>!i.hidden).length, 6)} gap-1.5`}>
                                         {items2.filter((i:any)=>!i.hidden).map((item:any, i:number) => {
                                           const IconComponent = getBNavIconComponent(item.iconName || 'reference');
                                           const isActive = i === 1; // Highlight second item for demo
                                           return (
-                                            <button key={item.id || i} className="relative min-w-0 min-h-[58px] rounded-[1.1rem] px-1.5 py-2 transition-all duration-200 active:scale-95">
+                                            <Reorder.Item as="button" key={item.id || item.label || i} value={item} whileDrag={{ scale: 1.05, zIndex: 50, boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }} className="relative min-w-0 min-h-[58px] rounded-[1.1rem] px-1.5 py-2 transition-all duration-200 cursor-grab active:cursor-grabbing">
                                               {isActive && (
                                                 <div className="absolute inset-0 bg-gradient-to-b from-amber-400/20 to-amber-500/10 rounded-[1.1rem]"/>
                                               )}
                                               {isActive && (
                                                 <div className="absolute top-0 left-2 right-2 h-[2px] bg-gradient-to-r from-amber-400 to-orange-500 rounded-full"/>
                                               )}
-                                              <div className="relative z-10 flex h-full flex-col items-center justify-center gap-1">
+                                              <div className="relative z-10 flex h-full flex-col items-center justify-center gap-1 pointer-events-none">
                                                 <div className="h-6 flex items-center justify-center">
                                                   <IconComponent
                                                     size={18}
@@ -7313,10 +8025,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                   {item.label}
                                                 </span>
                                               </div>
-                                            </button>
+                                            </Reorder.Item>
                                           );
                                         })}
-                                      </div>
+                                      </Reorder.Group>
                                     </div>
                                   </div>
                                   <div className="h-safe-area-inset-bottom bg-transparent"/>
@@ -7335,19 +8047,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   <div className="space-y-2.5">
                                     <div className="space-y-1.5">
                                       <div className="px-1.5 text-[8px] font-black uppercase tracking-[0.28em] text-slate-400">Tools</div>
-                                      <div className={`grid grid-cols-${Math.min(items2.filter((i:any)=>!i.hidden).length, 4)} gap-1.5`}>
+                                      <Reorder.Group as="div" axis="x" values={items2.filter((i:any)=>!i.hidden)} onReorder={(newVisible) => { const hidden = items2.filter((i:any)=>i.hidden); saveItems([...newVisible, ...hidden]); }} className={`grid grid-cols-${Math.min(items2.filter((i:any)=>!i.hidden).length, 4)} gap-1.5`}>
                                         {items2.filter((i:any)=>!i.hidden).map((item:any, i:number) => {
                                           const IconComponent = getBNavIconComponent(item.iconName || 'words');
                                           const isActive = i === 1; // Highlight Audio for demo
                                           return (
-                                            <button key={item.id || i} className="relative min-w-0 min-h-[58px] rounded-[1.1rem] px-1.5 py-2 transition-all duration-200 active:scale-95">
+                                            <Reorder.Item as="button" key={item.id || item.label || i} value={item} whileDrag={{ scale: 1.05, zIndex: 50, boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }} className="relative min-w-0 min-h-[58px] rounded-[1.1rem] px-1.5 py-2 transition-all duration-200 cursor-grab active:cursor-grabbing">
                                               {isActive && (
                                                 <div className="absolute inset-0 bg-gradient-to-b from-amber-400/20 to-amber-500/10 rounded-[1.1rem]"/>
                                               )}
                                               {isActive && (
                                                 <div className="absolute top-0 left-2 right-2 h-[2px] bg-gradient-to-r from-amber-400 to-orange-500 rounded-full"/>
                                               )}
-                                              <div className="relative z-10 flex h-full flex-col items-center justify-center gap-1">
+                                              <div className="relative z-10 flex h-full flex-col items-center justify-center gap-1 pointer-events-none">
                                                 <div className="h-6 flex items-center justify-center">
                                                   <IconComponent
                                                     size={18}
@@ -7365,10 +8077,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                   {item.label}
                                                 </span>
                                               </div>
-                                            </button>
+                                            </Reorder.Item>
                                           );
                                         })}
-                                      </div>
+                                      </Reorder.Group>
                                     </div>
                                   </div>
                                   <div className="h-safe-area-inset-bottom bg-transparent"/>
@@ -7621,6 +8333,92 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                 )}
 
+                {activeTab === 'permalinks' && (
+                    <PermalinkManager 
+                        permalinks={permalinks}
+                        onCreatePermalink={handleCreatePermalink}
+                        onUpdatePermalink={handleUpdatePermalink}
+                        onDeletePermalink={handleDeletePermalink}
+                    />
+                )}
+
+                {activeTab === 'widgets' && (
+                    <div className="space-y-6">
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+                            <h2 className="text-2xl font-serif font-black text-brand-950 mb-2">Widget Settings</h2>
+                            <p className="text-slate-500 text-sm mb-6">Manage the visibility and size of global floating widgets like the AI Assistant and Share button.</p>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Share Button Settings */}
+                                <div className="p-5 border border-slate-200 rounded-2xl bg-slate-50">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="bg-brand-100 p-2 rounded-xl text-brand-600"><Share2 size={20} /></div>
+                                            <h3 className="font-bold text-slate-800">Share Button</h3>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" className="sr-only peer" checked={widgetSettings.shareVisible} onChange={(e) => updateWidgetSettings({ shareVisible: e.target.checked })} />
+                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500"></div>
+                                        </label>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Size Scale ({widgetSettings.shareSize.toFixed(1)}x)</label>
+                                        <input type="range" min="0.5" max="2.0" step="0.1" value={widgetSettings.shareSize} onChange={(e) => updateWidgetSettings({ shareSize: parseFloat(e.target.value) })} className="w-full accent-brand-600" />
+                                    </div>
+                                    <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 min-h-28 flex items-center justify-center overflow-hidden">
+                                        {widgetSettings.shareVisible ? (
+                                            <div
+                                                className="bg-gradient-to-r from-brand-600 to-brand-700 text-white p-3 rounded-full shadow-2xl shadow-brand-500/30"
+                                                style={{ transform: `scale(${0.85 * widgetSettings.shareSize})` }}
+                                                title="Real Share Button Preview"
+                                            >
+                                                <Share2 size={20} />
+                                            </div>
+                                        ) : (
+                                            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Hidden on website</span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* AI Assistant Settings */}
+                                <div className="p-5 border border-slate-200 rounded-2xl bg-slate-50">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="bg-violet-100 p-2 rounded-xl text-violet-600"><Sparkles size={20} /></div>
+                                            <h3 className="font-bold text-slate-800">AI Assistant</h3>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" className="sr-only peer" checked={widgetSettings.aiVisible} onChange={(e) => updateWidgetSettings({ aiVisible: e.target.checked })} />
+                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-500"></div>
+                                        </label>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Size Scale ({widgetSettings.aiSize.toFixed(1)}x)</label>
+                                        <input type="range" min="0.5" max="2.0" step="0.1" value={widgetSettings.aiSize} onChange={(e) => updateWidgetSettings({ aiSize: parseFloat(e.target.value) })} className="w-full accent-violet-600" />
+                                    </div>
+                                    <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 min-h-28 flex items-center justify-center overflow-hidden">
+                                        {widgetSettings.aiVisible ? (
+                                            <div
+                                                className="relative w-16 h-16 rounded-full shadow-2xl shadow-violet-500/30 flex items-center justify-center bg-gradient-to-tr from-violet-600 to-indigo-600 border border-white/20"
+                                                style={{ transform: `scale(${widgetSettings.aiSize})` }}
+                                                title="Real AI Assistant Preview"
+                                            >
+                                                <Sparkles className="w-8 h-8 text-white fill-white/20" />
+                                                <span className="absolute top-2 right-2 flex h-3 w-3">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Hidden on website</span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {activeTab === 'recycle-bin' && (
                     <div className="space-y-6">
                         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 flex items-center justify-between">
@@ -7738,6 +8536,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </div>
 
                         {renderAdminPasswordChangePanel('firebase')}
+
+                        {/* Complete Reboot Section */}
+                        <div className="bg-red-50 border-2 border-red-200 rounded-3xl p-6">
+                            <div className="flex items-center justify-between gap-3 mb-4">
+                                <div>
+                                    <h3 className="text-sm font-black uppercase tracking-widest text-red-700 flex items-center gap-2">
+                                        <AlertTriangle size={18} className="text-red-600" />
+                                        Complete Reboot
+                                    </h3>
+                                    <p className="text-xs text-red-600 mt-1">⚠️ Danger Zone - Irreversible Action</p>
+                                </div>
+                            </div>
+                            <p className="text-sm text-red-800 mb-4">
+                                This will permanently delete ALL data including users, member forms, contact messages, Firebase storage files, and all configuration. The admin dashboard will start from scratch.
+                            </p>
+                            <Button
+                                variant="accent"
+                                onClick={() => setShowCompleteRebootModal(true)}
+                                className="w-full bg-red-600 hover:bg-red-700 text-white"
+                            >
+                                <Trash2 size={18} />
+                                Initiate Complete Reboot
+                            </Button>
+                        </div>
 
                         <div className="grid md:grid-cols-2 gap-4">
                             <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
@@ -8260,6 +9082,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             {/* View Details Modal */}
             <AnimatePresence>
+                <AnimatePresence>
+                    {cotInventoryCelebration && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-[260] pointer-events-none flex items-center justify-center bg-slate-950/35 backdrop-blur-sm"
+                        >
+                            <motion.div
+                                initial={{ y: -260, rotate: -10, scale: 0.72, opacity: 0 }}
+                                animate={{ y: 0, rotate: 0, scale: 1, opacity: 1 }}
+                                exit={{ y: 180, rotate: 8, scale: 0.82, opacity: 0 }}
+                                transition={{ type: 'spring', stiffness: 190, damping: 15 }}
+                                className="relative overflow-hidden rounded-[2rem] border border-amber-200 bg-gradient-to-br from-amber-300 via-yellow-200 to-white px-8 py-7 text-center shadow-[0_40px_100px_rgba(15,23,42,0.45)]"
+                            >
+                                <motion.div
+                                    initial={{ scaleX: 0 }}
+                                    animate={{ scaleX: 1 }}
+                                    transition={{ delay: 0.2, duration: 0.55 }}
+                                    className="absolute inset-x-6 top-4 h-1 origin-left rounded-full bg-brand-700"
+                                />
+                                <p className="text-[11px] font-black uppercase tracking-[0.3em] text-brand-700">COT ID Selected</p>
+                                <motion.div
+                                    initial={{ scale: 0.85 }}
+                                    animate={{ scale: [0.85, 1.12, 1] }}
+                                    transition={{ delay: 0.15, duration: 0.5 }}
+                                    className="mt-3 text-5xl md:text-7xl font-black font-mono text-brand-950 tracking-tight"
+                                >
+                                    {cotInventoryCelebration.id}
+                                </motion.div>
+                                <p className="mt-3 text-sm md:text-base font-black text-slate-700">
+                                    assigned to {cotInventoryCelebration.userName}
+                                </p>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
                 {viewingDetailsUser && (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                         <motion.div
@@ -9287,6 +10147,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                 )}
             </AnimatePresence>
+
+            {/* Complete Reboot Modal */}
+            <CompleteRebootModal
+                isOpen={showCompleteRebootModal}
+                onClose={() => setShowCompleteRebootModal(false)}
+                onSuccess={() => {
+                    // Refresh the page after successful reboot
+                    window.location.reload();
+                }}
+            />
         </div>
     );
 };

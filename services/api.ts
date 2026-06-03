@@ -12,11 +12,14 @@ import {
     writeBatch
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { User, Testimonial, DeletedUser } from '../types';
+import { User, Testimonial, DeletedUser, Permalink } from '../types';
+import { ref as storageRef, listAll, deleteObject } from 'firebase/storage';
+import { storage } from './firebase';
 
 const USERS_COLLECTION = 'users';
 const DELETED_USERS_COLLECTION = 'deleted_users';
 const TESTIMONIALS_COLLECTION = 'testimonials';
+const PERMALINKS_COLLECTION = 'permalinks';
 
 export const api = {
     // Fetch all users
@@ -731,6 +734,226 @@ export const api = {
         } catch (error) {
             console.error('Error updating home sections hidden:', error);
             throw error;
+        }
+    },
+
+    // --- Permalinks ---
+
+    // Fetch all permalinks
+    getPermalinks: async (): Promise<Permalink[]> => {
+        try {
+            const permalinksCollection = collection(db, PERMALINKS_COLLECTION);
+            const snapshot = await getDocs(permalinksCollection);
+            return snapshot.docs.map(doc => ({
+                ...doc.data(),
+                id: doc.id
+            } as Permalink)).sort((a, b) => 
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+        } catch (error: any) {
+            console.error('Firestore Error (Permalinks):', error);
+            if (error.code === 'permission-denied') {
+                try {
+                    const saved = localStorage.getItem('cot_permalinks');
+                    return saved ? JSON.parse(saved) : [];
+                } catch (e) {
+                    console.error('Fallback failed:', e);
+                }
+            }
+            return [];
+        }
+    },
+
+    // Create a new permalink
+    createPermalink: async (permalink: Omit<Permalink, 'id' | 'createdAt' | 'updatedAt'>): Promise<Permalink> => {
+        try {
+            const now = new Date().toISOString();
+            const permalinksCollection = collection(db, PERMALINKS_COLLECTION);
+            const docRef = await addDoc(permalinksCollection, {
+                ...permalink,
+                createdAt: now,
+                updatedAt: now
+            });
+
+            return {
+                ...permalink,
+                id: docRef.id,
+                createdAt: now,
+                updatedAt: now
+            } as Permalink;
+        } catch (error: any) {
+            console.error('Error creating permalink:', error);
+            if (error.code === 'permission-denied') {
+                try {
+                    const saved = localStorage.getItem('cot_permalinks');
+                    const existing = saved ? JSON.parse(saved) : [];
+                    const now = new Date().toISOString();
+                    const newPermalink = {
+                        ...permalink,
+                        id: `PERM-${Date.now()}`,
+                        createdAt: now,
+                        updatedAt: now
+                    };
+                    localStorage.setItem('cot_permalinks', JSON.stringify([...existing, newPermalink]));
+                    return newPermalink;
+                } catch (e) {
+                    console.error('Fallback create failed:', e);
+                }
+            }
+            throw error;
+        }
+    },
+
+    // Update an existing permalink
+    updatePermalink: async (permalink: Permalink): Promise<Permalink> => {
+        try {
+            const permalinkDoc = doc(db, PERMALINKS_COLLECTION, permalink.id);
+            const { id, createdAt, ...data } = permalink;
+            await updateDoc(permalinkDoc, {
+                ...data,
+                updatedAt: new Date().toISOString()
+            });
+            return { ...permalink, updatedAt: new Date().toISOString() };
+        } catch (error: any) {
+            console.error('Error updating permalink:', error);
+            if (error.code === 'permission-denied') {
+                try {
+                    const saved = localStorage.getItem('cot_permalinks');
+                    const existing = saved ? JSON.parse(saved) : [];
+                    const updated = existing.map((p: Permalink) => 
+                        p.id === permalink.id ? { ...permalink, updatedAt: new Date().toISOString() } : p
+                    );
+                    localStorage.setItem('cot_permalinks', JSON.stringify(updated));
+                    return { ...permalink, updatedAt: new Date().toISOString() };
+                } catch (e) {
+                    console.error('Fallback update failed:', e);
+                }
+            }
+            throw error;
+        }
+    },
+
+    // Delete a permalink
+    deletePermalink: async (permalinkId: string): Promise<void> => {
+        try {
+            const permalinkDoc = doc(db, PERMALINKS_COLLECTION, permalinkId);
+            await deleteDoc(permalinkDoc);
+        } catch (error: any) {
+            console.error('Error deleting permalink:', error);
+            if (error.code === 'permission-denied') {
+                try {
+                    const saved = localStorage.getItem('cot_permalinks');
+                    const existing = saved ? JSON.parse(saved) : [];
+                    const filtered = existing.filter((p: Permalink) => p.id !== permalinkId);
+                    localStorage.setItem('cot_permalinks', JSON.stringify(filtered));
+                    return;
+                } catch (e) {
+                    console.error('Fallback delete failed:', e);
+                }
+            }
+            throw error;
+        }
+    },
+
+    // --- Complete Reboot ---
+
+    // Complete system reboot - deletes all data from Firestore, Storage, and localStorage
+    completeReboot: async (password: string): Promise<{ success: boolean; message: string; details?: any }> => {
+        const REBOOT_PASSWORD = import.meta.env.VITE_REBOOT_PASSWORD || 'steveharrington';
+        
+        if (password !== REBOOT_PASSWORD) {
+            return { success: false, message: 'Invalid reboot password' };
+        }
+
+        const details = {
+            firestoreCollections: [] as string[],
+            storageFiles: 0,
+            localStorageKeys: [] as string[],
+            errors: [] as string[]
+        };
+
+        try {
+            // 1. Delete all Firestore collections
+            const collectionsToDelete = [
+                USERS_COLLECTION,
+                DELETED_USERS_COLLECTION,
+                TESTIMONIALS_COLLECTION,
+                PERMALINKS_COLLECTION,
+                'ministries',
+                'config'
+            ];
+
+            for (const collectionName of collectionsToDelete) {
+                try {
+                    const colRef = collection(db, collectionName);
+                    const snapshot = await getDocs(colRef);
+                    
+                    if (!snapshot.empty) {
+                        const batch = writeBatch(db);
+                        snapshot.docs.forEach(doc => {
+                            batch.delete(doc.ref);
+                        });
+                        await batch.commit();
+                        details.firestoreCollections.push(`${collectionName} (${snapshot.docs.length} documents)`);
+                    }
+                } catch (error) {
+                    details.errors.push(`Failed to delete ${collectionName}: ${error}`);
+                }
+            }
+
+            // 2. Delete all Firebase Storage files
+            try {
+                const deleteAllFiles = async (folder: ReturnType<typeof storageRef>) => {
+                    const result = await listAll(folder);
+                    
+                    for (const item of result.items) {
+                        try {
+                            await deleteObject(item);
+                            details.storageFiles++;
+                        } catch (error) {
+                            details.errors.push(`Failed to delete storage file ${item.fullPath}: ${error}`);
+                        }
+                    }
+                    
+                    for (const prefix of result.prefixes) {
+                        await deleteAllFiles(prefix);
+                    }
+                };
+
+                await deleteAllFiles(storageRef(storage, '/'));
+            } catch (error) {
+                details.errors.push(`Failed to delete storage files: ${error}`);
+            }
+
+            // 3. Clear all localStorage data
+            try {
+                const keysToDelete: string[] = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('cot_')) {
+                        keysToDelete.push(key);
+                    }
+                }
+                
+                keysToDelete.forEach(key => {
+                    localStorage.removeItem(key);
+                    details.localStorageKeys.push(key);
+                });
+            } catch (error) {
+                details.errors.push(`Failed to clear localStorage: ${error}`);
+            }
+
+            return {
+                success: true,
+                message: 'Complete reboot successful',
+                details
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: `Complete reboot failed: ${error}`,
+                details
+            };
         }
     }
 };

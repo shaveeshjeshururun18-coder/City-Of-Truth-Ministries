@@ -17,7 +17,7 @@ import {
   Heart,
   Music,
   Users,
-  User as UserIcon,
+  User as UserIcon, AlertCircle, X,
   Star,
   Send,
   Mountain,
@@ -50,9 +50,11 @@ import {
   CreditCard,
   Globe
 } from 'lucide-react';
-import { ViewState, User, UserRole, UserStatus, NavItem, DeletedUser, SubProfile } from './types';
+import { ViewState, User, UserRole, UserStatus, NavItem, DeletedUser, SubProfile, Permalink } from './types';
 import { HEBREW_PAGES } from './hebrewRegistry';
 import { Navbar } from './components/Navbar';
+import { PermalinkDisplay } from './components/PermalinkDisplay';
+import { SharePageButton } from './components/SharePageButton';
 import { Button } from './components/Button';
 import { AuthPage } from './components/AuthPage';
 // Removed SpiritualAssistant import
@@ -60,7 +62,7 @@ import { WorshipperIDCard, EntrustCard3D } from './components/WorshipperIDCard';
 import { GoldenMenorah } from './components/GoldenMenorah';
 import { GoldenMenorahPage } from './components/GoldenMenorahPage';
 import { AIPage } from './components/AIPage';
-// import { GlobalAIWidget } from './components/GlobalAIWidget';
+import AIChatAssistant from './components/AIChatAssistant';
 import { MinistryHighlights, HebrewSanctuaryIntro, HebrewPagesPreviewSection, PastorBaruchPreviewSection, ValparaiPresence, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, CommunityMembersSection } from './components/HomeSections';
 import { MessageFromLeader } from './components/MessageFromLeader';
 import { HebrewAlphabetPage } from './components/HebrewAlphabetPage';
@@ -88,6 +90,17 @@ const MAX_STORED_CONTACT_MESSAGES = 200;
 const MESSAGE_RECYCLE_RETENTION_DAYS = 30;
 const MESSAGE_RECYCLE_RETENTION_MS = MESSAGE_RECYCLE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 const REJECTED_ACCESS_MESSAGE = 'Your account was rejected. Dashboard access is blocked. Please contact admin.';
+const PAGE_PERMALINK_OVERRIDES_KEY = 'cot_page_permalink_overrides';
+
+const getPagePermalinkOverrides = (): Partial<Record<ViewState, string>> => {
+  if (typeof window === 'undefined') return {};
+  try {
+    const parsed = JSON.parse(localStorage.getItem(PAGE_PERMALINK_OVERRIDES_KEY) || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+};
 
 const RevealText: React.FC<{ text: string; className?: string; delay?: number }> = ({ text, className = "", delay = 0 }) => {
   return (
@@ -452,8 +465,9 @@ const TestimonialSection: React.FC<TestimonialSectionProps> = ({ currentUser }) 
 };
 
 const App: React.FC = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
+    const location = useLocation();
+    const navigate = useNavigate();
+    const [dismissRecycleNotice, setDismissRecycleNotice] = useState(false);
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.HOME);
   const [authInitialView] = useState<'choice' | 'login' | 'register' | 'forgot-id'>('login');
   const [selectedDashboardProfileId, setSelectedDashboardProfileId] = useState<string | null>(null);
@@ -568,6 +582,8 @@ const App: React.FC = () => {
     }
   });
 
+  const [permalinks, setPermalinks] = useState<Permalink[]>([]);
+
   useEffect(() => {
     const nextOrder = normalizeHomeSectionsOrder(homeSectionsOrder);
     if (JSON.stringify(nextOrder) === JSON.stringify(homeSectionsOrder)) return;
@@ -583,7 +599,7 @@ const App: React.FC = () => {
     }
   }, [homeSectionsHidden]);
 
-  const isFrame = typeof window !== 'undefined' && window.self !== window.top;
+  const isFrame = typeof window !== 'undefined' && window.self !== window.top && window.location.search.includes('preview=true');
 
   // Listen for admin preview messages (sections reordering and navigation)
   useEffect(() => {
@@ -613,7 +629,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (currentView === ViewState.HEBREW) {
-      setCurrentView(ViewState.HOME);
+      handleViewChange(ViewState.HOME);
       navigate('/hebrew-alphabet');
     }
   }, [currentView, navigate]);
@@ -748,6 +764,35 @@ const App: React.FC = () => {
       read: false
     };
     setMemberNotifications(prev => [next, ...prev].slice(0, 1000));
+  };
+
+  const notifyMemberFormRefillIfRejected = (prevUser: User | undefined, nextUser: User) => {
+    if (!prevUser) return;
+
+    const wasPrimaryRejected = prevUser.communityProfile?.status === 'Rejected';
+    const isPrimaryRejected = nextUser.communityProfile?.status === 'Rejected';
+    if (isPrimaryRejected && !wasPrimaryRejected) {
+      pushAdminNotification(
+        nextUser.id,
+        'Your Member Form was rejected by admin. Please open your dashboard and refill the Member Form with corrected details.',
+        'message',
+        ViewState.MEMBER_FORM
+      );
+    }
+
+    const previousLinkedProfiles = new Map((prevUser.linkedProfiles || []).map(profile => [profile.id, profile]));
+    (nextUser.linkedProfiles || []).forEach(profile => {
+      const wasLinkedFormRejected = previousLinkedProfiles.get(profile.id)?.communityProfile?.status === 'Rejected';
+      const isLinkedFormRejected = profile.communityProfile?.status === 'Rejected';
+      if (isLinkedFormRejected && !wasLinkedFormRejected) {
+        pushAdminNotification(
+          nextUser.id,
+          `Member Form for ${profile.name || 'your additional member'} was rejected by admin. Please open your dashboard, select that profile, and refill the Member Form with corrected details.`,
+          'message',
+          ViewState.MEMBER_FORM
+        );
+      }
+    });
   };
 
   const getRecycleDaysRemaining = (autoDeleteAt?: string) => {
@@ -1085,12 +1130,23 @@ const App: React.FC = () => {
   useEffect(() => {
     const loadUsers = async () => {
       try {
+        // Load users and deleted users
         const [activeUsers, removedUsers] = await Promise.all([
           api.getUsers(),
           api.getDeletedUsers()
         ]);
+        
         setUsers(activeUsers);
         setDeletedUsers(removedUsers);
+
+        // Load permalinks separately with its own error handling
+        try {
+          const loadedPermalinks = await api.getPermalinks();
+          setPermalinks(loadedPermalinks || []);
+        } catch (permalinkError) {
+          console.error('Failed to load permalinks:', permalinkError);
+          setPermalinks([]); // Set empty array on error
+        }
 
         // Dynamic session check: If a member is logged in, verify they still exist and are active in the database
         if (currentUser && currentUser.role !== 'Admin') {
@@ -1142,6 +1198,144 @@ const App: React.FC = () => {
   const isVerifyScannerRoute = location.pathname === '/verify-id';
   const isHebrewAlphabetRoute = location.pathname === '/hebrew-alphabet';
 
+  // Handle permalink/shareable URLs for pages
+  useEffect(() => {
+    const path = location.pathname;
+    const searchParams = new URLSearchParams(location.search);
+    const viewParam = searchParams.get('view');
+    
+    // Map URL paths to ViewStates
+    const pathToViewMap: Record<string, ViewState> = {
+      '/': ViewState.HOME,
+      '/home': ViewState.HOME,
+      '/about': ViewState.ABOUT,
+      '/ministries': ViewState.MINISTRIES,
+      '/contact': ViewState.CONTACT,
+      '/valparai': ViewState.ABOUT_VALPARAI,
+      '/hebrew': ViewState.ABOUT,
+      '/hebrew-tools': ViewState.HEBREW_TOOLS,
+      '/hebrew-calendar': ViewState.HEBREW_CALENDAR,
+      '/hebrew-clock': ViewState.HEBREW_CLOCK,
+      '/hebrew-numbers': ViewState.HEBREW_NUMBERS,
+      '/hebrew-words': ViewState.HEBREW_WORDS,
+      '/hebrew-letters-audio': ViewState.HEBREW_LETTERS_AUDIO,
+      '/hebrew-gematria': ViewState.HEBREW_GEMATRIA,
+      '/hebrew-festivals': ViewState.HEBREW_FESTIVALS,
+      '/hebrew-grammar': ViewState.HEBREW_GRAMMAR,
+      '/hebrew-reference': ViewState.HEBREW_REFERENCE,
+      '/hebrew-israel': ViewState.HEBREW_ISRAEL,
+      '/menorah': ViewState.GOLDEN_MENORAH,
+      '/golden-menorah': ViewState.GOLDEN_MENORAH,
+      '/baruch-hashem': ViewState.BARUCH_HASHEM,
+      '/ai': ViewState.AI,
+      '/id-card': ViewState.ID_CARD,
+      '/entrust-card': ViewState.ID_CARD,
+      '/pastor': ViewState.PASTOR,
+      '/member-form': ViewState.MEMBER_FORM,
+      '/dashboard': ViewState.USER_DASHBOARD,
+    };
+
+    Object.entries(getPagePermalinkOverrides()).forEach(([view, path]) => {
+      const targetView = normalizeViewState(view);
+      if (targetView && typeof path === 'string' && path.startsWith('/')) {
+        pathToViewMap[path] = targetView;
+      }
+    });
+    
+    // Skip permalink processing for special routes
+    if (isAdminRoute || isVerifyRoute || isAuthRoute || isVerifyScannerRoute || isHebrewAlphabetRoute) {
+      return;
+    }
+    
+    // Check if path matches a permalink route
+    if (pathToViewMap[path] && pathToViewMap[path] !== currentView) {
+      handleViewChange(pathToViewMap[path]);
+    } else if (viewParam) {
+      // Support ?view=PAGE_NAME query parameter
+      const targetView = normalizeViewState(viewParam);
+      if (targetView !== currentView) {
+        handleViewChange(targetView);
+      }
+    }
+  }, [location.pathname, location.search, isAdminRoute, isVerifyRoute, isAuthRoute, isVerifyScannerRoute, isHebrewAlphabetRoute]);
+
+  // Generate shareable URL for current view
+  const getShareableURL = (view: ViewState): string => {
+    const viewToPathMap: Record<ViewState, string> = {
+      [ViewState.HOME]: '/',
+      [ViewState.ABOUT]: '/hebrew',
+      [ViewState.MINISTRIES]: '/ministries',
+      [ViewState.CONTACT]: '/contact',
+      [ViewState.ABOUT_VALPARAI]: '/valparai',
+      [ViewState.HEBREW_TOOLS]: '/hebrew-tools',
+      [ViewState.HEBREW_CALENDAR]: '/hebrew-calendar',
+      [ViewState.HEBREW_CLOCK]: '/hebrew-clock',
+      [ViewState.HEBREW_NUMBERS]: '/hebrew-numbers',
+      [ViewState.HEBREW_WORDS]: '/hebrew-words',
+      [ViewState.HEBREW_LETTERS_AUDIO]: '/hebrew-letters-audio',
+      [ViewState.HEBREW_GEMATRIA]: '/hebrew-gematria',
+      [ViewState.HEBREW_FESTIVALS]: '/hebrew-festivals',
+      [ViewState.HEBREW_GRAMMAR]: '/hebrew-grammar',
+      [ViewState.HEBREW_REFERENCE]: '/hebrew-reference',
+      [ViewState.HEBREW_ISRAEL]: '/hebrew-israel',
+      [ViewState.GOLDEN_MENORAH]: '/golden-menorah',
+      [ViewState.BARUCH_HASHEM]: '/baruch-hashem',
+      [ViewState.AI]: '/ai',
+      [ViewState.ID_CARD]: '/entrust-card',
+      [ViewState.PASTOR]: '/pastor',
+      [ViewState.MEMBER_FORM]: '/member-form',
+      [ViewState.USER_DASHBOARD]: '/dashboard',
+      [ViewState.MENORAH]: '/menorah',
+      [ViewState.MENORAH_FLAG]: '/menorah',
+      [ViewState.HEBREW]: '/hebrew',
+    };
+    
+    const overridePath = getPagePermalinkOverrides()[view];
+    const path = overridePath || viewToPathMap[view] || `/?view=${view}`;
+    return `${window.location.origin}${path}`;
+  };
+
+  // Update browser URL when view changes (without page reload)
+  const handleViewChange = (view: ViewState) => {
+    setCurrentView(view);
+    
+    // Update URL without reloading
+    const viewToPathMap: Record<ViewState, string> = {
+      [ViewState.HOME]: '/',
+      [ViewState.ABOUT]: '/hebrew',
+      [ViewState.MINISTRIES]: '/ministries',
+      [ViewState.CONTACT]: '/contact',
+      [ViewState.ABOUT_VALPARAI]: '/valparai',
+      [ViewState.HEBREW_TOOLS]: '/hebrew-tools',
+      [ViewState.HEBREW_CALENDAR]: '/hebrew-calendar',
+      [ViewState.HEBREW_CLOCK]: '/hebrew-clock',
+      [ViewState.HEBREW_NUMBERS]: '/hebrew-numbers',
+      [ViewState.HEBREW_WORDS]: '/hebrew-words',
+      [ViewState.HEBREW_LETTERS_AUDIO]: '/hebrew-letters-audio',
+      [ViewState.HEBREW_GEMATRIA]: '/hebrew-gematria',
+      [ViewState.HEBREW_FESTIVALS]: '/hebrew-festivals',
+      [ViewState.HEBREW_GRAMMAR]: '/hebrew-grammar',
+      [ViewState.HEBREW_REFERENCE]: '/hebrew-reference',
+      [ViewState.HEBREW_ISRAEL]: '/hebrew-israel',
+      [ViewState.GOLDEN_MENORAH]: '/golden-menorah',
+      [ViewState.BARUCH_HASHEM]: '/baruch-hashem',
+      [ViewState.AI]: '/ai',
+      [ViewState.ID_CARD]: '/entrust-card',
+      [ViewState.PASTOR]: '/pastor',
+      [ViewState.MEMBER_FORM]: '/member-form',
+      [ViewState.USER_DASHBOARD]: '/dashboard',
+      [ViewState.MENORAH]: '/menorah',
+      [ViewState.MENORAH_FLAG]: '/menorah',
+      [ViewState.HEBREW]: '/hebrew',
+    };
+    
+    const overridePath = getPagePermalinkOverrides()[view];
+    const path = overridePath || viewToPathMap[view] || `/?view=${view}`;
+    if (location.pathname !== path) {
+      navigate(path, { replace: true });
+    }
+  };
+
   const getThemeClass = () => {
     switch (currentView) {
       case ViewState.HOME: return "bg-brand-950 text-white";
@@ -1191,23 +1385,15 @@ const App: React.FC = () => {
     const searchPhone = normalizePhone(identifier);
     const searchMemberId = normalizeMemberId(identifier);
 
-    // Multi-identifier login: Phone, Email, ID, or Name
-    const matches = users.map(u => {
+    // Multi-identifier login: Phone, Email, ID, or Name.
+    // Direct user records must win over linked-profile aliases so a secondary
+    // account status never mutates or impersonates the primary dashboard.
+    const directMatches = users.map(u => {
       const uPhone = normalizePhone(u.phone || '');
       const uEmergency = normalizePhone(u.emergency || '');
       const uEmail = normalizeText(u.email || '');
       const uId = normalizeMemberId(u.id || '');
       const uName = normalizeText(u.name || '');
-      const linked = (u.linkedProfiles || []).find(sp => {
-        const spId = normalizeMemberId(sp.id || '');
-        const spName = normalizeText(sp.name || '');
-        return spId === searchMemberId || spName === searchText;
-      });
-
-      if (linked) {
-        return { user: u, profileId: linked.id };
-      }
-
       const isMatch = (
         (searchPhone && (uPhone === searchPhone || uEmergency === searchPhone)) ||
         uId === searchMemberId ||
@@ -1217,10 +1403,39 @@ const App: React.FC = () => {
       return isMatch ? { user: u, profileId: u.id } : null;
     }).filter(Boolean) as Array<{ user: User; profileId: string }>;
 
-    const match = matches[0];
+    const linkedMatches = users.map(u => {
+      const linked = (u.linkedProfiles || []).find(sp => {
+        const spId = normalizeMemberId(sp.id || '');
+        const spName = normalizeText(sp.name || '');
+        return spId === searchMemberId || spName === searchText;
+      });
+      return linked ? { user: u, profileId: linked.id } : null;
+    }).filter(Boolean) as Array<{ user: User; profileId: string }>;
+
+    const match = directMatches[0] || linkedMatches[0];
     const user = match?.user;
 
     if (user) {
+      if (match.profileId !== user.id) {
+        const linkedAccount = users.find(u => normalizeMemberId(u.id || '') === normalizeMemberId(match.profileId));
+        if (linkedAccount && linkedAccount.status !== 'Active') {
+          alert(`${linkedAccount.name || 'This linked account'} is ${linkedAccount.status.toLowerCase()}. The primary member account is still safe; please log in with the primary member's own details.`);
+          return;
+        }
+        try {
+          const removedUsers = await api.getDeletedUsers();
+          const removedLinkedAccount = removedUsers.find(u => normalizeMemberId(u.id || '') === normalizeMemberId(match.profileId));
+          if (removedLinkedAccount) {
+            const isExpired = new Date(removedLinkedAccount.autoDeleteAt).getTime() <= Date.now();
+            alert(isExpired
+              ? 'This linked account has been permanently deleted. The primary member account is still safe; please log in with the primary member details.'
+              : 'This linked account is in the recycle bin. The primary member account is still safe; please log in with the primary member details.');
+            return;
+          }
+        } catch (error) {
+          console.error('Failed to check linked account deletion status', error);
+        }
+      }
       if (user.status === 'Rejected') {
         alert(REJECTED_ACCESS_MESSAGE);
         setCurrentView(ViewState.HOME);
@@ -1613,6 +1828,7 @@ const App: React.FC = () => {
               );
             }
           }
+          notifyMemberFormRefillIfRejected(prevUser, user);
         }}
         onCreateUser={async (user) => {
           const created = await api.createUser(user);
@@ -1695,17 +1911,22 @@ const App: React.FC = () => {
     return <VerifyIDPage onProceedToDashboard={handleLogin} currentUser={currentUser} />;
   }
 
-  if (isHebrewAlphabetRoute) {
-    return <HebrewAlphabetPage onBack={() => navigate('/')} />;
-  }
+  // Hebrew alphabet route rendering moved to main layout below
 
   return (
     <div className={`min-h-screen transition-colors duration-1000 ease-in-out font-sans ${getThemeClass()}`}>
+      {/* Permalink Display Bar */}
+      {!isFrame && Array.isArray(permalinks) && permalinks.length > 0 && (
+        <React.Suspense fallback={null}>
+          <PermalinkDisplay permalinks={permalinks} currentView={currentView} />
+        </React.Suspense>
+      )}
+      
       {!isFrame && (
         <>
           <Navbar
             currentView={currentView}
-            setView={(view) => setCurrentView(normalizeViewState(view))}
+            setView={handleViewChange}
             onLoginClick={() => navigate('/auth?view=login')}
             onLogoutClick={handleLogout}
             currentUser={currentUser}
@@ -1755,7 +1976,15 @@ const App: React.FC = () => {
       )}
 
       <main className="relative">
-        <AnimatePresence mode="wait">
+        {isHebrewAlphabetRoute ? (
+          <AnimatePresence mode="wait">
+            <motion.div key="hebrew-alphabet" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <HebrewAlphabetPage />
+            </motion.div>
+          </AnimatePresence>
+        ) : (
+          <AnimatePresence mode="wait">
+
           {currentView === ViewState.AUTH && (
             <motion.div key="auth" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <AuthPage
@@ -1777,37 +2006,55 @@ const App: React.FC = () => {
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
             >
               {/* Recycle Bin Notice Floating Banner */}
-              {!isFrame && deletedUsers && deletedUsers.length > 0 && (
+              {!isFrame && deletedUsers && deletedUsers.length > 0 && !dismissRecycleNotice && (
                 <motion.div 
                   initial={{ opacity: 0, y: -50, x: '-50%' }}
                   animate={{ opacity: 1, y: 0, x: '-50%' }}
                   transition={{ type: 'spring', damping: 15 }}
                   className="fixed top-24 left-1/2 z-50 w-[90%] max-w-lg"
                 >
-                  <div className="bg-gradient-to-r from-red-950/95 via-[#2a080c]/95 to-red-950/95 border border-red-500/40 text-white rounded-3xl px-5 py-3.5 shadow-[0_20px_50px_rgba(239,68,68,0.3)] backdrop-blur-xl flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-2xl bg-red-500/20 flex items-center justify-center text-red-400 border border-red-500/40 shrink-0">
-                        <AlertCircle size={18} className="animate-pulse" />
+                  <div className="bg-gradient-to-r from-red-950/95 via-[#2a080c]/95 to-red-950/95 border border-red-500/40 text-white rounded-3xl p-4 sm:px-5 sm:py-3.5 shadow-[0_20px_50px_rgba(239,68,68,0.3)] backdrop-blur-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                    <div className="flex items-start sm:items-center gap-3">
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-red-500/20 flex items-center justify-center text-red-400 border border-red-500/40 shrink-0 mt-0.5 sm:mt-0">
+                        <AlertCircle size={16} className="animate-pulse sm:w-[18px] sm:h-[18px]" />
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-400">Recycle Bin Notice</p>
-                        <p className="text-[11px] font-bold text-red-100 truncate">
-                          {deletedUsers.length} {deletedUsers.length === 1 ? 'member' : 'members'} scheduled for permanent deletion.
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-400 mb-0.5">Recycle Bin Notice</p>
+                        <p className="text-[10px] sm:text-[11px] font-bold text-red-100 leading-snug">
+                          {deletedUsers.length} {deletedUsers.length === 1 ? 'member' : 'members'} scheduled for permanent deletion {deletedUsers.length > 0 ? `(starts in ${Math.max(0, Math.ceil((new Date([...deletedUsers].sort((a,b) => new Date(a.autoDeleteAt).getTime() - new Date(b.autoDeleteAt).getTime())[0].autoDeleteAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} days).` : '.'}
                         </p>
                       </div>
                     </div>
                     {currentUser?.role === 'Admin' ? (
-                      <button
-                        onClick={() => {
-                          setCurrentView(ViewState.ADMIN_DASHBOARD);
-                          navigate('/admin');
-                        }}
-                        className="bg-gradient-to-r from-red-600 to-rose-600 hover:brightness-110 active:scale-95 px-3 py-2 rounded-2xl text-[9px] font-black uppercase tracking-wider transition-all shrink-0 shadow-lg shadow-red-500/25 border-none cursor-pointer"
-                      >
-                        Manage Bin
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setCurrentView(ViewState.ADMIN_DASHBOARD);
+                            navigate('/admin');
+                          }}
+                          className="bg-gradient-to-r from-red-600 to-rose-600 hover:brightness-110 active:scale-95 px-3 py-2 rounded-2xl text-[9px] font-black uppercase tracking-wider transition-all shrink-0 shadow-lg shadow-red-500/25 border-none cursor-pointer"
+                        >
+                          Manage Bin
+                        </button>
+                        <button 
+                          onClick={() => setDismissRecycleNotice(true)}
+                          className="p-1 hover:bg-white/10 rounded-full transition-colors shrink-0 cursor-pointer text-red-200 hover:text-white"
+                          title="Dismiss"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
                     ) : (
-                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping shrink-0" />
+                      <div className="flex items-center gap-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping shrink-0" />
+                        <button 
+                          onClick={() => setDismissRecycleNotice(true)}
+                          className="p-1 hover:bg-white/10 rounded-full transition-colors shrink-0 cursor-pointer text-red-200 hover:text-white"
+                          title="Dismiss"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </motion.div>
@@ -2100,8 +2347,8 @@ const App: React.FC = () => {
                         </div>
                       </section>
                     );
-          case 'menorah': return <GoldenMenorah key="menorah" onPreviewClick={() => setCurrentView(ViewState.GOLDEN_MENORAH)} />;
-          case 'highlights': return <MinistryHighlights key="highlights" setView={setCurrentView} />;
+          case 'menorah': return <GoldenMenorah key="menorah" onPreviewClick={() => handleViewChange(ViewState.GOLDEN_MENORAH)} />;
+          case 'highlights': return <MinistryHighlights key="highlights" setView={handleViewChange} />;
           case 'leader': return null; // Leader message is now a fixed overlay triggered by email input
           case 'hebrew': return <HebrewSanctuaryIntro key="hebrew" setView={setCurrentView} />;
           case 'hebrewPages': return <HebrewPagesPreviewSection key="hebrewPages" setView={setCurrentView} />;
@@ -2257,6 +2504,7 @@ const App: React.FC = () => {
                       );
                     }
                   }
+                  notifyMemberFormRefillIfRejected(prevUser, user);
                 }}
                 onDeleteUser={async (userId) => {
                   await handleDeleteUser(userId);
@@ -2629,7 +2877,8 @@ const App: React.FC = () => {
             </motion.div>
           )}
 
-        </AnimatePresence>
+          </AnimatePresence>
+        )}
       </main>
       {!isFrame && (
         <>
@@ -3103,6 +3352,19 @@ const App: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Share Page Button - Floating */}
+      {!isFrame && currentView !== ViewState.AUTH && currentView !== ViewState.ADMIN_DASHBOARD && currentView !== ViewState.VERIFY_ID && (
+        <SharePageButton
+          pageUrl={getShareableURL(currentView)}
+          pageTitle={`City of Truth Ministries - ${currentView.replace(/_/g, ' ')}`}
+          pageDescription="Discover the truth through our ministry, Hebrew resources, and community"
+          variant="floating"
+        />
+      )}
+      {!isFrame && currentView !== ViewState.AUTH && currentView !== ViewState.ADMIN_DASHBOARD && currentView !== ViewState.VERIFY_ID && (
+        <AIChatAssistant />
+      )}
         </>
       )}
     </div >

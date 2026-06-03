@@ -590,11 +590,11 @@ const RELATIONSHIP_OPTIONS = [
 ];
 
 export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, onLogin, currentUser }) => {
-    const [panelTab, setPanelTab] = useState<'register' | 'customize'>('register');
-    const [cardThemeTone, setCardThemeTone] = useState<'blue' | 'purple' | 'green' | 'red' | 'gold'>('blue');
-    const [cardLayoutMode, setCardLayoutMode] = useState<'classic' | 'compact' | 'wide'>('classic');
-    const [cardShapeMode, setCardShapeMode] = useState<'rounded' | 'soft' | 'sharp'>('rounded');
-    const [cardSizeMode, setCardSizeMode] = useState<'sm' | 'md' | 'lg'>('md');
+    // Removed customization features - using default values only
+    const cardThemeTone: 'blue' | 'purple' | 'green' | 'red' | 'gold' = 'blue';
+    const cardLayoutMode: 'classic' | 'compact' | 'wide' = 'classic';
+    const cardShapeMode: 'rounded' | 'soft' | 'sharp' = 'rounded';
+    const cardSizeMode: 'sm' | 'md' | 'lg' = 'md';
     const [uniqueId, setUniqueId] = useState('');
     const [registrationType, setRegistrationType] = useState<RegistrationType>('individual');
     const [formData, setFormData] = useState({
@@ -703,13 +703,6 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
         sharp: 'rounded-md',
     };
     const previewWrapClass = `${cardShapeClassMap[cardShapeMode]} ${cardScaleClassMap[cardSizeMode]} ${cardLayoutClassMap[cardLayoutMode]}`;
-
-    // Helper for cropping logic could go here, but for now relying on basic photo upload as per user request flow adjustment
-    // The user mentioned "able to crop and edit their photo", so we might need a library or just a simple preview with scale.
-    // For simplicity in this step, let's stick to the upload, and maybe later add reacting-image-crop if needed.
-    // But they said "while the user abl eto crop and dit their photo", implying it IS happening or SHOULD happen.
-    // Given the constraints, I will focus on the main request: No details on back, Email optional, No password field.
-
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -970,122 +963,6 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                 </div>
 
                 <div className="max-w-xl mx-auto">
-                    <motion.div
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-white p-4 sm:p-5 md:p-6 rounded-[1.5rem] md:rounded-[2rem] shadow-xl border border-slate-100 mb-4 md:mb-6"
-                    >
-                        <div className="grid grid-cols-2 bg-slate-100 rounded-2xl p-1 mb-4">
-                            <button
-                                type="button"
-                                onClick={() => setPanelTab('register')}
-                                className={`py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${panelTab === 'register' ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-500'}`}
-                            >
-                                Register
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setPanelTab('customize')}
-                                className={`py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all ${panelTab === 'customize' ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-500'}`}
-                            >
-                                Customize Card
-                            </button>
-                        </div>
-
-                        <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-8 pb-4 pt-2">
-                            <div className="flex flex-col items-center gap-2">
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Front Side</span>
-                                <div>
-                                    <EntrustCard3D
-                                        {...formData}
-                                        uniqueId={uniqueId}
-                                        photo={photo}
-                                        status="Pending"
-                                        registrationType={registrationType}
-                                        familyMembers={familyMembers}
-                                        isStatic={true}
-                                        isBackSide={false}
-                                        cardThemeTone={cardThemeTone}
-                                        cardLayoutMode={cardLayoutMode}
-                                        cardShapeMode={cardShapeMode}
-                                        cardSizeMode={cardSizeMode}
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex flex-col items-center gap-2">
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Back Side</span>
-                                <div>
-                                    <EntrustCard3D
-                                        {...formData}
-                                        uniqueId={uniqueId}
-                                        photo={photo}
-                                        status="Pending"
-                                        registrationType={registrationType}
-                                        familyMembers={familyMembers}
-                                        isStatic={true}
-                                        isBackSide={true}
-                                        cardThemeTone={cardThemeTone}
-                                        cardLayoutMode={cardLayoutMode}
-                                        cardShapeMode={cardShapeMode}
-                                        cardSizeMode={cardSizeMode}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {panelTab === 'customize' && (
-                            <div className="space-y-4 border-t border-slate-100 pt-4">
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                    <div>
-                                        <label className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 block mb-2">Layout</label>
-                                        <div className="flex flex-wrap gap-2">
-                                            {(['classic', 'compact', 'wide'] as const).map((mode) => (
-                                                <button
-                                                    key={mode}
-                                                    type="button"
-                                                    onClick={() => setCardLayoutMode(mode)}
-                                                    className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold capitalize border ${cardLayoutMode === mode ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-slate-600 border-slate-200'}`}
-                                                >
-                                                    {mode}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 block mb-2">Shape</label>
-                                        <div className="flex flex-wrap gap-2">
-                                            {(['rounded', 'soft', 'sharp'] as const).map((mode) => (
-                                                <button
-                                                    key={mode}
-                                                    type="button"
-                                                    onClick={() => setCardShapeMode(mode)}
-                                                    className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold capitalize border ${cardShapeMode === mode ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-slate-600 border-slate-200'}`}
-                                                >
-                                                    {mode}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 block mb-2">Size</label>
-                                        <div className="flex flex-wrap gap-2">
-                                            {(['sm', 'md', 'lg'] as const).map((mode) => (
-                                                <button
-                                                    key={mode}
-                                                    type="button"
-                                                    onClick={() => setCardSizeMode(mode)}
-                                                    className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold uppercase border ${cardSizeMode === mode ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-slate-600 border-slate-200'}`}
-                                                >
-                                                    {mode}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </motion.div>
-
                     {/* Form Left */}
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}

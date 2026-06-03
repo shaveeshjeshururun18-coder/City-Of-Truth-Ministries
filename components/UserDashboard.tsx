@@ -94,14 +94,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         return () => clearTimeout(timer);
     }, [mobileToast]);
 
-    useEffect(() => {
-        // Show rejection notification on mount if the active profile's form is rejected
-        if (displayProfile?.communityProfile?.status === 'Rejected') {
-            showToast('Your Member Form was rejected by Admin. Please review and fill it again.', 'error');
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [displayProfile?.communityProfile?.status]);
-
     const getDisplayProfile = () => {
         if (activeProfileId === user.id) return user;
         const sub = user.linkedProfiles?.find(p => p.id === activeProfileId);
@@ -168,6 +160,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         );
     };
     const displayProfile = getDisplayProfile();
+
+    useEffect(() => {
+        // Show rejection notification on mount if the active profile's form is rejected
+        if (displayProfile?.communityProfile?.status === 'Rejected') {
+            showToast('Your Member Form was rejected by Admin. Please review and fill it again.', 'error');
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [displayProfile?.communityProfile?.status]);
 
     const hasPermanentCotId = /^COT-\d{4,}$/.test((displayProfile.id || '').trim());
     const canAccessEntrustFeatures = displayProfile.status === 'Active' && hasPermanentCotId;
@@ -1968,6 +1968,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     )}
 
                     {/* Interest / Member Form (Mobile priority #2) */}
+                    {canAccessEntrustFeatures ? (
+                        <button onClick={() => setShowCommunityProfileForm(true)}
                             className="rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] hover:brightness-110 border border-[#d4a547]/30 cursor-pointer">
                             <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center mb-3"><Users size={18} className="text-[#f0c040]" /></div>
                             <p className="font-bold text-sm leading-tight mb-1">Member Form Column</p>
@@ -1976,6 +1978,15 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 <Edit2 size={11} /> Open Form
                             </span>
                         </button>
+                    ) : (
+                        <div className="bg-slate-100 rounded-[22px] p-4 border border-slate-200">
+                            <div className="w-9 h-9 bg-slate-200 rounded-xl flex items-center justify-center mb-3"><Users size={18} className="text-slate-400" /></div>
+                            <p className="font-bold text-sm text-slate-500 mb-1">Member Form Column</p>
+                            <p className="text-slate-400 text-[10px]">Professional themed profile form for User Book.</p>
+                            <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase bg-slate-200 rounded-lg px-2.5 py-1.5 text-slate-400">
+                                <AlertCircle size={11} /> Locked
+                            </span>
+                        </div>
                     )}
 
                     {/* Testimony */}

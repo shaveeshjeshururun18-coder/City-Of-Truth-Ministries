@@ -140,3 +140,15 @@ export interface Ministry {
   date: string;
   order?: number;
 }
+
+export interface Permalink {
+  id: string;
+  url: string;
+  label: string;
+  pages: ViewState[];
+  isVisible: boolean;
+  allowShare: boolean;
+  shareMessage?: string;
+  createdAt: string;
+  updatedAt: string;
+}

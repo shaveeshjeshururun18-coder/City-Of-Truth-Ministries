@@ -217,7 +217,9 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
     const { name, hebrew } = currentMonthData;
     const monthDays = currentMonthData.weeks.flat().filter(d => d.day !== null);
     const firstGregorian = monthDays[0]?.gregorianDate;
+    const firstGregorianYear = monthDays[0]?.gregorianYear;
     const lastGregorian = monthDays[monthDays.length - 1]?.gregorianDate;
+    const lastGregorianYear = monthDays[monthDays.length - 1]?.gregorianYear;
     const today = new Date();
     const todayMonthShort = today.toLocaleString('en-US', { month: 'short' });
     const todayKey = `${todayMonthShort} ${today.getDate()}`;
@@ -400,7 +402,10 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                             <div className="text-accent-600 text-lg md:text-2xl font-serif">{hebrew}</div>
                             {firstGregorian && lastGregorian && (
                                 <div className="text-[10px] md:text-xs text-slate-500 font-bold uppercase tracking-widest mt-2">
-                                    {firstGregorian} - {lastGregorian}
+                                    {firstGregorianYear === lastGregorianYear
+                                        ? `${firstGregorian} - ${lastGregorian}, ${firstGregorianYear}`
+                                        : `${firstGregorian}, ${firstGregorianYear} - ${lastGregorian}, ${lastGregorianYear}`
+                                    }
                                 </div>
                             )}
                         </div>
@@ -452,10 +457,19 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                 </div>
 
                 {/* Grid Header */}
-                <div className="grid grid-cols-7 gap-1 md:gap-2 mb-4 md:mb-6 leading-none text-center bg-brand-50 rounded-xl p-2">
-                    {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((d, i) => (
-                        <div key={i} className="text-[10px] md:text-xs uppercase font-black text-brand-900 tracking-widest">{d}</div>
-                    ))}
+                <div className="grid grid-cols-7 gap-1 md:gap-2 mb-4 md:mb-6 text-center bg-brand-50 rounded-xl p-2 items-center">
+                    {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((d, i) => {
+                        const hebDay = HEBREW_DAYS[i];
+                        return (
+                            <div key={i} className="flex flex-col items-center justify-center gap-0.5">
+                                <span className="text-[10px] md:text-xs font-black text-brand-900 tracking-widest leading-none">{d}</span>
+                                <span className="text-[9px] md:text-[11px] font-bold text-amber-700 leading-none mt-0.5">{hebDay.hebrew}</span>
+                                <span className="text-[8px] md:text-[9px] font-black text-blue-600 leading-none mt-0.5" title={hebDay.tamil}>
+                                    {hebDay.tamil.split(' (')[0]}
+                                </span>
+                            </div>
+                        );
+                    })}
                 </div>
 
                 {/* Days Grid */}
@@ -587,6 +601,147 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Hebrew Calendar & Leap Year Facts Section */}
+            <div className="bg-gradient-to-br from-slate-50 to-brand-50/30 rounded-[1.5rem] md:rounded-[2.5rem] p-6 md:p-10 border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.02)] space-y-6 md:space-y-8 font-serif">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/60 pb-5">
+                    <div>
+                        <h3 className="text-xl md:text-3xl font-bold text-brand-950 flex items-center gap-2 md:gap-3">
+                            <Sparkles className="text-amber-500 w-5 h-5 md:w-7 md:h-7" /> Hebrew Calendar & Leap Year Facts
+                        </h3>
+                        <p className="text-xs md:text-sm text-slate-500 font-sans mt-1">Understanding the divine astronomical alignment of the Biblical calendar</p>
+                    </div>
+                    <div className="bg-amber-100 border border-amber-200 px-4 py-1.5 rounded-full text-[10px] md:text-xs font-black text-amber-800 uppercase tracking-widest self-start md:self-auto shadow-sm">
+                        Lunisolar System • Shanah Me'uberet
+                    </div>
+                </div>
+
+                {/* Stats Bar - MOVED TO TOP with animations and Hebrew New Year info */}
+                <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
+                    className="space-y-4"
+                >
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.1, type: "spring" }}
+                            whileHover={{ scale: 1.05, rotate: 2 }}
+                            className="p-3 md:p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all"
+                        >
+                            <div className="text-xl md:text-2xl font-black text-brand-900 leading-none">19 Years</div>
+                            <p className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 mt-1.5 font-sans tracking-wider">Metonic Cycle</p>
+                        </motion.div>
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.2, type: "spring" }}
+                            whileHover={{ scale: 1.05, rotate: -2 }}
+                            className="p-3 md:p-4 bg-white rounded-xl border border-amber-100 shadow-sm hover:shadow-md transition-all"
+                        >
+                            <div className="text-xl md:text-2xl font-black text-amber-600 leading-none">7 Leap Years</div>
+                            <p className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 mt-1.5 font-sans tracking-wider">Per Cycle</p>
+                        </motion.div>
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.3, type: "spring" }}
+                            whileHover={{ scale: 1.05, rotate: 2 }}
+                            className="p-3 md:p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all"
+                        >
+                            <div className="text-xl md:text-2xl font-black text-brand-900 leading-none">383-385 Days</div>
+                            <p className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 mt-1.5 font-sans tracking-wider">Leap Year Length</p>
+                        </motion.div>
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.4, type: "spring" }}
+                            whileHover={{ scale: 1.05, rotate: -2 }}
+                            className="p-3 md:p-4 bg-white rounded-xl border border-amber-100 shadow-sm hover:shadow-md transition-all"
+                        >
+                            <div className="text-xl md:text-2xl font-black text-amber-600 leading-none">Passover</div>
+                            <p className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 mt-1.5 font-sans tracking-wider">Anchored in Spring</p>
+                        </motion.div>
+                    </div>
+                    
+                    {/* Hebrew New Year Celebration Info */}
+                    <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.5 }}
+                        className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-2 border-amber-200 rounded-2xl p-4 md:p-5 text-center"
+                    >
+                        <div className="flex items-center justify-center gap-2 mb-2">
+                            <CalendarIcon className="text-amber-600 w-5 h-5" />
+                            <h4 className="font-black text-brand-950 text-sm md:text-base uppercase tracking-wider">Hebrew New Year Celebration</h4>
+                        </div>
+                        <p className="text-xs md:text-sm text-slate-700 leading-relaxed font-sans">
+                            <strong className="text-amber-700">Rosh Hashanah (ראש השנה)</strong> - The Jewish New Year is celebrated on <strong>1st and 2nd of Tishrei</strong> (usually September/October). It marks the beginning of the High Holy Days and the civil new year, while Nisan remains the first month of the religious calendar.
+                        </p>
+                        <p className="text-[10px] text-amber-700 font-bold mt-2 uppercase tracking-widest">
+                            தலை வருடம் - திஷ்ரே மாதம் 1 & 2
+                        </p>
+                    </motion.div>
+                </motion.div>
+
+                <div className="grid md:grid-cols-2 gap-6 md:gap-8">
+                    {/* Left Column: Lunar/Solar Alignment */}
+                    <div className="space-y-4">
+                        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
+                                <Globe size={20} />
+                            </div>
+                            <div className="space-y-1">
+                                <h4 className="font-bold text-brand-950 text-sm md:text-base">Lunisolar Alignment • சந்திர-சூரிய நாட்காட்டி</h4>
+                                <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-sans">
+                                    Unlike the Gregorian calendar (purely solar) or the Islamic calendar (purely lunar), the Hebrew calendar is <strong>lunisolar</strong>. Months align with the moon cycles, but years adjust to align with the sun, keeping biblical festivals in their proper agricultural seasons.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
+                                <BookOpen size={20} />
+                            </div>
+                            <div className="space-y-1">
+                                <h4 className="font-bold text-brand-950 text-sm md:text-base">The Biblical Command • வேத கட்டளை</h4>
+                                <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-sans">
+                                    Deuteronomy 16:1 commands: <em>"Observe the month of Aviv (Spring) and keep the Passover..."</em>. Since a standard lunar year is 11 days shorter than a solar year, Passover would drift backward into winter without intercalation. The leap month keeps it anchored in the spring.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right Column: The Metonic Cycle */}
+                    <div className="space-y-4">
+                        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
+                                <Calculator size={20} />
+                            </div>
+                            <div className="space-y-1">
+                                <h4 className="font-bold text-brand-950 text-sm md:text-base">The 19-Year Cycle (Metonic) • 19-ஆண்டு சுழற்சி</h4>
+                                <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-sans">
+                                    To balance the solar and lunar cycles, the calendar uses a 19-year cycle. Every 19 years, a leap month is added 7 times to correct the drift. These leap years occur in the <strong>3rd, 6th, 8th, 11th, 14th, 17th, and 19th</strong> years of the cycle.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
+                                <CalendarIcon size={20} />
+                            </div>
+                            <div className="space-y-1">
+                                <h4 className="font-bold text-brand-950 text-sm md:text-base">Adar I & Adar II Structure • அதார் I மற்றும் II</h4>
+                                <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-sans">
+                                    During a leap year, a 30-day month named <strong>Adar I (Adar Rishon)</strong> is inserted before the standard Adar. The regular month of Adar becomes <strong>Adar II (Adar Sheni)</strong> and is 29 days. Joyous festivals like Purim are celebrated in Adar II to stay close to Nisan.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };
@@ -1095,6 +1250,7 @@ const GrammarView: React.FC = () => {
     const grammarTopics = [
         {
             title: 'Hebrew Script & Direction',
+            tamil: 'எபிரேய எழுத்து மற்றும் திசை (Hebrew Script & Direction)',
             points: [
                 'Hebrew is written from right to left.',
                 'The alphabet has 22 letters (Aleph to Tav).',
@@ -1104,6 +1260,7 @@ const GrammarView: React.FC = () => {
         },
         {
             title: 'Vowels (Nikkud)',
+            tamil: 'உயிரெழுத்துக்கள் - நிக்குத் (Vowels - Nikkud)',
             points: [
                 'Ancient Hebrew consonants are read with vowel marks called nikkud.',
                 'Common marks include kamatz (ָ), patach (ַ), segol (ֶ), hiriq (ִ), and holam (ֹ).',
@@ -1113,6 +1270,7 @@ const GrammarView: React.FC = () => {
         },
         {
             title: 'Gender and Number',
+            tamil: 'பாலினம் மற்றும் எண் (Gender and Number)',
             points: [
                 'Nouns are masculine or feminine.',
                 'Words change for singular and plural forms.',
@@ -1122,6 +1280,7 @@ const GrammarView: React.FC = () => {
         },
         {
             title: 'Verb Roots (Shoresh)',
+            tamil: 'வினைச்சொல் வேர்கள் - ஷோரெஷ் (Verb Roots - Shoresh)',
             points: [
                 'Most Hebrew words come from a 3-letter root.',
                 'Verb patterns (binyanim) shape voice and meaning.',
@@ -1131,6 +1290,7 @@ const GrammarView: React.FC = () => {
         },
         {
             title: 'Sentence Structure',
+            tamil: 'வாக்கிய அமைப்பு (Sentence Structure)',
             points: [
                 'Biblical Hebrew often uses verb-subject-object order, while modern usage can be more flexible.',
                 'Construct state (smikhut) links nouns into possession-like phrases without extra particles.',
@@ -1139,6 +1299,7 @@ const GrammarView: React.FC = () => {
         },
         {
             title: 'Prefix & Suffix Meaning',
+            tamil: 'முன்னொட்டு & பின்னொட்டு பொருள் (Prefix & Suffix Meaning)',
             points: [
                 'ו can mean “and”, ב means “in”, ל means “to/for”, כ means “as/like”.',
                 'Possessive endings attach to nouns (e.g., -י means “my”).',
@@ -1148,6 +1309,7 @@ const GrammarView: React.FC = () => {
         },
         {
             title: 'Biblical Reading Tips',
+            tamil: 'விவிலிய வாசிப்பு குறிப்புகள் (Biblical Reading Tips)',
             points: [
                 'Read slowly by syllable before speed reading.',
                 'Track roots to understand related words across verses.',
@@ -1308,7 +1470,8 @@ const GrammarView: React.FC = () => {
             <div className="grid md:grid-cols-2 gap-6 relative z-10">
                 {grammarTopics.map((topic) => (
                     <div key={topic.title} className="bg-white/5 border border-white/10 rounded-3xl p-6 shadow-sm hover:border-[#C5A880]/20 transition-all">
-                        <h4 className="text-lg font-bold text-[#C5A880] mb-3">{topic.title}</h4>
+                        <h4 className="text-lg font-bold text-[#C5A880] mb-1">{topic.title}</h4>
+                        {topic.tamil && <p className="text-xs text-blue-400 font-bold mb-3">{topic.tamil}</p>}
                         <ul className="space-y-2 text-xs sm:text-sm text-slate-300 leading-relaxed list-disc pl-5">
                             {topic.points.map(point => (
                                 <li key={point}>{point}</li>
@@ -1485,8 +1648,19 @@ const HebrewConverterNumbers: React.FC = () => {
                 <p className="text-slate-400 text-xs sm:text-sm max-w-xl mx-auto">Convert any number to its sacred Hebrew representation</p>
             </div>
 
+            {/* Sticky Hebrew numeral result — stays visible while scrolling */}
+            {input !== '' && hebrewResult && (
+                <div className="sticky top-[80px] md:top-[100px] z-30 flex justify-center pointer-events-none">
+                    <div className="bg-slate-900/95 backdrop-blur-md border border-amber-500/30 rounded-full px-8 py-3 shadow-2xl shadow-amber-500/10 flex items-center gap-5 pointer-events-auto">
+                        <span className="text-xl font-mono font-black text-white/80">{String(input)}</span>
+                        <span className="text-amber-500/40 font-bold text-lg">→</span>
+                        <span className="text-3xl font-serif font-black text-amber-400" dir="rtl">{hebrewResult}</span>
+                    </div>
+                </div>
+            )}
+
             {/* Converter Card */}
-            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 md:p-8 shadow-xl relative z-10 hover:border-amber-500/10 transition-all">
+            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 md:p-8 shadow-xl relative z-10 hover:border-amber-500/20 transition-all">
                 <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
                     <div className="flex-1 w-full space-y-4">
                         <label className="text-xs font-bold text-[#C5A880] uppercase tracking-widest flex items-center gap-2">
@@ -1727,8 +1901,19 @@ const HebrewGematriaCalc: React.FC = () => {
                 <p className="text-slate-400 text-xs sm:text-sm">Type any Hebrew word to calculate its sacred numerical value</p>
             </div>
 
+            {/* Sticky Gematria Total — always visible while scrolling */}
+            {word.trim() && (
+                <div className="sticky top-[80px] md:top-[100px] z-30 flex justify-center pointer-events-none">
+                    <div className="bg-slate-900/95 backdrop-blur-md border border-amber-500/30 rounded-full px-8 py-3 shadow-2xl shadow-amber-500/10 flex items-center gap-4 pointer-events-auto">
+                        <span className="text-[10px] font-black text-amber-400/70 uppercase tracking-widest">Gematria</span>
+                        <span className="text-3xl font-black text-amber-400 font-mono">{total}</span>
+                        <div className="text-xl font-serif text-white/60 font-bold" dir="rtl">{word}</div>
+                    </div>
+                </div>
+            )}
+
             {/* Calculator card */}
-            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 md:p-8 shadow-xl relative z-10 hover:border-amber-500/10 transition-all">
+            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 md:p-8 shadow-xl relative z-10 hover:border-amber-500/20 transition-all">
                 <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
                     <div className="flex-[1.5] w-full space-y-4">
                         <label className="text-xs font-bold text-[#C5A880] uppercase tracking-widest flex items-center gap-2">
@@ -1977,7 +2162,7 @@ const HebrewLettersAudioLab: React.FC = () => {
             const result = await analyzeHebrewWord(combinedWord);
             setAiResult({ ...result, word: combinedWord });
         } catch (err) {
-            setAiError('Could not connect to the Deep Insight service. Please try again.');
+            setAiError('Could not connect to the Word Analysis service. Please try again.');
             console.error(err);
         } finally {
             setIsAnalyzing(false);
@@ -2010,13 +2195,7 @@ const HebrewLettersAudioLab: React.FC = () => {
         }
     };
 
-    useEffect(() => {
-        if (!aiResult || !aiResultRef.current) return;
-        const timer = window.setTimeout(() => {
-            aiResultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 120);
-        return () => window.clearTimeout(timer);
-    }, [aiResult]);
+    // NOTE: intentionally not auto-scrolling to AI result — user keeps control of scroll position
 
     const handleExportInsight = async (format: 'pdf' | 'jpeg') => {
         if (!aiResultRef.current || !combinedWord) return;
@@ -2096,8 +2275,8 @@ const HebrewLettersAudioLab: React.FC = () => {
         <div className="space-y-8 py-8">
             <div className="text-center space-y-3">
                 <h2 className="text-4xl md:text-5xl font-serif font-bold text-brand-950">Hebrew <span className="text-accent-600">Letters Audio Lab</span></h2>
-                <p className="text-slate-500 text-base max-w-3xl mx-auto">
-                    Tap any letter to add it to your word. New letters appear on the left (Hebrew reads right-to-left). Drag to reorder. Tap ✕ to remove.
+                <p className="text-slate-500 text-sm max-w-3xl mx-auto">
+                    Tap any letter to add it to your word. Drag letters to reorder. Tap ✕ to remove. Drag from the grid to the builder.
                 </p>
             </div>
 
@@ -2182,7 +2361,7 @@ const HebrewLettersAudioLab: React.FC = () => {
                                     className="px-5 py-2.5 rounded-full bg-accent-500 text-brand-950 font-bold text-sm flex items-center gap-2 disabled:opacity-50 hover:bg-accent-400 transition-colors shadow-lg cursor-pointer"
                                 >
                                     {isAnalyzing ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
-                                    {isAnalyzing ? 'Analyzing…' : 'Deep Insight'}
+                                    {isAnalyzing ? 'Analyzing…' : 'Word Analysis'}
                                 </button>
                             )}
                             {selectedLetters.length > 0 && (
@@ -2201,31 +2380,36 @@ const HebrewLettersAudioLab: React.FC = () => {
             {/* ── LOWER GRID (Compact Hebrew Letters grid on left, AI Insights on right) ── */}
             <div className={`grid gap-6 ${aiResult || aiError ? 'lg:grid-cols-2 lg:items-start' : ''}`}>
                 {/* ── COMPACT HEBREW LETTERS GRID ("Short Below") ── */}
-                <div className={`bg-white rounded-[2.5rem] border border-slate-100 p-5 sm:p-8 shadow-xl ${aiResult || aiError ? '' : 'lg:col-span-2'}`}>
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-6 text-center">Tap a letter to add it to your word</p>
+                <div className={`bg-slate-950 rounded-[2.5rem] border border-white/10 p-5 sm:p-8 shadow-xl ${aiResult || aiError ? '' : 'lg:col-span-2'}`}>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-6 text-center">Tap a letter to add it — or drag it to the builder above</p>
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-6 gap-3">
                         {HEBREW_AUDIO_LETTERS.map((item, index) => (
-                            <div key={item.letter} className={`rounded-2xl bg-gradient-to-br ${RAINBOW_GRADIENTS[index % RAINBOW_GRADIENTS.length]} p-[1px] hover:scale-105 transition-transform duration-300 shadow-sm`}>
+                            <div
+                                key={item.letter}
+                                draggable
+                                onDragStart={(e) => handleSourceLetterDragStart(e, item)}
+                                className={`rounded-2xl bg-gradient-to-br ${RAINBOW_GRADIENTS[index % RAINBOW_GRADIENTS.length]} p-[1.5px] hover:scale-105 active:scale-95 transition-transform duration-200 shadow-sm cursor-grab active:cursor-grabbing select-none`}
+                                title={`Drag or tap to add ${item.name}`}
+                            >
                                 <div
-                                    className="bg-white rounded-2xl p-2.5 flex flex-col items-center justify-between text-center h-full min-h-[120px]"
-                                    draggable
-                                    onDragStart={(e) => handleSourceLetterDragStart(e, item)}
+                                    className="bg-slate-900 rounded-2xl p-2.5 flex flex-col items-center justify-between text-center h-full min-h-[120px]"
                                 >
-                                    <div className="flex flex-col items-center gap-0.5">
-                                        <span className="text-3xl font-serif text-brand-950 font-bold leading-none">{item.letter}</span>
+                                    <div className="flex flex-col items-center gap-0.5 pointer-events-none">
+                                        <span className="text-3xl font-serif text-white font-bold leading-none">{item.letter}</span>
                                         <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 leading-none">{item.name}</span>
+                                        <span className="text-[8px] font-bold text-slate-500 font-serif" dir="rtl">{item.hebrewName}</span>
                                     </div>
                                     <div className="flex items-center gap-1 mt-2 w-full justify-center">
                                         <button
                                             onClick={() => addLetter(item)}
-                                            className="flex-1 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider bg-brand-600 text-white hover:bg-brand-700 transition-colors shadow-sm cursor-pointer"
+                                            className="flex-1 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider bg-brand-600 hover:bg-brand-700 text-white transition-colors shadow-sm cursor-pointer"
                                             title={`Add ${item.name}`}
                                         >
                                             + Add
                                         </button>
                                         <button
                                             onClick={() => playLetter(item.letter, item.hebrewName)}
-                                            className="w-6 h-6 rounded-full bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors flex items-center justify-center shrink-0 cursor-pointer"
+                                            className="w-6 h-6 rounded-full bg-white/5 text-brand-400 hover:bg-brand-900 transition-colors flex items-center justify-center shrink-0 cursor-pointer"
                                             title={`Play ${item.hebrewName}`}
                                         >
                                             <Volume2 size={10} />
@@ -2262,7 +2446,7 @@ const HebrewLettersAudioLab: React.FC = () => {
                                 {/* Header row */}
                                 <div className="flex justify-between items-start gap-3">
                                     <div className="space-y-1 min-w-0">
-                                        <div className="text-[10px] font-black text-brand-400 uppercase tracking-[0.2em]">AI Deep Insight</div>
+                                        <div className="text-[10px] font-black text-brand-400 uppercase tracking-[0.2em]">AI Word Analysis</div>
                                         <div className="text-2xl font-black flex items-center gap-2 text-white flex-wrap">
                                             <span>{aiResult.pronunciation}</span>
                                             <button onClick={playCombined} className="shrink-0 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-accent-400 cursor-pointer">
@@ -2457,25 +2641,57 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
         <div className="min-h-screen pt-24 md:pt-32 pb-32 md:pb-20 w-full px-3 md:px-6 font-sans bg-[#fffdf6]">
             <div className={`mx-auto flex flex-col items-center ${tab === 'calendar' ? 'max-w-5xl' : 'max-w-7xl'}`}>
                 
-                {/* Horizontal navigation menu: Sticky, hides on scroll-down, appears on scroll-up */}
-                <div className={`sticky top-[60px] md:top-[84px] z-30 w-full bg-[#fffdf6]/95 backdrop-blur-md py-3.5 md:py-5 flex flex-wrap items-center justify-center gap-2 md:gap-3 mb-6 md:mb-10 border-b border-amber-500/5 shadow-[0_4px_20px_-10px_rgba(217,119,6,0.05)] transition-all duration-300 ${tabNavVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'}`}>
-                    {availableTabs.map((t) => {
-                        const isActive = tab === t.id;
-                        return (
-                            <button
-                                key={t.id}
-                                onClick={() => { setTab(t.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                                className={`relative flex items-center justify-center gap-2 px-4 py-2.5 md:px-6 md:py-3.5 rounded-full font-black text-[9px] md:text-[11px] uppercase tracking-widest transition-all duration-500 shadow-sm border ${
-                                    isActive
-                                        ? 'bg-gradient-to-r from-amber-500 to-amber-600 border-amber-600 text-white shadow-lg shadow-amber-500/25 scale-105'
-                                        : 'bg-white text-slate-400 hover:text-amber-600 hover:border-amber-200 border-slate-200 hover:bg-amber-50/10'
-                                }`}
-                            >
-                                {t.icon}
-                                <span>{t.label}</span>
-                            </button>
-                        );
-                    })}
+                {/* Desktop Horizontal navigation menu: Hide on scroll down, show on scroll up */}
+                <motion.div 
+                    initial={{ y: 0 }}
+                    animate={{ y: tabNavVisible ? 0 : -100 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="hidden md:block sticky top-[84px] z-30 w-full bg-[#fffdf6]/95 backdrop-blur-md py-5 mb-10 border-b border-amber-500/5 shadow-[0_4px_20px_-10px_rgba(217,119,6,0.05)]"
+                >
+                    <div className="flex flex-wrap items-center justify-center gap-3">
+                        {availableTabs.map((t) => {
+                            const isActive = tab === t.id;
+                            return (
+                                <motion.button
+                                    key={t.id}
+                                    onClick={() => { setTab(t.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className={`relative flex items-center justify-center gap-2 px-6 py-3.5 rounded-full font-black text-[11px] uppercase tracking-widest transition-all duration-500 shadow-sm border ${
+                                        isActive
+                                            ? 'bg-gradient-to-r from-amber-500 to-amber-600 border-amber-600 text-white shadow-lg shadow-amber-500/25'
+                                            : 'bg-white text-slate-400 hover:text-amber-600 hover:border-amber-200 border-slate-200 hover:bg-amber-50/10'
+                                    }`}
+                                >
+                                    {t.icon}
+                                    <span>{t.label}</span>
+                                </motion.button>
+                            );
+                        })}
+                    </div>
+                </motion.div>
+
+                {/* Mobile Bottom navigation menu: Shows on scroll up, hides on scroll down */}
+                <div className={`md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-amber-500/10 shadow-[0_-4px_20px_-10px_rgba(217,119,6,0.1)] transition-all duration-300 ${tabNavVisible ? 'translate-y-0' : 'translate-y-full'}`}>
+                    <div className="flex overflow-x-auto items-center gap-2 px-3 py-3" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        {availableTabs.map((t) => {
+                            const isActive = tab === t.id;
+                            return (
+                                <button
+                                    key={t.id}
+                                    onClick={() => { setTab(t.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                    className={`flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-full font-black text-[9px] uppercase tracking-widest transition-all duration-500 shadow-sm border ${
+                                        isActive
+                                            ? 'bg-gradient-to-r from-amber-500 to-amber-600 border-amber-600 text-white shadow-lg shadow-amber-500/25'
+                                            : 'bg-white text-slate-400 hover:text-amber-600 hover:border-amber-200 border-slate-200'
+                                    }`}
+                                >
+                                    {t.icon}
+                                    <span>{t.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
 
                 <div className="w-full relative min-h-[500px]">

@@ -129,7 +129,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentView, setView }) =>
             <div className="mx-2 mb-2 mt-0 bg-white/96 backdrop-blur-3xl rounded-[1.75rem] shadow-[0_-2px_20px_rgba(0,0,0,0.08),0_8px_32px_rgba(0,0,0,0.12)] border border-slate-100/80 px-2 py-2">
                 <div className="space-y-2.5">
                     {viewType === 'content' && renderGroup('Resources', HEBREW_RESOURCE_ITEMS, `grid-cols-${HEBREW_RESOURCE_ITEMS.length}`)}
-                    {viewType === 'tools' && renderGroup('Tools', HEBREW_TOOL_ITEMS, `grid-cols-${HEBREW_TOOL_ITEMS.length}`)}
+                    {viewType === 'tools' && renderGroup('', HEBREW_TOOL_ITEMS, `grid-cols-${HEBREW_TOOL_ITEMS.length}`)}
                 </div>
             </div>
             <div className="h-safe-area-inset-bottom bg-transparent" />

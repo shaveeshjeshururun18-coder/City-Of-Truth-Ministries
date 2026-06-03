@@ -320,31 +320,106 @@ export const HebrewPagesPreviewSection: React.FC<SectionProps> = ({ setView }) =
 
 export const PastorBaruchPreviewSection: React.FC<SectionProps> = ({ setView }) => {
     return (
-        <section className="py-24 bg-slate-50">
-            <div className="container mx-auto px-6">
-                <div className="text-center mb-12">
-                    <span className="inline-flex items-center gap-2 bg-white text-slate-700 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] border border-slate-200">
-                        <Heart size={12} /> Spiritual Highlights
-                    </span>
-                    <h2 className="mt-5 text-4xl md:text-6xl font-serif font-black text-brand-950 tracking-tight">
-                        Pastor & <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500 italic font-light">Baruch Hashem</span>
-                    </h2>
+        <section className="py-24 bg-gradient-to-b from-slate-50 to-[#fdfcfb] relative overflow-hidden">
+            {/* Background Decorations */}
+            <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-amber-400/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-brand-900/5 rounded-full blur-[100px] translate-y-1/3 -translate-x-1/4 pointer-events-none" />
+
+            <div className="container mx-auto px-6 relative z-10">
+                <div className="text-center mb-16 max-w-2xl mx-auto">
+                    <motion.span 
+                        initial={{ opacity: 0, y: 10 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-700 px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-[0.25em] border border-amber-200/50 shadow-sm"
+                    >
+                        <Heart size={14} className="text-amber-600" /> Spiritual Highlights
+                    </motion.span>
+                    <motion.h2 
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="mt-6 text-5xl md:text-6xl lg:text-7xl font-serif font-black text-brand-950 tracking-tight leading-tight"
+                    >
+                        Pastor & <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 italic font-light pr-2">Baruch Hashem</span>
+                    </motion.h2>
+                    <motion.p 
+                        initial={{ opacity: 0 }}
+                        whileInView={{ opacity: 1 }}
+                        transition={{ delay: 0.2 }}
+                        className="mt-6 text-slate-500 text-lg"
+                    >
+                        Experience the heart of our ministry through dedicated pastoral leadership and deep, praise-centered worship.
+                    </motion.p>
                 </div>
-                <div className="grid md:grid-cols-2 gap-8">
-                    <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-                        <h3 className="text-2xl font-bold text-brand-950 mb-3">Pastor Section</h3>
-                        <p className="text-slate-500 mb-6">Know the shepherd’s vision, background, and ministry message in one dedicated page.</p>
-                        <button onClick={() => setView(ViewState.PASTOR)} className="group inline-flex items-center gap-2 bg-brand-950 text-white px-6 py-3 rounded-full text-sm font-bold hover:scale-105 transition-transform">
-                            View Pastor Page <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
-                        </button>
-                    </div>
-                    <div className="bg-white rounded-[2.5rem] border border-amber-100 p-8 shadow-sm">
-                        <h3 className="text-2xl font-bold text-brand-950 mb-3">Baruch Hashem</h3>
-                        <p className="text-slate-500 mb-6">Explore praise, Hebrew-Tamil devotion flow, and visual worship resources.</p>
-                        <button onClick={() => setView(ViewState.BARUCH_HASHEM)} className="group inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-full text-sm font-bold hover:scale-105 transition-transform">
-                            View Baruch Hashem <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
-                        </button>
-                    </div>
+                
+                <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 max-w-6xl mx-auto items-stretch">
+                    {/* Pastor Card */}
+                    <motion.div 
+                        initial={{ opacity: 0, x: -30 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true, amount: 0.25 }}
+                        whileHover={{ y: -10, scale: 1.01 }}
+                        transition={{ duration: 0.45 }}
+                        className="group relative bg-white rounded-[2rem] overflow-hidden shadow-[0_28px_70px_-24px_rgba(15,23,42,0.25)] border border-slate-100 flex flex-col h-full"
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-br from-brand-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                        <div className="relative h-[30rem] md:h-[34rem] overflow-hidden shrink-0 bg-gradient-to-br from-slate-100 to-brand-50">
+                            <img 
+                                src="/assets/pastor.jpeg" 
+                                alt="Pastor" 
+                                className="w-full h-full object-contain object-center transform group-hover:scale-[1.035] transition-transform duration-700 ease-out"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-brand-950 via-brand-950/30 to-transparent z-20" />
+                            <div className="absolute inset-x-6 top-6 z-30 flex justify-between items-start">
+                                <span className="inline-flex bg-white/20 backdrop-blur-md text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-white/20">Leadership</span>
+                                <span className="w-10 h-10 rounded-2xl bg-white/15 border border-white/20 backdrop-blur-md flex items-center justify-center text-white group-hover:rotate-12 transition-transform"><ArrowRight size={16} /></span>
+                            </div>
+                            <div className="absolute bottom-7 left-7 right-7 z-30">
+                                <h3 className="text-3xl md:text-4xl font-serif font-bold text-white mb-2 drop-shadow">Pastor Section</h3>
+                                <div className="h-1 w-20 rounded-full bg-amber-300 group-hover:w-32 transition-all duration-500" />
+                            </div>
+                        </div>
+                        <div className="p-7 md:p-9 relative z-30 bg-white flex flex-col flex-1">
+                            <p className="text-slate-600 mb-8 leading-relaxed text-lg flex-1">Know the shepherd's vision, profound biblical insights, background, and ministry message in one dedicated spiritual space.</p>
+                            <button onClick={() => setView(ViewState.PASTOR)} className="group/btn w-full sm:w-auto inline-flex justify-center items-center gap-3 bg-brand-950 text-white px-8 py-4 rounded-2xl text-sm font-bold hover:shadow-xl hover:shadow-brand-900/20 hover:bg-brand-900 transition-all shrink-0">
+                                View Pastor Page <ArrowRight size={16} className="group-hover/btn:translate-x-1.5 transition-transform" />
+                            </button>
+                        </div>
+                    </motion.div>
+
+                    {/* Baruch Hashem Card */}
+                    <motion.div 
+                        initial={{ opacity: 0, x: 30 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true, amount: 0.25 }}
+                        whileHover={{ y: -10, scale: 1.01 }}
+                        transition={{ duration: 0.45 }}
+                        className="group relative bg-white rounded-[2rem] overflow-hidden shadow-[0_28px_70px_-24px_rgba(146,64,14,0.28)] border border-amber-100 flex flex-col h-full"
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                        <div className="relative h-[24rem] md:h-[28rem] overflow-hidden shrink-0 bg-gradient-to-br from-amber-50 to-orange-50">
+                            <img 
+                                src="/assets/baruch-hashem-pastor.jpg" 
+                                alt="Baruch Hashem" 
+                                className="w-full h-full object-contain object-center p-2 transform group-hover:scale-[1.035] transition-transform duration-700 ease-out"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-amber-950 via-amber-900/25 to-transparent z-20" />
+                            <div className="absolute inset-x-6 top-6 z-30 flex justify-between items-start">
+                                <span className="inline-flex bg-white/25 backdrop-blur-md text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-white/25">Worship</span>
+                                <span className="w-10 h-10 rounded-2xl bg-white/20 border border-white/25 backdrop-blur-md flex items-center justify-center text-white group-hover:rotate-12 transition-transform"><ArrowRight size={16} /></span>
+                            </div>
+                            <div className="absolute bottom-7 left-7 right-7 z-30">
+                                <h3 className="text-3xl md:text-4xl font-serif font-bold text-white mb-2 drop-shadow">Baruch Hashem</h3>
+                                <div className="h-1 w-20 rounded-full bg-orange-300 group-hover:w-32 transition-all duration-500" />
+                            </div>
+                        </div>
+                        <div className="p-7 md:p-9 relative z-30 bg-white flex flex-col flex-1">
+                            <p className="text-slate-600 mb-8 leading-relaxed text-lg flex-1">Explore pure praise, Hebrew-Tamil devotion flow, majestic visual worship resources, and divine musical expressions.</p>
+                            <button onClick={() => setView(ViewState.BARUCH_HASHEM)} className="group/btn w-full sm:w-auto inline-flex justify-center items-center gap-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-2xl text-sm font-bold hover:shadow-xl hover:shadow-amber-500/25 hover:brightness-110 transition-all shrink-0">
+                                View Baruch Hashem <ArrowRight size={16} className="group-hover/btn:translate-x-1.5 transition-transform" />
+                            </button>
+                        </div>
+                    </motion.div>
                 </div>
             </div>
         </section>

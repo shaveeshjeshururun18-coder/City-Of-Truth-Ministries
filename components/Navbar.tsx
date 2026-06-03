@@ -68,8 +68,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
   const [activeMobileSubmenu, setActiveMobileSubmenu] = useState<string | null>(null);
   const [desktopHoverMenu, setDesktopHoverMenu] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
   const { language, setLanguage, t } = useLanguage();
 
   const translateLabel = (label: string) => {
@@ -81,18 +79,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
   useEffect(() => {
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      setIsScrolled(currentScrollY > 20);
-      
-      setLastScrollY((prev) => {
-        if (currentScrollY > prev && currentScrollY > 80) {
-          setIsVisible(false);
-        } else {
-          setIsVisible(true);
-        }
-        return currentScrollY;
-      });
+      setIsScrolled(window.scrollY > 20);
     };
+    handleScroll();
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -122,12 +111,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
       {/* Hero-transparent or solid-white navbar */}
       <nav
-        style={{ transform: isVisible ? 'translateY(0)' : 'translateY(-100%)' }}
-        className={`fixed top-0 left-0 right-0 z-50 flex justify-between items-center transition-all duration-500 px-4 md:px-8 montserrat ${
+        className={`fixed top-0 left-0 right-0 z-[60] flex justify-between items-center transition-all duration-500 px-4 md:px-8 montserrat ${
         isTransparentNavbar
-          ? 'py-4 bg-transparent backdrop-blur-md border-b border-white/10'
+          ? 'py-4 lg:bg-transparent bg-white/98 backdrop-blur-md border-b lg:border-white/10 border-gray-100'
           : 'py-2.5 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100'
-      }`}>
+      }`}
+        role="navigation"
+        aria-label="Main navigation"
+      >
         {/* LOGO STYLING */}
         <div
           className="flex items-center gap-[10px] cursor-pointer"
@@ -137,8 +128,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             <img src="/logo.png" alt="COT Logo" className="w-full h-full object-contain" />
           </div>
           <div className="flex flex-col justify-center">
-              <span className={`font-bold text-[1.1rem] leading-[1.1] tracking-[-0.5px] transition-colors duration-300 ${isTransparentNavbar ? 'text-white' : 'text-[#1a1a2e]'}`}>City of Truth</span>
-              <span className={`text-[0.65rem] font-bold tracking-[1px] uppercase transition-colors duration-300 ${isTransparentNavbar ? 'text-blue-300' : 'text-[#5D5FEF]'}`}>MINISTRIES</span>
+              <span className={`font-bold text-[1.1rem] leading-[1.1] tracking-[-0.5px] transition-colors duration-300 ${isTransparentNavbar ? 'lg:text-white text-[#1a1a2e]' : 'text-[#1a1a2e]'}`}>City of Truth</span>
+              <span className={`text-[0.65rem] font-bold tracking-[1px] uppercase transition-colors duration-300 ${isTransparentNavbar ? 'lg:text-blue-300 text-[#5D5FEF]' : 'text-[#5D5FEF]'}`}>MINISTRIES</span>
           </div>
         </div>
 
@@ -209,7 +200,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
         {/* RIGHT SIDE ACTIONS */}
 
-        <div className="flex items-center gap-1.5 sm:gap-2 ml-1 sm:ml-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 ml-1 sm:ml-2 relative z-50">
 
 
           <div className={`flex items-center gap-3 sm:gap-3.5 p-1 sm:p-1.5 rounded-2xl backdrop-blur-md border transition-all duration-300 ${isTransparentNavbar ? 'bg-white/10 border-white/20' : 'bg-white/95 border-brand-200/80'}`}>
@@ -237,11 +228,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             <button
               id="nav-hamburger-btn"
               onClick={() => setMobileMenuOpen(true)}
-              className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl cursor-pointer flex items-center justify-center transition-all duration-300 border border-blue-300/50 bg-gradient-to-r from-blue-700 via-blue-600 to-blue-800 text-white hover:from-blue-800 hover:via-blue-700 hover:to-blue-900 shadow-[0_12px_22px_-12px_rgba(37,99,235,0.75)] hover:shadow-[0_16px_26px_-12px_rgba(37,99,235,0.85)]"
+              className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl cursor-pointer flex items-center justify-center transition-all duration-300 border border-blue-300/50 bg-gradient-to-r from-blue-700 via-blue-600 to-blue-800 text-white hover:from-blue-800 hover:via-blue-700 hover:to-blue-900 shadow-[0_12px_22px_-12px_rgba(37,99,235,0.75)] hover:shadow-[0_16px_26px_-12px_rgba(37,99,235,0.85)] relative z-[70] block"
               title="Open menu"
               aria-label="Open navigation menu"
             >
-              <Menu size={18} strokeWidth={2.25} className="text-white" />
+              <Menu size={18} strokeWidth={2.5} className="text-white drop-shadow-lg" />
             </button>
           </div>
         </div>

@@ -2,6 +2,24 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { User as UserIcon, Calendar, MapPin, Phone, ShieldCheck } from 'lucide-react';
 
+// Utility function to format date to DD-MM-YYYY
+const formatDateToDDMMYYYY = (dateStr?: string): string => {
+    if (!dateStr) return '';
+    
+    // Try parsing as ISO format (YYYY-MM-DD)
+    const parsed = new Date(dateStr);
+    if (Number.isNaN(parsed.getTime())) {
+        // If not a valid date, return original string
+        return dateStr;
+    }
+    
+    const day = parsed.getDate().toString().padStart(2, '0');
+    const month = (parsed.getMonth() + 1).toString().padStart(2, '0');
+    const year = parsed.getFullYear();
+    
+    return `${day}-${month}-${year}`;
+};
+
 interface AdminIDCardProps {
     user: {
         id: string;
@@ -35,58 +53,58 @@ export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user, onPhotoClick, on
 
     const themeClasses = {
         blue: {
-            header: "from-sky-500 to-blue-600",
-            body: "from-sky-50 via-blue-50 to-sky-100",
-            border: "border-sky-200",
+            header: "from-slate-950 via-blue-900 to-sky-600",
+            body: "from-slate-950 via-blue-950 to-sky-900",
+            border: "border-sky-300/50",
             headerText: "text-sky-100",
-            rolePill: "bg-white/20 border-white/30 text-white",
-            photoBorder: "border-white bg-sky-100",
+            rolePill: "bg-white/10 border-sky-200/40 text-white",
+            photoBorder: "border-sky-100 bg-sky-950",
             photoIcon: "text-sky-300",
-            qrBorder: "border-sky-200",
-            name: "text-blue-900",
-            idBtn: "text-sky-600 bg-sky-100 border-sky-200 hover:bg-sky-200 focus-visible:ring-sky-300",
-            detailsBtn: "hover:bg-sky-100/70 focus-visible:ring-sky-300",
-            icon: "text-sky-500",
-            detailsText: "text-blue-800",
-            footer: "bg-white/70 border-sky-200 text-sky-500",
-            decor1: "bg-blue-200/40",
-            decor2: "bg-sky-300/30"
+            qrBorder: "border-sky-300/60",
+            name: "text-white",
+            idBtn: "text-sky-100 bg-sky-400/15 border-sky-300/40 hover:bg-sky-300/20 focus-visible:ring-sky-300",
+            detailsBtn: "hover:bg-white/10 focus-visible:ring-sky-300",
+            icon: "text-sky-300",
+            detailsText: "text-sky-100",
+            footer: "bg-white/10 border-sky-200/30 text-sky-100",
+            decor1: "bg-sky-300/20",
+            decor2: "bg-blue-400/15"
         },
         purple: {
-            header: "from-fuchsia-500 to-purple-600",
-            body: "from-fuchsia-50 via-purple-50 to-fuchsia-100",
-            border: "border-purple-200",
-            headerText: "text-purple-100",
-            rolePill: "bg-white/20 border-white/30 text-white",
-            photoBorder: "border-white bg-purple-100",
-            photoIcon: "text-purple-300",
-            qrBorder: "border-purple-200",
-            name: "text-purple-900",
-            idBtn: "text-purple-600 bg-purple-100 border-purple-200 hover:bg-purple-200 focus-visible:ring-purple-300",
-            detailsBtn: "hover:bg-purple-100/70 focus-visible:ring-purple-300",
-            icon: "text-purple-500",
-            detailsText: "text-purple-800",
-            footer: "bg-white/70 border-purple-200 text-purple-500",
-            decor1: "bg-purple-200/40",
-            decor2: "bg-purple-300/30"
+            header: "from-[#1f1147] via-[#6d28d9] to-[#d946ef]",
+            body: "from-[#180b35] via-[#34145f] to-[#6d28d9]",
+            border: "border-fuchsia-300/50",
+            headerText: "text-fuchsia-100",
+            rolePill: "bg-white/10 border-fuchsia-100/40 text-white",
+            photoBorder: "border-fuchsia-100 bg-purple-950",
+            photoIcon: "text-fuchsia-200",
+            qrBorder: "border-fuchsia-300/60",
+            name: "text-white",
+            idBtn: "text-fuchsia-100 bg-fuchsia-300/15 border-fuchsia-200/40 hover:bg-fuchsia-200/20 focus-visible:ring-fuchsia-300",
+            detailsBtn: "hover:bg-white/10 focus-visible:ring-fuchsia-300",
+            icon: "text-fuchsia-200",
+            detailsText: "text-fuchsia-50",
+            footer: "bg-white/10 border-fuchsia-200/30 text-fuchsia-100",
+            decor1: "bg-fuchsia-300/20",
+            decor2: "bg-violet-300/15"
         },
         green: {
-            header: "from-emerald-500 to-teal-600",
-            body: "from-emerald-50 via-teal-50 to-emerald-100",
-            border: "border-emerald-200",
+            header: "from-emerald-950 via-emerald-800 to-teal-500",
+            body: "from-[#052e24] via-emerald-950 to-teal-800",
+            border: "border-emerald-300/50",
             headerText: "text-emerald-100",
-            rolePill: "bg-white/20 border-white/30 text-white",
-            photoBorder: "border-white bg-emerald-100",
-            photoIcon: "text-emerald-300",
-            qrBorder: "border-emerald-200",
-            name: "text-emerald-900",
-            idBtn: "text-emerald-600 bg-emerald-100 border-emerald-200 hover:bg-emerald-200 focus-visible:ring-emerald-300",
-            detailsBtn: "hover:bg-emerald-100/70 focus-visible:ring-emerald-300",
-            icon: "text-emerald-500",
-            detailsText: "text-emerald-800",
-            footer: "bg-white/70 border-emerald-200 text-emerald-500",
-            decor1: "bg-emerald-200/40",
-            decor2: "bg-emerald-300/30"
+            rolePill: "bg-white/10 border-emerald-100/40 text-white",
+            photoBorder: "border-emerald-100 bg-emerald-950",
+            photoIcon: "text-emerald-200",
+            qrBorder: "border-emerald-300/60",
+            name: "text-white",
+            idBtn: "text-emerald-100 bg-emerald-300/15 border-emerald-200/40 hover:bg-emerald-200/20 focus-visible:ring-emerald-300",
+            detailsBtn: "hover:bg-white/10 focus-visible:ring-emerald-300",
+            icon: "text-emerald-200",
+            detailsText: "text-emerald-50",
+            footer: "bg-white/10 border-emerald-200/30 text-emerald-100",
+            decor1: "bg-emerald-300/20",
+            decor2: "bg-teal-300/15"
         },
         red: {
             header: "from-rose-500 to-red-600",
@@ -107,22 +125,22 @@ export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user, onPhotoClick, on
             decor2: "bg-red-300/30"
         },
         gold: {
-            header: "from-amber-500 to-orange-600",
-            body: "from-amber-50 via-orange-50 to-amber-100",
-            border: "border-amber-200",
+            header: "from-[#2a1606] via-[#a16207] to-[#fbbf24]",
+            body: "from-[#1f1305] via-[#4a2d07] to-[#d97706]",
+            border: "border-amber-300/60",
             headerText: "text-amber-100",
-            rolePill: "bg-white/20 border-white/30 text-white",
-            photoBorder: "border-white bg-amber-100",
-            photoIcon: "text-amber-300",
-            qrBorder: "border-amber-200",
-            name: "text-amber-950",
-            idBtn: "text-amber-600 bg-amber-100 border-amber-200 hover:bg-amber-200 focus-visible:ring-amber-300",
-            detailsBtn: "hover:bg-amber-100/70 focus-visible:ring-amber-300",
-            icon: "text-amber-500",
-            detailsText: "text-amber-900",
-            footer: "bg-white/70 border-amber-200 text-amber-600",
-            decor1: "bg-amber-200/40",
-            decor2: "bg-amber-300/30"
+            rolePill: "bg-white/10 border-amber-100/40 text-white",
+            photoBorder: "border-amber-100 bg-amber-950",
+            photoIcon: "text-amber-200",
+            qrBorder: "border-amber-300/70",
+            name: "text-white",
+            idBtn: "text-amber-100 bg-amber-300/15 border-amber-200/40 hover:bg-amber-200/20 focus-visible:ring-amber-300",
+            detailsBtn: "hover:bg-white/10 focus-visible:ring-amber-300",
+            icon: "text-amber-200",
+            detailsText: "text-amber-50",
+            footer: "bg-white/10 border-amber-200/35 text-amber-100",
+            decor1: "bg-amber-200/25",
+            decor2: "bg-yellow-300/15"
         }
     }[tone];
 
@@ -218,7 +236,7 @@ export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user, onPhotoClick, on
                             title="Show joined date preview"
                         >
                             <Calendar size={11} className={`${themeClasses.icon} shrink-0`} />
-                            <span className={`text-[11px] font-semibold ${themeClasses.detailsText}`}>Joined {user.memberSince || '2024'}</span>
+                            <span className={`text-[11px] font-semibold ${themeClasses.detailsText}`}>Joined {formatDateToDDMMYYYY(user.memberSince) || '2024'}</span>
                         </button>
                     </div>
 
@@ -252,28 +270,28 @@ export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user, onPhotoClick, on
             </div>
 
             {/* Footer Strip */}
-            <div className={`mx-5 mb-4 backdrop-blur border rounded-xl px-3 py-2 flex items-center justify-between ${themeClasses.footer}`}>
-                <p className="text-[9px] font-mono tracking-widest truncate">
+            <div className={`mx-5 mb-4 backdrop-blur border rounded-2xl px-3 py-2.5 flex items-center justify-between gap-3 ${themeClasses.footer}`}>
+                <p className="text-[9px] font-mono tracking-widest truncate text-white/90">
                     {user.id}
                 </p>
                 {user.status && (
                     <div className="flex items-center shrink-0">
                         {user.status === 'Active' && (
-                            <div className="relative inline-flex h-6 items-center justify-center rounded-full bg-emerald-500/20 px-3 text-[9px] font-black uppercase tracking-wider text-emerald-600 border border-emerald-500/30 overflow-hidden group shadow-[0_0_10px_rgba(16,185,129,0.2)]">
-                                <span className="relative z-10 flex items-center gap-1.5"><ShieldCheck size={11} className="animate-pulse" /> Approved</span>
-                                <div className="absolute inset-0 bg-emerald-400/20 w-0 group-hover:w-full transition-all duration-500 ease-out z-0" />
+                            <div className="relative inline-flex h-8 min-w-[112px] items-center justify-center rounded-full bg-gradient-to-r from-emerald-400 via-green-400 to-teal-300 px-4 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-950 border border-white/70 overflow-hidden group shadow-[0_8px_24px_rgba(16,185,129,0.35)]">
+                                <span className="relative z-10 flex items-center gap-1.5"><ShieldCheck size={13} className="text-emerald-900" /> Approved</span>
+                                <div className="absolute inset-0 bg-white/25 translate-x-[-120%] group-hover:translate-x-[120%] transition-transform duration-700 ease-out rotate-12" />
                             </div>
                         )}
                         {user.status === 'Pending Verification' && (
-                            <div className="relative inline-flex h-6 items-center justify-center rounded-full bg-amber-500/20 px-3 text-[9px] font-black uppercase tracking-wider text-amber-600 border border-amber-500/30 overflow-hidden group shadow-[0_0_10px_rgba(245,158,11,0.2)]">
-                                <span className="relative z-10 flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" /> Pending</span>
-                                <div className="absolute inset-0 bg-amber-400/20 w-0 group-hover:w-full transition-all duration-500 ease-out z-0" />
+                            <div className="relative inline-flex h-8 min-w-[104px] items-center justify-center rounded-full bg-gradient-to-r from-amber-300 via-yellow-300 to-orange-300 px-4 text-[10px] font-black uppercase tracking-[0.16em] text-amber-950 border border-white/70 overflow-hidden group shadow-[0_8px_24px_rgba(245,158,11,0.35)]">
+                                <span className="relative z-10 flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-900 animate-pulse" /> Pending</span>
+                                <div className="absolute inset-0 bg-white/25 translate-x-[-120%] group-hover:translate-x-[120%] transition-transform duration-700 ease-out rotate-12" />
                             </div>
                         )}
                         {user.status === 'Rejected' && (
-                            <div className="relative inline-flex h-6 items-center justify-center rounded-full bg-rose-500/20 px-3 text-[9px] font-black uppercase tracking-wider text-rose-600 border border-rose-500/30 overflow-hidden group shadow-[0_0_10px_rgba(225,29,72,0.2)]">
-                                <span className="relative z-10 flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Disapproved</span>
-                                <div className="absolute inset-0 bg-rose-400/20 w-0 group-hover:w-full transition-all duration-500 ease-out z-0" />
+                            <div className="relative inline-flex h-8 min-w-[128px] items-center justify-center rounded-full bg-gradient-to-r from-rose-500 via-red-500 to-orange-400 px-4 text-[10px] font-black uppercase tracking-[0.16em] text-white border border-white/70 overflow-hidden group shadow-[0_8px_24px_rgba(225,29,72,0.35)]">
+                                <span className="relative z-10 flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-white" /> Disapproved</span>
+                                <div className="absolute inset-0 bg-white/20 translate-x-[-120%] group-hover:translate-x-[120%] transition-transform duration-700 ease-out rotate-12" />
                             </div>
                         )}
                     </div>

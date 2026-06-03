@@ -14,6 +14,26 @@ interface Message {
 export default function AIChatAssistant() {
     const [isOpen, setIsOpen] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
+    const [widgetSettings, setWidgetSettings] = useState(() => {
+        try {
+            const saved = localStorage.getItem('cot_widget_settings');
+            return saved ? JSON.parse(saved) : { aiVisible: true, aiSize: 1 };
+        } catch {
+            return { aiVisible: true, aiSize: 1 };
+        }
+    });
+
+    useEffect(() => {
+        const handleWidgetSettingsUpdate = () => {
+            try {
+                const saved = localStorage.getItem('cot_widget_settings');
+                if (saved) setWidgetSettings(JSON.parse(saved));
+            } catch (e) {}
+        };
+        window.addEventListener('widget-settings-updated', handleWidgetSettingsUpdate);
+        return () => window.removeEventListener('widget-settings-updated', handleWidgetSettingsUpdate);
+    }, []);
+
     const [messages, setMessages] = useState<Message[]>(() => {
         try {
             const saved = localStorage.getItem('divine_chat_widget_history');
@@ -168,19 +188,22 @@ export default function AIChatAssistant() {
         <div ref={containerRef} className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
             <AnimatePresence>
                 {/* Floating Chat Button */}
-                {!isOpen && (
+                {!isOpen && widgetSettings.aiVisible !== false && (
                     <motion.button
                         key="launcher"
                         drag
                         dragMomentum={false}
-                        whileDrag={{ scale: 1.1, cursor: 'grabbing' }}
+                        dragElastic={0.1}
+                        dragConstraints={{ left: -window.innerWidth + 100, right: 0, top: -window.innerHeight + 200, bottom: 0 }}
+                        whileDrag={{ scale: 1.1 * (widgetSettings?.aiSize || 1), cursor: 'grabbing' }}
                         initial={{ scale: 0, rotate: -180 }}
-                        animate={{ scale: 1, rotate: 0 }}
+                        animate={{ scale: 1 * (widgetSettings?.aiSize || 1), rotate: 0 }}
                         exit={{ scale: 0, rotate: 180 }}
-                        whileHover={{ scale: 1.1, cursor: 'grab' }}
-                        whileTap={{ scale: 0.9 }}
+                        whileHover={{ scale: 1.1 * (widgetSettings?.aiSize || 1), cursor: 'grab' }}
+                        whileTap={{ scale: 0.9 * (widgetSettings?.aiSize || 1) }}
                         onClick={() => setIsOpen(true)}
                         className="pointer-events-auto fixed bottom-6 right-6 z-50 w-12 h-12 md:w-16 md:h-16 rounded-full shadow-2xl flex items-center justify-center bg-gradient-to-tr from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 border border-white/20 backdrop-blur-md group"
+                        style={{ touchAction: 'none' }}
                     >
                         <div className="relative">
                             <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-white fill-white/20" />

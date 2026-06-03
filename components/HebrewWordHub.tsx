@@ -1,10 +1,54 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, Type, BookOpen, Sparkles, Volume2, Play, Loader2, Info, Fingerprint, History, Trash2, ChevronDown, ChevronUp, Clock, Download, FileImage, X } from 'lucide-react';
+import { Search, Type, BookOpen, Sparkles, Volume2, Play, Loader2, Info, Fingerprint, History, Trash2, ChevronDown, ChevronUp, Clock, Download, FileImage, X, Mic } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { analyzeHebrewWord } from '../services/openRouterService';
 import { audioService } from '../services/audioService';
 import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
+import { MouthPronunciationAnimator, type PhonemeStep } from './MouthPronunciationAnimator';
+
+// Simple syllable-to-phoneme mapper for generating mouth animations from breakdownEn
+const SYLLABLE_PHONEME_MAP: Record<string, string> = {
+  'sha': 'SH', 'she': 'SH', 'shi': 'SH', 'sho': 'SH', 'shu': 'SH', 'shab': 'SH', 'sheen': 'SH',
+  'lom': 'L', 'la': 'L', 'le': 'L', 'li': 'L', 'lo': 'L', 'lu': 'L', 'lah': 'L', 'leh': 'L',
+  'ha': 'H', 'he': 'H', 'hi': 'H', 'ho': 'H', 'hu': 'H', 'hal': 'H',
+  'va': 'V', 've': 'V', 'vi': 'V', 'vo': 'V', 'vu': 'V', 'vah': 'V',
+  'ka': 'K', 'ke': 'K', 'ki': 'K', 'ko': 'K', 'ku': 'K', 'kah': 'K', 'khah': 'K',
+  'ma': 'P', 'me': 'P', 'mi': 'P', 'mo': 'P', 'mu': 'P', 'mah': 'P',
+  'na': 'N', 'ne': 'N', 'ni': 'N', 'no': 'N', 'nu': 'N', 'nah': 'N', 'nai': 'N',
+  'ra': 'R', 're': 'R', 'ri': 'R', 'ro': 'R', 'ru': 'R', 'rah': 'R',
+  'pa': 'P', 'pe': 'P', 'pi': 'P', 'po': 'P', 'pu': 'P', 'peh': 'P',
+  'ba': 'P', 'be': 'P', 'bi': 'P', 'bo': 'P', 'bu': 'P',
+  'ta': 'TH', 'te': 'TH', 'ti': 'TH', 'to': 'TH', 'tu': 'TH', 'tav': 'TH', 'tze': 'TS',
+  'da': 'TH', 'de': 'TH', 'di': 'TH', 'do': 'TH', 'du': 'TH', 'dosh': 'TH',
+  'a': 'AH', 'ah': 'AH', 'e': 'EE', 'ee': 'EE', 'i': 'EE', 'o': 'OO', 'oo': 'OO', 'u': 'OO',
+  'ya': 'EE', 'ye': 'EE', 'yi': 'EE', 'yo': 'EE', 'yu': 'EE', 'yah': 'EE', 'yim': 'EE',
+  'cha': 'K', 'che': 'K', 'chi': 'K', 'cho': 'K', 'chu': 'K', 'chah': 'K',
+  'sa': 'S', 'se': 'S', 'si': 'S', 'so': 'S', 'su': 'S', 'sed': 'S',
+  'fa': 'F', 'fe': 'F', 'fi': 'F', 'fo': 'F', 'fu': 'F',
+  'ga': 'K', 'ge': 'K', 'gi': 'K', 'go': 'K', 'gu': 'K',
+  'met': 'P', 'men': 'P', 'mel': 'P', 'mim': 'P',
+  'bat': 'P', 'bet': 'P', 'bit': 'P', 'bot': 'P', 'but': 'P',
+  'rit': 'R', 'vod': 'V', 'dash': 'TH', 'dot': 'TH',
+  'ach': 'K', 'ech': 'K', 'och': 'K', 'uch': 'K',
+  'el': 'EE', 'im': 'EE', 'in': 'EE', 'it': 'EE', 'at': 'AH',
+  'lon': 'L', 'lem': 'L', 'lim': 'L', 'lam': 'L',
+};
+
+function generatePhonemeSequence(breakdownEn: string): PhonemeStep[] {
+  const syllables = breakdownEn.toLowerCase().split(/[-·\s]+/).filter(Boolean);
+  const sequence: PhonemeStep[] = [];
+  for (const syl of syllables) {
+    const clean = syl.trim();
+    if (!clean) continue;
+    const phoneme = SYLLABLE_PHONEME_MAP[clean] || 
+      (clean.startsWith('sh') ? 'SH' : clean.startsWith('ch') ? 'K' : clean.startsWith('th') ? 'TH' : 
+       clean.startsWith('ts') ? 'TS' : clean.endsWith('ah') || clean.endsWith('a') ? 'AH' : 
+       clean.endsWith('ee') || clean.endsWith('i') ? 'EE' : clean.endsWith('oo') || clean.endsWith('u') ? 'OO' : 'AH');
+    sequence.push({ phoneme, duration: 350, syllable: clean });
+  }
+  return sequence.length > 0 ? sequence : [{ phoneme: 'AH', duration: 500, syllable: breakdownEn }];
+}
 
 // Gematria letter values
 const gematriaValues: { [key: string]: number } = {
@@ -187,7 +231,7 @@ export const HebrewWordHub: React.FC = () => {
                 word: wordInput.trim()
             });
         } catch (err) {
-            setError('Could not connect to the Deep Insight service. Please try again.');
+            setError('Could not connect to the Word Analysis service. Please try again.');
             console.error(err);
         } finally {
             setIsAnalyzing(false);
@@ -324,7 +368,7 @@ export const HebrewWordHub: React.FC = () => {
                     Hebrew <span className="text-accent-600">Word Study</span>
                 </h2>
                 <p className="text-xs sm:text-sm md:text-base text-slate-500 font-light max-w-2xl mx-auto px-4">
-                    Enter any Hebrew word for Gematria, pronunciation, and Deep AI Insight. Discover spiritual meanings for any word in the entire Hebrew language.
+                    Enter any Hebrew word for Gematria, pronunciation, and AI Word Analysis. Discover spiritual meanings for any word in the entire Hebrew language.
                 </p>
             </div>
 
@@ -375,7 +419,7 @@ export const HebrewWordHub: React.FC = () => {
                                                     className="px-3 py-2 bg-accent-500 text-brand-950 rounded-full flex items-center gap-2 text-xs font-bold hover:bg-accent-400 transition-all shadow-lg active:scale-95 disabled:opacity-50"
                                                 >
                                                     {isAnalyzing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                                                    Deep Insight
+                                                    Word Analysis
                                                 </button>
                                             )}
                                         </div>
@@ -500,6 +544,29 @@ export const HebrewWordHub: React.FC = () => {
                                             </div>
                                         )}
 
+                                        {/* Mouth Pronunciation Guide - Always Visible */}
+                                        <div className="pt-4 border-t border-white/10">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <div className="w-7 h-7 bg-accent-500/20 rounded-lg flex items-center justify-center">
+                                                    <Mic size={13} className="text-accent-400" />
+                                                </div>
+                                                <span className="text-xs font-black text-accent-400 uppercase tracking-widest">Pronunciation Guide</span>
+                                            </div>
+                                            <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-4 flex justify-center">
+                                                <MouthPronunciationAnimator
+                                                    phonemeSequence={generatePhonemeSequence(wordDetails.breakdownEn)}
+                                                    wordText={wordDetails.word}
+                                                    phonetic={wordDetails.breakdownEn}
+                                                    tamilPhonetic={wordDetails.pronunciationTa}
+                                                    lang="he"
+                                                    theme="blue"
+                                                    autoPlay={true}
+                                                    showControls={true}
+                                                    size={160}
+                                                />
+                                            </div>
+                                        </div>
+
                                         {/* Export Buttons */}
                                         <div className="pt-4 border-t border-white/10 flex gap-2 flex-wrap">
                                             <button
@@ -543,7 +610,7 @@ export const HebrewWordHub: React.FC = () => {
                                                 className="w-full bg-brand-950 text-white rounded-xl sm:rounded-2xl py-3 sm:py-4 font-bold text-sm hover:bg-brand-900 transition-all flex items-center justify-center gap-2"
                                             >
                                                 <Sparkles size={16} className="text-accent-400" />
-                                                Deep Insight with AI
+                                                Word Analysis with AI
                                             </button>
                                         )}
                                         <div className="bg-white px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm w-full">
@@ -679,30 +746,30 @@ export const HebrewWordHub: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
                     {filteredDictionary.map((word, i) => (
                         <motion.button
                             key={i}
-                            layout
-                            whileHover={{ y: -5, boxShadow: '0 20px 40px rgba(0,0,0,0.08)' }}
+                            whileHover={{ y: -4, boxShadow: '0 16px 40px rgba(15,23,42,0.12)' }}
+                            whileTap={{ scale: 0.98 }}
                             onClick={() => {
                                 setWordInput(word.word);
                                 playAudio(word.word);
                             }}
-                            className="bg-white p-5 sm:p-7 rounded-2xl sm:rounded-[2rem] border border-slate-100 text-right group transition-all h-full flex flex-col shadow-sm"
+                            className="bg-white p-5 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-slate-100 text-right group transition-all flex flex-col shadow-sm hover:border-brand-200"
                         >
-                            <div className="flex justify-between items-start mb-4 w-full">
+                            <div className="flex justify-between items-start mb-3 w-full">
                                 <div className="p-1.5 bg-brand-50 rounded-xl text-brand-600 opacity-0 group-hover:opacity-100 transition-all transform scale-90 group-hover:scale-100 flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest">
                                     <Play size={10} fill="currentColor" /> Study
                                 </div>
-                                <div className="text-3xl sm:text-4xl font-serif text-brand-950 group-hover:text-brand-600 transition-colors uppercase">{word.word}</div>
+                                <div className="text-3xl sm:text-4xl font-serif text-brand-950 group-hover:text-brand-600 transition-colors">{word.word}</div>
                             </div>
-                            <div className="space-y-3 w-full">
-                                <div className="pb-3 border-b border-slate-50">
+                            <div className="space-y-2 w-full flex-1">
+                                <div className="pb-2.5 border-b border-slate-50">
                                     <div className="text-base font-bold text-slate-800">{word.pronunciation}</div>
-                                    <div className="text-xs font-bold text-accent-600/60 uppercase tracking-widest mt-0.5">Gematria: {calculateGematria(word.word)}</div>
+                                    <div className="text-xs font-bold text-accent-600/70 uppercase tracking-widest mt-0.5">Gematria: {calculateGematria(word.word)}</div>
                                 </div>
-                                <div className="space-y-2">
+                                <div className="space-y-1.5">
                                     <div className="flex flex-col items-end gap-0.5">
                                         <div className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Meaning</div>
                                         <div className="text-sm text-slate-600 leading-tight line-clamp-2">{word.meaningEn}</div>
@@ -745,7 +812,7 @@ export const HebrewWordHub: React.FC = () => {
                             </div>
                             <div style={{ textAlign: 'right' }}>
                                 <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '3px' }}>Hebrew Word Study</div>
-                                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)' }}>AI Deep Insight</div>
+                                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)' }}>AI Word Analysis</div>
                             </div>
                         </div>
 
@@ -815,7 +882,7 @@ export const HebrewWordHub: React.FC = () => {
                                 </div>
                             </div>
                             <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.25)', textAlign: 'center', letterSpacing: '0.05em' }}>
-                                © {new Date().getFullYear()} City of Truth Ministries · All rights reserved · Hebrew Word Study · AI Deep Insight
+                                © {new Date().getFullYear()} City of Truth Ministries · All rights reserved · Hebrew Word Study · AI Word Analysis
                             </div>
                         </div>
                     </div>
