@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, Maximize2, Minimize2, Loader, Sparkles, MessageCircle, Heart, Trash2 } from 'lucide-react';
-import { motion, AnimatePresence, useDragControls } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { generateSpatulaAIResponse } from '../services/openRouterService';
 
 interface Message {
@@ -17,9 +17,20 @@ export default function AIChatAssistant() {
     const [widgetSettings, setWidgetSettings] = useState(() => {
         try {
             const saved = localStorage.getItem('cot_widget_settings');
-            return saved ? JSON.parse(saved) : { aiVisible: true, aiSize: 1 };
+            const defaults = {
+                aiVisible: true,
+                aiSize: 1,
+                aiLabelVisible: true,
+                aiLabelText: 'Ask Divine AI Assistant',
+            };
+            return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
         } catch {
-            return { aiVisible: true, aiSize: 1 };
+            return {
+                aiVisible: true,
+                aiSize: 1,
+                aiLabelVisible: true,
+                aiLabelText: 'Ask Divine AI Assistant',
+            };
         }
     });
 
@@ -46,7 +57,6 @@ export default function AIChatAssistant() {
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const dragControls = useDragControls();
     const greetingTimerRef = useRef<number | null>(null);
 
     const seedGreeting = () => {
@@ -191,11 +201,6 @@ export default function AIChatAssistant() {
                 {!isOpen && widgetSettings.aiVisible !== false && (
                     <motion.button
                         key="launcher"
-                        drag
-                        dragMomentum={false}
-                        dragElastic={0.1}
-                        dragConstraints={{ left: -window.innerWidth + 100, right: 0, top: -window.innerHeight + 200, bottom: 0 }}
-                        whileDrag={{ scale: 1.1 * (widgetSettings?.aiSize || 1), cursor: 'grabbing' }}
                         initial={{ scale: 0, rotate: -180 }}
                         animate={{ scale: 1 * (widgetSettings?.aiSize || 1), rotate: 0 }}
                         exit={{ scale: 0, rotate: 180 }}
@@ -204,7 +209,35 @@ export default function AIChatAssistant() {
                         onClick={() => setIsOpen(true)}
                         className="pointer-events-auto fixed bottom-6 right-6 z-50 w-12 h-12 md:w-16 md:h-16 rounded-full shadow-2xl flex items-center justify-center bg-gradient-to-tr from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 border border-white/20 backdrop-blur-md group"
                         style={{ touchAction: 'none' }}
+                        title={widgetSettings.aiLabelText || 'Ask Divine AI Assistant'}
+                        aria-label={widgetSettings.aiLabelText || 'Ask Divine AI Assistant'}
                     >
+                        {(widgetSettings.aiLabelVisible ?? true) && (
+                            <motion.span
+                                initial={{ opacity: 0, x: 42, scaleX: 0.25, scaleY: 0.82 }}
+                                animate={{
+                                    opacity: [0, 1, 1, 0],
+                                    x: [42, 0, 0, 42],
+                                    scaleX: [0.25, 1, 1, 0.25],
+                                    scaleY: [0.82, 1, 1, 0.82],
+                                }}
+                                transition={{
+                                    duration: 5.2,
+                                    times: [0, 0.22, 0.7, 1],
+                                    repeat: Infinity,
+                                    repeatDelay: 0.8,
+                                    ease: 'easeInOut',
+                                }}
+                                style={{ transformOrigin: 'right center' }}
+                                className="absolute right-[calc(100%+14px)] top-1/2 -translate-y-1/2 whitespace-nowrap rounded-2xl border border-violet-200/80 bg-white/95 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-violet-800 shadow-[0_18px_50px_-22px_rgba(124,58,237,0.85)] backdrop-blur-md sm:px-4 sm:py-2.5 sm:text-xs pointer-events-none overflow-hidden"
+                            >
+                                <span className="flex items-center gap-2">
+                                    <span className="h-2 w-2 rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 shadow-[0_0_14px_rgba(124,58,237,0.75)]" />
+                                    {widgetSettings.aiLabelText || 'Ask Divine AI Assistant'}
+                                </span>
+                                <span className="absolute top-1/2 -right-1.5 h-3 w-3 -translate-y-1/2 rotate-45 border-r border-t border-violet-200/80 bg-white/95" />
+                            </motion.span>
+                        )}
                         <div className="relative">
                             <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-white fill-white/20" />
                             <span className="absolute -top-1 -right-1 flex h-3 w-3">
@@ -218,11 +251,6 @@ export default function AIChatAssistant() {
                 {/* Chat Window */}
                 {isOpen && (
                     <motion.div
-                        drag
-                        dragListener={false}
-                        dragControls={dragControls}
-                        dragElastic={0.05}
-                        dragMomentum={false}
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
                         animate={{
                             opacity: 1,
@@ -238,7 +266,6 @@ export default function AIChatAssistant() {
                     >
                         {/* Header */}
                         <div
-                            onPointerDown={(e) => dragControls.start(e)}
                             className="cursor-move bg-gradient-to-r from-violet-600 to-indigo-700 px-6 py-4 flex items-center justify-between shadow-lg"
                         >
                             <div className="flex items-center gap-3 select-none">

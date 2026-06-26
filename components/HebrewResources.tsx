@@ -16,6 +16,7 @@ import { getCalendarData5786 } from './CalendarLogic';
 import { audioService } from '../services/audioService';
 import { HebrewGrammar3D } from './HebrewGrammar3D';
 import { IsraelPage } from './IsraelPage';
+import { MouthPronunciationAnimator, type PhonemeStep } from './MouthPronunciationAnimator';
 
 const captureNodeToJpeg = async (
     sourceNode: HTMLElement,
@@ -68,24 +69,62 @@ const toHebrew = (num: number): string => {
     const units = ['', 'א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט'];
     const tens = ['', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ'];
     const hundreds = ['', 'ק', 'ר', 'ש', 'ת'];
-    let result = '';
-    if (num >= 1000) {
-        const thousandDigit = Math.floor(num / 1000);
-        result += toHebrew(thousandDigit) + "'";
-        num %= 1000;
+
+    const formatGroup = (n: number): string => {
+        let res = '';
+        let rem = n;
+        while (rem >= 400) {
+            res += 'ת';
+            rem -= 400;
+        }
+        if (rem >= 100) {
+            res += hundreds[Math.floor(rem / 100)];
+            rem %= 100;
+        }
+        if (rem === 15) {
+            res += 'טו';
+        } else if (rem === 16) {
+            res += 'טז';
+        } else {
+            if (rem >= 10) {
+                res += tens[Math.floor(rem / 10)];
+                rem %= 10;
+            }
+            if (rem > 0) {
+                res += units[rem];
+            }
+        }
+        
+        if (res.length > 1) {
+            const last = res.slice(-1);
+            const rest = res.slice(0, -1);
+            return rest + '״' + last;
+        }
+        return res;
+    };
+
+    const groups: number[] = [];
+    let temp = num;
+    while (temp > 0) {
+        groups.push(temp % 1000);
+        temp = Math.floor(temp / 1000);
     }
-    while (num >= 400) { result += 'ת'; num -= 400; }
-    if (num >= 100) { result += hundreds[Math.floor(num / 100)]; num %= 100; }
-    if (num === 15) return result + 'טו';
-    if (num === 16) return result + 'טז';
-    if (num >= 10) { result += tens[Math.floor(num / 10)]; num %= 10; }
-    if (num > 0) { result += units[num]; }
-    if (result.length > 1 && !result.includes("'")) {
-        const last = result.slice(-1);
-        const rest = result.slice(0, -1);
-        return rest + '״' + last;
+
+    const parts: string[] = [];
+    for (let i = 0; i < groups.length; i++) {
+        const val = groups[i];
+        if (val === 0) continue;
+        
+        let formatted = formatGroup(val);
+        if (formatted) {
+            if (i > 0) {
+                formatted += "'".repeat(i);
+            }
+            parts.unshift(formatted);
+        }
     }
-    return result;
+    
+    return parts.join('');
 };
 
 // --- Calendar Constants & Data ---
@@ -1550,22 +1589,7 @@ const HebrewConverterNumbers: React.FC = () => {
     const [isExportingNumbers, setIsExportingNumbers] = useState(false);
     const numbersExportRef = useRef<HTMLDivElement>(null);
 
-    const toHebrew = (num: number): string => {
-        if (num <= 0) return '';
-        const units = ['', 'א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט'];
-        const tens = ['', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ'];
-        const hundreds = ['', 'ק', 'ר', 'ש', 'ת'];
-        let result = '';
-        if (num >= 1000) { const t = Math.floor(num / 1000); result += toHebrew(t) + "'"; num %= 1000; }
-        while (num >= 400) { result += 'ת'; num -= 400; }
-        if (num >= 100) { result += hundreds[Math.floor(num / 100)]; num %= 100; }
-        if (num === 15) return result + 'טו';
-        if (num === 16) return result + 'טז';
-        if (num >= 10) { result += tens[Math.floor(num / 10)]; num %= 10; }
-        if (num > 0) { result += units[num]; }
-        if (result.length > 1 && !result.includes("'")) { const last = result.slice(-1); const rest = result.slice(0, -1); return rest + '״' + last; }
-        return result;
-    };
+
 
     const hebrewResult = useMemo(() => input ? toHebrew(Number(input)) : '', [input]);
 
@@ -1677,7 +1701,13 @@ const HebrewConverterNumbers: React.FC = () => {
                     <div className="hidden md:block w-px h-28 bg-white/10" />
                     <div className="flex-1 w-full text-center md:text-right space-y-2">
                         <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block">Hebrew Numeral</label>
-                        <div className="text-6xl md:text-8xl font-serif text-amber-400 font-black min-h-[1.5em] flex items-center justify-center md:justify-end drop-shadow-md">
+                        <div className={`${
+                            hebrewResult.length > 15 ? 'text-xl md:text-5xl' :
+                            hebrewResult.length > 10 ? 'text-2xl md:text-6xl' :
+                            hebrewResult.length > 8 ? 'text-3xl md:text-7xl' :
+                            hebrewResult.length > 5 ? 'text-4xl md:text-8xl' :
+                            'text-6xl md:text-8xl'
+                        } font-serif text-amber-400 font-black min-h-[1.5em] flex items-center justify-center md:justify-end drop-shadow-md`}>
                             {hebrewResult || '—'}
                         </div>
                     </div>
@@ -2098,6 +2128,39 @@ const HEBREW_AUDIO_LETTERS = [
     { letter: 'ת', name: 'Tav', hebrewName: 'תו' },
 ] as const;
 
+const AUDIO_SYLLABLE_PHONEMES: Record<string, string> = {
+    sha: 'SH', she: 'SH', shi: 'SH', sho: 'SH', shu: 'SH',
+    ha: 'H', he: 'H', hi: 'H', ho: 'H', hu: 'H',
+    va: 'V', ve: 'V', vi: 'V', vo: 'V', vu: 'V',
+    la: 'L', le: 'L', li: 'L', lo: 'L', lu: 'L',
+    ra: 'R', re: 'R', ri: 'R', ro: 'R', ru: 'R',
+    ma: 'P', me: 'P', mi: 'P', mo: 'P', mu: 'P',
+    na: 'N', ne: 'N', ni: 'N', no: 'N', nu: 'N',
+    pa: 'P', pe: 'P', pi: 'P', po: 'P', pu: 'P',
+    ba: 'P', be: 'P', bi: 'P', bo: 'P', bu: 'P',
+    ta: 'TH', te: 'TH', ti: 'TH', to: 'TH', tu: 'TH',
+    sa: 'S', se: 'S', si: 'S', so: 'S', su: 'S',
+    a: 'AH', ah: 'AH', e: 'EE', ee: 'EE', i: 'EE', o: 'OO', oo: 'OO', u: 'OO',
+};
+
+const buildAudioMouthSequence = (breakdown?: string): PhonemeStep[] => {
+    const syllables = (breakdown || '').toLowerCase().split(/[-·\s]+/).filter(Boolean);
+    const steps = syllables.map((syllable) => {
+        const clean = syllable.trim();
+        const phoneme = AUDIO_SYLLABLE_PHONEMES[clean]
+            || (clean.startsWith('sh') ? 'SH'
+                : clean.startsWith('ch') || clean.endsWith('kh') ? 'K'
+                    : clean.startsWith('ts') ? 'TS'
+                        : clean.startsWith('th') ? 'TH'
+                            : clean.endsWith('a') || clean.endsWith('ah') ? 'AH'
+                                : clean.endsWith('i') || clean.endsWith('ee') ? 'EE'
+                                    : clean.endsWith('u') || clean.endsWith('oo') ? 'OO'
+                                        : 'AH');
+        return { phoneme, duration: 360, syllable: clean };
+    });
+    return steps.length ? steps : [{ phoneme: 'AH', duration: 500, syllable: 'speak' }];
+};
+
 const RAINBOW_GRADIENTS = [
     'from-rose-500 to-red-500',
     'from-orange-500 to-amber-500',
@@ -2121,6 +2184,7 @@ const HebrewLettersAudioLab: React.FC = () => {
     const aiResultRef = useRef<HTMLDivElement>(null);
 
     const combinedWord = selectedLetters.map(l => l.letter).join('');
+    const isBuilderStickyActive = builderSticky && !aiResult && !aiError && !isAnalyzing;
 
     const addLetter = (item: (typeof HEBREW_AUDIO_LETTERS)[number]) => {
         const entry = { ...item, key: nextKey.current++ };
@@ -2156,6 +2220,7 @@ const HebrewLettersAudioLab: React.FC = () => {
 
     const handleDeepAnalysis = async () => {
         if (!combinedWord) return;
+        setBuilderSticky(false);
         setIsAnalyzing(true);
         setAiError(null);
         try {
@@ -2281,7 +2346,7 @@ const HebrewLettersAudioLab: React.FC = () => {
             </div>
 
             {/* ── WORD BUILDER (Always visible full-width at top, static on mobile, sticky on desktop alone) ── */}
-            <div className={`bg-gradient-to-r from-fuchsia-500 via-sky-500 to-emerald-500 p-[2px] rounded-[2rem] z-20 ${builderSticky ? 'md:sticky md:top-[7rem]' : ''}`}>
+            <div className={`bg-gradient-to-r from-fuchsia-500 via-sky-500 to-emerald-500 p-[2px] rounded-[2rem] z-20 ${isBuilderStickyActive ? 'md:sticky md:top-[7rem]' : ''}`}>
                 <div className="bg-white rounded-[2rem] p-4 md:p-6">
                     <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
                         <div className="flex-1 min-w-0">
@@ -2289,9 +2354,9 @@ const HebrewLettersAudioLab: React.FC = () => {
                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Word Builder — {selectedLetters.length} letter{selectedLetters.length !== 1 ? 's' : ''} (unlimited)</p>
                                 <button
                                     onClick={() => setBuilderSticky((v) => !v)}
-                                    className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border transition-colors ${builderSticky ? 'bg-brand-50 text-brand-700 border-brand-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}
+                                    className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border transition-colors ${isBuilderStickyActive ? 'bg-brand-50 text-brand-700 border-brand-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}
                                 >
-                                    {builderSticky ? 'Sticky On' : 'Sticky Off'}
+                                    {isBuilderStickyActive ? 'Sticky On' : 'Sticky Off'}
                                 </button>
                             </div>
                             {selectedLetters.length === 0 ? (
@@ -2306,7 +2371,7 @@ const HebrewLettersAudioLab: React.FC = () => {
                             ) : (
                                 <div
                                     className={`overflow-x-auto no-scrollbar pb-1 pr-1 rounded-xl transition-colors ${isBuilderDragOver ? 'bg-brand-50/70' : ''}`}
-                                    dir="rtl"
+                                    dir="ltr"
                                     onDragOver={handleBuilderDragOver}
                                     onDrop={handleBuilderDrop}
                                     onDragLeave={() => setIsBuilderDragOver(false)}
@@ -2462,6 +2527,26 @@ const HebrewLettersAudioLab: React.FC = () => {
                                     </div>
                                     <div className="shrink-0 bg-brand-500/20 p-2.5 rounded-xl border border-white/5">
                                         <Sparkles size={18} className="text-accent-400 animate-pulse" />
+                                    </div>
+                                </div>
+
+                                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                                    <div className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-300/80">
+                                        <Volume2 size={13} />
+                                        Mouth Pronunciation
+                                    </div>
+                                    <div className="flex justify-center">
+                                        <MouthPronunciationAnimator
+                                            phonemeSequence={buildAudioMouthSequence(aiResult.breakdownEn || aiResult.pronunciation)}
+                                            wordText={aiResult.word || combinedWord}
+                                            phonetic={aiResult.pronunciation}
+                                            tamilPhonetic={aiResult.pronunciationTa}
+                                            lang="he"
+                                            theme="blue"
+                                            autoPlay={false}
+                                            showControls={true}
+                                            size={170}
+                                        />
                                     </div>
                                 </div>
 
@@ -2626,12 +2711,16 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
         let lastY = window.scrollY;
         const onScroll = () => {
             const current = window.scrollY;
-            if (current > lastY && current > 120) {
-                setTabNavVisible(false);
-            } else {
+            if (current <= 12) {
                 setTabNavVisible(true);
+            } else if (current > lastY + 6 && current > 110) {
+                setTabNavVisible(false);
+            } else if (current < lastY - 6) {
+                setTabNavVisible(true);
+            } else {
+                return;
             }
-            lastY = current;
+            lastY = Math.max(0, current);
         };
         window.addEventListener('scroll', onScroll, { passive: true });
         return () => window.removeEventListener('scroll', onScroll);
@@ -2643,10 +2732,10 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
                 
                 {/* Desktop Horizontal navigation menu: Hide on scroll down, show on scroll up */}
                 <motion.div 
-                    initial={{ y: 0 }}
-                    animate={{ y: tabNavVisible ? 0 : -100 }}
-                    transition={{ duration: 0.3, ease: "easeInOut" }}
-                    className="hidden md:block sticky top-[84px] z-30 w-full bg-[#fffdf6]/95 backdrop-blur-md py-5 mb-10 border-b border-amber-500/5 shadow-[0_4px_20px_-10px_rgba(217,119,6,0.05)]"
+                    initial={{ y: 0, opacity: 1 }}
+                    animate={{ y: tabNavVisible ? 0 : -140, opacity: tabNavVisible ? 1 : 0 }}
+                    transition={{ duration: 0.28, ease: "easeInOut" }}
+                    className={`hidden md:block sticky top-[76px] z-30 w-full bg-[#fffdf6]/95 backdrop-blur-md py-5 mb-10 border-b border-amber-500/5 shadow-[0_4px_20px_-10px_rgba(217,119,6,0.05)] ${tabNavVisible ? 'pointer-events-auto' : 'pointer-events-none'}`}
                 >
                     <div className="flex flex-wrap items-center justify-center gap-3">
                         {availableTabs.map((t) => {

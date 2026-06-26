@@ -15,60 +15,65 @@ const gematriaValues: { [key: string]: number } = {
 // Logic to convert numbers to Hebrew
 const toHebrew = (num: number): string => {
     if (num <= 0) return '';
-
-    // Gematria values
     const units = ['', 'א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט'];
     const tens = ['', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ'];
     const hundreds = ['', 'ק', 'ר', 'ש', 'ת'];
 
-    let result = '';
+    const formatGroup = (n: number): string => {
+        let res = '';
+        let rem = n;
+        while (rem >= 400) {
+            res += 'ת';
+            rem -= 400;
+        }
+        if (rem >= 100) {
+            res += hundreds[Math.floor(rem / 100)];
+            rem %= 100;
+        }
+        if (rem === 15) {
+            res += 'טו';
+        } else if (rem === 16) {
+            res += 'טז';
+        } else {
+            if (rem >= 10) {
+                res += tens[Math.floor(rem / 10)];
+                rem %= 10;
+            }
+            if (rem > 0) {
+                res += units[rem];
+            }
+        }
+        
+        if (res.length > 1) {
+            const last = res.slice(-1);
+            const rest = res.slice(0, -1);
+            return rest + '״' + last;
+        }
+        return res;
+    };
 
-    // Handle thousands (dumb simple implementation for visual sake up to 5999 for now)
-    // For more complex, usually ' is used.
-    if (num >= 1000) {
-        const thousandDigit = Math.floor(num / 1000);
-        result += toHebrew(thousandDigit) + "'";
-        num %= 1000;
+    const groups: number[] = [];
+    let temp = num;
+    while (temp > 0) {
+        groups.push(temp % 1000);
+        temp = Math.floor(temp / 1000);
     }
 
-    // Handle hundreds
-    while (num >= 400) {
-        result += 'ת';
-        num -= 400;
+    const parts: string[] = [];
+    for (let i = 0; i < groups.length; i++) {
+        const val = groups[i];
+        if (val === 0) continue;
+        
+        let formatted = formatGroup(val);
+        if (formatted) {
+            if (i > 0) {
+                formatted += "'".repeat(i);
+            }
+            parts.unshift(formatted);
+        }
     }
-    if (num >= 100) {
-        result += hundreds[Math.floor(num / 100)];
-        num %= 100;
-    }
-
-    // Handle tens
-    // Special cases 15 (TU) and 16 (TZ)
-    if (num === 15) return result + 'טו';
-    if (num === 16) return result + 'טז';
-
-    if (num >= 10) {
-        result += tens[Math.floor(num / 10)];
-        num %= 10;
-    }
-
-    // Handle units
-    if (num > 0) {
-        result += units[num];
-    }
-
-    // Add gershayim (") if length > 1, usually before last letter
-    if (result.length > 1 && !result.includes("'")) {
-        // Simple formatting: if ends with ', skip
-        // A standard hebrew num usually has " before last letter if > 1 letter
-        const last = result.slice(-1);
-        const rest = result.slice(0, -1);
-        return rest + '״' + last;
-    }
-
-    // If single letter and meant to be number, often ' is added, but for simple charts just the letter is fine.
-    // Let's stick to simple letters for 1-9
-
-    return result;
+    
+    return parts.join('');
 };
 
 // Function to calculate Gematria value of a word
@@ -179,7 +184,13 @@ export const HebrewConverter: React.FC = () => {
                     <label className="text-sm font-bold text-slate-400 uppercase tracking-widest block">
                         Hebrew Representation
                     </label>
-                    <div className="text-6xl md:text-8xl font-serif text-accent-600 min-h-[1.5em] flex items-center justify-center md:justify-end gap-4">
+                    <div className={`${
+                        hebrewResult.length > 15 ? 'text-xl md:text-5xl' :
+                        hebrewResult.length > 10 ? 'text-2xl md:text-6xl' :
+                        hebrewResult.length > 8 ? 'text-3xl md:text-7xl' :
+                        hebrewResult.length > 5 ? 'text-4xl md:text-8xl' :
+                        'text-6xl md:text-8xl'
+                    } font-serif text-accent-600 min-h-[1.5em] flex items-center justify-center md:justify-end gap-4`}>
                         <span className={hebrewResult ? 'cursor-pointer hover:text-accent-500 transition-colors' : ''} onClick={() => hebrewResult && audioService.playHebrew(hebrewResult)}>
                             {hebrewResult || '—'}
                         </span>

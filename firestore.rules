@@ -1,6 +1,101 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Helper functions for authentication and permissions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+    }
+    
+    function hasPermission(permission) {
+      return isAuthenticated() && (
+        isAdmin() || 
+        get(/databases/$(database)/documents/communicationPermissions/$(request.auth.uid)).data.permissions[permission] == true
+      );
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Announcements Collection
+    match /announcements/{announcementId} {
+      // Create: requires 'Create Announcements' permission
+      allow create: if hasPermission('createAnnouncements');
+      
+      // Read: requires any communication permission or admin role
+      allow read: if hasPermission('createAnnouncements') || 
+                     hasPermission('sendAnnouncements') || 
+                     hasPermission('manageContactLists');
+      
+      // Update: requires 'Send Announcements' permission (for status updates)
+      // Only creator or admin can update draft announcements
+      allow update: if hasPermission('sendAnnouncements') && 
+                      (isAdmin() || resource.data.createdBy == request.auth.uid);
+      
+      // Delete: only admin or creator can delete
+      allow delete: if isAdmin() || 
+                      (hasPermission('createAnnouncements') && resource.data.createdBy == request.auth.uid);
+    }
+    
+    // Contact Lists Collection
+    match /contactLists/{listId} {
+      // Requires 'Manage Contact Lists' permission for all operations
+      allow create: if hasPermission('manageContactLists');
+      allow read: if hasPermission('manageContactLists') || 
+                     hasPermission('createAnnouncements') || 
+                     hasPermission('sendAnnouncements');
+      allow update: if hasPermission('manageContactLists');
+      allow delete: if hasPermission('manageContactLists') && 
+                      (isAdmin() || resource.data.createdBy == request.auth.uid);
+    }
+    
+    // Contacts Collection
+    match /contacts/{contactId} {
+      // Requires 'Manage Contact Lists' permission for all operations
+      allow create: if hasPermission('manageContactLists');
+      allow read: if hasPermission('manageContactLists') || 
+                     hasPermission('createAnnouncements') || 
+                     hasPermission('sendAnnouncements');
+      allow update: if hasPermission('manageContactLists');
+      allow delete: if hasPermission('manageContactLists');
+    }
+    
+    // Delivery Records Collection (Read-only for clients, server writes only)
+    match /deliveryRecords/{recordId} {
+      // Read: requires any communication permission
+      allow read: if hasPermission('createAnnouncements') || 
+                     hasPermission('sendAnnouncements') || 
+                     hasPermission('manageContactLists');
+      
+      // Write: blocked for clients, only server/admin SDK can write
+      allow create, update, delete: if false;
+    }
+    
+    // Communication Permissions Collection
+    match /communicationPermissions/{userId} {
+      // Read: users can read their own permissions, admins can read all
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Write: only admins can modify permissions
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Communication Audit Log Collection
+    match /communicationAuditLog/{logId} {
+      // Read: only admins can view audit logs
+      allow read: if isAdmin();
+      
+      // Write: blocked for clients, only server writes
+      allow create: if false;
+      allow update, delete: if false;
+    }
+    
+    // Fallback rule for other collections (preserving existing permissive rules)
     match /{document=**} {
       // WARNING: This rule allows anyone with your database ID to read and write
       // to your database. This is intended for development purposes only.

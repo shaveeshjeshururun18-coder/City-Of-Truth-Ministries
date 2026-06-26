@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Church, Home, Info, Heart, Flame, Phone, ChevronRight, CreditCard, Facebook, Youtube, Instagram, MapPin, Languages, Zap, Sparkles, Send, Globe, LogIn, CircleUser, LogOut, ChevronDown, Calendar, Clock, Hash, Star, BookOpen, ExternalLink, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -68,7 +68,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
   const [activeMobileSubmenu, setActiveMobileSubmenu] = useState<string | null>(null);
   const [desktopHoverMenu, setDesktopHoverMenu] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isNavVisible, setIsNavVisible] = useState(true);
+  const lastScrollYRef = useRef(0);
   const { language, setLanguage, t } = useLanguage();
+  const currentPathMatchedByHref = navItems.some(item =>
+    item.href === location.pathname ||
+    item.submenu?.filter(s => !s.hidden).some(s => s.href === location.pathname)
+  );
 
   const translateLabel = (label: string) => {
     const key = NAV_LABEL_TO_KEY[label];
@@ -79,12 +85,30 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      const currentScrollY = window.scrollY;
+      const lastScrollY = lastScrollYRef.current;
+      setIsScrolled(currentScrollY > 20);
+
+      if (currentView === ViewState.HOME) {
+        setIsNavVisible(true);
+      } else if (currentScrollY <= 12) {
+        setIsNavVisible(true);
+      } else if (currentScrollY > lastScrollY + 6 && currentScrollY > 90) {
+        setIsNavVisible(false);
+        setDesktopHoverMenu(null);
+        setMobileMenuOpen(false);
+      } else if (currentScrollY < lastScrollY - 6) {
+        setIsNavVisible(true);
+      } else {
+        return;
+      }
+
+      lastScrollYRef.current = Math.max(0, currentScrollY);
     };
     handleScroll();
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [currentView]);
 
   const triggerTamilOnlyMode = () => {
     setLanguage('ta');
@@ -115,7 +139,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
         isTransparentNavbar
           ? 'py-4 lg:bg-transparent bg-white/98 backdrop-blur-md border-b lg:border-white/10 border-gray-100'
           : 'py-2.5 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100'
-      }`}
+      } ${!isNavVisible ? '-translate-y-full' : 'translate-y-0'}`}
         role="navigation"
         aria-label="Main navigation"
       >
@@ -129,7 +153,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
           </div>
           <div className="flex flex-col justify-center">
               <span className={`font-bold text-[1.1rem] leading-[1.1] tracking-[-0.5px] transition-colors duration-300 ${isTransparentNavbar ? 'lg:text-white text-[#1a1a2e]' : 'text-[#1a1a2e]'}`}>City of Truth</span>
-              <span className={`text-[0.65rem] font-bold tracking-[1px] uppercase transition-colors duration-300 ${isTransparentNavbar ? 'lg:text-blue-300 text-[#5D5FEF]' : 'text-[#5D5FEF]'}`}>MINISTRIES</span>
+              <span className={`text-[0.65rem] font-bold tracking-[1px] uppercase transition-colors duration-300 ${isTransparentNavbar ? 'lg:text-blue-300 text-[#5D5FEF]' : 'text-blue-500'}`}>MINISTRIES</span>
           </div>
         </div>
 
@@ -139,7 +163,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
           {navItems.filter(item => !item.hidden).map((item) => {
             const isActive = item.href
               ? location.pathname === item.href
-              : currentView === item.view || item.submenu?.filter(s => !s.hidden).some(s => s.href ? location.pathname === s.href : s.view === currentView);
+              : !currentPathMatchedByHref && (currentView === item.view || item.submenu?.filter(s => !s.hidden).some(s => s.view === currentView));
             const hasSubmenu = item.submenu && item.submenu.filter(s => !s.hidden).length > 0;
 
             return (
@@ -355,7 +379,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                   const isSubmenuOpen = activeMobileSubmenu === item.label;
                   const isMobileActive = item.href
                     ? location.pathname === item.href
-                    : currentView === item.view || item.submenu?.filter(s => !s.hidden).some(s => s.href ? location.pathname === s.href : s.view === currentView);
+                    : !currentPathMatchedByHref && (currentView === item.view || item.submenu?.filter(s => !s.hidden).some(s => s.view === currentView));
 
                   return (
                     <div key={item.label} className="space-y-1">

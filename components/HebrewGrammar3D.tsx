@@ -28,39 +28,46 @@ const GRAMMAR_SECTIONS = [
     title: "1. Foundation: Aleph to Tav & Nikkud",
     icon: <BookType className="text-amber-500" size={32} />,
     content: "Hebrew is written right-to-left with 22 consonants. Vowels (Nikkud) are marks above, below, or inside letters, used mostly by beginners.",
+    tamilDesc: "எபிரேயம் வலமிருந்து இடமாக எழுதப்படுகிறது. 22 உயிரில்லா எழுத்துகள் உள்ளன. உயிரெழுத்து குறியீடுகள் (நிக்குட்) எழுத்துக்களின் மேல், கீழ் அல்லது உள்ளே குறிக்கப்படுகின்றன.",
     interactive: 'vowels'
   },
   {
     title: "2. The Skeleton: Root System (Shoresh)",
     icon: <Hexagon className="text-blue-500" size={32} />,
     content: "Almost every word is built on a 3-consonant root. E.g., כ-ת-ב (K-T-V) means Writing. Kotev (Writes), Mikhtav (Letter), Katav (Reporter).",
+    tamilDesc: "ஏறக்குறைய ஒவ்வொரு வார்த்தையும் 3 உயிரில்லா எழுத்துகளின் வேர் (ஷோரேஷ்) அடிப்படையில் கட்டமைக்கப்படுகிறது. எ.கா: כ-ת-ב (K-T-V) என்பது எழுதுவது என்பதைக் குறிக்கிறது.",
     interactive: 'roots'
   },
   {
     title: "3. The Engines: Verb System (Binyanim)",
     icon: <Sparkles className="text-amber-500" size={32} />,
     content: "Verbs are structured into 7 'buildings' (Binyanim) that shift the root's meaning to active, passive, reflexive, or causative.",
+    tamilDesc: "வினைச்சொற்கள் 7 'கட்டடங்கள்' (பின்யானிம்) என்று அழைக்கப்படும் அமைப்பில் கட்டமைக்கப்பட்டுள்ளன. இவை வேரின் அர்த்தத்தை செயல்வினை, செயப்படு வினை, பிரதிபலிப்பு அல்லது காரண வினையாக மாற்றுகின்றன.",
     interactive: 'menorah'
   },
   {
     title: "4. Building Blocks: Nouns & Gender",
     icon: <Layers className="text-emerald-500" size={32} />,
     content: "Every noun is Masculine or Feminine. Adjectives must strictly match the noun in both gender and number.",
+    tamilDesc: "ஒவ்வொரு பெயர்ச்சொல்லும் ஆண்பால் அல்லது பெண்பால் என வகைப்படுத்தப்படுகிறது. உரிச்சொற்கள் பெயர்ச்சொல்லின் பால் மற்றும் எண்ணைப் பொருத்தி வரவேண்டும்.",
     interactive: 'gender'
   },
   {
     title: "5. Forming Questions",
     icon: <MessageCircleQuestion className="text-purple-500" size={32} />,
     content: "Question words come at the beginning: Mi (Who), Ma (What), Eifo (Where), Matay (When), Lama (Why), Eikh (How).",
+    tamilDesc: "கேள்வி வார்த்தைகள் தொடக்கத்தில் வருகின்றன: மி (யார்), மா (என்ன), ஐஃபோ (எங்கே), மாத்தாய் (எப்போது), லாமா (ஏன்), எய்க் (எப்படி).",
     interactive: 'questions'
   },
   {
     title: "6. Numbers and Gender",
     icon: <Calculator className="text-rose-500" size={32} />,
     content: "Numbers have masculine and feminine forms to match the noun. Interestingly, masculine numbers 3-10 end in a feminine-sounding '-a' (ה).",
+    tamilDesc: "எண்களுக்கு ஆண்பால் மற்றும் பெண்பால் வடிவங்கள் உள்ளன. சுவாரஸ்யமாக, ஆண்பால் எண்கள் 3-10 பெண்பால் ஒலியில் '-a' (ה) என முடிகின்றன.",
     interactive: 'numbers'
   }
 ];
+
 
 const FlipCard: React.FC<{ front: React.ReactNode, back: React.ReactNode }> = ({ front, back }) => {
   const [isFlipped, setIsFlipped] = useState(false);
@@ -148,6 +155,11 @@ export const HebrewGrammar3D: React.FC = () => {
                 <p className="text-slate-600 text-lg leading-relaxed max-w-3xl">
                   {section.content}
                 </p>
+                {section.tamilDesc && (
+                  <p className="text-blue-700 text-base leading-relaxed max-w-3xl mt-2 font-medium">
+                    {section.tamilDesc}
+                  </p>
+                )}
               </div>
             </div>
 

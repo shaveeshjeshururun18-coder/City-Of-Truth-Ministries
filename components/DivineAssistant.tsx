@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, Maximize2, Minimize2, Loader, Sparkles, MessageCircle, Trash2, ChevronDown, Hand, Quote } from 'lucide-react';
-import { motion, AnimatePresence, useDragControls } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { generateSpatulaAIResponse } from '../services/openRouterService';
 
 interface Message {
@@ -26,7 +26,6 @@ export const DivineAssistant: React.FC = () => {
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const dragControls = useDragControls();
 
     // Persist messages
     useEffect(() => {
@@ -143,11 +142,6 @@ export const DivineAssistant: React.FC = () => {
 
                 {isOpen && (
                     <motion.div
-                        drag={!isExpanded}
-                        dragControls={dragControls}
-                        dragListener={false}
-                        dragMomentum={false}
-                        dragElastic={0.05}
                         initial={{ opacity: 0, y: 100, scale: 0.8 }}
                         animate={{ 
                             opacity: 1, 
@@ -163,10 +157,7 @@ export const DivineAssistant: React.FC = () => {
                         className="pointer-events-auto fixed bg-white/95 backdrop-blur-2xl shadow-[0_40px_100px_-20px_rgba(0,0,0,0.3)] border border-white/50 flex flex-col overflow-hidden"
                     >
                         {/* Royal Header */}
-                        <div 
-                            onPointerDown={(e) => !isExpanded && dragControls.start(e)}
-                            className={`px-6 py-5 bg-gradient-to-r from-brand-700 via-brand-800 to-indigo-950 flex items-center justify-between shadow-lg relative shrink-0 ${!isExpanded ? 'cursor-move' : ''}`}
-                        >
+                        <div className="px-6 py-5 bg-gradient-to-r from-brand-700 via-brand-800 to-indigo-950 flex items-center justify-between shadow-lg relative shrink-0">
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-inner relative overflow-hidden group">
                                     <Sparkles className="w-6 h-6 text-white relative z-10" />

@@ -384,7 +384,7 @@ export const HebrewWordHub: React.FC = () => {
                                 <Type size={14} className="text-brand-500" /> Enter Hebrew Word
                             </label>
                             <input
-                                dir="rtl"
+                                dir={!wordInput || /[\u0590-\u05FF]/.test(wordInput) ? "rtl" : "ltr"}
                                 type="text"
                                 value={wordInput}
                                 onChange={(e) => {
@@ -392,7 +392,7 @@ export const HebrewWordHub: React.FC = () => {
                                     if (aiResult && aiResult.word !== e.target.value) setAiResult(null);
                                 }}
                                 placeholder="e.g. שלום"
-                                className="w-full text-4xl sm:text-5xl md:text-6xl font-serif bg-transparent border-b-2 border-slate-100 py-4 outline-none focus:border-brand-500 transition-all text-brand-950 placeholder:text-slate-100 text-right"
+                                className={`w-full text-4xl sm:text-5xl md:text-6xl font-serif bg-transparent border-b-2 border-slate-100 py-4 outline-none focus:border-brand-500 transition-all text-brand-950 placeholder:text-slate-100 ${(!wordInput || /[\u0590-\u05FF]/.test(wordInput)) ? 'text-right' : 'text-left'}`}
                             />
                         </div>
 

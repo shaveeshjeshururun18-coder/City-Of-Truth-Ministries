@@ -20,6 +20,13 @@ const USERS_COLLECTION = 'users';
 const DELETED_USERS_COLLECTION = 'deleted_users';
 const TESTIMONIALS_COLLECTION = 'testimonials';
 const PERMALINKS_COLLECTION = 'permalinks';
+const BARUCH_VIDEOS_COLLECTION = 'baruch_videos';
+
+export interface BaruchVideo {
+    id: string;
+    part: number;
+    youtubeId: string;
+}
 
 export const api = {
     // Fetch all users
@@ -50,6 +57,133 @@ export const api = {
                 }
             }
             return [];
+        }
+    },
+
+    // Fetch Baruch Hashem Videos
+    getBaruchVideos: async (): Promise<BaruchVideo[]> => {
+        const DEFAULT_BARUCH_VIDEOS: Record<number, string> = {
+            1: "4nFxzgqQ_8I",
+            2: "1TrWrscz3A8",
+            3: "fw61MENxsNQ",
+            4: "wOAXgfWii6I",
+            5: "_8RjHFb9OTE",
+            6: "imGY37JZEUg",
+            7: "9cPWFHUgHwk",
+            8: "oFrLzVyEfFQ",
+            9: "oPus0tBHpnQ",
+            10: "sFi2y_w0KLQ",
+            11: "Be6kqxrA1Wk",
+            12: "OIrMG9VzGqs"
+        };
+
+        try {
+            const videoCollection = collection(db, BARUCH_VIDEOS_COLLECTION);
+            const snapshot = await getDocs(videoCollection);
+
+            let videos = snapshot.docs.map(doc => ({
+                ...doc.data(),
+                id: doc.id
+            } as BaruchVideo));
+            
+            // If firestore is empty, seed it with defaults
+            if (videos.length === 0) {
+                const initialVideos: BaruchVideo[] = Array.from({ length: 22 }, (_, i) => {
+                    const part = i + 1;
+                    return {
+                        id: `baruch_${part}`,
+                        part,
+                        youtubeId: DEFAULT_BARUCH_VIDEOS[part] || ""
+                    };
+                });
+                
+                // Seed Firestore in the background
+                for (const v of initialVideos) {
+                    try {
+                        const videoRef = doc(db, BARUCH_VIDEOS_COLLECTION, v.id);
+                        await setDoc(videoRef, v);
+                    } catch (e) {
+                        console.error('Failed to seed firestore video:', e);
+                    }
+                }
+                return initialVideos;
+            }
+            
+            // If firestore contains documents but they are missing the default YouTube IDs for parts 1-12, update them
+            let needsUpdate = false;
+            const updatedVideos = videos.map(v => {
+                const defaultId = DEFAULT_BARUCH_VIDEOS[v.part];
+                if (defaultId && !v.youtubeId) {
+                    needsUpdate = true;
+                    return { ...v, youtubeId: defaultId };
+                }
+                return v;
+            });
+            
+            if (needsUpdate) {
+                // Seed Firestore in the background with the missing default IDs
+                for (const v of updatedVideos) {
+                    const defaultId = DEFAULT_BARUCH_VIDEOS[v.part];
+                    const original = videos.find(o => o.part === v.part);
+                    if (defaultId && (!original || !original.youtubeId)) {
+                        try {
+                            const videoRef = doc(db, BARUCH_VIDEOS_COLLECTION, v.id);
+                            await setDoc(videoRef, v);
+                        } catch (e) {
+                            console.error('Failed to update firestore video with default:', e);
+                        }
+                    }
+                }
+                return updatedVideos;
+            }
+            
+            return videos;
+        } catch (error: any) {
+            console.error('Firestore Error (BaruchVideos):', error);
+            // Fallback to local hardcoded defaults
+            const fallbackVideos: BaruchVideo[] = Array.from({ length: 22 }, (_, i) => {
+                const part = i + 1;
+                return {
+                    id: `baruch_${part}`,
+                    part,
+                    youtubeId: DEFAULT_BARUCH_VIDEOS[part] || ""
+                };
+            });
+            return fallbackVideos;
+        }
+    },
+
+    // Update Baruch Hashem Video
+    updateBaruchVideo: async (video: BaruchVideo): Promise<boolean> => {
+        try {
+            // update in firestore
+            const videoRef = doc(db, BARUCH_VIDEOS_COLLECTION, video.id);
+            await setDoc(videoRef, video);
+            
+            // also try to update local json server
+            try {
+                await fetch(`http://localhost:4000/baruchVideos/${video.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(video)
+                });
+            } catch (e) {}
+
+            return true;
+        } catch (error) {
+            console.error("Error updating baruch video:", error);
+            
+            // local update fallback
+            try {
+                const res = await fetch(`http://localhost:4000/baruchVideos/${video.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(video)
+                });
+                return res.ok;
+            } catch (e) {}
+            
+            return false;
         }
     },
 
@@ -153,6 +287,16 @@ export const api = {
             const batch = writeBatch(db);
             batch.set(newUserDoc, mergedUserData);
             batch.delete(oldUserDoc);
+
+            // Log history
+            const historyRef = doc(collection(db, 'cotIdHistory'));
+            batch.set(historyRef, {
+                oldUserId,
+                newUserId,
+                userName: mergedUserData.name || '',
+                timestamp: new Date().toISOString()
+            });
+
             await batch.commit();
 
             return {
@@ -184,6 +328,24 @@ export const api = {
                         await fetch(`http://localhost:4000/users/${oldUserId}`, {
                             method: 'DELETE'
                         });
+
+                        // Log history to local fallback
+                        try {
+                            await fetch(`http://localhost:4000/cotIdHistory`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    id: new Date().getTime().toString() + '_' + Math.random().toString(36).substring(2, 9),
+                                    oldUserId,
+                                    newUserId,
+                                    userName: mergedData.name || '',
+                                    timestamp: new Date().toISOString()
+                                })
+                            });
+                        } catch (historyErr) {
+                            console.error('Failed to log COT ID history to fallback database:', historyErr);
+                        }
+
                         return { ...mergedData, id: newUserId } as User;
                     }
                 } catch (e) {
@@ -191,6 +353,27 @@ export const api = {
                 }
             }
             throw error;
+        }
+    },
+
+    getCotIdHistory: async (): Promise<any[]> => {
+        try {
+            const q = query(collection(db, 'cotIdHistory'));
+            const snapshot = await getDocs(q);
+            const history = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            return history.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        } catch (error: any) {
+            console.warn('⚠️ Firestore error fetching COT ID history. Falling back to local json-server...', error);
+            try {
+                const res = await fetch(`http://localhost:4000/cotIdHistory`);
+                if (res.ok) {
+                    const data = await res.json();
+                    return data.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                }
+            } catch (e) {
+                console.error('Fallback fetching COT ID history failed:', e);
+            }
+            return [];
         }
     },
 

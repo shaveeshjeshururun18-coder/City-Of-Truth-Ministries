@@ -78,7 +78,6 @@ import { DonationModal } from './components/DonationModal';
 import { PastorPage } from './components/PastorPage';
 import { CommunityProfileForm } from './components/CommunityProfileForm';
 
-import AIChatAssistant from './components/AIChatAssistant';
 import VerifyIDPage from './components/VerifyIDPage';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { BottomNav } from './components/BottomNav';
@@ -224,7 +223,7 @@ const HEBREW_RESOURCE_SUBMENU: NavItem[] = HEBREW_PAGES.filter(p => p.type === '
 
 const HEBREW_ALPHABET_NAV: NavItem = {
   label: 'ALPHABET',
-  view: ViewState.HOME,
+  view: ViewState.HEBREW,
   href: '/hebrew-alphabet',
 };
 
@@ -368,6 +367,8 @@ const TestimonialSection: React.FC<TestimonialSectionProps> = ({ currentUser }) 
     }
   };
 
+  const isApproved = currentUser?.status === 'Active';
+
   return (
     <section className="py-24 relative z-10 overflow-hidden bg-slate-50">
       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 pointer-events-none"></div>
@@ -377,51 +378,53 @@ const TestimonialSection: React.FC<TestimonialSectionProps> = ({ currentUser }) 
           <p className="text-slate-600 max-w-2xl mx-auto text-lg font-normal mb-8">Hear how City of Truth Ministries is impacting lives in Valparai and beyond.</p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-16 items-start">
+        <div className={isApproved ? "grid lg:grid-cols-2 gap-16 items-start" : "max-w-3xl mx-auto w-full"}>
           {/* Integrated Form Side - Light Theme */}
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-xl"
-          >
-            <div className="flex items-center gap-4 mb-8">
-              <div className="bg-brand-600 p-3 rounded-2xl text-white shadow-lg">
-                <MessageCircle size={24} />
+          {isApproved && (
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-xl"
+            >
+              <div className="flex items-center gap-4 mb-8">
+                <div className="bg-brand-600 p-3 rounded-2xl text-white shadow-lg">
+                  <MessageCircle size={24} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-serif font-bold text-brand-950">Share Your Testimony</h3>
+                  <p className="text-sm text-slate-500">Your story can be a beacon for someone else.</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-2xl font-serif font-bold text-brand-950">Share Your Testimony</h3>
-                <p className="text-sm text-slate-500">Your story can be a beacon for someone else.</p>
-              </div>
-            </div>
-            <form className="space-y-4" onSubmit={handleSubmit}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input
-                  type="text"
-                  placeholder="Your Name"
-                  className="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl outline-none focus:border-brand-500 transition-colors text-brand-950 placeholder:text-slate-400"
-                  value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
-                />
-                <input
-                  type="text"
-                  placeholder="Location"
-                  className="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl outline-none focus:border-brand-500 transition-colors text-brand-950 placeholder:text-slate-400"
-                  value={formData.location}
-                  onChange={e => setFormData({ ...formData, location: e.target.value })}
-                />
-              </div>
-              <textarea
-                placeholder="Tell us about your encounter with God's truth..."
-                className="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl outline-none focus:border-brand-500 transition-colors text-brand-950 placeholder:text-slate-400 h-40"
-                value={formData.text}
-                onChange={e => setFormData({ ...formData, text: e.target.value })}
-              ></textarea>
-              <Button disabled={isSubmitting} variant="primary" fullWidth className="py-4 shadow-xl shadow-brand-500/20">
-                {isSubmitting ? "Sending..." : "Send Testimony"} <Send size={18} />
-              </Button>
-            </form>
-          </motion.div>
+              <form className="space-y-4" onSubmit={handleSubmit}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input
+                    type="text"
+                    placeholder="Your Name"
+                    className="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl outline-none focus:border-brand-500 transition-colors text-brand-950 placeholder:text-slate-400"
+                    value={formData.name}
+                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Location"
+                    className="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl outline-none focus:border-brand-500 transition-colors text-brand-950 placeholder:text-slate-400"
+                    value={formData.location}
+                    onChange={e => setFormData({ ...formData, location: e.target.value })}
+                  />
+                </div>
+                <textarea
+                  placeholder="Tell us about your encounter with God's truth..."
+                  className="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl outline-none focus:border-brand-500 transition-colors text-brand-950 placeholder:text-slate-400 h-40"
+                  value={formData.text}
+                  onChange={e => setFormData({ ...formData, text: e.target.value })}
+                ></textarea>
+                <Button disabled={isSubmitting} variant="primary" fullWidth className="py-4 shadow-xl shadow-brand-500/20">
+                  {isSubmitting ? "Sending..." : "Send Testimony"} <Send size={18} />
+                </Button>
+              </form>
+            </motion.div>
+          )}
 
           {/* Testimonials List Side - Light Theme */}
           <div className="space-y-6">
@@ -1242,8 +1245,15 @@ const App: React.FC = () => {
       }
     });
     
+    if (isHebrewAlphabetRoute) {
+      if (currentView !== ViewState.HEBREW) {
+        setCurrentView(ViewState.HEBREW);
+      }
+      return;
+    }
+
     // Skip permalink processing for special routes
-    if (isAdminRoute || isVerifyRoute || isAuthRoute || isVerifyScannerRoute || isHebrewAlphabetRoute) {
+    if (isAdminRoute || isVerifyRoute || isAuthRoute || isVerifyScannerRoute) {
       return;
     }
     

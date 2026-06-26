@@ -28,6 +28,28 @@ const PHONEME_TARGETS: Record<string, {
   TS:   { open: 0.25, width: 0.2, tongueY: 0.6, tongueX: 0.15, teethGap: 0.18, lowerLipBite: 0.0, label: "Affricate", labelTa: "ட்ஸ" },
 };
 
+const GOOGLE_VISEME_BASE = "https://ssl.gstatic.com/dictionary/static/pronunciation/20180801/desktop/";
+
+const PHONEME_VISEME_FILES: Record<string, string> = {
+  REST: "sil.svg",
+  AH: "e.svg",
+  EE: "e.svg",
+  OO: "w_oo_uu_u.svg",
+  F: "w_oo_uu_u.svg",
+  TH: "e.svg",
+  L: "l-w_oo_uu_o_u.svg",
+  P: "sil.svg",
+  K: "e.svg",
+  ZH: "o.svg",
+  SH: "e.svg",
+  R: "l-w_oo_uu_o_u.svg",
+  N: "l-w_oo_uu_o_u.svg",
+  H: "e.svg",
+  V: "w_oo_uu_u.svg",
+  S: "e.svg",
+  TS: "e.svg",
+};
+
 // ==========================================
 // Hebrew letter → phoneme sequence mapping
 // ==========================================
@@ -64,29 +86,23 @@ const THEMES = {
     bgFill: '#111111',
     lipStroke: '#F59E0B',
     lipFill: '#111111',
-    noseStroke: '#FBBF24',
-    jawStroke: '#F59E0B',
     cavityFill: '#0a0600',
     tongueFill: '#D97706',
     teethFill: '#FEF3C7',
-    teethStroke: '#F59E0B44',
+    teethStroke: '#111111',
     closedLineStroke: '#FBBF24',
-    chinStroke: '#F59E0B55',
     bgRadius: 24,
   },
   blue: {
-    bgFill: '#E8F0FE',
-    lipStroke: '#4285F4',
-    lipFill: '#E8F0FE',
-    noseStroke: '#4285F4',
-    jawStroke: '#4285F4',
-    cavityFill: '#152C5B',
-    tongueFill: '#FF8A9F',
+    bgFill: '#D3E3FD',
+    lipStroke: '#041E49',
+    lipFill: '#D3E3FD',
+    cavityFill: '#041E49',
+    tongueFill: '#EF4444',
     teethFill: '#FFFFFF',
-    teethStroke: '#D2E3FC',
-    closedLineStroke: '#202124',
-    chinStroke: '#BDD7FE',
-    bgRadius: 36,
+    teethStroke: '#041E49',
+    closedLineStroke: '#041E49',
+    bgRadius: 16,
   },
 };
 
@@ -107,6 +123,8 @@ export interface MouthAnimatorProps {
   autoPlay?: boolean;
   showControls?: boolean;
   size?: number; // SVG container max-width in px
+  externalPlayKey?: number;
+  externalSlow?: boolean;
   onPlayStateChange?: (playing: boolean) => void;
 }
 
@@ -121,6 +139,8 @@ export const MouthPronunciationAnimator: React.FC<MouthAnimatorProps> = ({
   autoPlay = false,
   showControls = true,
   size = 200,
+  externalPlayKey = 0,
+  externalSlow = false,
   onPlayStateChange,
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -128,11 +148,6 @@ export const MouthPronunciationAnimator: React.FC<MouthAnimatorProps> = ({
   const [activePhonemeName, setActivePhonemeName] = useState('REST');
   const [isSlow, setIsSlow] = useState(false);
 
-  const [animState, setAnimState] = useState({
-    open: 0.0, width: 0.0, tongueY: 0.0, tongueX: 0.0, teethGap: 0.0, lowerLipBite: 0.0,
-  });
-
-  const animationFrameRef = useRef<number | null>(null);
   const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const mountedRef = useRef(true);
 
@@ -144,30 +159,6 @@ export const MouthPronunciationAnimator: React.FC<MouthAnimatorProps> = ({
     return () => { mountedRef.current = false; };
   }, []);
 
-  // Physics interpolation loop
-  useEffect(() => {
-    const update = () => {
-      if (!mountedRef.current) return;
-      setAnimState(prev => {
-        const target = PHONEME_TARGETS[activePhonemeName] || PHONEME_TARGETS.REST;
-        const ease = 0.16;
-        return {
-          open: prev.open + (target.open - prev.open) * ease,
-          width: prev.width + (target.width - prev.width) * ease,
-          tongueY: prev.tongueY + (target.tongueY - prev.tongueY) * ease,
-          tongueX: prev.tongueX + (target.tongueX - prev.tongueX) * ease,
-          teethGap: prev.teethGap + (target.teethGap - prev.teethGap) * ease,
-          lowerLipBite: prev.lowerLipBite + (target.lowerLipBite - prev.lowerLipBite) * ease,
-        };
-      });
-      animationFrameRef.current = requestAnimationFrame(update);
-    };
-    animationFrameRef.current = requestAnimationFrame(update);
-    return () => {
-      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-    };
-  }, [activePhonemeName]);
-
   const clearAllTimers = useCallback(() => {
     timeoutsRef.current.forEach(clearTimeout);
     timeoutsRef.current = [];
@@ -177,29 +168,38 @@ export const MouthPronunciationAnimator: React.FC<MouthAnimatorProps> = ({
     return () => { clearAllTimers(); };
   }, [clearAllTimers]);
 
-  const triggerPronunciation = useCallback(() => {
-    if (isPlaying) {
-      clearAllTimers();
-      setIsPlaying(false);
-      setActivePhonemeIdx(-1);
-      setActivePhonemeName('REST');
-      onPlayStateChange?.(false);
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-      return;
-    }
+  const stopAnimation = useCallback((cancelSpeech = true) => {
+    clearAllTimers();
+    setIsPlaying(false);
+    setActivePhonemeIdx(-1);
+    setActivePhonemeName('REST');
+    onPlayStateChange?.(false);
+    if (cancelSpeech && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+  }, [clearAllTimers, onPlayStateChange]);
 
+  const runMouthAnimation = useCallback((options?: { speak?: boolean; slow?: boolean }) => {
+    clearAllTimers();
+    setActivePhonemeIdx(-1);
+    setActivePhonemeName('REST');
     setIsPlaying(true);
     onPlayStateChange?.(true);
-    const speedFactor = isSlow ? 1.85 : 1.0;
+    const shouldSpeak = options?.speak ?? true;
+    const shouldSlow = options?.slow ?? isSlow;
+    const speedFactor = shouldSlow ? 1.85 : 1.0;
 
-    // Speech synthesis
-    if ('speechSynthesis' in window && wordText) {
+    if (shouldSpeak && 'speechSynthesis' in window && wordText) {
       window.speechSynthesis.cancel();
       const cleanToSpeak = wordText.split('(')[0].trim();
       const utterance = new SpeechSynthesisUtterance(cleanToSpeak);
-      utterance.rate = isSlow ? 0.55 : 0.85;
+      utterance.rate = shouldSlow ? 0.55 : 0.85;
       utterance.lang = lang === 'ta' ? 'ta-IN' : lang === 'he' ? 'he-IL' : 'en-IN';
       window.speechSynthesis.speak(utterance);
+    }
+
+    if (phonemeSequence.length === 0) {
+      const emptyTimer = setTimeout(() => stopAnimation(false), 500);
+      timeoutsRef.current.push(emptyTimer);
+      return;
     }
 
     let elapsed = 0;
@@ -223,92 +223,36 @@ export const MouthPronunciationAnimator: React.FC<MouthAnimatorProps> = ({
       timeoutsRef.current.push(timer);
       elapsed += stepDuration;
     });
-  }, [isPlaying, isSlow, phonemeSequence, wordText, lang, clearAllTimers, onPlayStateChange]);
+  }, [clearAllTimers, isSlow, lang, onPlayStateChange, phonemeSequence, stopAnimation, wordText]);
+
+  const triggerPronunciation = useCallback(() => {
+    if (isPlaying) {
+      stopAnimation(true);
+      return;
+    }
+
+    runMouthAnimation({ speak: true, slow: isSlow });
+  }, [isPlaying, isSlow, runMouthAnimation, stopAnimation]);
 
   // Auto-play
   useEffect(() => {
     if (autoPlay && phonemeSequence.length > 0 && !isPlaying) {
-      const t = setTimeout(() => triggerPronunciation(), 300);
+      const t = setTimeout(() => runMouthAnimation({ speak: false, slow: false }), 300);
       return () => clearTimeout(t);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoPlay, phonemeSequence]);
 
+  useEffect(() => {
+    if (externalPlayKey > 0) {
+      runMouthAnimation({ speak: false, slow: externalSlow });
+    }
+  }, [externalPlayKey, externalSlow, runMouthAnimation]);
+
   const currentPhonemeData = PHONEME_TARGETS[activePhonemeName] || PHONEME_TARGETS.REST;
   const activeSyllable = activePhonemeIdx >= 0 ? phonemeSequence[activePhonemeIdx]?.syllable : null;
 
-  // ==========================================
-  // SVG Mouth Render
-  // ==========================================
-  const renderMouthSVG = () => {
-    const { open, width, tongueY, tongueX, teethGap, lowerLipBite } = animState;
-    const cx = 150, cy = 160;
-    const w = 55 + width * 22;
-    const openingH = open * 38;
-    const baseGap = 3.5;
-    const hUpperInner = baseGap + (open * 14);
-    const hLowerInner = baseGap + (open * 20) - (lowerLipBite * 10);
-    const hUpperOuter = 15 + open * 4;
-    const hLowerOuter = 17 + open * 14 - (lowerLipBite * 8);
-    const safeLowerOuter = Math.max(hLowerOuter, hLowerInner + 6);
-    const safeUpperOuter = Math.max(hUpperOuter, hUpperInner + 6);
-
-    const cavityPath = `M ${cx - w} ${cy} Q ${cx} ${cy - hUpperInner - 3} ${cx + w} ${cy} Q ${cx} ${cy + hLowerInner + 3} ${cx - w} ${cy} Z`;
-    const upperTeethHeight = 11, lowerTeethHeight = 9;
-    const upperTeethY = cy - hUpperInner;
-    const lowerTeethY = cy + hLowerInner + (teethGap * 4);
-    const upperTeethPath = `M ${cx - w * 0.6} ${upperTeethY} L ${cx + w * 0.6} ${upperTeethY} L ${cx + w * 0.5} ${upperTeethY + upperTeethHeight} Q ${cx} ${upperTeethY + upperTeethHeight + 1.5} ${cx - w * 0.5} ${upperTeethY + upperTeethHeight} Z`;
-    const lowerTeethPath = `M ${cx - w * 0.55} ${lowerTeethY} L ${cx + w * 0.55} ${lowerTeethY} L ${cx + w * 0.45} ${lowerTeethY - lowerTeethHeight} Q ${cx} ${lowerTeethY - lowerTeethHeight - 1} ${cx - w * 0.45} ${lowerTeethY - lowerTeethHeight} Z`;
-    const tY = tongueY * 24, tX = tongueX * 18;
-    const tonguePath = `M ${cx - w * 0.62} ${cy + hLowerInner + 2} Q ${cx + tX} ${cy + (openingH * 0.1) - tY} ${cx + w * 0.62} ${cy + hLowerInner + 2} Q ${cx + tX} ${cy + hLowerInner + 16} ${cx - w * 0.62} ${cy + hLowerInner + 2} Z`;
-    const upperLipPath = `M ${cx - w} ${cy} Q ${cx} ${cy - safeUpperOuter} ${cx + w} ${cy} Q ${cx} ${cy - hUpperInner} ${cx - w} ${cy} Z`;
-    const lowerLipPath = `M ${cx - w} ${cy} Q ${cx} ${cy + safeLowerOuter} ${cx + w} ${cy} Q ${cx} ${cy + hLowerInner} ${cx - w} ${cy} Z`;
-
-    return (
-      <svg viewBox="0 0 300 320" className="w-full h-full select-none">
-        <rect width="300" height="320" rx={t.bgRadius} fill={t.bgFill} />
-        {/* Nose */}
-        <path d="M 112 42 C 132 88 168 88 188 42" stroke={t.noseStroke} strokeWidth="4.5" strokeLinecap="round" fill="none" vectorEffect="non-scaling-stroke" />
-        {/* Cavity */}
-        {open > 0.05 && <path d={cavityPath} fill={t.cavityFill} />}
-        {/* Tongue */}
-        {open > 0.05 && <path d={tonguePath} fill={t.tongueFill} />}
-        {/* Upper Teeth */}
-        {open > 0.1 && (
-          <g>
-            <path d={upperTeethPath} fill={t.teethFill} stroke={t.teethStroke} strokeWidth="1" vectorEffect="non-scaling-stroke" />
-            <line x1={cx} y1={upperTeethY} x2={cx} y2={upperTeethY + upperTeethHeight + 0.5} stroke={t.teethStroke} strokeWidth="1" vectorEffect="non-scaling-stroke" />
-            <line x1={cx - 15} y1={upperTeethY} x2={cx - 15} y2={upperTeethY + upperTeethHeight - 1} stroke={t.teethStroke} strokeWidth="0.8" vectorEffect="non-scaling-stroke" />
-            <line x1={cx + 15} y1={upperTeethY} x2={cx + 15} y2={upperTeethY + upperTeethHeight - 1} stroke={t.teethStroke} strokeWidth="0.8" vectorEffect="non-scaling-stroke" />
-          </g>
-        )}
-        {/* Lower Teeth */}
-        {open > 0.22 && (
-          <g>
-            <path d={lowerTeethPath} fill={t.teethFill} stroke={t.teethStroke} strokeWidth="1" vectorEffect="non-scaling-stroke" />
-            <line x1={cx} y1={lowerTeethY - lowerTeethHeight} x2={cx} y2={lowerTeethY} stroke={t.teethStroke} strokeWidth="1" vectorEffect="non-scaling-stroke" />
-          </g>
-        )}
-        {/* Upper Lip */}
-        <path d={upperLipPath} fill={t.lipFill} stroke={t.lipStroke} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-        {/* Lower Lip */}
-        <path d={lowerLipPath} fill={t.lipFill} stroke={t.lipStroke} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-        {/* Center line when closed */}
-        <line x1={cx - w} y1={cy} x2={cx + w} y2={cy} stroke={t.closedLineStroke} strokeWidth="4" strokeLinecap="round" opacity={Math.max(0, 1 - open * 4)} vectorEffect="non-scaling-stroke" />
-        {/* Jaw contour */}
-        <path d="M 0,142 C 60,265 240,265 300,142" stroke={t.jawStroke} strokeWidth="3.5" strokeLinecap="round" fill="none" opacity="0.6" vectorEffect="non-scaling-stroke" />
-        {/* Chin */}
-        <path d="M 132,238 Q 150,246 168,238" stroke={t.chinStroke} strokeWidth="5" strokeLinecap="round" fill="none" opacity="0.6" vectorEffect="non-scaling-stroke" />
-        {/* Glow effect for gold theme */}
-        {isGold && isPlaying && (
-          <circle cx="150" cy="160" r="85" fill="none" stroke="#F59E0B" strokeWidth="1" opacity="0.15">
-            <animate attributeName="r" values="80;90;80" dur="2s" repeatCount="indefinite" />
-            <animate attributeName="opacity" values="0.15;0.05;0.15" dur="2s" repeatCount="indefinite" />
-          </circle>
-        )}
-      </svg>
-    );
-  };
+  const currentVisemeFile = PHONEME_VISEME_FILES[activePhonemeName] || PHONEME_VISEME_FILES.REST;
 
   // Get syllables from phoneme sequence
   const uniqueSyllables: string[] = [];
@@ -318,18 +262,38 @@ export const MouthPronunciationAnimator: React.FC<MouthAnimatorProps> = ({
 
   return (
     <div className={`flex ${compact ? 'flex-row items-center gap-4' : 'flex-col items-center gap-3'}`}>
-      {/* Mouth SVG Container */}
+      {/* Google dictionary viseme frame container */}
       <div
-        className="relative rounded-2xl overflow-hidden flex-shrink-0"
+        className="relative rounded-[18px] overflow-hidden flex-shrink-0 cursor-pointer active:scale-[0.98] transition-transform"
+        onClick={triggerPronunciation}
+        role="button"
+        tabIndex={0}
+        title={isPlaying ? 'Stop pronunciation' : 'Play pronunciation'}
+        aria-label={isPlaying ? 'Stop pronunciation' : 'Play pronunciation'}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            triggerPronunciation();
+          }
+        }}
         style={{
           width: size,
           height: size,
-          background: isGold ? 'radial-gradient(circle at center, #1a1500 0%, #0a0800 100%)' : '#E8F0FE',
-          border: isGold ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(66,133,244,0.2)',
-          boxShadow: isGold ? '0 0 30px rgba(245,158,11,0.08), inset 0 0 20px rgba(0,0,0,0.5)' : '0 2px 8px rgba(0,0,0,0.05)',
+          background: theme === 'blue' ? '#eaf2ff' : t.bgFill,
+          border: isGold ? '1px solid rgba(245, 158, 11, 0.25)' : 'none',
+          boxShadow: isGold ? '0 0 30px rgba(245,158,11,0.08), inset 0 0 20px rgba(0,0,0,0.5)' : 'none',
         }}
       >
-        {renderMouthSVG()}
+        <img
+          key={currentVisemeFile}
+          src={`${GOOGLE_VISEME_BASE}${currentVisemeFile}`}
+          alt={`${activePhonemeName} mouth position`}
+          className="h-full w-full select-none object-contain"
+          draggable={false}
+          onError={(event) => {
+            event.currentTarget.src = `${GOOGLE_VISEME_BASE}${PHONEME_VISEME_FILES.REST}`;
+          }}
+        />
 
         {/* Phoneme state tag */}
         <AnimatePresence>

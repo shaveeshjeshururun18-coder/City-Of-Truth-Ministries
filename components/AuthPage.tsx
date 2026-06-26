@@ -49,7 +49,15 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     const [scannerExpanded, setScannerExpanded] = useState(false);
     const [autoScannerMode, setAutoScannerMode] = useState(true);
     const [authScannerNotice, setAuthScannerNotice] = useState('Auto mode: expand, light on, then compact.');
+    const [hideScanBorder, setHideScanBorder] = useState(false);
+    const [scannerFail, setScannerFail] = useState(false);
     const scannerRef = useRef<any>(null);
+    const scannerTimeoutsRef = useRef<number[]>([]);
+
+    const clearScannerTimeouts = () => {
+        scannerTimeoutsRef.current.forEach(t => window.clearTimeout(t));
+        scannerTimeoutsRef.current = [];
+    };
     const uploadInputRef = useRef<HTMLInputElement | null>(null);
     const userAdjustedSizeRef = useRef(false);
     const userAdjustedTorchRef = useRef(false);
@@ -263,6 +271,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     };
 
     const stopScanner = () => {
+        clearScannerTimeouts();
         clearAuthAutoMinimizeTimer();
         teardownAuthAmbientSensor();
         applyAuthTorch(false).catch(() => {});
@@ -282,6 +291,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     const startLiveScanner = () => {
         setTorchOn(false);
         setTorchSupported(false);
+        setHideScanBorder(false);
+        setScannerFail(false);
+        clearScannerTimeouts();
         userAdjustedSizeRef.current = false;
         userAdjustedTorchRef.current = false;
         if (autoScannerMode) {
@@ -314,6 +326,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             { facingMode: 'environment' },
             { fps: 10, qrbox: { width: 260, height: 260 } },
             (decodedText: string) => {
+                clearScannerTimeouts();
                 const qrData = extractIdentifier(decodedText);
                 applyAuthTorch(false).catch(() => {});
                 setIdentifier(qrData);
@@ -327,10 +340,57 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 runAuthAutoSizeCycle();
                 setupAuthAmbientSensor();
             }
+
+            // Schedule scanner failure and zoom timeouts
+            const t5 = window.setTimeout(async () => {
+                setHideScanBorder(true);
+                await applyAuthTorch(true);
+                const track = getAuthVideoTrack();
+                if (track) {
+                    try {
+                        const capabilities = track.getCapabilities?.() as any;
+                        if (capabilities?.zoom) {
+                            await track.applyConstraints({ advanced: [{ zoom: capabilities.zoom.max } as any] });
+                        }
+                    } catch (e) {
+                        console.warn('Failed to apply zoom maximum constraint:', e);
+                    }
+                }
+            }, 5000);
+            scannerTimeoutsRef.current.push(t5);
+
+            const t7 = window.setTimeout(async () => {
+                const track = getAuthVideoTrack();
+                if (track) {
+                    try {
+                        const capabilities = track.getCapabilities?.() as any;
+                        if (capabilities?.zoom) {
+                            await track.applyConstraints({ advanced: [{ zoom: capabilities.zoom.min } as any] });
+                        }
+                    } catch (e) {
+                        console.warn('Failed to apply zoom minimum constraint:', e);
+                    }
+                }
+            }, 7000);
+            scannerTimeoutsRef.current.push(t7);
+
+            const t10 = window.setTimeout(() => {
+                stopScanner();
+                setScannerFail(true);
+            }, 10000);
+            scannerTimeoutsRef.current.push(t10);
+
         }).catch(() => {
             setShowScanner(false);
+            clearScannerTimeouts();
         });
     };
+
+    useEffect(() => {
+        return () => {
+            clearScannerTimeouts();
+        };
+    }, []);
 
     useEffect(() => {
         if (!showScanner && !showMyQr) return;
@@ -902,12 +962,35 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
                                     <div className="h-[100dvh] w-full flex flex-col overflow-hidden bg-black">
                                         {/* Camera — flex grows/shrinks with expand/compact */}
-                                        <div
+                                                        <div
                                             className={`relative min-h-0 bg-black transition-[flex] duration-300 ease-out ${
                                                 scannerExpanded ? 'flex-[1_1_72%]' : 'flex-[1_1_52%]'
                                             }`}
                                         >
                                             <div id="qr-auth-page-reader" role="region" aria-label="QR code scanner" className="absolute inset-0 bg-black" />
+
+                                            {scannerFail && (
+                                                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-5 bg-slate-950 px-6 text-center">
+                                                    <div className="w-20 h-20 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 animate-bounce">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                                                        </svg>
+                                                    </div>
+                                                    <h3 className="text-xl font-bold text-white tracking-wide">QR Code Not Detected</h3>
+                                                    <p className="text-xs text-white/50 max-w-[260px] leading-relaxed">
+                                                        We couldn't recognize any QR code. Make sure the code is well-lit, not blurry, and centered.
+                                                    </p>
+                                                    <button
+                                                        onClick={() => {
+                                                            setScannerFail(false);
+                                                            startLiveScanner();
+                                                        }}
+                                                        className="inline-flex items-center gap-2 px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded-full shadow-lg transition-colors active:scale-95 cursor-pointer mt-2"
+                                                    >
+                                                        Try Again
+                                                    </button>
+                                                </div>
+                                            )}
 
                                             <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-4 pt-4 pb-2">
                                                 <button
@@ -973,13 +1056,15 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                             </div>
 
                                             {/* Scan frame — centered in camera area only */}
-                                            <div className="absolute left-1/2 top-1/2 z-10 w-[min(68vw,280px)] aspect-square -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                                                <span className="absolute top-0 left-0 w-[22%] h-[22%] border-t-[5px] border-l-[5px] border-[#ff6b6b] rounded-tl-2xl" />
-                                                <span className="absolute top-0 right-0 w-[22%] h-[22%] border-t-[5px] border-r-[5px] border-[#ffb020] rounded-tr-2xl" />
-                                                <span className="absolute bottom-0 left-0 w-[22%] h-[22%] border-b-[5px] border-l-[5px] border-[#4f8cff] rounded-bl-2xl" />
-                                                <span className="absolute bottom-0 right-0 w-[22%] h-[22%] border-b-[5px] border-r-[5px] border-[#27c46b] rounded-br-2xl" />
-                                                <div className="absolute inset-0 border border-white/10 rounded-2xl" />
-                                            </div>
+                                            {!hideScanBorder && (
+                                                <div className="absolute left-1/2 top-1/2 z-10 w-[min(68vw,280px)] aspect-square -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                                                    <span className="absolute top-0 left-0 w-[22%] h-[22%] border-t-[5px] border-l-[5px] border-[#ff6b6b] rounded-tl-2xl" />
+                                                    <span className="absolute top-0 right-0 w-[22%] h-[22%] border-t-[5px] border-r-[5px] border-[#ffb020] rounded-tr-2xl" />
+                                                    <span className="absolute bottom-0 left-0 w-[22%] h-[22%] border-b-[5px] border-l-[5px] border-[#4f8cff] rounded-bl-2xl" />
+                                                    <span className="absolute bottom-0 right-0 w-[22%] h-[22%] border-b-[5px] border-r-[5px] border-[#27c46b] rounded-br-2xl" />
+                                                    <div className="absolute inset-0 border border-white/10 rounded-2xl" />
+                                                </div>
+                                            )}
 
                                             {torchOn && (
                                                 <div className="absolute inset-0 z-[5] pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, rgba(255,240,100,0.08) 0%, transparent 70%)' }} />

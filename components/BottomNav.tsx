@@ -124,15 +124,16 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentView, setView }) =>
     );
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
-            <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-amber-300/60 to-transparent" />
-            <div className="mx-2 mb-2 mt-0 bg-white/96 backdrop-blur-3xl rounded-[1.75rem] shadow-[0_-2px_20px_rgba(0,0,0,0.08),0_8px_32px_rgba(0,0,0,0.12)] border border-slate-100/80 px-2 py-2">
-                <div className="space-y-2.5">
-                    {viewType === 'content' && renderGroup('Resources', HEBREW_RESOURCE_ITEMS, `grid-cols-${HEBREW_RESOURCE_ITEMS.length}`)}
-                    {viewType === 'tools' && renderGroup('', HEBREW_TOOL_ITEMS, `grid-cols-${HEBREW_TOOL_ITEMS.length}`)}
+        <div className="fixed bottom-4 left-0 right-0 z-50 md:hidden flex justify-center">
+            <div className="w-[90%] max-w-sm relative">
+                <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-amber-300/60 to-transparent" />
+                <div className="bg-white/96 backdrop-blur-3xl rounded-[1.75rem] shadow-[0_-2px_20px_rgba(0,0,0,0.08),0_8px_32px_rgba(0,0,0,0.12)] border border-slate-100/80 px-2 py-2">
+                    <div className="space-y-2.5">
+                        {viewType === 'content' && renderGroup('Resources', HEBREW_RESOURCE_ITEMS, `grid-cols-${HEBREW_RESOURCE_ITEMS.length}`)}
+                        {viewType === 'tools' && renderGroup('', HEBREW_TOOL_ITEMS, `grid-cols-${HEBREW_TOOL_ITEMS.length}`)}
+                    </div>
                 </div>
             </div>
-            <div className="h-safe-area-inset-bottom bg-transparent" />
         </div>
     );
 };

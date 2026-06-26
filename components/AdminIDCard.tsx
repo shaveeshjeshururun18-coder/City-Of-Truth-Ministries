@@ -29,14 +29,14 @@ interface AdminIDCardProps {
         location?: string;
         phone?: string;
         memberSince?: string;
-        cardThemeTone?: 'blue' | 'purple' | 'green' | 'red' | 'gold';
+        cardThemeTone?: 'blue' | 'purple' | 'green' | 'red' | 'gold' | 'lightblue';
         status?: 'Pending Verification' | 'Active' | 'Rejected';
     };
     onPhotoClick?: () => void;
     onCotIdClick?: () => void;
     onLocationClick?: () => void;
     onMemberSinceClick?: () => void;
-    onThemeChange?: (tone: 'blue' | 'purple' | 'green' | 'red' | 'gold') => void;
+    onThemeChange?: (tone: 'blue' | 'purple' | 'green' | 'red' | 'gold' | 'lightblue') => void;
 }
 
 export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user, onPhotoClick, onCotIdClick, onLocationClick, onMemberSinceClick, onThemeChange }) => {
@@ -44,6 +44,7 @@ export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user, onPhotoClick, on
     const tone = user.cardThemeTone || 'blue';
     const qrColor = {
         blue: 'color=1d4ed8&bgcolor=dbeafe',
+        lightblue: 'color=1d4ed8&bgcolor=dbeafe',
         purple: 'color=7e22ce&bgcolor=f3e8ff',
         green: 'color=0f766e&bgcolor=ccfbf1',
         red: 'color=be123c&bgcolor=ffe4e6',
@@ -141,6 +142,24 @@ export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user, onPhotoClick, on
             footer: "bg-white/10 border-amber-200/35 text-amber-100",
             decor1: "bg-amber-200/25",
             decor2: "bg-yellow-300/15"
+        },
+        lightblue: {
+            header: "from-blue-400 via-sky-500 to-blue-500",
+            body: "from-sky-100 via-blue-200 to-blue-400",
+            border: "border-blue-300/70",
+            headerText: "text-blue-900",
+            rolePill: "bg-white/20 border-white/30 text-blue-900",
+            photoBorder: "border-white bg-sky-50",
+            photoIcon: "text-blue-700",
+            qrBorder: "border-blue-300/60",
+            name: "text-blue-950",
+            idBtn: "text-blue-800 bg-blue-100/80 border-blue-300/60 hover:bg-blue-200 focus-visible:ring-blue-400",
+            detailsBtn: "hover:bg-white/20 focus-visible:ring-blue-400",
+            icon: "text-blue-700",
+            detailsText: "text-blue-900",
+            footer: "bg-white/40 border-blue-200 text-blue-800",
+            decor1: "bg-blue-300/20",
+            decor2: "bg-sky-300/15"
         }
     }[tone];
 

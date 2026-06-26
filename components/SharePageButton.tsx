@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Share2, Copy, Check, X, Facebook, Twitter, Mail, MessageCircle, Link as LinkIcon } from 'lucide-react';
+import { WidgetSettingsConfig } from '../types';
 
 interface SharePageButtonProps {
   pageUrl: string;
@@ -19,13 +20,40 @@ export const SharePageButton: React.FC<SharePageButtonProps> = ({
 }) => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [showLabel, setShowLabel] = useState(true);
 
-  const [widgetSettings, setWidgetSettings] = useState(() => {
+  // Auto-hide label after 8 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => setShowLabel(false), 8000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const [widgetSettings, setWidgetSettings] = useState<WidgetSettingsConfig>(() => {
     try {
       const saved = localStorage.getItem('cot_widget_settings');
-      return saved ? JSON.parse(saved) : { shareVisible: true, shareSize: 1 };
+      const defaults: WidgetSettingsConfig = {
+        shareVisible: true,
+        shareSize: 1,
+        shareLabelVisible: true,
+        shareLabelText: 'Share this page',
+        aiVisible: true,
+        aiSize: 1,
+        aiLabelVisible: true,
+        aiLabelText: '✨ Ask Divine AI Assistant ✨',
+      };
+      return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
     } catch {
-      return { shareVisible: true, shareSize: 1 };
+      return {
+        shareVisible: true,
+        shareSize: 1,
+        shareLabelVisible: true,
+        shareLabelText: 'Share this page',
+        aiVisible: true,
+        aiSize: 1,
+        aiLabelVisible: true,
+        aiLabelText: '✨ Ask Divine AI Assistant ✨',
+      };
     }
   });
 
@@ -105,20 +133,49 @@ export const SharePageButton: React.FC<SharePageButtonProps> = ({
         
         return (
           <motion.button
-            drag
-            dragMomentum={false}
-            dragElastic={0.1}
-            dragConstraints={{ left: -window.innerWidth + 100, right: 0, top: -window.innerHeight + 200, bottom: 0 }}
-            whileDrag={{ scale: 1.1 * effectiveScale, cursor: 'grabbing' }}
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: effectiveScale, opacity: 1 }}
             transition={{ delay: 0.5, type: 'spring', stiffness: 260, damping: 20 }}
+            onHoverStart={() => setIsHovered(true)}
+            onHoverEnd={() => setIsHovered(false)}
             onClick={handleNativeShare}
-            className={`fixed bottom-24 right-6 z-40 bg-gradient-to-r from-brand-600 to-brand-700 text-white p-3 rounded-full shadow-2xl hover:shadow-brand-500/50 hover:scale-[1.05] transition-all group ${className}`}
-            style={{ transformOrigin: 'center', touchAction: 'none' }}
-            title="Share this page"
+            className={`fixed bottom-24 right-6 z-40 bg-gradient-to-r from-brand-600 to-brand-700 text-white p-3 rounded-full shadow-2xl hover:shadow-brand-500/50 hover:scale-[1.05] transition-all group flex items-center justify-center ${className}`}
+            style={{ transformOrigin: 'center', touchAction: 'none', width: '3.5rem', height: '3.5rem' }}
+            title={widgetSettings.shareLabelText || 'Share this page'}
+            aria-label={widgetSettings.shareLabelText || 'Share this page'}
           >
-            <Share2 size={20} className="group-hover:rotate-12 transition-transform pointer-events-none" />
+            {/* Persistent Label */}
+            <AnimatePresence>
+                {(widgetSettings.shareLabelVisible ?? true) && (
+                    <motion.div
+                        initial={{ opacity: 0, x: 42, scaleX: 0.25, scaleY: 0.82 }}
+                        animate={{
+                          opacity: [0, 1, 1, 0],
+                          x: [42, 0, 0, 42],
+                          scaleX: [0.25, 1, 1, 0.25],
+                          scaleY: [0.82, 1, 1, 0.82],
+                        }}
+                        exit={{ opacity: 0, x: 42, scaleX: 0.25, scaleY: 0.82 }}
+                        transition={{
+                          duration: 5.2,
+                          times: [0, 0.22, 0.7, 1],
+                          repeat: Infinity,
+                          repeatDelay: 0.8,
+                          ease: 'easeInOut',
+                        }}
+                        style={{ transformOrigin: 'right center' }}
+                        className="absolute right-[calc(100%+12px)] top-1/2 -translate-y-1/2 rounded-2xl border border-brand-200/70 bg-white/95 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-brand-800 shadow-[0_18px_50px_-22px_rgba(37,99,235,0.75)] backdrop-blur-md sm:px-4 sm:py-2.5 sm:text-xs whitespace-nowrap z-0 pointer-events-none overflow-hidden"
+                    >
+                        <span className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-gradient-to-r from-brand-500 to-indigo-500 shadow-[0_0_14px_rgba(79,70,229,0.7)]" />
+                            {widgetSettings.shareLabelText || 'Share this page'}
+                        </span>
+                        <div className="absolute top-1/2 -translate-y-1/2 -right-1.5 w-3 h-3 bg-white/95 rotate-45 border-r border-t border-brand-200/70"></div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <Share2 size={20} className="group-hover:rotate-12 transition-transform pointer-events-none relative z-10" />
           </motion.button>
         );
       
@@ -138,7 +195,8 @@ export const SharePageButton: React.FC<SharePageButtonProps> = ({
           <button
             onClick={handleNativeShare}
             className={`p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all ${className}`}
-            title="Share this page"
+            title={widgetSettings.shareLabelText || 'Share this page'}
+            aria-label={widgetSettings.shareLabelText || 'Share this page'}
           >
             <Share2 size={20} />
           </button>

@@ -352,72 +352,108 @@ export const PastorBaruchPreviewSection: React.FC<SectionProps> = ({ setView }) 
                     </motion.p>
                 </div>
                 
-                <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 max-w-6xl mx-auto items-stretch">
-                    {/* Pastor Card */}
+                <div className="max-w-7xl mx-auto space-y-12">
+                    {/* Pastor Showcase */}
                     <motion.div 
-                        initial={{ opacity: 0, x: -30 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true, amount: 0.25 }}
-                        whileHover={{ y: -10, scale: 1.01 }}
-                        transition={{ duration: 0.45 }}
-                        className="group relative bg-white rounded-[2rem] overflow-hidden shadow-[0_28px_70px_-24px_rgba(15,23,42,0.25)] border border-slate-100 flex flex-col h-full"
+                        initial={{ opacity: 0, y: 36 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true, amount: 0.2 }}
+                        transition={{ duration: 0.7, ease: "easeOut" }}
+                        className="group relative overflow-hidden rounded-[2rem] border border-sky-100 bg-[#f8fbff] shadow-[0_34px_90px_-52px_rgba(14,165,233,0.35)]"
                     >
-                        <div className="absolute inset-0 bg-gradient-to-br from-brand-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-                        <div className="relative h-[30rem] md:h-[34rem] overflow-hidden shrink-0 bg-gradient-to-br from-slate-100 to-brand-50">
-                            <img 
-                                src="/assets/pastor.jpeg" 
-                                alt="Pastor" 
-                                className="w-full h-full object-contain object-center transform group-hover:scale-[1.035] transition-transform duration-700 ease-out"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-brand-950 via-brand-950/30 to-transparent z-20" />
-                            <div className="absolute inset-x-6 top-6 z-30 flex justify-between items-start">
-                                <span className="inline-flex bg-white/20 backdrop-blur-md text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-white/20">Leadership</span>
-                                <span className="w-10 h-10 rounded-2xl bg-white/15 border border-white/20 backdrop-blur-md flex items-center justify-center text-white group-hover:rotate-12 transition-transform"><ArrowRight size={16} /></span>
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(56,189,248,0.15),transparent_34%),radial-gradient(circle_at_88%_12%,rgba(2,132,199,0.08),transparent_32%)]" />
+                        <div className="relative grid items-center min-h-[340px] lg:grid-cols-[0.35fr_1.65fr]">
+                            <div className="relative h-[280px] lg:h-[320px] max-w-[260px] mx-auto w-full p-4 sm:p-5 lg:p-6">
+                                <div className="relative h-full w-full overflow-hidden rounded-[1.5rem] border-[6px] border-white bg-sky-50 shadow-xl ring-1 ring-sky-100">
+                                    <img 
+                                        src="/assets/pastor.jpeg" 
+                                        alt="Pastor Leadership" 
+                                        className="h-full w-full object-cover object-top transform transition-transform duration-700 ease-out group-hover:scale-[1.05]"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-sky-950/80 via-sky-950/20 to-transparent" />
+                                    <div className="absolute inset-3 rounded-xl border border-white/20 pointer-events-none" />
+                                    <div className="absolute bottom-6 left-6 right-6">
+                                        <div className="mb-3 h-1 w-16 rounded-full bg-sky-400 transition-all duration-500 group-hover:w-32" />
+                                        <h3 className="text-3xl font-serif font-black tracking-tight text-white drop-shadow md:text-4xl">Pastor Section</h3>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="absolute bottom-7 left-7 right-7 z-30">
-                                <h3 className="text-3xl md:text-4xl font-serif font-bold text-white mb-2 drop-shadow">Pastor Section</h3>
-                                <div className="h-1 w-20 rounded-full bg-amber-300 group-hover:w-32 transition-all duration-500" />
+                            
+                            <div className="relative flex flex-col justify-center px-6 pb-8 pt-0 sm:px-8 lg:px-10 lg:py-8">
+                                <div className="mb-6 flex items-center justify-between">
+                                    <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-sky-200 bg-sky-600 text-white shadow-lg shadow-sky-600/20">
+                                        <BookOpen size={24} />
+                                    </div>
+                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-100 text-sky-700 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] border border-sky-200">
+                                        <Star size={10} /> Leadership
+                                    </span>
+                                </div>
+                                <p className="mb-3 text-[11px] font-black uppercase tracking-[0.25em] text-sky-600">Shepherd's Vision</p>
+                                <h4 className="mb-4 text-2xl font-serif font-black leading-tight tracking-tight text-slate-900 md:text-3xl">
+                                    A dedicated room for guidance and growth.
+                                </h4>
+                                <p className="mb-8 text-base leading-relaxed text-slate-600">
+                                    Discover the visionary leadership and profound biblical teachings guiding our spiritual journey.
+                                </p>
+                                <button onClick={() => setView(ViewState.PASTOR)} className="group/btn relative overflow-hidden inline-flex w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 px-8 py-4 text-[15px] font-black text-white shadow-[0_0_20px_rgba(14,165,233,0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(14,165,233,0.6)] active:scale-95 sm:w-auto">
+                                    <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover/btn:translate-x-full transition-transform duration-1000 ease-in-out" />
+                                    <span className="relative z-10 flex items-center gap-2">
+                                        Visit Pastor Page <ArrowRight size={18} className="transition-transform duration-300 group-hover/btn:translate-x-2 group-hover/btn:scale-125" />
+                                    </span>
+                                </button>
                             </div>
-                        </div>
-                        <div className="p-7 md:p-9 relative z-30 bg-white flex flex-col flex-1">
-                            <p className="text-slate-600 mb-8 leading-relaxed text-lg flex-1">Know the shepherd's vision, profound biblical insights, background, and ministry message in one dedicated spiritual space.</p>
-                            <button onClick={() => setView(ViewState.PASTOR)} className="group/btn w-full sm:w-auto inline-flex justify-center items-center gap-3 bg-brand-950 text-white px-8 py-4 rounded-2xl text-sm font-bold hover:shadow-xl hover:shadow-brand-900/20 hover:bg-brand-900 transition-all shrink-0">
-                                View Pastor Page <ArrowRight size={16} className="group-hover/btn:translate-x-1.5 transition-transform" />
-                            </button>
                         </div>
                     </motion.div>
 
-                    {/* Baruch Hashem Card */}
+                    {/* Baruch Hashem Showcase */}
                     <motion.div 
-                        initial={{ opacity: 0, x: 30 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true, amount: 0.25 }}
-                        whileHover={{ y: -10, scale: 1.01 }}
-                        transition={{ duration: 0.45 }}
-                        className="group relative bg-white rounded-[2rem] overflow-hidden shadow-[0_28px_70px_-24px_rgba(146,64,14,0.28)] border border-amber-100 flex flex-col h-full"
+                        initial={{ opacity: 0, y: 36 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true, amount: 0.2 }}
+                        transition={{ duration: 0.7, delay: 0.1, ease: "easeOut" }}
+                        className="group relative overflow-hidden rounded-[2rem] border border-amber-200 bg-[#fffaf0] shadow-[0_34px_90px_-52px_rgba(180,83,9,0.4)]"
                     >
-                        <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-                        <div className="relative h-[24rem] md:h-[28rem] overflow-hidden shrink-0 bg-gradient-to-br from-amber-50 to-orange-50">
-                            <img 
-                                src="/assets/baruch-hashem-pastor.jpg" 
-                                alt="Baruch Hashem" 
-                                className="w-full h-full object-contain object-center p-2 transform group-hover:scale-[1.035] transition-transform duration-700 ease-out"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-amber-950 via-amber-900/25 to-transparent z-20" />
-                            <div className="absolute inset-x-6 top-6 z-30 flex justify-between items-start">
-                                <span className="inline-flex bg-white/25 backdrop-blur-md text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-white/25">Worship</span>
-                                <span className="w-10 h-10 rounded-2xl bg-white/20 border border-white/25 backdrop-blur-md flex items-center justify-center text-white group-hover:rotate-12 transition-transform"><ArrowRight size={16} /></span>
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(251,191,36,0.22),transparent_34%),radial-gradient(circle_at_84%_82%,rgba(248,113,113,0.18),transparent_30%)]" />
+                        <div className="relative grid items-center min-h-[340px] lg:grid-cols-[1.5fr_0.5fr]">
+                            <div className="relative order-2 h-[280px] lg:h-[320px] max-w-[260px] mx-auto w-full lg:order-2 p-4 sm:p-5 lg:p-6">
+                                <div className="relative h-full w-full overflow-hidden rounded-[1.5rem] border-[6px] border-white bg-amber-50 shadow-xl ring-1 ring-amber-100">
+                                    <img 
+                                        src="/barch_hasem/New folder/ஆத்தும நன்றி பள்ளிகள் wrapper (1).jpg" 
+                                        alt="Baruch Hashem Worship" 
+                                        className="h-full w-full object-contain transform transition-transform duration-700 ease-out group-hover:scale-[1.05]"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-amber-950/80 via-amber-900/20 to-transparent" />
+                                    <div className="absolute inset-3 rounded-xl border border-white/20 pointer-events-none" />
+                                    <div className="absolute bottom-6 left-6 right-6">
+                                        <div className="mb-3 h-1 w-16 rounded-full bg-orange-400 transition-all duration-500 group-hover:w-32" />
+                                        <h3 className="text-3xl font-serif font-black tracking-tight text-white drop-shadow md:text-4xl">Baruch Hashem</h3>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="absolute bottom-7 left-7 right-7 z-30">
-                                <h3 className="text-3xl md:text-4xl font-serif font-bold text-white mb-2 drop-shadow">Baruch Hashem</h3>
-                                <div className="h-1 w-20 rounded-full bg-orange-300 group-hover:w-32 transition-all duration-500" />
+                            
+                            <div className="relative order-1 flex flex-col justify-center px-6 pb-8 pt-6 sm:px-8 lg:px-10 lg:py-8">
+                                <div className="mb-6 flex items-center justify-between">
+                                    <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg shadow-orange-500/20">
+                                        <Sparkles size={24} />
+                                    </div>
+                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 text-amber-800 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] border border-amber-200">
+                                        <Sparkles size={10} className="text-amber-600" /> Worship
+                                    </span>
+                                </div>
+                                <p className="mb-3 text-[11px] font-black uppercase tracking-[0.25em] text-orange-600">Hebrew Tamil Praise</p>
+                                <h4 className="mb-4 text-2xl font-serif font-black leading-tight tracking-tight text-brand-950 md:text-3xl">
+                                    A majestic gallery for praise and devotion.
+                                </h4>
+                                <p className="mb-8 text-base leading-relaxed text-slate-700">
+                                    Immerse yourself in divine worship and experience the presence of God through pure praise.
+                                </p>
+                                <button onClick={() => setView(ViewState.BARUCH_HASHEM)} className="group/btn relative overflow-hidden inline-flex w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-8 py-4 text-[15px] font-black text-white shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(245,158,11,0.6)] active:scale-95 sm:w-auto">
+                                    <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover/btn:translate-x-full transition-transform duration-1000 ease-in-out" />
+                                    <span className="relative z-10 flex items-center gap-2">
+                                        Visit Baruch Hashem <ArrowRight size={18} className="transition-transform duration-300 group-hover/btn:translate-x-2 group-hover/btn:scale-125" />
+                                    </span>
+                                </button>
                             </div>
-                        </div>
-                        <div className="p-7 md:p-9 relative z-30 bg-white flex flex-col flex-1">
-                            <p className="text-slate-600 mb-8 leading-relaxed text-lg flex-1">Explore pure praise, Hebrew-Tamil devotion flow, majestic visual worship resources, and divine musical expressions.</p>
-                            <button onClick={() => setView(ViewState.BARUCH_HASHEM)} className="group/btn w-full sm:w-auto inline-flex justify-center items-center gap-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-2xl text-sm font-bold hover:shadow-xl hover:shadow-amber-500/25 hover:brightness-110 transition-all shrink-0">
-                                View Baruch Hashem <ArrowRight size={16} className="group-hover/btn:translate-x-1.5 transition-transform" />
-                            </button>
                         </div>
                     </motion.div>
                 </div>

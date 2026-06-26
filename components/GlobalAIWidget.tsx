@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence, useDragControls } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, MessageCircle } from 'lucide-react';
 import { AIPage } from './AIPage';
 
@@ -7,9 +7,6 @@ export const GlobalAIWidget: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const [showLabel, setShowLabel] = useState(true);
-    const constraintsRef = useRef(null);
-    const dragControls = useDragControls();
-
     // Auto-hide label after 8 seconds
     useEffect(() => {
         const timer = setTimeout(() => setShowLabel(false), 8000);
@@ -20,14 +17,10 @@ export const GlobalAIWidget: React.FC = () => {
 
     return (
         <>
-            <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden" ref={constraintsRef}>
+            <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
                 {/* Draggable Widget Button */}
                 {!isOpen && (
                     <motion.div
-                        drag
-                        dragConstraints={constraintsRef}
-                        dragElastic={0.1}
-                        dragMomentum={false}
                         initial={{ bottom: 30, right: 30 }}
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.95 }}
@@ -40,10 +33,10 @@ export const GlobalAIWidget: React.FC = () => {
                         <AnimatePresence>
                             {(showLabel || isHovered) && (
                                 <motion.div
-                                    initial={{ opacity: 0, x: 20, scale: 0.8 }}
-                                    animate={{ opacity: 1, x: -140, scale: 1 }}
-                                    exit={{ opacity: 0, x: 20, scale: 0.8 }}
-                                    className="absolute top-1/2 -translate-y-1/2 right-0 bg-white/90 backdrop-blur-md text-slate-900 text-[10px] sm:text-xs font-bold px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl shadow-xl border border-white/50 whitespace-nowrap z-0 w-max"
+                                    initial={{ opacity: 0, x: 10, scale: 0.8 }}
+                                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                                    exit={{ opacity: 0, x: 10, scale: 0.8 }}
+                                    className="absolute right-[calc(100%+16px)] top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-md text-slate-900 text-[10px] sm:text-xs font-bold px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl shadow-xl border border-white/50 whitespace-nowrap z-0 pointer-events-none"
                                 >
                                     <span className="flex items-center gap-2">
                                         Need help? <span className="text-amber-600">Ask AI</span>
@@ -81,10 +74,6 @@ export const GlobalAIWidget: React.FC = () => {
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        drag
-                        dragListener={false}
-                        dragControls={dragControls}
-                        dragMomentum={false}
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
@@ -95,10 +84,7 @@ export const GlobalAIWidget: React.FC = () => {
                         <div className="absolute inset-0 bg-gradient-to-br from-brand-900/90 via-brand-900/90 to-black/90 -z-10"></div>
 
                         {/* Modal Header - ChatGPT Style */}
-                        <div
-                            onPointerDown={(e) => dragControls.start(e)}
-                            className="flex items-center justify-between px-6 py-4 border-b border-white/5 shrink-0 bg-white/5 backdrop-blur-xl z-20 cursor-move"
-                        >
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 shrink-0 bg-white/5 backdrop-blur-xl z-20">
                             <div className="flex items-center gap-3 select-none">
                                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-400 to-accent-500 flex items-center justify-center shadow-lg">
                                     <Sparkles size={16} className="text-white" />

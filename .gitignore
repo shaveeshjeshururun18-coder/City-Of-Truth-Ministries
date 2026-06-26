@@ -2,6 +2,11 @@ node_modules
 
 dist
 
+# Environment variables
+.env.local
+.env.production
+.env.*.local
+
 # Local personal files
 *.py
 signature.png

@@ -24,6 +24,7 @@ import { HEBREW_PAGES } from '../hebrewRegistry';
 import { CommunityProfileForm } from './CommunityProfileForm';
 import { PermalinkManager } from './PermalinkManager';
 import { CompleteRebootModal } from './CompleteRebootModal';
+import { BaruchVideosManager } from './BaruchVideosManager';
 
 interface ContactMessage {
     id: string;
@@ -3916,7 +3917,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {/* Vertical Sidebar */}
                     {menuMode === 'vertical' && (
                         <aside className="hidden lg:block w-56 shrink-0 sticky top-28">
-                            <nav className="bg-white rounded-3xl border border-slate-100 shadow-sm p-3 space-y-1">
+                            <nav className="bg-white rounded-3xl border border-slate-100 shadow-sm p-3 space-y-1 max-h-[calc(100vh-14rem)] overflow-y-auto admin-menu-scrollbar">
                                 {visibleTabs.map(tab => {
                                     const customLabel = tab.label;
                                     const isRenaming = renamingTabId === tab.id;
@@ -4424,10 +4425,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 <input
                                                     type="checkbox"
                                                     checked={selectedUsers.has(user.id)}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        toggleSelectUser(user.id);
-                                                    }}
+                                                    onChange={() => toggleSelectUser(user.id)}
+                                                    onClick={(e) => e.stopPropagation()}
                                                 />
                                             </td>
                                             <td className="px-6 py-4">
@@ -8638,6 +8637,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                 )}
 
+
+                <AnimatePresence>
+                    {activeTab === 'baruch-hashem' && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="p-8"
+                        >
+                            <BaruchVideosManager />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
                     </div>{/* /Main Content */}
                 </div>{/* /Content Layout */}
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, SubProfile } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
-import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag, Copy, ExternalLink } from 'lucide-react';
+import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag, Copy, ExternalLink, Moon, Sun } from 'lucide-react';
 import { Button } from './Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TestimonialModal } from './TestimonialModal';
@@ -76,6 +76,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [dismissedTopNotificationId, setDismissedTopNotificationId] = useState<string | null>(null);
     const [wasEditingBeforeCrop, setWasEditingBeforeCrop] = useState(false);
     const [showFormSubmittedBanner, setShowFormSubmittedBanner] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(() => {
+        try { return localStorage.getItem('cot_user_dashboard_theme') === 'dark'; } catch { return false; }
+    });
+    const toggleUserDarkMode = () => setIsDarkMode(prev => {
+        const next = !prev;
+        try { localStorage.setItem('cot_user_dashboard_theme', next ? 'dark' : 'light'); } catch {}
+        return next;
+    });
     const notificationsSectionRef = React.useRef<HTMLDivElement | null>(null);
     
     // Global Mobile Toast state
@@ -1297,7 +1305,17 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
     /* ─────────────────────────────────────────────── */
     return (
-        <div className="min-h-screen pt-28 pb-20 bg-[#f0f2f5] text-slate-900 relative flex flex-col items-center overflow-x-hidden px-3 sm:px-5">
+        <div className={`min-h-screen pt-28 pb-20 ${isDarkMode ? 'bg-slate-900 text-slate-100' : 'bg-[#f0f2f5] text-slate-900'} relative flex flex-col items-center overflow-x-hidden px-3 sm:px-5 user-dashboard-root`}>
+            {isDarkMode && (
+                <style dangerouslySetInnerHTML={{ __html: `
+                    .user-dashboard-root .bg-white { background-color: #1e293b !important; }
+                    .user-dashboard-root .bg-slate-50 { background-color: #0f172a !important; }
+                    .user-dashboard-root .text-slate-900, .user-dashboard-root .text-slate-800, .user-dashboard-root .text-slate-700 { color: #f1f5f9 !important; }
+                    .user-dashboard-root .text-slate-600, .user-dashboard-root .text-slate-500 { color: #94a3b8 !important; }
+                    .user-dashboard-root .border-slate-200, .user-dashboard-root .border-slate-100 { border-color: #334155 !important; }
+                    .user-dashboard-root input, .user-dashboard-root select, .user-dashboard-root textarea { background-color: #0f172a !important; color: #f8fafc !important; border-color: #334155 !important; }
+                ` }} />
+            )}
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.06] pointer-events-none z-0" />
             {topNotification && dismissedTopNotificationId !== topNotification.id && (
                 <div className="sticky top-20 z-50 w-full max-w-md lg:max-w-7xl xl:max-w-[88rem] 2xl:max-w-[95rem] mb-3">
@@ -1381,8 +1399,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     }
                     setShowFormSubmittedBanner(true);
                     setTimeout(() => setShowFormSubmittedBanner(false), 5000);
-                    setGlobalToast({ message: 'Member Form submitted successfully! Admin will review it shortly.', type: 'success' });
-                    setTimeout(() => setGlobalToast(null), 5000);
+                    showToast('Member Form submitted successfully! Admin will review it shortly.', 'success');
                 }}
             />
             <CalendarCustomizationModal isOpen={isCalendarModalOpen} onClose={() => setIsCalendarModalOpen(false)} onDownload={handleDownloadCalendar} />
@@ -1534,6 +1551,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         <p className="text-[11px] text-slate-500 font-medium">{activeProfileId !== user.id ? 'Family Member' : (user.role || 'Member')}</p>
                     </div>
 
+                    {/* Dark mode toggle */}
+                    <button onClick={toggleUserDarkMode} title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'} className="shrink-0 text-slate-400 hover:text-indigo-600 p-2 rounded-full hover:bg-white transition-all">
+                        {isDarkMode ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} />}
+                    </button>
                     {/* Edit button */}
                     <button onClick={startEditing} className="shrink-0 text-slate-400 hover:text-brand-600 p-2 rounded-full hover:bg-white transition-all">
                         <Edit2 size={18} />

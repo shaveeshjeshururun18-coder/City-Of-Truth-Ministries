@@ -96,5 +96,118 @@
             "order": 3,
             "description": "Transforming lives and building stronger communities together."
         }
+    ],
+    "cotIdHistory": [],
+    "baruchVideos": [
+        {
+            "id": "1",
+            "part": 1,
+            "youtubeId": "4nFxzgqQ_8I"
+        },
+        {
+            "id": "2",
+            "part": 2,
+            "youtubeId": "1TrWrscz3A8"
+        },
+        {
+            "id": "3",
+            "part": 3,
+            "youtubeId": "fw61MENxsNQ"
+        },
+        {
+            "id": "4",
+            "part": 4,
+            "youtubeId": "wOAXgfWii6I"
+        },
+        {
+            "id": "5",
+            "part": 5,
+            "youtubeId": "_8RjHFb9OTE"
+        },
+        {
+            "id": "6",
+            "part": 6,
+            "youtubeId": "imGY37JZEUg"
+        },
+        {
+            "id": "7",
+            "part": 7,
+            "youtubeId": "9cPWFHUgHwk"
+        },
+        {
+            "id": "8",
+            "part": 8,
+            "youtubeId": "oFrLzVyEfFQ"
+        },
+        {
+            "id": "9",
+            "part": 9,
+            "youtubeId": "oPus0tBHpnQ"
+        },
+        {
+            "id": "10",
+            "part": 10,
+            "youtubeId": "sFi2y_w0KLQ"
+        },
+        {
+            "id": "11",
+            "part": 11,
+            "youtubeId": "Be6kqxrA1Wk"
+        },
+        {
+            "id": "12",
+            "part": 12,
+            "youtubeId": "OIrMG9VzGqs"
+        },
+        {
+            "id": "13",
+            "part": 13,
+            "youtubeId": ""
+        },
+        {
+            "id": "14",
+            "part": 14,
+            "youtubeId": ""
+        },
+        {
+            "id": "15",
+            "part": 15,
+            "youtubeId": ""
+        },
+        {
+            "id": "16",
+            "part": 16,
+            "youtubeId": ""
+        },
+        {
+            "id": "17",
+            "part": 17,
+            "youtubeId": ""
+        },
+        {
+            "id": "18",
+            "part": 18,
+            "youtubeId": ""
+        },
+        {
+            "id": "19",
+            "part": 19,
+            "youtubeId": ""
+        },
+        {
+            "id": "20",
+            "part": 20,
+            "youtubeId": ""
+        },
+        {
+            "id": "21",
+            "part": 21,
+            "youtubeId": ""
+        },
+        {
+            "id": "22",
+            "part": 22,
+            "youtubeId": ""
+        }
     ]
 }

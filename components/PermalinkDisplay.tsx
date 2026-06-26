@@ -87,15 +87,20 @@ export const PermalinkDisplay: React.FC<PermalinkDisplayProps> = ({ permalinks, 
                 key={permalink.id}
                 className="flex items-center gap-2 bg-white/95 backdrop-blur-sm px-4 py-2 rounded-full shadow-md border border-brand-200"
               >
-                <Link size={14} className="text-brand-600" />
-                <a
-                  href={permalink.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm font-semibold text-brand-900 hover:text-brand-600 transition-colors"
-                >
-                  {permalink.label}
-                </a>
+                <Link size={14} className="text-brand-600 shrink-0" />
+                <div className="flex flex-col min-w-0">
+                  <a
+                    href={permalink.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-black text-brand-900 hover:text-brand-600 transition-colors leading-tight"
+                  >
+                    {permalink.label}
+                  </a>
+                  <span className="text-[10px] text-brand-500 font-medium truncate max-w-[160px]">
+                    {permalink.url}
+                  </span>
+                </div>
                 {permalink.allowShare && (
                   <button
                     onClick={() => handleShare(permalink)}

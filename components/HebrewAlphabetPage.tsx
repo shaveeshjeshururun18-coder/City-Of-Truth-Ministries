@@ -225,13 +225,21 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                             <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
                                                 {/* LEFT: Letter info + details */}
                                                 <div className="flex-1 min-w-0 space-y-4">
-                                                    <div className="flex items-end gap-4">
-                                                        <span className="text-6xl md:text-7xl font-serif text-[#FBBF24] leading-none drop-shadow-[0_0_20px_rgba(251,191,36,0.3)]">
-                                                            {selectedLetter.letter}
-                                                        </span>
-                                                        <div className="space-y-0.5 pb-1">
-                                                            <div className="text-lg md:text-xl font-black tracking-[0.14em] text-white">{selectedLetter.name}</div>
-                                                            <div className="text-base text-[#F59E0B]/80 font-serif">{selectedLetter.hebrewName}</div>
+                                                    <div className="flex items-center gap-6">
+                                                        <div className="relative w-36 h-36 md:w-40 md:h-40 flex-shrink-0 select-none">
+                                                            {/* Grid Guidelines Background */}
+                                                            <div className="absolute inset-0 rounded-[2rem] border border-sky-400/40 bg-sky-950/20 overflow-hidden shadow-[0_0_28px_rgba(125,211,252,0.42),inset_0_0_26px_rgba(250,204,21,0.15)]">
+                                                                {/* Guidelines */}
+                                                                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1px] bg-amber-400/25" />
+                                                                <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[1px] bg-sky-400/30" />
+                                                            </div>
+                                                            <span className="absolute inset-0 flex items-center justify-center font-serif text-7xl md:text-8xl text-white drop-shadow-[0_0_22px_rgba(125,211,252,0.95)]">
+                                                                {selectedLetter.letter}
+                                                            </span>
+                                                        </div>
+                                                        <div className="space-y-2 pb-1">
+                                                            <div className="text-3xl md:text-4xl lg:text-5xl font-black tracking-[0.14em] text-white leading-none">{selectedLetter.name}</div>
+                                                            <div className="text-xl md:text-2xl text-[#F59E0B]/80 font-serif leading-none mt-1">{selectedLetter.hebrewName}</div>
                                                         </div>
                                                     </div>
 

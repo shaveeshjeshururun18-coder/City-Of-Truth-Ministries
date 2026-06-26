@@ -272,8 +272,11 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                         className="absolute bottom-2 right-2 bg-white p-0.5 border border-slate-100 rounded-lg shadow-sm hover:shadow-md transition-shadow"
                         aria-label="Open QR code"
                     >
-                        <div className="relative inline-block w-14 h-14">
-                            <img src={qrCodeUrl} alt="QR" className="w-full h-full block" crossOrigin="anonymous" />
+                        <div className="relative inline-block w-14 h-14 bg-white rounded-md">
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+                                <img src="/logo.png" alt="" className="w-10 h-10 object-contain opacity-[0.15]" />
+                            </div>
+                            <img src={qrCodeUrl} alt="QR" className="w-full h-full block relative z-10 mix-blend-multiply" crossOrigin="anonymous" />
                         </div>
                     </button>
 
@@ -388,9 +391,12 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                                 className="bg-white p-0.5 border border-slate-200 rounded-lg shadow-sm hover:shadow-md transition-shadow"
                                 aria-label="Open QR code"
                             >
-                                <div className="relative inline-block w-12 h-12">
-                                    <img src={qrCodeUrl} alt="QR" className="w-full h-full block" />
-                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="relative inline-block w-12 h-12 bg-white rounded-md">
+                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+                                        <img src="/logo.png" alt="" className="w-8 h-8 object-contain opacity-[0.15]" />
+                                    </div>
+                                    <img src={qrCodeUrl} alt="QR" className="w-full h-full block relative z-10 mix-blend-multiply" />
+                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
                                         <div className="bg-white rounded-full flex items-center justify-center p-0.5 shadow-sm" style={{ width: '14px', height: '14px' }}>
                                             <img src="/logo.png" alt="COT" className="w-full h-full object-contain rounded-full" />
                                         </div>
@@ -479,7 +485,12 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 <p className="text-sm font-black text-brand-950 mb-4 uppercase tracking-widest">{qrModalTitle}</p>
-                                <img src={qrCodeUrl} alt="Entrust QR Code" className="w-full max-w-[320px] mx-auto rounded-2xl border border-slate-200" crossOrigin="anonymous" />
+                                <div className="relative inline-block w-full max-w-[320px] mx-auto bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+                                        <img src="/logo.png" alt="" className="w-32 h-32 object-contain opacity-[0.15]" />
+                                    </div>
+                                    <img src={qrCodeUrl} alt="Entrust QR Code" className="w-full h-full block relative z-10 mix-blend-multiply" crossOrigin="anonymous" />
+                                </div>
                                 <Button onClick={() => setShowQrFullScreen(false)} className="mt-5 w-full">
                                     Close
                                 </Button>
@@ -680,24 +691,24 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
         setEntrustTourRect(null);
     };
 
-    const cardThemeFilterMap: Record<typeof cardThemeTone, string> = {
+    const cardThemeFilterMap: Record<'blue' | 'purple' | 'green' | 'red' | 'gold', string> = {
         blue: 'none',
         purple: 'hue-rotate(42deg) saturate(1.1)',
         green: 'hue-rotate(115deg) saturate(1.2)',
         red: 'hue-rotate(185deg) saturate(1.2)',
         gold: 'hue-rotate(-30deg) saturate(1.12) contrast(1.05)',
     };
-    const cardScaleClassMap: Record<typeof cardSizeMode, string> = {
+    const cardScaleClassMap: Record<'sm' | 'md' | 'lg', string> = {
         sm: 'scale-[0.9]',
         md: 'scale-100',
         lg: 'scale-[1.08]',
     };
-    const cardLayoutClassMap: Record<typeof cardLayoutMode, string> = {
+    const cardLayoutClassMap: Record<'classic' | 'compact' | 'wide', string> = {
         classic: '',
         compact: 'scale-[0.95] origin-center',
         wide: 'scale-x-[1.06] origin-center',
     };
-    const cardShapeClassMap: Record<typeof cardShapeMode, string> = {
+    const cardShapeClassMap: Record<'rounded' | 'soft' | 'sharp', string> = {
         rounded: 'rounded-[1.25rem]',
         soft: 'rounded-[2rem]',
         sharp: 'rounded-md',
@@ -1173,14 +1184,16 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                                     return;
                                                 }
                                             }
-                                            // Set password to phone number if not provided
-                                            const finalPassword = trimmedEmergency;
-
-                                            // Validate phone number length
-                                            if (trimmedEmergency.length !== 10) {
+                                            
+                                            // Validate phone number length (extract only digits first)
+                                            const emergencyDigitsOnly = trimmedEmergency.replace(/\D/g, '');
+                                            if (emergencyDigitsOnly.length !== 10) {
                                                 alert("Phone number must be exactly 10 digits.");
                                                 return;
                                             }
+                                            
+                                            // Set password to phone number digits
+                                            const finalPassword = emergencyDigitsOnly;
 
                                             // Validate email if provided
                                             if (formData.email && !formData.email.includes('@')) {
@@ -1193,9 +1206,9 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                                 name: trimmedName,
                                                 registrationType,
                                                 familyMembers,
-                                                emergency: `+91${trimmedEmergency}`,
+                                                emergency: `+91${emergencyDigitsOnly}`,
                                                 location: trimmedLocation,
-                                                phone: `+91${trimmedEmergency}`,
+                                                phone: `+91${emergencyDigitsOnly}`,
                                                 password: finalPassword,
                                                 uniqueId,
                                                 photo,

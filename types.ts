@@ -28,7 +28,8 @@ export enum ViewState {
   ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
   VERIFY_ID = 'VERIFY_ID',
   PASTOR = 'PASTOR',
-  MEMBER_FORM = 'MEMBER_FORM'
+  MEMBER_FORM = 'MEMBER_FORM',
+  BUGS_FIXED = 'BUGS_FIXED'
 }
 
 export interface NavItem {
@@ -78,10 +79,15 @@ export interface User {
     district?: string;
     status?: 'Pending' | 'Approved' | 'Rejected';
   };
-  cardThemeTone?: 'blue' | 'purple' | 'green' | 'red' | 'gold';
+  cardThemeTone?: 'blue' | 'purple' | 'green' | 'red' | 'gold' | 'lightblue';
   cardLayoutMode?: 'classic' | 'compact' | 'wide';
   cardShapeMode?: 'rounded' | 'soft' | 'sharp';
   cardSizeMode?: 'sm' | 'md' | 'lg';
+  communicationPermissions?: {
+    createAnnouncements?: boolean;
+    sendAnnouncements?: boolean;
+    manageContactLists?: boolean;
+  };
 }
 
 export interface DeletedUser extends User {
@@ -151,4 +157,193 @@ export interface Permalink {
   shareMessage?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface WidgetSettingsConfig {
+  shareVisible: boolean;
+  shareSize: number;
+  shareLabelVisible: boolean;
+  shareLabelText: string;
+  aiVisible: boolean;
+  aiSize: number;
+  aiLabelVisible: boolean;
+  aiLabelText: string;
+}
+
+export interface NotificationConfig {
+  id: string;
+  title: string;
+  theme: 'amber' | 'emerald' | 'indigo' | 'rose' | 'violet';
+  timing: number;
+  purpose: string;
+  visible: boolean;
+}
+
+export interface BugFixItem {
+  id: number;
+  category: string;
+  title: string;
+  description: string;
+  technicalDetails?: string;
+  filesChanged?: string;
+  verification?: string;
+  icon: string;
+  area: 'ui' | 'logic' | 'feature' | 'camera' | 'db' | 'grammar' | 'admin' | 'user';
+}
+
+// ============================================================================
+// Advanced Communication System Types
+// ============================================================================
+
+// Communication Channels
+export type CommunicationChannel = 'sms' | 'email' | 'inapp';
+
+// Delivery Status
+export type DeliveryStatus = 'queued' | 'sending' | 'delivered' | 'failed' | 'bounced';
+
+// Message Kind for MemberNotification
+export type MessageKind = 'message' | 'approved' | 'disapproved' | 'recycle' | 'recycle-removed' | 'leader';
+
+// Contact Management
+export interface ContactList {
+  id: string;
+  name: string;
+  description?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  contactCount: number;
+}
+
+export interface Contact {
+  id: string;
+  listId: string;
+  name: string;
+  email: string;
+  phone?: string;
+  tags?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Recipient Filtering
+export interface RecipientFilters {
+  roles?: UserRole[];
+  statuses?: UserStatus[];
+  locations?: string[];
+  hasPhoneNumber?: boolean;
+}
+
+// Announcements
+export interface Announcement {
+  id: string;
+  title: string;
+  channels: CommunicationChannel[];
+  content: {
+    sms?: string;
+    email?: {
+      subject: string;
+      body: string;
+    };
+    inapp?: string;
+  };
+  targetAudience: {
+    userIds?: string[];
+    contactListIds?: string[];
+    filters?: RecipientFilters;
+    broadcastAll?: boolean;
+  };
+  createdBy: string;
+  createdByName: string;
+  createdAt: string;
+  sentAt?: string;
+  status: 'draft' | 'queued' | 'sending' | 'completed' | 'failed';
+  deliveryStats: {
+    [channel: string]: {
+      total: number;
+      delivered: number;
+      failed: number;
+      pending: number;
+    };
+  };
+}
+
+// Delivery Tracking
+export interface DeliveryRecord {
+  id: string;
+  announcementId: string;
+  channel: CommunicationChannel;
+  recipientType: 'user' | 'contact';
+  recipientId: string;
+  recipientIdentifier: string;
+  status: DeliveryStatus;
+  failureReason?: string;
+  sentAt?: string;
+  deliveredAt?: string;
+  updatedAt: string;
+}
+
+export interface DeliveryReport {
+  announcementId: string;
+  channel: CommunicationChannel;
+  totalRecipients: number;
+  delivered: number;
+  failed: number;
+  pending: number;
+  bounced: number;
+  failureReasons: FailureReason[];
+  generatedAt: string;
+}
+
+export interface FailureReason {
+  reason: string;
+  count: number;
+  recipientIds: string[];
+}
+
+export interface RecipientDeliveryStatus {
+  recipientId: string;
+  recipientName: string;
+  channel: CommunicationChannel;
+  status: DeliveryStatus;
+  failureReason?: string;
+  deliveredAt?: string;
+}
+
+// Permission Management
+export type CommunicationPermission = 
+  | 'Create Announcements'
+  | 'Send Announcements'
+  | 'Manage Contact Lists';
+
+export interface UserPermissions {
+  userId: string;
+  permissions: CommunicationPermission[];
+  updatedAt: string;
+}
+
+// Audit Logging
+export interface CommunicationAuditLog {
+  id: string;
+  senderUserId: string;
+  senderUsername: string;
+  timestamp: string;
+  recipientCount: number;
+  messageType: 'sms' | 'announcement';
+  actionType: 'create' | 'send' | 'delete';
+  metadata?: Record<string, any>;
+}
+
+// Integration with Existing Notification System
+export interface MemberNotification {
+  id: string;
+  userId: string;
+  from: 'admin' | 'user';
+  message: string;
+  createdAt: string;
+  kind: MessageKind;
+  read: boolean;
+  ctaLabel?: string;
+  ctaView?: ViewState;
+  announcementId?: string;
 }

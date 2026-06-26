@@ -18,6 +18,7 @@ import {
   Filter
 } from 'lucide-react';
 import { Permalink, ViewState } from '../types';
+import { PAGE_PERMALINK_OVERRIDES_KEY, VIEW_PATHS, getAbsolutePagePermalink, normalizePagePath } from '../services/routePaths';
 
 interface PermalinkManagerProps {
   permalinks: Permalink[];
@@ -28,57 +29,8 @@ interface PermalinkManagerProps {
 
 const ALL_VIEW_STATES = Object.values(ViewState).sort();
 
-const VIEW_PATHS: Partial<Record<ViewState, string>> = {
-  [ViewState.HOME]: '/',
-  [ViewState.AUTH]: '/auth',
-  [ViewState.ABOUT]: '/hebrew',
-  [ViewState.MINISTRIES]: '/ministries',
-  [ViewState.CONTACT]: '/contact',
-  [ViewState.ABOUT_VALPARAI]: '/valparai',
-  [ViewState.HEBREW]: '/hebrew',
-  [ViewState.HEBREW_TOOLS]: '/hebrew-tools',
-  [ViewState.HEBREW_CALENDAR]: '/hebrew-calendar',
-  [ViewState.HEBREW_CLOCK]: '/hebrew-clock',
-  [ViewState.HEBREW_NUMBERS]: '/hebrew-numbers',
-  [ViewState.HEBREW_WORDS]: '/hebrew-words',
-  [ViewState.HEBREW_LETTERS_AUDIO]: '/hebrew-letters-audio',
-  [ViewState.HEBREW_GEMATRIA]: '/hebrew-gematria',
-  [ViewState.HEBREW_FESTIVALS]: '/hebrew-festivals',
-  [ViewState.HEBREW_GRAMMAR]: '/hebrew-grammar',
-  [ViewState.HEBREW_REFERENCE]: '/hebrew-reference',
-  [ViewState.HEBREW_ISRAEL]: '/hebrew-israel',
-  [ViewState.GOLDEN_MENORAH]: '/golden-menorah',
-  [ViewState.MENORAH]: '/menorah',
-  [ViewState.MENORAH_FLAG]: '/menorah',
-  [ViewState.BARUCH_HASHEM]: '/baruch-hashem',
-  [ViewState.DEVELOPER]: '/?view=DEVELOPER',
-  [ViewState.AI]: '/ai',
-  [ViewState.ID_CARD]: '/entrust-card',
-  [ViewState.USER_DASHBOARD]: '/dashboard',
-  [ViewState.ADMIN_DASHBOARD]: '/admin',
-  [ViewState.VERIFY_ID]: '/verify-id',
-  [ViewState.PASTOR]: '/pastor',
-  [ViewState.MEMBER_FORM]: '/member-form',
-};
-
-const PAGE_PERMALINK_OVERRIDES_KEY = 'cot_page_permalink_overrides';
-
-const normalizePagePath = (value: string) => {
-  const trimmed = value.trim();
-  if (!trimmed) return '';
-  try {
-    const url = new URL(trimmed);
-    return `${url.pathname}${url.search}${url.hash}` || '/';
-  } catch {
-    const withSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-    return withSlash.replace(/\/{2,}/g, '/');
-  }
-};
-
 const getPagePermalink = (page: ViewState, overrides: Record<string, string> = {}) => {
-  const path = overrides[page] || VIEW_PATHS[page] || `/?view=${encodeURIComponent(page)}`;
-  if (typeof window === 'undefined') return path;
-  return `${window.location.origin}${path}`;
+  return getAbsolutePagePermalink(page, overrides as Partial<Record<ViewState, string>>);
 };
 
 export const PermalinkManager: React.FC<PermalinkManagerProps> = ({
@@ -291,7 +243,6 @@ export const PermalinkManager: React.FC<PermalinkManagerProps> = ({
     };
   }, [permalinks, hiddenPages]);
 
-  // Get permalinks for a specific page
   const getPermalinksForPage = (page: ViewState) => {
     return permalinks.filter(p => 
       !p.pages || p.pages.length === 0 || p.pages.includes(page)
@@ -305,6 +256,22 @@ export const PermalinkManager: React.FC<PermalinkManagerProps> = ({
     } catch (error) {
       console.error('Failed to copy page permalink:', error);
       window.prompt('Copy page permalink:', url);
+    }
+  };
+
+  const handleShare = async (url: string, title: string = 'City of Truth Ministries') => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, url });
+      } catch (_) {}
+    } else {
+      try {
+        await navigator.clipboard.writeText(url);
+        // Show a brief toast or alert
+        alert('Link copied to clipboard!');
+      } catch (_) {
+        alert(`Link: ${url}`);
+      }
     }
   };
 
@@ -439,309 +406,21 @@ export const PermalinkManager: React.FC<PermalinkManagerProps> = ({
         </div>
       </div>
 
-      {/* View Mode: Only Pages */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-2">
-        <div className="px-6 py-3 rounded-xl font-bold text-sm bg-brand-600 text-white shadow-md text-center">
-          <Globe size={18} className="inline mr-2" />
-          All Pages
-        </div>
-      </div>
-
-      {/* Search and Filters */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          {/* Search Bar */}
-          <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-            <input
-              type="text"
-              placeholder="Search pages..."
-              value={pageSearchTerm}
-              onChange={(e) => setPageSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-900"
-            />
-          </div>
-        </div>
-
-        {/* Results Count */}
-        {pageSearchTerm && (
-          <div className="mt-4 text-sm text-slate-600">
-            Showing <span className="font-bold text-brand-600">{filteredPagesForView.length}</span> of{' '}
-            <span className="font-bold">{stats.totalPages}</span> pages
-          </div>
-        )}
-      </div>
-
-      {/* Pages List View */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          {/* Bulk Action Bar */}
-          {selectedPages.size > 0 && (
-            <div className="bg-brand-50 border-b border-brand-200 px-5 py-3 flex items-center justify-between">
-              <span className="text-sm font-bold text-brand-700">
-                {selectedPages.size} page{selectedPages.size !== 1 ? 's' : ''} selected
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleBulkHidePages}
-                  className="px-3 py-1.5 rounded-lg bg-orange-100 text-orange-700 hover:bg-orange-200 text-xs font-bold flex items-center gap-1.5 transition-colors"
-                >
-                  <EyeOff size={13} /> Hide Selected
-                </button>
-                <button
-                  onClick={handleBulkDeletePages}
-                  className="px-3 py-1.5 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 text-xs font-bold flex items-center gap-1.5 transition-colors"
-                >
-                  <Trash2 size={13} /> Delete Selected
-                </button>
-                <button
-                  onClick={() => setSelectedPages(new Set())}
-                  className="px-3 py-1.5 rounded-lg bg-slate-200 text-slate-600 hover:bg-slate-300 text-xs font-bold transition-colors"
-                >
-                  Clear
-                </button>
-              </div>
-            </div>
-          )}
-
-          {filteredPagesForView.length === 0 ? (
-            <div className="text-center py-12">
-              <Globe size={48} className="mx-auto text-slate-300 mb-4" />
-              <h3 className="text-lg font-bold text-slate-700 mb-2">No pages found</h3>
-              <p className="text-sm text-slate-500">Try a different search term</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {/* Select All Header */}
-              <div className="flex items-center gap-3 px-5 py-2.5 bg-slate-50/80 border-b border-slate-200">
-                <input
-                  type="checkbox"
-                  checked={selectedPages.size === filteredPagesForView.length && filteredPagesForView.length > 0}
-                  onChange={toggleSelectAll}
-                  className="w-4 h-4 text-brand-600 border-slate-300 rounded focus:ring-brand-500 cursor-pointer"
-                />
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Select All ({filteredPagesForView.length} pages)</span>
-              </div>
-
-              {filteredPagesForView.map((page) => {
-                const pagePermalinks = getPermalinksForPage(page);
-                const pageUrl = getPagePermalink(page, pagePathOverrides);
-                const isHidden = hiddenPages.has(page);
-                const isSelected = selectedPages.has(page);
-                const isEditingPagePermalink = editingPagePermalink === page;
-                return (
-                  <div key={page} className={`transition-colors ${isSelected ? 'bg-brand-50/40' : isHidden ? 'bg-slate-50/60' : 'hover:bg-slate-50/40'}`}>
-                    {/* Page Row */}
-                    <div className="flex items-center gap-3 px-5 py-3.5">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleSelectPage(page)}
-                        className="w-4 h-4 text-brand-600 border-slate-300 rounded focus:ring-brand-500 cursor-pointer shrink-0"
-                      />
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                        isHidden ? 'bg-slate-200 text-slate-400' : 'bg-brand-100 text-brand-600'
-                      }`}>
-                        <Globe size={16} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className={`font-bold text-sm truncate ${isHidden ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
-                            {page}
-                          </span>
-                          {isHidden && (
-                            <span className="px-1.5 py-0.5 bg-orange-100 text-orange-600 text-[9px] font-black uppercase rounded tracking-wide shrink-0">
-                              Hidden
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[11px] text-slate-400">
-                          {pagePermalinks.length} custom link{pagePermalinks.length !== 1 ? 's' : ''}
-                        </span>
-                        {isEditingPagePermalink ? (
-                          <div className="mt-2 flex flex-col sm:flex-row gap-2">
-                            <input
-                              value={pagePathDraft}
-                              onChange={(event) => setPagePathDraft(event.target.value)}
-                              placeholder="/custom-page-link"
-                              className="flex-1 px-3 py-2 rounded-lg border border-brand-200 bg-white text-xs font-mono text-slate-800 outline-none focus:ring-2 focus:ring-brand-100 focus:border-brand-500"
-                            />
-                            <div className="flex gap-1.5">
-                              <button
-                                type="button"
-                                onClick={handleSavePagePermalink}
-                                className="px-3 py-2 rounded-lg bg-brand-600 text-white text-[11px] font-black hover:bg-brand-700 transition-colors flex items-center gap-1.5"
-                              >
-                                <Save size={12} /> Save
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditingPagePermalink(null);
-                                  setPagePathDraft('');
-                                }}
-                                className="px-3 py-2 rounded-lg bg-slate-100 text-slate-600 text-[11px] font-black hover:bg-slate-200 transition-colors flex items-center gap-1.5"
-                              >
-                                <X size={12} /> Cancel
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="mt-1 flex max-w-full items-center gap-2 text-[11px] text-slate-500">
-                            <span className="font-semibold text-slate-600 shrink-0">Page permalink:</span>
-                            <a
-                              href={pageUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="truncate text-brand-600 hover:text-brand-700 hover:underline"
-                            >
-                              {pageUrl}
-                            </a>
-                            <button
-                              type="button"
-                              onClick={() => handleOpenPagePermalinkEditor(page)}
-                              className="p-1 rounded-md text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-colors shrink-0"
-                              title="Edit page permalink"
-                            >
-                              <Edit2 size={12} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleCopyPagePermalink(page)}
-                              className="p-1 rounded-md text-slate-400 hover:bg-slate-100 hover:text-brand-600 transition-colors shrink-0"
-                              title="Copy page permalink"
-                            >
-                              <Copy size={12} />
-                            </button>
-                            <a
-                              href={pageUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-1 rounded-md text-slate-400 hover:bg-slate-100 hover:text-brand-600 transition-colors shrink-0"
-                              title="Open page permalink"
-                            >
-                              <ExternalLink size={12} />
-                            </a>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <button
-                          onClick={() => handleTogglePageVisibility(page)}
-                          className={`p-1.5 rounded-lg transition-all text-xs font-bold flex items-center gap-1.5 ${
-                            isHidden
-                              ? 'bg-slate-200 text-slate-500 hover:bg-slate-300'
-                              : 'bg-green-50 text-green-600 hover:bg-green-100'
-                          }`}
-                          title={isHidden ? 'Show Page' : 'Hide Page'}
-                        >
-                          {isHidden ? <EyeOff size={14} /> : <Eye size={14} />}
-                          <span className="hidden sm:inline">{isHidden ? 'Show' : 'Hide'}</span>
-                        </button>
-                        <button
-                          onClick={() => handleDeletePage(page)}
-                          className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-all text-xs font-bold flex items-center gap-1.5"
-                          title="Delete Page"
-                        >
-                          <Trash2 size={14} />
-                          <span className="hidden sm:inline">Delete</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Permalinks under this page */}
-                    {pagePermalinks.length > 0 && (
-                      <div className="bg-slate-50/80 border-t border-slate-100 px-5 py-2">
-                        <div className="space-y-1.5">
-                          {pagePermalinks.map(pl => (
-                            <div
-                              key={pl.id}
-                              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border transition-all ${
-                                pl.isVisible
-                                  ? 'bg-white border-slate-200 hover:border-brand-300'
-                                  : 'bg-slate-100/60 border-slate-200 opacity-60'
-                              }`}
-                            >
-                              <LinkIcon size={13} className={`shrink-0 ${pl.isVisible ? 'text-brand-500' : 'text-slate-400'}`} />
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-semibold text-xs text-slate-800 truncate">{pl.label}</span>
-                                  {!pl.isVisible && (
-                                    <span className="px-1 py-0 bg-slate-300 text-slate-500 text-[8px] font-bold rounded uppercase shrink-0">
-                                      Hidden
-                                    </span>
-                                  )}
-                                </div>
-                                <a
-                                  href={pl.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-[10px] text-brand-500 hover:text-brand-700 truncate block"
-                                >
-                                  {pl.url}
-                                </a>
-                              </div>
-                              <div className="flex items-center gap-1 shrink-0">
-                                <button
-                                  onClick={() => handleToggleVisibility(pl)}
-                                  className={`p-1 rounded transition-colors ${
-                                    pl.isVisible
-                                      ? 'text-green-600 hover:bg-green-100'
-                                      : 'text-slate-400 hover:bg-slate-200'
-                                  }`}
-                                  title={pl.isVisible ? 'Hide Permalink' : 'Show Permalink'}
-                                >
-                                  {pl.isVisible ? <Eye size={13} /> : <EyeOff size={13} />}
-                                </button>
-                                <button
-                                  onClick={() => handleOpenForm(pl)}
-                                  className="p-1 rounded text-blue-600 hover:bg-blue-100 transition-colors"
-                                  title="Edit Permalink"
-                                >
-                                  <Edit2 size={13} />
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(pl.id)}
-                                  className="p-1 rounded text-red-500 hover:bg-red-100 transition-colors"
-                                  title="Delete Permalink"
-                                >
-                                  <Trash2 size={13} />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-      {/* Form Modal */}
-      <AnimatePresence>
-        {showForm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={handleCloseForm}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <form onSubmit={handleSubmit}>
-                {/* Header */}
-                <div className="sticky top-0 bg-gradient-to-r from-brand-600 to-brand-500 p-6 text-white z-10">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-3 bg-white/20 rounded-xl">
+        <AnimatePresence>
+          {showForm && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={handleCloseForm}>
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <form onSubmit={handleSubmit}>
+                  <div className="p-6 border-b border-slate-100 bg-brand-500 text-white rounded-t-2xl">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center space-x-4">
+                        <div className="p-3 bg-white/20 rounded-xl">
                         <LinkIcon size={24} />
                       </div>
                       <div>
@@ -956,9 +635,230 @@ export const PermalinkManager: React.FC<PermalinkManagerProps> = ({
                 </div>
               </form>
             </motion.div>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
+
+      {/* Page permalink controls */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-xl font-bold text-slate-900">Page Permalinks</h3>
+            <p className="text-sm text-slate-500 mt-1">Manage automatic page links, visibility, and custom paths.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleSelectAll}
+              className="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
+            >
+              {selectedPages.size === filteredPagesForView.length && filteredPagesForView.length > 0 ? 'Clear Selection' : 'Select All'}
+            </button>
+            <button
+              type="button"
+              onClick={handleBulkHidePages}
+              disabled={selectedPages.size === 0}
+              className="px-3 py-2 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 text-xs font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Hide Selected
+            </button>
+            <button
+              type="button"
+              onClick={handleBulkDeletePages}
+              disabled={selectedPages.size === 0}
+              className="px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Delete Selected
+            </button>
+          </div>
+        </div>
+
+        <div className="p-5 grid md:grid-cols-[1fr_auto] gap-3 border-b border-slate-100">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input
+              type="text"
+              placeholder="Search pages..."
+              value={pageSearchTerm}
+              onChange={(e) => setPageSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm text-slate-900"
+            />
+          </div>
+          <div className="flex rounded-xl border border-slate-200 bg-slate-50 p-1">
+            {(['all', 'visible', 'hidden'] as const).map(filter => (
+              <button
+                key={filter}
+                type="button"
+                onClick={() => setFilterVisible(filter)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-colors ${
+                  filterVisible === filter ? 'bg-brand-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'
+                }`}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="divide-y divide-slate-100">
+          {filteredPagesForView.length > 0 ? (
+            filteredPagesForView.map(page => {
+              const pageUrl = getPagePermalink(page, pagePathOverrides);
+              const assignedPermalinks = getPermalinksForPage(page);
+              const hidden = hiddenPages.has(page);
+              const isEditingPath = editingPagePermalink === page;
+
+              return (
+                <div key={page} className={`p-4 transition-colors ${hidden ? 'bg-slate-50 opacity-70' : 'bg-white hover:bg-slate-50/70'}`}>
+                  <div className="flex flex-col xl:flex-row xl:items-center gap-4">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <input
+                        type="checkbox"
+                        checked={selectedPages.has(page)}
+                        onChange={() => toggleSelectPage(page)}
+                        className="mt-1 w-4 h-4 text-brand-600 border-slate-300 rounded focus:ring-brand-500"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h4 className="font-black text-slate-900 text-sm tracking-wide">{page}</h4>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                            hidden ? 'bg-slate-200 text-slate-500' : 'bg-green-100 text-green-700'
+                          }`}>
+                            {hidden ? 'Hidden' : 'Visible'}
+                          </span>
+                          {assignedPermalinks.length > 0 && (
+                            <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-black uppercase">
+                              {assignedPermalinks.length} link{assignedPermalinks.length === 1 ? '' : 's'}
+                            </span>
+                          )}
+                        </div>
+
+                        {isEditingPath ? (
+                          <div className="mt-2 flex flex-col sm:flex-row gap-2">
+                            <input
+                              value={pagePathDraft}
+                              onChange={(event) => setPagePathDraft(event.target.value)}
+                              onKeyDown={(event) => {
+                                if (event.key === 'Enter') handleSavePagePermalink();
+                                if (event.key === 'Escape') {
+                                  setEditingPagePermalink(null);
+                                  setPagePathDraft('');
+                                }
+                              }}
+                              className="flex-1 px-3 py-2 rounded-lg border border-brand-300 bg-white text-sm text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-brand-500"
+                              autoFocus
+                            />
+                            <button type="button" onClick={handleSavePagePermalink} className="px-3 py-2 rounded-lg bg-brand-600 text-white text-xs font-bold">
+                              Save
+                            </button>
+                            <button type="button" onClick={() => { setEditingPagePermalink(null); setPagePathDraft(''); }} className="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 text-xs font-bold">
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="mt-1 text-xs text-slate-500 font-mono truncate">{pageUrl}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+                      <button type="button" onClick={() => handleCopyPagePermalink(page)} className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600" title="Copy link">
+                        <Copy size={15} />
+                      </button>
+                      <button type="button" onClick={() => handleShare(pageUrl, page)} className="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600" title="Share link">
+                        <Share2 size={15} />
+                      </button>
+                      <button type="button" onClick={() => handleOpenPagePermalinkEditor(page)} className="p-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700" title="Edit path">
+                        <Edit2 size={15} />
+                      </button>
+                      <button type="button" onClick={() => handleTogglePageVisibility(page)} className={`p-2 rounded-lg ${hidden ? 'bg-slate-100 text-slate-500' : 'bg-green-50 text-green-700'}`} title={hidden ? 'Show page' : 'Hide page'}>
+                        {hidden ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                      <button type="button" onClick={() => handleDeletePage(page)} className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600" title="Delete page link">
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="p-10 text-center text-slate-400">
+              <Filter size={36} className="mx-auto mb-3 opacity-50" />
+              <p className="text-sm font-semibold">No pages match your filters.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Custom external permalinks */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-xl font-bold text-slate-900">Custom Links</h3>
+            <p className="text-sm text-slate-500 mt-1">Add extra links shown on selected pages.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleOpenForm()}
+            className="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold transition-colors flex items-center justify-center gap-2"
+          >
+            <LinkIcon size={16} />
+            Create Link
+          </button>
+        </div>
+
+        <div className="divide-y divide-slate-100">
+          {permalinks.length > 0 ? (
+            permalinks.map(permalink => (
+              <div key={permalink.id} className="p-4 flex flex-col lg:flex-row lg:items-center gap-4 hover:bg-slate-50/70 transition-colors">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h4 className="font-black text-slate-900">{permalink.label}</h4>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                      permalink.isVisible ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-500'
+                    }`}>
+                      {permalink.isVisible ? 'Visible' : 'Hidden'}
+                    </span>
+                    {permalink.allowShare && (
+                      <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-black uppercase">Share</span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500 font-mono truncate">{permalink.url}</p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {permalink.pages?.length ? `Shown on ${permalink.pages.length} selected page(s)` : 'Shown on all pages'}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                  <button type="button" onClick={() => navigator.clipboard?.writeText(permalink.url)} className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600" title="Copy URL">
+                    <Copy size={15} />
+                  </button>
+                  <a href={permalink.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600" title="Open URL">
+                    <ExternalLink size={15} />
+                  </a>
+                  <button type="button" onClick={() => handleToggleVisibility(permalink)} className={`p-2 rounded-lg ${permalink.isVisible ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500'}`} title="Toggle visibility">
+                    {permalink.isVisible ? <Eye size={15} /> : <EyeOff size={15} />}
+                  </button>
+                  <button type="button" onClick={() => handleOpenForm(permalink)} className="p-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700" title="Edit link">
+                    <Edit2 size={15} />
+                  </button>
+                  <button type="button" onClick={() => handleDelete(permalink.id)} className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600" title="Delete link">
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-10 text-center text-slate-400">
+              <LinkIcon size={36} className="mx-auto mb-3 opacity-50" />
+              <p className="text-sm font-semibold">No custom links yet.</p>
+              <button type="button" onClick={() => handleOpenForm()} className="mt-4 px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-bold">
+                Create your first link
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

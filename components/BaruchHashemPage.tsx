@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Play, Info, ArrowRight, Share2, Phone, MessageCircle, Heart, Flame, Shield, Crown } from 'lucide-react';
+import { BookOpen, Play, Info, ArrowRight, Share2, Phone, MessageCircle, Heart, Flame, Shield, Crown, Video, Clock } from 'lucide-react';
 import { Button } from './Button';
+import { api, BaruchVideo } from '../services/api';
 
 // Data from user request
 const praiseData = [
@@ -29,12 +30,21 @@ const praiseData = [
     { part: 22, letter: "ת", name: "Tav", range: "169 - 176", theme: "புகழ்ச்சி (Praise)", page: 198 },
 ];
 
-const GallerySection: React.FC = () => {
-    const images = Array.from({ length: 22 }, (_, i) => {
-        const num = i + 1;
-        const ext = num === 1 ? 'jpg' : 'png';
-        return `/barch_hasem/${num}.${ext}`;
-    });
+const GallerySection: React.FC<{ 
+    onImageClick: (index: number) => void;
+    videos: Record<number, string>;
+}> = ({ onImageClick, videos }) => {
+    const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
+
+    const handleImageError = (index: number) => {
+        setFailedImages(prev => new Set(prev).add(index));
+    };
+
+    const getThumbnailSrc = (index: number) => {
+        const partNum = index + 1;
+        const ext = partNum === 1 ? 'jpg' : 'png';
+        return `/barch_hasem/${partNum}.${ext}`;
+    };
 
     return (
         <section className="py-24 bg-[#0b1121] overflow-hidden border-y border-white/5">
@@ -45,22 +55,55 @@ const GallerySection: React.FC = () => {
 
             <div className="relative flex overflow-x-hidden group">
                 <div className="flex animate-marquee hover:pause-marquee gap-6 py-4">
-                    {[...images, ...images].map((src, i) => (
-                        <a
-                            key={i}
-                            href="https://youtube.com/@cotministries"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="relative w-[280px] md:w-[350px] aspect-video rounded-2xl overflow-hidden shrink-0 border border-white/10 hover:border-amber-500/50 transition-all duration-500 group/item active:scale-95"
-                        >
-                            <img src={src} alt={`Gallery ${i}`} className="w-full h-full object-cover transition-transform duration-700 group-hover/item:scale-110" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 flex items-end p-6">
-                                <span className="text-white font-bold text-sm tracking-widest uppercase flex items-center gap-2">
-                                    <Play size={16} className="fill-white" /> Watch on YouTube
-                                </span>
+                    {Array.from({ length: 44 }).map((_, i) => {
+                        const index = i % 22;
+                        const partNum = index + 1;
+                        const src = getThumbnailSrc(index);
+                        const hasVideo = !!videos[partNum];
+                        
+                        return (
+                            <div
+                                key={i}
+                                onClick={() => hasVideo ? onImageClick(index) : window.open('https://youtube.com/@cotministries', '_blank')}
+                                className="relative w-[280px] md:w-[350px] aspect-video rounded-2xl overflow-hidden shrink-0 border border-white/10 hover:border-amber-500/50 transition-all duration-500 group/item active:scale-95 cursor-pointer"
+                            >
+                                <img 
+                                    src={src} 
+                                    alt={`Gallery ${index}`} 
+                                    className="w-full h-full object-cover transition-transform duration-700 group-hover/item:scale-110"
+                                    onError={() => handleImageError(index)}
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
+                                    <span className="text-amber-400 font-bold text-xs uppercase tracking-wider mb-1">
+                                        Part {partNum} - {praiseData[index].letter} ({praiseData[index].name})
+                                    </span>
+                                    <span className="text-white font-bold text-sm tracking-widest uppercase flex items-center gap-2">
+                                        {hasVideo ? (
+                                            <a
+                                                href={`https://www.youtube.com/watch?v=${videos[partNum]}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="flex items-center gap-2 hover:text-amber-400 transition-colors pointer-events-auto"
+                                            >
+                                                <Play size={16} className="fill-white text-red-500" /> Watch Video
+                                            </a>
+                                        ) : (
+                                            <a
+                                                href="https://youtube.com/@cotministries"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="flex items-center gap-2 hover:text-amber-400 transition-colors pointer-events-auto"
+                                            >
+                                                <Play size={16} className="fill-white text-slate-400" /> Visit Channel
+                                            </a>
+                                        )}
+                                    </span>
+                                </div>
                             </div>
-                        </a>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
 
@@ -83,11 +126,63 @@ const GallerySection: React.FC = () => {
 export const BaruchHashemPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'hebrew' | 'tamil' | 'meaning'>('hebrew');
     const [isPlaying, setIsPlaying] = useState(false);
-    const audioRef = useRef<HTMLAudioElement>(null);
+    const DEFAULT_VIDEOS: Record<number, string> = {
+        1: "4nFxzgqQ_8I",
+        2: "1TrWrscz3A8",
+        3: "fw61MENxsNQ",
+        4: "wOAXgfWii6I",
+        5: "_8RjHFb9OTE",
+        6: "imGY37JZEUg",
+        7: "9cPWFHUgHwk",
+        8: "oFrLzVyEfFQ",
+        9: "oPus0tBHpnQ",
+        10: "sFi2y_w0KLQ",
+        11: "Be6kqxrA1Wk",
+        12: "OIrMG9VzGqs"
+    };
 
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text);
-        alert("Copied to clipboard!");
+    const [videos, setVideos] = useState<Record<number, string>>(DEFAULT_VIDEOS);
+    const audioRef = useRef<HTMLAudioElement>(null);
+    const chapterSectionRef = useRef<HTMLElement>(null);
+
+    useEffect(() => {
+        const fetchVideos = async () => {
+            try {
+                const data = await api.getBaruchVideos();
+                setVideos(prev => {
+                    const next = { ...prev };
+                    data.forEach(v => {
+                        const partNum = Number(v.part);
+                        if (v.youtubeId) {
+                            next[partNum] = v.youtubeId;
+                        } else {
+                            if (!DEFAULT_VIDEOS[partNum]) {
+                                next[partNum] = "";
+                            }
+                        }
+                    });
+                    return next;
+                });
+            } catch (e) {
+                console.error("Error fetching videos:", e);
+            }
+        };
+        fetchVideos();
+    }, []);
+
+    const scrollToChapter = (index: number) => {
+        const partNum = index + 1;
+        const element = document.getElementById(`part-card-${partNum}`);
+        if (element) {
+            const headerOffset = 100;
+            const elementPosition = element.getBoundingClientRect().top + window.scrollY;
+            const offsetPosition = elementPosition - headerOffset;
+            
+            window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+            });
+        }
     };
 
     useEffect(() => {
@@ -149,10 +244,12 @@ export const BaruchHashemPage: React.FC = () => {
                                     <span className="text-amber-500 font-tamil">போற்றுதலுக்குரிய புனிதமான ஆண்டவரது திருப்பெயர் மகிமைப்படுவதாக</span>
                                 </p>
 
-                                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                                    <Button className="bg-amber-600 hover:bg-amber-700 text-white border-0 shadow-lg shadow-amber-900/40">
-                                        Get the Digital Book
-                                    </Button>
+                                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                                     <Button 
+                                         className="bg-amber-600 hover:bg-amber-700 text-white border-0 shadow-lg shadow-amber-900/40"
+                                     >
+                                         Get the Digital Book
+                                     </Button>
                                     <div
                                         onClick={toggleAudio}
                                         className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 hover:bg-white/20 transition-all cursor-pointer group"
@@ -173,7 +270,110 @@ export const BaruchHashemPage: React.FC = () => {
                 </div>
             </section>
 
-            <GallerySection />
+            <GallerySection onImageClick={scrollToChapter} videos={videos} />
+
+            {/* 4. The 22 Parts (All Pre-shown in Grid) */}
+            <section ref={chapterSectionRef} className="py-24 bg-slate-50 border-t border-slate-200">
+                <div className="container mx-auto px-6 max-w-[1400px]">
+                    <div className="text-center mb-16">
+                        <span className="text-amber-600 font-bold uppercase tracking-widest text-xs">Divine Attributes</span>
+                        <h2 className="text-4xl md:text-5xl font-serif font-bold text-slate-900 mt-2 mb-4">The 22 Pillars of Praise</h2>
+                        <p className="text-slate-600 max-w-2xl mx-auto">Explore all 22 parts of Aathuma Nandri Baligal. Watch the direct video teaching for each Hebrew letter.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {praiseData.map((item) => {
+                            const hasVideo = !!videos[item.part];
+                            const youtubeId = videos[item.part];
+                            
+                            return (
+                                <div 
+                                    key={item.part}
+                                    id={`part-card-${item.part}`}
+                                    className="bg-white rounded-3xl overflow-hidden shadow-md hover:shadow-xl border border-slate-100 flex flex-col transition-all duration-300 hover:-translate-y-1"
+                                >
+                                    {/* Card Header Banner */}
+                                    <div className="relative h-40 bg-slate-900 overflow-hidden shrink-0">
+                                        <img 
+                                            src={`/barch_hasem/${item.part}.${item.part === 1 ? 'jpg' : 'png'}`}
+                                            alt={item.name}
+                                            className="absolute inset-0 w-full h-full object-cover opacity-60"
+                                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
+                                        <div className="absolute bottom-0 left-0 p-5 w-full flex items-end justify-between">
+                                            <div>
+                                                <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider mb-2 inline-block shadow-md">
+                                                    Part {item.part}
+                                                </span>
+                                                <h3 className="text-2xl font-serif font-bold text-white flex items-center gap-3">
+                                                    <span className="text-amber-400 font-bold bg-white/10 w-8 h-8 rounded-full flex items-center justify-center text-base">{item.letter}</span>
+                                                    <span>{item.name}</span>
+                                                </h3>
+                                            </div>
+                                            <div className="text-right text-white">
+                                                <p className="text-[10px] text-slate-300 uppercase">Praises</p>
+                                                <p className="font-bold text-sm">{item.range}</p>
+                                                <p className="text-[10px] text-amber-400">Page {item.page}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Card Body & Video */}
+                                    <div className="p-6 flex-1 flex flex-col justify-between bg-slate-50/30">
+                                        <div className="mb-4">
+                                            <p className="text-amber-700 font-tamil font-bold text-base leading-relaxed mb-2">{item.theme}</p>
+                                            <p className="text-xs text-slate-500 font-sans">
+                                                {item.part <= 12 
+                                                    ? `Teaching video for Part ${item.part} (${item.name}) is fully available. Watch directly below.` 
+                                                    : `Teaching video for Part ${item.part} (${item.name}) is coming soon.`}
+                                            </p>
+                                        </div>
+
+                                        <div className="w-full bg-white rounded-2xl p-1.5 shadow-inner border border-slate-200 aspect-video overflow-hidden relative">
+                                            {hasVideo ? (
+                                                <iframe 
+                                                    width="100%" 
+                                                    height="100%" 
+                                                    src={`https://www.youtube.com/embed/${youtubeId}?rel=0`}
+                                                    title={`Part ${item.part} - ${item.name}`} 
+                                                    frameBorder="0" 
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                                                    allowFullScreen
+                                                    loading="lazy"
+                                                    className="rounded-xl absolute inset-0 w-full h-full p-1"
+                                                ></iframe>
+                                            ) : (
+                                                <div className="w-full h-full rounded-xl bg-slate-100 border border-dashed border-slate-300 flex flex-col items-center justify-center p-4 text-center absolute inset-0">
+                                                    <Clock size={24} className="text-slate-400 mb-2 animate-pulse" />
+                                                    <h4 className="text-sm font-bold text-slate-700">Video Coming Soon</h4>
+                                                    <p className="text-[10px] text-slate-500 mt-1 max-w-[200px] leading-tight">
+                                                        விளக்க உரை விரைவில் பதிவேற்றப்படும்
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {hasVideo && (
+                                            <div className="mt-4 pt-4 border-t border-slate-100 flex justify-center">
+                                                <a 
+                                                    href={`https://www.youtube.com/watch?v=${youtubeId}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 hover:text-red-700 transition-colors uppercase tracking-wider"
+                                                >
+                                                    <Video size={14} />
+                                                    Watch on YouTube App
+                                                </a>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </section>
 
             {/* 2. About the Book */}
             <section className="py-24 bg-white">
@@ -263,54 +463,6 @@ export const BaruchHashemPage: React.FC = () => {
                                 <p className="text-slate-400">"True God"</p>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* 4. The 22 Parts (Praises Grid) */}
-            <section className="py-24 bg-slate-50">
-                <div className="container mx-auto px-6 max-w-7xl">
-                    <div className="text-center mb-16">
-                        <h2 className="text-4xl font-serif font-bold text-slate-900 mb-4">The 22 Pillars of Praise</h2>
-                        <p className="text-slate-600">Explore the divine attributes categorized by the Hebrew Aleph-Bet.</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {praiseData.map((item) => (
-                            <motion.div
-                                key={item.part}
-                                whileHover={{ y: -5 }}
-                                className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all border border-slate-100 group relative overflow-hidden"
-                            >
-                                <div className="absolute top-0 right-0 p-4 opacity-10 font-serif text-6xl text-brand-900 pointer-events-none group-hover:scale-110 transition-transform">{item.letter}</div>
-
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div className="w-10 h-10 rounded-full bg-brand-50 text-brand-700 flex items-center justify-center font-bold text-lg border border-brand-100">
-                                        {item.part}
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-slate-900 leading-none">{item.name}</h3>
-                                        <span className="text-xs text-slate-500">{item.range}</span>
-                                    </div>
-                                </div>
-
-                                <div className="mb-6">
-                                    <p className="text-sm text-slate-500 uppercase tracking-wide mb-1">Theme</p>
-                                    <h4 className="text-lg font-bold text-brand-800 font-tamil">{item.theme}</h4>
-                                </div>
-
-                                <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-50">
-                                    <span className="text-xs text-slate-400 font-medium">Page {item.page}</span>
-                                    <button
-                                        onClick={() => copyToClipboard(`${item.name} - ${item.theme}`)}
-                                        className="text-slate-400 hover:text-brand-600 transition-colors"
-                                        title="Copy to Share"
-                                    >
-                                        <Share2 size={18} />
-                                    </button>
-                                </div>
-                            </motion.div>
-                        ))}
                     </div>
                 </div>
             </section>
