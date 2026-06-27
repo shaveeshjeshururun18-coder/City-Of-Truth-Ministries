@@ -483,6 +483,7 @@ const App: React.FC = () => {
   const [celebrationMode, setCelebrationMode] = useState<'approval' | 'welcome'>('approval');
   const [statusNotice, setStatusNotice] = useState<{ type: 'approved' | 'rejected'; message: string } | null>(null);
   const [showWelcomeIntro, setShowWelcomeIntro] = useState(false);
+  const [sessionGreeting, setSessionGreeting] = useState<string | null>(null);
   const [tourStepIndex, setTourStepIndex] = useState<number | null>(null);
   const [tourRect, setTourRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
   const [heroEmail, setHeroEmail] = useState('');
@@ -951,6 +952,37 @@ const App: React.FC = () => {
       setShowWelcomeIntro(true);
     }
   }, [location.pathname]);
+
+  useEffect(() => {
+    // Generate session greeting on mount
+    if (!sessionStorage.getItem('cot_session_greeted')) {
+      const hour = new Date().getHours();
+      let timeGreeting = 'Good evening';
+      if (hour < 12) {
+        timeGreeting = 'Good morning';
+      } else if (hour < 17) {
+        timeGreeting = 'Good afternoon';
+      } else if (hour < 21) {
+        timeGreeting = 'Good evening';
+      } else {
+        timeGreeting = 'Good night';
+      }
+
+      let userIdentifier = '';
+      if (currentUser) {
+        userIdentifier = currentUser.name?.split(' ')[0] || currentUser.id;
+      }
+
+      const fullGreeting = userIdentifier ? `Shalom, ${timeGreeting}, ${userIdentifier}!` : `Shalom, ${timeGreeting}!`;
+      setSessionGreeting(fullGreeting);
+      sessionStorage.setItem('cot_session_greeted', '1');
+
+      // Auto-hide the greeting toast after a few seconds
+      setTimeout(() => {
+        setSessionGreeting(null);
+      }, 7000);
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     if (tourStepIndex === null || currentView !== ViewState.HOME) return;
@@ -3359,6 +3391,42 @@ const App: React.FC = () => {
                 Enter the Kingdom 👑
               </motion.button>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Session Greeting Toast */}
+      <AnimatePresence>
+        {sessionGreeting && (
+          <motion.div
+            initial={{ opacity: 0, y: -50, scale: 0.8, rotate: -2 }}
+            animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
+            exit={{ opacity: 0, y: -50, scale: 0.8, rotate: 2 }}
+            transition={{ type: 'spring', bounce: 0.5, duration: 0.8 }}
+            className="fixed top-24 left-1/2 -translate-x-1/2 z-[250] pointer-events-none"
+          >
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
+              <div className="relative bg-gradient-to-br from-brand-900 to-brand-950 px-10 py-5 rounded-full shadow-2xl border-2 border-amber-400/50 flex items-center gap-4 overflow-hidden">
+                <motion.div
+                   animate={{ rotate: 360 }}
+                   transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                >
+                  <Sparkles className="text-amber-300 w-8 h-8" />
+                </motion.div>
+                <span className="font-serif font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-400 text-3xl md:text-4xl tracking-wide drop-shadow-md">
+                  {sessionGreeting}
+                </span>
+
+                {/* Optional sweeping shine effect */}
+                <motion.div
+                   initial={{ x: '-100%' }}
+                   animate={{ x: '200%' }}
+                   transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+                   className="absolute inset-0 w-1/3 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12"
+                />
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
