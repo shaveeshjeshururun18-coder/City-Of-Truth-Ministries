@@ -38,6 +38,7 @@ import {
   Briefcase,
   Headset,
   Cloud,
+  Move,
   Zap,
   Flame,
   Award,
@@ -53,6 +54,9 @@ import {
 import { ViewState, User, UserRole, UserStatus, NavItem, DeletedUser, SubProfile, Permalink } from './types';
 import { HEBREW_PAGES } from './hebrewRegistry';
 import { Navbar } from './components/Navbar';
+import { WebsiteBuilderManager } from './components/WebsiteBuilderManager';
+import { WebsiteBuilderContext } from './components/WebsiteBuilderContext';
+import { EditableText } from './components/EditableText';
 import { PermalinkDisplay } from './components/PermalinkDisplay';
 import { SharePageButton } from './components/SharePageButton';
 import { Button } from './components/Button';
@@ -1200,6 +1204,75 @@ const App: React.FC = () => {
   const isAuthRoute = location.pathname === '/auth';
   const isVerifyScannerRoute = location.pathname === '/verify-id';
   const isHebrewAlphabetRoute = location.pathname === '/hebrew-alphabet';
+  const isWebsiteBuilderMode = location.pathname === '/websitebuilder';
+
+  const [pendingTextChanges, setPendingTextChanges] = useState<Record<string, string>>({});
+  const [undoStack, setUndoStack] = useState<any[]>([]);
+  const [redoStack, setRedoStack] = useState<any[]>([]);
+
+  const updateText = (id: string, text: string) => {
+    setPendingTextChanges(prev => {
+      const oldText = prev[id] !== undefined ? prev[id] : (JSON.parse(localStorage.getItem('cot_website_builder_texts') || '{}')[id] || '');
+      if (oldText !== text) {
+        setUndoStack(u => [...u, { type: 'TEXT', id, oldText, newText: text }]);
+        setRedoStack([]);
+      }
+      return { ...prev, [id]: text };
+    });
+  };
+
+  const undoAction = () => {
+    if (undoStack.length === 0) return;
+    const action = undoStack[undoStack.length - 1];
+    setUndoStack(prev => prev.slice(0, -1));
+    setRedoStack(prev => [...prev, action]);
+
+    if (action.type === 'TEXT') {
+      setPendingTextChanges(prev => ({ ...prev, [action.id]: action.oldText }));
+    } else if (action.type === 'NAV') {
+      setNavigationItems(action.oldItems);
+    } else if (action.type === 'HOME_SECTIONS') {
+      setHomeSectionsOrder(action.oldOrder);
+    }
+  };
+
+  const redoAction = () => {
+    if (redoStack.length === 0) return;
+    const action = redoStack[redoStack.length - 1];
+    setRedoStack(prev => prev.slice(0, -1));
+    setUndoStack(prev => [...prev, action]);
+
+    if (action.type === 'TEXT') {
+      setPendingTextChanges(prev => ({ ...prev, [action.id]: action.newText }));
+    } else if (action.type === 'NAV') {
+      setNavigationItems(action.newItems);
+    } else if (action.type === 'HOME_SECTIONS') {
+      setHomeSectionsOrder(action.newOrder);
+    }
+  };
+
+  const clearHistory = () => {
+    setUndoStack([]);
+    setRedoStack([]);
+  };
+
+  const publishAllChanges = async () => {
+    try {
+      await api.updateNavigationLayout(navigationItems);
+      await api.updateHomeLayout(homeSectionsOrder);
+    } catch(e) {}
+  };
+  const contextValue = {
+    isEditMode: isWebsiteBuilderMode,
+    pendingTextChanges,
+    updateText,
+    undoAction,
+    redoAction,
+    canUndo: undoStack.length > 0,
+    canRedo: redoStack.length > 0,
+    clearHistory,
+    publishAllChanges
+  };
 
   // Handle permalink/shareable URLs for pages
   useEffect(() => {
@@ -1924,6 +1997,7 @@ const App: React.FC = () => {
   // Hebrew alphabet route rendering moved to main layout below
 
   return (
+    <WebsiteBuilderContext.Provider value={contextValue}>
     <div className={`min-h-screen transition-colors duration-1000 ease-in-out font-sans ${getThemeClass()}`}>
       {/* Permalink Display Bar */}
       {!isFrame && Array.isArray(permalinks) && permalinks.length > 0 && (
@@ -1934,6 +2008,10 @@ const App: React.FC = () => {
       
       {!isFrame && (
         <>
+          <WebsiteBuilderManager
+            isEditMode={isWebsiteBuilderMode}
+            onExit={() => navigate('/')}
+          />
           <Navbar
             currentView={currentView}
             setView={handleViewChange}
@@ -1941,6 +2019,13 @@ const App: React.FC = () => {
             onLogoutClick={handleLogout}
             currentUser={currentUser}
             navItems={navigationItems}
+            isEditMode={isWebsiteBuilderMode}
+            onUpdateNavItems={(newItems) => {
+              const updatedNav = ensureHebrewNavItems(normalizeNavItems(newItems));
+              setUndoStack(u => [...u, { type: 'NAV', oldItems: navigationItems, newItems: updatedNav }]);
+              setRedoStack([]);
+              setNavigationItems(updatedNav);
+            }}
           />
 
           {activeFloatingNotification && dismissedFloatingNotificationId !== activeFloatingNotification.id && (
@@ -2070,8 +2155,10 @@ const App: React.FC = () => {
                 </motion.div>
               )}
 
-              {homeSectionsOrder.map((sectionId) => {
+              {homeSectionsOrder.map((sectionId, index) => {
                 if (homeSectionsHidden?.[sectionId]) return null;
+
+                const renderSectionContent = () => {
                 switch (sectionId) {
                   case 'hero':
                     return (
@@ -2404,7 +2491,7 @@ const App: React.FC = () => {
                         <div className={`w-14 h-14 ${item.light} rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300`}>
                           <item.icon size={26} />
                         </div>
-                        <h3 className="font-black text-brand-950 text-lg mb-2 leading-tight">{item.label}</h3>
+                        <h3 className="font-black text-brand-950 text-lg mb-2 leading-tight"><EditableText id={'footer-' + item.label} defaultText={item.label} /></h3>
                         <p className="text-slate-500 text-sm leading-relaxed mb-5">{item.desc}</p>
                         <div className={`inline-flex items-center gap-2 text-sm font-bold bg-gradient-to-r ${item.color} bg-clip-text text-transparent group-hover:gap-3 transition-all`}>
                           {item.cta} <ChevronRight size={14} className={`text-brand-500`} />
@@ -2417,6 +2504,49 @@ const App: React.FC = () => {
             );
           default: return null;
         }
+                }; // end renderSectionContent
+
+                if (!isWebsiteBuilderMode) return renderSectionContent();
+
+                return (
+                  <div
+                    key={sectionId}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('text/plain', index.toString());
+                      e.dataTransfer.effectAllowed = 'move';
+                      e.currentTarget.style.opacity = '0.5';
+                    }}
+                    onDragEnd={(e) => {
+                      e.currentTarget.style.opacity = '1';
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = 'move';
+                    }}
+                    onDrop={async (e) => {
+                      e.preventDefault();
+                      const draggedIndexStr = e.dataTransfer.getData('text/plain');
+                      if (!draggedIndexStr) return;
+                      const draggedIndex = parseInt(draggedIndexStr, 10);
+                      if (draggedIndex === index) return;
+
+                      const newOrder = [...homeSectionsOrder];
+                      const [draggedItem] = newOrder.splice(draggedIndex, 1);
+                      newOrder.splice(index, 0, draggedItem);
+
+                      setUndoStack(u => [...u, { type: 'HOME_SECTIONS', oldOrder: homeSectionsOrder, newOrder }]);
+                      setRedoStack([]);
+                      setHomeSectionsOrder(newOrder);
+                    }}
+                    className="relative group border-2 border-transparent hover:border-blue-400 transition-colors duration-200 cursor-move"
+                  >
+                    <div className="absolute top-2 left-2 z-50 bg-blue-500 text-white p-2 rounded shadow-lg opacity-0 group-hover:opacity-100 flex items-center gap-2 pointer-events-none">
+                      <Move size={16} /> Drag to Reorder Section
+                    </div>
+                    {renderSectionContent()}
+                  </div>
+                );
       })}
             </motion.div>
           )}
@@ -2902,7 +3032,7 @@ const App: React.FC = () => {
               <div className="flex items-center gap-4 mb-8">
                 <img src="/logo.png" alt="COT Logo" className="w-16 h-16 object-contain" />
                 <div>
-                  <h3 className="text-2xl font-serif font-black text-white leading-none">City of Truth</h3>
+                  <h3 className="text-2xl font-serif font-black text-white leading-none"><EditableText id="footer-logo" defaultText="City of Truth" /></h3>
                   <p className="text-[11px] text-accent-400 font-black uppercase tracking-[0.3em] mt-1">Ministries</p>
                 </div>
               </div>
@@ -2936,7 +3066,7 @@ const App: React.FC = () => {
                       className="hover:text-white transition-colors flex items-center gap-2 text-left"
                     >
                       <div className="w-1.5 h-1.5 rounded-full bg-accent-500/50"></div>
-                      {item.label}
+                      <EditableText id={'footer-' + item.label} defaultText={item.label} />
                     </button>
                   </li>
                 ))}
@@ -2970,7 +3100,7 @@ const App: React.FC = () => {
                         className="hover:text-white transition-colors flex items-center gap-2 text-left"
                       >
                         <div className={`w-1.5 h-1.5 rounded-full ${item.dotClass}`}></div>
-                        {item.label}
+                        <EditableText id={'footer-' + item.label} defaultText={item.label} />
                       </button>
                     </li>
                   ))}
@@ -2994,7 +3124,7 @@ const App: React.FC = () => {
                           className="hover:text-white transition-colors flex items-center gap-2 text-left"
                         >
                           <div className="w-1.5 h-1.5 rounded-full bg-amber-400/70"></div>
-                          {item.label}
+                          <EditableText id={'footer-' + item.label} defaultText={item.label} />
                         </button>
                       </li>
                     ))}
@@ -3010,7 +3140,7 @@ const App: React.FC = () => {
                           className="hover:text-white transition-colors flex items-center gap-2 text-left"
                         >
                           <div className="w-1.5 h-1.5 rounded-full bg-sky-400/70"></div>
-                          {item.label}
+                          <EditableText id={'footer-' + item.label} defaultText={item.label} />
                         </button>
                       </li>
                     ))}
@@ -3026,7 +3156,7 @@ const App: React.FC = () => {
                           className="hover:text-white transition-colors flex items-center gap-2 text-left"
                         >
                           <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/70"></div>
-                          {item.label}
+                          <EditableText id={'footer-' + item.label} defaultText={item.label} />
                         </button>
                       </li>
                     ))}
@@ -3378,6 +3508,7 @@ const App: React.FC = () => {
         </>
       )}
     </div >
+    </WebsiteBuilderContext.Provider>
   );
 }
 
