@@ -8,7 +8,7 @@ interface AdminPasswordModalProps {
 }
 
 const ADMIN_PASSWORD_OVERRIDE_KEY = 'cot_admin_password_override';
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'ssj18';
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
 export const AdminPasswordModal: React.FC<AdminPasswordModalProps> = ({ onSuccess }) => {
     const [password, setPassword] = useState('');
@@ -27,6 +27,13 @@ export const AdminPasswordModal: React.FC<AdminPasswordModalProps> = ({ onSucces
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!effectiveAdminPassword) {
+            setError('Admin access is not configured correctly on the server. Please contact support.');
+            setIsShaking(true);
+            setTimeout(() => setIsShaking(false), 500);
+            return;
+        }
 
         if (password.trim().toLowerCase() === effectiveAdminPassword.trim().toLowerCase()) {
             setError('');
