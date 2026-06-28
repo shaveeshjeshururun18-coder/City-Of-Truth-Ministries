@@ -13,7 +13,7 @@ const generateAssets = () => {
         assets.push({
             id: `img-${i}`,
             type: 'image',
-            src: `/ministry/IMG-20231230-WA${num}.jpg`,
+            src: `${import.meta.env.BASE_URL}ministry/IMG-20231230-WA${num}.jpg`,
             date: 'December 30, 2023'
         });
     }
@@ -33,7 +33,7 @@ const generateAssets = () => {
         const d = dateStr.substring(6, 8);
         const dateObj = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
         const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-        assets.push({ id: `vid-${i}`, type: 'video', src: `/ministry/${vid}`, date: formattedDate });
+        assets.push({ id: `vid-${i}`, type: 'video', src: `${import.meta.env.BASE_URL}ministry/${vid}`, date: formattedDate });
     });
     return assets.sort(() => Math.random() - 0.5);
 };

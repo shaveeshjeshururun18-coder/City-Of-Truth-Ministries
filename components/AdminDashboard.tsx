@@ -16,6 +16,7 @@ import { firebaseConfig, storage } from '../services/firebase';
 import { getDownloadURL, listAll, ref as storageRef, uploadBytes } from 'firebase/storage';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
+import JSZip from 'jszip';
 import { ImageCropper } from './ImageCropper';
 import { EntrustCard3D } from './WorshipperIDCard';
 import { AdminIDCard } from './AdminIDCard';
@@ -1049,7 +1050,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [failedMinistryImages, setFailedMinistryImages] = useState<Record<string, boolean>>({});
     const [userQuickViewMode, setUserQuickViewMode] = useState<UserQuickViewMode | null>(null);
     const [idCardVisualMode, setIdCardVisualMode] = useState<IdCardVisualMode>('cards');
+    const [idCardSizeVariation, setIdCardSizeVariation] = useState<'standard' | 'large' | 'extralarge' | 'compact'>('standard');
     const [applyingCardThemeTone, setApplyingCardThemeTone] = useState<User['cardThemeTone'] | null>(null);
+    const [isBulkDownloading, setIsBulkDownloading] = useState(false);
+    const [bulkDownloadFormat, setBulkDownloadFormat] = useState<'pdf' | 'zip'>('pdf');
+    const [bulkDownloadType, setBulkDownloadType] = useState<'Interest Card' | 'Cart ID' | 'Location' | 'Join date' | 'ID Card' | 'All'>('ID Card');
 
     const [activeTab, setActiveTab] = useState<AdminTabId>('users');
     const [menuMode, setMenuMode] = useState<'horizontal' | 'vertical'>(() => {
@@ -2519,6 +2524,79 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             alert('Failed to apply the theme to all filtered cards. Please try again.');
         } finally {
             setApplyingCardThemeTone(null);
+        }
+    };
+
+    const handleBulkDownload = async () => {
+        if (filteredUsers.length === 0) {
+            alert('No cards found to download.');
+            return;
+        }
+
+        setIsBulkDownloading(true);
+        try {
+            if (bulkDownloadFormat === 'pdf') {
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+
+                let isFirstPage = true;
+                for (let i = 0; i < filteredUsers.length; i++) {
+                    const user = filteredUsers[i];
+                    // Just download the front card as an image representing ID Card / Interest Card / Location
+                    const el = document.getElementById(`admin-card-container-${user.id}`);
+                    if (!el) continue;
+
+                    const dataUrl = await toPng(el, { quality: 0.95, pixelRatio: 2 });
+
+                    if (!isFirstPage) {
+                        pdf.addPage();
+                    }
+
+                    // Center the card on the page
+                    const pdfWidth = pdf.internal.pageSize.getWidth();
+                    const pdfHeight = pdf.internal.pageSize.getHeight();
+                    // Typical card aspect ratio
+                    const cardWidth = 85.6; // standard CR80 width in mm
+                    const cardHeight = 54;
+                    const x = (pdfWidth - cardWidth) / 2;
+                    const y = (pdfHeight - cardHeight) / 2;
+
+                    pdf.addImage(dataUrl, 'PNG', x, y, cardWidth, cardHeight);
+                    isFirstPage = false;
+                }
+
+                pdf.save(`Bulk_${bulkDownloadType}_Cards.pdf`);
+            } else if (bulkDownloadFormat === 'zip') {
+                const zip = new JSZip();
+
+                for (let i = 0; i < filteredUsers.length; i++) {
+                    const user = filteredUsers[i];
+                    const el = document.getElementById(`admin-card-container-${user.id}`);
+                    if (!el) continue;
+
+                    const dataUrl = await toPng(el, { quality: 0.95, pixelRatio: 2 });
+                    const base64Data = dataUrl.replace(/^data:image\/(png|jpg);base64,/, "");
+                    zip.file(`${user.id}_${bulkDownloadType}.png`, base64Data, { base64: true });
+                }
+
+                const blob = await zip.generateAsync({ type: 'blob' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Bulk_${bulkDownloadType}_Cards.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }
+        } catch (error) {
+            console.error('Bulk download error:', error);
+            alert('An error occurred during bulk download.');
+        } finally {
+            setIsBulkDownloading(false);
         }
     };
 
@@ -5602,6 +5680,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         ))}
                                     </select>
                                     <select
+                                        value={idCardSizeVariation}
+                                        onChange={(e) => setIdCardSizeVariation(e.target.value as 'standard' | 'large' | 'extralarge' | 'compact')}
+                                        className="flex-1 min-w-[100px] text-xs py-2.5 px-3 md:text-sm bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 font-bold text-amber-700"
+                                    >
+                                        <option value="standard">Standard Size</option>
+                                        <option value="large">Large Display</option>
+                                        <option value="extralarge">Extra Large Display</option>
+                                        <option value="compact">Compact / Wallet</option>
+                                    </select>
+                                    <select
                                         value={userSortMode}
                                         onChange={(e) => setUserSortMode(e.target.value as 'status' | 'cot-id' | 'joined-date')}
                                         className="flex-1 min-w-[100px] text-xs py-2.5 px-3 md:text-sm bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 font-bold"
@@ -5711,6 +5799,62 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </div>
                             </div>
                         </div>
+
+                        {/* Bulk Download Card Studio */}
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 md:p-6">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 mb-5 border-b border-slate-100 pb-5">
+                                <div>
+                                    <div className="flex items-center gap-2 text-brand-600 mb-1">
+                                        <Download size={16} />
+                                        <h3 className="font-black">Bulk Export Settings</h3>
+                                    </div>
+                                    <p className="text-xs text-slate-500">Download specific data sections as cards for the {filteredUsers.length} filtered users.</p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center bg-slate-100 p-1 rounded-xl">
+                                        <button
+                                            onClick={() => setBulkDownloadFormat('pdf')}
+                                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${bulkDownloadFormat === 'pdf' ? 'bg-white shadow-sm text-brand-700' : 'text-slate-500 hover:text-slate-700'}`}
+                                        >
+                                            PDF
+                                        </button>
+                                        <button
+                                            onClick={() => setBulkDownloadFormat('zip')}
+                                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${bulkDownloadFormat === 'zip' ? 'bg-white shadow-sm text-brand-700' : 'text-slate-500 hover:text-slate-700'}`}
+                                        >
+                                            ZIP
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                                {['ID Card', 'Interest Card', 'Cart ID', 'Location', 'Join date'].map(type => (
+                                    <button
+                                        key={type}
+                                        onClick={() => setBulkDownloadType(type as any)}
+                                        className={`px-3 py-2.5 rounded-xl border text-xs font-bold text-center transition-all ${bulkDownloadType === type ? 'bg-brand-50 border-brand-300 text-brand-700 shadow-inner' : 'bg-white border-slate-200 text-slate-600 hover:border-brand-200 hover:bg-slate-50'}`}
+                                    >
+                                        {type}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="flex justify-end">
+                                <button
+                                    onClick={handleBulkDownload}
+                                    disabled={filteredUsers.length === 0 || isBulkDownloading}
+                                    className="px-6 py-3 bg-brand-600 hover:bg-brand-700 active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all text-white rounded-xl font-black text-sm flex items-center gap-2 shadow-md shadow-brand-500/20"
+                                >
+                                    {isBulkDownloading ? (
+                                        <><span className="animate-spin">⏳</span> Processing {filteredUsers.length} Cards...</>
+                                    ) : (
+                                        <><Download size={16} /> Download Bulk {bulkDownloadFormat.toUpperCase()}</>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-8">
                             <AnimatePresence mode='popLayout'>
                                 {filteredUsers.map((user, index) => {
@@ -5729,7 +5873,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         {idCardVisualMode === 'cards' ? (
                                             <div className="flex flex-col gap-3 w-full">
                                                 <div className="cursor-pointer transition-transform hover:scale-[1.01] active:scale-[0.99] w-full">
+                                                    <div className={`transition-all duration-300 ${idCardSizeVariation === 'large' ? 'scale-[1.15] origin-top-left mx-auto mb-10' : idCardSizeVariation === 'extralarge' ? 'scale-[1.3] origin-top-left mx-auto mb-16' : idCardSizeVariation === 'compact' ? 'scale-[0.85] origin-top-left -mb-6' : ''}`}>
                                                     <AdminIDCard
+                                                        sizeVariation={idCardSizeVariation}
                                                         user={{
                                                             id: user.id,
                                                             name: user.name,
@@ -5745,7 +5891,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                         onCotIdClick={() => setIdCardVisualMode('ids')}
                                                         onLocationClick={() => setIdCardVisualMode('locations')}
                                                         onMemberSinceClick={() => setIdCardVisualMode('join-dates')}
+                                                        onThemeChange={(tone) => handleUserThemeChange(user.id, tone)}
                                                     />
+                                                    </div>
                                                 </div>
                                             </div>
                                         ) : idCardVisualMode === 'photos' ? (
@@ -6250,75 +6398,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 space-y-3">
-                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                                <div className="flex items-center gap-2">
-                                    <h2 className="text-sm font-black text-brand-950">Deleted Messages Recovery</h2>
-                                    <span className="text-xs font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-100">{deletedContactMessages.length + filteredDeletedMemberReplies.length}</span>
-                                </div>
-                                <select
-                                    value={messageRestoreUserFilter}
-                                    onChange={(e) => setMessageRestoreUserFilter(e.target.value)}
-                                    className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold outline-none focus:border-brand-500"
-                                >
-                                    <option value="">All users</option>
-                                    {deletedMessageUserOptions.map(userId => (
-                                        <option key={userId} value={userId}>{userId}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
-                                    <p className="text-xs font-black text-slate-700">Deleted Contact Messages</p>
-                                    {filteredDeletedContactMessages.length === 0 && <p className="text-xs text-slate-400">No deleted contact messages.</p>}
-                                    {filteredDeletedContactMessages.map(msg => (
-                                        <div key={msg.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                                            <p className="text-[11px] font-black text-brand-900 truncate">{msg.name || 'Website Visitor'} {msg.senderId ? `• ${msg.senderId}` : ''}</p>
-                                            <p className="text-[11px] text-slate-600 mt-1 line-clamp-2">{msg.message}</p>
-                                            <p className="text-[10px] text-slate-500 mt-1">
-                                                Auto delete: {msg.autoDeleteAt ? new Date(msg.autoDeleteAt).toLocaleDateString() : 'Not set'} •
-                                                {` ${Math.max(0, Math.ceil(((msg.autoDeleteAt ? new Date(msg.autoDeleteAt).getTime() : Date.now()) - Date.now()) / (24 * 60 * 60 * 1000)))} day(s) left`}
-                                            </p>
-                                            {onRestoreContactMessage && (
-                                                <button
-                                                    onClick={() => onRestoreContactMessage(msg.id)}
-                                                    className="mt-2 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold hover:bg-emerald-100"
-                                                >
-                                                    Restore
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
-                                    <p className="text-xs font-black text-slate-700">Deleted Member Notifications</p>
-                                    {filteredDeletedMemberReplies.length === 0 && <p className="text-xs text-slate-400">No deleted member notifications.</p>}
-                                    {filteredDeletedMemberReplies.map(note => (
-                                        <div key={note.id} className={`rounded-xl border p-3 ${note.from === 'admin' ? 'border-indigo-100 bg-indigo-50' : 'border-blue-100 bg-blue-50'}`}>
-                                            <div className="flex items-center justify-between gap-2">
-                                                <p className={`text-[11px] font-black truncate ${note.from === 'admin' ? 'text-indigo-900' : 'text-blue-900'}`}>{note.userId}</p>
-                                                <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${note.from === 'admin' ? 'bg-white border-indigo-200 text-indigo-700' : 'bg-white border-blue-200 text-blue-700'}`}>
-                                                    {note.from === 'admin' ? 'Admin Message' : 'User Reply'}
-                                                </span>
-                                            </div>
-                                            <p className={`text-[11px] mt-1 line-clamp-2 ${note.from === 'admin' ? 'text-indigo-900' : 'text-blue-900'}`}>{note.message}</p>
-                                            <p className={`text-[10px] mt-1 ${note.from === 'admin' ? 'text-indigo-700/70' : 'text-blue-700/70'}`}>
-                                                Auto delete: {note.autoDeleteAt ? new Date(note.autoDeleteAt).toLocaleDateString() : 'Not set'} •
-                                                {` ${Math.max(0, Math.ceil(((note.autoDeleteAt ? new Date(note.autoDeleteAt).getTime() : Date.now()) - Date.now()) / (24 * 60 * 60 * 1000)))} day(s) left`}
-                                            </p>
-                                            {onRestoreMemberNotification && (
-                                                <button
-                                                    onClick={() => onRestoreMemberNotification(note.id)}
-                                                    className={`mt-2 px-2.5 py-1.5 rounded-lg bg-white text-[11px] font-bold ${note.from === 'admin' ? 'text-indigo-700 border border-indigo-200 hover:bg-indigo-100' : 'text-blue-700 border border-blue-200 hover:bg-blue-100'}`}
-                                                >
-                                                    Restore
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
+
                     </div>
                 )}
 
@@ -8420,6 +8500,76 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 {activeTab === 'recycle-bin' && (
                     <div className="space-y-6">
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 space-y-3">
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                                <div className="flex items-center gap-2">
+                                    <h2 className="text-sm font-black text-brand-950">Deleted Messages Recovery</h2>
+                                    <span className="text-xs font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-100">{deletedContactMessages.length + filteredDeletedMemberReplies.length}</span>
+                                </div>
+                                <select
+                                    value={messageRestoreUserFilter}
+                                    onChange={(e) => setMessageRestoreUserFilter(e.target.value)}
+                                    className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold outline-none focus:border-brand-500"
+                                >
+                                    <option value="">All users</option>
+                                    {deletedMessageUserOptions.map(userId => (
+                                        <option key={userId} value={userId}>{userId}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                                    <p className="text-xs font-black text-slate-700">Deleted Contact Messages</p>
+                                    {filteredDeletedContactMessages.length === 0 && <p className="text-xs text-slate-400">No deleted contact messages.</p>}
+                                    {filteredDeletedContactMessages.map(msg => (
+                                        <div key={msg.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                                            <p className="text-[11px] font-black text-brand-900 truncate">{msg.name || 'Website Visitor'} {msg.senderId ? `• ${msg.senderId}` : ''}</p>
+                                            <p className="text-[11px] text-slate-600 mt-1 line-clamp-2">{msg.message}</p>
+                                            <p className="text-[10px] text-slate-500 mt-1">
+                                                Auto delete: {msg.autoDeleteAt ? new Date(msg.autoDeleteAt).toLocaleDateString() : 'Not set'} •
+                                                {` ${Math.max(0, Math.ceil(((msg.autoDeleteAt ? new Date(msg.autoDeleteAt).getTime() : Date.now()) - Date.now()) / (24 * 60 * 60 * 1000)))} day(s) left`}
+                                            </p>
+                                            {onRestoreContactMessage && (
+                                                <button
+                                                    onClick={() => onRestoreContactMessage(msg.id)}
+                                                    className="mt-2 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold hover:bg-emerald-100"
+                                                >
+                                                    Restore
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                                    <p className="text-xs font-black text-slate-700">Deleted Member Notifications</p>
+                                    {filteredDeletedMemberReplies.length === 0 && <p className="text-xs text-slate-400">No deleted member notifications.</p>}
+                                    {filteredDeletedMemberReplies.map(note => (
+                                        <div key={note.id} className={`rounded-xl border p-3 ${note.from === 'admin' ? 'border-indigo-100 bg-indigo-50' : 'border-blue-100 bg-blue-50'}`}>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <p className={`text-[11px] font-black truncate ${note.from === 'admin' ? 'text-indigo-900' : 'text-blue-900'}`}>{note.userId}</p>
+                                                <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${note.from === 'admin' ? 'bg-white border-indigo-200 text-indigo-700' : 'bg-white border-blue-200 text-blue-700'}`}>
+                                                    {note.from === 'admin' ? 'Admin Message' : 'User Reply'}
+                                                </span>
+                                            </div>
+                                            <p className={`text-[11px] mt-1 line-clamp-2 ${note.from === 'admin' ? 'text-indigo-900' : 'text-blue-900'}`}>{note.message}</p>
+                                            <p className={`text-[10px] mt-1 ${note.from === 'admin' ? 'text-indigo-700/70' : 'text-blue-700/70'}`}>
+                                                Auto delete: {note.autoDeleteAt ? new Date(note.autoDeleteAt).toLocaleDateString() : 'Not set'} •
+                                                {` ${Math.max(0, Math.ceil(((note.autoDeleteAt ? new Date(note.autoDeleteAt).getTime() : Date.now()) - Date.now()) / (24 * 60 * 60 * 1000)))} day(s) left`}
+                                            </p>
+                                            {onRestoreMemberNotification && (
+                                                <button
+                                                    onClick={() => onRestoreMemberNotification(note.id)}
+                                                    className={`mt-2 px-2.5 py-1.5 rounded-lg bg-white text-[11px] font-bold ${note.from === 'admin' ? 'text-indigo-700 border border-indigo-200 hover:bg-indigo-100' : 'text-blue-700 border border-blue-200 hover:bg-blue-100'}`}
+                                                >
+                                                    Restore
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 flex items-center justify-between">
                             <div>
                                 <h2 className="text-2xl font-serif font-black text-brand-950">User Recycle Bin</h2>
