@@ -63,6 +63,7 @@ import { GoldenMenorah } from './components/GoldenMenorah';
 import { GoldenMenorahPage } from './components/GoldenMenorahPage';
 import { AIPage } from './components/AIPage';
 import AIChatAssistant from './components/AIChatAssistant';
+import { GlobalAIWidget } from './components/GlobalAIWidget';
 import { MinistryHighlights, HebrewSanctuaryIntro, HebrewPagesPreviewSection, PastorBaruchPreviewSection, ValparaiPresence, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, CommunityMembersSection } from './components/HomeSections';
 import { MessageFromLeader } from './components/MessageFromLeader';
 import { HebrewAlphabetPage } from './components/HebrewAlphabetPage';
@@ -401,16 +402,16 @@ const TestimonialSection: React.FC<TestimonialSectionProps> = ({ currentUser }) 
                   <input
                     type="text"
                     placeholder="Your Name"
-                    className="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl outline-none focus:border-brand-500 transition-colors text-brand-950 placeholder:text-slate-400"
+                    readOnly
+                    className="w-full bg-slate-100 border border-slate-200 p-4 rounded-xl outline-none text-brand-950 cursor-not-allowed opacity-70"
                     value={formData.name}
-                    onChange={e => setFormData({ ...formData, name: e.target.value })}
                   />
                   <input
                     type="text"
                     placeholder="Location"
-                    className="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl outline-none focus:border-brand-500 transition-colors text-brand-950 placeholder:text-slate-400"
+                    readOnly
+                    className="w-full bg-slate-100 border border-slate-200 p-4 rounded-xl outline-none text-brand-950 cursor-not-allowed opacity-70"
                     value={formData.location}
-                    onChange={e => setFormData({ ...formData, location: e.target.value })}
                   />
                 </div>
                 <textarea
@@ -3373,7 +3374,10 @@ const App: React.FC = () => {
         />
       )}
       {!isFrame && currentView !== ViewState.AUTH && currentView !== ViewState.ADMIN_DASHBOARD && currentView !== ViewState.VERIFY_ID && (
-        <AIChatAssistant />
+        <>
+          <AIChatAssistant />
+          <GlobalAIWidget />
+        </>
       )}
         </>
       )}

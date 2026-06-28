@@ -53,7 +53,34 @@ HEBREW_PAGES.forEach(p => {
 VIEW_TO_NAV_ID[ViewState.ABOUT] = 'israel';
 VIEW_TO_NAV_ID[ViewState.HEBREW_TOOLS] = 'words';
 
+import { useState, useEffect, useRef } from 'react';
+
 export const BottomNav: React.FC<BottomNavProps> = ({ currentView, setView }) => {
+    const [isVisible, setIsVisible] = useState(true);
+    const lastScrollYRef = useRef(0);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            if (currentView === ViewState.HOME) {
+                setIsVisible(true);
+                return;
+            }
+            const currentScrollY = window.scrollY;
+            const lastScrollY = lastScrollYRef.current;
+            if (currentScrollY <= 12) {
+                setIsVisible(true);
+            } else if (currentScrollY > lastScrollY + 6 && currentScrollY > 90) {
+                setIsVisible(false);
+            } else if (currentScrollY < lastScrollY - 6) {
+                setIsVisible(true);
+            }
+            lastScrollYRef.current = Math.max(0, currentScrollY);
+        };
+        handleScroll();
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [currentView]);
+
     if (!HEBREW_VIEWS.has(currentView)) return null;
 
     const activePage = HEBREW_PAGES.find(p => p.view === currentView);
@@ -69,9 +96,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentView, setView }) =>
         columns: string
     ) => (
         <div className="space-y-1.5">
-            <div className="px-1.5 text-[8px] font-black uppercase tracking-[0.28em] text-slate-400">
-                {title}
-            </div>
+            {title && (
+                <div className="px-1.5 text-[8px] font-black uppercase tracking-[0.28em] text-slate-400">
+                    {title}
+                </div>
+            )}
             <div className={`grid ${columns} gap-1.5`}>
                 {items.map((item) => {
                     const isActive = activeId === item.id;
@@ -124,12 +153,12 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentView, setView }) =>
     );
 
     return (
-        <div className="fixed bottom-4 left-0 right-0 z-50 md:hidden flex justify-center">
+        <div className={`fixed bottom-4 left-0 right-0 z-50 md:hidden flex justify-center transition-transform duration-300 ${!isVisible ? 'translate-y-[150%]' : 'translate-y-0'}`}>
             <div className="w-[90%] max-w-sm relative">
                 <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-amber-300/60 to-transparent" />
                 <div className="bg-white/96 backdrop-blur-3xl rounded-[1.75rem] shadow-[0_-2px_20px_rgba(0,0,0,0.08),0_8px_32px_rgba(0,0,0,0.12)] border border-slate-100/80 px-2 py-2">
                     <div className="space-y-2.5">
-                        {viewType === 'content' && renderGroup('Resources', HEBREW_RESOURCE_ITEMS, `grid-cols-${HEBREW_RESOURCE_ITEMS.length}`)}
+                        {viewType === 'content' && renderGroup('', HEBREW_RESOURCE_ITEMS, `grid-cols-${HEBREW_RESOURCE_ITEMS.length}`)}
                         {viewType === 'tools' && renderGroup('', HEBREW_TOOL_ITEMS, `grid-cols-${HEBREW_TOOL_ITEMS.length}`)}
                     </div>
                 </div>

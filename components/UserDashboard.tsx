@@ -1675,8 +1675,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             </div>
                                             {activeProfileId === pf.id && <CheckCircle size={16} className="text-accent-500 shrink-0" />}
                                         </button>
-                                        <button onClick={() => handleDeleteSubProfile(pf.id)} aria-label={`Remove ${pf.name}`} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1.5 rounded-lg text-red-300 hover:text-red-500 hover:bg-red-50 transition-all ml-2 shrink-0">
-                                            <Trash2 size={14} />
+                                        <button onClick={() => handleDeleteSubProfile(pf.id)} aria-label={`Remove ${pf.name}`} className="opacity-100 p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-all ml-2 shrink-0">
+                                            <Trash2 size={16} />
                                         </button>
                                     </div>
                                 );
@@ -1854,13 +1854,18 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             <button
                                                 type="button"
                                                 onClick={handleDownloadQrCode}
-                                                className="rounded-[24px] border border-slate-200 bg-white p-3 shadow-inner cursor-zoom-in hover:scale-[1.01] transition-transform"
+                                                className="rounded-[24px] border border-slate-200 bg-white p-3 shadow-inner cursor-zoom-in hover:scale-[1.01] transition-transform relative overflow-hidden"
                                                 title="Click to download QR code"
                                             >
                                                 <img
+                                                    src="/logo.png"
+                                                    alt="Logo watermark"
+                                                    className="absolute inset-0 w-full h-full object-contain p-8 opacity-20 pointer-events-none"
+                                                />
+                                                <img
                                                     src={qrImgSrc}
                                                     alt={`QR code for ${displayProfile.id}`}
-                                                    className="w-44 h-44 md:w-52 md:h-52 object-contain"
+                                                    className="w-44 h-44 md:w-52 md:h-52 object-contain relative z-10 mix-blend-multiply"
                                                     onError={() => setQrImageUnavailable(true)}
                                                 />
                                             </button>
@@ -2161,7 +2166,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         <p className="text-[11px] text-slate-500 mt-2 break-all">{qrUrl}</p>
                                     </div>
                                 ) : (
-                                    <img src={qrImgSrc} alt={`QR preview for ${displayProfile.id}`} className="w-full max-w-[300px] mx-auto object-contain" onError={() => setQrImageUnavailable(true)} />
+                                        <>
+                                            <img
+                                                src="/logo.png"
+                                                alt="Logo watermark"
+                                                className="absolute inset-0 w-full h-full object-contain p-8 opacity-20 pointer-events-none"
+                                            />
+                                            <img src={qrImgSrc} alt={`QR preview for ${displayProfile.id}`} className="w-full max-w-[300px] mx-auto object-contain relative z-10 mix-blend-multiply" onError={() => setQrImageUnavailable(true)} />
+                                        </>
                                 )}
                             </div>
                             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Verification Link</p>
