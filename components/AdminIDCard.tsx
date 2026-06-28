@@ -37,9 +37,10 @@ interface AdminIDCardProps {
     onLocationClick?: () => void;
     onMemberSinceClick?: () => void;
     onThemeChange?: (tone: 'blue' | 'purple' | 'green' | 'red' | 'gold' | 'lightblue') => void;
+    sizeVariation?: 'standard' | 'large' | 'extralarge' | 'compact';
 }
 
-export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user, onPhotoClick, onCotIdClick, onLocationClick, onMemberSinceClick, onThemeChange }) => {
+export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user, onPhotoClick, onCotIdClick, onLocationClick, onMemberSinceClick, onThemeChange, sizeVariation = 'standard' }) => {
     const qrData = `CITY OF TRUTH MINISTRIES\nID: ${user.id}\nName: ${user.name}\nRole: ${user.role}`;
     const tone = user.cardThemeTone || 'blue';
     const qrColor = {
