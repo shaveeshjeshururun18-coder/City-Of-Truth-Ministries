@@ -1050,6 +1050,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [failedMinistryImages, setFailedMinistryImages] = useState<Record<string, boolean>>({});
     const [userQuickViewMode, setUserQuickViewMode] = useState<UserQuickViewMode | null>(null);
     const [idCardVisualMode, setIdCardVisualMode] = useState<IdCardVisualMode>('cards');
+    const [idCardsFilterYears, setIdCardsFilterYears] = useState<string[]>([]);
+    const [idCardsFilterCategories, setIdCardsFilterCategories] = useState<UserStatus[]>([]);
+    const [idCardsFilterLocations, setIdCardsFilterLocations] = useState<string[]>([]);
+    const [showBulkDownloadModal, setShowBulkDownloadModal] = useState(false);
+    const [bulkDownloadOptions, setBulkDownloadOptions] = useState<IdCardVisualMode[]>([]);
+    const [bulkDownloadTheme, setBulkDownloadTheme] = useState<User['cardThemeTone'] | null>(null);
     const [applyingCardThemeTone, setApplyingCardThemeTone] = useState<User['cardThemeTone'] | null>(null);
 
     const [activeTab, setActiveTab] = useState<AdminTabId>('users');
@@ -1946,6 +1952,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             prev.includes(location) ? prev.filter(item => item !== location) : [...prev, location]
         );
     };
+    const toggleIdCardsYear = (year: string) => {
+        setIdCardsFilterYears(prev => prev.includes(year) ? prev.filter(item => item !== year) : [...prev, year]);
+    };
+    const toggleIdCardsCategory = (status: UserStatus) => {
+        setIdCardsFilterCategories(prev => prev.includes(status) ? prev.filter(item => item !== status) : [...prev, status]);
+    };
+    const toggleIdCardsLocation = (location: string) => {
+        setIdCardsFilterLocations(prev => prev.includes(location) ? prev.filter(item => item !== location) : [...prev, location]);
+    };
+
     const toggleMessageYear = (year: string) => {
         setSelectedMessageYears(prev => prev.includes(year) ? prev.filter(item => item !== year) : [...prev, year]);
     };
@@ -2480,9 +2496,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 phone.includes(query) ||
                 id.includes(query);
 
-            const matchesStatus = filterStatus === 'All' || user.status === filterStatus;
-            const matchesRole = filterRole === 'All' || user.role === filterRole;
-            const matchesLocation = filterLocation === 'All' || (user.location || '').trim() === filterLocation;
+            let matchesStatus = filterStatus === 'All' || user.status === filterStatus;
+            let matchesLocation = filterLocation === 'All' || (user.location || '').trim() === filterLocation;
+            let matchesRole = filterRole === 'All' || user.role === filterRole;
+
+            if (activeTab === 'id-cards') {
+                const joinedYear = `${user.joinedDate || ''}`.slice(0, 4);
+                const memberSinceYear = `${user.memberSince || ''}`.trim();
+                const matchesYearCard = idCardsFilterYears.length === 0 || idCardsFilterYears.includes(joinedYear) || idCardsFilterYears.includes(memberSinceYear);
+                const matchesCatCard = idCardsFilterCategories.length === 0 || idCardsFilterCategories.includes(user.status);
+                const matchesLocCard = idCardsFilterLocations.length === 0 || idCardsFilterLocations.includes((user.location || '').trim());
+                return matchesSearch && matchesYearCard && matchesCatCard && matchesLocCard && matchesRole;
+            }
 
             return matchesSearch && matchesStatus && matchesRole && matchesLocation;
         });
@@ -2504,7 +2529,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             const statusOrder = { 'Pending Verification': 0, 'Active': 1, 'Rejected': 2 };
             return statusOrder[a.status] - statusOrder[b.status];
         });
-    }, [users, searchQuery, filterStatus, filterRole, filterLocation, userSortMode]);
+    }, [users, searchQuery, filterStatus, filterRole, filterLocation, userSortMode, activeTab, idCardsFilterYears, idCardsFilterCategories, idCardsFilterLocations]);
 
     const handleApplyBulkCardTheme = async (tone: NonNullable<User['cardThemeTone']>) => {
         if (filteredUsers.length === 0) {
@@ -3214,14 +3239,180 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
     };
 
+    const handleGenerateBulkPdf = async () => {
+        // Apply temporary theme context to users before download if selected
+        const effectiveUsersToDownload = bulkDownloadTheme ? filteredUsers.filter(u => selectedUsers.has(u.id) && u.status === 'Active').map(u => ({...u, cardThemeTone: bulkDownloadTheme})) : filteredUsers.filter(u => selectedUsers.has(u.id) && u.status === 'Active');
+
+        if (selectedUsers.size === 0 || bulkDownloadOptions.length === 0) return;
+
+        if (effectiveUsersToDownload.length === 0) {
+            alert('No active users selected for download.');
+            return;
+        }
+
+        setIsLoading(true);
+        setShowBulkDownloadModal(false);
+
+        try {
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4',
+                compress: true
+            });
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.top = '-9999px';
+            container.style.left = '-9999px';
+            document.body.appendChild(container);
+
+            let isFirstPage = true;
+
+            for (const mode of bulkDownloadOptions) {
+                const groupedUsers: Record<string, typeof effectiveUsersToDownload> = {};
+                effectiveUsersToDownload.forEach(user => {
+                    const category = user.status;
+                    if (!groupedUsers[category]) groupedUsers[category] = [];
+                    groupedUsers[category].push(user);
+                });
+
+                for (const [category, users] of Object.entries(groupedUsers)) {
+                    if (!isFirstPage) pdf.addPage();
+                    isFirstPage = false;
+
+                    pdf.setFillColor(15, 23, 42);
+                    pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
+
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(24);
+                    const titleText = `${mode.toUpperCase()} - ${category.toUpperCase()}`;
+                    const textWidth = pdf.getStringUnitWidth(titleText) * pdf.getFontSize() / pdf.internal.scaleFactor;
+                    pdf.text(titleText, (pdfWidth - textWidth) / 2, pdfHeight / 2);
+
+                    let xOffset = 10;
+                    let yOffset = 10;
+                    const cardWidth = 85;
+                    const cardHeight = 135;
+
+                    pdf.addPage();
+                    pdf.setFillColor(248, 250, 252);
+                    pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
+
+                    for (const user of users) {
+                        if (mode === 'cards') {
+                           const frontNode = document.getElementById(`admin-card-front-${user.id}`) || document.getElementById(`quick-card-${user.id}`);
+                           const backNode = document.getElementById(`admin-card-back-${user.id}`) || document.getElementById(`quick-card-back-${user.id}`);
+                           if (frontNode && backNode) {
+                               const frontDataUrl = await toPng(frontNode, { pixelRatio: 2, quality: 0.9, backgroundColor: '#ffffff' });
+                               const backDataUrl = await toPng(backNode, { pixelRatio: 2, quality: 0.9, backgroundColor: '#ffffff' });
+
+                               if (yOffset + cardHeight > pdfHeight - 10) {
+                                   pdf.addPage();
+                                   pdf.setFillColor(248, 250, 252);
+                                   pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
+                                   xOffset = 10;
+                                   yOffset = 10;
+                               }
+
+                               pdf.addImage(frontDataUrl, 'PNG', xOffset, yOffset, cardWidth, cardHeight, undefined, 'FAST');
+                               xOffset += cardWidth + 10;
+
+                               if (xOffset + cardWidth > pdfWidth - 10) {
+                                   xOffset = 10;
+                                   yOffset += cardHeight + 10;
+                               }
+                           }
+                        } else {
+                           if (yOffset + cardHeight > pdfHeight - 10) {
+                               pdf.addPage();
+                               pdf.setFillColor(248, 250, 252);
+                               pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
+                               xOffset = 10;
+                               yOffset = 10;
+                           }
+
+                           const isThemeApplied = bulkDownloadTheme !== null;
+                           const themeColors = {
+                               gold: { bg: [31, 19, 5], border: [251, 191, 36], text: [255, 255, 255] },
+                               silver: { bg: [15, 23, 42], border: [148, 163, 184], text: [255, 255, 255] },
+                               bronze: { bg: [67, 20, 7], border: [217, 119, 6], text: [255, 255, 255] },
+                               sapphire: { bg: [8, 47, 73], border: [56, 189, 248], text: [255, 255, 255] },
+                               ruby: { bg: [69, 10, 10], border: [248, 113, 113], text: [255, 255, 255] },
+                               emerald: { bg: [6, 78, 59], border: [52, 211, 153], text: [255, 255, 255] }
+                           };
+
+                           if (isThemeApplied && bulkDownloadTheme) {
+                               const colors = themeColors[bulkDownloadTheme] || themeColors.gold;
+                               pdf.setFillColor(colors.bg[0], colors.bg[1], colors.bg[2]);
+                               pdf.setDrawColor(colors.border[0], colors.border[1], colors.border[2]);
+                               pdf.roundedRect(xOffset, yOffset, cardWidth, cardHeight, 5, 5, 'FD');
+                               pdf.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+                           } else {
+                               pdf.setFillColor(255, 255, 255);
+                               pdf.setDrawColor(200, 200, 200);
+                               pdf.roundedRect(xOffset, yOffset, cardWidth, cardHeight, 5, 5, 'FD');
+                               pdf.setTextColor(15, 23, 42);
+                           }
+
+                           pdf.setFont('helvetica', 'bold');
+                           pdf.setFontSize(12);
+                           pdf.text(user.name, xOffset + 5, yOffset + 15);
+
+                           pdf.setFont('helvetica', 'normal');
+                           pdf.setFontSize(10);
+                           if (mode === 'photos') {
+                               const imgElem = document.querySelector(`img[alt="${user.name}"]`);
+                               if (imgElem && imgElem instanceof HTMLImageElement) {
+                                   try {
+                                      pdf.addImage(imgElem, 'JPEG', xOffset + 5, yOffset + 20, cardWidth - 10, cardWidth - 10);
+                                   } catch (e) {}
+                               } else if (user.photo) {
+                                  try {
+                                      pdf.addImage(user.photo, 'JPEG', xOffset + 5, yOffset + 20, cardWidth - 10, cardWidth - 10);
+                                  } catch (e) {}
+                               } else {
+                                  pdf.text('No Photo', xOffset + 5, yOffset + 30);
+                               }
+                           } else if (mode === 'ids') {
+                               pdf.text(`COT ID: ${user.id}`, xOffset + 5, yOffset + 30);
+                           } else if (mode === 'locations') {
+                               pdf.text(`Location: ${user.location || 'N/A'}`, xOffset + 5, yOffset + 30);
+                           } else if (mode === 'join-dates') {
+                               pdf.text(`Joined: ${user.joinedDate || 'N/A'}`, xOffset + 5, yOffset + 30);
+                           }
+
+                           xOffset += cardWidth + 10;
+                           if (xOffset + cardWidth > pdfWidth - 10) {
+                               xOffset = 10;
+                               yOffset += cardHeight + 10;
+                           }
+                        }
+                    }
+                }
+            }
+
+            document.body.removeChild(container);
+            pdf.save(`BULK-ID-CARDS-${new Date().getTime()}.pdf`);
+        } catch (err) {
+            console.error('Bulk PDF generation failed', err);
+            alert('Failed to generate bulk PDF. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const handleDownloadUserCard = async (user: User) => {
         if (user.status !== 'Active') {
             alert('Entrust card PDF is available only for approved users.');
             return;
         }
         setDownloadingCardUserId(user.id);
-        const frontNode = document.getElementById(`admin-card-front-${user.id}`);
-        const backNode = document.getElementById(`admin-card-back-${user.id}`);
+        const frontNode = document.getElementById(`admin-card-front-${user.id}`) || document.getElementById(`quick-card-${user.id}`);
+        const backNode = document.getElementById(`admin-card-back-${user.id}`) || document.getElementById(`quick-card-back-${user.id}`);
 
         if (frontNode && backNode) {
             try {
@@ -5593,6 +5784,69 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         {activeTab === 'id-cards' && (
                         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
                             <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                                <div className="w-full space-y-4 mb-4">
+                                    <div className="flex flex-wrap gap-2.5 items-center">
+                                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 space-y-2 flex-1 min-w-[280px]">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <p className="text-[11px] font-black text-slate-700 uppercase tracking-wide">Years</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <button onClick={() => setIdCardsFilterYears(messageYearOptions)} className="px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-100">Select all</button>
+                                                        <button onClick={() => setIdCardsFilterYears([])} className="px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-100">All years</button>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {messageYearOptions.map(year => {
+                                                        const selected = idCardsFilterYears.includes(year);
+                                                        return (
+                                                            <button key={year} onClick={() => toggleIdCardsYear(year)} className={`px-2.5 py-1 rounded-full border text-[10px] font-bold transition-colors ${selected ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'}`}>
+                                                                {year}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+
+                                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 space-y-2 flex-1 min-w-[280px]">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <p className="text-[11px] font-black text-slate-700 uppercase tracking-wide">Categories</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <button onClick={() => setIdCardsFilterCategories(['Active', 'Pending Verification', 'Rejected'])} className="px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-100">Select all</button>
+                                                        <button onClick={() => setIdCardsFilterCategories([])} className="px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-100">All categories</button>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {(['Active', 'Pending Verification', 'Rejected'] as UserStatus[]).map(status => {
+                                                        const selected = idCardsFilterCategories.includes(status);
+                                                        return (
+                                                            <button key={status} onClick={() => toggleIdCardsCategory(status)} className={`px-2.5 py-1 rounded-full border text-[10px] font-bold transition-colors ${selected ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'}`}>
+                                                                {status}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+
+                                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 space-y-2 flex-1 min-w-[280px]">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <p className="text-[11px] font-black text-slate-700 uppercase tracking-wide">Location Categories</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <button onClick={() => setIdCardsFilterLocations(userLocationOptions)} className="px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-100">Select all</button>
+                                                        <button onClick={() => setIdCardsFilterLocations([])} className="px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-100">Clear</button>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {userLocationOptions.map(location => {
+                                                        const selected = idCardsFilterLocations.includes(location);
+                                                        return (
+                                                            <button key={location} onClick={() => toggleIdCardsLocation(location)} className={`px-2.5 py-1 rounded-full border text-[10px] font-bold transition-colors ${selected ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'}`}>
+                                                                {location}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                    </div>
+                                </div>
                                 <div className="flex-1 w-full relative">
                                     <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                                     <input
@@ -5635,6 +5889,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <div className="px-4 py-3 bg-brand-50 text-brand-700 rounded-xl flex items-center gap-2 font-black text-xs uppercase tracking-widest whitespace-nowrap">
                                         <Users size={14} /> {filteredUsers.length} Cards
                                     </div>
+                                    <button
+                                        onClick={() => setShowBulkDownloadModal(true)}
+                                        className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center gap-2 font-black text-xs uppercase tracking-widest whitespace-nowrap transition-colors"
+                                    >
+                                        <Download size={14} /> Bulk Download
+                                    </button>
                                     <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200">
                                         <button
                                             type="button"
@@ -8962,7 +9222,91 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 )}
             </AnimatePresence>
 
-            {/* Bulk Delete Confirmation Modal */}
+            <AnimatePresence>
+            {showBulkDownloadModal && (
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                        className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
+                    >
+                        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-black text-slate-900">Bulk Download Configuration</h3>
+                                <p className="text-xs text-slate-500 mt-1">Select options to include in your combined PDF for {selectedUsers.size} users.</p>
+                            </div>
+                            <button onClick={() => setShowBulkDownloadModal(false)} className="text-slate-400 hover:text-slate-600">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-6">
+                            <div className="space-y-3">
+                                <h4 className="text-xs font-black text-slate-700 uppercase tracking-widest">Inclusion Options</h4>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {[
+                                        { id: 'cards', label: 'Entrust Card' },
+                                        { id: 'photos', label: 'Image' },
+                                        { id: 'locations', label: 'Location' },
+                                        { id: 'ids', label: 'COT ID' },
+                                        { id: 'join-dates', label: 'Join Date' }
+                                    ].map(opt => {
+                                        const isSelected = bulkDownloadOptions.includes(opt.id as IdCardVisualMode);
+                                        return (
+                                            <button
+                                                key={opt.id}
+                                                onClick={() => setBulkDownloadOptions(prev => prev.includes(opt.id as IdCardVisualMode) ? prev.filter(x => x !== opt.id) : [...prev, opt.id as IdCardVisualMode])}
+                                                className={`px-3 py-2.5 rounded-xl border-2 text-xs font-bold text-left transition-colors flex items-center gap-2 ${isSelected ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200'}`}
+                                            >
+                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${isSelected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300'}`}>
+                                                    {isSelected && <Check size={10} />}
+                                                </div>
+                                                {opt.label}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+
+                            {!bulkDownloadOptions.includes('cards') && bulkDownloadOptions.length > 0 && (
+                                <div className="space-y-3">
+                                    <h4 className="text-xs font-black text-slate-700 uppercase tracking-widest">Apply Royal Theme</h4>
+                                    <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                                        <button
+                                            onClick={() => setBulkDownloadTheme(null)}
+                                            className={`px-3 py-2.5 rounded-xl border-2 text-xs font-bold text-left transition-colors flex items-center gap-2 ${bulkDownloadTheme === null ? 'border-brand-600 bg-brand-50 text-brand-700' : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200'}`}
+                                        >
+                                            Current Themes
+                                        </button>
+                                        {ROYAL_CARD_THEMES.map(theme => (
+                                            <button
+                                                key={theme.tone}
+                                                onClick={() => setBulkDownloadTheme(theme.tone)}
+                                                className={`px-3 py-2.5 rounded-xl border-2 text-[10px] font-bold text-left transition-colors flex items-center gap-2 ${bulkDownloadTheme === theme.tone ? 'border-brand-600 bg-brand-50 text-brand-700' : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200'}`}
+                                            >
+                                                <div className={`w-3 h-3 rounded-full shrink-0 bg-gradient-to-r ${theme.swatch}`} />
+                                                <span className="truncate">{theme.name}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-2 justify-end">
+                            <button onClick={() => setShowBulkDownloadModal(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200">Cancel</button>
+                            <button
+                                onClick={handleGenerateBulkPdf}
+                                disabled={bulkDownloadOptions.length === 0 || isLoading}
+                                className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {isLoading ? <><div className="animate-spin">⏳</div> Generating...</> : <><Download size={14} /> Download PDF</>}
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+            </AnimatePresence>
+
             <AnimatePresence>
                 {showBulkDeleteConfirm && (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
