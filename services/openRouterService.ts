@@ -22,8 +22,8 @@ Core Guidelines:
 - Website Navigation: Help users navigate to any page by explaining the menu structure (Home, Hebrew Resources, Ministries, Pastor, Valparai, Contact, AI Assistance, etc.).
 - Registration & Custom Features: When asked how to register or access custom features, explain the steps clearly: 1) Click 'Register' or 'Login' in the navigation menu, 2) Fill out the member form with details, 3) Submit and wait for Admin approval. Once approved, members get access to a custom User Dashboard, printable Entrust ID cards, and personalized spiritual tools.`;
 
-// Default model: OpenAI GPT-4o Mini (reliable, fast, and supports vision/image_url content)
-const DEFAULT_MODEL = 'openai/gpt-4o-mini';
+// Default model: Google Gemma (free, reliable)
+const DEFAULT_MODEL = 'google/gemma-4-26b-a4b-it:free';
 
 /**
  * Generate AI response using OpenRouter SDK (non-streaming)
