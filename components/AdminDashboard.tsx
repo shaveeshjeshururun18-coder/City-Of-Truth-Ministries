@@ -3334,11 +3334,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                yOffset = 10;
                            }
 
-                           pdf.setFillColor(255, 255, 255);
-                           pdf.setDrawColor(200, 200, 200);
-                           pdf.roundedRect(xOffset, yOffset, cardWidth, cardHeight, 5, 5, 'FD');
+                           const isThemeApplied = bulkDownloadTheme !== null;
+                           const themeColors = {
+                               gold: { bg: [31, 19, 5], border: [251, 191, 36], text: [255, 255, 255] },
+                               silver: { bg: [15, 23, 42], border: [148, 163, 184], text: [255, 255, 255] },
+                               bronze: { bg: [67, 20, 7], border: [217, 119, 6], text: [255, 255, 255] },
+                               sapphire: { bg: [8, 47, 73], border: [56, 189, 248], text: [255, 255, 255] },
+                               ruby: { bg: [69, 10, 10], border: [248, 113, 113], text: [255, 255, 255] },
+                               emerald: { bg: [6, 78, 59], border: [52, 211, 153], text: [255, 255, 255] }
+                           };
 
-                           pdf.setTextColor(15, 23, 42);
+                           if (isThemeApplied && bulkDownloadTheme) {
+                               const colors = themeColors[bulkDownloadTheme] || themeColors.gold;
+                               pdf.setFillColor(colors.bg[0], colors.bg[1], colors.bg[2]);
+                               pdf.setDrawColor(colors.border[0], colors.border[1], colors.border[2]);
+                               pdf.roundedRect(xOffset, yOffset, cardWidth, cardHeight, 5, 5, 'FD');
+                               pdf.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+                           } else {
+                               pdf.setFillColor(255, 255, 255);
+                               pdf.setDrawColor(200, 200, 200);
+                               pdf.roundedRect(xOffset, yOffset, cardWidth, cardHeight, 5, 5, 'FD');
+                               pdf.setTextColor(15, 23, 42);
+                           }
+
                            pdf.setFont('helvetica', 'bold');
                            pdf.setFontSize(12);
                            pdf.text(user.name, xOffset + 5, yOffset + 15);
@@ -5849,6 +5867,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <div className="px-4 py-3 bg-brand-50 text-brand-700 rounded-xl flex items-center gap-2 font-black text-xs uppercase tracking-widest whitespace-nowrap">
                                         <Users size={14} /> {filteredUsers.length} Cards
                                     </div>
+                                    <button
+                                        onClick={() => setShowBulkDownloadModal(true)}
+                                        className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center gap-2 font-black text-xs uppercase tracking-widest whitespace-nowrap transition-colors"
+                                    >
+                                        <Download size={14} /> Bulk Download
+                                    </button>
                                     <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200">
                                         <button
                                             type="button"
@@ -9176,8 +9200,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 )}
             </AnimatePresence>
 
-            {/* Bulk Delete Confirmation Modal */}
-            <AnimatePresence>
             <AnimatePresence>
             {showBulkDownloadModal && (
                 <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
@@ -9264,90 +9286,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </AnimatePresence>
 
             <AnimatePresence>
-            {showBulkDownloadModal && (
-                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                        className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
-                    >
-                        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-                            <div>
-                                <h3 className="text-lg font-black text-slate-900">Bulk Download Configuration</h3>
-                                <p className="text-xs text-slate-500 mt-1">Select options to include in your combined PDF for {selectedUsers.size} users.</p>
-                            </div>
-                            <button onClick={() => setShowBulkDownloadModal(false)} className="text-slate-400 hover:text-slate-600">
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="p-6 space-y-6">
-                            <div className="space-y-3">
-                                <h4 className="text-xs font-black text-slate-700 uppercase tracking-widest">Inclusion Options</h4>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {[
-                                        { id: 'cards', label: 'Entrust Card' },
-                                        { id: 'photos', label: 'Image' },
-                                        { id: 'locations', label: 'Location' },
-                                        { id: 'ids', label: 'COT ID' },
-                                        { id: 'join-dates', label: 'Join Date' }
-                                    ].map(opt => {
-                                        const isSelected = bulkDownloadOptions.includes(opt.id as IdCardVisualMode);
-                                        return (
-                                            <button
-                                                key={opt.id}
-                                                onClick={() => setBulkDownloadOptions(prev => prev.includes(opt.id as IdCardVisualMode) ? prev.filter(x => x !== opt.id) : [...prev, opt.id as IdCardVisualMode])}
-                                                className={`px-3 py-2.5 rounded-xl border-2 text-xs font-bold text-left transition-colors flex items-center gap-2 ${isSelected ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200'}`}
-                                            >
-                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${isSelected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300'}`}>
-                                                    {isSelected && <Check size={10} />}
-                                                </div>
-                                                {opt.label}
-                                            </button>
-                                        )
-                                    })}
-                                </div>
-                            </div>
-
-                            {!bulkDownloadOptions.includes('cards') && bulkDownloadOptions.length > 0 && (
-                                <div className="space-y-3">
-                                    <h4 className="text-xs font-black text-slate-700 uppercase tracking-widest">Apply Royal Theme</h4>
-                                    <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
-                                        <button
-                                            onClick={() => setBulkDownloadTheme(null)}
-                                            className={`px-3 py-2.5 rounded-xl border-2 text-xs font-bold text-left transition-colors flex items-center gap-2 ${bulkDownloadTheme === null ? 'border-brand-600 bg-brand-50 text-brand-700' : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200'}`}
-                                        >
-                                            Current Themes
-                                        </button>
-                                        {ROYAL_CARD_THEMES.map(theme => (
-                                            <button
-                                                key={theme.tone}
-                                                onClick={() => setBulkDownloadTheme(theme.tone)}
-                                                className={`px-3 py-2.5 rounded-xl border-2 text-[10px] font-bold text-left transition-colors flex items-center gap-2 ${bulkDownloadTheme === theme.tone ? 'border-brand-600 bg-brand-50 text-brand-700' : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200'}`}
-                                            >
-                                                <div className={`w-3 h-3 rounded-full shrink-0 bg-gradient-to-r ${theme.swatch}`} />
-                                                <span className="truncate">{theme.name}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                        <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-2 justify-end">
-                            <button onClick={() => setShowBulkDownloadModal(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200">Cancel</button>
-                            <button
-                                onClick={handleGenerateBulkPdf}
-                                disabled={bulkDownloadOptions.length === 0 || isLoading}
-                                className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
-                            >
-                                {isLoading ? <><div className="animate-spin">⏳</div> Generating...</> : <><Download size={14} /> Download PDF</>}
-                            </button>
-                        </div>
-                    </motion.div>
-                </div>
-            )}
-            </AnimatePresence>
-
                 {showBulkDeleteConfirm && (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                         <motion.div
