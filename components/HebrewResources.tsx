@@ -2193,12 +2193,14 @@ const HebrewLettersAudioLab: React.FC = () => {
         // Reset any previous AI result when the word changes
         setAiResult(null);
         setAiError(null);
+        setBuilderSticky(true);
     };
 
     const removeLetterByKey = (key: number) => {
         setSelectedLetters(prev => prev.filter((item) => item.key !== key));
         setAiResult(null);
         setAiError(null);
+        setBuilderSticky(true);
     };
 
     const playLetter = async (letterCharacter: string, hebrewName: string) => {
@@ -2383,8 +2385,9 @@ const HebrewLettersAudioLab: React.FC = () => {
                                             setSelectedLetters(next);
                                             setAiResult(null);
                                             setAiError(null);
+                                            setBuilderSticky(true);
                                         }}
-                                        className={`flex items-center gap-2 min-w-max ${isBuilderDragOver ? 'py-1' : ''}`}
+                                        className={`flex flex-wrap items-center gap-2 ${isBuilderDragOver ? 'py-1' : ''}`}
                                     >
                                         {selectedLetters.map((l) => (
                                             <Reorder.Item
@@ -2431,7 +2434,7 @@ const HebrewLettersAudioLab: React.FC = () => {
                             )}
                             {selectedLetters.length > 0 && (
                                 <button
-                                    onClick={() => { setSelectedLetters([]); setAiResult(null); setAiError(null); }}
+                                    onClick={() => { setSelectedLetters([]); setAiResult(null); setAiError(null); setBuilderSticky(true); }}
                                     className="px-4 py-2.5 rounded-full border border-slate-200 text-slate-500 font-bold text-sm hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors cursor-pointer"
                                 >
                                     Clear All
@@ -2442,10 +2445,115 @@ const HebrewLettersAudioLab: React.FC = () => {
                 </div>
             </div>
 
-            {/* ── LOWER GRID (Compact Hebrew Letters grid on left, AI Insights on right) ── */}
-            <div className={`grid gap-6 ${aiResult || aiError ? 'lg:grid-cols-2 lg:items-start' : ''}`}>
+            {/* ── AI ANALYSIS POSITIONED BETWEEN BUILDER AND LETTERS ── */}
+            {(aiResult || aiError) && (
+                <div className="space-y-6 mt-6 mb-6">
+                    {/* ── AI ERROR ── */}
+                    {aiError && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 text-red-500 text-xs font-bold bg-red-50 p-4 rounded-2xl border border-red-100">
+                            <Info size={15} /> {aiError}
+                        </motion.div>
+                    )}
+
+                    {/* ── AI ANALYSIS RESULT ── */}
+                    <AnimatePresence>
+                        {aiResult && (
+                            <motion.div
+                                ref={aiResultRef}
+                                initial={{ opacity: 0, y: 12 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -12 }}
+                                transition={{ duration: 0.35 }}
+                                className="bg-slate-950 text-white rounded-[2rem] p-6 md:p-8 flex flex-col space-y-5 shadow-2xl relative overflow-hidden"
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+                                {/* Header row */}
+                                <div className="flex justify-between items-start gap-3">
+                                    <div className="space-y-1 min-w-0">
+                                        <div className="text-[10px] font-black text-brand-400 uppercase tracking-[0.2em]">AI Word Analysis</div>
+                                        <div className="text-2xl font-black flex items-center gap-2 text-white flex-wrap">
+                                            <span>{aiResult.pronunciation}</span>
+                                            <button onClick={playCombined} className="shrink-0 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-accent-400 cursor-pointer">
+                                                <Volume2 size={16} />
+                                            </button>
+                                        </div>
+                                        {aiResult.pronunciationTa && (
+                                            <div className="text-sm font-bold text-slate-400 flex items-center gap-2 mt-1">
+                                                <div className="w-4 h-[1px] bg-slate-700" />
+                                                {aiResult.pronunciationTa} (தமிழ்)
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="shrink-0 bg-brand-500/20 p-2.5 rounded-xl border border-white/5">
+                                        <Sparkles size={18} className="text-accent-400 animate-pulse" />
+                                    </div>
+                                </div>
+
+                                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                                    <div className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-300/80">
+                                        <Volume2 size={13} />
+                                        Mouth Pronunciation
+                                    </div>
+                                    <div className="flex justify-center">
+                                        <MouthPronunciationAnimator
+                                            phonemeSequence={buildAudioMouthSequence(aiResult.breakdownEn || aiResult.pronunciation)}
+                                            isPlaying={false}
+                                            animationState="idle"
+                                            className="transform scale-110"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Meaning (EN)</p>
+                                        <p className="text-base text-slate-100 font-medium leading-relaxed">{aiResult.meaningEn}</p>
+                                    </div>
+                                    {aiResult.meaningTa && (
+                                        <div className="space-y-1">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Meaning (TA)</p>
+                                            <p className="text-base text-slate-100 font-medium leading-relaxed">{aiResult.meaningTa}</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2 mt-2">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-400 flex items-center gap-2">
+                                        <Flame size={12} /> Deep Spiritual Insight
+                                    </p>
+                                    <p className="text-sm text-slate-300 leading-relaxed bg-white/5 p-5 rounded-2xl border border-white/10 italic font-medium">
+                                        "{aiResult.insight}"
+                                    </p>
+                                </div>
+
+                                <div className="pt-2 flex flex-wrap gap-2 justify-end">
+                                    <button
+                                        onClick={downloadInsightPdf}
+                                        disabled={isExporting}
+                                        className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-2 disabled:opacity-50 transition-colors cursor-pointer"
+                                    >
+                                        {isExporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                                        PDF Guide
+                                    </button>
+                                    <button
+                                        onClick={downloadInsightImage}
+                                        disabled={isExporting}
+                                        className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-2 disabled:opacity-50 transition-colors cursor-pointer"
+                                    >
+                                        {isExporting ? <Loader2 size={13} className="animate-spin" /> : <FileImage size={13} />}
+                                        Save Image
+                                    </button>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            )}
+
+            {/* ── LOWER GRID (Compact Hebrew Letters grid) ── */}
+            <div className="grid gap-6 mt-6">
                 {/* ── COMPACT HEBREW LETTERS GRID ("Short Below") ── */}
-                <div className={`bg-slate-950 rounded-[2.5rem] border border-white/10 p-5 sm:p-8 shadow-xl ${aiResult || aiError ? '' : 'lg:col-span-2'}`}>
+                <div className="bg-slate-950 rounded-[2.5rem] border border-white/10 p-5 sm:p-8 shadow-xl">
                     <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-6 text-center">Tap a letter to add it — or drag it to the builder above</p>
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-6 gap-3">
                         {HEBREW_AUDIO_LETTERS.map((item, index) => (

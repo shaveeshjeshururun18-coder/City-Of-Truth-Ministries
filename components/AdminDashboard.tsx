@@ -25,6 +25,7 @@ import { CommunityProfileForm } from './CommunityProfileForm';
 import { PermalinkManager } from './PermalinkManager';
 import { CompleteRebootModal } from './CompleteRebootModal';
 import { BaruchVideosManager } from './BaruchVideosManager';
+import { GuidedTour, WelcomeTourModal, useTour } from './GuidedTour';
 
 interface ContactMessage {
     id: string;
@@ -3892,8 +3893,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </button>
                     </div>
 
-                    {(menuMode === 'horizontal' || menuMode === 'vertical') && (
-                        <div className={`flex gap-1.5 flex-nowrap overflow-x-auto pb-1 scrollbar-none -mx-1 px-1 ${menuMode === 'vertical' ? 'lg:hidden' : ''}`}>
+                    {menuMode === 'horizontal' && (
+                        <div className={`flex gap-1.5 flex-nowrap overflow-x-auto pb-1 scrollbar-none -mx-1 px-1 lg:hidden`}>
                             {visibleTabs.map(tab => (
                                 <button
                                     key={tab.id}
@@ -3913,11 +3914,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
 
                 {/* Content Layout — flex when vertical sidebar mode */}
-                <div className={menuMode === 'vertical' ? 'flex gap-6 items-start' : ''}>
+                <div className={menuMode === 'vertical' ? 'flex flex-col lg:flex-row gap-6 items-start' : ''}>
                     {/* Vertical Sidebar */}
                     {menuMode === 'vertical' && (
-                        <aside className="hidden lg:block w-56 shrink-0 sticky top-28">
-                            <nav className="bg-white rounded-3xl border border-slate-100 shadow-sm p-3 space-y-1 max-h-[calc(100vh-14rem)] overflow-y-auto admin-menu-scrollbar">
+                        <aside className="w-full lg:w-56 shrink-0 lg:sticky top-28 -mx-4 px-4 lg:mx-0 lg:px-0">
+                            <nav className="bg-white rounded-3xl border border-slate-100 shadow-sm p-3 lg:space-y-1 lg:max-h-[calc(100vh-14rem)] overflow-y-auto admin-menu-scrollbar flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible pb-3 scrollbar-none">
                                 {visibleTabs.map(tab => {
                                     const customLabel = tab.label;
                                     const isRenaming = renamingTabId === tab.id;
@@ -3926,10 +3927,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <div
                                             key={tab.id}
                                             onClick={() => setActiveTab(tab.id)}
-                                            className={`w-full flex items-center justify-between gap-2 px-4 py-3 rounded-xl transition-colors group cursor-pointer ${
+                                            className={`flex-none lg:w-full flex items-center justify-between gap-2 px-4 py-2 lg:py-3 rounded-xl transition-colors group cursor-pointer whitespace-nowrap ${
                                                 isActive
                                                     ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20'
-                                                    : 'text-slate-600 hover:bg-slate-50'
+                                                    : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-100 lg:border-none'
                                             }`}
                                         >
                                             <div className="flex items-center gap-3 flex-1 min-w-0">
