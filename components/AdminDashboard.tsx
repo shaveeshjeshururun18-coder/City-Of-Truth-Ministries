@@ -25,6 +25,7 @@ import { CommunityProfileForm } from './CommunityProfileForm';
 import { PermalinkManager } from './PermalinkManager';
 import { CompleteRebootModal } from './CompleteRebootModal';
 import { BaruchVideosManager } from './BaruchVideosManager';
+import { GuidedTour, WelcomeTourModal, useTour } from './GuidedTour';
 
 interface ContactMessage {
     id: string;
@@ -4083,8 +4084,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </button>
                     </div>
 
-                    {(menuMode === 'horizontal' || menuMode === 'vertical') && (
-                        <div className={`flex gap-1.5 flex-nowrap overflow-x-auto pb-1 scrollbar-none -mx-1 px-1 ${menuMode === 'vertical' ? 'lg:hidden' : ''}`}>
+                    {menuMode === 'horizontal' && (
+                        <div className={`flex gap-1.5 flex-nowrap overflow-x-auto pb-1 scrollbar-none -mx-1 px-1 lg:hidden`}>
                             {visibleTabs.map(tab => (
                                 <button
                                     key={tab.id}
@@ -4104,11 +4105,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
 
                 {/* Content Layout — flex when vertical sidebar mode */}
-                <div className={menuMode === 'vertical' ? 'flex gap-6 items-start' : ''}>
+                <div className={menuMode === 'vertical' ? 'flex flex-col lg:flex-row gap-6 items-start' : ''}>
                     {/* Vertical Sidebar */}
                     {menuMode === 'vertical' && (
-                        <aside className="hidden lg:block w-56 shrink-0 sticky top-28">
-                            <nav className="bg-white rounded-3xl border border-slate-100 shadow-sm p-3 space-y-1 max-h-[calc(100vh-14rem)] overflow-y-auto admin-menu-scrollbar">
+                        <aside className="w-full lg:w-56 shrink-0 lg:sticky top-28 -mx-4 px-4 lg:mx-0 lg:px-0">
+                            <nav className="bg-white rounded-3xl border border-slate-100 shadow-sm p-3 lg:space-y-1 lg:max-h-[calc(100vh-14rem)] overflow-y-auto admin-menu-scrollbar flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible pb-3 scrollbar-none">
                                 {visibleTabs.map(tab => {
                                     const customLabel = tab.label;
                                     const isRenaming = renamingTabId === tab.id;
@@ -4117,10 +4118,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <div
                                             key={tab.id}
                                             onClick={() => setActiveTab(tab.id)}
-                                            className={`w-full flex items-center justify-between gap-2 px-4 py-3 rounded-xl transition-colors group cursor-pointer ${
+                                            className={`flex-none lg:w-full flex items-center justify-between gap-2 px-4 py-2 lg:py-3 rounded-xl transition-colors group cursor-pointer whitespace-nowrap ${
                                                 isActive
                                                     ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20'
-                                                    : 'text-slate-600 hover:bg-slate-50'
+                                                    : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-100 lg:border-none'
                                             }`}
                                         >
                                             <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -5081,15 +5082,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-3">
                                         <p className="text-xs font-bold text-slate-700">Search COT ID and check occupancy</p>
                                         <div className="flex flex-col sm:flex-row gap-2">
-                                            <input
-                                                value={cotIdSearchInput}
-                                                onChange={(e) => {
-                                                    setCotIdSearchInput(e.target.value);
-                                                    setCotIdSearchFeedback(null);
-                                                }}
-                                                placeholder="Type COT ID (e.g. COT-0001 or 1)"
-                                                className="flex-1 px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-mono outline-none focus:border-brand-500"
-                                            />
+                                            <div className="flex-1 flex items-center px-3 py-2 rounded-lg border border-slate-200 bg-white focus-within:border-brand-500 transition-colors">
+                                                <span className="text-xs font-mono text-slate-500 select-none">COT-</span>
+                                                <input
+                                                    value={(cotIdSearchInput || '').replace(/^COT-/i, '')}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value.replace(/^COT-/i, '');
+                                                        setCotIdSearchInput(val ? `COT-${val}` : '');
+                                                        setCotIdSearchFeedback(null);
+                                                    }}
+                                                    placeholder="0001"
+                                                    className="flex-1 bg-transparent text-xs font-mono outline-none min-w-0"
+                                                />
+                                            </div>
                                             <button
                                                 type="button"
                                                 onClick={handleSearchCotId}
@@ -5129,13 +5134,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                         <p className="text-sm font-bold text-brand-950 truncate">{user.name}</p>
                                                         <p className="text-[11px] font-mono text-slate-500 truncate">{currentId}</p>
                                                     </div>
-                                                    <input
-                                                        list="manual-cot-id-options"
-                                                        value={draftId}
-                                                        onChange={(e) => setCotDraftIds(prev => ({ ...prev, [user.id]: e.target.value }))}
-                                                        className={`w-full px-3 py-2 rounded-lg border bg-white text-xs font-mono outline-none ${duplicateId ? 'border-red-300' : 'border-slate-200 focus:border-brand-500'}`}
-                                                        placeholder="COT-1960"
-                                                    />
+                                                    <div className={`flex items-center w-full px-3 py-2 rounded-lg border bg-white focus-within:border-brand-500 transition-colors ${duplicateId ? 'border-red-300' : 'border-slate-200'}`}>
+                                                        <span className="text-xs font-mono text-slate-500 select-none">COT-</span>
+                                                        <input
+                                                            list="manual-cot-id-options"
+                                                            value={(draftId || '').replace(/^COT-/i, '')}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value.replace(/^COT-/i, '');
+                                                                setCotDraftIds(prev => ({ ...prev, [user.id]: val ? `COT-${val}` : '' }));
+                                                            }}
+                                                            className="flex-1 bg-transparent text-xs font-mono outline-none min-w-0 text-brand-950"
+                                                            placeholder="1960"
+                                                        />
+                                                    </div>
                                                     <button
                                                         onClick={async () => {
                                                             const nextId = normalizedDraft;
@@ -5316,17 +5327,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                                                 className="relative z-10 mt-5 rounded-3xl border border-white/15 bg-white/95 p-3 md:p-4 text-slate-900 shadow-xl"
                                                                             >
                                                                                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-2 mb-3">
-                                                                                    <div className="relative">
+                                                                                    <div className="relative flex items-center pl-10 pr-3 py-3 rounded-2xl border border-slate-200 bg-slate-50 focus-within:border-brand-500 focus-within:ring-4 focus-within:ring-brand-100 transition-colors">
                                                                                         <Hash size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-500" />
+                                                                                        <span className="text-sm font-mono text-slate-500 select-none">COT-</span>
                                                                                         <input
                                                                                             list="manual-cot-id-options"
-                                                                                            value={cotInventoryManualInput}
+                                                                                            value={(cotInventoryManualInput || '').replace(/^COT-/i, '')}
                                                                                             onChange={(event) => {
-                                                                                                setCotInventoryManualInput(event.target.value);
-                                                                                                setCotInventorySelectedId(normalizeCotIdInput(event.target.value));
+                                                                                                const val = event.target.value.replace(/^COT-/i, '');
+                                                                                                setCotInventoryManualInput(val ? `COT-${val}` : '');
+                                                                                                setCotInventorySelectedId(normalizeCotIdInput(val ? `COT-${val}` : ''));
                                                                                             }}
-                                                                                            placeholder="Type COT ID here, example COT-1960"
-                                                                                            className="w-full pl-10 pr-3 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-sm font-mono outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
+                                                                                            placeholder="1960"
+                                                                                            className="flex-1 bg-transparent text-sm font-mono outline-none min-w-0"
                                                                                         />
                                                                                     </div>
                                                                                     <button
@@ -5585,13 +5598,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         </button>
                                     </div>
                                     <div className="flex flex-col sm:flex-row gap-2">
-                                        <input
-                                            list="manual-cot-id-options"
-                                            value={diceManualInput}
-                                            onChange={(e) => setDiceManualInput(e.target.value)}
-                                            placeholder="Type COT ID manually (example: COT-1960)"
-                                            className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm font-mono outline-none focus:border-brand-500"
-                                        />
+                                        <div className="flex-1 flex items-center px-3 py-2 rounded-xl border border-slate-200 bg-white focus-within:border-brand-500 transition-colors">
+                                            <span className="text-sm font-mono text-slate-500 select-none">COT-</span>
+                                            <input
+                                                list="manual-cot-id-options"
+                                                value={(diceManualInput || '').replace(/^COT-/i, '')}
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/^COT-/i, '');
+                                                    setDiceManualInput(val ? `COT-${val}` : '');
+                                                }}
+                                                placeholder="1960"
+                                                className="flex-1 bg-transparent text-sm font-mono outline-none min-w-0"
+                                            />
+                                        </div>
                                         <button
                                             onClick={() => applyCotIdToSelectedUser(diceManualInput)}
                                             disabled={!diceTargetUserId || !diceManualInput.trim() || !onReassignUserId}
@@ -5678,17 +5697,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                             🎲 Roll Dice ID
                                                         </button>
                                                         <div className="flex items-center gap-1">
-                                                            <input
-                                                                type="text"
-                                                                maxLength={4}
-                                                                placeholder="4-digit (e.g. 1960)"
-                                                                value={requestManualInputs[note.id] || ''}
-                                                                onChange={(e) => {
-                                                                    const val = e.target.value.replace(/\D/g, '');
-                                                                    setRequestManualInputs(prev => ({ ...prev, [note.id]: val }));
-                                                                }}
-                                                                className="w-24 px-2 py-1 text-[11px] font-mono border border-slate-200 rounded-lg bg-white outline-none focus:border-brand-500 text-center"
-                                                            />
+                                                            <div className="flex items-center px-2 py-1 border border-slate-200 rounded-lg bg-white focus-within:border-brand-500 transition-colors">
+                                                                <span className="text-[11px] font-mono text-slate-500 select-none">COT-</span>
+                                                                <input
+                                                                    type="text"
+                                                                    maxLength={4}
+                                                                    placeholder="1960"
+                                                                    value={requestManualInputs[note.id] || ''}
+                                                                    onChange={(e) => {
+                                                                        const val = e.target.value.replace(/\D/g, '');
+                                                                        setRequestManualInputs(prev => ({ ...prev, [note.id]: val }));
+                                                                    }}
+                                                                    className="w-12 bg-transparent text-[11px] font-mono outline-none text-center"
+                                                                />
+                                                            </div>
                                                             <button
                                                                 type="button"
                                                                 onClick={async () => {
@@ -6045,7 +6067,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                                 ID: {user.id.split('-').pop()}
                                                             </p>
                                                         </div>
-                                                        <span className={`text-[9px] font-black uppercase tracking-widest ${previewTheme.accentText} shrink-0`}>Tap for card</span>
+                                                        <span className={`text-[9px] font-black uppercase tracking-widest ${previewTheme.accentText} shrink-0`}>Tap to View Details</span>
                                                     </div>
                                                 </div>
                                             </button>
@@ -6104,7 +6126,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                                 {user.id}
                                                             </p>
                                                         </div>
-                                                        <span className={`text-[9px] font-black uppercase tracking-widest ${previewTheme.accentText} shrink-0`}>Tap for card</span>
+                                                        <span className={`text-[9px] font-black uppercase tracking-widest ${previewTheme.accentText} shrink-0`}>Tap to View Details</span>
                                                     </div>
                                                 </div>
                                             </button>
@@ -9682,7 +9704,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <div className="px-4 py-3">
                                                 <div className="font-bold text-sm text-brand-950 truncate">{user.name}</div>
                                                 <div className="text-[11px] text-slate-500 font-mono">{user.id}</div>
-                                                <div className="mt-2 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap for Entrust Card</div>
+                                                <div className="mt-2 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap to View Details</div>
                                             </div>
                                         </button>
                                     ))}
@@ -9708,7 +9730,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             </div>
                                             <div className="text-2xl font-black text-blue-900 font-mono">{user.id}</div>
                                             <div className="mt-2 text-sm font-bold text-blue-800 truncate">{user.name}</div>
-                                            <div className="mt-3 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap for Entrust Card</div>
+                                            <div className="mt-3 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap to View Details</div>
                                         </button>
                                     ))}
                                 </div>
@@ -9730,7 +9752,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <div className="mb-3">
                                                 <div className="font-bold text-brand-950">{user.name}</div>
                                                 <div className="text-xs font-mono text-slate-500">{user.id}</div>
-                                                <div className="mt-1 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap for Image Preview</div>
+                                                <div className="mt-1 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap to View Details</div>
                                             </div>
                                             <div className="overflow-x-auto">
                                                 <div className="min-w-[340px]">
@@ -9771,7 +9793,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             </div>
                                             <div className="text-sm font-semibold text-brand-950">{user.name}</div>
                                             <div className="text-[11px] font-mono text-slate-500 mt-1">{user.id}</div>
-                                            <div className="mt-3 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap for Entrust Card</div>
+                                            <div className="mt-3 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap to View Details</div>
                                         </button>
                                     ))}
                                 </div>
@@ -9793,7 +9815,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <div>
                                                 <div className="font-bold text-brand-950">{user.name}</div>
                                                 <div className="text-[11px] font-mono text-slate-500">{user.id}</div>
-                                                <div className="mt-2 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap for Entrust Card</div>
+                                                <div className="mt-2 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap to View Details</div>
                                             </div>
                                             <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-700">
                                                 <Calendar size={14} className="text-slate-400" />
@@ -10075,14 +10097,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <div className="space-y-1.5 sm:col-span-2">
                                         <label className="text-xs font-bold text-slate-500 uppercase">Member ID (Optional Manual)</label>
                                         <div className="flex flex-col sm:flex-row gap-2">
-                                            <input
-                                                list="available-cot-ids"
-                                                type="text"
-                                                placeholder="Leave empty for auto-generated ID, or enter COT-1960"
-                                                value={newUserData.memberId}
-                                                onChange={(e) => setNewUserData(d => ({ ...d, memberId: e.target.value }))}
-                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
-                                            />
+                                            <div className="flex-1 flex items-center px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-colors">
+                                                <span className="text-sm font-mono text-slate-500 select-none">COT-</span>
+                                                <input
+                                                    list="available-cot-ids"
+                                                    type="text"
+                                                    placeholder="Leave empty for auto, or enter 1960"
+                                                    value={(newUserData.memberId || '').replace(/^COT-/i, '')}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value.replace(/^COT-/i, '');
+                                                        setNewUserData(d => ({ ...d, memberId: val ? `COT-${val}` : '' }));
+                                                    }}
+                                                    className="flex-1 bg-transparent text-sm font-mono outline-none min-w-0"
+                                                />
+                                            </div>
                                         </div>
                                         <datalist id="available-cot-ids">
                                             {suggestedCotIds.map(id => (

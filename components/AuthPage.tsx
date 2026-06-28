@@ -341,7 +341,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 setupAuthAmbientSensor();
             }
 
-            // Schedule scanner failure and zoom timeouts
+            // Schedule scanner failure and step-by-step automatic zoom timeouts
             const t5 = window.setTimeout(async () => {
                 setHideScanBorder(true);
                 await applyAuthTorch(true);
@@ -350,16 +350,34 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     try {
                         const capabilities = track.getCapabilities?.() as any;
                         if (capabilities?.zoom) {
-                            await track.applyConstraints({ advanced: [{ zoom: capabilities.zoom.max } as any] });
+                            const minZoom = capabilities.zoom.min || 1;
+                            const maxZoom = capabilities.zoom.max || 1;
+                            const zoomSteps = [
+                                minZoom + (maxZoom - minZoom) * 0.25,
+                                minZoom + (maxZoom - minZoom) * 0.5,
+                                minZoom + (maxZoom - minZoom) * 0.75,
+                                maxZoom
+                            ];
+
+                            zoomSteps.forEach((zoomLevel, index) => {
+                                const stepTimeout = window.setTimeout(async () => {
+                                    try {
+                                        await track.applyConstraints({ advanced: [{ zoom: zoomLevel } as any] });
+                                    } catch (e) {
+                                        console.warn(`Failed to apply zoom step ${index}:`, e);
+                                    }
+                                }, index * 800);
+                                scannerTimeoutsRef.current.push(stepTimeout);
+                            });
                         }
                     } catch (e) {
-                        console.warn('Failed to apply zoom maximum constraint:', e);
+                        console.warn('Failed to setup automatic zoom steps:', e);
                     }
                 }
             }, 5000);
             scannerTimeoutsRef.current.push(t5);
 
-            const t7 = window.setTimeout(async () => {
+            const tResetZoom = window.setTimeout(async () => {
                 const track = getAuthVideoTrack();
                 if (track) {
                     try {
@@ -368,11 +386,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             await track.applyConstraints({ advanced: [{ zoom: capabilities.zoom.min } as any] });
                         }
                     } catch (e) {
-                        console.warn('Failed to apply zoom minimum constraint:', e);
+                        console.warn('Failed to reset zoom minimum constraint:', e);
                     }
                 }
-            }, 7000);
-            scannerTimeoutsRef.current.push(t7);
+            }, 9000);
+            scannerTimeoutsRef.current.push(tResetZoom);
 
             const t10 = window.setTimeout(() => {
                 stopScanner();
@@ -962,10 +980,38 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
                                     <div className="h-[100dvh] w-full flex flex-col overflow-hidden bg-black">
                                         {/* Camera — flex grows/shrinks with expand/compact */}
-                                                        <div
+                                        <div
                                             className={`relative min-h-0 bg-black transition-[flex] duration-300 ease-out ${
                                                 scannerExpanded ? 'flex-[1_1_72%]' : 'flex-[1_1_52%]'
                                             }`}
+                                            onTouchStart={(e) => {
+                                                if (e.touches.length === 2) {
+                                                    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                                                    userAdjustedSizeRef.current = true;
+                                                    (window as any).lastPinchDist = dist;
+                                                }
+                                            }}
+                                            onTouchMove={(e) => {
+                                                if (e.touches.length === 2 && (window as any).lastPinchDist) {
+                                                    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                                                    const diff = dist - (window as any).lastPinchDist;
+                                                    (window as any).lastPinchDist = dist;
+
+                                                    const track = getAuthVideoTrack();
+                                                    if (track) {
+                                                        try {
+                                                            const capabilities = track.getCapabilities?.() as any;
+                                                            const currentSettings = track.getSettings?.() as any;
+                                                            if (capabilities?.zoom && currentSettings?.zoom) {
+                                                                let newZoom = currentSettings.zoom + (diff * 0.02);
+                                                                newZoom = Math.max(capabilities.zoom.min || 1, Math.min(newZoom, capabilities.zoom.max || 1));
+                                                                track.applyConstraints({ advanced: [{ zoom: newZoom } as any] }).catch(()=>{});
+                                                            }
+                                                        } catch (err) {}
+                                                    }
+                                                }
+                                            }}
+                                            onTouchEnd={() => { (window as any).lastPinchDist = undefined; }}
                                         >
                                             <div id="qr-auth-page-reader" role="region" aria-label="QR code scanner" className="absolute inset-0 bg-black" />
 

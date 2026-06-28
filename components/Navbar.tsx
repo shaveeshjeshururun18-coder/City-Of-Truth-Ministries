@@ -6,6 +6,7 @@ import { ViewState, NavItem } from '../types';
 import { Button } from './Button';
 import { User as UserType } from '../types';
 import { useLanguage, NAV_LABEL_TO_KEY } from './LanguageContext';
+import { EditableText } from './EditableText';
 
 interface NavbarProps {
   currentView: ViewState;
@@ -14,6 +15,8 @@ interface NavbarProps {
   onLogoutClick?: () => void;
   currentUser?: UserType | null;
   navItems: NavItem[];
+  isEditMode?: boolean;
+  onUpdateNavItems?: (items: NavItem[]) => void;
 }
 
 const getIcon = (view: ViewState) => {
@@ -53,9 +56,47 @@ const getInitials = (name?: string) => {
   return safeName.slice(0, 2).toUpperCase();
 };
 
-export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginClick, onLogoutClick, currentUser, navItems }) => {
+export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginClick, onLogoutClick, currentUser, navItems, isEditMode, onUpdateNavItems }) => {
     const navigate = useNavigate();
     const location = useLocation();
+
+    const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+    const handleDragStart = (e: React.DragEvent, index: number) => {
+      if (!isEditMode) return;
+      setDraggedIndex(index);
+      e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+      if (!isEditMode) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    };
+
+    const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+      if (!isEditMode || draggedIndex === null || draggedIndex === dropIndex) return;
+      e.preventDefault();
+
+      const newItems = [...navItems];
+      const [draggedItem] = newItems.splice(draggedIndex, 1);
+      newItems.splice(dropIndex, 0, draggedItem);
+
+      if (onUpdateNavItems) {
+        onUpdateNavItems(newItems);
+      }
+      setDraggedIndex(null);
+    };
+
+    const handleDelete = (e: React.MouseEvent, index: number) => {
+      e.stopPropagation();
+      if (!isEditMode) return;
+      const newItems = [...navItems];
+      newItems[index] = { ...newItems[index], hidden: true };
+      if (onUpdateNavItems) {
+        onUpdateNavItems(newItems);
+      }
+    };
 
     const openNavItem = (item: NavItem) => {
         if (item.href) {
@@ -160,7 +201,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
         {/* MENU LINKS STYLING (Restored for Desktop) */}
         <ul className="hidden xl:flex items-center gap-[3px] 2xl:gap-[8px] list-none">
-          {navItems.filter(item => !item.hidden).map((item) => {
+          {navItems.map((item, originalIndex) => {
+            if (item.hidden && !isEditMode) return null;
             const isActive = item.href
               ? location.pathname === item.href
               : !currentPathMatchedByHref && (currentView === item.view || item.submenu?.filter(s => !s.hidden).some(s => s.view === currentView));
@@ -169,10 +211,22 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             return (
               <li
                 key={item.label}
-                className="relative group"
+                draggable={isEditMode}
+                onDragStart={(e) => handleDragStart(e, originalIndex)}
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, originalIndex)}
+                className={`relative group ${isEditMode ? 'border border-dashed border-transparent hover:border-blue-400' : ''} ${item.hidden ? 'opacity-50 grayscale' : ''}`}
                 onMouseEnter={() => hasSubmenu && setDesktopHoverMenu(item.label)}
                 onMouseLeave={() => hasSubmenu && setDesktopHoverMenu(null)}
               >
+                {isEditMode && (
+                  <button
+                    onClick={(e) => handleDelete(e, originalIndex)}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 hover:scale-110 transition-all z-10"
+                  >
+                    <X size={10} />
+                  </button>
+                )}
                 <button
                   id={item.view === 'HEBREW' || item.label === 'Hebrew' ? 'nav-hebrew-btn' : undefined}
                   onClick={() => openNavItem(item)}
@@ -186,7 +240,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                           : 'text-slate-600 hover:text-brand-600 hover:bg-slate-50')
                   }`}
                 >
-                  {translateLabel(item.label)}
+                  <EditableText id={'nav-' + item.label} defaultText={translateLabel(item.label)} />
                   {hasSubmenu && <ChevronDown size={10} className={`transition-transform duration-300 ${desktopHoverMenu === item.label ? 'rotate-180' : ''}`} />}
                 </button>
 
@@ -401,7 +455,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                           <span className={isMobileActive ? 'text-[#5D5FEF]' : 'text-gray-400'}>
                             {getIcon(item.view)}
                           </span>
-                          <span className="font-bold tracking-wide uppercase text-[11px]">{translateLabel(item.label)}</span>
+                          <span className="font-bold tracking-wide uppercase text-[11px]"><EditableText id={'nav-' + item.label} defaultText={translateLabel(item.label)} /></span>
                         </div>
                         {hasSubmenu && (
                           <ChevronDown
