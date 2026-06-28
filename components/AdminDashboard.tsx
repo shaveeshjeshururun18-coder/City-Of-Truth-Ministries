@@ -26,6 +26,7 @@ import { CommunityProfileForm } from './CommunityProfileForm';
 import { PermalinkManager } from './PermalinkManager';
 import { CompleteRebootModal } from './CompleteRebootModal';
 import { BaruchVideosManager } from './BaruchVideosManager';
+import { GuidedTour, WelcomeTourModal, useTour } from './GuidedTour';
 
 interface ContactMessage {
     id: string;
@@ -1051,6 +1052,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [userQuickViewMode, setUserQuickViewMode] = useState<UserQuickViewMode | null>(null);
     const [idCardVisualMode, setIdCardVisualMode] = useState<IdCardVisualMode>('cards');
     const [idCardSizeVariation, setIdCardSizeVariation] = useState<'standard' | 'large' | 'extralarge' | 'compact'>('standard');
+    const [idCardsFilterYears, setIdCardsFilterYears] = useState<string[]>([]);
+    const [idCardsFilterCategories, setIdCardsFilterCategories] = useState<UserStatus[]>([]);
+    const [idCardsFilterLocations, setIdCardsFilterLocations] = useState<string[]>([]);
+    const [showBulkDownloadModal, setShowBulkDownloadModal] = useState(false);
+    const [bulkDownloadOptions, setBulkDownloadOptions] = useState<IdCardVisualMode[]>([]);
+    const [bulkDownloadTheme, setBulkDownloadTheme] = useState<User['cardThemeTone'] | null>(null);
     const [applyingCardThemeTone, setApplyingCardThemeTone] = useState<User['cardThemeTone'] | null>(null);
     const [isBulkDownloading, setIsBulkDownloading] = useState(false);
     const [bulkDownloadFormat, setBulkDownloadFormat] = useState<'pdf' | 'zip'>('pdf');
@@ -1950,6 +1957,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             prev.includes(location) ? prev.filter(item => item !== location) : [...prev, location]
         );
     };
+    const toggleIdCardsYear = (year: string) => {
+        setIdCardsFilterYears(prev => prev.includes(year) ? prev.filter(item => item !== year) : [...prev, year]);
+    };
+    const toggleIdCardsCategory = (status: UserStatus) => {
+        setIdCardsFilterCategories(prev => prev.includes(status) ? prev.filter(item => item !== status) : [...prev, status]);
+    };
+    const toggleIdCardsLocation = (location: string) => {
+        setIdCardsFilterLocations(prev => prev.includes(location) ? prev.filter(item => item !== location) : [...prev, location]);
+    };
+
     const toggleMessageYear = (year: string) => {
         setSelectedMessageYears(prev => prev.includes(year) ? prev.filter(item => item !== year) : [...prev, year]);
     };
@@ -2484,9 +2501,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 phone.includes(query) ||
                 id.includes(query);
 
-            const matchesStatus = filterStatus === 'All' || user.status === filterStatus;
-            const matchesRole = filterRole === 'All' || user.role === filterRole;
-            const matchesLocation = filterLocation === 'All' || (user.location || '').trim() === filterLocation;
+            let matchesStatus = filterStatus === 'All' || user.status === filterStatus;
+            let matchesLocation = filterLocation === 'All' || (user.location || '').trim() === filterLocation;
+            let matchesRole = filterRole === 'All' || user.role === filterRole;
+
+            if (activeTab === 'id-cards') {
+                const joinedYear = `${user.joinedDate || ''}`.slice(0, 4);
+                const memberSinceYear = `${user.memberSince || ''}`.trim();
+                const matchesYearCard = idCardsFilterYears.length === 0 || idCardsFilterYears.includes(joinedYear) || idCardsFilterYears.includes(memberSinceYear);
+                const matchesCatCard = idCardsFilterCategories.length === 0 || idCardsFilterCategories.includes(user.status);
+                const matchesLocCard = idCardsFilterLocations.length === 0 || idCardsFilterLocations.includes((user.location || '').trim());
+                return matchesSearch && matchesYearCard && matchesCatCard && matchesLocCard && matchesRole;
+            }
 
             return matchesSearch && matchesStatus && matchesRole && matchesLocation;
         });
@@ -2508,7 +2534,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             const statusOrder = { 'Pending Verification': 0, 'Active': 1, 'Rejected': 2 };
             return statusOrder[a.status] - statusOrder[b.status];
         });
-    }, [users, searchQuery, filterStatus, filterRole, filterLocation, userSortMode]);
+    }, [users, searchQuery, filterStatus, filterRole, filterLocation, userSortMode, activeTab, idCardsFilterYears, idCardsFilterCategories, idCardsFilterLocations]);
 
     const handleApplyBulkCardTheme = async (tone: NonNullable<User['cardThemeTone']>) => {
         if (filteredUsers.length === 0) {
@@ -3291,14 +3317,180 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
     };
 
+    const handleGenerateBulkPdf = async () => {
+        // Apply temporary theme context to users before download if selected
+        const effectiveUsersToDownload = bulkDownloadTheme ? filteredUsers.filter(u => selectedUsers.has(u.id) && u.status === 'Active').map(u => ({...u, cardThemeTone: bulkDownloadTheme})) : filteredUsers.filter(u => selectedUsers.has(u.id) && u.status === 'Active');
+
+        if (selectedUsers.size === 0 || bulkDownloadOptions.length === 0) return;
+
+        if (effectiveUsersToDownload.length === 0) {
+            alert('No active users selected for download.');
+            return;
+        }
+
+        setIsLoading(true);
+        setShowBulkDownloadModal(false);
+
+        try {
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4',
+                compress: true
+            });
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.top = '-9999px';
+            container.style.left = '-9999px';
+            document.body.appendChild(container);
+
+            let isFirstPage = true;
+
+            for (const mode of bulkDownloadOptions) {
+                const groupedUsers: Record<string, typeof effectiveUsersToDownload> = {};
+                effectiveUsersToDownload.forEach(user => {
+                    const category = user.status;
+                    if (!groupedUsers[category]) groupedUsers[category] = [];
+                    groupedUsers[category].push(user);
+                });
+
+                for (const [category, users] of Object.entries(groupedUsers)) {
+                    if (!isFirstPage) pdf.addPage();
+                    isFirstPage = false;
+
+                    pdf.setFillColor(15, 23, 42);
+                    pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
+
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(24);
+                    const titleText = `${mode.toUpperCase()} - ${category.toUpperCase()}`;
+                    const textWidth = pdf.getStringUnitWidth(titleText) * pdf.getFontSize() / pdf.internal.scaleFactor;
+                    pdf.text(titleText, (pdfWidth - textWidth) / 2, pdfHeight / 2);
+
+                    let xOffset = 10;
+                    let yOffset = 10;
+                    const cardWidth = 85;
+                    const cardHeight = 135;
+
+                    pdf.addPage();
+                    pdf.setFillColor(248, 250, 252);
+                    pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
+
+                    for (const user of users) {
+                        if (mode === 'cards') {
+                           const frontNode = document.getElementById(`admin-card-front-${user.id}`) || document.getElementById(`quick-card-${user.id}`);
+                           const backNode = document.getElementById(`admin-card-back-${user.id}`) || document.getElementById(`quick-card-back-${user.id}`);
+                           if (frontNode && backNode) {
+                               const frontDataUrl = await toPng(frontNode, { pixelRatio: 2, quality: 0.9, backgroundColor: '#ffffff' });
+                               const backDataUrl = await toPng(backNode, { pixelRatio: 2, quality: 0.9, backgroundColor: '#ffffff' });
+
+                               if (yOffset + cardHeight > pdfHeight - 10) {
+                                   pdf.addPage();
+                                   pdf.setFillColor(248, 250, 252);
+                                   pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
+                                   xOffset = 10;
+                                   yOffset = 10;
+                               }
+
+                               pdf.addImage(frontDataUrl, 'PNG', xOffset, yOffset, cardWidth, cardHeight, undefined, 'FAST');
+                               xOffset += cardWidth + 10;
+
+                               if (xOffset + cardWidth > pdfWidth - 10) {
+                                   xOffset = 10;
+                                   yOffset += cardHeight + 10;
+                               }
+                           }
+                        } else {
+                           if (yOffset + cardHeight > pdfHeight - 10) {
+                               pdf.addPage();
+                               pdf.setFillColor(248, 250, 252);
+                               pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
+                               xOffset = 10;
+                               yOffset = 10;
+                           }
+
+                           const isThemeApplied = bulkDownloadTheme !== null;
+                           const themeColors = {
+                               gold: { bg: [31, 19, 5], border: [251, 191, 36], text: [255, 255, 255] },
+                               silver: { bg: [15, 23, 42], border: [148, 163, 184], text: [255, 255, 255] },
+                               bronze: { bg: [67, 20, 7], border: [217, 119, 6], text: [255, 255, 255] },
+                               sapphire: { bg: [8, 47, 73], border: [56, 189, 248], text: [255, 255, 255] },
+                               ruby: { bg: [69, 10, 10], border: [248, 113, 113], text: [255, 255, 255] },
+                               emerald: { bg: [6, 78, 59], border: [52, 211, 153], text: [255, 255, 255] }
+                           };
+
+                           if (isThemeApplied && bulkDownloadTheme) {
+                               const colors = themeColors[bulkDownloadTheme] || themeColors.gold;
+                               pdf.setFillColor(colors.bg[0], colors.bg[1], colors.bg[2]);
+                               pdf.setDrawColor(colors.border[0], colors.border[1], colors.border[2]);
+                               pdf.roundedRect(xOffset, yOffset, cardWidth, cardHeight, 5, 5, 'FD');
+                               pdf.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+                           } else {
+                               pdf.setFillColor(255, 255, 255);
+                               pdf.setDrawColor(200, 200, 200);
+                               pdf.roundedRect(xOffset, yOffset, cardWidth, cardHeight, 5, 5, 'FD');
+                               pdf.setTextColor(15, 23, 42);
+                           }
+
+                           pdf.setFont('helvetica', 'bold');
+                           pdf.setFontSize(12);
+                           pdf.text(user.name, xOffset + 5, yOffset + 15);
+
+                           pdf.setFont('helvetica', 'normal');
+                           pdf.setFontSize(10);
+                           if (mode === 'photos') {
+                               const imgElem = document.querySelector(`img[alt="${user.name}"]`);
+                               if (imgElem && imgElem instanceof HTMLImageElement) {
+                                   try {
+                                      pdf.addImage(imgElem, 'JPEG', xOffset + 5, yOffset + 20, cardWidth - 10, cardWidth - 10);
+                                   } catch (e) {}
+                               } else if (user.photo) {
+                                  try {
+                                      pdf.addImage(user.photo, 'JPEG', xOffset + 5, yOffset + 20, cardWidth - 10, cardWidth - 10);
+                                  } catch (e) {}
+                               } else {
+                                  pdf.text('No Photo', xOffset + 5, yOffset + 30);
+                               }
+                           } else if (mode === 'ids') {
+                               pdf.text(`COT ID: ${user.id}`, xOffset + 5, yOffset + 30);
+                           } else if (mode === 'locations') {
+                               pdf.text(`Location: ${user.location || 'N/A'}`, xOffset + 5, yOffset + 30);
+                           } else if (mode === 'join-dates') {
+                               pdf.text(`Joined: ${user.joinedDate || 'N/A'}`, xOffset + 5, yOffset + 30);
+                           }
+
+                           xOffset += cardWidth + 10;
+                           if (xOffset + cardWidth > pdfWidth - 10) {
+                               xOffset = 10;
+                               yOffset += cardHeight + 10;
+                           }
+                        }
+                    }
+                }
+            }
+
+            document.body.removeChild(container);
+            pdf.save(`BULK-ID-CARDS-${new Date().getTime()}.pdf`);
+        } catch (err) {
+            console.error('Bulk PDF generation failed', err);
+            alert('Failed to generate bulk PDF. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const handleDownloadUserCard = async (user: User) => {
         if (user.status !== 'Active') {
             alert('Entrust card PDF is available only for approved users.');
             return;
         }
         setDownloadingCardUserId(user.id);
-        const frontNode = document.getElementById(`admin-card-front-${user.id}`);
-        const backNode = document.getElementById(`admin-card-back-${user.id}`);
+        const frontNode = document.getElementById(`admin-card-front-${user.id}`) || document.getElementById(`quick-card-${user.id}`);
+        const backNode = document.getElementById(`admin-card-back-${user.id}`) || document.getElementById(`quick-card-back-${user.id}`);
 
         if (frontNode && backNode) {
             try {
@@ -3970,8 +4162,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </button>
                     </div>
 
-                    {(menuMode === 'horizontal' || menuMode === 'vertical') && (
-                        <div className={`flex gap-1.5 flex-nowrap overflow-x-auto pb-1 scrollbar-none -mx-1 px-1 ${menuMode === 'vertical' ? 'lg:hidden' : ''}`}>
+                    {menuMode === 'horizontal' && (
+                        <div className={`flex gap-1.5 flex-nowrap overflow-x-auto pb-1 scrollbar-none -mx-1 px-1 lg:hidden`}>
                             {visibleTabs.map(tab => (
                                 <button
                                     key={tab.id}
@@ -3991,11 +4183,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
 
                 {/* Content Layout — flex when vertical sidebar mode */}
-                <div className={menuMode === 'vertical' ? 'flex gap-6 items-start' : ''}>
+                <div className={menuMode === 'vertical' ? 'flex flex-col lg:flex-row gap-6 items-start' : ''}>
                     {/* Vertical Sidebar */}
                     {menuMode === 'vertical' && (
-                        <aside className="hidden lg:block w-56 shrink-0 sticky top-28">
-                            <nav className="bg-white rounded-3xl border border-slate-100 shadow-sm p-3 space-y-1 max-h-[calc(100vh-14rem)] overflow-y-auto admin-menu-scrollbar">
+                        <aside className="w-full lg:w-56 shrink-0 lg:sticky top-28 -mx-4 px-4 lg:mx-0 lg:px-0">
+                            <nav className="bg-white rounded-3xl border border-slate-100 shadow-sm p-3 lg:space-y-1 lg:max-h-[calc(100vh-14rem)] overflow-y-auto admin-menu-scrollbar flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible pb-3 scrollbar-none">
                                 {visibleTabs.map(tab => {
                                     const customLabel = tab.label;
                                     const isRenaming = renamingTabId === tab.id;
@@ -4004,10 +4196,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <div
                                             key={tab.id}
                                             onClick={() => setActiveTab(tab.id)}
-                                            className={`w-full flex items-center justify-between gap-2 px-4 py-3 rounded-xl transition-colors group cursor-pointer ${
+                                            className={`flex-none lg:w-full flex items-center justify-between gap-2 px-4 py-2 lg:py-3 rounded-xl transition-colors group cursor-pointer whitespace-nowrap ${
                                                 isActive
                                                     ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20'
-                                                    : 'text-slate-600 hover:bg-slate-50'
+                                                    : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-100 lg:border-none'
                                             }`}
                                         >
                                             <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -4968,15 +5160,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-3">
                                         <p className="text-xs font-bold text-slate-700">Search COT ID and check occupancy</p>
                                         <div className="flex flex-col sm:flex-row gap-2">
-                                            <input
-                                                value={cotIdSearchInput}
-                                                onChange={(e) => {
-                                                    setCotIdSearchInput(e.target.value);
-                                                    setCotIdSearchFeedback(null);
-                                                }}
-                                                placeholder="Type COT ID (e.g. COT-0001 or 1)"
-                                                className="flex-1 px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-mono outline-none focus:border-brand-500"
-                                            />
+                                            <div className="flex-1 flex items-center px-3 py-2 rounded-lg border border-slate-200 bg-white focus-within:border-brand-500 transition-colors">
+                                                <span className="text-xs font-mono text-slate-500 select-none">COT-</span>
+                                                <input
+                                                    value={(cotIdSearchInput || '').replace(/^COT-/i, '')}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value.replace(/^COT-/i, '');
+                                                        setCotIdSearchInput(val ? `COT-${val}` : '');
+                                                        setCotIdSearchFeedback(null);
+                                                    }}
+                                                    placeholder="0001"
+                                                    className="flex-1 bg-transparent text-xs font-mono outline-none min-w-0"
+                                                />
+                                            </div>
                                             <button
                                                 type="button"
                                                 onClick={handleSearchCotId}
@@ -5016,13 +5212,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                         <p className="text-sm font-bold text-brand-950 truncate">{user.name}</p>
                                                         <p className="text-[11px] font-mono text-slate-500 truncate">{currentId}</p>
                                                     </div>
-                                                    <input
-                                                        list="manual-cot-id-options"
-                                                        value={draftId}
-                                                        onChange={(e) => setCotDraftIds(prev => ({ ...prev, [user.id]: e.target.value }))}
-                                                        className={`w-full px-3 py-2 rounded-lg border bg-white text-xs font-mono outline-none ${duplicateId ? 'border-red-300' : 'border-slate-200 focus:border-brand-500'}`}
-                                                        placeholder="COT-1960"
-                                                    />
+                                                    <div className={`flex items-center w-full px-3 py-2 rounded-lg border bg-white focus-within:border-brand-500 transition-colors ${duplicateId ? 'border-red-300' : 'border-slate-200'}`}>
+                                                        <span className="text-xs font-mono text-slate-500 select-none">COT-</span>
+                                                        <input
+                                                            list="manual-cot-id-options"
+                                                            value={(draftId || '').replace(/^COT-/i, '')}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value.replace(/^COT-/i, '');
+                                                                setCotDraftIds(prev => ({ ...prev, [user.id]: val ? `COT-${val}` : '' }));
+                                                            }}
+                                                            className="flex-1 bg-transparent text-xs font-mono outline-none min-w-0 text-brand-950"
+                                                            placeholder="1960"
+                                                        />
+                                                    </div>
                                                     <button
                                                         onClick={async () => {
                                                             const nextId = normalizedDraft;
@@ -5203,17 +5405,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                                                 className="relative z-10 mt-5 rounded-3xl border border-white/15 bg-white/95 p-3 md:p-4 text-slate-900 shadow-xl"
                                                                             >
                                                                                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-2 mb-3">
-                                                                                    <div className="relative">
+                                                                                    <div className="relative flex items-center pl-10 pr-3 py-3 rounded-2xl border border-slate-200 bg-slate-50 focus-within:border-brand-500 focus-within:ring-4 focus-within:ring-brand-100 transition-colors">
                                                                                         <Hash size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-500" />
+                                                                                        <span className="text-sm font-mono text-slate-500 select-none">COT-</span>
                                                                                         <input
                                                                                             list="manual-cot-id-options"
-                                                                                            value={cotInventoryManualInput}
+                                                                                            value={(cotInventoryManualInput || '').replace(/^COT-/i, '')}
                                                                                             onChange={(event) => {
-                                                                                                setCotInventoryManualInput(event.target.value);
-                                                                                                setCotInventorySelectedId(normalizeCotIdInput(event.target.value));
+                                                                                                const val = event.target.value.replace(/^COT-/i, '');
+                                                                                                setCotInventoryManualInput(val ? `COT-${val}` : '');
+                                                                                                setCotInventorySelectedId(normalizeCotIdInput(val ? `COT-${val}` : ''));
                                                                                             }}
-                                                                                            placeholder="Type COT ID here, example COT-1960"
-                                                                                            className="w-full pl-10 pr-3 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-sm font-mono outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
+                                                                                            placeholder="1960"
+                                                                                            className="flex-1 bg-transparent text-sm font-mono outline-none min-w-0"
                                                                                         />
                                                                                     </div>
                                                                                     <button
@@ -5472,13 +5676,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         </button>
                                     </div>
                                     <div className="flex flex-col sm:flex-row gap-2">
-                                        <input
-                                            list="manual-cot-id-options"
-                                            value={diceManualInput}
-                                            onChange={(e) => setDiceManualInput(e.target.value)}
-                                            placeholder="Type COT ID manually (example: COT-1960)"
-                                            className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm font-mono outline-none focus:border-brand-500"
-                                        />
+                                        <div className="flex-1 flex items-center px-3 py-2 rounded-xl border border-slate-200 bg-white focus-within:border-brand-500 transition-colors">
+                                            <span className="text-sm font-mono text-slate-500 select-none">COT-</span>
+                                            <input
+                                                list="manual-cot-id-options"
+                                                value={(diceManualInput || '').replace(/^COT-/i, '')}
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/^COT-/i, '');
+                                                    setDiceManualInput(val ? `COT-${val}` : '');
+                                                }}
+                                                placeholder="1960"
+                                                className="flex-1 bg-transparent text-sm font-mono outline-none min-w-0"
+                                            />
+                                        </div>
                                         <button
                                             onClick={() => applyCotIdToSelectedUser(diceManualInput)}
                                             disabled={!diceTargetUserId || !diceManualInput.trim() || !onReassignUserId}
@@ -5565,17 +5775,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                             🎲 Roll Dice ID
                                                         </button>
                                                         <div className="flex items-center gap-1">
-                                                            <input
-                                                                type="text"
-                                                                maxLength={4}
-                                                                placeholder="4-digit (e.g. 1960)"
-                                                                value={requestManualInputs[note.id] || ''}
-                                                                onChange={(e) => {
-                                                                    const val = e.target.value.replace(/\D/g, '');
-                                                                    setRequestManualInputs(prev => ({ ...prev, [note.id]: val }));
-                                                                }}
-                                                                className="w-24 px-2 py-1 text-[11px] font-mono border border-slate-200 rounded-lg bg-white outline-none focus:border-brand-500 text-center"
-                                                            />
+                                                            <div className="flex items-center px-2 py-1 border border-slate-200 rounded-lg bg-white focus-within:border-brand-500 transition-colors">
+                                                                <span className="text-[11px] font-mono text-slate-500 select-none">COT-</span>
+                                                                <input
+                                                                    type="text"
+                                                                    maxLength={4}
+                                                                    placeholder="1960"
+                                                                    value={requestManualInputs[note.id] || ''}
+                                                                    onChange={(e) => {
+                                                                        const val = e.target.value.replace(/\D/g, '');
+                                                                        setRequestManualInputs(prev => ({ ...prev, [note.id]: val }));
+                                                                    }}
+                                                                    className="w-12 bg-transparent text-[11px] font-mono outline-none text-center"
+                                                                />
+                                                            </div>
                                                             <button
                                                                 type="button"
                                                                 onClick={async () => {
@@ -5649,6 +5862,69 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         {activeTab === 'id-cards' && (
                         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
                             <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                                <div className="w-full space-y-4 mb-4">
+                                    <div className="flex flex-wrap gap-2.5 items-center">
+                                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 space-y-2 flex-1 min-w-[280px]">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <p className="text-[11px] font-black text-slate-700 uppercase tracking-wide">Years</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <button onClick={() => setIdCardsFilterYears(messageYearOptions)} className="px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-100">Select all</button>
+                                                        <button onClick={() => setIdCardsFilterYears([])} className="px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-100">All years</button>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {messageYearOptions.map(year => {
+                                                        const selected = idCardsFilterYears.includes(year);
+                                                        return (
+                                                            <button key={year} onClick={() => toggleIdCardsYear(year)} className={`px-2.5 py-1 rounded-full border text-[10px] font-bold transition-colors ${selected ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'}`}>
+                                                                {year}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+
+                                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 space-y-2 flex-1 min-w-[280px]">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <p className="text-[11px] font-black text-slate-700 uppercase tracking-wide">Categories</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <button onClick={() => setIdCardsFilterCategories(['Active', 'Pending Verification', 'Rejected'])} className="px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-100">Select all</button>
+                                                        <button onClick={() => setIdCardsFilterCategories([])} className="px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-100">All categories</button>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {(['Active', 'Pending Verification', 'Rejected'] as UserStatus[]).map(status => {
+                                                        const selected = idCardsFilterCategories.includes(status);
+                                                        return (
+                                                            <button key={status} onClick={() => toggleIdCardsCategory(status)} className={`px-2.5 py-1 rounded-full border text-[10px] font-bold transition-colors ${selected ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'}`}>
+                                                                {status}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+
+                                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 space-y-2 flex-1 min-w-[280px]">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <p className="text-[11px] font-black text-slate-700 uppercase tracking-wide">Location Categories</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <button onClick={() => setIdCardsFilterLocations(userLocationOptions)} className="px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-100">Select all</button>
+                                                        <button onClick={() => setIdCardsFilterLocations([])} className="px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-100">Clear</button>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {userLocationOptions.map(location => {
+                                                        const selected = idCardsFilterLocations.includes(location);
+                                                        return (
+                                                            <button key={location} onClick={() => toggleIdCardsLocation(location)} className={`px-2.5 py-1 rounded-full border text-[10px] font-bold transition-colors ${selected ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'}`}>
+                                                                {location}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                    </div>
+                                </div>
                                 <div className="flex-1 w-full relative">
                                     <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                                     <input
@@ -5701,6 +5977,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <div className="px-4 py-3 bg-brand-50 text-brand-700 rounded-xl flex items-center gap-2 font-black text-xs uppercase tracking-widest whitespace-nowrap">
                                         <Users size={14} /> {filteredUsers.length} Cards
                                     </div>
+                                    <button
+                                        onClick={() => setShowBulkDownloadModal(true)}
+                                        className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center gap-2 font-black text-xs uppercase tracking-widest whitespace-nowrap transition-colors"
+                                    >
+                                        <Download size={14} /> Bulk Download
+                                    </button>
                                     <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200">
                                         <button
                                             type="button"
@@ -5933,7 +6215,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                                 ID: {user.id.split('-').pop()}
                                                             </p>
                                                         </div>
-                                                        <span className={`text-[9px] font-black uppercase tracking-widest ${previewTheme.accentText} shrink-0`}>Tap for card</span>
+                                                        <span className={`text-[9px] font-black uppercase tracking-widest ${previewTheme.accentText} shrink-0`}>Tap to View Details</span>
                                                     </div>
                                                 </div>
                                             </button>
@@ -5992,7 +6274,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                                 {user.id}
                                                             </p>
                                                         </div>
-                                                        <span className={`text-[9px] font-black uppercase tracking-widest ${previewTheme.accentText} shrink-0`}>Tap for card</span>
+                                                        <span className={`text-[9px] font-black uppercase tracking-widest ${previewTheme.accentText} shrink-0`}>Tap to View Details</span>
                                                     </div>
                                                 </div>
                                             </button>
@@ -9090,7 +9372,91 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 )}
             </AnimatePresence>
 
-            {/* Bulk Delete Confirmation Modal */}
+            <AnimatePresence>
+            {showBulkDownloadModal && (
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                        className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
+                    >
+                        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-black text-slate-900">Bulk Download Configuration</h3>
+                                <p className="text-xs text-slate-500 mt-1">Select options to include in your combined PDF for {selectedUsers.size} users.</p>
+                            </div>
+                            <button onClick={() => setShowBulkDownloadModal(false)} className="text-slate-400 hover:text-slate-600">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-6">
+                            <div className="space-y-3">
+                                <h4 className="text-xs font-black text-slate-700 uppercase tracking-widest">Inclusion Options</h4>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {[
+                                        { id: 'cards', label: 'Entrust Card' },
+                                        { id: 'photos', label: 'Image' },
+                                        { id: 'locations', label: 'Location' },
+                                        { id: 'ids', label: 'COT ID' },
+                                        { id: 'join-dates', label: 'Join Date' }
+                                    ].map(opt => {
+                                        const isSelected = bulkDownloadOptions.includes(opt.id as IdCardVisualMode);
+                                        return (
+                                            <button
+                                                key={opt.id}
+                                                onClick={() => setBulkDownloadOptions(prev => prev.includes(opt.id as IdCardVisualMode) ? prev.filter(x => x !== opt.id) : [...prev, opt.id as IdCardVisualMode])}
+                                                className={`px-3 py-2.5 rounded-xl border-2 text-xs font-bold text-left transition-colors flex items-center gap-2 ${isSelected ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200'}`}
+                                            >
+                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${isSelected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300'}`}>
+                                                    {isSelected && <Check size={10} />}
+                                                </div>
+                                                {opt.label}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+
+                            {!bulkDownloadOptions.includes('cards') && bulkDownloadOptions.length > 0 && (
+                                <div className="space-y-3">
+                                    <h4 className="text-xs font-black text-slate-700 uppercase tracking-widest">Apply Royal Theme</h4>
+                                    <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                                        <button
+                                            onClick={() => setBulkDownloadTheme(null)}
+                                            className={`px-3 py-2.5 rounded-xl border-2 text-xs font-bold text-left transition-colors flex items-center gap-2 ${bulkDownloadTheme === null ? 'border-brand-600 bg-brand-50 text-brand-700' : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200'}`}
+                                        >
+                                            Current Themes
+                                        </button>
+                                        {ROYAL_CARD_THEMES.map(theme => (
+                                            <button
+                                                key={theme.tone}
+                                                onClick={() => setBulkDownloadTheme(theme.tone)}
+                                                className={`px-3 py-2.5 rounded-xl border-2 text-[10px] font-bold text-left transition-colors flex items-center gap-2 ${bulkDownloadTheme === theme.tone ? 'border-brand-600 bg-brand-50 text-brand-700' : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200'}`}
+                                            >
+                                                <div className={`w-3 h-3 rounded-full shrink-0 bg-gradient-to-r ${theme.swatch}`} />
+                                                <span className="truncate">{theme.name}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-2 justify-end">
+                            <button onClick={() => setShowBulkDownloadModal(false)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200">Cancel</button>
+                            <button
+                                onClick={handleGenerateBulkPdf}
+                                disabled={bulkDownloadOptions.length === 0 || isLoading}
+                                className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {isLoading ? <><div className="animate-spin">⏳</div> Generating...</> : <><Download size={14} /> Download PDF</>}
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+            </AnimatePresence>
+
             <AnimatePresence>
                 {showBulkDeleteConfirm && (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -9488,7 +9854,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <div className="px-4 py-3">
                                                 <div className="font-bold text-sm text-brand-950 truncate">{user.name}</div>
                                                 <div className="text-[11px] text-slate-500 font-mono">{user.id}</div>
-                                                <div className="mt-2 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap for Entrust Card</div>
+                                                <div className="mt-2 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap to View Details</div>
                                             </div>
                                         </button>
                                     ))}
@@ -9514,7 +9880,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             </div>
                                             <div className="text-2xl font-black text-blue-900 font-mono">{user.id}</div>
                                             <div className="mt-2 text-sm font-bold text-blue-800 truncate">{user.name}</div>
-                                            <div className="mt-3 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap for Entrust Card</div>
+                                            <div className="mt-3 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap to View Details</div>
                                         </button>
                                     ))}
                                 </div>
@@ -9536,7 +9902,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <div className="mb-3">
                                                 <div className="font-bold text-brand-950">{user.name}</div>
                                                 <div className="text-xs font-mono text-slate-500">{user.id}</div>
-                                                <div className="mt-1 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap for Image Preview</div>
+                                                <div className="mt-1 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap to View Details</div>
                                             </div>
                                             <div className="overflow-x-auto">
                                                 <div className="min-w-[340px]">
@@ -9577,7 +9943,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             </div>
                                             <div className="text-sm font-semibold text-brand-950">{user.name}</div>
                                             <div className="text-[11px] font-mono text-slate-500 mt-1">{user.id}</div>
-                                            <div className="mt-3 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap for Entrust Card</div>
+                                            <div className="mt-3 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap to View Details</div>
                                         </button>
                                     ))}
                                 </div>
@@ -9599,7 +9965,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <div>
                                                 <div className="font-bold text-brand-950">{user.name}</div>
                                                 <div className="text-[11px] font-mono text-slate-500">{user.id}</div>
-                                                <div className="mt-2 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap for Entrust Card</div>
+                                                <div className="mt-2 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap to View Details</div>
                                             </div>
                                             <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-700">
                                                 <Calendar size={14} className="text-slate-400" />
@@ -9881,14 +10247,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <div className="space-y-1.5 sm:col-span-2">
                                         <label className="text-xs font-bold text-slate-500 uppercase">Member ID (Optional Manual)</label>
                                         <div className="flex flex-col sm:flex-row gap-2">
-                                            <input
-                                                list="available-cot-ids"
-                                                type="text"
-                                                placeholder="Leave empty for auto-generated ID, or enter COT-1960"
-                                                value={newUserData.memberId}
-                                                onChange={(e) => setNewUserData(d => ({ ...d, memberId: e.target.value }))}
-                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm"
-                                            />
+                                            <div className="flex-1 flex items-center px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-colors">
+                                                <span className="text-sm font-mono text-slate-500 select-none">COT-</span>
+                                                <input
+                                                    list="available-cot-ids"
+                                                    type="text"
+                                                    placeholder="Leave empty for auto, or enter 1960"
+                                                    value={(newUserData.memberId || '').replace(/^COT-/i, '')}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value.replace(/^COT-/i, '');
+                                                        setNewUserData(d => ({ ...d, memberId: val ? `COT-${val}` : '' }));
+                                                    }}
+                                                    className="flex-1 bg-transparent text-sm font-mono outline-none min-w-0"
+                                                />
+                                            </div>
                                         </div>
                                         <datalist id="available-cot-ids">
                                             {suggestedCotIds.map(id => (
