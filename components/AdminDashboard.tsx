@@ -5785,7 +5785,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                                 ID: {user.id.split('-').pop()}
                                                             </p>
                                                         </div>
-                                                        <span className={`text-[9px] font-black uppercase tracking-widest ${previewTheme.accentText} shrink-0`}>Tap for card</span>
+                                                        <span className={`text-[9px] font-black uppercase tracking-widest ${previewTheme.accentText} shrink-0`}>Tap to View Details</span>
                                                     </div>
                                                 </div>
                                             </button>
@@ -5844,7 +5844,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                                 {user.id}
                                                             </p>
                                                         </div>
-                                                        <span className={`text-[9px] font-black uppercase tracking-widest ${previewTheme.accentText} shrink-0`}>Tap for card</span>
+                                                        <span className={`text-[9px] font-black uppercase tracking-widest ${previewTheme.accentText} shrink-0`}>Tap to View Details</span>
                                                     </div>
                                                 </div>
                                             </button>
@@ -9338,7 +9338,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <div className="px-4 py-3">
                                                 <div className="font-bold text-sm text-brand-950 truncate">{user.name}</div>
                                                 <div className="text-[11px] text-slate-500 font-mono">{user.id}</div>
-                                                <div className="mt-2 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap for Entrust Card</div>
+                                                <div className="mt-2 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap to View Details</div>
                                             </div>
                                         </button>
                                     ))}
@@ -9364,7 +9364,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             </div>
                                             <div className="text-2xl font-black text-blue-900 font-mono">{user.id}</div>
                                             <div className="mt-2 text-sm font-bold text-blue-800 truncate">{user.name}</div>
-                                            <div className="mt-3 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap for Entrust Card</div>
+                                            <div className="mt-3 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap to View Details</div>
                                         </button>
                                     ))}
                                 </div>
@@ -9386,7 +9386,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <div className="mb-3">
                                                 <div className="font-bold text-brand-950">{user.name}</div>
                                                 <div className="text-xs font-mono text-slate-500">{user.id}</div>
-                                                <div className="mt-1 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap for Image Preview</div>
+                                                <div className="mt-1 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap to View Details</div>
                                             </div>
                                             <div className="overflow-x-auto">
                                                 <div className="min-w-[340px]">
@@ -9427,7 +9427,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             </div>
                                             <div className="text-sm font-semibold text-brand-950">{user.name}</div>
                                             <div className="text-[11px] font-mono text-slate-500 mt-1">{user.id}</div>
-                                            <div className="mt-3 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap for Entrust Card</div>
+                                            <div className="mt-3 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap to View Details</div>
                                         </button>
                                     ))}
                                 </div>
@@ -9449,7 +9449,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <div>
                                                 <div className="font-bold text-brand-950">{user.name}</div>
                                                 <div className="text-[11px] font-mono text-slate-500">{user.id}</div>
-                                                <div className="mt-2 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap for Entrust Card</div>
+                                                <div className="mt-2 text-[9px] font-black uppercase tracking-widest text-sky-500">Tap to View Details</div>
                                             </div>
                                             <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-700">
                                                 <Calendar size={14} className="text-slate-400" />
