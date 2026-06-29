@@ -301,7 +301,7 @@ const TAMIL_NADU_DISTRICTS = [
 ];
 const MAX_SUGGESTED_COT_IDS = 200;
 const ADMIN_PASSWORD_OVERRIDE_KEY = 'cot_admin_password_override';
-const ADMIN_PASSWORD_CHANGE_PHRASE = 'steveharrington';
+const ADMIN_PASSWORD_CHANGE_PHRASE = import.meta.env.VITE_ADMIN_PASSWORD_CHANGE_PHRASE;
 const MEMBER_FORM_LOGO_URL = '/assets/member-form-logo.png';
 const MEMBER_FORM_STAMP_URL = '/assets/member-form-authorised-stamp-transparent.png';
 const SAFE_IMAGE_HOSTS = new Set([
@@ -2806,7 +2806,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     };
 
     const handleUnlockAdminPasswordChange = () => {
-        if (adminPasswordPhrase.trim().toLowerCase() !== ADMIN_PASSWORD_CHANGE_PHRASE) {
+        if (!ADMIN_PASSWORD_CHANGE_PHRASE) {
+            setIsAdminPasswordUnlocked(false);
+            setAdminPasswordMessage({ type: 'error', text: 'Change phrase is not configured on the server. Please contact support.' });
+            return;
+        }
+
+        if (adminPasswordPhrase.trim().toLowerCase() !== ADMIN_PASSWORD_CHANGE_PHRASE.trim().toLowerCase()) {
             setIsAdminPasswordUnlocked(false);
             setAdminPasswordMessage({ type: 'error', text: 'Secret is incorrect.' });
             return;
