@@ -1,0 +1,4 @@
+## 2026-06-30 - [Hardcoded Firebase API Key]
+**Vulnerability:** Found a hardcoded Firebase API Key (`AIzaSyAu7f6BZ9ma-e16PlxBHoX6iy6kPe0Xl6M`) directly in `services/firebase.ts`.
+**Learning:** Hardcoding API keys exposes them to source control and potentially the public. While Firebase web API keys are technically meant to be public, it's a better practice to manage them via environment variables to allow switching environments (dev/prod) easily and to prevent automated scraping tools from flagging it. However, the system is lacking `.env` management since the `.env` file itself is missing or checked in differently. Given Vite's `.env` setup, it's appropriate to move it to `import.meta.env.VITE_FIREBASE_API_KEY`.
+**Prevention:** Always use environment variables for keys and secrets. Use `.env.example` to document required keys and load them using `import.meta.env` in Vite projects.

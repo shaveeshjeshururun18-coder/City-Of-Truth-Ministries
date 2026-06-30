@@ -16,3 +16,4 @@ stamp_transparent.png
 
 scratch_*.txt
 *.diff.txt
+.env
