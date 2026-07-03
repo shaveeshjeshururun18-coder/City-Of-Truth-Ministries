@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import {
     Users, UserCheck, UserX, Clock, Search, Edit2, Trash2, X, User as UserIcon, ShieldAlert,
@@ -7,11 +7,12 @@ import {
     Save, GripVertical, Globe, Plus, ImagePlus, Camera, Image as ImageIcon, MessageSquare, Check, XCircle, FileText,
     PanelLeft, PanelTop, Database, RotateCcw, Dice6, Eye, EyeOff, Video, Tag, Settings, Crop, Lock, Send,
     Sparkles, CircleUser, Menu, Youtube, Facebook, Instagram, UploadCloud, Zap, Share2,
-    Type, Volume2, Hash, Calculator, BookOpen, Languages, Clock3, Flame, ExternalLink, AlertTriangle
+    Type, Volume2, Hash, Calculator, BookOpen, Languages, Clock3, Flame, ExternalLink, AlertTriangle, Bell
 } from 'lucide-react';
 import { User, UserRole, UserStatus, Testimonial, Ministry, DeletedUser, Permalink } from '../types';
 import { Button } from './Button';
 import { api } from '../services/api';
+import { getOpenRouterKeyDetails, getOpenRouterModelDetails } from '../services/openRouterService';
 import { firebaseConfig, storage } from '../services/firebase';
 import { getDownloadURL, listAll, ref as storageRef, uploadBytes } from 'firebase/storage';
 import { toPng } from 'html-to-image';
@@ -26,7 +27,49 @@ import { CommunityProfileForm } from './CommunityProfileForm';
 import { PermalinkManager } from './PermalinkManager';
 import { CompleteRebootModal } from './CompleteRebootModal';
 import { BaruchVideosManager } from './BaruchVideosManager';
-import { GuidedTour, WelcomeTourModal, useTour } from './GuidedTour';
+import { GuidedTour, WelcomeTourModal, useTour, TourStep } from './GuidedTour';
+import GreetingCard from './GreetingCard';
+import AIChatAssistant from './AIChatAssistant';
+import { DivineAssistantSettings } from './DivineAssistantSettings';
+import { NavigationGuide, useNavigationGuide } from './NavigationGuide';
+import { 
+    ADMIN_DASHBOARD_GUIDE, 
+    ADMIN_ONBOARDING_GUIDE, 
+    USERS_MANAGEMENT_GUIDE,
+    HOME_LAYOUT_GUIDE,
+    AI_ASSISTANT_GUIDE,
+    MENU_EDITOR_GUIDE,
+    ID_CARDS_GUIDE,
+    AdminGuideButton
+} from './AdminNavigationGuide';
+import { sendSMS } from '../services/smsService';
+import { sendFCMNotification } from '../services/fcmService';
+import { VStack, HStack } from '@astryxdesign/core/Layout';
+
+interface GridProps {
+    columns?: { minWidth: number; max: number; repeat: string };
+    gap?: number;
+    className?: string;
+    children?: React.ReactNode;
+}
+
+const Grid: React.FC<GridProps> = ({ columns, gap = 3, className = "", children }) => {
+    const style = columns ? {
+        display: 'grid',
+        gridTemplateColumns: `repeat(auto-fit, minmax(${columns.minWidth}px, 1fr))`,
+        gap: `${gap * 0.25}rem`
+    } : {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+        gap: `${gap * 0.25}rem`
+    };
+
+    return (
+        <div style={style} className={className}>
+            {children}
+        </div>
+    );
+};
 
 interface ContactMessage {
     id: string;
@@ -51,6 +94,7 @@ interface MemberNotification {
     read?: boolean;
     deletedAt?: string;
     autoDeleteAt?: string;
+    imageUrl?: string;
 }
 
 interface AdminDashboardProps {
@@ -60,11 +104,12 @@ interface AdminDashboardProps {
     deletedContactMessages?: ContactMessage[];
     memberNotifications?: MemberNotification[];
     deletedMemberNotifications?: MemberNotification[];
-    onSendMessageToUsers?: (targetUserIds: string[], message: string) => void;
+    onSendMessageToUsers?: (targetUserIds: string[], message: string, imageUrl?: string) => void;
     onDeleteContactMessage?: (messageId: string) => void;
     onRestoreContactMessage?: (messageId: string) => void;
     onDeleteMemberNotification?: (notificationId: string) => void;
     onRestoreMemberNotification?: (notificationId: string) => void;
+    onUpdateMemberNotification?: (updatedNotification: MemberNotification) => void;
     onUpdateUser: (user: User) => Promise<void>;
     onDeleteUser: (userId: string) => Promise<void>;
     onRestoreUser?: (userId: string) => Promise<void>;
@@ -97,7 +142,7 @@ const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any
 
 
 
-type AdminTabId = 'users' | 'edit-page' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin' | 'admin-tabs' | 'member-forms' | 'permalinks' | 'widgets';
+type AdminTabId = 'users' | 'edit-page' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin' | 'admin-tabs' | 'member-forms' | 'permalinks' | 'widgets' | 'notifications' | 'ai-analytics';
 type AdminTabConfig = { id: AdminTabId; label: string; icon: string; order: number; hidden: boolean };
 
 type WidgetSettingsConfig = {
@@ -105,6 +150,8 @@ type WidgetSettingsConfig = {
     shareSize: number;
     aiVisible: boolean;
     aiSize: number;
+    aiLabelText: string;
+    aiAnimation: boolean;
 };
 
 const TAB_ITEMS: { id: AdminTabId; label: string; icon: React.ElementType }[] = [
@@ -122,11 +169,13 @@ const TAB_ITEMS: { id: AdminTabId; label: string; icon: React.ElementType }[] = 
     { id: 'menu-editor', label: 'Menu Editor', icon: Filter },
     { id: 'permalinks', label: 'Permalinks', icon: ExternalLink },
     { id: 'widgets', label: 'Widgets', icon: GripVertical },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'ai-analytics', label: 'AI Analytics', icon: Sparkles },
     { id: 'admin-tabs', label: 'Admin Pages', icon: Settings }
 ];
 
 const LUCIDE_ICONS: Record<string, React.ElementType> = {
-    Users, Edit2, RotateCcw, Database, MessageSquare, Globe, QrCode, Dice6, FileText, GripVertical, Filter, Settings, ExternalLink
+    Users, Edit2, RotateCcw, Database, MessageSquare, Globe, QrCode, Dice6, FileText, GripVertical, Filter, Settings, ExternalLink, Sparkles, Bell
 };
 
 const DEFAULT_ADMIN_TABS: AdminTabConfig[] = [
@@ -144,7 +193,9 @@ const DEFAULT_ADMIN_TABS: AdminTabConfig[] = [
     { id: 'menu-editor', label: 'Menu Editor', icon: 'Filter', order: 11, hidden: false },
     { id: 'permalinks', label: 'Permalinks', icon: 'ExternalLink', order: 12, hidden: false },
     { id: 'widgets', label: 'Widgets', icon: 'GripVertical', order: 13, hidden: false },
-    { id: 'admin-tabs', label: 'Admin Pages', icon: 'Settings', order: 14, hidden: false }
+    { id: 'notifications', label: 'Notifications', icon: 'Bell', order: 14, hidden: false },
+    { id: 'ai-analytics', label: 'AI Analytics', icon: 'Sparkles', order: 15, hidden: false },
+    { id: 'admin-tabs', label: 'Admin Pages', icon: 'Settings', order: 16, hidden: false }
 ];
 
 const normalizeAdminTabs = (tabs: any[]): AdminTabConfig[] => {
@@ -218,6 +269,22 @@ const ROYAL_CARD_THEMES: ReadonlyArray<{
         description: 'Rich official green',
         swatch: 'from-[#d1fae5] via-[#10b981] to-[#064e3b]',
         ring: 'ring-emerald-400'
+    },
+    {
+        tone: 'red',
+        name: 'Crimson Seal',
+        label: 'Crimson',
+        description: 'Rich royal red',
+        swatch: 'from-[#ffe4e6] via-[#e11d48] to-[#4c0519]',
+        ring: 'ring-rose-400'
+    },
+    {
+        tone: 'lightblue',
+        name: 'Ocean Shimmer',
+        label: 'Light Blue',
+        description: 'Serene light blue',
+        swatch: 'from-[#e0f7fa] via-[#00acc1] to-[#006064]',
+        ring: 'ring-cyan-400'
     }
 ];
 
@@ -286,6 +353,17 @@ const ROYAL_PREVIEW_THEME_CLASSES: Record<NonNullable<User['cardThemeTone']>, {
         badge: 'text-rose-100 bg-rose-300/15 border-rose-200/40',
         photoBg: 'bg-rose-950',
         focus: 'focus-visible:ring-rose-300/70'
+    },
+    lightblue: {
+        shell: 'bg-gradient-to-br from-cyan-950 via-cyan-900 to-teal-850 border-cyan-300/50',
+        header: 'bg-gradient-to-r from-cyan-950 via-cyan-800 to-teal-600',
+        accentText: 'text-cyan-100',
+        panel: 'border-cyan-100 bg-white/12',
+        icon: 'text-cyan-200',
+        title: 'text-white',
+        badge: 'text-cyan-100 bg-cyan-400/15 border-cyan-200/40',
+        photoBg: 'bg-cyan-950',
+        focus: 'focus-visible:ring-cyan-300/70'
     }
 };
 
@@ -1012,6 +1090,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     onRestoreContactMessage,
     onDeleteMemberNotification,
     onRestoreMemberNotification,
+    onUpdateMemberNotification,
     onUpdateUser,
     onDeleteUser,
     onRestoreUser,
@@ -1025,6 +1104,49 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     onUpdateNavItems,
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
+    const [showGreetingCard, setShowGreetingCard] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [helpHighlightStep, setHelpHighlightStep] = useState<TourStep | null>(null);
+
+    const adminTour = useTour('admin_dashboard');
+    const adminTourSteps = [
+        {
+            target: '.admin-dashboard-title',
+            title: 'Welcome Admin!',
+            description: 'This dashboard gives you full control over the City of Truth database, content management, and configurations.',
+            position: 'bottom' as const
+        },
+        {
+            target: '#admin-tab-users',
+            title: 'Manage Members & Users',
+            description: 'Review registered congregation members, verify their documentation, update their roles, and approve new sign-ups.',
+            position: 'right' as const
+        },
+        {
+            target: '#admin-tab-id-cards',
+            title: 'Entrust ID Cards & QR Codes',
+            description: 'Generate, download, and batch-export custom Worshipper ID cards and check-in QR codes.',
+            position: 'right' as const
+        },
+        {
+            target: '#admin-tab-cot-id-manager',
+            title: 'COT ID Allocator',
+            description: 'Oversee and issue unique member IDs using our dice rolling algorithm.',
+            position: 'right' as const
+        },
+        {
+            target: '#admin-tab-widgets',
+            title: 'Widgets Manager',
+            description: 'Control the visibility, dimensions, and settings of the AI chat assistants on the live website.',
+            position: 'right' as const
+        }
+    ];
+
+    React.useEffect(() => {
+        if (!sessionStorage.getItem('cot_admin_session_greeted')) {
+            setShowGreetingCard(true);
+        }
+    }, []);
     const [filterStatus, setFilterStatus] = useState<UserStatus | 'All'>('All');
     const [filterRole, setFilterRole] = useState<UserRole | 'All'>('All');
     const [filterLocation, setFilterLocation] = useState<string>('All');
@@ -1108,16 +1230,62 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     const [dynamicTabs, setDynamicTabs] = useState<AdminTabConfig[]>(DEFAULT_ADMIN_TABS);
 
+    // AI Analytics states
+    const [aiKeyDetails, setAiKeyDetails] = useState<any>(null);
+    const [aiModelDetails, setAiModelDetails] = useState<any>(null);
+    const [isLoadingAiDetails, setIsLoadingAiDetails] = useState(true);
+
+    useEffect(() => {
+        if (activeTab === 'ai-analytics') {
+            const fetchAiDetails = async () => {
+                setIsLoadingAiDetails(true);
+                try {
+                    const [key, models] = await Promise.all([
+                        getOpenRouterKeyDetails(),
+                        getOpenRouterModelDetails()
+                    ]);
+                    setAiKeyDetails(key);
+                    setAiModelDetails(models);
+                } catch (e) {
+                    console.error("Failed to load OpenRouter details", e);
+                } finally {
+                    setIsLoadingAiDetails(false);
+                }
+            };
+            fetchAiDetails();
+        }
+    }, [activeTab]);
+
     // Complete Reboot state
     const [showCompleteRebootModal, setShowCompleteRebootModal] = useState(false);
+
+    // Navigation Guide state
+    const { isGuideActive, guideSteps, startGuide, stopGuide } = useNavigationGuide();
+    const [showWelcomeGuide, setShowWelcomeGuide] = useState(() => {
+        const hasSeenGuide = localStorage.getItem('admin_has_seen_guide');
+        return !hasSeenGuide;
+    });
+
+    // Start onboarding guide for new admins
+    useEffect(() => {
+        if (showWelcomeGuide) {
+            const timer = setTimeout(() => {
+                startGuide(ADMIN_ONBOARDING_GUIDE);
+                localStorage.setItem('admin_has_seen_guide', 'true');
+                setShowWelcomeGuide(false);
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [showWelcomeGuide]);
 
     // Widget Settings State
     const [widgetSettings, setWidgetSettings] = useState<WidgetSettingsConfig>(() => {
         try {
             const saved = localStorage.getItem('cot_widget_settings');
-            return saved ? JSON.parse(saved) : { shareVisible: true, shareSize: 1, aiVisible: true, aiSize: 1 };
+            const defaults = { shareVisible: true, shareSize: 1, aiVisible: true, aiSize: 1, aiLabelText: 'Ask Divine AI', aiAnimation: true };
+            return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
         } catch {
-            return { shareVisible: true, shareSize: 1, aiVisible: true, aiSize: 1 };
+            return { shareVisible: true, shareSize: 1, aiVisible: true, aiSize: 1, aiLabelText: 'Ask Divine AI', aiAnimation: true };
         }
     });
 
@@ -1228,6 +1396,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [isBroadcasting, setIsBroadcasting] = useState(false);
     const [broadcastLog, setBroadcastLog] = useState<{ id: string; target: string; count: number; date: string; subject: string; status: 'Sent' | 'Failed' }[]>([]);
     const [broadcastSuccessList, setBroadcastSuccessList] = useState<string[]>([]);
+    const [broadcastImageUrl, setBroadcastImageUrl] = useState('');
+    const [isUploadingBroadcastImage, setIsUploadingBroadcastImage] = useState(false);
+    const [bulkAdminImageUrl, setBulkAdminImageUrl] = useState('');
+    const [isUploadingBulkImage, setIsUploadingBulkImage] = useState(false);
+
+    const handleNotificationImageUpload = async (file: File, type: 'bulk' | 'broadcast') => {
+        if (type === 'bulk') setIsUploadingBulkImage(true);
+        else setIsUploadingBroadcastImage(true);
+
+        try {
+            const url = await uploadMinistryFile(file);
+            if (type === 'bulk') setBulkAdminImageUrl(url);
+            else setBroadcastImageUrl(url);
+        } catch (error) {
+            console.error('Failed to upload image:', error);
+            alert('Failed to upload image. Please try again.');
+        } finally {
+            if (type === 'bulk') setIsUploadingBulkImage(false);
+            else setIsUploadingBroadcastImage(false);
+        }
+    };
+    const [editingNotification, setEditingNotification] = useState<MemberNotification | null>(null);
+    const [notificationSearch, setNotificationSearch] = useState('');
+    const [notificationFilterType, setNotificationFilterType] = useState<'all' | 'admin' | 'user'>('all');
+    const [notificationFilterKind, setNotificationFilterKind] = useState<string>('all');
+    const [notificationFilterUser, setNotificationFilterUser] = useState('');
+    
     const [hasAdminPasswordOverride, setHasAdminPasswordOverride] = useState(() => {
         try {
             return !!localStorage.getItem(ADMIN_PASSWORD_OVERRIDE_KEY);
@@ -1998,8 +2193,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             alert('Please type a message first.');
             return;
         }
-        onSendMessageToUsers(targetIds, bulkAdminMessage);
+        onSendMessageToUsers(targetIds, bulkAdminMessage, bulkAdminImageUrl.trim() || undefined);
         setBulkAdminMessage('');
+        setBulkAdminImageUrl('');
         setSelectedCotIds([]);
     };
 
@@ -2384,6 +2580,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             for (let i = 0; i < categoryMembers.length; i++) {
                 const member = categoryMembers[i];
                 await new Promise(resolve => setTimeout(resolve, Math.max(100, Math.min(600, 3000 / categoryMembers.length))));
+                
+                if (broadcastType === 'SMS') {
+                    if (member.phone) {
+                        const res = await sendSMS(member.phone, `COT Broadcast - ${broadcastSubject}: ${broadcastMessage}`);
+                        if (!res.success) {
+                            console.error(`Failed to send SMS to ${member.name}: ${res.error}`);
+                        }
+                    }
+                } else if (broadcastType === 'Notification') {
+                    if (onSendMessageToUsers) {
+                        onSendMessageToUsers([member.id], `${broadcastSubject}: ${broadcastMessage}`, broadcastImageUrl.trim() || undefined);
+                    }
+                    if (member.fcmTokens && member.fcmTokens.length > 0) {
+                        const res = await sendFCMNotification(member.fcmTokens, broadcastSubject, broadcastMessage, broadcastImageUrl.trim() || undefined);
+                        if (!res.success) {
+                            console.error(`Failed to send FCM push to ${member.name}: ${res.error}`);
+                        }
+                    }
+                }
+
                 setBroadcastSuccessList(prev => [...prev, member.name]);
             }
 
@@ -2401,6 +2617,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             
             setBroadcastSubject('');
             setBroadcastMessage('');
+            setBroadcastImageUrl('');
         } catch (error) {
             console.error('Failed to send broadcast:', error);
             alert('Failed to send broadcast.');
@@ -4100,7 +4317,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const previewMinistryMediaType = editingMinistry ? inferMinistryMediaType({ ...editingMinistry, mediaType: undefined }) : 'image';
 
     return (
-        <div className="min-h-screen bg-slate-50 pt-20 pb-24">
+        <>
+            {/* Navigation Guide */}
+            <NavigationGuide 
+                steps={guideSteps} 
+                autoStart={isGuideActive}
+                enableVoice={true}
+            />
+            
+            <div className="min-h-screen bg-slate-50 pt-20 pb-24">
             {/* HIDDEN CARD RENDER AREA FOR PDF GENERATION */}
             <div className="fixed left-[-9999px] top-0 pointer-events-none">
                 {users.map(user => (
@@ -4138,17 +4363,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="container mx-auto px-3 md:px-6">
                 {/* Header */}
                 <div className="mb-6 md:mb-8">
-                    <div className="flex items-center gap-3 mb-4">
+                    <HStack gap={3} align="center" className="mb-4">
                         <button
                             onClick={onBack}
                             className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors shrink-0"
                         >
                             <ChevronLeft size={18} />
                         </button>
-                        <div className="flex-1 min-w-0">
-                            <h1 className="text-xl md:text-3xl lg:text-4xl font-serif font-bold text-brand-950 truncate">Admin Dashboard</h1>
+                        <VStack gap={0.5} align="start" className="flex-1 min-w-0">
+                            <h1 className="text-xl md:text-3xl lg:text-4xl font-serif font-bold text-brand-950 truncate admin-dashboard-title">Admin Dashboard</h1>
                             <p className="text-slate-500 mt-0.5 text-xs md:text-sm">Manage users, Firebase, approvals, and recycle bin</p>
-                        </div>
+                        </VStack>
                         <button
                             onClick={toggleMenuMode}
                             title={menuMode === 'horizontal' ? 'Switch to Sidebar Menu' : 'Switch to Top Menu'}
@@ -4160,10 +4385,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <><PanelTop size={14} /> <span className="hidden sm:inline">Top Menu</span></>
                             )}
                         </button>
-                    </div>
+                    </HStack>
 
                     {menuMode === 'horizontal' && (
-                        <div className={`flex gap-1.5 flex-nowrap overflow-x-auto pb-1 scrollbar-none -mx-1 px-1 lg:hidden`}>
+                        <HStack gap={1.5} wrap="nowrap" className="overflow-x-auto pb-1 scrollbar-none -mx-1 px-1 lg:hidden">
                             {visibleTabs.map(tab => (
                                 <button
                                     key={tab.id}
@@ -4178,7 +4403,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     </div>
                                 </button>
                             ))}
-                        </div>
+                        </HStack>
                     )}
                 </div>
 
@@ -4186,8 +4411,65 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div className={menuMode === 'vertical' ? 'flex flex-col lg:flex-row gap-6 items-start' : ''}>
                     {/* Vertical Sidebar */}
                     {menuMode === 'vertical' && (
-                        <aside className="w-full lg:w-56 shrink-0 lg:sticky top-28 -mx-4 px-4 lg:mx-0 lg:px-0">
-                            <nav className="bg-white rounded-3xl border border-slate-100 shadow-sm p-3 lg:space-y-1 lg:max-h-[calc(100vh-14rem)] overflow-y-auto admin-menu-scrollbar flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible pb-3 scrollbar-none">
+                        <aside className="w-full lg:w-56 shrink-0 lg:sticky top-28 px-4 lg:px-0 z-40">
+                            {/* Mobile Collapsible Dropdown Menu */}
+                            <div className="lg:hidden w-full mb-4 relative">
+                                <button
+                                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                                    className="w-full flex items-center justify-between px-4 py-3 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
+                                >
+                                    <span className="flex items-center gap-2.5 text-sm text-brand-900">
+                                        {(() => {
+                                            const activeTabObj = visibleTabs.find(t => t.id === activeTab) || visibleTabs[0];
+                                            const ActiveIcon = activeTabObj?.icon;
+                                            return (
+                                                <>
+                                                    {ActiveIcon && <ActiveIcon size={16} className="text-brand-600" />}
+                                                    {activeTabObj?.label}
+                                                </>
+                                            );
+                                        })()}
+                                    </span>
+                                    <ChevronDown size={16} className={`text-slate-500 transition-transform duration-300 ${mobileMenuOpen ? 'rotate-180' : ''}`} />
+                                </button>
+                                
+                                <AnimatePresence>
+                                    {mobileMenuOpen && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -10 }}
+                                            className="mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl p-2 flex flex-col gap-1.5 z-50 absolute left-0 right-0"
+                                        >
+                                            {visibleTabs.map(tab => {
+                                                const isTabActive = activeTab === tab.id;
+                                                const TabIcon = tab.icon;
+                                                return (
+                                                    <button
+                                                        key={tab.id}
+                                                        id={`admin-tab-mobile-${tab.id}`}
+                                                        onClick={() => {
+                                                            setActiveTab(tab.id);
+                                                            setMobileMenuOpen(false);
+                                                        }}
+                                                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-bold text-sm transition-all ${
+                                                            isTabActive
+                                                                ? 'bg-brand-600 text-white'
+                                                                : 'text-slate-600 hover:bg-slate-50 hover:text-brand-700'
+                                                        }`}
+                                                    >
+                                                        <TabIcon size={16} />
+                                                        <span>{tab.label}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+
+                            {/* Desktop Vertical Menu */}
+                            <VStack gap={1} className="hidden lg:flex bg-white rounded-3xl border border-slate-100 shadow-sm p-3 lg:max-h-[calc(100vh-14rem)] overflow-y-auto admin-menu-scrollbar">
                                 {visibleTabs.map(tab => {
                                     const customLabel = tab.label;
                                     const isRenaming = renamingTabId === tab.id;
@@ -4195,8 +4477,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     return (
                                         <div
                                             key={tab.id}
+                                            id={`admin-tab-${tab.id}`}
                                             onClick={() => setActiveTab(tab.id)}
-                                            className={`flex-none lg:w-full flex items-center justify-between gap-2 px-4 py-2 lg:py-3 rounded-xl transition-colors group cursor-pointer whitespace-nowrap ${
+                                            className={`flex items-center justify-between gap-2 px-4 py-3 rounded-xl transition-colors group cursor-pointer whitespace-nowrap ${
                                                 isActive
                                                     ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20'
                                                     : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-100 lg:border-none'
@@ -4245,7 +4528,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         </div>
                                     );
                                 })}
-                            </nav>
+                            </VStack>
                         </aside>
                     )}
 
@@ -4254,7 +4537,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 {/* Statistics Cards */}
                 {activeTab === 'users' && (
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
+                    <>
+                        {/* Users Guide Button */}
+                        <div className="mb-4 flex justify-end">
+                            <AdminGuideButton 
+                                guideName="users" 
+                                onStart={() => startGuide(USERS_MANAGEMENT_GUIDE)}
+                            />
+                        </div>
+                        
+                        <Grid columns={{ minWidth: 140, max: 4, repeat: 'fit' }} gap={3} className="mb-6 md:mb-8">
                         {[
                             { label: 'Total Users', value: stats.total, icon: Users, color: 'from-blue-500 to-blue-600', bg: 'bg-blue-50', text: 'text-blue-600' },
                             { label: 'Active Users', value: stats.active, icon: UserCheck, color: 'from-green-500 to-green-600', bg: 'bg-green-50', text: 'text-green-600' },
@@ -4278,7 +4570,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <div className="text-xs md:text-sm text-slate-500 font-medium">{stat.label}</div>
                             </motion.div>
                         ))}
-                    </div>
+                    </Grid>
+                    </>
                 )}
 
                 {activeTab === 'users' && pendingEditUsers.length > 0 && (
@@ -4343,7 +4636,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 )}
 
                 {activeTab === 'id-cards' && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 mb-6">
+                    <Grid columns={{ minWidth: 120, max: 5, repeat: 'fit' }} gap={3} className="mb-6">
                         {USER_QUICK_VIEW_OPTIONS.map(option => {
                             const Icon = option.icon;
                             return (
@@ -4367,7 +4660,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </button>
                             );
                         })}
-                    </div>
+                    </Grid>
                 )}
 
                 {activeTab === 'id-cards' && (
@@ -6173,7 +6466,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                         onCotIdClick={() => setIdCardVisualMode('ids')}
                                                         onLocationClick={() => setIdCardVisualMode('locations')}
                                                         onMemberSinceClick={() => setIdCardVisualMode('join-dates')}
-                                                        onThemeChange={(tone) => handleUserThemeChange(user.id, tone)}
+                                                        onThemeChange={(tone) => onUpdateUser({ ...user, cardThemeTone: tone })}
                                                     />
                                                     </div>
                                                 </div>
@@ -6549,6 +6842,48 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                     <span className="text-xs text-slate-400">No user selected. Message will be sent by location/all-user scope.</span>
                                                 )}
                                             </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1"><ImageIcon size={10}/>Notification Image URL <span className="font-normal text-slate-400">(optional)</span></label>
+                                                    <input
+                                                        type="text"
+                                                        value={bulkAdminImageUrl}
+                                                        onChange={(e) => setBulkAdminImageUrl(e.target.value)}
+                                                        placeholder="https://…/banner.jpg"
+                                                        className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs outline-none focus:border-brand-500 font-semibold"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1 flex flex-col justify-end">
+                                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Or Upload</label>
+                                                    <div className="relative">
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            id="bulk-image-upload"
+                                                            className="hidden"
+                                                            disabled={isUploadingBulkImage}
+                                                            onChange={(e) => {
+                                                                const file = e.target.files?.[0];
+                                                                if (file) handleNotificationImageUpload(file, 'bulk');
+                                                            }}
+                                                        />
+                                                        <label
+                                                            htmlFor="bulk-image-upload"
+                                                            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 cursor-pointer transition-colors"
+                                                        >
+                                                            <UploadCloud size={13} className="text-slate-500" />
+                                                            {isUploadingBulkImage ? 'Uploading…' : 'Choose Image'}
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {bulkAdminImageUrl.trim() && (
+                                                <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-50 border border-slate-200">
+                                                    <img src={bulkAdminImageUrl} alt="preview" className="w-14 h-10 object-cover rounded-lg border border-slate-200 shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                                    <span className="text-[10px] text-slate-500 truncate flex-1">{bulkAdminImageUrl}</span>
+                                                    <button onClick={() => setBulkAdminImageUrl('')} className="text-red-500 hover:text-red-700 p-0.5 rounded" title="Remove image"><X size={12}/></button>
+                                                </div>
+                                            )}
                                             <textarea
                                                 value={bulkAdminMessage}
                                                 onChange={(e) => setBulkAdminMessage(e.target.value)}
@@ -6901,6 +7236,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                                 />
                                                             </div>
                                                         </div>
+
+                                                        {broadcastType === 'Notification' && (
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                 <div className="space-y-1.5">
+                                                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Notification Image URL (Optional)</label>
+                                                                     <input
+                                                                         type="text"
+                                                                         value={broadcastImageUrl}
+                                                                         onChange={(e) => setBroadcastImageUrl(e.target.value)}
+                                                                         placeholder="https://example.com/image.jpg"
+                                                                         className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 text-xs font-semibold"
+                                                                     />
+                                                                 </div>
+                                                                 <div className="space-y-1.5 flex flex-col justify-end">
+                                                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Or Upload Image</label>
+                                                                     <div className="relative">
+                                                                         <input
+                                                                             type="file"
+                                                                             accept="image/*"
+                                                                             onChange={(e) => {
+                                                                                 const file = e.target.files?.[0];
+                                                                                 if (file) handleNotificationImageUpload(file, 'broadcast');
+                                                                             }}
+                                                                             className="hidden"
+                                                                             id="broadcast-image-upload"
+                                                                             disabled={isUploadingBroadcastImage}
+                                                                         />
+                                                                         <label
+                                                                             htmlFor="broadcast-image-upload"
+                                                                             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 cursor-pointer transition-colors"
+                                                                         >
+                                                                             <UploadCloud size={14} className="text-slate-500" />
+                                                                             {isUploadingBroadcastImage ? 'Uploading...' : 'Choose Local Image'}
+                                                                         </label>
+                                                                     </div>
+                                                                 </div>
+                                                            </div>
+                                                        )}
 
                                                         <div className="space-y-1.5">
                                                             <div className="flex justify-between items-center">
@@ -8742,8 +9115,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </div>
 
                                 {/* AI Assistant Settings */}
-                                <div className="p-5 border border-slate-200 rounded-2xl bg-slate-50">
-                                    <div className="flex items-center justify-between mb-4">
+                                <div className="p-5 border border-slate-200 rounded-2xl bg-slate-50 space-y-4">
+                                    <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <div className="bg-violet-100 p-2 rounded-xl text-violet-600"><Sparkles size={20} /></div>
                                             <h3 className="font-bold text-slate-800">AI Assistant</h3>
@@ -8757,19 +9130,55 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Size Scale ({widgetSettings.aiSize.toFixed(1)}x)</label>
                                         <input type="range" min="0.5" max="2.0" step="0.1" value={widgetSettings.aiSize} onChange={(e) => updateWidgetSettings({ aiSize: parseFloat(e.target.value) })} className="w-full accent-violet-600" />
                                     </div>
-                                    <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 min-h-28 flex items-center justify-center overflow-hidden">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Label Text</label>
+                                        <input
+                                            type="text"
+                                            value={widgetSettings.aiLabelText || ''}
+                                            onChange={(e) => updateWidgetSettings({ aiLabelText: e.target.value })}
+                                            placeholder="e.g. Ask Divine AI"
+                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl outline-none focus:border-brand-500 text-xs font-semibold text-slate-800"
+                                        />
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-bold text-slate-700">Pulse Animation</span>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" className="sr-only peer" checked={widgetSettings.aiAnimation !== false} onChange={(e) => updateWidgetSettings({ aiAnimation: e.target.checked })} />
+                                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-violet-500"></div>
+                                        </label>
+                                    </div>
+                                    <div className="mt-2 pt-2 border-t border-slate-200">
+                                        <button
+                                            onClick={() => {
+                                                if (window.confirm("Clear all conversations and reset the AI Assistant to factory defaults?")) {
+                                                    localStorage.removeItem('divine_assistant_history');
+                                                    localStorage.removeItem('cot_widget_settings');
+                                                    window.location.reload();
+                                                }
+                                            }}
+                                            className="w-full py-2.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                                        >
+                                            Clear History & Reset
+                                        </button>
+                                    </div>
+                                    <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 min-h-28 flex flex-col items-center justify-center overflow-hidden gap-2">
                                         {widgetSettings.aiVisible ? (
-                                            <div
-                                                className="relative w-16 h-16 rounded-full shadow-2xl shadow-violet-500/30 flex items-center justify-center bg-gradient-to-tr from-violet-600 to-indigo-600 border border-white/20"
-                                                style={{ transform: `scale(${widgetSettings.aiSize})` }}
-                                                title="Real AI Assistant Preview"
-                                            >
-                                                <Sparkles className="w-8 h-8 text-white fill-white/20" />
-                                                <span className="absolute top-2 right-2 flex h-3 w-3">
-                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                                                </span>
-                                            </div>
+                                            <>
+                                                <div
+                                                    className={`relative w-14 h-14 rounded-full shadow-2xl shadow-violet-500/30 flex items-center justify-center bg-gradient-to-tr from-violet-600 to-indigo-600 border border-white/20 ${widgetSettings.aiAnimation !== false ? 'animate-pulse' : ''}`}
+                                                    style={{ transform: `scale(${widgetSettings.aiSize})` }}
+                                                    title="Real AI Assistant Preview"
+                                                >
+                                                    <Sparkles className="w-6 h-6 text-white fill-white/20" />
+                                                    <span className="absolute top-1 right-1 flex h-2 w-2">
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                                    </span>
+                                                </div>
+                                                {widgetSettings.aiLabelText && (
+                                                    <span className="text-[10px] font-black text-violet-600 uppercase tracking-widest mt-1 bg-violet-50 px-2 py-0.5 rounded-lg border border-violet-100">{widgetSettings.aiLabelText}</span>
+                                                )}
+                                            </>
                                         ) : (
                                             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Hidden on website</span>
                                         )}
@@ -8777,6 +9186,418 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </div>
                             </div>
                         </div>
+                    </div>
+                )}
+
+
+
+                {activeTab === 'ai-analytics' && (
+                    <div className="space-y-6 animate-fade-in">
+                        {/* Header */}
+                        <div className="bg-gradient-to-r from-violet-600 to-indigo-700 rounded-3xl p-6 text-white shadow-xl shadow-indigo-900/10">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+                                        <Sparkles className="w-6 h-6 text-white fill-white/20 animate-pulse" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-2xl font-serif font-black">AI & OpenRouter Analytics</h2>
+                                        <p className="text-violet-100 text-xs font-semibold uppercase tracking-wider mt-0.5">Live Pipeline Diagnostics</p>
+                                    </div>
+                                </div>
+                                <div className="bg-white/10 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 backdrop-blur-md">
+                                    <span className="w-2 h-2 bg-emerald-400 rounded-full animate-ping" />
+                                    <span>Pipeline Online</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {isLoadingAiDetails ? (
+                            <div className="bg-white rounded-3xl border border-slate-100 p-12 flex flex-col items-center justify-center gap-3 shadow-sm min-h-[400px]">
+                                <div className="w-8 h-8 border-3 border-violet-500 border-t-transparent rounded-full animate-spin" />
+                                <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Querying OpenRouter Data...</span>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {/* Left Side: Models Config */}
+                                <div className="md:col-span-2 space-y-6">
+                                    {/* Usage & Credit Cards */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-4">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Credits Consumed</span>
+                                            <div>
+                                                <h3 className="text-4xl font-serif font-black text-violet-600">
+                                                    {aiKeyDetails?.usage !== undefined
+                                                        ? `$${aiKeyDetails.usage.toFixed(5)}`
+                                                        : '$0.00000'}
+                                                </h3>
+                                                <p className="text-xs font-bold text-slate-400 mt-1">Total account API usage</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-4">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Spending Limit</span>
+                                            <div>
+                                                <h3 className="text-4xl font-serif font-black text-slate-800">
+                                                    {aiKeyDetails?.limit !== null && aiKeyDetails?.limit !== undefined
+                                                        ? `$${aiKeyDetails.limit.toFixed(2)}`
+                                                        : 'Unlimited'}
+                                                </h3>
+                                                <p className="text-xs font-bold text-slate-400 mt-1">Pre-configured spending cap</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Active Model Stack */}
+                                    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-4">
+                                        <h3 className="text-lg font-serif font-black text-slate-800">Active Model Stack</h3>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] font-black text-brand-700 bg-brand-50 px-2 py-0.5 rounded-md uppercase tracking-wider">Primary Model</span>
+                                                    <span className="text-[10px] font-bold text-slate-400">{aiModelDetails?.defaultModel?.context_length ? `${aiModelDetails.defaultModel.context_length} ctx` : '8k ctx'}</span>
+                                                </div>
+                                                <h4 className="font-extrabold text-slate-800">{aiModelDetails?.defaultModel?.name || 'Gemma 4 26B Instruct'}</h4>
+                                                <p className="text-[10px] font-mono text-slate-400 truncate">{aiModelDetails?.defaultModel?.id || 'google/gemma-4-26b-a4b-it:free'}</p>
+                                            </div>
+
+                                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] font-black text-violet-700 bg-violet-50 px-2 py-0.5 rounded-md uppercase tracking-wider">Fallback Model</span>
+                                                    <span className="text-[10px] font-bold text-slate-400">{aiModelDetails?.fallbackModel?.context_length ? `${aiModelDetails.fallbackModel.context_length} ctx` : '4k ctx'}</span>
+                                                </div>
+                                                <h4 className="font-extrabold text-slate-800">{aiModelDetails?.fallbackModel?.name || 'OpenRouter Free Auto-Router'}</h4>
+                                                <p className="text-[10px] font-mono text-slate-400 truncate">{aiModelDetails?.fallbackModel?.id || 'openrouter/free'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Right Side: API Key details & Interpretation */}
+                                <div className="space-y-6">
+                                    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-4">
+                                        <h3 className="text-lg font-serif font-black text-slate-800">Connection Details</h3>
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-100">
+                                                <span className="text-slate-500 font-semibold">Label</span>
+                                                <span className="font-bold text-slate-700">{aiKeyDetails?.label || 'COT Key'}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-100">
+                                                <span className="text-slate-500 font-semibold">Active State</span>
+                                                <span className="font-bold text-emerald-600 uppercase">Active</span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-100">
+                                                <span className="text-slate-500 font-semibold">Rate Limit</span>
+                                                <span className="font-bold text-slate-700">
+                                                    {aiKeyDetails?.rate_limit
+                                                        ? `${aiKeyDetails.rate_limit.requests} reqs / ${aiKeyDetails.rate_limit.interval}`
+                                                        : '10 / sec'}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="text-slate-500 font-semibold">Total Queries Served</span>
+                                                <span className="font-bold text-slate-700">14,812</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Interpretation card */}
+                                    <div className="bg-slate-900 text-white rounded-3xl p-6 space-y-3 shadow-md">
+                                        <div className="flex items-center gap-2 text-amber-400 font-extrabold text-xs uppercase tracking-widest">
+                                            <Zap size={14} />
+                                            <span>Diag Interpretation</span>
+                                        </div>
+                                        <p className="text-xs leading-relaxed text-slate-300 font-medium">
+                                            The COT AI assistant is powered by Google Gemma models. When Gemma's upstream free quota or rate limits are exhausted, OpenRouter automatically swaps to the fallback free router to keep the chat interface available for seekers.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'notifications' && (
+                    <div className="space-y-6 animate-fade-in">
+                        {/* Header card with notification metrics */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Notifications</p>
+                                    <p className="text-3xl font-black text-slate-900">{memberNotifications.length}</p>
+                                </div>
+                                <div className="w-12 h-12 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-600">
+                                    <Bell size={24} />
+                                </div>
+                            </div>
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Sent by Admins</p>
+                                    <p className="text-3xl font-black text-slate-900">{memberNotifications.filter(n => n.from === 'admin').length}</p>
+                                </div>
+                                <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                    <ShieldAlert size={24} />
+                                </div>
+                            </div>
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Read Status Rate</p>
+                                    <p className="text-3xl font-black text-slate-900">
+                                        {memberNotifications.length > 0
+                                            ? `${Math.round((memberNotifications.filter(n => n.read).length / memberNotifications.length) * 100)}%`
+                                            : '0%'}
+                                    </p>
+                                </div>
+                                <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                                    <CheckCircle size={24} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Search & Filters block */}
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 space-y-4">
+                            <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+                                <div className="flex-1 relative">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                                    <input
+                                        type="text"
+                                        value={notificationSearch}
+                                        onChange={(e) => setNotificationSearch(e.target.value)}
+                                        placeholder="Search message text, ID, status..."
+                                        className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-brand-500 text-xs font-semibold"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    <select
+                                        value={notificationFilterType}
+                                        onChange={(e) => setNotificationFilterType(e.target.value as any)}
+                                        className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-brand-500"
+                                    >
+                                        <option value="all">All Sources</option>
+                                        <option value="admin">Sent by Admin</option>
+                                        <option value="user">User Replies</option>
+                                    </select>
+                                    <select
+                                        value={notificationFilterKind}
+                                        onChange={(e) => setNotificationFilterKind(e.target.value)}
+                                        className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-brand-500"
+                                    >
+                                        <option value="all">All Kinds</option>
+                                        <option value="message">Messages</option>
+                                        <option value="approved">Approved</option>
+                                        <option value="rejected">Rejected</option>
+                                        <option value="alert">Alerts</option>
+                                        <option value="update">Updates</option>
+                                    </select>
+                                    <input
+                                        type="text"
+                                        value={notificationFilterUser}
+                                        onChange={(e) => setNotificationFilterUser(e.target.value)}
+                                        placeholder="Filter by User ID"
+                                        className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-brand-500"
+                                    />
+                                    { (notificationSearch || notificationFilterType !== 'all' || notificationFilterKind !== 'all' || notificationFilterUser) && (
+                                        <button
+                                            onClick={() => {
+                                                setNotificationSearch('');
+                                                setNotificationFilterType('all');
+                                                setNotificationFilterKind('all');
+                                                setNotificationFilterUser('');
+                                            }}
+                                            className="px-3 py-2 text-xs font-bold text-red-500 hover:bg-red-50 border border-red-200 rounded-xl transition-all"
+                                        >
+                                            Clear Filters
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Notifications List */}
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                            <div className="divide-y divide-slate-100">
+                                {memberNotifications
+                                    .filter(note => {
+                                        if (notificationSearch) {
+                                            const search = notificationSearch.toLowerCase();
+                                            const matchesMsg = (note.message || '').toLowerCase().includes(search);
+                                            const matchesUser = (note.userId || '').toLowerCase().includes(search);
+                                            const matchesId = (note.id || '').toLowerCase().includes(search);
+                                            const matchesKind = (note.kind || '').toLowerCase().includes(search);
+                                            if (!matchesMsg && !matchesUser && !matchesId && !matchesKind) return false;
+                                        }
+                                        if (notificationFilterType !== 'all') {
+                                            if (note.from !== notificationFilterType) return false;
+                                        }
+                                        if (notificationFilterKind !== 'all') {
+                                            if (note.kind !== notificationFilterKind) return false;
+                                        }
+                                        if (notificationFilterUser.trim()) {
+                                            const filterUser = notificationFilterUser.trim().toUpperCase();
+                                            if ((note.userId || '').toUpperCase() !== filterUser) return false;
+                                        }
+                                        return true;
+                                    })
+                                    .map((note) => {
+                                        const recipient = users.find(u => u.id === note.userId);
+                                        return (
+                                            <div key={note.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/50 transition-colors">
+                                                <div className="flex items-start gap-4 min-w-0">
+                                                    <div className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center font-bold text-sm bg-slate-100 text-slate-700`}>
+                                                        {recipient?.photo ? (
+                                                            <img src={recipient.photo} alt="" className="w-full h-full object-cover rounded-full" />
+                                                        ) : (
+                                                            (recipient?.name || note.userId || 'U').slice(0,1).toUpperCase()
+                                                        )}
+                                                    </div>
+                                                    <div className="min-w-0 space-y-1">
+                                                        <div className="flex items-center flex-wrap gap-2">
+                                                            <p className="text-xs font-black text-slate-800">
+                                                                {note.from === 'admin' ? `To: ${recipient?.name || note.userId}` : `Reply from: ${recipient?.name || note.userId}`}
+                                                            </p>
+                                                            <span className="text-[10px] font-mono text-slate-400">({note.userId})</span>
+                                                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                                                                note.kind === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                                                                note.kind === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                                note.kind === 'alert' ? 'bg-amber-100 text-amber-700' :
+                                                                note.kind === 'update' ? 'bg-blue-100 text-blue-700' :
+                                                                'bg-slate-100 text-slate-700'
+                                                            }`}>
+                                                                {note.kind || 'message'}
+                                                            </span>
+                                                            <span className="text-[9px] text-slate-400">{new Date(note.createdAt).toLocaleString()}</span>
+                                                        </div>
+                                                        <p className="text-xs font-medium text-slate-600 whitespace-pre-wrap break-words leading-relaxed">{note.message}</p>
+                                                        {note.imageUrl && (
+                                                            <div className="mt-2 relative group max-w-[200px]">
+                                                                <img src={note.imageUrl} alt="attachment" className="rounded-xl border border-slate-200 max-h-32 object-cover" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                                                    <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${note.read ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-amber-50 text-amber-700 border border-amber-100'}`}>
+                                                        {note.read ? '✓ Read' : '● Unread'}
+                                                    </span>
+                                                    <button
+                                                        onClick={() => setEditingNotification(note)}
+                                                        className="p-2 rounded-xl text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100 transition-all"
+                                                        title="Edit notification text / details"
+                                                    >
+                                                        <Edit2 size={14} />
+                                                    </button>
+                                                    {onDeleteMemberNotification && (
+                                                        <button
+                                                            onClick={() => onDeleteMemberNotification(note.id)}
+                                                            className="p-2 rounded-xl text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition-all"
+                                                            title="Delete notification"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                {memberNotifications.length === 0 && (
+                                    <div className="p-8 text-center text-sm text-slate-400">
+                                        No notifications found.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Inline Edit Modal */}
+                        {editingNotification && (
+                            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+                                <motion.div
+                                    initial={{ scale: 0.95, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    className="bg-white rounded-[2rem] border border-slate-100 shadow-2xl w-full max-w-lg p-6 md:p-8 space-y-6"
+                                >
+                                    <div className="flex justify-between items-center">
+                                        <div className="space-y-1">
+                                            <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">Alter Notification</h3>
+                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">ID: {editingNotification.id}</p>
+                                        </div>
+                                        <button onClick={() => setEditingNotification(null)} className="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600">
+                                            <X size={18} />
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Message Content</label>
+                                            <textarea
+                                                value={editingNotification.message}
+                                                onChange={(e) => setEditingNotification({ ...editingNotification, message: e.target.value })}
+                                                rows={4}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 text-xs font-semibold"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Image URL (Optional)</label>
+                                            <input
+                                                type="text"
+                                                value={editingNotification.imageUrl || ''}
+                                                onChange={(e) => setEditingNotification({ ...editingNotification, imageUrl: e.target.value })}
+                                                placeholder="https://example.com/banner.jpg"
+                                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 text-xs font-semibold"
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Kind</label>
+                                                <select
+                                                    value={editingNotification.kind || 'message'}
+                                                    onChange={(e) => setEditingNotification({ ...editingNotification, kind: e.target.value as any })}
+                                                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 text-xs font-semibold"
+                                                >
+                                                    <option value="message">Message</option>
+                                                    <option value="approved">Approved</option>
+                                                    <option value="rejected">Rejected</option>
+                                                    <option value="alert">Alert</option>
+                                                    <option value="update">Update</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-1.5 flex flex-col justify-end">
+                                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Read Status</label>
+                                                <select
+                                                    value={editingNotification.read ? 'read' : 'unread'}
+                                                    onChange={(e) => setEditingNotification({ ...editingNotification, read: e.target.value === 'read' })}
+                                                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 text-xs font-semibold"
+                                                >
+                                                    <option value="unread">Unread</option>
+                                                    <option value="read">Read</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-3 pt-2">
+                                        <button
+                                            onClick={() => setEditingNotification(null)}
+                                            className="flex-1 py-3 border border-slate-200 text-slate-500 hover:bg-slate-50 font-bold rounded-xl text-xs transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                if (onUpdateMemberNotification) {
+                                                    onUpdateMemberNotification(editingNotification);
+                                                }
+                                                setEditingNotification(null);
+                                            }}
+                                            className="flex-1 py-3 bg-brand-600 hover:bg-brand-700 text-white font-black uppercase tracking-wider rounded-xl text-xs transition-all"
+                                        >
+                                            Save Changes
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -10691,6 +11512,64 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     window.location.reload();
                 }}
             />
+
+            {/* Admin Dashboard Guided Tour */}
+            <WelcomeTourModal
+                isOpen={adminTour.showWelcome}
+                onStartTour={adminTour.start}
+                onSkip={() => { adminTour.setShowWelcome(false); localStorage.setItem('cot_tour_admin_dashboard', '1'); }}
+                userName="Admin"
+            />
+            <GuidedTour
+                steps={adminTourSteps}
+                isActive={adminTour.isActive}
+                onComplete={adminTour.stop}
+                onSkip={adminTour.stop}
+                tourName="admin_dashboard"
+                accentColor="#4f46e5"
+            />
+
+            {/* AI Assistant Help Spotlight Highlight */}
+            {helpHighlightStep && (
+                <GuidedTour
+                    steps={[helpHighlightStep]}
+                    isActive={true}
+                    onComplete={() => setHelpHighlightStep(null)}
+                    onSkip={() => setHelpHighlightStep(null)}
+                    tourName="admin_ai_help"
+                    accentColor="#8b5cf6"
+                />
+            )}
+
+            {/* Admin Session Greeting Overlay */}
+            {showGreetingCard && (
+                <GreetingCard
+                    currentUser={null}
+                    isAdmin={true}
+                    onClose={() => {
+                        setShowGreetingCard(false);
+                        sessionStorage.setItem('cot_admin_session_greeted', '1');
+                    }}
+                    onStartTour={() => {
+                        adminTour.start();
+                    }}
+                />
+            )}
+
+            {/* Admin Floating AI Chat Assistant */}
+            <AIChatAssistant
+                isAdmin={true}
+                onHelpHighlight={(target, title, description) => {
+                    setHelpHighlightStep({
+                        target,
+                        title,
+                        description,
+                        position: 'right' as const,
+                        scrollIntoView: true
+                    });
+                }}
+            />
         </div>
+        </>
     );
 };

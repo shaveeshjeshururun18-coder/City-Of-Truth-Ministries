@@ -53,16 +53,10 @@ export const GlobalAIWidget: React.FC = () => {
                             <div className="absolute inset-0 bg-amber-400/20 rounded-full blur-xl animate-pulse"></div>
 
                             {/* Main Circle */}
-                            <div className="relative w-full h-full rounded-full shadow-2xl shadow-amber-500/40 z-10 bg-slate-950 border-2 sm:border-[3px] border-amber-400 overflow-hidden ring-2 sm:ring-4 ring-black/20">
-                                {/* Golden Menorah Image */}
-                                <div className="absolute inset-0 bg-[url('/menorah-flag.png')] bg-cover bg-center transition-transform duration-700 group-hover:scale-110"></div>
-
-                                {/* Overlay Gradient for Depth */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-amber-900/40 to-transparent"></div>
-
-                                {/* Sparkle Overlay */}
+                            <div className="relative w-full h-full rounded-full shadow-2xl shadow-amber-500/40 z-10 bg-gradient-to-br from-brand-600 via-brand-700 to-indigo-900 border-2 sm:border-[3px] border-amber-400 overflow-hidden ring-2 sm:ring-4 ring-black/20">
+                                {/* Sparkle Icon */}
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <Sparkles className="w-5 h-5 sm:w-7 sm:h-7 text-amber-200 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] animate-spin [animation-duration:3s] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                                    <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]" />
                                 </div>
                             </div>
                         </div>

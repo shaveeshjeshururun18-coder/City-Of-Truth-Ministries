@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import emailjs from '@emailjs/browser';
 // import { collection, addDoc } from 'firebase/firestore'; // Removed Firebase mail collection usage
-import { db } from './services/firebase';
+import { db, messaging } from './services/firebase';
 import {
   Church,
   MapPin,
@@ -66,8 +66,7 @@ import { WorshipperIDCard, EntrustCard3D } from './components/WorshipperIDCard';
 import { GoldenMenorah } from './components/GoldenMenorah';
 import { GoldenMenorahPage } from './components/GoldenMenorahPage';
 import { AIPage } from './components/AIPage';
-import AIChatAssistant from './components/AIChatAssistant';
-import { GlobalAIWidget } from './components/GlobalAIWidget';
+import { DivineAssistant } from './components/DivineAssistant';
 import { MinistryHighlights, HebrewSanctuaryIntro, HebrewPagesPreviewSection, PastorBaruchPreviewSection, ValparaiPresence, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, CommunityMembersSection } from './components/HomeSections';
 import { MessageFromLeader } from './components/MessageFromLeader';
 import { HebrewAlphabetPage } from './components/HebrewAlphabetPage';
@@ -86,8 +85,13 @@ import { CommunityProfileForm } from './components/CommunityProfileForm';
 import VerifyIDPage from './components/VerifyIDPage';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { BottomNav } from './components/BottomNav';
+import GreetingCard from './components/GreetingCard';
+import { GuidedTour, useTour } from './components/GuidedTour';
 
 import { api } from './services/api';
+import { getToken } from 'firebase/messaging';
+import { sendFCMNotification } from './services/fcmService';
+import { sendSMS } from './services/smsService';
 
 const youtubeLink = "https://youtube.com/@cotministries?si=A6179oNRuuJ9snjM";
 const MAX_STORED_CONTACT_MESSAGES = 200;
@@ -204,6 +208,7 @@ interface MemberNotification {
   read?: boolean;
   deletedAt?: string;
   autoDeleteAt?: string;
+  imageUrl?: string;
 }
 
 const normalizeDeletedMessageMeta = <T extends { createdAt?: string; deletedAt?: string; autoDeleteAt?: string }>(item: T): T => {
@@ -489,6 +494,35 @@ const App: React.FC = () => {
   const [statusNotice, setStatusNotice] = useState<{ type: 'approved' | 'rejected'; message: string } | null>(null);
   const [showWelcomeIntro, setShowWelcomeIntro] = useState(false);
   const [sessionGreeting, setSessionGreeting] = useState<string | null>(null);
+  const [showGreetingCard, setShowGreetingCard] = useState(false);
+  const liveWebsiteTour = useTour('live_website');
+
+  const liveWebsiteTourSteps = [
+    {
+      target: '#nav-logo',
+      title: 'City of Truth Ministries',
+      description: 'Welcome to our sanctuary portal. Click here anytime to return to the home screen.',
+      position: 'bottom' as const
+    },
+    {
+      target: '#nav-hebrew-btn',
+      title: 'Hebrew Word Hub & Resources',
+      description: 'Explore ancient scripts, practice pronunciation with our interactive mouth animator, and learn Gematria.',
+      position: 'bottom' as const
+    },
+    {
+      target: '#nav-register-btn',
+      title: 'Register & Member Cards',
+      description: 'Register to receive your unique COT Member ID and generate a beautiful 3D printable Entrust Card.',
+      position: 'bottom' as const
+    },
+    {
+      target: '#ai-chat-launcher-btn',
+      title: 'Spiritual AI Assistant',
+      description: 'Have questions? Chat with our AI assistant for scriptural references, prayer guides, and page navigation help.',
+      position: 'left' as const
+    }
+  ];
   const [tourStepIndex, setTourStepIndex] = useState<number | null>(null);
   const [tourRect, setTourRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
   const [heroEmail, setHeroEmail] = useState('');
@@ -734,7 +768,7 @@ const App: React.FC = () => {
     });
   };
 
-  const handleAdminSendMessageToUsers = (targetUserIds: string[], message: string) => {
+  const handleAdminSendMessageToUsers = (targetUserIds: string[], message: string, imageUrl?: string) => {
     const trimmed = message.trim();
     if (!trimmed || targetUserIds.length === 0) return;
 
@@ -747,17 +781,36 @@ const App: React.FC = () => {
       createdAt,
       kind: 'message',
       ctaView: ViewState.USER_DASHBOARD,
-      read: false
+      read: false,
+      ...(imageUrl ? { imageUrl } : {})
     }));
 
     setMemberNotifications(prev => [...nextNotifications, ...prev].slice(0, 1000));
+
+    // Also push FCM + SMS for each targeted user
+    targetUserIds.forEach(userId => {
+      const targetUser = users.find(u => u.id === userId || u.id.toUpperCase() === userId.toUpperCase());
+      if (targetUser) {
+        if (targetUser.phone) {
+          sendSMS(targetUser.phone, `COT Notification: ${trimmed}`).catch(err => {
+            console.error('Failed to send SMS to', targetUser.name, err);
+          });
+        }
+        if (targetUser.fcmTokens && targetUser.fcmTokens.length > 0) {
+          sendFCMNotification(targetUser.fcmTokens, 'City of Truth Ministries', trimmed, imageUrl).catch(err => {
+            console.error('Failed to send FCM to', targetUser.name, err);
+          });
+        }
+      }
+    });
   };
 
   const pushAdminNotification = (
     userId: string,
     message: string,
     kind: MemberNotification['kind'] = 'message',
-    ctaView: ViewState = ViewState.USER_DASHBOARD
+    ctaView: ViewState = ViewState.USER_DASHBOARD,
+    imageUrl?: string
   ) => {
     const trimmed = message.trim();
     if (!trimmed || !userId) return;
@@ -770,9 +823,25 @@ const App: React.FC = () => {
       createdAt,
       kind,
       ctaView,
-      read: false
+      read: false,
+      ...(imageUrl ? { imageUrl } : {})
     };
     setMemberNotifications(prev => [next, ...prev].slice(0, 1000));
+
+    // Send mobile notification (SMS) via Twilio if user has a registered phone number
+    const targetUser = users.find(u => u.id === userId);
+    if (targetUser) {
+      if (targetUser.phone) {
+        sendSMS(targetUser.phone, `COT Notification: ${trimmed}`).catch(err => {
+          console.error("Failed to send mobile notification:", err);
+        });
+      }
+      if (targetUser.fcmTokens && targetUser.fcmTokens.length > 0) {
+        sendFCMNotification(targetUser.fcmTokens, "City of Truth Ministries", trimmed, imageUrl).catch(err => {
+          console.error("Failed to send FCM push notification:", err);
+        });
+      }
+    }
   };
 
   const notifyMemberFormRefillIfRejected = (prevUser: User | undefined, nextUser: User) => {
@@ -830,6 +899,10 @@ const App: React.FC = () => {
         ? { ...note, read: true }
         : note
     )));
+  };
+
+  const handleUpdateMemberNotification = (updated: MemberNotification) => {
+    setMemberNotifications(prev => prev.map(note => note.id === updated.id ? updated : note));
   };
 
   const handleDeleteMemberNotification = (notificationId: string) => {
@@ -959,35 +1032,11 @@ const App: React.FC = () => {
   }, [location.pathname]);
 
   useEffect(() => {
-    // Generate session greeting on mount
+    // Show horizontal postal greeting card on mount if not greeted in this session yet
     if (!sessionStorage.getItem('cot_session_greeted')) {
-      const hour = new Date().getHours();
-      let timeGreeting = 'Good evening';
-      if (hour < 12) {
-        timeGreeting = 'Good morning';
-      } else if (hour < 17) {
-        timeGreeting = 'Good afternoon';
-      } else if (hour < 21) {
-        timeGreeting = 'Good evening';
-      } else {
-        timeGreeting = 'Good night';
-      }
-
-      let userIdentifier = '';
-      if (currentUser) {
-        userIdentifier = currentUser.name?.split(' ')[0] || currentUser.id;
-      }
-
-      const fullGreeting = userIdentifier ? `Shalom, ${timeGreeting}, ${userIdentifier}!` : `Shalom, ${timeGreeting}!`;
-      setSessionGreeting(fullGreeting);
-      sessionStorage.setItem('cot_session_greeted', '1');
-
-      // Auto-hide the greeting toast after a few seconds
-      setTimeout(() => {
-        setSessionGreeting(null);
-      }, 7000);
+      setShowGreetingCard(true);
     }
-  }, [currentUser]);
+  }, []);
 
   useEffect(() => {
     if (tourStepIndex === null || currentView !== ViewState.HOME) return;
@@ -1228,6 +1277,122 @@ const App: React.FC = () => {
     }
   }, [currentUser]);
 
+  // Request notification permissions and register the FCM device token
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('Notification' in window) || !currentUser || !messaging) return;
+
+    const registerFcmToken = async () => {
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          const vapidKey = import.meta.env.VITE_FCM_VAPID_KEY;
+          if (!vapidKey) {
+            console.warn("FCM VAPID key is missing (VITE_FCM_VAPID_KEY). Skipping device registration.");
+            return;
+          }
+          const token = await getToken(messaging, { vapidKey });
+          if (token) {
+            const currentTokens = currentUser.fcmTokens || [];
+            if (!currentTokens.includes(token)) {
+              const updatedTokens = [...currentTokens, token];
+              const updatedCurrentUser = { ...currentUser, fcmTokens: updatedTokens };
+              
+              setCurrentUser(updatedCurrentUser);
+              setUsers(prev => prev.map(u => u.id === currentUser.id ? updatedCurrentUser : u));
+              await api.updateUser(updatedCurrentUser);
+              console.log("FCM device registered successfully:", token);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("FCM registration token request failed:", error);
+      }
+    };
+
+    registerFcmToken();
+  }, [currentUser]);
+
+  // Scheduled daily greetings: 5:00 AM, 8:00 AM, and 6:00 PM
+  useEffect(() => {
+    const checkAndSendDailyGreetings = async () => {
+      const now = new Date();
+      const hour = now.getHours();
+      const todayStr = now.toDateString(); // e.g. "Fri Jul 03 2026"
+
+      let slotKey = "";
+      let greetingTemplate = "";
+
+      if (hour === 5) {
+        slotKey = "cot_last_greeting_run_5am";
+        greetingTemplate = "Shalom [Name]! Good Morning. May your day be filled with peace, wisdom, strength, and abundant blessings.";
+      } else if (hour === 8) {
+        slotKey = "cot_last_greeting_run_8am";
+        greetingTemplate = "Shalom [Name]! Good Morning. May your day be filled with peace, wisdom, strength, and abundant blessings.";
+      } else if (hour === 18) {
+        slotKey = "cot_last_greeting_run_6pm";
+        greetingTemplate = "Shalom [Name]! Good Evening. May your evening bring peace, gratitude, and joyful fellowship.";
+      }
+
+      if (!slotKey) return; // Not in a scheduled hour slot
+
+      const lastRun = localStorage.getItem(slotKey);
+      if (lastRun === todayStr) return; // Already sent for this slot today
+
+      console.log(`⏰ Scheduled Greeting Triggered for slot: ${slotKey}`);
+
+      // Collect all recipients
+      const recipients: { name: string; phone: string; fcmTokens?: string[] }[] = [];
+      const seenPhones = new Set<string>();
+
+      // 1. Add registered users
+      users.forEach(u => {
+        if (u.phone) {
+          const cleanPhone = u.phone.trim();
+          if (cleanPhone && !seenPhones.has(cleanPhone)) {
+            seenPhones.add(cleanPhone);
+            recipients.push({ name: u.name || "Brother/Sister", phone: cleanPhone, fcmTokens: u.fcmTokens });
+          }
+        }
+      });
+
+      // 2. Add unregistered visitors from contactMessages
+      contactMessages.forEach(msg => {
+        if (msg.phone) {
+          const cleanPhone = msg.phone.trim();
+          if (cleanPhone && !seenPhones.has(cleanPhone)) {
+            seenPhones.add(cleanPhone);
+            recipients.push({ name: msg.name || "Shalom", phone: cleanPhone });
+          }
+        }
+      });
+
+      // Send to recipients
+      for (const rec of recipients) {
+        const personalizedMsg = greetingTemplate.replace("[Name]", rec.name);
+        
+        // Dispatch SMS
+        sendSMS(rec.phone, personalizedMsg).catch(err => {
+          console.error(`Scheduled SMS failed for ${rec.name}:`, err);
+        });
+
+        // Dispatch FCM Push if they have tokens
+        if (rec.fcmTokens && rec.fcmTokens.length > 0) {
+          sendFCMNotification(rec.fcmTokens, "City of Truth Ministries", personalizedMsg).catch(err => {
+            console.error(`Scheduled FCM failed for ${rec.name}:`, err);
+          });
+        }
+      }
+
+      // Mark slot as completed for today
+      localStorage.setItem(slotKey, todayStr);
+    };
+
+    // Run check on mount and then every 1 minute
+    checkAndSendDailyGreetings();
+    const intervalId = window.setInterval(checkAndSendDailyGreetings, 60_000);
+    return () => window.clearInterval(intervalId);
+  }, [users, contactMessages]);
+
   // Check if on admin route
   const isAdminRoute = location.pathname === '/admin';
   // Check if on verify route
@@ -1379,6 +1544,7 @@ const App: React.FC = () => {
   const getShareableURL = (view: ViewState): string => {
     const viewToPathMap: Record<ViewState, string> = {
       [ViewState.HOME]: '/',
+      [ViewState.AUTH]: '/auth',
       [ViewState.ABOUT]: '/hebrew',
       [ViewState.MINISTRIES]: '/ministries',
       [ViewState.CONTACT]: '/contact',
@@ -1401,6 +1567,10 @@ const App: React.FC = () => {
       [ViewState.PASTOR]: '/pastor',
       [ViewState.MEMBER_FORM]: '/member-form',
       [ViewState.USER_DASHBOARD]: '/dashboard',
+      [ViewState.ADMIN_DASHBOARD]: '/admin',
+      [ViewState.VERIFY_ID]: '/verify-id',
+      [ViewState.DEVELOPER]: '/developer',
+      [ViewState.BUGS_FIXED]: '/bugs-fixed',
       [ViewState.MENORAH]: '/menorah',
       [ViewState.MENORAH_FLAG]: '/menorah',
       [ViewState.HEBREW]: '/hebrew',
@@ -1418,6 +1588,7 @@ const App: React.FC = () => {
     // Update URL without reloading
     const viewToPathMap: Record<ViewState, string> = {
       [ViewState.HOME]: '/',
+      [ViewState.AUTH]: '/auth',
       [ViewState.ABOUT]: '/hebrew',
       [ViewState.MINISTRIES]: '/ministries',
       [ViewState.CONTACT]: '/contact',
@@ -1440,6 +1611,10 @@ const App: React.FC = () => {
       [ViewState.PASTOR]: '/pastor',
       [ViewState.MEMBER_FORM]: '/member-form',
       [ViewState.USER_DASHBOARD]: '/dashboard',
+      [ViewState.ADMIN_DASHBOARD]: '/admin',
+      [ViewState.VERIFY_ID]: '/verify-id',
+      [ViewState.DEVELOPER]: '/developer',
+      [ViewState.BUGS_FIXED]: '/bugs-fixed',
       [ViewState.MENORAH]: '/menorah',
       [ViewState.MENORAH_FLAG]: '/menorah',
       [ViewState.HEBREW]: '/hebrew',
@@ -1920,6 +2095,7 @@ const App: React.FC = () => {
         onRestoreContactMessage={handleRestoreContactMessage}
         onDeleteMemberNotification={handleDeleteMemberNotification}
         onRestoreMemberNotification={handleRestoreMemberNotification}
+        onUpdateMemberNotification={handleUpdateMemberNotification}
         onUpdateUser={async (user) => {
           const prevUser = users.find(u => u.id === user.id);
           await api.updateUser(user);
@@ -2652,6 +2828,7 @@ const App: React.FC = () => {
                 onRestoreContactMessage={handleRestoreContactMessage}
                 onDeleteMemberNotification={handleDeleteMemberNotification}
                 onRestoreMemberNotification={handleRestoreMemberNotification}
+                onUpdateMemberNotification={handleUpdateMemberNotification}
                 onUpdateUser={async (user) => {
                   const prevUser = users.find(u => u.id === user.id);
                   await api.updateUser(user);
@@ -3242,15 +3419,6 @@ const App: React.FC = () => {
       {/* Bottom Navigation Bar (mobile) */}
       <BottomNav currentView={currentView} setView={setCurrentView} />
 
-      {/* AI Chat Assistant - Only show on non-AI pages to prevent duplication */}
-      {
-        currentView !== ViewState.AI && (
-          <ErrorBoundary>
-            <AIChatAssistant />
-          </ErrorBoundary>
-        )
-      }
-
       {/* Fixed Leader Message Popup */}
       <AnimatePresence>
         {showLeaderMessage && (
@@ -3526,41 +3694,30 @@ const App: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Session Greeting Toast */}
-      <AnimatePresence>
-        {sessionGreeting && (
-          <motion.div
-            initial={{ opacity: 0, y: -50, scale: 0.8, rotate: -2 }}
-            animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
-            exit={{ opacity: 0, y: -50, scale: 0.8, rotate: 2 }}
-            transition={{ type: 'spring', bounce: 0.5, duration: 0.8 }}
-            className="fixed top-24 left-1/2 -translate-x-1/2 z-[250] pointer-events-none"
-          >
-            <div className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
-              <div className="relative bg-gradient-to-br from-brand-900 to-brand-950 px-10 py-5 rounded-full shadow-2xl border-2 border-amber-400/50 flex items-center gap-4 overflow-hidden">
-                <motion.div
-                   animate={{ rotate: 360 }}
-                   transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                >
-                  <Sparkles className="text-amber-300 w-8 h-8" />
-                </motion.div>
-                <span className="font-serif font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-400 text-3xl md:text-4xl tracking-wide drop-shadow-md">
-                  {sessionGreeting}
-                </span>
+      {/* Session Greeting Overlay */}
+      {showGreetingCard && (
+        <GreetingCard
+          currentUser={currentUser}
+          isAdmin={false}
+          onClose={() => {
+            setShowGreetingCard(false);
+            sessionStorage.setItem('cot_session_greeted', '1');
+          }}
+          onStartTour={() => {
+            liveWebsiteTour.start();
+          }}
+        />
+      )}
 
-                {/* Optional sweeping shine effect */}
-                <motion.div
-                   initial={{ x: '-100%' }}
-                   animate={{ x: '200%' }}
-                   transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
-                   className="absolute inset-0 w-1/3 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12"
-                />
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Live Website Guided Tour */}
+      <GuidedTour
+        steps={liveWebsiteTourSteps}
+        isActive={liveWebsiteTour.isActive}
+        onComplete={liveWebsiteTour.stop}
+        onSkip={liveWebsiteTour.stop}
+        tourName="live_website"
+        accentColor="#2563eb"
+      />
 
       {/* Share Page Button - Floating */}
       {!isFrame && currentView !== ViewState.AUTH && currentView !== ViewState.ADMIN_DASHBOARD && currentView !== ViewState.VERIFY_ID && (
@@ -3571,11 +3728,9 @@ const App: React.FC = () => {
           variant="floating"
         />
       )}
-      {!isFrame && currentView !== ViewState.AUTH && currentView !== ViewState.ADMIN_DASHBOARD && currentView !== ViewState.VERIFY_ID && (
-        <>
-          <AIChatAssistant />
-          <GlobalAIWidget />
-        </>
+      {/* Divine Assistant - Always Visible */}
+      {!isFrame && (
+        <DivineAssistant />
       )}
         </>
       )}

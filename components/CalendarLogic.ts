@@ -194,3 +194,42 @@ export const getCalendarData5786 = (year: number = 5786): any[] => {
         };
     });
 };
+
+export interface HebrewDateInfo {
+    hebrewYear: number;
+    hebrewMonth: string;
+    hebrewDay: number;
+    festivals: string[];
+}
+
+export const getHebrewDateInfo = (gregorianDate: Date): HebrewDateInfo | null => {
+    const gYear = gregorianDate.getFullYear();
+    const candidateYears = [gYear + 3760, gYear + 3761];
+    
+    for (const hYear of candidateYears) {
+        const months = getCalendarData5786(hYear);
+        for (const month of months) {
+            for (const week of month.weeks) {
+                for (const day of week) {
+                    if (day && day.day && day.gregorianYear === gYear) {
+                        const [gMonStr, gDayStr] = day.gregorianDate.split(' ');
+                        const gDayVal = parseInt(gDayStr, 10);
+                        
+                        const matchMonth = gregorianDate.toLocaleString('default', { month: 'short' }) === gMonStr;
+                        const matchDay = gregorianDate.getDate() === gDayVal;
+                        
+                        if (matchMonth && matchDay) {
+                            return {
+                                hebrewYear: hYear,
+                                hebrewMonth: month.name,
+                                hebrewDay: day.day,
+                                festivals: day.festivals
+                            };
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return null;
+};

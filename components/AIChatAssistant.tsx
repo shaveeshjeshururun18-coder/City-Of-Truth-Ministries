@@ -11,7 +11,7 @@ interface Message {
     options?: string[];
 }
 
-export default function AIChatAssistant() {
+export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { isAdmin?: boolean; onHelpHighlight?: (target: string, title: string, message: string) => void }) {
     const [isOpen, setIsOpen] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
     const [widgetSettings, setWidgetSettings] = useState(() => {
@@ -63,15 +63,25 @@ export default function AIChatAssistant() {
         // Always show a friendly starting point so "Clear chat" never leaves a blank panel.
         const greeting: Message = {
             id: `${Date.now()}-greeting`,
-            text: "Hi! I'm your City of Truth assistant. How can I help you today?",
+            text: isAdmin
+                ? "Shalom, Admin! I am your dashboard assistant. I can guide you through the management panels. Ask me how to do anything or select an option below!"
+                : "Hi! I'm your City of Truth assistant. How can I help you today?",
             sender: 'bot',
             timestamp: new Date(),
-            options: [
-                "Learn about our ministry",
-                "Service times & location",
-                "Hebrew studies",
-                "Contact information"
-            ]
+            options: isAdmin
+                ? [
+                    "Show me how to manage Users",
+                    "How to update page content",
+                    "How to manage ID cards",
+                    "What is COT ID Manager?",
+                    "How to use Firebase tab"
+                ]
+                : [
+                    "Learn about our ministry",
+                    "Service times & location",
+                    "Hebrew studies",
+                    "Contact information"
+                ]
         };
         setMessages([greeting]);
         setIsTyping(false);
@@ -148,12 +158,61 @@ export default function AIChatAssistant() {
         setIsTyping(true);
 
         setTimeout(() => {
+            if (isAdmin && onHelpHighlight) {
+                const text = option.toLowerCase();
+                if (text.includes("users") || text.includes("manage users")) {
+                    onHelpHighlight('#admin-tab-users', 'Users Management Panel', 'Review registered congregation members, verify their profiles, and update their status here.');
+                    addBotMessage("I have highlighted the **Users** tab in the sidebar. Click on it to manage your members!");
+                    return;
+                } else if (text.includes("page content") || text.includes("edit page")) {
+                    onHelpHighlight('#admin-tab-edit-page', 'Edit Page Content', 'Update sections, announcements, and headings of the homepage directly.');
+                    addBotMessage("I have highlighted the **Edit Page** tab in the sidebar. This allows you to update the live website content.");
+                    return;
+                } else if (text.includes("id cards") || text.includes("manage id")) {
+                    onHelpHighlight('#admin-tab-id-cards', 'Worshipper ID Cards', 'Batch export and download individual or group member cards along with their verification QR codes.');
+                    addBotMessage("I have highlighted the **ID Cards** tab in the sidebar. You can manage card print sheets here.");
+                    return;
+                } else if (text.includes("cot id") || text.includes("allocator")) {
+                    onHelpHighlight('#admin-tab-cot-id-manager', 'COT ID Allocator', 'Roll the epic dice or assign custom membership numbers to user accounts.');
+                    addBotMessage("I have highlighted the **COT ID Manager** tab. Use this to assign church register numbers.");
+                    return;
+                } else if (text.includes("firebase")) {
+                    onHelpHighlight('#admin-tab-firebase', 'Firebase Database Config', 'Inspect connection logs, clear test records, or restore repository defaults.');
+                    addBotMessage("I have highlighted the **Firebase** tab. This panel details connection health and backups.");
+                    return;
+                }
+            }
             handleBotResponse(option);
         }, 1000);
     };
 
     const handleBotResponse = async (userMessage: string) => {
         try {
+            if (isAdmin && onHelpHighlight) {
+                const text = userMessage.toLowerCase();
+                if (text.includes("user") || text.includes("member")) {
+                    onHelpHighlight('#admin-tab-users', 'Users Section', 'Manage and verify your registered church members here.');
+                    addBotMessage("I found the Users section! I have highlighted the Users tab for you.", ["Show me how to manage Users", "How to manage ID cards", "What is COT ID Manager?"]);
+                    return;
+                } else if (text.includes("card") || text.includes("qr") || text.includes("pdf")) {
+                    onHelpHighlight('#admin-tab-id-cards', 'ID Cards Section', 'Generate and download member ID cards and QR codes here.');
+                    addBotMessage("I found the ID Cards section! I have highlighted it for you.", ["How to manage ID cards", "What is COT ID Manager?"]);
+                    return;
+                } else if (text.includes("edit") || text.includes("content") || text.includes("page") || text.includes("text")) {
+                    onHelpHighlight('#admin-tab-edit-page', 'Edit Page Section', 'Update website headings, sections, and home page texts.');
+                    addBotMessage("I found the Edit Page section! I have highlighted it for you.", ["How to update page content", "What is COT ID Manager?"]);
+                    return;
+                } else if (text.includes("firebase") || text.includes("db") || text.includes("database")) {
+                    onHelpHighlight('#admin-tab-firebase', 'Firebase Section', 'Manage the Firestore database connection and settings.');
+                    addBotMessage("I found the Firebase section! I have highlighted it for you.", ["How to use Firebase tab", "Show me how to manage Users"]);
+                    return;
+                } else if (text.includes("cot id") || text.includes("dice") || text.includes("register number")) {
+                    onHelpHighlight('#admin-tab-cot-id-manager', 'COT ID Manager', 'Issue and allocate member IDs.');
+                    addBotMessage("I found the COT ID Manager! I have highlighted it for you.", ["What is COT ID Manager?", "Show me how to manage Users"]);
+                    return;
+                }
+            }
+
             // Convert app message format to history format for service
             const chatHistory = messages.map(m => ({
                 role: m.sender === 'user' ? 'user' : 'model',
@@ -163,8 +222,9 @@ export default function AIChatAssistant() {
             const responseText = await generateSpatulaAIResponse(userMessage);
 
             addBotMessage(responseText,
-                // Contextual suggestions based on response (simple logic or randomized for now)
-                ["Learn about ministry", "Service times", "Contact us"]
+                isAdmin
+                    ? ["Show me how to manage Users", "How to manage ID cards", "What is COT ID Manager?", "How to use Firebase tab"]
+                    : ["Learn about ministry", "Service times", "Contact us"]
             );
         } catch (error) {
             console.error("Error getting AI response:", error);
@@ -201,6 +261,7 @@ export default function AIChatAssistant() {
                 {!isOpen && widgetSettings.aiVisible !== false && (
                     <motion.button
                         key="launcher"
+                        id="ai-chat-launcher-btn"
                         initial={{ scale: 0, rotate: -180 }}
                         animate={{ scale: 1 * (widgetSettings?.aiSize || 1), rotate: 0 }}
                         exit={{ scale: 0, rotate: 180 }}

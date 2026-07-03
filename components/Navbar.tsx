@@ -186,6 +186,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
       >
         {/* LOGO STYLING */}
         <div
+          id="nav-logo"
           className="flex items-center gap-[10px] cursor-pointer"
           onClick={() => setView(ViewState.HOME)}
         >

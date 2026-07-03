@@ -1,13 +1,4 @@
-import { OpenRouter } from '@openrouter/sdk';
-
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
-
-// Initialize OpenRouter SDK
-const openRouter = new OpenRouter({
-    apiKey: OPENROUTER_API_KEY,
-    httpReferer: 'https://cityoftruth.com',
-    xTitle: 'City of Truth Ministries AI',
-});
 
 export const SYSTEM_PROMPT = `You are the COT AI Assistant for City of Truth Ministries (சத்திய நகரம் ஊழியங்கள்), a Christian ministry based in Valparai, Tamil Nadu, India.
 
@@ -24,33 +15,65 @@ Core Guidelines:
 
 // Default model: Google Gemma (free, reliable)
 const DEFAULT_MODEL = 'google/gemma-4-26b-a4b-it:free';
+const FALLBACK_MODEL = 'openrouter/free';
 
 /**
- * Generate AI response using OpenRouter SDK (non-streaming)
+ * Helper to fetch chat completion from OpenRouter using fetch
+ */
+async function fetchOpenRouterCompletion(messages: any[], jsonFormat = false): Promise<any> {
+    const headers = {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://cityoftruth.com',
+        'X-Title': 'City of Truth Ministries AI',
+    };
+
+    const makeRequest = async (model: string) => {
+        const body: any = {
+            model,
+            messages,
+        };
+        if (jsonFormat) {
+            body.response_format = { type: 'json_object' };
+        }
+
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP Error ${response.status}: ${response.statusText}`);
+        }
+
+        return response.json();
+    };
+
+    try {
+        return await makeRequest(DEFAULT_MODEL);
+    } catch (primaryError) {
+        console.warn(`Primary model ${DEFAULT_MODEL} failed, trying fallback ${FALLBACK_MODEL}:`, primaryError);
+        try {
+            return await makeRequest(FALLBACK_MODEL);
+        } catch (fallbackError) {
+            console.error('All OpenRouter models failed:', fallbackError);
+            throw fallbackError;
+        }
+    }
+}
+
+/**
+ * Generate AI response (non-streaming)
  */
 export async function generateSpatulaAIResponse(userPrompt: string): Promise<string> {
     try {
-        const completion = await openRouter.chat.send({
-            model: DEFAULT_MODEL,
-            messages: [
-                { role: 'system', content: SYSTEM_PROMPT },
-                { role: 'user', content: userPrompt }
-            ],
-            stream: false,
-        });
-
-        const content = completion.choices[0].message.content;
-        if (typeof content === 'string') {
-            return content || 'I apologize, but I could not generate a response.';
-        } else if (Array.isArray(content)) {
-            // Handle array of content parts
-            return content.map(part => {
-                if ('text' in part) return part.text;
-                return '';
-            }).join('') || 'I apologize, but I could not generate a response.';
-        }
-
-        return 'I apologize, but I could not generate a response.';
+        const data = await fetchOpenRouterCompletion([
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: userPrompt }
+        ]);
+        const content = data.choices?.[0]?.message?.content;
+        return typeof content === 'string' ? content : 'I apologize, but I could not generate a response.';
     } catch (error) {
         console.error('OpenRouter API Error:', error);
         throw new Error('Failed to connect to AI service. Please try again.');
@@ -58,34 +81,86 @@ export async function generateSpatulaAIResponse(userPrompt: string): Promise<str
 }
 
 /**
- * Stream AI response using OpenRouter SDK (real-time word-by-word)
+ * Stream AI response (real-time word-by-word)
  */
 export async function streamSpatulaAIResponse(
     userPrompt: string,
     onChunk: (text: string) => void
 ): Promise<void> {
-    try {
-        const stream = await openRouter.chat.send({
-            model: DEFAULT_MODEL,
-            messages: [
-                { role: 'system', content: SYSTEM_PROMPT },
-                { role: 'user', content: userPrompt }
-            ],
-            stream: true,
+    const headers = {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://cityoftruth.com',
+        'X-Title': 'City of Truth Ministries AI',
+    };
+
+    const makeStreamRequest = async (model: string) => {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+                model,
+                messages: [
+                    { role: 'system', content: SYSTEM_PROMPT },
+                    { role: 'user', content: userPrompt }
+                ],
+                stream: true,
+            }),
         });
 
-        // Process streaming chunks
-        for await (const chunk of stream) {
-            const content = chunk.choices[0]?.delta?.content;
-            if (content) {
-                onChunk(content);
+        if (!response.ok) {
+            throw new Error(`HTTP Error ${response.status}: ${response.statusText}`);
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+            throw new Error('Failed to get stream reader');
+        }
+
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+                const cleanedLine = line.trim();
+                if (!cleanedLine) continue;
+                if (cleanedLine === 'data: [DONE]') continue;
+
+                if (cleanedLine.startsWith('data:')) {
+                    try {
+                        const parsed = JSON.parse(cleanedLine.slice(5).trim());
+                        const content = parsed.choices?.[0]?.delta?.content;
+                        if (content) {
+                            onChunk(content);
+                        }
+                    } catch (e) {
+                        // Ignore parse errors on incomplete lines
+                    }
+                }
             }
         }
-    } catch (error) {
-        console.error('OpenRouter Streaming Error:', error);
-        throw new Error('Failed to stream AI response. Please try again.');
+    };
+
+    try {
+        await makeStreamRequest(DEFAULT_MODEL);
+    } catch (primaryError) {
+        console.warn(`Primary model streaming failed, trying fallback ${FALLBACK_MODEL}:`, primaryError);
+        try {
+            await makeStreamRequest(FALLBACK_MODEL);
+        } catch (fallbackError) {
+            console.error('All OpenRouter streaming models failed:', fallbackError);
+            throw fallbackError;
+        }
     }
 }
+
 /**
  * Analyze an image and return a text description / extracted text
  */
@@ -93,46 +168,33 @@ export async function analyzeImageWithAI(
     base64Image: string,
     mimeType: string = 'image/jpeg'
 ): Promise<string> {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://cityoftruth.com',
-            'X-Title': 'City of Truth Ministries AI',
-        },
-        body: JSON.stringify({
-            model: DEFAULT_MODEL,
-            messages: [
-                { role: 'system', content: SYSTEM_PROMPT },
-                {
-                    role: 'user',
-                    content: [
-                        {
-                            type: 'image_url',
-                            image_url: { url: `data:${mimeType};base64,${base64Image}` },
-                        },
-                        {
-                            type: 'text',
-                            text: 'Please analyze this image. Extract and share any text you see in it (OCR). Describe what is shown. If the image contains scripture, prayers, or ministry content, provide relevant spiritual context.',
-                        },
-                    ],
-                },
-            ],
-        }),
-    });
-
-    if (!response.ok) {
-        throw new Error(`Image analysis failed: ${response.statusText}`);
+    try {
+        const data = await fetchOpenRouterCompletion([
+            { role: 'system', content: SYSTEM_PROMPT },
+            {
+                role: 'user',
+                content: [
+                    {
+                        type: 'image_url',
+                        image_url: { url: `data:${mimeType};base64,${base64Image}` },
+                    },
+                    {
+                        type: 'text',
+                        text: 'Please analyze this image. Extract and share any text you see in it (OCR). Describe what is shown. If the image contains scripture, prayers, or ministry content, provide relevant spiritual context.',
+                    },
+                ],
+            },
+        ]);
+        const content = data.choices?.[0]?.message?.content;
+        if (typeof content === 'string') return content;
+        if (Array.isArray(content)) {
+            return content.map((p: any) => (typeof p === 'string' ? p : p.text ?? '')).join('');
+        }
+        return 'Unable to analyze the image. Please try again.';
+    } catch (error) {
+        console.error('Image Analysis Error:', error);
+        throw new Error('Failed to analyze the image. Please try again.');
     }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-    if (typeof content === 'string') return content;
-    if (Array.isArray(content)) {
-        return content.map((p: any) => (typeof p === 'string' ? p : p.text ?? '')).join('');
-    }
-    return 'Unable to analyze the image. Please try again.';
 }
 
 /**
@@ -153,20 +215,63 @@ export async function analyzeHebrewWord(word: string): Promise<any> {
     Ensure the Tamil is accurate and culturally relevant for a Christian ministry context.`;
 
     try {
-        const completion = await openRouter.chat.send({
-            model: DEFAULT_MODEL,
-            messages: [
-                { role: 'system', content: 'You are an expert in Biblical Hebrew and Tamil translations. Respond only with valid JSON.' },
-                { role: 'user', content: prompt }
-            ],
-            stream: false,
-            responseFormat: { type: 'json_object' }
-        });
-
-        const content = completion.choices[0].message.content;
+        const data = await fetchOpenRouterCompletion([
+            { role: 'system', content: 'You are an expert in Biblical Hebrew and Tamil translations. Respond only with valid JSON.' },
+            { role: 'user', content: prompt }
+        ], true);
+        const content = data.choices?.[0]?.message?.content;
         return JSON.parse(typeof content === 'string' ? content : JSON.stringify(content));
     } catch (error) {
         console.error('Hebrew Analysis Error:', error);
         throw new Error('Failed to analyze word. Please check your AI configuration.');
+    }
+}
+
+/**
+ * Fetch credits, limits, and usage data for the current active OpenRouter API Key
+ */
+export async function getOpenRouterKeyDetails(): Promise<any> {
+    try {
+        const response = await fetch('https://openrouter.ai/api/v1/auth/key', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            }
+        });
+        if (!response.ok) {
+            throw new Error(`Failed to fetch key details: ${response.statusText}`);
+        }
+        const res = await response.json();
+        return res?.data || null;
+    } catch (error) {
+        console.error('Error fetching key details:', error);
+        return null;
+    }
+}
+
+/**
+ * Fetch metadata for default and fallback models
+ */
+export async function getOpenRouterModelDetails(): Promise<any> {
+    try {
+        const response = await fetch('https://openrouter.ai/api/v1/models', {
+            method: 'GET'
+        });
+        if (!response.ok) {
+            throw new Error(`Failed to fetch model details: ${response.statusText}`);
+        }
+        const data = await response.json();
+        const defaultModelInfo = data.data?.find((m: any) => m.id === DEFAULT_MODEL);
+        const fallbackModelInfo = data.data?.find((m: any) => m.id === FALLBACK_MODEL);
+        return {
+            defaultModel: defaultModelInfo || { id: DEFAULT_MODEL, name: 'Gemma 4 26B Instruct (Free)', context_length: 8192 },
+            fallbackModel: fallbackModelInfo || { id: FALLBACK_MODEL, name: 'OpenRouter Free Auto-Router', context_length: 4096 }
+        };
+    } catch (error) {
+        console.error('Error fetching model details:', error);
+        return {
+            defaultModel: { id: DEFAULT_MODEL, name: 'Gemma 4 26B Instruct (Free)', context_length: 8192 },
+            fallbackModel: { id: FALLBACK_MODEL, name: 'OpenRouter Free Auto-Router', context_length: 4096 }
+        };
     }
 }

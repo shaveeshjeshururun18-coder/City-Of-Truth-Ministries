@@ -68,6 +68,7 @@ export interface User {
   status: UserStatus;
   photo?: string;
   joinedDate: string;
+  fcmTokens?: string[];
   linkedProfiles?: SubProfile[];
   verificationDoc?: { name: string; uploadedAt: string };
   pendingProfileUpdate?: PendingProfileUpdate;
@@ -346,4 +347,5 @@ export interface MemberNotification {
   ctaLabel?: string;
   ctaView?: ViewState;
   announcementId?: string;
+  imageUrl?: string;
 }

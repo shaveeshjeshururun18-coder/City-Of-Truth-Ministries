@@ -2338,6 +2338,9 @@ const HebrewLettersAudioLab: React.FC = () => {
         }
     };
 
+    const downloadInsightPdf = () => handleExportInsight('pdf');
+    const downloadInsightImage = () => handleExportInsight('jpeg');
+
     return (
         <div className="space-y-8 py-8">
             <div className="text-center space-y-3">

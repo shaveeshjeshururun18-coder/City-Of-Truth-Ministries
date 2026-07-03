@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App'; // Note: App.tsx is in the root
 import { LanguageProvider } from './components/LanguageContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import './astryx-styles.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
