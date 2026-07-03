@@ -87,6 +87,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { BottomNav } from './components/BottomNav';
 import GreetingCard from './components/GreetingCard';
 import { GuidedTour, useTour } from './components/GuidedTour';
+import { getHebrewDateInfo } from './components/CalendarLogic';
 
 import { api } from './services/api';
 import { getToken } from 'firebase/messaging';
@@ -1312,25 +1313,36 @@ const App: React.FC = () => {
     registerFcmToken();
   }, [currentUser]);
 
-  // Scheduled daily greetings: 5:00 AM, 8:00 AM, and 6:00 PM
+  // Scheduled daily greetings: 5:00 AM, 12:00 PM, 6:00 PM, 9:00 PM
   useEffect(() => {
     const checkAndSendDailyGreetings = async () => {
+      const settings = await api.getDailyGreetingSettings();
+      if (!settings.enabled) return;
+
       const now = new Date();
       const hour = now.getHours();
       const todayStr = now.toDateString(); // e.g. "Fri Jul 03 2026"
 
       let slotKey = "";
-      let greetingTemplate = "";
+      let hebrewGreeting = "";
+      let englishGreeting = "";
 
       if (hour === 5) {
         slotKey = "cot_last_greeting_run_5am";
-        greetingTemplate = "Shalom [Name]! Good Morning. May your day be filled with peace, wisdom, strength, and abundant blessings.";
-      } else if (hour === 8) {
-        slotKey = "cot_last_greeting_run_8am";
-        greetingTemplate = "Shalom [Name]! Good Morning. May your day be filled with peace, wisdom, strength, and abundant blessings.";
+        hebrewGreeting = "Boker Tov";
+        englishGreeting = "Good Morning";
+      } else if (hour === 12) {
+        slotKey = "cot_last_greeting_run_12pm";
+        hebrewGreeting = "Tzoharaim Tovim";
+        englishGreeting = "Good Afternoon";
       } else if (hour === 18) {
         slotKey = "cot_last_greeting_run_6pm";
-        greetingTemplate = "Shalom [Name]! Good Evening. May your evening bring peace, gratitude, and joyful fellowship.";
+        hebrewGreeting = "Erev Tov";
+        englishGreeting = "Good Evening";
+      } else if (hour === 21) {
+        slotKey = "cot_last_greeting_run_9pm";
+        hebrewGreeting = "Laila Tov";
+        englishGreeting = "Good Night";
       }
 
       if (!slotKey) return; // Not in a scheduled hour slot
@@ -1339,6 +1351,14 @@ const App: React.FC = () => {
       if (lastRun === todayStr) return; // Already sent for this slot today
 
       console.log(`⏰ Scheduled Greeting Triggered for slot: ${slotKey}`);
+
+      const hebrewDateInfo = getHebrewDateInfo(now);
+      let dateString = "";
+      if (hebrewDateInfo) {
+        dateString = `Today's Hebrew date is ${hebrewDateInfo.hebrewDay} ${hebrewDateInfo.hebrewMonth} ${hebrewDateInfo.hebrewYear}.`;
+      }
+
+      const greetingTemplate = `Shalom [Name]! ${hebrewGreeting} (${englishGreeting}). ${dateString}`;
 
       // Collect all recipients
       const recipients: { name: string; phone: string; fcmTokens?: string[] }[] = [];
@@ -1377,7 +1397,7 @@ const App: React.FC = () => {
 
         // Dispatch FCM Push if they have tokens
         if (rec.fcmTokens && rec.fcmTokens.length > 0) {
-          sendFCMNotification(rec.fcmTokens, "City of Truth Ministries", personalizedMsg).catch(err => {
+          sendFCMNotification(rec.fcmTokens, "City of Truth Ministries", personalizedMsg, settings.imageUrl || undefined).catch(err => {
             console.error(`Scheduled FCM failed for ${rec.name}:`, err);
           });
         }
