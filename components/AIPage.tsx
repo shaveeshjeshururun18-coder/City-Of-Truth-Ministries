@@ -126,24 +126,53 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
         setIsLoading(true);
 
         try {
+            let finalContent = "";
             if (useStreaming) {
                 // Add placeholder for streaming response
                 setMessages(prev => [...prev, { role: 'assistant', content: "" }]);
 
+                let triggeredTour = false;
+
                 await streamSpatulaAIResponse(input, (chunk) => {
+                    finalContent += chunk;
+
+                    // Look for the tour command in the accumulating string
+                    const tourMatch = finalContent.match(/\[TOUR:([a-zA-Z0-9_]+)\]/);
+                    if (tourMatch && !triggeredTour) {
+                        triggeredTour = true;
+                        const tourName = tourMatch[1];
+                        // Fire the event immediately when detected during streaming
+                        window.dispatchEvent(new CustomEvent('start-dynamic-tour', { detail: tourName }));
+                    }
+
                     setMessages(prev => {
                         const newMsg = [...prev];
                         const lastMsg = newMsg[newMsg.length - 1];
                         if (lastMsg.role === 'assistant') {
-                            lastMsg.content += chunk;
+                            // Strip out any [TOUR:xyz] tag before rendering it to the user
+                            let cleanContent = finalContent;
+                            const currentMatch = cleanContent.match(/\[TOUR:[a-zA-Z0-9_]+\]/);
+                            if (currentMatch) {
+                                cleanContent = cleanContent.replace(currentMatch[0], '').trim();
+                            }
+                            lastMsg.content = cleanContent;
                         }
                         return newMsg;
                     });
                 });
             } else {
                 const response = await generateSpatulaAIResponse(input);
-                setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+                finalContent = response;
+                let cleanResponse = response;
+                const tourMatch = response.match(/\[TOUR:([a-zA-Z0-9_]+)\]/);
+                if (tourMatch) {
+                    const tourName = tourMatch[1];
+                    cleanResponse = response.replace(tourMatch[0], '').trim();
+                    window.dispatchEvent(new CustomEvent('start-dynamic-tour', { detail: tourName }));
+                }
+                setMessages(prev => [...prev, { role: 'assistant', content: cleanResponse }]);
             }
+
         } catch (error) {
             console.error("Chat Error:", error);
             setMessages(prev => [...prev, { role: 'assistant', content: "I apologize, but I'm having trouble connecting right now. Please try again in a moment." }]);
@@ -161,7 +190,7 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
     ];
 
     return (
-        <div className={`flex flex-col h-[100dvh] ${isWidget ? 'bg-slate-50' : 'fixed inset-0 bg-slate-50 z-40'} text-slate-800 font-sans selection:bg-brand-100/50 overflow-hidden`}>
+        <div className={`flex flex-col h-[100dvh] ${isWidget ? 'bg-slate-50 pointer-events-auto' : 'fixed inset-0 bg-slate-50 z-40'} text-slate-800 font-sans selection:bg-brand-100/50 overflow-hidden`}>
 
             {/* Header - Back Button for Mobile */}
             {!isWidget && (
@@ -219,7 +248,7 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
                                             <span className="text-[9px] font-bold text-slate-400">{modelDetails?.defaultModel?.context_length ? `${modelDetails.defaultModel.context_length} ctx` : '8k ctx'}</span>
                                         </div>
                                         <p className="text-xs font-black text-slate-700 truncate">{modelDetails?.defaultModel?.name || 'Gemma 4 26B Instruct'}</p>
-                                        <p className="text-[9px] font-mono text-slate-400 truncate">{modelDetails?.defaultModel?.id || 'google/gemma-4-26b-a4b-it:free'}</p>
+                                        <p className="text-[9px] font-mono text-slate-400 truncate">{modelDetails?.defaultModel?.id || 'openai/gpt-oss-20b:free'}</p>
                                     </div>
 
                                     <div className="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100 space-y-1.5">

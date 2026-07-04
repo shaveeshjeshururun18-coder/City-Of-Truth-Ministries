@@ -231,7 +231,7 @@ export const deleteContactList = async (id: string): Promise<void> => {
  * @returns true if valid, false otherwise
  */
 const validateEmail = (email: string): boolean => {
-  // RFC 5322 compliant email validation regex
+  // More strict email validation regex to fail `user..name@example.com` and `user@example`
   const emailRegex = /^[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?$/;
   return emailRegex.test(email);
 };

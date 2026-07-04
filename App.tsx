@@ -88,6 +88,7 @@ import { BottomNav } from './components/BottomNav';
 import GreetingCard from './components/GreetingCard';
 import { GuidedTour, useTour } from './components/GuidedTour';
 import { getHebrewDateInfo } from './components/CalendarLogic';
+import { dynamicTours } from './components/dynamicTours';
 
 import { api } from './services/api';
 import { getToken } from 'firebase/messaging';
@@ -497,6 +498,25 @@ const App: React.FC = () => {
   const [sessionGreeting, setSessionGreeting] = useState<string | null>(null);
   const [showGreetingCard, setShowGreetingCard] = useState(false);
   const liveWebsiteTour = useTour('live_website');
+
+  // Dynamic guided tour state
+  const [activeDynamicTourName, setActiveDynamicTourName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleStartDynamicTour = (e: CustomEvent<string>) => {
+      const tourName = e.detail;
+      if (dynamicTours[tourName]) {
+        setActiveDynamicTourName(tourName);
+      } else {
+        console.warn(`Dynamic tour "${tourName}" not found.`);
+      }
+    };
+
+    // @ts-ignore - custom event type
+    window.addEventListener('start-dynamic-tour', handleStartDynamicTour);
+    // @ts-ignore
+    return () => window.removeEventListener('start-dynamic-tour', handleStartDynamicTour);
+  }, []);
 
   const liveWebsiteTourSteps = [
     {
@@ -2940,10 +2960,10 @@ const App: React.FC = () => {
                   const safeUpdatedUser = existingUserRecord && updatedUser.pendingProfileUpdate
                     ? {
                       ...existingUserRecord,
-                      photo: updatedUser.photo ?? existingUserRecord.photo,
-                      linkedProfiles: updatedUser.linkedProfiles ?? existingUserRecord.linkedProfiles,
-                      verificationDoc: updatedUser.verificationDoc ?? existingUserRecord.verificationDoc,
-                      communityProfile: updatedUser.communityProfile ?? existingUserRecord.communityProfile,
+                      photo: updatedUser.photo !== undefined ? updatedUser.photo : existingUserRecord.photo,
+                      linkedProfiles: updatedUser.linkedProfiles !== undefined ? updatedUser.linkedProfiles : existingUserRecord.linkedProfiles,
+                      verificationDoc: updatedUser.verificationDoc !== undefined ? updatedUser.verificationDoc : existingUserRecord.verificationDoc,
+                      communityProfile: updatedUser.communityProfile !== undefined ? updatedUser.communityProfile : existingUserRecord.communityProfile,
                       pendingProfileUpdate: updatedUser.pendingProfileUpdate
                     }
                     : updatedUser;
@@ -3737,6 +3757,16 @@ const App: React.FC = () => {
         onSkip={liveWebsiteTour.stop}
         tourName="live_website"
         accentColor="#2563eb"
+      />
+
+      {/* Dynamic Guided Tour (from AI) */}
+      <GuidedTour
+        steps={activeDynamicTourName ? dynamicTours[activeDynamicTourName] : []}
+        isActive={!!activeDynamicTourName}
+        onComplete={() => setActiveDynamicTourName(null)}
+        onSkip={() => setActiveDynamicTourName(null)}
+        tourName={`dynamic_${activeDynamicTourName}`}
+        accentColor="#10b981" // Emerald green for AI guidance
       />
 
       {/* Share Page Button - Floating */}

@@ -15,6 +15,15 @@ export const GlobalAIWidget: React.FC = () => {
 
     const toggleOpen = () => setIsOpen(!isOpen);
 
+    useEffect(() => {
+        const handleTourStart = () => {
+            // Close the widget when a dynamic tour starts
+            setIsOpen(false);
+        };
+        window.addEventListener('start-dynamic-tour', handleTourStart);
+        return () => window.removeEventListener('start-dynamic-tour', handleTourStart);
+    }, []);
+
     return (
         <>
             <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
@@ -72,7 +81,7 @@ export const GlobalAIWidget: React.FC = () => {
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                        className="fixed inset-4 md:inset-auto md:w-[500px] md:h-[600px] md:right-10 md:bottom-24 z-[200] bg-brand-950/90 backdrop-blur-3xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col border border-white/10"
+                        className="pointer-events-auto fixed inset-4 md:inset-auto md:w-[500px] md:h-[600px] md:right-10 md:bottom-24 z-[200] bg-brand-950/90 backdrop-blur-3xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col border border-white/10"
                     >
                         {/* Background Gradient */}
                         <div className="absolute inset-0 bg-gradient-to-br from-brand-900/90 via-brand-900/90 to-black/90 -z-10"></div>
