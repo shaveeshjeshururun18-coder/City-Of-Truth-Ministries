@@ -140,7 +140,7 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({
                         <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-6 border-4 border-emerald-50">
                             <Sparkles size={32} className="text-emerald-500" />
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-900 mb-2">Success!</h3>
+                        <h3 id="cot-tour-success-title" className="text-2xl font-bold text-slate-900 mb-2">Success!</h3>
                         <p className="text-slate-500 mb-8 leading-relaxed">
                             You've successfully completed the guide. Great job!
                         </p>
