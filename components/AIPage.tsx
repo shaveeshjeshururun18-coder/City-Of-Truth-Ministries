@@ -126,24 +126,53 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
         setIsLoading(true);
 
         try {
+            let finalContent = "";
             if (useStreaming) {
                 // Add placeholder for streaming response
                 setMessages(prev => [...prev, { role: 'assistant', content: "" }]);
 
+                let triggeredTour = false;
+
                 await streamSpatulaAIResponse(input, (chunk) => {
+                    finalContent += chunk;
+
+                    // Look for the tour command in the accumulating string
+                    const tourMatch = finalContent.match(/\[TOUR:([a-zA-Z0-9_]+)\]/);
+                    if (tourMatch && !triggeredTour) {
+                        triggeredTour = true;
+                        const tourName = tourMatch[1];
+                        // Fire the event immediately when detected during streaming
+                        window.dispatchEvent(new CustomEvent('start-dynamic-tour', { detail: tourName }));
+                    }
+
                     setMessages(prev => {
                         const newMsg = [...prev];
                         const lastMsg = newMsg[newMsg.length - 1];
                         if (lastMsg.role === 'assistant') {
-                            lastMsg.content += chunk;
+                            // Strip out any [TOUR:xyz] tag before rendering it to the user
+                            let cleanContent = finalContent;
+                            const currentMatch = cleanContent.match(/\[TOUR:[a-zA-Z0-9_]+\]/);
+                            if (currentMatch) {
+                                cleanContent = cleanContent.replace(currentMatch[0], '').trim();
+                            }
+                            lastMsg.content = cleanContent;
                         }
                         return newMsg;
                     });
                 });
             } else {
                 const response = await generateSpatulaAIResponse(input);
-                setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+                finalContent = response;
+                let cleanResponse = response;
+                const tourMatch = response.match(/\[TOUR:([a-zA-Z0-9_]+)\]/);
+                if (tourMatch) {
+                    const tourName = tourMatch[1];
+                    cleanResponse = response.replace(tourMatch[0], '').trim();
+                    window.dispatchEvent(new CustomEvent('start-dynamic-tour', { detail: tourName }));
+                }
+                setMessages(prev => [...prev, { role: 'assistant', content: cleanResponse }]);
             }
+
         } catch (error) {
             console.error("Chat Error:", error);
             setMessages(prev => [...prev, { role: 'assistant', content: "I apologize, but I'm having trouble connecting right now. Please try again in a moment." }]);
