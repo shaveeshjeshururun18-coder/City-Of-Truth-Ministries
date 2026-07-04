@@ -9,6 +9,7 @@ export interface TourStep {
     position?: 'top' | 'bottom' | 'left' | 'right' | 'center';
     action?: string;          // Optional: label for the action button
     scrollIntoView?: boolean; // Auto-scroll to the element
+    isInteractive?: boolean;  // If true, the user must click the target to advance
 }
 
 interface GuidedTourProps {
@@ -62,31 +63,101 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({
     steps, isActive, onComplete, onSkip, tourName, accentColor = '#4f46e5'
 }) => {
     const [stepIndex, setStepIndex] = useState(0);
+    const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+    const [shake, setShake] = useState(false);
     const step = steps[stepIndex];
-    const rect = useElementRect(step?.target, isActive);
+    const rect = useElementRect(step?.target, isActive && !isSuccessModalOpen);
     const tooltipRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => { if (isActive) setStepIndex(0); }, [isActive]);
+    useEffect(() => { if (isActive) { setStepIndex(0); setIsSuccessModalOpen(false); } }, [isActive]);
 
     const next = useCallback(() => {
         if (stepIndex < steps.length - 1) setStepIndex(i => i + 1);
-        else { localStorage.setItem(`cot_tour_${tourName}`, '1'); onComplete(); }
-    }, [stepIndex, steps.length, onComplete, tourName]);
+        else {
+            localStorage.setItem(`cot_tour_${tourName}`, '1');
+            setIsSuccessModalOpen(true);
+        }
+    }, [stepIndex, steps.length, tourName]);
 
     const prev = useCallback(() => { if (stepIndex > 0) setStepIndex(i => i - 1); }, [stepIndex]);
 
     useEffect(() => {
-        if (!isActive) return;
+        if (!isActive || isSuccessModalOpen) return;
         const handler = (e: KeyboardEvent) => {
-            if (e.key === 'ArrowRight' || e.key === 'Enter') next();
-            else if (e.key === 'ArrowLeft') prev();
-            else if (e.key === 'Escape') { onSkip(); }
+            if (!step?.isInteractive) {
+                if (e.key === 'ArrowRight' || e.key === 'Enter') next();
+                else if (e.key === 'ArrowLeft') prev();
+            }
+            if (e.key === 'Escape') { onSkip(); }
         };
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
-    }, [isActive, next, prev, onSkip]);
+    }, [isActive, next, prev, onSkip, step?.isInteractive, isSuccessModalOpen]);
+
+    // Global click listener for strict detection
+    useEffect(() => {
+        if (!isActive || !step || !step.isInteractive || isSuccessModalOpen) return;
+
+        const handleClick = (e: MouseEvent) => {
+            // Find the target element
+            const targetEl = document.querySelector(step.target);
+            if (!targetEl) return;
+
+            // Allow clicks within the tooltip to pass through
+            if (tooltipRef.current && tooltipRef.current.contains(e.target as Node)) {
+                return;
+            }
+
+            if (targetEl.contains(e.target as Node)) {
+                // Correct click! Let it happen naturally, then advance.
+                setTimeout(next, 50);
+            } else {
+                // Misclick! Prevent it and shake the spotlight.
+                e.preventDefault();
+                e.stopPropagation();
+                setShake(true);
+                setTimeout(() => setShake(false), 500);
+            }
+        };
+
+        // Use capture phase to intercept clicks before other elements
+        document.addEventListener('click', handleClick, true);
+        return () => document.removeEventListener('click', handleClick, true);
+    }, [isActive, step, next, isSuccessModalOpen]);
 
     if (!isActive || !step) return null;
+
+    if (isSuccessModalOpen) {
+        return (
+            <AnimatePresence>
+                <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                        animate={{ scale: 1, opacity: 1, y: 0 }}
+                        className="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl text-center relative overflow-hidden"
+                    >
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 to-emerald-600" />
+                        <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-6 border-4 border-emerald-50">
+                            <Sparkles size={32} className="text-emerald-500" />
+                        </div>
+                        <h3 id="cot-tour-success-title" className="text-2xl font-bold text-slate-900 mb-2">Success!</h3>
+                        <p className="text-slate-500 mb-8 leading-relaxed">
+                            You've successfully completed the guide. Great job!
+                        </p>
+                        <button
+                            onClick={() => {
+                                setIsSuccessModalOpen(false);
+                                onComplete();
+                            }}
+                            className="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition-all shadow-lg shadow-slate-900/20 active:scale-95"
+                        >
+                            Close Guide
+                        </button>
+                    </motion.div>
+                </div>
+            </AnimatePresence>
+        );
+    }
 
     // Compute spotlight position
     const spotX = rect ? rect.left - PADDING : -9999;
@@ -249,7 +320,7 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({
                                         Skip Tour
                                     </button>
                                     <div className="flex items-center gap-2">
-                                        {stepIndex > 0 && (
+                                        {stepIndex > 0 && !step.isInteractive && (
                                             <button
                                                 onClick={prev}
                                                 className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-all"
@@ -257,13 +328,20 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({
                                                 <ChevronLeft size={15} />
                                             </button>
                                         )}
-                                        <button
-                                            onClick={next}
-                                            className="flex items-center gap-1.5 px-4 py-2 rounded-full font-black text-[11px] uppercase tracking-wider text-white transition-all active:scale-95 shadow-lg"
-                                            style={{ background: `linear-gradient(135deg, ${accentColor}, #7c3aed)` }}
-                                        >
-                                            {stepIndex === steps.length - 1 ? <><Sparkles size={12} /> Done!</> : <>Next <ChevronRight size={13} /></>}
-                                        </button>
+                                        {step.isInteractive ? (
+                                            <span className="text-[10px] font-bold text-white/60 bg-white/10 px-3 py-1.5 rounded-full flex items-center gap-2">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                                                Waiting for click...
+                                            </span>
+                                        ) : (
+                                            <button
+                                                onClick={next}
+                                                className="flex items-center gap-1.5 px-4 py-2 rounded-full font-black text-[11px] uppercase tracking-wider text-white transition-all active:scale-95 shadow-lg"
+                                                style={{ background: `linear-gradient(135deg, ${accentColor}, #7c3aed)` }}
+                                            >
+                                                {stepIndex === steps.length - 1 ? <><Sparkles size={12} /> Done!</> : <>Next <ChevronRight size={13} /></>}
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>

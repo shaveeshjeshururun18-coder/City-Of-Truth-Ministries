@@ -194,8 +194,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             <img src="/logo.png" alt="COT Logo" className="w-full h-full object-contain" />
           </div>
           <div className="flex flex-col justify-center">
-              <span className={`font-bold text-[1.1rem] leading-[1.1] tracking-[-0.5px] transition-colors duration-300 ${isTransparentNavbar ? 'lg:text-white text-[#1a1a2e]' : 'text-[#1a1a2e]'}`}>City of Truth</span>
-              <span className={`text-[0.65rem] font-bold tracking-[1px] uppercase transition-colors duration-300 ${isTransparentNavbar ? 'lg:text-blue-300 text-[#5D5FEF]' : 'text-blue-500'}`}>MINISTRIES</span>
+              <span className={`font-bold text-[1.1rem] leading-[1.1] tracking-[-0.5px] transition-colors duration-300 ${isTransparentNavbar ? 'text-white' : 'text-black'}`}>City of Truth</span>
+              <span className={`text-[0.65rem] font-bold tracking-[1px] uppercase transition-colors duration-300 ${isTransparentNavbar ? 'text-blue-200' : 'text-blue-600'}`}>MINISTRIES</span>
           </div>
         </div>
 
@@ -230,6 +230,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                 )}
                 <button
                   id={item.view === 'HEBREW' || item.label === 'Hebrew' ? 'nav-hebrew-btn' : undefined}
+                  data-nav-view={item.view}
                   onClick={() => openNavItem(item)}
                   className={`text-[0.58rem] 2xl:text-[0.65rem] font-extrabold uppercase tracking-[0.2px] 2xl:tracking-[0.5px] px-[8px] 2xl:px-[12px] py-1.5 2xl:py-2 rounded-[20px] transition-all duration-300 no-underline whitespace-nowrap flex items-center gap-0.5 2xl:gap-1 ${
                     isActive
