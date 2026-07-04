@@ -13,8 +13,8 @@ Core Guidelines:
 - Website Navigation: Help users navigate to any page by explaining the menu structure (Home, Hebrew Resources, Ministries, Pastor, Valparai, Contact, AI Assistance, etc.).
 - Registration & Custom Features: When asked how to register or access custom features, explain the steps clearly: 1) Click 'Register' or 'Login' in the navigation menu, 2) Fill out the member form with details, 3) Submit and wait for Admin approval. Once approved, members get access to a custom User Dashboard, printable Entrust ID cards, and personalized spiritual tools.`;
 
-// Default model: Google Gemma (free, reliable)
-const DEFAULT_MODEL = 'google/gemma-4-26b-a4b-it:free';
+// Default model: OpenAI GPT-OSS 20B (free, reliable)
+const DEFAULT_MODEL = 'openai/gpt-oss-20b:free';
 const FALLBACK_MODEL = 'openrouter/free';
 
 /**
@@ -264,13 +264,13 @@ export async function getOpenRouterModelDetails(): Promise<any> {
         const defaultModelInfo = data.data?.find((m: any) => m.id === DEFAULT_MODEL);
         const fallbackModelInfo = data.data?.find((m: any) => m.id === FALLBACK_MODEL);
         return {
-            defaultModel: defaultModelInfo || { id: DEFAULT_MODEL, name: 'Gemma 4 26B Instruct (Free)', context_length: 8192 },
+            defaultModel: defaultModelInfo || { id: DEFAULT_MODEL, name: 'GPT-OSS 20B (Free)', context_length: 8192 },
             fallbackModel: fallbackModelInfo || { id: FALLBACK_MODEL, name: 'OpenRouter Free Auto-Router', context_length: 4096 }
         };
     } catch (error) {
         console.error('Error fetching model details:', error);
         return {
-            defaultModel: { id: DEFAULT_MODEL, name: 'Gemma 4 26B Instruct (Free)', context_length: 8192 },
+            defaultModel: { id: DEFAULT_MODEL, name: 'GPT-OSS 20B (Free)', context_length: 8192 },
             fallbackModel: { id: FALLBACK_MODEL, name: 'OpenRouter Free Auto-Router', context_length: 4096 }
         };
     }
