@@ -15,6 +15,15 @@ export const GlobalAIWidget: React.FC = () => {
 
     const toggleOpen = () => setIsOpen(!isOpen);
 
+    useEffect(() => {
+        const handleTourStart = () => {
+            // Close the widget when a dynamic tour starts
+            setIsOpen(false);
+        };
+        window.addEventListener('start-dynamic-tour', handleTourStart);
+        return () => window.removeEventListener('start-dynamic-tour', handleTourStart);
+    }, []);
+
     return (
         <>
             <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
