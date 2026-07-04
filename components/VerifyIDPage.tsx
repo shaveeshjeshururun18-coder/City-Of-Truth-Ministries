@@ -36,13 +36,17 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
     const scannerTimeoutsRef = useRef<number[]>([]);
 
     const clearScannerTimeouts = () => {
-        scannerTimeoutsRef.current.forEach(t => window.clearTimeout(t));
+        scannerTimeoutsRef.current.forEach(t => {
+            window.clearTimeout(t);
+            window.clearInterval(t);
+        });
         scannerTimeoutsRef.current = [];
     };
     const autoStartRef = useRef(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const userAdjustedSizeRef = useRef(false);
     const userAdjustedTorchRef = useRef(false);
+    const userInteractedWithZoomRef = useRef(false);
     const ambientSensorRef = useRef<{ stop: () => void } | null>(null);
     const autoMinimizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -318,44 +322,55 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                     setupAmbientSensor();
                 }
 
-                // Schedule scanner failure and zoom timeouts
-                const t5 = window.setTimeout(async () => {
+                // Gradual zoom and scanner failure timeout
+                const gradualZoomTimeout = window.setTimeout(async () => {
+                    if (userInteractedWithZoomRef.current) return;
                     setHideScanBorder(true);
                     await applyTorchToActiveTrack(true);
                     const track = getActiveVideoTrack();
                     if (track) {
                         try {
                             const capabilities = track.getCapabilities?.() as any;
-                            if (capabilities?.zoom) {
-                                await track.applyConstraints({ advanced: [{ zoom: capabilities.zoom.max } as any] });
+                            const settings = track.getSettings?.() as any;
+                            if (capabilities?.zoom && settings?.zoom !== undefined) {
+                                const minZoom = capabilities.zoom.min || 1;
+                                const maxZoom = capabilities.zoom.max || 2;
+                                const step = capabilities.zoom.step || 0.1;
+                                let currentZoom = settings.zoom;
+
+                                const zoomInterval = window.setInterval(async () => {
+                                    if (userInteractedWithZoomRef.current) {
+                                        window.clearInterval(zoomInterval);
+                                        return;
+                                    }
+
+                                    if (currentZoom < maxZoom) {
+                                        currentZoom = Math.min(currentZoom + step, maxZoom);
+                                        try {
+                                            await track.applyConstraints({ advanced: [{ zoom: currentZoom } as any] });
+                                        } catch (e) {
+                                            console.warn('Failed to apply gradual zoom constraint:', e);
+                                            window.clearInterval(zoomInterval);
+                                        }
+                                    } else {
+                                        window.clearInterval(zoomInterval);
+                                    }
+                                }, 500); // Increment every 500ms
+
+                                scannerTimeoutsRef.current.push(zoomInterval);
                             }
                         } catch (e) {
-                            console.warn('Failed to apply zoom maximum constraint:', e);
+                            console.warn('Failed to initialize gradual zoom:', e);
                         }
                     }
-                }, 5000);
-                scannerTimeoutsRef.current.push(t5);
+                }, 30000);
+                scannerTimeoutsRef.current.push(gradualZoomTimeout);
 
-                const t7 = window.setTimeout(async () => {
-                    const track = getActiveVideoTrack();
-                    if (track) {
-                        try {
-                            const capabilities = track.getCapabilities?.() as any;
-                            if (capabilities?.zoom) {
-                                await track.applyConstraints({ advanced: [{ zoom: capabilities.zoom.min } as any] });
-                            }
-                        } catch (e) {
-                            console.warn('Failed to apply zoom minimum constraint:', e);
-                        }
-                    }
-                }, 7000);
-                scannerTimeoutsRef.current.push(t7);
-
-                const t10 = window.setTimeout(async () => {
+                const failTimeout = window.setTimeout(async () => {
                     await stopScanner();
                     setScannerFail(true);
-                }, 10000);
-                scannerTimeoutsRef.current.push(t10);
+                }, 60000); // Fail after 1 minute (60 seconds)
+                scannerTimeoutsRef.current.push(failTimeout);
 
             }).catch((err: any) => {
                 console.error('Scanner Error:', err);
@@ -689,6 +704,19 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
 
                 {/* ── CAMERA (flex — no page scroll) ── */}
                 <div
+                    onTouchStart={(e) => {
+                        if (e.touches.length > 1) {
+                            userInteractedWithZoomRef.current = true;
+                        }
+                    }}
+                    onTouchMove={(e) => {
+                        if (e.touches.length > 1) {
+                            userInteractedWithZoomRef.current = true;
+                        }
+                    }}
+                    onWheel={() => {
+                        userInteractedWithZoomRef.current = true;
+                    }}
                     className={`relative min-h-0 bg-black transition-[flex] duration-300 ease-out ${
                         scannerExpanded ? 'flex-[1_1_72%]' : 'flex-[1_1_52%]'
                     }`}
