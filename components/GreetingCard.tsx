@@ -197,18 +197,45 @@ const CinematicText: React.FC<{
   visibleCount: number;
   isTyping: boolean;
 }> = ({ text, type, className, visibleCount, isTyping }) => {
+  const isHebrew = /[\u0590-\u05FF]/.test(text || '');
+
+  // Custom grouping to avoid multi-word english being reversed in RTL containers
+  const groups: string[] = [];
+  let currentGroup = '';
+  let currentIsEng = false;
+
   const words = (text || '').split(' ');
+  words.forEach((word, i) => {
+      const isEng = /[a-zA-Z]/.test(word);
+      if (i === 0) {
+          currentGroup = word;
+          currentIsEng = isEng;
+      } else {
+          if (currentIsEng === isEng) {
+              currentGroup += ' ' + word;
+          } else {
+              groups.push(currentGroup);
+              currentGroup = word;
+              currentIsEng = isEng;
+          }
+      }
+      if (i === words.length - 1) {
+          groups.push(currentGroup);
+      }
+  });
+
   let globalIndex = 0;
 
   return (
-    <div className={`flex flex-wrap justify-center ${className}`}>
-      {words.map((word, wIdx) => {
-        const isLastWord = wIdx === words.length - 1;
-        const wordWithSpace = isLastWord ? word : word + ' ';
+    <div className={`flex flex-wrap justify-center ${className}`} dir={isHebrew ? "rtl" : "ltr"}>
+      {groups.map((group, gIdx) => {
+        const isLastGroup = gIdx === groups.length - 1;
+        const groupWithSpace = isLastGroup ? group : group + ' ';
+        const isEnglishGroup = /[a-zA-Z]/.test(group);
 
         return (
-          <span key={wIdx} className="inline-block whitespace-pre">
-            {wordWithSpace.split('').map((char, cIdx) => {
+          <span key={gIdx} className="inline-block whitespace-pre" dir={isEnglishGroup ? "ltr" : "rtl"}>
+            {groupWithSpace.split('').map((char, cIdx) => {
               const currentIndex = globalIndex++;
               const isVisible = currentIndex < visibleCount;
               const isCurrent = isTyping && currentIndex === (visibleCount - 1);
@@ -262,10 +289,10 @@ const CinematicText: React.FC<{
 };
 
 const greetingData = [
-  { greeting: "Good Morning", phrase: "May your day be filled with peace, wisdom, strength, and abundant blessings." },
-  { greeting: "Good Afternoon", phrase: "May your afternoon be productive, peaceful, and filled with God's favor." },
-  { greeting: "Good Evening", phrase: "May your evening bring peace, gratitude, and joyful fellowship." },
-  { greeting: "Good Night", phrase: "May the Lord watch over you through the night and grant you peaceful rest." }
+  { greeting: "בוקר טוב (BOKER TOV)", audio: "boker_tov.mp3", phrase: "May your day be filled with peace, wisdom, strength, and abundant blessings." },
+  { greeting: "צהריים טובים (TZOHARAIM TOVIM)", audio: "tzoharaim_tovim.mp3", phrase: "May your afternoon be productive, peaceful, and filled with God's favor." },
+  { greeting: "ערב טוב (EREV TOV)", audio: "erev_tov.mp3", phrase: "May your evening bring peace, gratitude, and joyful fellowship." },
+  { greeting: "לילה טוב (LAILA TOV)", audio: "laila_tov.mp3", phrase: "May the Lord watch over you through the night and grant you peaceful rest." }
 ];
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -290,12 +317,12 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
   // Names and labels calculated dynamically
   const nameStr = useMemo(() => {
     if (isAdmin) return "Admin";
-    if (currentUser) return currentUser.name || "Shalom";
-    return "Shalom"; // Guest replace shaveesh jeshurun with Shalom
+    if (currentUser) return currentUser.name || "שלום (SHALOM)";
+    return "שלום (SHALOM)"; // Guest replace shaveesh jeshurun with Shalom
   }, [currentUser, isAdmin]);
 
   const footerLStr = useMemo(() => {
-    if (isAdmin || currentUser) return "SHALOM";
+    if (isAdmin || currentUser) return "שלום (SHALOM)";
     return ""; // Guest: remove another Shalom
   }, [currentUser, isAdmin]);
 
@@ -319,6 +346,13 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
         audioRef.current.volume = 0.7;
         audioRef.current.play().catch(e => console.log("Autoplay blocked or audio load failed", e));
       }
+
+      const voiceAudio = document.getElementById("voiceGreetingAudio") as HTMLAudioElement;
+      if (voiceAudio) {
+        voiceAudio.volume = 0.9;
+        voiceAudio.play().catch(e => console.log("Voice autoplay blocked", e));
+      }
+
       setHasInteracted(true);
     }
   }, [hasInteracted]);
@@ -353,6 +387,13 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
 
       await typeSection('greeting', currentData.greeting);
       await typeSection('phrase', currentData.phrase);
+
+      const shalomAudio = document.getElementById("voiceShalomAudio") as HTMLAudioElement;
+      if (shalomAudio) {
+        shalomAudio.volume = 0.9;
+        shalomAudio.play().catch(e => console.log("Shalom audio blocked", e));
+      }
+
       await typeSection('name', nameStr);
       if (footerLStr) await typeSection('footerL', footerLStr);
       if (footerRStr) await typeSection('footerR', footerRStr);
@@ -416,6 +457,9 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
 
       {/* Pre-loads the audio greeting */}
       <audio ref={audioRef} src="/greeting_sound.mp3" loop preload="auto" />
+      {/* Voice greetings dynamically loaded based on the time of day */}
+      <audio id="voiceGreetingAudio" src={`/${currentData.audio}`} preload="auto" />
+      <audio id="voiceShalomAudio" src="/shalom.mp3" preload="auto" />
 
       {/* Center card bounds */}
       <div className="relative max-w-[620px] w-full z-10 flex flex-col items-center">
