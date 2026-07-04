@@ -588,7 +588,23 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const handleDeleteSubProfile = (profileId: string) => {
         if (!confirm('Remove this family member?')) return;
         const updatedProfiles = user.linkedProfiles?.filter(p => p.id !== profileId) || [];
-        onUpdate({ ...user, linkedProfiles: updatedProfiles } as User);
+
+        // Ensure pending profile updates for the deleted member are also removed
+        let newPendingUpdate = user.pendingProfileUpdate;
+        if (newPendingUpdate && newPendingUpdate.linkedProfiles) {
+            const newPendingLinkedProfiles = newPendingUpdate.linkedProfiles.filter(p => p.id !== profileId);
+            newPendingUpdate = {
+                ...newPendingUpdate,
+                linkedProfiles: newPendingLinkedProfiles.length > 0 ? newPendingLinkedProfiles : undefined
+            };
+        }
+
+        // Add explicit null-overwrites or direct assignments to ensure empty arrays are respected by App.tsx merge logic
+        onUpdate({
+            ...user,
+            linkedProfiles: updatedProfiles,
+            pendingProfileUpdate: newPendingUpdate
+        } as User);
         if (activeProfileId === profileId) setActiveProfileId(user.id);
     };
 
@@ -1675,7 +1691,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             </div>
                                             {activeProfileId === pf.id && <CheckCircle size={16} className="text-accent-500 shrink-0" />}
                                         </button>
-                                        <button onClick={() => handleDeleteSubProfile(pf.id)} aria-label={`Remove ${pf.name}`} className="opacity-100 p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-all ml-2 shrink-0">
+                                        <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteSubProfile(pf.id); }} aria-label={`Remove ${pf.name}`} className="opacity-100 p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-all ml-2 shrink-0">
                                             <Trash2 size={16} />
                                         </button>
                                     </div>
@@ -1995,15 +2011,27 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                     {/* Interest / Member Form (Mobile priority #2) */}
                     {canAccessEntrustFeatures ? (
-                        <button onClick={() => setShowCommunityProfileForm(true)}
-                            className="rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] hover:brightness-110 border border-[#d4a547]/30 cursor-pointer">
-                            <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center mb-3"><Users size={18} className="text-[#f0c040]" /></div>
-                            <p className="font-bold text-sm leading-tight mb-1">Member Form Column</p>
-                            <p className="text-[#f8e7b0] text-[10px]">Professional themed profile form for User Book.</p>
-                            <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5 text-[#f0c040]">
-                                <Edit2 size={11} /> Open Form
-                            </span>
-                        </button>
+                        activeProfileId === user.id && hasMemberFormSubmitted ? (
+                            <button onClick={handleExportMemberFormPDF}
+                                className="rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] hover:brightness-110 border border-[#d4a547]/30 cursor-pointer">
+                                <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center mb-3"><FileText size={18} className="text-[#f0c040]" /></div>
+                                <p className="font-bold text-sm leading-tight mb-1">Download Member Form</p>
+                                <p className="text-[#f8e7b0] text-[10px]">Download your submitted member form details in themed PDF format.</p>
+                                <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5 text-[#f0c040]">
+                                    <Download size={11} /> Download PDF
+                                </span>
+                            </button>
+                        ) : (
+                            <button onClick={() => setShowCommunityProfileForm(true)}
+                                className="rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] hover:brightness-110 border border-[#d4a547]/30 cursor-pointer">
+                                <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center mb-3"><Users size={18} className="text-[#f0c040]" /></div>
+                                <p className="font-bold text-sm leading-tight mb-1">Member Form Column</p>
+                                <p className="text-[#f8e7b0] text-[10px]">Professional themed profile form for User Book.</p>
+                                <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5 text-[#f0c040]">
+                                    <Edit2 size={11} /> Open Form
+                                </span>
+                            </button>
+                        )
                     ) : (
                         <div className="bg-slate-100 rounded-[22px] p-4 border border-slate-200">
                             <div className="w-9 h-9 bg-slate-200 rounded-xl flex items-center justify-center mb-3"><Users size={18} className="text-slate-400" /></div>
@@ -2047,19 +2075,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             <Share2 size={11} /> {canAccessEntrustFeatures ? 'Share' : 'Locked'}
                         </span>
                     </button>
-
-                    {/* Member Form PDF */}
-                    {activeProfileId === user.id && hasMemberFormSubmitted && (
-                        <button onClick={handleExportMemberFormPDF}
-                            className="rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] hover:brightness-110 border border-[#d4a547]/30 cursor-pointer">
-                            <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center mb-3"><FileText size={18} className="text-[#f0c040]" /></div>
-                            <p className="font-bold text-sm leading-tight mb-1">Member Form PDF</p>
-                            <p className="text-[#f8e7b0] text-[10px]">Download your submitted member form details in themed PDF format.</p>
-                            <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5 text-[#f0c040]">
-                                <Download size={11} /> Download PDF
-                            </span>
-                        </button>
-                    )}
 
                     {/* Family Portfolio PDF */}
                     <button onClick={canAccessEntrustFeatures ? handleExportProfileDetailsPDF : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
@@ -2192,7 +2207,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center bg-black/70 backdrop-blur-md p-4">
                         <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="w-full max-w-2xl">
                             {/* Card preview */}
-                            <div className="mb-6 w-full cursor-pointer" onClick={() => setCardFlipped(f => !f)}>
+                            <div className="mb-6 w-full cursor-pointer" onClick={() => { handleDownloadPDF(); setShowCardPreview(false); }}>
                                 <EntrustCard3D
                                     name={displayProfile.name}
                                     email={user.email}
@@ -2209,7 +2224,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                     cardShapeMode={user.cardShapeMode}
                                     cardSizeMode={user.cardSizeMode}
                                 />
-                                <p className="text-center text-white/60 text-xs mt-3">Tap card to flip</p>
+                                <p className="text-center text-white/60 text-xs mt-3">Tap card to download</p>
                             </div>
                             {/* Action buttons */}
                             <div className="grid grid-cols-2 gap-4">
