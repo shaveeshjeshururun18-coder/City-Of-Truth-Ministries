@@ -190,7 +190,7 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
     ];
 
     return (
-        <div className={`flex flex-col h-[100dvh] ${isWidget ? 'bg-slate-50' : 'fixed inset-0 bg-slate-50 z-40'} text-slate-800 font-sans selection:bg-brand-100/50 overflow-hidden`}>
+        <div className={`flex flex-col h-[100dvh] ${isWidget ? 'bg-slate-50 pointer-events-auto' : 'fixed inset-0 bg-slate-50 z-40'} text-slate-800 font-sans selection:bg-brand-100/50 overflow-hidden`}>
 
             {/* Header - Back Button for Mobile */}
             {!isWidget && (
