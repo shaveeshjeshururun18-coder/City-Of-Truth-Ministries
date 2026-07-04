@@ -196,7 +196,25 @@ export const BaruchHashemPage: React.FC = () => {
                 });
             }
         }, 1500); // Small delay to ensure page is loaded
-        return () => clearTimeout(timer);
+
+        // Listen for iframe clicks to pause audio
+        const handleBlur = () => {
+            setTimeout(() => {
+                if (document.activeElement && document.activeElement.tagName === 'IFRAME') {
+                    if (audioRef.current) {
+                        audioRef.current.pause();
+                        setIsPlaying(false);
+                    }
+                }
+            }, 0);
+        };
+
+        window.addEventListener('blur', handleBlur);
+
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('blur', handleBlur);
+        };
     }, []);
 
     const toggleAudio = () => {
