@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { X, Send, Maximize2, Minimize2, Loader, Sparkles, Trash2, Hand, Quote, Settings, Download, BookOpen, Clock, Zap, BarChart3, Volume2, Copy, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { generateSpatulaAIResponse } from '../services/openRouterService';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Message {
     id: string;
@@ -290,7 +292,14 @@ export const DivineAssistant: React.FC = () => {
 
     const clearChat = () => {
         if (confirm("Clear our conversation history?")) {
-            setMessages([]);
+            const initialMessage: Message = {
+                id: Date.now().toString(),
+                text: "Shalom! The chat has been cleared. How may I assist you today on your spiritual journey?",
+                sender: 'bot',
+                timestamp: new Date(),
+                options: ["About COT Ministries", "Prayer Request", "Navigation Help"]
+            };
+            setMessages([initialMessage]);
             localStorage.removeItem('divine_assistant_history');
             setConversationContext({
                 topic: undefined,
@@ -302,26 +311,95 @@ export const DivineAssistant: React.FC = () => {
     };
 
     const exportConversation = () => {
-        const exportData = {
-            timestamp: new Date().toISOString(),
-            totalMessages: messages.length,
-            conversation: messages.map(m => ({
-                sender: m.sender,
-                text: m.text,
-                time: m.timestamp,
-                keywords: m.keywords
-            })),
-            analytics
-        };
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+
+        // --- Grandeur Theme Colors & Styles ---
+        const royalNavy = [10, 25, 65] as [number, number, number];
+        const gold = [218, 165, 32] as [number, number, number];
+        const lightGold = [249, 241, 218] as [number, number, number];
+        const textColor = [50, 50, 50] as [number, number, number];
+
+        // 1. Header Background (Navy)
+        doc.setFillColor(...royalNavy);
+        doc.rect(0, 0, pageWidth, 40, 'F');
         
-        const dataStr = JSON.stringify(exportData, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(dataBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `conversation-${Date.now()}.json`;
-        link.click();
-        URL.revokeObjectURL(url);
+        // 2. Gold Trim under Header
+        doc.setFillColor(...gold);
+        doc.rect(0, 40, pageWidth, 2, 'F');
+
+        // 3. Header Title & Subtitle
+        doc.setTextColor(255, 255, 255);
+        doc.setFont("times", "bold");
+        doc.setFontSize(24);
+        doc.text("City of Truth Ministries", pageWidth / 2, 20, { align: "center" });
+
+        doc.setFont("times", "italic");
+        doc.setFontSize(14);
+        doc.setTextColor(...gold);
+        doc.text("Divine AI Conversation Log", pageWidth / 2, 30, { align: "center" });
+
+        // 4. Metadata section
+        doc.setTextColor(...textColor);
+        doc.setFont("times", "normal");
+        doc.setFontSize(10);
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 50);
+        doc.text(`Total Messages: ${messages.length}`, 14, 56);
+
+        // 5. Build Table Data
+        const tableBody = messages.map(m => [
+            m.sender === 'bot' ? 'Divine AI' : 'User',
+            m.text,
+            new Date(m.timestamp).toLocaleTimeString()
+        ]);
+
+        autoTable(doc, {
+            startY: 65,
+            head: [['Sender', 'Message', 'Time']],
+            body: tableBody,
+            theme: 'grid',
+            headStyles: {
+                fillColor: royalNavy,
+                textColor: [255, 255, 255],
+                font: 'times',
+                fontStyle: 'bold',
+                fontSize: 12,
+                halign: 'center'
+            },
+            bodyStyles: {
+                font: 'times',
+                fontSize: 11,
+                textColor: textColor
+            },
+            alternateRowStyles: {
+                fillColor: lightGold
+            },
+            columnStyles: {
+                0: { cellWidth: 30, fontStyle: 'bold' },
+                1: { cellWidth: 'auto' },
+                2: { cellWidth: 30, halign: 'center' }
+            },
+            margin: { top: 65, bottom: 30 } // leave space for footer
+        });
+
+        // 6. Footer (Copyright & Page numbers)
+        const pageCount = doc.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+
+            // Gold trim above footer
+            doc.setFillColor(...gold);
+            doc.rect(0, pageHeight - 20, pageWidth, 1, 'F');
+
+            doc.setFont("times", "italic");
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            const footerText = `© ${new Date().getFullYear()} City of Truth Ministries. All rights reserved. | Page ${i} of ${pageCount}`;
+            doc.text(footerText, pageWidth / 2, pageHeight - 10, { align: "center" });
+        }
+
+        doc.save(`Divine-Conversation-${Date.now()}.pdf`);
     };
 
     const rateMessage = (messageId: string, rating: 'positive' | 'negative') => {
@@ -375,8 +453,8 @@ export const DivineAssistant: React.FC = () => {
                         style={{
                             width: `${config.size}px`,
                             height: `${config.size}px`,
-                            bottom: '2.5rem',
-                            right: '7rem',
+                            bottom: '1.5rem',
+                            right: '1.5rem',
                         }}
                         className={`pointer-events-auto fixed rounded-full bg-slate-950 shadow-[0_20px_50px_-5px_rgba(251,191,36,0.8)] border-3 border-amber-400 flex items-center justify-center group overflow-hidden ring-4 ring-amber-400/50 cursor-grab active:cursor-grabbing ${config.showAnimation ? 'animate-pulse' : ''}`}
                     >
