@@ -1,26 +1,12 @@
 
-> city-of-truth-ministries@0.0.0 server
-> npx json-server db.json --port 4000 --watch
+> city-of-truth-ministries@0.0.0 dev
+> vite
 
---watch/-w can be omitted, JSON Server 1+ watches for file changes by default
-node:events:497
-      throw er; // Unhandled 'error' event
-      ^
+Port 8888 is in use, trying another one...
+Port 8889 is in use, trying another one...
 
-Error: listen EADDRINUSE: address already in use :::4000
-    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
-    at listenInCluster (node:net:1997:12)
-    at Server.listen (node:net:2102:7)
-    at App.listen (file:///home/jules/.npm/_npx/aff12940958e4bf4/node_modules/@tinyhttp/app/dist/app.js:323:58)
-    at file:///home/jules/.npm/_npx/aff12940958e4bf4/node_modules/json-server/lib/bin.js:133:5
-Emitted 'error' event on Server instance at:
-    at emitErrorNT (node:net:1976:8)
-    at process.processTicksAndRejections (node:internal/process/task_queues:89:21) {
-  code: 'EADDRINUSE',
-  errno: -98,
-  syscall: 'listen',
-  address: '::',
-  port: 4000
-}
+  VITE v6.4.1  ready in 254 ms
 
-Node.js v22.22.1
+  ➜  Local:   http://localhost:8890/
+  ➜  Network: http://192.168.0.2:8890/
+[BABEL] Note: The code generator has deoptimised the styling of /app/components/AdminDashboard.tsx as it exceeds the max of 500KB.

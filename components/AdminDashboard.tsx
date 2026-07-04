@@ -638,19 +638,24 @@ const SectionMiniPreview: React.FC<{ sectionId: string; customName: string; cust
                                 {customDesc || 'Hebrew content, tools, and page preview cards'}
                             </p>
                         </div>
-                        <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">3 Quick Pages</span>
+                        <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">{HEBREW_PAGES.length} Quick Pages</span>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
-                        {['Grammar Guide', 'Interactive Map', 'Alef-Bet App'].map((page, i) => (
-                            <div key={page} className="bg-white border border-slate-200 hover:border-brand-300 rounded-xl p-2 shadow-sm flex flex-col items-center text-center cursor-pointer transition-all">
+                        {HEBREW_PAGES.slice(0, 3).map((page, i) => (
+                            <div key={page.id} className="bg-white border border-slate-200 hover:border-brand-300 rounded-xl p-2 shadow-sm flex flex-col items-center text-center cursor-pointer transition-all">
                                 <div className="w-6 h-6 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center mb-1 shrink-0">
                                     {i === 0 ? <FileText size={12} /> : i === 1 ? <MapPin size={12} /> : <Award size={12} />}
                                 </div>
-                                <span className="text-[8px] font-black text-slate-800 tracking-tight leading-tight uppercase line-clamp-1">{page}</span>
+                                <span className="text-[8px] font-black text-slate-800 tracking-tight leading-tight uppercase line-clamp-1">{page.label}</span>
                                 <span className="text-[6px] text-slate-400 mt-0.5 font-bold uppercase">Explore</span>
                             </div>
                         ))}
                     </div>
+                    {HEBREW_PAGES.length > 3 && (
+                        <div className="mt-2 text-center text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                            + {HEBREW_PAGES.length - 3} More Pages
+                        </div>
+                    )}
                 </div>
             );
         case 'pastorBaruch':
