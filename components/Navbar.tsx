@@ -230,6 +230,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                 )}
                 <button
                   id={item.view === 'HEBREW' || item.label === 'Hebrew' ? 'nav-hebrew-btn' : undefined}
+                  data-nav-view={item.view}
                   onClick={() => openNavItem(item)}
                   className={`text-[0.58rem] 2xl:text-[0.65rem] font-extrabold uppercase tracking-[0.2px] 2xl:tracking-[0.5px] px-[8px] 2xl:px-[12px] py-1.5 2xl:py-2 rounded-[20px] transition-all duration-300 no-underline whitespace-nowrap flex items-center gap-0.5 2xl:gap-1 ${
                     isActive
