@@ -248,7 +248,7 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
                                             <span className="text-[9px] font-bold text-slate-400">{modelDetails?.defaultModel?.context_length ? `${modelDetails.defaultModel.context_length} ctx` : '8k ctx'}</span>
                                         </div>
                                         <p className="text-xs font-black text-slate-700 truncate">{modelDetails?.defaultModel?.name || 'Gemma 4 26B Instruct'}</p>
-                                        <p className="text-[9px] font-mono text-slate-400 truncate">{modelDetails?.defaultModel?.id || 'google/gemma-4-26b-a4b-it:free'}</p>
+                                        <p className="text-[9px] font-mono text-slate-400 truncate">{modelDetails?.defaultModel?.id || 'openai/gpt-oss-20b:free'}</p>
                                     </div>
 
                                     <div className="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100 space-y-1.5">

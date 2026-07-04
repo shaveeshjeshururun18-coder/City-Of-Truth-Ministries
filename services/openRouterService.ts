@@ -25,8 +25,8 @@ To do this, append exactly one of the following command tags at the very end of 
 
 Example: "To register for a member account, follow the step-by-step guide pointing to the buttons on your screen. [TOUR:register]"`;
 
-// Default model: Google Gemma (free, reliable)
-const DEFAULT_MODEL = 'google/gemma-4-26b-a4b-it:free';
+// Default model: OpenAI GPT-OSS 20B (free, reliable)
+const DEFAULT_MODEL = 'openai/gpt-oss-20b:free';
 const FALLBACK_MODEL = 'openrouter/free';
 
 /**
@@ -276,13 +276,13 @@ export async function getOpenRouterModelDetails(): Promise<any> {
         const defaultModelInfo = data.data?.find((m: any) => m.id === DEFAULT_MODEL);
         const fallbackModelInfo = data.data?.find((m: any) => m.id === FALLBACK_MODEL);
         return {
-            defaultModel: defaultModelInfo || { id: DEFAULT_MODEL, name: 'Gemma 4 26B Instruct (Free)', context_length: 8192 },
+            defaultModel: defaultModelInfo || { id: DEFAULT_MODEL, name: 'GPT-OSS 20B (Free)', context_length: 8192 },
             fallbackModel: fallbackModelInfo || { id: FALLBACK_MODEL, name: 'OpenRouter Free Auto-Router', context_length: 4096 }
         };
     } catch (error) {
         console.error('Error fetching model details:', error);
         return {
-            defaultModel: { id: DEFAULT_MODEL, name: 'Gemma 4 26B Instruct (Free)', context_length: 8192 },
+            defaultModel: { id: DEFAULT_MODEL, name: 'GPT-OSS 20B (Free)', context_length: 8192 },
             fallbackModel: { id: FALLBACK_MODEL, name: 'OpenRouter Free Auto-Router', context_length: 4096 }
         };
     }
