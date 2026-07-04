@@ -2960,10 +2960,10 @@ const App: React.FC = () => {
                   const safeUpdatedUser = existingUserRecord && updatedUser.pendingProfileUpdate
                     ? {
                       ...existingUserRecord,
-                      photo: updatedUser.photo ?? existingUserRecord.photo,
-                      linkedProfiles: updatedUser.linkedProfiles ?? existingUserRecord.linkedProfiles,
-                      verificationDoc: updatedUser.verificationDoc ?? existingUserRecord.verificationDoc,
-                      communityProfile: updatedUser.communityProfile ?? existingUserRecord.communityProfile,
+                      photo: updatedUser.photo !== undefined ? updatedUser.photo : existingUserRecord.photo,
+                      linkedProfiles: updatedUser.linkedProfiles !== undefined ? updatedUser.linkedProfiles : existingUserRecord.linkedProfiles,
+                      verificationDoc: updatedUser.verificationDoc !== undefined ? updatedUser.verificationDoc : existingUserRecord.verificationDoc,
+                      communityProfile: updatedUser.communityProfile !== undefined ? updatedUser.communityProfile : existingUserRecord.communityProfile,
                       pendingProfileUpdate: updatedUser.pendingProfileUpdate
                     }
                     : updatedUser;
