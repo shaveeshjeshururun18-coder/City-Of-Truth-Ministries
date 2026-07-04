@@ -28,7 +28,39 @@ export interface BaruchVideo {
     youtubeId: string;
 }
 
+export interface DailyGreetingSettings {
+    enabled: boolean;
+    imageUrl: string;
+}
+
+const SETTINGS_COLLECTION = 'admin_settings';
+const DAILY_GREETINGS_DOC = 'daily_greetings';
+
 export const api = {
+    getDailyGreetingSettings: async (): Promise<DailyGreetingSettings> => {
+        try {
+            const docRef = doc(db, SETTINGS_COLLECTION, DAILY_GREETINGS_DOC);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                return docSnap.data() as DailyGreetingSettings;
+            }
+            return { enabled: true, imageUrl: '' };
+        } catch (error) {
+            console.error("Error fetching daily greeting settings:", error);
+            return { enabled: true, imageUrl: '' };
+        }
+    },
+
+    saveDailyGreetingSettings: async (settings: DailyGreetingSettings): Promise<void> => {
+        try {
+            const docRef = doc(db, SETTINGS_COLLECTION, DAILY_GREETINGS_DOC);
+            await setDoc(docRef, settings, { merge: true });
+        } catch (error) {
+            console.error("Error saving daily greeting settings:", error);
+            throw error;
+        }
+    },
+
     // Fetch all users
     getUsers: async (): Promise<User[]> => {
         try {

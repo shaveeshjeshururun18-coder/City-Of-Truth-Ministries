@@ -6,7 +6,7 @@ import {
     Calendar, Award, Shield, ShieldCheck, AlertCircle, CheckCircle, QrCode, Download,
     Save, GripVertical, Globe, Plus, ImagePlus, Camera, Image as ImageIcon, MessageSquare, Check, XCircle, FileText,
     PanelLeft, PanelTop, Database, RotateCcw, Dice6, Eye, EyeOff, Video, Tag, Settings, Crop, Lock, Send,
-    Sparkles, CircleUser, Menu, Youtube, Facebook, Instagram, UploadCloud, Zap, Share2,
+    Sparkles, CircleUser, Menu, Youtube, Facebook, Instagram, UploadCloud, Zap, Share2, Sun,
     Type, Volume2, Hash, Calculator, BookOpen, Languages, Clock3, Flame, ExternalLink, AlertTriangle, Bell
 } from 'lucide-react';
 import { User, UserRole, UserStatus, Testimonial, Ministry, DeletedUser, Permalink } from '../types';
@@ -1422,6 +1422,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [notificationFilterType, setNotificationFilterType] = useState<'all' | 'admin' | 'user'>('all');
     const [notificationFilterKind, setNotificationFilterKind] = useState<string>('all');
     const [notificationFilterUser, setNotificationFilterUser] = useState('');
+
+    const [dailyGreetingSettings, setDailyGreetingSettings] = useState({ enabled: true, imageUrl: '' });
+    useEffect(() => {
+        const fetchSettings = async () => {
+            const settings = await api.getDailyGreetingSettings();
+            setDailyGreetingSettings(settings);
+        };
+        fetchSettings();
+    }, []);
+
+    const handleDailyGreetingSettingsUpdate = async (updates: Partial<typeof dailyGreetingSettings>) => {
+        const newSettings = { ...dailyGreetingSettings, ...updates };
+        setDailyGreetingSettings(newSettings);
+        await api.saveDailyGreetingSettings(newSettings);
+    };
     
     const [hasAdminPasswordOverride, setHasAdminPasswordOverride] = useState(() => {
         try {
@@ -9319,6 +9334,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 {activeTab === 'notifications' && (
                     <div className="space-y-6 animate-fade-in">
+                        {/* Daily Greetings Settings */}
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 mb-8">
+                            <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <Sun size={24} className="text-amber-500" />
+                                Automated Daily Greetings
+                            </h3>
+                            <p className="text-sm text-slate-500 mb-6">Configure the automatic daily Hebrew greetings sent via Push Notification and SMS to all users.</p>
+
+                            <div className="space-y-6 max-w-2xl">
+                                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                    <div>
+                                        <p className="font-bold text-slate-800">Enable Daily Greetings</p>
+                                        <p className="text-xs text-slate-500">Send automated messages at 5am, 12pm, 6pm, and 9pm.</p>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only peer"
+                                            checked={dailyGreetingSettings.enabled}
+                                            onChange={(e) => handleDailyGreetingSettingsUpdate({ enabled: e.target.checked })}
+                                        />
+                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500"></div>
+                                    </label>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-slate-700 block">Notification Image URL (Optional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="https://example.com/image.jpg"
+                                        value={dailyGreetingSettings.imageUrl}
+                                        onChange={(e) => setDailyGreetingSettings(prev => ({ ...prev, imageUrl: e.target.value }))}
+                                        onBlur={(e) => handleDailyGreetingSettingsUpdate({ imageUrl: e.target.value })}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 text-sm"
+                                    />
+                                    <p className="text-xs text-slate-500">This image will be attached to the push notifications.</p>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Header card with notification metrics */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 flex items-center justify-between">
