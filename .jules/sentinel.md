@@ -1,0 +1,4 @@
+## 2024-05-18 - [CRITICAL] Remove Hardcoded System Control Secrets
+**Vulnerability:** System reboot password and admin password change secret were hardcoded to the string `'steveharrington'` as a fallback in `services/api.ts` and `components/AdminDashboard.tsx`.
+**Learning:** Providing hardcoded fallback values for sensitive environment variables defeats the purpose of external configuration. It creates a critical backdoor where anyone discovering the hardcoded string in the client bundle can execute destructive operations (like system wiping).
+**Prevention:** Always fail securely when security-critical environment variables are missing. Never provide default strings for passwords, keys, or phrases. Use strict checks (e.g., `if (!SECRET) return Error;`) to block functionality rather than fallback to an insecure state.
