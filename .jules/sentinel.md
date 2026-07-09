@@ -1,0 +1,4 @@
+## 2024-07-09 - Hardcoded Default Secrets for Critical Admin Actions
+**Vulnerability:** The application used hardcoded fallback secrets (`steveharrington`) for the system reboot password in `src/services/api.ts` and the admin password change phrase in `src/components/AdminDashboard.tsx`. If environment variables were missing, the application would fall back to these hardcoded strings.
+**Learning:** Even if primary secrets are stored in environment variables, relying on hardcoded defaults creates a severe vulnerability as attackers can use the known default to bypass authorization if the environment variable is not properly configured.
+**Prevention:** Never use hardcoded fallback strings for sensitive actions. Always throw an error, return early, or reject the action if the required environment variable is missing.
