@@ -1,0 +1,4 @@
+## 2024-07-10 - [Sentinel Fix: Hardcoded Passwords in Admin Component and API Services]
+**Vulnerability:** Found a hardcoded password string ('steveharrington') used as a fallback for `VITE_REBOOT_PASSWORD` in `services/api.ts` and directly used for `ADMIN_PASSWORD_CHANGE_PHRASE` in `components/AdminDashboard.tsx`.
+**Learning:** Hardcoded fallback values defeat the purpose of environment variables by allowing an attacker to reverse-engineer client bundles to discover administrative passwords. Even if an environment variable is present, defaulting to a hardcoded string when the variable is missing introduces a critical backdoor.
+**Prevention:** Always ensure security features fail securely (e.g., fail closed) if an environment variable is not set. Never provide hardcoded fallback values for passwords, secrets, or administrative phrases in source code, especially in a client-side bundle where they can be trivially extracted.
