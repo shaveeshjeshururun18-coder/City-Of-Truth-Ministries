@@ -1888,12 +1888,17 @@ const App: React.FC = () => {
       return;
     }
 
+    if (!data.password) {
+      alert("Registration failed: Secure password is required.");
+      return;
+    }
+
     const newUser: User = {
       id: data.uniqueId,
       name: data.name,
       email: data.email,
       phone: data.emergency,
-      password: data.password || 'password', // Use provided password
+      password: data.password, // Use provided password exclusively
       role: 'Member',
       status: 'Pending Verification',
       location: data.location,
