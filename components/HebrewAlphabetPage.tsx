@@ -4,29 +4,54 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { audioService } from '../services/audioService';
 import { MouthPronunciationAnimator, HEBREW_LETTER_PHONEMES } from './MouthPronunciationAnimator';
 
+const PALEO_HEBREW_PATHS: Record<string, string> = {
+    ALEPH: "M35,45 C25,35 45,25 55,35 C65,45 45,55 35,45 Z M50,32 C60,22 75,15 80,10 M48,48 C65,58 75,70 80,75",
+    BET: "M25,25 L75,25 L75,75 L25,75 L25,50 L55,50",
+    GIMEL: "M25,40 L45,75 L80,25",
+    DALET: "M30,25 L75,35 L45,75 Z",
+    HE: "M50,80 L50,50 M25,40 C35,55 65,55 75,40 M25,40 L25,20 M50,50 L50,20 M75,40 L75,20",
+    VAV: "M50,80 L50,45 M25,20 C35,45 50,45 50,45 M75,20 C65,45 50,45 50,45",
+    ZAYIN: "M30,30 L70,30 M50,30 L50,70 M30,70 L70,70",
+    CHET: "M35,20 L35,80 M65,20 L65,80 M35,30 L65,30 M35,50 L65,50 M35,70 L65,70",
+    TET: "M50,50 m-35,0 a35,35 0 1,0 70,0 a35,35 0 1,0 -70,0 M25,25 L75,75 M75,25 L25,75",
+    YOD: "M25,40 L70,40 M70,40 L50,65 M25,40 L30,65",
+    KAF: "M50,80 L50,20 M50,80 L25,30 M50,80 L75,30",
+    LAMED: "M25,25 L65,65 C75,75 80,60 70,50",
+    MEM: "M20,50 L32,35 L44,65 L56,35 L68,65 L80,35",
+    NUN: "M30,30 L45,30 L55,60 L75,70",
+    SAMEKH: "M50,15 L50,85 M30,30 L70,30 M30,45 L70,45 M30,60 L70,60",
+    AYIN: "M50,50 m-30,0 a30,18 0 1,0 60,0 a30,18 0 1,0 -60,0 M50,50 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0",
+    PE: "M30,50 C30,35 70,35 70,50 C70,65 30,65 30,50 Z",
+    TSADE: "M35,30 L35,55 L65,55 L65,75",
+    QOPH: "M50,40 m-20,0 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0 M50,15 L50,85",
+    RESH: "M60,80 L60,40 C60,25 35,25 35,45 C35,55 50,65 50,80",
+    SHIN: "M25,35 Q37,70 50,45 Q62,70 75,35",
+    TAV: "M50,20 L50,80 M20,50 L80,50"
+};
+
 const HEBREW_LETTERS = [
-    { letter: "א", name: "ALEPH", hebrewName: "אלף", number: 1, latinPronunciation: "Ah-lef", tamilPronunciation: "ஆலெஃப்", tamilGuide: "ஆலெஃப். வாயை திறந்து மெதுவாக ஆ ஒலி சொல்லி, பிறகு லெஃப் சொல்லுங்கள்.", symbolic: "Ox, Strength, Leader" },
-    { letter: "ב", name: "BET", hebrewName: "בית", number: 2, latinPronunciation: "Bet", tamilPronunciation: "பெத்", tamilGuide: "பெத். பே என்று தொடங்கி, முடிவில் த் ஒலியை மெதுவாக சேர்க்கவும்.", symbolic: "House, Family, Inside" },
-    { letter: "ג", name: "GIMEL", hebrewName: "גימל", number: 3, latinPronunciation: "Gee-mel", tamilPronunciation: "கீமெல்", tamilGuide: "கீமெல். கீ என்று நீட்டி, பிறகு மெல் என்று மெதுவாக சொல்லுங்கள்.", symbolic: "Camel, Pride, To Lift Up" },
-    { letter: "ד", name: "DALET", hebrewName: "דלת", number: 4, latinPronunciation: "Dah-let", tamilPronunciation: "தாலெத்", tamilGuide: "தாலெத். தா என்று தொடங்கி, லெத் என்று முடிக்கவும்.", symbolic: "Door, Pathway, To Enter" },
-    { letter: "ה", name: "HE", hebrewName: "הא", number: 5, latinPronunciation: "Heh", tamilPronunciation: "ஹே", tamilGuide: "ஹே. மெதுவான மூச்சோசையுடன் ஹே என்று சொல்லுங்கள்.", symbolic: "Window, Breath, Revelation" },
-    { letter: "ו", name: "VAV", hebrewName: "וו", number: 6, latinPronunciation: "Vav", tamilPronunciation: "வாவ்", tamilGuide: "வாவ். வா ஒலியைத் தெளிவாக சொல்லி, இறுதியில் வ் ஒலி மெதுவாக முடிக்கவும்.", symbolic: "Nail, Peg, Connection" },
-    { letter: "ז", name: "ZAYIN", hebrewName: "זין", number: 7, latinPronunciation: "Zah-yin", tamilPronunciation: "சயின்", tamilGuide: "சயின். சா அல்லது ஸா ஒலியுடன் தொடங்கி, யின் என்று முடிக்கவும்.", symbolic: "Sword, Weapon, To Cut" },
-    { letter: "ח", name: "CHET", hebrewName: "חית", number: 8, latinPronunciation: "Khet", tamilPronunciation: "க்ஹெட்", tamilGuide: "க்ஹெட். தொண்டையில் இருந்து வரும் க்ஹ் ஒலியுடன் ஹெட் போல சொல்லுங்கள்.", symbolic: "Fence, Enclosure, Protection" },
-    { letter: "ט", name: "TET", hebrewName: "טית", number: 9, latinPronunciation: "Tet", tamilPronunciation: "டெட்", tamilGuide: "டெட். டெ என்று சொல்லி, இறுதியில் ட் ஒலி தெளிவாக முடிக்கவும்.", symbolic: "Basket, Snake, Surround" },
-    { letter: "י", name: "YOD", hebrewName: "יוד", number: 10, latinPronunciation: "Yod", tamilPronunciation: "யோத்", tamilGuide: "யோத். யோ என்று நீட்டி, மெதுவாகத் த் ஒலியில் முடிக்கவும்.", symbolic: "Hand, Work, Deed" },
-    { letter: "כ", name: "KAF", hebrewName: "כף", number: 20, latinPronunciation: "Kaf", tamilPronunciation: "காஃப்", tamilGuide: "காஃப். கா ஒலியுடன் தொடங்கி, ஃப் ஒலி தெளிவாக சொல்லுங்கள்.", symbolic: "Palm, Open Hand, To Cover" },
-    { letter: "ל", name: "LAMED", hebrewName: "למד", number: 30, latinPronunciation: "Lah-med", tamilPronunciation: "லாமெட்", tamilGuide: "லாமெட். லா என்று தொடங்கி, மெத் ஒலியில் மெதுவாக முடிக்கவும்.", symbolic: "Staff, Goad, To Teach/Lead" },
-    { letter: "מ", name: "MEM", hebrewName: "מם", number: 40, latinPronunciation: "Mem", tamilPronunciation: "மேம்", tamilGuide: "மேம். மே என்று நீட்டி, ம் ஒலியில் முடிக்கவும்.", symbolic: "Water, Chaos, Mighty" },
-    { letter: "נ", name: "NUN", hebrewName: "נון", number: 50, latinPronunciation: "Noon", tamilPronunciation: "நூன்", tamilGuide: "நூன். நூ என்று நீட்டி, ந் ஒலி மெதுவாக முடிக்கவும்.", symbolic: "Fish, Seed, Life/Action" },
-    { letter: "ס", name: "SAMEKH", hebrewName: "סמך", number: 60, latinPronunciation: "Sah-mekh", tamilPronunciation: "சாமெக்", tamilGuide: "சாமெக். சா என்று தொடங்கி, மெக் என்று மெதுவாக முடிக்கவும்.", symbolic: "Prop, Support, To Lean" },
-    { letter: "ע", name: "AYIN", hebrewName: "עין", number: 70, latinPronunciation: "Ah-yin", tamilPronunciation: "ஆயின்", tamilGuide: "ஆயின். ஆ என்று திறந்த ஒலியுடன் தொடங்கி, யின் என்று சொல்லுங்கள்.", symbolic: "Eye, To See, Understand" },
-    { letter: "פ", name: "PE", hebrewName: "פה", number: 80, latinPronunciation: "Peh", tamilPronunciation: "பே", tamilGuide: "பே. உதட்டை சேர்த்து ப ஒலி தெளிவாக கூறி, ஏ ஒலியை நீட்டுங்கள்.", symbolic: "Mouth, Word, To Speak" },
-    { letter: "צ", name: "TSADE", hebrewName: "צדי", number: 90, latinPronunciation: "Tsah-deh", tamilPronunciation: "ட்சாதே", tamilGuide: "ட்சாதே. ட்ஸ் ஒலியுடன் தொடங்கி, சாதே என்று மெதுவாக சொல்லுங்கள்.", symbolic: "Fishhook, To Pull, Righteous" },
-    { letter: "ק", name: "QOPH", hebrewName: "קוף", number: 100, latinPronunciation: "Qof", tamilPronunciation: "கோஃப்", tamilGuide: "கோஃப். தொண்டை ஒலியுடன் கோ என்று சொல்லி, ஃப் ஒலியில் முடிக்கவும்.", symbolic: "Sun on Horizon, Time, Circle" },
-    { letter: "ר", name: "RESH", hebrewName: "ריש", number: 200, latinPronunciation: "Resh", tamilPronunciation: "ரேஷ்", tamilGuide: "ரேஷ். ரே என்று தொடங்கி, ஷ் ஒலி மெதுவாக முடிக்கவும்.", symbolic: "Head, Person, Highest" },
-    { letter: "ש", name: "SHIN", hebrewName: "שין", number: 300, latinPronunciation: "Sheen", tamilPronunciation: "ஷீன்", tamilGuide: "ஷீன். ஷீ என்று நீட்டி, ந் ஒலியில் முடிக்கவும்.", symbolic: "Teeth, To Consume, Destroy" },
-    { letter: "ת", name: "TAV", hebrewName: "תו", number: 400, latinPronunciation: "Tav", tamilPronunciation: "தாவ்", tamilGuide: "தாவ். தா என்று கூறி, வ் ஒலி மெதுவாக முடிக்கவும்.", symbolic: "Mark, Sign, Covenant" },
+    { letter: "א", name: "ALEPH", hebrewName: "אלף", number: 1, latinPronunciation: "Ah-lef", tamilPronunciation: "ஆலெஃப்", tamilGuide: "ஆலெஃப். வாயை திறந்து மெதுவாக ஆ ஒலி சொல்லி, பிறகு லெஃப் சொல்லுங்கள்.", symbolic: "Ox, Strength, Leader", pictographNumber: "No.1 (Headship)" },
+    { letter: "ב", name: "BET", hebrewName: "בית", number: 2, latinPronunciation: "Bet", tamilPronunciation: "பெத்", tamilGuide: "பெத். பே என்று தொடங்கி, முடிவில் த் ஒலியை மெதுவாக சேர்க்கவும்.", symbolic: "House, Family, Inside", pictographNumber: "No.2 (House)" },
+    { letter: "ג", name: "GIMEL", hebrewName: "גימל", number: 3, latinPronunciation: "Gee-mel", tamilPronunciation: "கீமெல்", tamilGuide: "கீமெல். கீ என்று நீட்டி, பிறகு மெல் என்று மெதுவாக சொல்லுங்கள்.", symbolic: "Camel, Pride, To Lift Up", pictographNumber: "No.3 (Foot)" },
+    { letter: "ד", name: "DALET", hebrewName: "דלת", number: 4, latinPronunciation: "Dah-let", tamilPronunciation: "தாலெத்", tamilGuide: "தாலெத். தா என்று தொடங்கி, லெத் என்று முடிக்கவும்.", symbolic: "Door, Pathway, To Enter", pictographNumber: "No.4 (Door)" },
+    { letter: "ה", name: "HE", hebrewName: "הא", number: 5, latinPronunciation: "Heh", tamilPronunciation: "ஹே", tamilGuide: "ஹே. மெதுவான மூச்சோசையுடன் ஹே என்று சொல்லுங்கள்.", symbolic: "Window, Breath, Revelation", pictographNumber: "No.5 (Arms Raised)" },
+    { letter: "ו", name: "VAV", hebrewName: "וו", number: 6, latinPronunciation: "Vav", tamilPronunciation: "வாவ்", tamilGuide: "வாவ். வா ஒலியைத் தெளிவாக சொல்லி, இறுதியில் வ் ஒலி மெதுவாக முடிக்கவும்.", symbolic: "Nail, Peg, Connection", pictographNumber: "No.6 (Tent Peg)" },
+    { letter: "ז", name: "ZAYIN", hebrewName: "זין", number: 7, latinPronunciation: "Zah-yin", tamilPronunciation: "சயின்", tamilGuide: "சயின். சா அல்லது ஸா ஒலியுடன் தொடங்கி, யின் என்று முடிக்கவும்.", symbolic: "Sword, Weapon, To Cut", pictographNumber: "No.7 (Plowing Tool)" },
+    { letter: "ח", name: "CHET", hebrewName: "חית", number: 8, latinPronunciation: "Khet", tamilPronunciation: "க்ஹெட்", tamilGuide: "க்ஹெட். தொண்டையில் இருந்து வரும் க்ஹ் ஒலியுடன் ஹெட் போல சொல்லுங்கள்.", symbolic: "Fence, Enclosure, Protection", pictographNumber: "No.8 (Fence)" },
+    { letter: "ט", name: "TET", hebrewName: "טית", number: 9, latinPronunciation: "Tet", tamilPronunciation: "டெட்", tamilGuide: "டெட். டெ என்று சொல்லி, இறுதியில் ட் ஒலி தெளிவாக முடிக்கவும்.", symbolic: "Basket, Snake, Surround", pictographNumber: "No.9 (Basket)" },
+    { letter: "י", name: "YOD", hebrewName: "יוד", number: 10, latinPronunciation: "Yod", tamilPronunciation: "யோத்", tamilGuide: "யோத். யோ என்று நீட்டி, மெதுவாகத் த் ஒலியில் முடிக்கவும்.", symbolic: "Hand, Work, Deed", pictographNumber: "No.10 (Arm & Hand)" },
+    { letter: "כ", name: "KAF", hebrewName: "כף", number: 20, latinPronunciation: "Kaf", tamilPronunciation: "காஃப்", tamilGuide: "காஃப். கா ஒலியுடன் தொடங்கி, ஃப் ஒலி தெளிவாக சொல்லுங்கள்.", symbolic: "Palm, Open Hand, To Cover", pictographNumber: "No.20 (Open Palm)" },
+    { letter: "ל", name: "LAMED", hebrewName: "למד", number: 30, latinPronunciation: "Lah-med", tamilPronunciation: "லாமெட்", tamilGuide: "லாமெட். லா என்று தொடங்கி, மெத் ஒலியில் மெதுவாக முடிக்கவும்.", symbolic: "Staff, Goad, To Teach/Lead", pictographNumber: "No.30 (Staff)" },
+    { letter: "מ", name: "MEM", hebrewName: "מם", number: 40, latinPronunciation: "Mem", tamilPronunciation: "மேம்", tamilGuide: "மேம். மே என்று நீட்டி, ம் ஒலியில் முடிக்கவும்.", symbolic: "Water, Chaos, Mighty", pictographNumber: "No.40 (Water)" },
+    { letter: "נ", name: "NUN", hebrewName: "נון", number: 50, latinPronunciation: "Noon", tamilPronunciation: "நூன்", tamilGuide: "நூன். நூ என்று நீட்டி, ந் ஒலி மெதுவாக முடிக்கவும்.", symbolic: "Fish, Seed, Life/Action", pictographNumber: "No.50 (Seed)" },
+    { letter: "ס", name: "SAMEKH", hebrewName: "סמך", number: 60, latinPronunciation: "Sah-mekh", tamilPronunciation: "சாமெக்", tamilGuide: "சாமெக். சா என்று தொடங்கி, மெக் என்று மெதுவாக முடிக்கவும்.", symbolic: "Prop, Support, To Lean", pictographNumber: "No.60 (Thorn)" },
+    { letter: "ע", name: "AYIN", hebrewName: "עין", number: 70, latinPronunciation: "Ah-yin", tamilPronunciation: "ஆயின்", tamilGuide: "ஆயின். ஆ என்று திறந்த ஒலியுடன் தொடங்கி, யின் என்று சொல்லுங்கள்.", symbolic: "Eye, To See, Understand", pictographNumber: "No.70 (Eye)" },
+    { letter: "פ", name: "PE", hebrewName: "פה", number: 80, latinPronunciation: "Peh", tamilPronunciation: "பே", tamilGuide: "பே. உதட்டை சேர்த்து ப ஒலி தெளிவாக கூறி, ஏ ஒலியை நீட்டுங்கள்.", symbolic: "Mouth, Word, To Speak", pictographNumber: "No.80 (Mouth)" },
+    { letter: "צ", name: "TSADE", hebrewName: "צדי", number: 90, latinPronunciation: "Tsah-deh", tamilPronunciation: "ட்சாதே", tamilGuide: "ட்சாதே. ட்ஸ் ஒலியுடன் தொடங்கி, சாதே என்று மெதுவாக சொல்லுங்கள்.", symbolic: "Fishhook, To Pull, Righteous", pictographNumber: "No.90 (Path)" },
+    { letter: "ק", name: "QOPH", hebrewName: "קוף", number: 100, latinPronunciation: "Qof", tamilPronunciation: "கோஃப்", tamilGuide: "கோஃப். தொண்டை ஒலியுடன் கோ என்று சொல்லி, ஃப் ஒலியில் முடிக்கவும்.", symbolic: "Sun on Horizon, Time, Circle", pictographNumber: "No.100 (Sun at the Horizon)" },
+    { letter: "ר", name: "RESH", hebrewName: "ריש", number: 200, latinPronunciation: "Resh", tamilPronunciation: "ரேஷ்", tamilGuide: "ரேஷ். ரே என்று தொடங்கி, ஷ் ஒலி மெதுவாக முடிக்கவும்.", symbolic: "Head, Person, Highest", pictographNumber: "No.200 (a Man's Head)" },
+    { letter: "ש", name: "SHIN", hebrewName: "שין", number: 300, latinPronunciation: "Sheen", tamilPronunciation: "ஷீன்", tamilGuide: "ஷீன். ஷீ என்று நீட்டி, ந் ஒலியில் முடிக்கவும்.", symbolic: "Teeth, To Consume, Destroy", pictographNumber: "No.300 (Two front teeth)" },
+    { letter: "ת", name: "TAV", hebrewName: "תו", number: 400, latinPronunciation: "Tav", tamilPronunciation: "தாவ்", tamilGuide: "தாவ். தா என்று கூறி, வ் ஒலி மெதுவாக முடிக்கவும்.", symbolic: "Mark, Sign, Covenant", pictographNumber: "No.400 (Crossed Sticks)" },
 ];
 
 // Responsive column counts for breakpoints
@@ -40,6 +65,7 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
     const [cols, setCols] = useState(COLS_MAP.default);
+    const [viewMode, setViewMode] = useState<'modern' | 'paleo' | 'both'>('both');
     const panelRef = useRef<HTMLDivElement>(null);
 
     // Responsive column detection
@@ -128,6 +154,25 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                     </div>
                 </header>
 
+                {/* View Mode Toggle */}
+                <div className="flex justify-center mb-10">
+                    <div className="inline-flex p-1 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md">
+                        {(['both', 'modern', 'paleo'] as const).map((mode) => (
+                            <button
+                                key={mode}
+                                onClick={() => setViewMode(mode)}
+                                className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 cursor-pointer ${
+                                    viewMode === mode
+                                        ? 'bg-gradient-to-r from-[#F59E0B] to-[#D97706] text-white shadow-lg'
+                                        : 'text-white/60 hover:text-white/90 hover:bg-white/5'
+                                }`}
+                            >
+                                {mode === 'both' ? 'Both' : mode === 'modern' ? 'Modern' : 'Paleo-Hebrew'}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
                 {/* LETTER GRID — rendered row by row to insert pronunciation panel between rows */}
                 <div className="max-w-6xl mx-auto space-y-5 md:space-y-7">
                     {rows.map((rowIndices, rowIdx) => (
@@ -173,15 +218,62 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                             >
                                                 <Volume2 size={14} className="text-[#F59E0B]" />
                                             </button>
-                                            <span className={`text-6xl md:text-[5rem] text-transparent bg-clip-text mb-5 font-serif transition-transform duration-500 drop-shadow-lg leading-none ${
-                                                selectedIndex === index
-                                                    ? 'bg-gradient-to-b from-[#FBBF24] to-[#F59E0B] scale-110'
-                                                    : activeIndex === index
-                                                        ? 'bg-gradient-to-b from-white to-white/70 scale-110'
-                                                        : 'bg-gradient-to-b from-[#FBBF24] to-[#F59E0B] group-hover:from-white group-hover:to-white/70 group-hover:scale-110'
-                                            }`}>
-                                                {item.letter}
-                                            </span>
+                                            
+                                            {/* Conditional representation based on viewMode */}
+                                            {viewMode === 'both' && (
+                                                <div className="flex items-center gap-5 mb-5 h-20 md:h-24">
+                                                    <span className={`text-5xl md:text-6xl text-transparent bg-clip-text font-serif transition-transform duration-500 drop-shadow-lg leading-none ${
+                                                        selectedIndex === index
+                                                            ? 'bg-gradient-to-b from-white to-white/80 scale-105'
+                                                            : 'bg-gradient-to-b from-[#FBBF24] to-[#F59E0B] group-hover:from-white group-hover:to-white/70 group-hover:scale-105'
+                                                    }`}>
+                                                        {item.letter}
+                                                    </span>
+                                                    <div className="w-px h-10 bg-white/15" />
+                                                    <svg viewBox="0 0 100 100" className={`w-10 h-10 md:w-12 md:h-12 transition-transform duration-500 ${
+                                                        selectedIndex === index ? 'text-white scale-105' : 'text-[#FBBF24] group-hover:text-white group-hover:scale-105'
+                                                    }`}>
+                                                        <path 
+                                                            d={PALEO_HEBREW_PATHS[item.name] || ''} 
+                                                            fill="none" 
+                                                            stroke="currentColor" 
+                                                            strokeWidth="8" 
+                                                            strokeLinecap="round" 
+                                                            strokeLinejoin="round" 
+                                                        />
+                                                    </svg>
+                                                </div>
+                                            )}
+
+                                            {viewMode === 'modern' && (
+                                                <div className="flex items-center justify-center mb-5 h-20 md:h-24">
+                                                    <span className={`text-6xl md:text-[5rem] text-transparent bg-clip-text font-serif transition-transform duration-500 drop-shadow-lg leading-none ${
+                                                        selectedIndex === index
+                                                            ? 'bg-gradient-to-b from-white to-white/80 scale-110'
+                                                            : 'bg-gradient-to-b from-[#FBBF24] to-[#F59E0B] group-hover:from-white group-hover:to-white/70 group-hover:scale-110'
+                                                    }`}>
+                                                        {item.letter}
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            {viewMode === 'paleo' && (
+                                                <div className="flex items-center justify-center mb-5 h-20 md:h-24">
+                                                    <svg viewBox="0 0 100 100" className={`w-14 h-14 md:w-16 md:h-16 transition-transform duration-500 ${
+                                                        selectedIndex === index ? 'text-white scale-110' : 'text-[#FBBF24] group-hover:text-white group-hover:scale-110'
+                                                    }`}>
+                                                        <path 
+                                                            d={PALEO_HEBREW_PATHS[item.name] || ''} 
+                                                            fill="none" 
+                                                            stroke="currentColor" 
+                                                            strokeWidth="8" 
+                                                            strokeLinecap="round" 
+                                                            strokeLinejoin="round" 
+                                                        />
+                                                    </svg>
+                                                </div>
+                                            )}
+
                                             <div className="text-center space-y-1">
                                                 <strong className="block text-[#F59E0B] text-sm md:text-base tracking-[0.2em] font-bold uppercase group-hover:text-white/90 transition-colors">{item.name}</strong>
                                                 <span className="block text-[#F59E0B]/70 text-xs md:text-sm tracking-wide group-hover:text-white/60 transition-colors">{item.tamilPronunciation}</span>
@@ -225,18 +317,44 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                             <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
                                                 {/* LEFT: Letter info + details */}
                                                 <div className="flex-1 min-w-0 space-y-4">
-                                                    <div className="flex items-center gap-6">
-                                                        <div className="relative w-36 h-36 md:w-40 md:h-40 flex-shrink-0 select-none">
-                                                            {/* Grid Guidelines Background */}
-                                                            <div className="absolute inset-0 rounded-[2rem] border border-sky-400/40 bg-sky-950/20 overflow-hidden shadow-[0_0_28px_rgba(125,211,252,0.42),inset_0_0_26px_rgba(250,204,21,0.15)]">
-                                                                {/* Guidelines */}
-                                                                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1px] bg-amber-400/25" />
-                                                                <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[1px] bg-sky-400/30" />
+                                                    <div className="flex flex-wrap items-center gap-6">
+                                                        {/* Modern Letter Box */}
+                                                        <div className="relative w-28 h-28 md:w-32 md:h-32 flex-shrink-0 select-none">
+                                                            <div className="absolute inset-0 rounded-2xl border border-sky-400/30 bg-sky-950/20 overflow-hidden shadow-[0_0_20px_rgba(125,211,252,0.2)]">
+                                                                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1px] bg-amber-400/15" />
+                                                                <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[1px] bg-sky-400/20" />
                                                             </div>
-                                                            <span className="absolute inset-0 flex items-center justify-center font-serif text-7xl md:text-8xl text-white drop-shadow-[0_0_22px_rgba(125,211,252,0.95)]">
+                                                            <span className="absolute inset-0 flex items-center justify-center font-serif text-5xl md:text-6xl text-white drop-shadow-[0_0_15px_rgba(125,211,252,0.7)]">
                                                                 {selectedLetter.letter}
                                                             </span>
+                                                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-sky-500/80 border border-sky-400 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full whitespace-nowrap">
+                                                                Modern
+                                                            </div>
                                                         </div>
+
+                                                        {/* Paleo-Hebrew Pictograph Box */}
+                                                        <div className="relative w-28 h-28 md:w-32 md:h-32 flex-shrink-0 select-none">
+                                                            <div className="absolute inset-0 rounded-2xl border border-amber-500/30 bg-amber-950/20 overflow-hidden shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+                                                                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1px] bg-sky-400/15" />
+                                                                <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[1px] bg-amber-400/20" />
+                                                            </div>
+                                                            <div className="absolute inset-0 flex items-center justify-center p-5">
+                                                                <svg viewBox="0 0 100 100" className="w-full h-full text-[#FBBF24] drop-shadow-[0_0_15px_rgba(245,158,11,0.7)]">
+                                                                    <path 
+                                                                        d={PALEO_HEBREW_PATHS[selectedLetter.name] || ''} 
+                                                                        fill="none" 
+                                                                        stroke="currentColor" 
+                                                                        strokeWidth="7" 
+                                                                        strokeLinecap="round" 
+                                                                        strokeLinejoin="round" 
+                                                                    />
+                                                                </svg>
+                                                            </div>
+                                                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-amber-500/80 border border-amber-400 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full whitespace-nowrap">
+                                                                Paleo-Hebrew
+                                                            </div>
+                                                        </div>
+
                                                         <div className="space-y-2 pb-1">
                                                             <div className="text-3xl md:text-4xl lg:text-5xl font-black tracking-[0.14em] text-white leading-none">{selectedLetter.name}</div>
                                                             <div className="text-xl md:text-2xl text-[#F59E0B]/80 font-serif leading-none mt-1">{selectedLetter.hebrewName}</div>
@@ -260,6 +378,17 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                                         <div className="text-[10px] font-black text-emerald-400/60 uppercase tracking-widest mb-1.5">Tamil Pronunciation Guide</div>
                                                         <p className="text-xs text-white/60 leading-relaxed">{selectedLetter.tamilGuide}</p>
                                                     </div>
+
+                                                    {/* Paleo-Hebrew Pictograph Info */}
+                                                    {selectedLetter.pictographNumber && (
+                                                        <div className="bg-emerald-500/[0.05] border border-emerald-500/[0.1] rounded-xl p-3">
+                                                            <div className="text-[10px] font-black text-emerald-400/80 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                                                                <Sparkles size={10} />
+                                                                Ancient Pictograph Representation
+                                                            </div>
+                                                            <p className="text-sm text-emerald-200/90 font-bold leading-relaxed">{selectedLetter.pictographNumber}</p>
+                                                        </div>
+                                                    )}
 
                                                     {/* Symbolic Meaning */}
                                                     {selectedLetter.symbolic && (
