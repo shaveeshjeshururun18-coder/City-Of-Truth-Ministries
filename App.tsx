@@ -807,6 +807,11 @@ const App: React.FC = () => {
     }));
 
     setMemberNotifications(prev => [...nextNotifications, ...prev].slice(0, 1000));
+    nextNotifications.forEach(note => {
+      api.saveNotification(note).catch(err => {
+        console.error('Failed to save notification to cloud:', err);
+      });
+    });
 
     // Also push FCM + SMS for each targeted user
     targetUserIds.forEach(userId => {
@@ -848,6 +853,9 @@ const App: React.FC = () => {
       ...(imageUrl ? { imageUrl } : {})
     };
     setMemberNotifications(prev => [next, ...prev].slice(0, 1000));
+    api.saveNotification(next).catch(err => {
+      console.error('Failed to save auto-notification to cloud:', err);
+    });
 
     // Send mobile notification (SMS) via Twilio if user has a registered phone number
     const targetUser = users.find(u => u.id === userId);
@@ -912,18 +920,34 @@ const App: React.FC = () => {
       read: false
     };
     setMemberNotifications(prev => [reply, ...prev].slice(0, 1000));
+    api.saveNotification(reply).catch(err => {
+      console.error('Failed to save user reply to cloud:', err);
+    });
   };
 
   const handleMarkUserNotificationsRead = (userId: string) => {
-    setMemberNotifications(prev => prev.map(note => (
-      note.userId === userId && note.from === 'admin' && !note.read
-        ? { ...note, read: true }
-        : note
-    )));
+    setMemberNotifications(prev => {
+      const updated = prev.map(note => (
+        note.userId === userId && note.from === 'admin' && !note.read
+          ? { ...note, read: true }
+          : note
+      ));
+      prev.forEach(note => {
+        if (note.userId === userId && note.from === 'admin' && !note.read) {
+          api.saveNotification({ ...note, read: true }).catch(err => {
+            console.error('Failed to save read state to cloud:', err);
+          });
+        }
+      });
+      return updated;
+    });
   };
 
   const handleUpdateMemberNotification = (updated: MemberNotification) => {
     setMemberNotifications(prev => prev.map(note => note.id === updated.id ? updated : note));
+    api.saveNotification(updated).catch(err => {
+      console.error('Failed to save updated notification to cloud:', err);
+    });
   };
 
   const handleDeleteMemberNotification = (notificationId: string) => {
@@ -931,6 +955,9 @@ const App: React.FC = () => {
       const target = prev.find(note => note.id === notificationId);
       if (target) {
         setDeletedMemberNotifications(old => [normalizeDeletedMessageMeta(target), ...old.filter(item => item.id !== notificationId)].slice(0, 1000));
+        api.deleteNotification(notificationId).catch(err => {
+          console.error('Failed to delete notification in cloud:', err);
+        });
       }
       return prev.filter(note => note.id !== notificationId);
     });
@@ -942,6 +969,9 @@ const App: React.FC = () => {
       if (target) {
         const { deletedAt, autoDeleteAt, ...restored } = target;
         setMemberNotifications(old => [restored, ...old.filter(item => item.id !== notificationId)].slice(0, 1000));
+        api.saveNotification(restored).catch(err => {
+          console.error('Failed to save restored notification to cloud:', err);
+        });
       }
       return prev.filter(note => note.id !== notificationId);
     });
@@ -952,6 +982,9 @@ const App: React.FC = () => {
       const target = prev.find(note => note.id === notificationId && note.userId === userId && note.from === 'admin');
       if (target) {
         setDeletedMemberNotifications(old => [normalizeDeletedMessageMeta(target), ...old.filter(item => item.id !== notificationId)].slice(0, 1000));
+        api.deleteNotification(notificationId).catch(err => {
+          console.error('Failed to delete user notification in cloud:', err);
+        });
       }
       return prev.filter(note => !(note.id === notificationId && note.userId === userId && note.from === 'admin'));
     });
@@ -1241,13 +1274,18 @@ const App: React.FC = () => {
     const loadUsers = async () => {
       try {
         // Load users and deleted users
-        const [activeUsers, removedUsers] = await Promise.all([
+        const [activeUsers, removedUsers, loadedNotifications] = await Promise.all([
           api.getUsers(),
-          api.getDeletedUsers()
+          api.getDeletedUsers(),
+          api.getNotifications().catch(err => {
+            console.error('Failed to load notifications:', err);
+            return [];
+          })
         ]);
         
         setUsers(activeUsers);
         setDeletedUsers(removedUsers);
+        setMemberNotifications(loadedNotifications);
 
         // Load permalinks separately with its own error handling
         try {
@@ -1835,7 +1873,13 @@ const App: React.FC = () => {
   };
 
   const handleRegister = async (data: any) => {
-    const extractPhoneDigits = (value: string | undefined) => (value || '').replace(/\D/g, '');
+    const extractPhoneDigits = (value: string | undefined) => {
+      const digits = (value || '').replace(/\D/g, '');
+      if (digits.length === 12 && digits.startsWith('91')) {
+        return digits.slice(2);
+      }
+      return digits;
+    };
     const normalizeEmail = (value: string | undefined) => (value || '').trim().toLowerCase();
     const primaryPhoneDigits = extractPhoneDigits(data.emergency || data.phone);
     if (primaryPhoneDigits.length !== 10) {
@@ -2024,6 +2068,15 @@ const App: React.FC = () => {
     const target = deletedUsers.find(u => u.id === userId);
     await api.permanentlyDeleteDeletedUser(userId);
     setDeletedUsers(await api.getDeletedUsers());
+    
+    // Cleanup notifications in Firestore
+    const notesToDelete = memberNotifications.filter(note => note.userId === userId);
+    notesToDelete.forEach(note => {
+      api.deleteNotification(note.id).catch(err => {
+        console.error('Failed to delete notification for permanently deleted user:', err);
+      });
+    });
+
     setMemberNotifications(prev => prev.filter(note => note.userId !== userId));
     if (target) {
       setDeletedMemberNotifications(prev => prev.filter(note => note.userId !== target.id));

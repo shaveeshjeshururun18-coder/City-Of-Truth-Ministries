@@ -12,7 +12,7 @@ import {
     writeBatch
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { User, Testimonial, DeletedUser, Permalink } from '../types';
+import { User, Testimonial, DeletedUser, Permalink, MemberNotification } from '../types';
 import { ref as storageRef, listAll, deleteObject } from 'firebase/storage';
 import { storage } from './firebase';
 
@@ -21,6 +21,7 @@ const DELETED_USERS_COLLECTION = 'deleted_users';
 const TESTIMONIALS_COLLECTION = 'testimonials';
 const PERMALINKS_COLLECTION = 'permalinks';
 const BARUCH_VIDEOS_COLLECTION = 'baruch_videos';
+const MEMBER_NOTIFICATIONS_COLLECTION = 'member_notifications';
 
 export interface BaruchVideo {
     id: string;
@@ -1070,6 +1071,76 @@ export const api = {
         }
     },
 
+    // Fetch all member notifications
+    getNotifications: async (): Promise<MemberNotification[]> => {
+        try {
+            const notificationsCollection = collection(db, MEMBER_NOTIFICATIONS_COLLECTION);
+            const snapshot = await getDocs(notificationsCollection);
+            return snapshot.docs.map(doc => ({
+                ...doc.data(),
+                id: doc.id
+            } as MemberNotification));
+        } catch (error: any) {
+            console.error('Firestore Error (Notifications):', error);
+            if (error.code === 'permission-denied') {
+                try {
+                    const saved = localStorage.getItem('cot_member_notifications');
+                    const parsed = saved ? JSON.parse(saved) : [];
+                    return Array.isArray(parsed) ? parsed : [];
+                } catch (e) {
+                    console.error('Fallback getNotifications failed:', e);
+                }
+            }
+            return [];
+        }
+    },
+
+    // Save or update a member notification
+    saveNotification: async (notification: MemberNotification): Promise<MemberNotification> => {
+        try {
+            const docRef = doc(db, MEMBER_NOTIFICATIONS_COLLECTION, notification.id);
+            const { id, ...data } = notification;
+            await setDoc(docRef, data);
+            return notification;
+        } catch (error: any) {
+            console.error('Error saving notification:', error);
+            if (error.code === 'permission-denied') {
+                try {
+                    const saved = localStorage.getItem('cot_member_notifications');
+                    const existing = saved ? JSON.parse(saved) : [];
+                    const filtered = existing.filter((n: MemberNotification) => n.id !== notification.id);
+                    localStorage.setItem('cot_member_notifications', JSON.stringify([notification, ...filtered].slice(0, 1000)));
+                    return notification;
+                } catch (e) {
+                    console.error('Fallback saveNotification failed:', e);
+                }
+            }
+            throw error;
+        }
+    },
+
+    // Delete a member notification
+    deleteNotification: async (notificationId: string): Promise<void> => {
+        try {
+            const docRef = doc(db, MEMBER_NOTIFICATIONS_COLLECTION, notificationId);
+            await deleteDoc(docRef);
+        } catch (error: any) {
+            console.error('Error deleting notification:', error);
+            if (error.code === 'permission-denied') {
+                try {
+                    const saved = localStorage.getItem('cot_member_notifications');
+                    const existing = saved ? JSON.parse(saved) : [];
+                    const filtered = existing.filter((n: MemberNotification) => n.id !== notificationId);
+                    localStorage.setItem('cot_member_notifications', JSON.stringify(filtered));
+                    return;
+                } catch (e) {
+                    console.error('Fallback deleteNotification failed:', e);
+                }
+            }
+            throw error;
+        }
+    },
+
     // --- Complete Reboot ---
 
     // Complete system reboot - deletes all data from Firestore, Storage, and localStorage
@@ -1098,6 +1169,7 @@ export const api = {
                 DELETED_USERS_COLLECTION,
                 TESTIMONIALS_COLLECTION,
                 PERMALINKS_COLLECTION,
+                MEMBER_NOTIFICATIONS_COLLECTION,
                 'ministries',
                 'config'
             ];

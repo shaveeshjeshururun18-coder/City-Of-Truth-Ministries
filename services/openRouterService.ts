@@ -29,6 +29,27 @@ Example: "To register for a member account, follow the step-by-step guide pointi
 const DEFAULT_MODEL = 'openai/gpt-oss-20b:free';
 const FALLBACK_MODEL = 'openrouter/free';
 
+export function getSelectedModel(): string {
+    try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+            return localStorage.getItem('cot_selected_openrouter_model') || DEFAULT_MODEL;
+        }
+    } catch (e) {
+        console.warn('Failed to access localStorage for openrouter model:', e);
+    }
+    return DEFAULT_MODEL;
+}
+
+export function setSelectedOpenRouterModel(modelId: string): void {
+    try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+            localStorage.setItem('cot_selected_openrouter_model', modelId);
+        }
+    } catch (e) {
+        console.error('Failed to save selected OpenRouter model:', e);
+    }
+}
+
 /**
  * Helper to fetch chat completion from OpenRouter using fetch
  */
@@ -62,10 +83,11 @@ async function fetchOpenRouterCompletion(messages: any[], jsonFormat = false): P
         return response.json();
     };
 
+    const activeModel = getSelectedModel();
     try {
-        return await makeRequest(DEFAULT_MODEL);
+        return await makeRequest(activeModel);
     } catch (primaryError) {
-        console.warn(`Primary model ${DEFAULT_MODEL} failed, trying fallback ${FALLBACK_MODEL}:`, primaryError);
+        console.warn(`Primary model ${activeModel} failed, trying fallback ${FALLBACK_MODEL}:`, primaryError);
         try {
             return await makeRequest(FALLBACK_MODEL);
         } catch (fallbackError) {
@@ -160,8 +182,9 @@ export async function streamSpatulaAIResponse(
         }
     };
 
+    const activeModel = getSelectedModel();
     try {
-        await makeStreamRequest(DEFAULT_MODEL);
+        await makeStreamRequest(activeModel);
     } catch (primaryError) {
         console.warn(`Primary model streaming failed, trying fallback ${FALLBACK_MODEL}:`, primaryError);
         try {
@@ -273,17 +296,21 @@ export async function getOpenRouterModelDetails(): Promise<any> {
             throw new Error(`Failed to fetch model details: ${response.statusText}`);
         }
         const data = await response.json();
-        const defaultModelInfo = data.data?.find((m: any) => m.id === DEFAULT_MODEL);
+        const activeModelId = getSelectedModel();
+        const defaultModelInfo = data.data?.find((m: any) => m.id === activeModelId);
         const fallbackModelInfo = data.data?.find((m: any) => m.id === FALLBACK_MODEL);
         return {
-            defaultModel: defaultModelInfo || { id: DEFAULT_MODEL, name: 'GPT-OSS 20B (Free)', context_length: 8192 },
-            fallbackModel: fallbackModelInfo || { id: FALLBACK_MODEL, name: 'OpenRouter Free Auto-Router', context_length: 4096 }
+            defaultModel: defaultModelInfo || { id: activeModelId, name: activeModelId, context_length: 8192 },
+            fallbackModel: fallbackModelInfo || { id: FALLBACK_MODEL, name: 'OpenRouter Free Auto-Router', context_length: 4096 },
+            allModels: data.data || []
         };
     } catch (error) {
         console.error('Error fetching model details:', error);
+        const activeModelId = getSelectedModel();
         return {
-            defaultModel: { id: DEFAULT_MODEL, name: 'GPT-OSS 20B (Free)', context_length: 8192 },
-            fallbackModel: { id: FALLBACK_MODEL, name: 'OpenRouter Free Auto-Router', context_length: 4096 }
+            defaultModel: { id: activeModelId, name: activeModelId, context_length: 8192 },
+            fallbackModel: { id: FALLBACK_MODEL, name: 'OpenRouter Free Auto-Router', context_length: 4096 },
+            allModels: []
         };
     }
 }
