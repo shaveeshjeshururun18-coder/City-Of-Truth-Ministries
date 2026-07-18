@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { User, SubProfile } from '../types';
+import { User, SubProfile, UserRole } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
 import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag, Copy, ExternalLink, Moon, Sun } from 'lucide-react';
 import { Button } from './Button';
@@ -34,6 +34,7 @@ interface UserDashboardProps {
     onDeleteNotification?: (notificationId: string) => void;
     focusSection?: 'notifications' | null;
     onDeleteAccount?: () => Promise<void>;
+    allUsers?: User[];
 }
 
 const FAMILY_RELATIONSHIP_OPTIONS = {
@@ -178,6 +179,15 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [displayProfile?.communityProfile?.status]);
 
+    const hasPermanentCotId = /^COT-\d{4,}$/.test((displayProfile.id || '').trim());
+    const canAccessEntrustFeatures = displayProfile.status === 'Active' && hasPermanentCotId;
+    const hasMemberFormSubmitted = !!(displayProfile.communityProfile && (
+        (displayProfile.communityProfile.denomination || '').trim() ||
+        (displayProfile.communityProfile.churchName || '').trim() ||
+        (displayProfile.communityProfile.role || '').trim() ||
+        (displayProfile.communityProfile.bio || '').trim()
+    ));
+
     useEffect(() => {
         if (canAccessEntrustFeatures) {
             try {
@@ -193,15 +203,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             }
         }
     }, [canAccessEntrustFeatures, displayProfile.id]);
-
-    const hasPermanentCotId = /^COT-\d{4,}$/.test((displayProfile.id || '').trim());
-    const canAccessEntrustFeatures = displayProfile.status === 'Active' && hasPermanentCotId;
-    const hasMemberFormSubmitted = !!(displayProfile.communityProfile && (
-        (displayProfile.communityProfile.denomination || '').trim() ||
-        (displayProfile.communityProfile.churchName || '').trim() ||
-        (displayProfile.communityProfile.role || '').trim() ||
-        (displayProfile.communityProfile.bio || '').trim()
-    ));
 
     // ── Guided Tour ──
     const dashboardTour = useTour('user_dashboard');
@@ -555,7 +556,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 // Currently, pending updates for linked profiles aren't structured well, so we just edit the original
                 setFormData({
                     name: sub.name,
-                    role: sub.role,
+                    role: sub.role as UserRole,
                     photo: sub.photo,
                     dob: sub.dob,
                     bloodGroup: sub.bloodGroup
@@ -1439,7 +1440,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     showToast('Member Form submitted successfully! Admin will review it shortly.', 'success');
                 }}
             />
-            <CalendarCustomizationModal isOpen={isCalendarModalOpen} onClose={() => setIsCalendarModalOpen(false)} onDownload={handleDownloadCalendar} />
+            <CalendarCustomizationModal isOpen={isCalendarModalOpen} onClose={() => setIsCalendarModalOpen(false)} onDownload={handleDownloadCalendar} isProcessing={isGeneratingCalendar} />
 
             <div className="fixed left-[-9999px] top-0 pointer-events-none z-0">
                 <div id="capture-front" className="bg-white inline-block w-[340px] h-[215px] overflow-hidden rounded-xl">

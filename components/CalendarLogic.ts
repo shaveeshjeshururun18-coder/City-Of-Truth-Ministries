@@ -7,6 +7,7 @@ export interface CalendarDay {
     festivals: string[];
     gregorianDate?: string;
     gregorianYear?: number;
+    des?: any;
 }
 
 export interface HebrewMonth {

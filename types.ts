@@ -54,6 +54,8 @@ export interface PendingProfileUpdate {
   dob?: string;
   memberSince?: string;
   joinedDate?: string;
+  linkedProfiles?: SubProfile[];
+  bloodGroup?: string;
 }
 
 export interface User {
@@ -71,6 +73,8 @@ export interface User {
   joinedDate: string;
   fcmTokens?: string[];
   linkedProfiles?: SubProfile[];
+  dob?: string;
+  bloodGroup?: string;
   verificationDoc?: { name: string; uploadedAt: string };
   pendingProfileUpdate?: PendingProfileUpdate;
   communityProfile?: {

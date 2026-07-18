@@ -181,7 +181,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
             if (!userAdjustedSizeRef.current) {
                 setScannerExpanded(false);
             }
-        }, AUTO_EXPAND_DURATION_MS);
+        }, AUTO_EXPAND_DURATION_MS) as any;
     };
 
     const scannerStatusLine = useMemo(() => {
