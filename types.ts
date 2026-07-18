@@ -19,6 +19,7 @@ export enum ViewState {
   HEBREW_GRAMMAR = 'HEBREW_GRAMMAR',
   HEBREW_REFERENCE = 'HEBREW_REFERENCE',
   HEBREW_ISRAEL = 'HEBREW_ISRAEL',
+  PDF_DOWNLOADS = 'PDF_DOWNLOADS',
   BARUCH_HASHEM = 'BARUCH_HASHEM',
   DEVELOPER = 'DEVELOPER',
   AI = 'AI',
@@ -165,10 +166,12 @@ export interface WidgetSettingsConfig {
   shareSize: number;
   shareLabelVisible: boolean;
   shareLabelText: string;
+  shareAnimation?: boolean;
   aiVisible: boolean;
   aiSize: number;
   aiLabelVisible: boolean;
   aiLabelText: string;
+  aiAnimation?: boolean;
 }
 
 export interface NotificationConfig {
@@ -214,6 +217,24 @@ export interface ContactList {
   createdAt: string;
   updatedAt: string;
   contactCount: number;
+}
+
+export interface PushNotification {
+  id: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  link?: string;
+  sentBy: string;
+}
+
+export interface SiteVisit {
+  id: string;
+  deviceId: string;
+  userId: string | 'Guest';
+  isNewDevice: boolean;
+  visitCount: number;
+  timestamp: string;
 }
 
 export interface Contact {
@@ -348,4 +369,6 @@ export interface MemberNotification {
   ctaView?: ViewState;
   announcementId?: string;
   imageUrl?: string;
+  deletedAt?: string;
+  autoDeleteAt?: string;
 }

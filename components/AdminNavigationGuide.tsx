@@ -271,7 +271,7 @@ interface AdminGuideButtonProps {
 export const AdminGuideButton: React.FC<AdminGuideButtonProps> = ({ guideName, onStart, className }) => {
     const guideLabels = {
         dashboard: 'Dashboard Tour',
-        users: 'Users Guide',
+        users: 'Admin Guide',
         'home-layout': 'Layout Guide',
         assistant: 'Assistant Guide',
         menu: 'Menu Guide',

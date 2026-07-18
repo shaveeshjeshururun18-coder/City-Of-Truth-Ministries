@@ -76,6 +76,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [dismissedTopNotificationId, setDismissedTopNotificationId] = useState<string | null>(null);
     const [wasEditingBeforeCrop, setWasEditingBeforeCrop] = useState(false);
     const [showFormSubmittedBanner, setShowFormSubmittedBanner] = useState(false);
+    const [showWhatsAppInviteModal, setShowWhatsAppInviteModal] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(() => {
         try { return localStorage.getItem('cot_user_dashboard_theme') === 'dark'; } catch { return false; }
     });
@@ -176,6 +177,22 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [displayProfile?.communityProfile?.status]);
+
+    useEffect(() => {
+        if (canAccessEntrustFeatures) {
+            try {
+                const invited = localStorage.getItem(`cot_whatsapp_invited_${displayProfile.id}`);
+                if (invited !== 'true') {
+                    const timer = setTimeout(() => {
+                        setShowWhatsAppInviteModal(true);
+                    }, 2000);
+                    return () => clearTimeout(timer);
+                }
+            } catch (e) {
+                console.warn(e);
+            }
+        }
+    }, [canAccessEntrustFeatures, displayProfile.id]);
 
     const hasPermanentCotId = /^COT-\d{4,}$/.test((displayProfile.id || '').trim());
     const canAccessEntrustFeatures = displayProfile.status === 'Active' && hasPermanentCotId;
@@ -593,18 +610,22 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         let newPendingUpdate = user.pendingProfileUpdate;
         if (newPendingUpdate && newPendingUpdate.linkedProfiles) {
             const newPendingLinkedProfiles = newPendingUpdate.linkedProfiles.filter(p => p.id !== profileId);
-            newPendingUpdate = {
-                ...newPendingUpdate,
-                linkedProfiles: newPendingLinkedProfiles.length > 0 ? newPendingLinkedProfiles : undefined
-            };
+            newPendingUpdate = { ...newPendingUpdate };
+            if (newPendingLinkedProfiles.length > 0) {
+                newPendingUpdate.linkedProfiles = newPendingLinkedProfiles;
+            } else {
+                delete newPendingUpdate.linkedProfiles;
+            }
         }
 
-        // Add explicit null-overwrites or direct assignments to ensure empty arrays are respected by App.tsx merge logic
-        onUpdate({
-            ...user,
-            linkedProfiles: updatedProfiles,
-            pendingProfileUpdate: newPendingUpdate
-        } as User);
+        const updatedUser = { ...user, linkedProfiles: updatedProfiles };
+        if (newPendingUpdate !== undefined) {
+            updatedUser.pendingProfileUpdate = newPendingUpdate;
+        } else {
+            delete updatedUser.pendingProfileUpdate;
+        }
+
+        onUpdate(updatedUser);
         if (activeProfileId === profileId) setActiveProfileId(user.id);
     };
 
@@ -2131,6 +2152,28 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         </div>
                     </button>
 
+                    {/* WhatsApp Community Group */}
+                    <button type="button" onClick={() => {
+                        if (!canAccessEntrustFeatures) {
+                            handleBlockedFeature();
+                            return;
+                        }
+                        window.open('https://chat.whatsapp.com/KyifBLN6FFzFj8lSfZFrQb?s=cl&p=a&ilr=1&amv=2', '_blank', 'noopener,noreferrer');
+                    }}
+                        className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#075e54] to-[#128c7e] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                        <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3">
+                            <MessageSquare size={22} className={canAccessEntrustFeatures ? 'text-white' : 'text-slate-400'} />
+                        </div>
+                        <p className="font-bold text-base leading-tight mb-1">Official WhatsApp Community</p>
+                        <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-3`}>Join our official WhatsApp group to connect with other registered members, share fellowship, and receive direct announcements.</p>
+                        <span className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 ${canAccessEntrustFeatures ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                            <ExternalLink size={12} /> {canAccessEntrustFeatures ? 'JOIN CHAT' : 'Locked'}
+                        </span>
+                        <div className="absolute right-4 bottom-4 opacity-10 group-hover:opacity-20 transition-opacity text-[64px] font-bold">
+                            💬
+                        </div>
+                    </button>
+
                     {/* Menorah Flag Download */}
                     <button type="button" onClick={() => {
                         if (!canAccessEntrustFeatures) {
@@ -2153,6 +2196,44 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         </span>
                     </button>
 
+                    {/* Hebrew Alphabet Chart Download */}
+                    <button type="button" onClick={() => {
+                        if (!canAccessEntrustFeatures) {
+                            handleBlockedFeature();
+                            return;
+                        }
+                        const link = document.createElement('a');
+                        link.href = '/downloads/Sacred_Alphabet_Gematria_Chart.pdf';
+                        link.download = 'Sacred_Alphabet_Gematria_Chart.pdf';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }}
+                        className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#064e3b] to-[#10b981] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                        <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Download size={22} /></div>
+                        <p className="font-bold text-base leading-tight mb-1">Hebrew Alphabet Chart</p>
+                        <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-3`}>Sacred Alphabet & Gematria Chart PDF.</p>
+                        <span className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
+                            <Download size={12} /> {canAccessEntrustFeatures ? 'Download Chart' : 'Locked'}
+                        </span>
+                    </button>
+
+                    {/* Entire Website PDFs Download */}
+                    <button type="button" onClick={() => {
+                        if (!canAccessEntrustFeatures) {
+                            handleBlockedFeature();
+                            return;
+                        }
+                        alert("Preparing entire website PDFs bundle... This feature will combine all PDFs into a single ZIP file.");
+                    }}
+                        className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#4c1d95] to-[#7c3aed] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                        <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><FileText size={22} /></div>
+                        <p className="font-bold text-base leading-tight mb-1">Entire Website PDFs</p>
+                        <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-3`}>Download a bundle of all official ministry PDFs.</p>
+                        <span className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
+                            <Download size={12} /> {canAccessEntrustFeatures ? 'Download All PDFs' : 'Locked'}
+                        </span>
+                    </button>
 
                 </div>
 
@@ -2573,6 +2654,74 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             >
                 ?
             </button>
+
+            {/* WhatsApp Invite Modal */}
+            <AnimatePresence>
+                {showWhatsAppInviteModal && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => {
+                                setShowWhatsAppInviteModal(false);
+                                try { localStorage.setItem(`cot_whatsapp_invited_${displayProfile.id}`, 'true'); } catch {}
+                            }}
+                            className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
+                        />
+
+                        {/* Modal Content */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="relative w-full max-w-md bg-white rounded-[32px] p-6 shadow-2xl border border-slate-100 overflow-hidden text-center z-10"
+                        >
+                            {/* Decorative background gradients */}
+                            <div className="absolute -top-24 -left-24 w-48 h-48 bg-[#25D366]/10 rounded-full blur-3xl" />
+                            <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-brand-500/10 rounded-full blur-3xl" />
+
+                            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-[#075e54] to-[#25D366] rounded-2xl flex items-center justify-center text-white mb-5 shadow-lg shadow-emerald-500/20">
+                                <MessageSquare size={32} />
+                            </div>
+
+                            <h3 className="text-2xl font-black text-slate-900 leading-tight mb-2">
+                                You are Approved! 🎉
+                            </h3>
+                            <p className="text-sm font-bold text-[#075e54] mb-3 uppercase tracking-widest">
+                                Join the WhatsApp Community
+                            </p>
+                            
+                            <p className="text-slate-600 text-xs font-semibold leading-relaxed mb-6 px-2">
+                                Shalom, {displayProfile.name}! Your account has been officially approved. We invite you to join our official WhatsApp Community Group to stay connected, receive announcements, and grow in fellowship.
+                            </p>
+
+                            <div className="flex flex-col gap-2.5">
+                                <button
+                                    onClick={() => {
+                                        window.open('https://chat.whatsapp.com/KyifBLN6FFzFj8lSfZFrQb?s=cl&p=a&ilr=1&amv=2', '_blank', 'noopener,noreferrer');
+                                        setShowWhatsAppInviteModal(false);
+                                        try { localStorage.setItem(`cot_whatsapp_invited_${displayProfile.id}`, 'true'); } catch {}
+                                    }}
+                                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#075e54] to-[#128c7e] hover:brightness-110 text-white font-black text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                                >
+                                    <ExternalLink size={14} /> Join WhatsApp Group
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowWhatsAppInviteModal(false);
+                                        try { localStorage.setItem(`cot_whatsapp_invited_${displayProfile.id}`, 'true'); } catch {}
+                                    }}
+                                    className="w-full py-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-700 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer border border-slate-100"
+                                >
+                                    Maybe Later
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
         </div>
     );

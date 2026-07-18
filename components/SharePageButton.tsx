@@ -139,7 +139,7 @@ export const SharePageButton: React.FC<SharePageButtonProps> = ({
             onHoverStart={() => setIsHovered(true)}
             onHoverEnd={() => setIsHovered(false)}
             onClick={handleNativeShare}
-            className={`fixed bottom-24 right-6 z-40 bg-gradient-to-r from-brand-600 to-brand-700 text-white p-3 rounded-full shadow-2xl hover:shadow-brand-500/50 hover:scale-[1.05] transition-all group flex items-center justify-center ${className}`}
+            className={`fixed bottom-[176px] right-6 z-40 bg-gradient-to-r from-brand-600 to-brand-700 text-white p-3 rounded-full shadow-2xl hover:shadow-brand-500/50 hover:scale-[1.05] transition-all group flex items-center justify-center ${className}`}
             style={{ transformOrigin: 'center', touchAction: 'none', width: '3.5rem', height: '3.5rem' }}
             title={widgetSettings.shareLabelText || 'Share this page'}
             aria-label={widgetSettings.shareLabelText || 'Share this page'}
@@ -148,21 +148,18 @@ export const SharePageButton: React.FC<SharePageButtonProps> = ({
             <AnimatePresence>
                 {(widgetSettings.shareLabelVisible ?? true) && (
                     <motion.div
-                        initial={{ opacity: 0, x: 42, scaleX: 0.25, scaleY: 0.82 }}
-                        animate={{
-                          opacity: [0, 1, 1, 0],
-                          x: [42, 0, 0, 42],
-                          scaleX: [0.25, 1, 1, 0.25],
-                          scaleY: [0.82, 1, 1, 0.82],
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={widgetSettings.shareAnimation !== false ? {
+                            opacity: [0.4, 1, 0.4],
+                            x: [10, 0, 10]
+                        } : {
+                            opacity: 1, x: 0
                         }}
-                        exit={{ opacity: 0, x: 42, scaleX: 0.25, scaleY: 0.82 }}
-                        transition={{
-                          duration: 5.2,
-                          times: [0, 0.22, 0.7, 1],
-                          repeat: Infinity,
-                          repeatDelay: 0.8,
-                          ease: 'easeInOut',
-                        }}
+                        transition={widgetSettings.shareAnimation !== false ? {
+                            duration: 4,
+                            repeat: Infinity,
+                            ease: 'easeInOut'
+                        } : { duration: 0.5, ease: 'easeOut' }}
                         style={{ transformOrigin: 'right center' }}
                         className="absolute right-[calc(100%+12px)] top-1/2 -translate-y-1/2 rounded-2xl border border-brand-200/70 bg-white/95 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-brand-800 shadow-[0_18px_50px_-22px_rgba(37,99,235,0.75)] backdrop-blur-md sm:px-4 sm:py-2.5 sm:text-xs whitespace-nowrap z-0 pointer-events-none overflow-hidden"
                     >

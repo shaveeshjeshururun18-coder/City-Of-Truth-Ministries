@@ -25,14 +25,18 @@ const customStyles = `
   .font-playfair { font-family: 'Playfair Display', serif; }
 
   @keyframes royalEnter {
-    0% { opacity: 0; transform: scale(0.96) translateY(20px); filter: blur(10px); }
-    100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.9), 0 0 50px rgba(212, 175, 55, 0.12), inset 0 0 50px rgba(15, 23, 42, 0.9); }
+    0% { opacity: 0; transform: scale(0.96) translateY(20px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.9), 0 0 50px rgba(212, 175, 55, 0.12), inset 0 0 50px rgba(15, 23, 42, 0.9); }
   }
 
   @keyframes goldenErase {
-    0% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px) brightness(1); }
-    40% { opacity: 0.9; transform: scale(1.01) translateY(-2px); filter: blur(2px) brightness(1.3); }
-    100% { opacity: 0; transform: scale(1.03) translateY(-15px); filter: blur(10px) brightness(2) drop-shadow(0 0 80px rgba(253,224,71,0.9)); letter-spacing: 2px; }
+    0% { opacity: 1; transform: scale(1) translateY(0); }
+    100% { opacity: 0; transform: scale(0.97) translateY(-18px); }
+  }
+
+  @keyframes backdropFadeOut {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
   }
 
   @keyframes goldDustFly {
@@ -64,9 +68,10 @@ const customStyles = `
   }
   .animate-text-draw { animation: cinematicReveal 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards; }
 
-  .anim-royal-enter { animation: royalEnter 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
-  .anim-golden-erase { animation: goldenErase 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+  .anim-royal-enter { animation: royalEnter 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; will-change: transform, opacity; }
+  .anim-golden-erase { animation: goldenErase 0.65s cubic-bezier(0.4, 0, 1, 1) forwards; will-change: transform, opacity; }
   .hidden-state { opacity: 0; pointer-events: none; }
+  .anim-backdrop-fadeout { animation: backdropFadeOut 0.65s cubic-bezier(0.4, 0, 1, 1) forwards; }
 
   .postal-frame {
     background: linear-gradient(135deg, #050b1a 0%, #010308 100%);
@@ -288,11 +293,13 @@ const CinematicText: React.FC<{
   );
 };
 
-const greetingData = [
-  { greeting: "בוקר טוב (BOKER TOV)", audio: "boker_tov.mp3", phrase: "May your day be filled with peace, wisdom, strength, and abundant blessings." },
-  { greeting: "צהריים טובים (TZOHARAIM TOVIM)", audio: "tzoharaim_tovim.mp3", phrase: "May your afternoon be productive, peaceful, and filled with God's favor." },
-  { greeting: "ערב טוב (EREV TOV)", audio: "erev_tov.mp3", phrase: "May your evening bring peace, gratitude, and joyful fellowship." },
-  { greeting: "לילה טוב (LAILA TOV)", audio: "laila_tov.mp3", phrase: "May the Lord watch over you through the night and grant you peaceful rest." }
+import { api } from '../services/api';
+
+const DEFAULT_GREETING_DATA = [
+  { key: 'morning', greeting: "בוקר טוב (BOKER TOV)",           audio: "boker_tov.mp3",       phrase: "May your day be filled with peace, wisdom, strength, and abundant blessings." },
+  { key: 'noon',    greeting: "צהריים טובים (TZOHARAIM TOVIM)", audio: "tzoharaim_tovim.mp3", phrase: "May your afternoon be productive, peaceful, and filled with God's favor." },
+  { key: 'evening', greeting: "ערב טוב (EREV TOV)",             audio: "erev_tov.mp3",        phrase: "May your evening bring peace, gratitude, and joyful fellowship." },
+  { key: 'night',   greeting: "לילה טוב (LAILA TOV)",            audio: "laila_tov.mp3",       phrase: "May the Lord watch over you through the night and grant you peaceful rest." },
 ];
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -302,17 +309,83 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
   const [activeSection, setActiveSection] = useState<'greeting' | 'phrase' | 'name' | 'footerL' | 'footerR' | null>(null);
   const [counts, setCounts] = useState({ greeting: 0, phrase: 0, name: 0, footerL: 0, footerR: 0 });
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [greetingSettings, setGreetingSettings] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await api.getWebsiteGreetingSettings();
+        setGreetingSettings(settings);
+
+        const hour = new Date().getHours();
+        let slotKey: 'morning' | 'noon' | 'evening' | 'night' = 'night';
+        if (hour >= 5 && hour < 12) slotKey = 'morning';
+        else if (hour >= 12 && hour < 17) slotKey = 'noon';
+        else if (hour >= 17 && hour < 21) slotKey = 'evening';
+
+        const slot = settings.slots?.[slotKey];
+
+        // 1. Master enable/disable
+        if (!settings.enabled) {
+          onClose();
+          return;
+        }
+
+        // 2. Slot enable/disable
+        if (slot && !slot.enabled) {
+          onClose();
+          return;
+        }
+
+        // 3. Target group audience filtering
+        const target = settings.targetGroup || 'all';
+        if (target === 'active') {
+          if (!currentUser || currentUser.status !== 'Active') {
+            onClose();
+            return;
+          }
+        } else if (target === 'pending') {
+          if (!currentUser || currentUser.status !== 'Pending Verification') {
+            onClose();
+            return;
+          }
+        } else if (target === 'admin') {
+          const isUserAdmin = isAdmin || currentUser?.role === 'Admin';
+          if (!isUserAdmin) {
+            onClose();
+            return;
+          }
+        }
+
+        setLoading(false);
+      } catch (err) {
+        console.error("Failed to load greeting settings", err);
+        setLoading(false);
+      }
+    };
+    loadSettings();
+  }, [currentUser, isAdmin, onClose]);
 
   // Specific time-of-day greeting data select
   const currentData = useMemo(() => {
     const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return greetingData[0]; // Good Morning
-    if (hour >= 12 && hour < 17) return greetingData[1]; // Good Afternoon
-    if (hour >= 17 && hour < 21) return greetingData[2]; // Good Evening
-    return greetingData[3]; // Good Night
-  }, []);
+    let slotKey: 'morning' | 'noon' | 'evening' | 'night' = 'night';
+    if (hour >= 5 && hour < 12) slotKey = 'morning';
+    else if (hour >= 12 && hour < 17) slotKey = 'noon';
+    else if (hour >= 17 && hour < 21) slotKey = 'evening';
+
+    const defaultSlot = DEFAULT_GREETING_DATA.find(d => d.key === slotKey)!;
+    const dbSlot = greetingSettings?.slots?.[slotKey];
+
+    return {
+      greeting: dbSlot?.greeting || defaultSlot.greeting,
+      phrase: dbSlot?.phrase || defaultSlot.phrase,
+      audio: dbSlot?.audio || defaultSlot.audio,
+    };
+  }, [greetingSettings]);
 
   // Names and labels calculated dynamically
   const nameStr = useMemo(() => {
@@ -326,11 +399,24 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
     return ""; // Guest: remove another Shalom
   }, [currentUser, isAdmin]);
 
+  const dateStr = useMemo(() => {
+    try {
+      const hebDate = new Intl.DateTimeFormat('he-IL-u-ca-hebrew', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date());
+      const d = new Date();
+      const engDate = `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getFullYear()}`;
+      return `${hebDate} | ${engDate}`;
+    } catch {
+      return new Date().toLocaleDateString();
+    }
+  }, []);
+
   const footerRStr = useMemo(() => {
-    if (isAdmin) return ""; // Admin: remove COT ID
-    if (currentUser) return currentUser.id || "";
-    return ""; // Guest: remove COT ID
-  }, [currentUser, isAdmin]);
+    let base = "";
+    if (!isAdmin && currentUser && currentUser.id) {
+      base = currentUser.id + " • ";
+    }
+    return base + dateStr;
+  }, [currentUser, isAdmin, dateStr]);
 
   // Autoplay immediately on load
   useEffect(() => {
@@ -414,16 +500,16 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
       // Fade out audio gracefully
       const interval = setInterval(() => {
         if (audioRef.current && audioRef.current.volume > 0.05) {
-          audioRef.current.volume -= 0.08;
+          audioRef.current.volume = Math.max(0, audioRef.current.volume - 0.08);
         } else {
           clearInterval(interval);
           if (audioRef.current) audioRef.current.pause();
         }
       }, 80);
     }
-    await sleep(1800);
+    await sleep(650);
     setPhase('hidden');
-    await sleep(200);
+    await sleep(50);
     onClose();
   };
 
@@ -451,8 +537,12 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
   if (phase === 'erase') cardClass = "anim-golden-erase";
   if (phase === 'hidden') cardClass = "hidden-state";
 
+  const backdropClass = phase === 'erase' || phase === 'hidden' ? 'anim-backdrop-fadeout' : '';
+
+  if (loading) return null;
+
   return (
-    <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-md flex flex-col items-center justify-center p-4 overflow-hidden font-playfair select-none pointer-events-auto">
+    <div className={`fixed inset-0 z-[99999] bg-black/60 backdrop-blur-md flex flex-col items-center justify-center p-4 overflow-hidden font-playfair select-none pointer-events-auto ${backdropClass}`}>
       <style>{customStyles}</style>
 
       {/* Pre-loads the audio greeting */}
@@ -529,13 +619,15 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
               />
             ) : <div />}
             {footerRStr ? (
-              <CinematicText 
-                  text={footerRStr} 
-                  type="standard" 
-                  visibleCount={counts.footerR}
-                  isTyping={activeSection === 'footerR'}
-                  className="text-xs sm:text-sm text-slate-300 tracking-[0.25em] uppercase font-semibold drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"
-              />
+              <div dir="ltr" className="inline-block">
+                <CinematicText 
+                    text={footerRStr} 
+                    type="standard" 
+                    visibleCount={counts.footerR}
+                    isTyping={activeSection === 'footerR'}
+                    className="text-xs sm:text-sm text-slate-300 tracking-[0.25em] uppercase font-semibold drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"
+                />
+              </div>
             ) : <div />}
           </div>
           

@@ -13,9 +13,10 @@ interface ChatMessage {
 interface AIPageProps {
     isWidget?: boolean;
     onBack?: () => void;
+    onConfigUpdate?: (config: any) => void;
 }
 
-export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
+export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack, onConfigUpdate }) => {
     const [prompt, setPrompt] = useState("");
     const [messages, setMessages] = useState<ChatMessage[]>(() => {
         try {
@@ -32,28 +33,6 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { t } = useLanguage();
-
-    const [keyDetails, setKeyDetails] = useState<any>(null);
-    const [modelDetails, setModelDetails] = useState<any>(null);
-    const [isLoadingDetails, setIsLoadingDetails] = useState(true);
-
-    useEffect(() => {
-        const fetchDetails = async () => {
-            try {
-                const [key, models] = await Promise.all([
-                    getOpenRouterKeyDetails(),
-                    getOpenRouterModelDetails()
-                ]);
-                setKeyDetails(key);
-                setModelDetails(models);
-            } catch (e) {
-                console.error("Failed to load OpenRouter details", e);
-            } finally {
-                setIsLoadingDetails(false);
-            }
-        };
-        fetchDetails();
-    }, []);
 
     // Persist messages to localStorage
     useEffect(() => {
@@ -208,122 +187,11 @@ export const AIPage: React.FC<AIPageProps> = ({ isWidget = false, onBack }) => {
                 </header>
             )}
 
-            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+            <div className={`flex-1 flex ${!isWidget ? 'flex-col lg:flex-row' : 'flex-col'} overflow-hidden relative`}>
                 {/* Left Side: Analytics & Model Info Panel */}
                 {!isWidget && (
-                    <div className="w-full lg:w-80 bg-white border-b lg:border-b-0 lg:border-r border-slate-100 p-5 flex flex-col justify-between shrink-0 overflow-y-auto custom-scrollbar gap-6 shadow-sm">
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-2.5 pb-4 border-b border-slate-100">
-                                <div className="bg-brand-50 p-2 rounded-xl text-brand-600">
-                                    <Zap size={20} className="animate-pulse" />
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-slate-800 text-sm">Divine AI Pipeline</h3>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Live OpenRouter Data</p>
-                                </div>
-                            </div>
-
-                            {/* Status Grid */}
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 space-y-1">
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">API Status</p>
-                                    <div className="flex items-center gap-1.5">
-                                        <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping" />
-                                        <span className="text-xs font-black text-slate-700">Online</span>
-                                    </div>
-                                </div>
-                                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 space-y-1">
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Avg Latency</p>
-                                    <p className="text-xs font-black text-slate-700">840ms</p>
-                                </div>
-                            </div>
-
-                            {/* Model Configuration */}
-                            <div className="space-y-3">
-                                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Models</h4>
-                                <div className="space-y-2">
-                                    <div className="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100 space-y-1.5">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-[10px] font-black text-brand-700 bg-brand-50 px-2 py-0.5 rounded-md uppercase tracking-wider">Primary</span>
-                                            <span className="text-[9px] font-bold text-slate-400">{modelDetails?.defaultModel?.context_length ? `${modelDetails.defaultModel.context_length} ctx` : '8k ctx'}</span>
-                                        </div>
-                                        <p className="text-xs font-black text-slate-700 truncate">{modelDetails?.defaultModel?.name || 'Gemma 4 26B Instruct'}</p>
-                                        <p className="text-[9px] font-mono text-slate-400 truncate">{modelDetails?.defaultModel?.id || 'openai/gpt-oss-20b:free'}</p>
-                                    </div>
-
-                                    <div className="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100 space-y-1.5">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-[10px] font-black text-violet-700 bg-violet-50 px-2 py-0.5 rounded-md uppercase tracking-wider">Fallback</span>
-                                            <span className="text-[9px] font-bold text-slate-400">{modelDetails?.fallbackModel?.context_length ? `${modelDetails.fallbackModel.context_length} ctx` : '4k ctx'}</span>
-                                        </div>
-                                        <p className="text-xs font-black text-slate-700 truncate">{modelDetails?.fallbackModel?.name || 'OpenRouter Free Auto-Router'}</p>
-                                        <p className="text-[9px] font-mono text-slate-400 truncate">{modelDetails?.fallbackModel?.id || 'openrouter/free'}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Live Seekers Stats */}
-                            <div className="space-y-3">
-                                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Audience Metrics</h4>
-                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2.5">
-                                    <div className="flex items-center justify-between text-xs">
-                                        <span className="text-slate-500 font-semibold">Seekers Served</span>
-                                        <span className="font-bold text-slate-700">1,842</span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-xs">
-                                        <span className="text-slate-500 font-semibold">Active Chats Today</span>
-                                        <span className="font-bold text-slate-700">142</span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-xs">
-                                        <span className="text-slate-500 font-semibold">Spiritual Responses</span>
-                                        <span className="font-bold text-slate-700">14,812</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Credits & Key Stats */}
-                            <div className="space-y-3">
-                                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">API Account Data</h4>
-                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
-                                    <div className="flex items-center justify-between text-xs">
-                                        <span className="text-slate-500 font-semibold">Key Name</span>
-                                        <span className="font-bold text-slate-700 truncate max-w-[140px]">{keyDetails?.label || 'COT API Key'}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-xs">
-                                        <span className="text-slate-500 font-semibold">Usage Limit</span>
-                                        <span className="font-bold text-slate-700">
-                                            {keyDetails?.limit !== null && keyDetails?.limit !== undefined
-                                                ? `$${keyDetails.limit.toFixed(4)}`
-                                                : 'Unlimited'}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-xs">
-                                        <span className="text-slate-500 font-semibold">Credits Used</span>
-                                        <span className="font-black text-brand-600">
-                                            {keyDetails?.usage !== undefined
-                                                ? `$${keyDetails.usage.toFixed(5)}`
-                                                : '$0.00000'}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-xs">
-                                        <span className="text-slate-500 font-semibold">Rate Limit</span>
-                                        <span className="font-bold text-slate-700">
-                                            {keyDetails?.rate_limit
-                                                ? `${keyDetails.rate_limit.requests} reqs / ${keyDetails.rate_limit.interval}`
-                                                : '10/sec'}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Interpretation Card */}
-                        <div className="bg-gradient-to-tr from-brand-600 to-indigo-700 text-white p-4 rounded-2xl space-y-2 shadow-lg shadow-brand-900/10">
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-200">Interpretation</h4>
-                            <p className="text-[11px] leading-relaxed text-slate-100/90 font-medium">
-                                Our AI assistant routes biblical, translation, and navigation requests using Google's Gemma LLM. In case of provider rate limits, requests automatically transition to the OpenRouter Free load-balancer to protect service uptime.
-                            </p>
-                        </div>
+                    <div className="hidden">
+                        {/* Left panel removed */}
                     </div>
                 )}
 

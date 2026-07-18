@@ -1,9 +1,26 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { X, Send, Maximize2, Minimize2, Loader, Sparkles, Trash2, Hand, Quote, Settings, Download, BookOpen, Clock, Zap, BarChart3, Volume2, Copy, ThumbsUp, ThumbsDown } from 'lucide-react';
-import { motion, AnimatePresence, PanInfo } from 'framer-motion';
-import { generateSpatulaAIResponse } from '../services/openRouterService';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { motion, AnimatePresence, PanInfo, useAnimation } from 'framer-motion';
+import { streamSpatulaAIResponse } from '../services/openRouterService';
+import { jsPDF } from 'jspdf';
+import { LordIconWrapper } from './LordIconWrapper';
+import 'jspdf-autotable';
+
+declare global {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+  }
+  namespace JSX {
+    interface IntrinsicElements {
+      'lord-icon': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+        src?: string;
+        trigger?: string;
+        colors?: string;
+        style?: React.CSSProperties;
+      };
+    }
+  }
+}
 
 interface Message {
     id: string;
@@ -15,6 +32,52 @@ interface Message {
     sources?: string[];
     keywords?: string[];
 }
+
+const AnimatedBotMessage = ({ text }: { text: string }) => {
+    // Check if the text has the ancient format markers (e.g., 🏺, 📖, ❝, 🙏, 🕊)
+    const isAncientFormat = text.includes('🏺') || text.includes('📖') || text.includes('❝') || text.includes('━━━━━━━━━━━━');
+    
+    if (!isAncientFormat) {
+        return <div className="whitespace-pre-wrap">{text}</div>;
+    }
+
+    const sections = text.split('\n').filter(line => line.trim() !== '');
+    
+    return (
+        <div className="space-y-4 font-serif text-brand-950">
+            {sections.map((section, idx) => {
+                if (section.includes('━━━━━━━━━━━━')) {
+                    return (
+                        <motion.div
+                            key={idx}
+                            initial={{ opacity: 0, scaleX: 0 }}
+                            animate={{ opacity: 1, scaleX: 1 }}
+                            transition={{ delay: idx * 0.7, duration: 0.8 }}
+                            className="flex justify-center py-2"
+                        >
+                            <div className="w-16 h-px bg-amber-400"></div>
+                        </motion.div>
+                    );
+                }
+                
+                // For quotes, make them italic and styled
+                const isQuote = section.includes('❝');
+                
+                return (
+                    <motion.div
+                        key={idx}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.7, duration: 0.5 }}
+                        className={`${isQuote ? 'italic text-amber-900 bg-amber-50/70 p-3 rounded-xl border border-amber-200/50 my-2 shadow-sm' : ''}`}
+                    >
+                        {section}
+                    </motion.div>
+                );
+            })}
+        </div>
+    );
+};
 
 interface ConversationContext {
     topic?: string;
@@ -48,6 +111,7 @@ export const DivineAssistant: React.FC = () => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [showAnalytics, setShowAnalytics] = useState(false);
+    const [isVisible, setIsVisible] = useState(true); // Visibility control from widget settings
     const [messages, setMessages] = useState<Message[]>(() => {
         try {
             const saved = localStorage.getItem('divine_assistant_history');
@@ -82,7 +146,8 @@ export const DivineAssistant: React.FC = () => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
-    const [isVisible, setIsVisible] = useState(true);
+    const labelControls = useAnimation();
+    const shareLabelControls = useAnimation();
 
     useEffect(() => {
         const updateFromSettings = () => {
@@ -90,15 +155,14 @@ export const DivineAssistant: React.FC = () => {
                 const saved = localStorage.getItem('cot_widget_settings');
                 if (saved) {
                     const parsed = JSON.parse(saved);
-                    if (typeof parsed.aiVisible === 'boolean') {
-                        setIsVisible(parsed.aiVisible);
-                    }
                     setConfig(prev => ({
                         ...prev,
                         size: parsed.aiSize ? Math.round(56 * parsed.aiSize) : 56,
                         label: parsed.aiLabelText || 'Ask Divine AI',
                         showAnimation: parsed.aiAnimation !== false
                     }));
+                    // Update visibility
+                    setIsVisible(parsed.aiVisible !== false);
                 }
             } catch (e) {}
         };
@@ -107,6 +171,42 @@ export const DivineAssistant: React.FC = () => {
         window.addEventListener('widget-settings-updated', updateFromSettings);
         return () => window.removeEventListener('widget-settings-updated', updateFromSettings);
     }, []);
+
+    // Cycle animation for ONLY Ask Divine AI label
+    // Slides out from inside the button to the left, stays for 5 seconds, slides back, and repeats.
+    useEffect(() => {
+        if (isOpen) return;
+
+        let cancelled = false;
+        const cycle = async () => {
+            while (!cancelled) {
+                // Hide share label completely
+                shareLabelControls.set({ opacity: 0, x: 28 });
+                // Slide in right label (appears)
+                await labelControls.start({ opacity: 1, x: 0, transition: { duration: 0.5, ease: [0.34, 1.56, 0.64, 1] } });
+                
+                // Stay visible
+                await new Promise(r => setTimeout(r, 5000));
+                if (cancelled) break;
+                
+                // Slide out right label (goes inside / disappears)
+                await labelControls.start({ opacity: 0, x: 28, transition: { duration: 0.45, ease: [0.4, 0, 1, 1] } });
+                
+                // Pause before next loop
+                await new Promise(r => setTimeout(r, 3000));
+            }
+        };
+
+        // Initialize state as hidden (inside the button on the right)
+        labelControls.set({ opacity: 0, x: 28 });
+        shareLabelControls.set({ opacity: 0, x: 28 });
+        
+        const delayTimeout = setTimeout(cycle, 1000);
+        return () => {
+            cancelled = true;
+            clearTimeout(delayTimeout);
+        };
+    }, [isOpen, config.showAnimation, labelControls, shareLabelControls]);
     
     // Debug logging
     useEffect(() => {
@@ -243,14 +343,35 @@ export const DivineAssistant: React.FC = () => {
                 return;
             }
 
-            const responseText = await generateSpatulaAIResponse(userMessage);
-            addBotMessage(responseText, ["More details", "New topic", "Need navigation help?"]);
-            
+            // Create a streaming message placeholder
+            const botMsgId = Date.now().toString();
+            setMessages(prev => [...prev, {
+                id: botMsgId,
+                text: '',
+                sender: 'bot',
+                timestamp: new Date(),
+                options: []
+            }]);
+            setIsTyping(false);
+
+            let fullText = '';
+            await streamSpatulaAIResponse(userMessage, (chunk) => {
+                fullText += chunk;
+                setMessages(prev => prev.map(m =>
+                    m.id === botMsgId ? { ...m, text: fullText } : m
+                ));
+            });
+
+            // Finalize message with action options
+            setMessages(prev => prev.map(m =>
+                m.id === botMsgId ? { ...m, text: fullText, options: ["More details", "New topic", "Need navigation help?"] } : m
+            ));
+
             // Update engagement metrics
             if (config.analyticsEnabled) {
                 setConversationContext(prev => ({
                     ...prev,
-                    sentiment: responseText.includes('help') || responseText.includes('support') ? 'positive' : 'neutral'
+                    sentiment: fullText.includes('help') || fullText.includes('support') ? 'positive' : 'neutral'
                 }));
             }
         } catch (error) {
@@ -354,7 +475,7 @@ export const DivineAssistant: React.FC = () => {
             new Date(m.timestamp).toLocaleTimeString()
         ]);
 
-        autoTable(doc, {
+        (doc as any).autoTable({
             startY: 65,
             head: [['Sender', 'Message', 'Time']],
             body: tableBody,
@@ -425,27 +546,18 @@ export const DivineAssistant: React.FC = () => {
         };
     }, [config]);
 
+    // Don't render if visibility is disabled from admin dashboard
     if (!isVisible) return null;
 
     return (
-        <div ref={containerRef} className="fixed inset-0 pointer-events-none z-[99999] overflow-hidden">
+        <>
+            {/* Floating Launcher Button — standalone fixed, no container */}
             <AnimatePresence>
                 {!isOpen && (
                     <motion.button
                         key="launcher"
-                        drag
-                        dragConstraints={containerRef}
-                        dragElastic={0.1}
-                        dragMomentum={false}
-                        onDragEnd={handleDragEnd}
                         initial={{ scale: 0, opacity: 0, rotate: -45 }}
-                        animate={{ 
-                            scale: 1, 
-                            opacity: 1, 
-                            rotate: 0,
-                            x: config.position.x,
-                            y: config.position.y
-                        }}
+                        animate={{ scale: 1, opacity: 1, rotate: 0 }}
                         exit={{ scale: 0, opacity: 0, rotate: 45 }}
                         whileHover={{ scale: 1.1, boxShadow: "0 20px 40px rgba(251, 191, 36, 0.4)" }}
                         whileTap={{ scale: 0.9 }}
@@ -453,43 +565,53 @@ export const DivineAssistant: React.FC = () => {
                         style={{
                             width: `${config.size}px`,
                             height: `${config.size}px`,
+                            position: 'fixed',
                             bottom: '1.5rem',
                             right: '1.5rem',
+                            zIndex: 99999,
                         }}
-                        className={`pointer-events-auto fixed rounded-full bg-slate-950 shadow-[0_20px_50px_-5px_rgba(251,191,36,0.8)] border-3 border-amber-400 flex items-center justify-center group overflow-hidden ring-4 ring-amber-400/50 cursor-grab active:cursor-grabbing ${config.showAnimation ? 'animate-pulse' : ''}`}
+                        className={`pointer-events-auto rounded-full bg-slate-950 shadow-[0_20px_50px_-5px_rgba(251,191,36,0.8)] border-3 border-amber-400 flex items-center justify-center group ring-4 ring-amber-400/50 cursor-pointer ${config.showAnimation ? 'animate-pulse' : ''}`}
                     >
-                        {/* Golden Menorah Image */}
-                        <div className="absolute inset-0 bg-[url('/menorah-flag.png')] bg-cover bg-center transition-transform duration-700 group-hover:scale-110"></div>
-                        
-                        {/* Overlay Gradient for Depth */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-amber-900/40 to-transparent"></div>
-                        
+                        {/* Inner container for background masking */}
+                        <div className="absolute inset-0 rounded-full overflow-hidden">
+                            {/* Golden Menorah Image */}
+                            <div className="absolute inset-0 bg-[url('/menorah-flag.png')] bg-cover bg-center transition-transform duration-700 group-hover:scale-110"></div>
+                            {/* Overlay Gradient for Depth */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-amber-900/40 to-transparent"></div>
+                        </div>
+
+                        {/* Label */}
+                        <motion.div
+                            initial={{ opacity: 0, x: 28 }}
+                            animate={labelControls}
+                            className="absolute right-[calc(100%+16px)] whitespace-nowrap bg-white text-blue-700 text-[10px] font-black uppercase tracking-wider px-4 py-2 rounded-full shadow-lg border border-slate-100 flex items-center gap-2 pointer-events-none"
+                        >
+                            <LordIconWrapper icon="bible" size={14} trigger="loop" colors={{ primary: '#2563EB', secondary: '#D4AF37' }} />
+                            {config.label}
+                        </motion.div>
+
                         <div className="relative z-10 flex items-center justify-center">
-                            <Sparkles 
-                                className="text-amber-200 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" 
-                                style={{ width: `${config.size * 0.4}px`, height: `${config.size * 0.4}px` }}
+                            <LordIconWrapper
+                                icon="bible"
+                                size={Math.round(config.size * 0.55)}
+                                trigger="loop"
+                                colors={{ primary: '#FDE047', secondary: '#ffffff' }}
                             />
                             {config.showAnimation && (
-                                <motion.div 
-                                    animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
-                                    transition={{ duration: 2, repeat: Infinity }}
+                                <motion.div
+                                    animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0, 0.5] }}
+                                    transition={{ duration: 2.5, repeat: Infinity }}
                                     className="absolute inset-0 bg-amber-300 rounded-full blur-xl -z-10"
                                 />
                             )}
                         </div>
-                        
-                        {/* Always-On Gold Label */}
-                        {config.label && (
-                            <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-slate-950/90 backdrop-blur-md border border-amber-400/40 px-3.5 py-1.5 rounded-full shadow-2xl shadow-black/80 flex items-center gap-1.5 group-hover:border-amber-400 group-hover:scale-105 transition-all duration-300 pointer-events-none select-none">
-                                <Sparkles className="w-3 h-3 text-amber-400 animate-pulse" />
-                                <span className="text-[10px] font-black text-amber-400 uppercase tracking-[0.25em] whitespace-nowrap">
-                                    {config.label}
-                                </span>
-                            </div>
-                        )}
                     </motion.button>
                 )}
+            </AnimatePresence>
 
+            {/* Chat Window */}
+            <div ref={containerRef} className="fixed inset-0 pointer-events-none z-[99998]">
+            <AnimatePresence>
                 {isOpen && (
                     <motion.div
                         initial={{ opacity: 0, y: 100, scale: 0.8 }}
@@ -497,54 +619,49 @@ export const DivineAssistant: React.FC = () => {
                             opacity: 1, 
                             y: 0, 
                             scale: 1,
-                            width: isExpanded ? 'calc(100vw - 40px)' : 'min(400px, calc(100vw - 32px))',
-                            height: isExpanded ? 'calc(100vh - 40px)' : '650px',
-                            bottom: isExpanded ? 20 : 32,
-                            right: isExpanded ? 20 : 32,
-                            borderRadius: isExpanded ? '32px' : '40px'
+                            width: isExpanded ? 'calc(100vw - 40px)' : '420px',
+                            height: isExpanded ? 'calc(100vh - 40px)' : '740px',
+                            bottom: isExpanded ? 20 : 20,
+                            right: isExpanded ? 20 : 20,
+                            borderRadius: isExpanded ? '24px' : '20px'
                         }}
                         exit={{ opacity: 0, y: 100, scale: 0.8 }}
-                        className="pointer-events-auto fixed bg-white/95 backdrop-blur-2xl shadow-[0_40px_100px_-20px_rgba(0,0,0,0.3)] border border-white/50 flex flex-col overflow-hidden"
+                        className="pointer-events-auto fixed shadow-2xl flex flex-col overflow-hidden"
+                        style={{
+                            background: 'linear-gradient(135deg, #F8FAFF 0%, #F0F4FF 100%)',
+                            zIndex: 99999,
+                        }}
                     >
-                        {/* Royal Header */}
-                        <div className="px-6 py-5 bg-gradient-to-r from-brand-700 via-brand-800 to-indigo-950 flex items-center justify-between shadow-lg relative shrink-0">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-inner relative overflow-hidden group">
-                                    <Sparkles className="w-6 h-6 text-white relative z-10" />
-                                    <div className="absolute inset-0 bg-gradient-to-tr from-accent-400/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        {/* Royal Blue Header */}
+                        <div className="px-4 py-5 flex items-center justify-between shrink-0" style={{background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)'}}>
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg" style={{background: '#D4AF37'}}>
+                                    <LordIconWrapper icon="bible" size={32} trigger="hover" colors={{ primary: '#1E3A8A', secondary: '#ffffff' }} />
                                 </div>
                                 <div className="select-none">
-                                    <h3 className="text-white font-bold text-lg leading-tight tracking-tight">Divine Assistant</h3>
-                                    <div className="flex items-center gap-1.5 mt-0.5">
-                                        <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                                        <span className="text-brand-100/70 text-[10px] font-black uppercase tracking-widest">Spiritual Presence • {messages.length} Messages</span>
+                                    <h3 className="text-white font-serif text-base font-bold leading-tight tracking-tight">Ancient Wisdom</h3>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="w-1.5 h-1.5 rounded-full" style={{background: '#D4AF37'}}></span>
+                                        <span className="text-blue-100 text-[10px] uppercase tracking-wider font-light">Truth • Scripture</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-2">
-                                <button 
-                                    onClick={() => setShowAnalytics(!showAnalytics)} 
-                                    className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-xl transition-all" 
-                                    title="Analytics"
-                                >
-                                    <BarChart3 size={18} />
-                                </button>
+                            <div className="flex items-center gap-1">
                                 <button 
                                     onClick={() => setShowSettings(!showSettings)} 
-                                    className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-xl transition-all" 
+                                    className="p-2 rounded-lg transition-all hover:bg-white/20"
+                                    style={{color: '#D4AF37'}}
                                     title="Settings"
                                 >
                                     <Settings size={18} />
                                 </button>
-                                <button onClick={clearChat} className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-xl transition-all" title="Clear History">
-                                    <Trash2 size={18} />
-                                </button>
-                                <button onClick={() => setIsExpanded(!isExpanded)} className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-xl transition-all hidden md:block">
-                                    {isExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-                                </button>
-                                <button onClick={() => setIsOpen(false)} className="p-2 text-white/50 hover:text-red-400 hover:bg-red-500/20 rounded-xl transition-all">
-                                    <X size={20} />
+                                <button 
+                                    onClick={() => setIsOpen(false)} 
+                                    className="p-2 rounded-lg transition-all hover:bg-white/20"
+                                    style={{color: '#D4AF37'}}
+                                >
+                                    <X size={18} />
                                 </button>
                             </div>
                         </div>
@@ -556,107 +673,143 @@ export const DivineAssistant: React.FC = () => {
                                     initial={{ height: 0, opacity: 0 }}
                                     animate={{ height: 'auto', opacity: 1 }}
                                     exit={{ height: 0, opacity: 0 }}
-                                    className="px-6 py-4 bg-slate-50 border-b border-slate-200 space-y-3 overflow-hidden"
+                                    className="px-6 py-5 space-y-4 overflow-hidden"
+                                    style={{background: 'rgba(37, 99, 235, 0.06)'}}
                                 >
                                     <div className="flex items-center justify-between">
-                                        <label className="text-sm font-semibold text-slate-700">Sound Effects</label>
+                                        <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Sound Effects</label>
                                         <button
                                             onClick={() => setConfig(p => ({ ...p, soundEnabled: !p.soundEnabled }))}
-                                            className={`w-12 h-6 rounded-full transition-all ${config.soundEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                                            className={`w-11 h-6 rounded-full transition-all flex items-center`}
+                                            style={{background: config.soundEnabled ? '#2563EB' : '#E5E7EB'}}
                                         >
-                                            <div className={`w-5 h-5 bg-white rounded-full transition-transform ${config.soundEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                                            <motion.div 
+                                                animate={{x: config.soundEnabled ? 20 : 2}}
+                                                className="w-5 h-5 bg-white rounded-full"
+                                            />
                                         </button>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <label className="text-sm font-semibold text-slate-700">Theme</label>
-                                        <select 
-                                            value={config.theme}
-                                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setConfig(p => ({ ...p, theme: e.target.value as any }))}
-                                            className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs"
-                                        >
-                                            <option value="light">Light</option>
-                                            <option value="dark">Dark</option>
-                                            <option value="spiritual">Spiritual</option>
-                                        </select>
                                     </div>
                                     <button 
                                         onClick={exportConversation}
-                                        className="w-full px-4 py-2 bg-brand-600 text-white text-xs font-semibold rounded-lg hover:bg-brand-700 transition-all flex items-center justify-center gap-2"
+                                        className="w-full px-4 py-3 text-white text-xs font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+                                        style={{background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)'}}
                                     >
-                                        <Download size={14} /> Export Conversation
+                                        📜 Export Conversation
+                                    </button>
+                                    <button 
+                                        onClick={clearChat}
+                                        className="w-full px-4 py-3 text-slate-700 text-xs font-semibold rounded-lg transition-all border-2 border-slate-300 hover:bg-slate-100"
+                                    >
+                                        🗑️ Clear Chat
                                     </button>
                                 </motion.div>
                             )}
                         </AnimatePresence>
 
-                        {/* Analytics Panel */}
-                        <AnimatePresence>
-                            {showAnalytics && (
-                                <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 'auto', opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    className="px-6 py-4 bg-slate-50 border-b border-slate-200 space-y-3 overflow-hidden"
-                                >
-                                    <div className="grid grid-cols-3 gap-2 text-xs">
-                                        <div className="bg-white p-2 rounded-lg border border-slate-200">
-                                            <p className="text-slate-500 font-semibold">Messages</p>
-                                            <p className="text-lg font-bold text-brand-600">{analytics.totalMessages}</p>
-                                        </div>
-                                        <div className="bg-white p-2 rounded-lg border border-slate-200">
-                                            <p className="text-slate-500 font-semibold">Engagement</p>
-                                            <p className="text-lg font-bold text-amber-600">{conversationContext.engagementLevel}%</p>
-                                        </div>
-                                        <div className="bg-white p-2 rounded-lg border border-slate-200">
-                                            <p className="text-slate-500 font-semibold">Satisfaction</p>
-                                            <p className="text-lg font-bold text-emerald-600">{analytics.positivePercentage}%</p>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-
-                        {/* Chat Context / Quote */}
-                        <div className="bg-brand-50/50 px-6 py-2 border-b border-brand-100 flex items-center gap-2">
-                            <Quote size={12} className="text-brand-400" />
-                            <span className="text-[10px] font-bold text-brand-600 uppercase tracking-tighter italic whitespace-nowrap overflow-hidden">
-                                "Thy word is a lamp unto my feet, and a light unto my path." — Psalm 119:105
+                        {/* Scripture Highlight */}
+                        <div className="px-4 py-4 text-center" style={{background: 'rgba(212, 175, 55, 0.08)'}}>
+                            <span className="text-xs font-serif text-slate-600" style={{lineHeight: '1.6'}}>
+                                <span style={{color: '#D4AF37', fontSize: '1em'}}>✡️</span> <span style={{fontStyle: 'italic', fontWeight: '500'}}>"Thy word is a lamp unto my feet"</span> <span style={{color: '#D4AF37'}}>—</span> <span style={{color: '#1E3A8A', fontWeight: '600'}}>Psalm 119:105</span> <span style={{color: '#D4AF37', fontSize: '1em'}}>✡️</span>
                             </span>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth custom-scrollbar bg-[radial-gradient(circle_at_top_right,rgba(91,71,208,0.03),transparent)]">
+
+                        {/* Messages Area */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth" style={{background: 'linear-gradient(135deg, #F8FAFF 0%, #F0F4FF 100%)'}}>
                             {messages.map((msg) => (
                                 <motion.div
                                     key={msg.id}
-                                    initial={{ opacity: 0, y: 10 }}
+                                    initial={{ opacity: 0, y: 15 }}
                                     animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.3 }}
                                     className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                                 >
-                                    <div className={`flex gap-3 max-w-[85%] ${msg.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${
+                                    <div className={`flex gap-2 max-w-[90%] ${msg.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                                        {/* Avatar */}
+                                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-lg shadow-md ${
                                             msg.sender === 'bot' 
-                                            ? 'bg-gradient-to-br from-brand-600 to-indigo-700 text-white' 
-                                            : 'bg-slate-800 text-white'
-                                        }`}>
-                                            {msg.sender === 'bot' ? <Sparkles size={16} /> : <Hand size={16} />}
+                                            ? 'text-white' 
+                                            : 'text-white'
+                                        }`}
+                                        style={{background: msg.sender === 'bot' 
+                                            ? 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)'
+                                            : 'linear-gradient(135deg, #D4AF37 0%, #E8BC2F 100%)'
+                                        }}
+                                        >
+                                            {msg.sender === 'bot' ? (
+                                                <LordIconWrapper icon="bible" size={20} trigger="hover" colors={{ primary: '#ffffff', secondary: '#1E3A8A' }} />
+                                            ) : '🙏'}
                                         </div>
-                                        <div className="space-y-2 w-full">
-                                            <div className={`px-5 py-4 rounded-3xl shadow-sm text-sm leading-relaxed ${
+
+                                        {/* Message Bubble */}
+                                        <div className="space-y-2 flex-1">
+                                            <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-md transition-all ${
                                                 msg.sender === 'bot'
-                                                ? 'bg-white border border-brand-100 text-slate-700 rounded-tl-none'
-                                                : 'bg-gradient-to-br from-brand-700 to-indigo-800 text-white rounded-tr-none shadow-brand-900/20'
-                                            }`}>
-                                                {msg.text}
+                                                ? 'rounded-tl-none'
+                                                : 'rounded-tr-none'
+                                            }`}
+                                            style={msg.sender === 'bot' ? {
+                                                background: 'rgba(255, 255, 255, 0.95)',
+                                                color: '#1F2937',
+                                                backdropFilter: 'blur(10px)'
+                                            } : {
+                                                background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)',
+                                                color: '#FFFFFF',
+                                            }}
+                                            >
+                                                {msg.sender === 'bot' ? <AnimatedBotMessage text={msg.text} /> : msg.text}
                                             </div>
                                             
+                                            {/* Action Buttons */}
+                                            {msg.sender === 'bot' && (
+                                                <div className="flex gap-2 pl-1">
+                                                    <motion.button
+                                                        whileHover={{ scale: 1.1 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        onClick={() => rateMessage(msg.id, 'positive')}
+                                                        className="p-2 rounded-lg transition-all hover:shadow-md"
+                                                        style={{background: msg.rating === 'positive' ? '#D4AF37' : 'rgba(212, 175, 55, 0.1)', color: msg.rating === 'positive' ? '#1E3A8A' : '#9CA3AF'}}
+                                                        title="Helpful"
+                                                    >
+                                                        <ThumbsUp size={16} />
+                                                    </motion.button>
+                                                    <motion.button
+                                                        whileHover={{ scale: 1.1 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        onClick={() => rateMessage(msg.id, 'negative')}
+                                                        className="p-2 rounded-lg transition-all hover:shadow-md"
+                                                        style={{background: msg.rating === 'negative' ? '#EF4444' : 'rgba(239, 68, 68, 0.1)', color: msg.rating === 'negative' ? '#FFFFFF' : '#9CA3AF'}}
+                                                        title="Not helpful"
+                                                    >
+                                                        <ThumbsDown size={16} />
+                                                    </motion.button>
+                                                    <motion.button
+                                                        whileHover={{ scale: 1.1 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        onClick={() => speakMessage(msg.text)}
+                                                        className="p-2 rounded-lg transition-all hover:shadow-md"
+                                                        style={{background: 'rgba(37, 99, 235, 0.1)', color: '#2563EB'}}
+                                                        title="Read aloud"
+                                                    >
+                                                        <Volume2 size={16} />
+                                                    </motion.button>
+                                                </div>
+                                            )}
+                                            
+                                            {/* Option Buttons */}
                                             {msg.options && (
-                                                <div className="flex flex-wrap gap-2 mt-3">
+                                                <div className="flex flex-wrap gap-2 mt-2">
                                                     {msg.options.map((opt, i) => (
                                                         <motion.button
                                                             key={i}
-                                                            whileHover={{ scale: 1.05, y: -2 }}
+                                                            whileHover={{ y: -2, boxShadow: '0 8px 16px rgba(212, 175, 55, 0.2)' }}
                                                             whileTap={{ scale: 0.95 }}
                                                             onClick={() => handleOptionClick(opt)}
-                                                            className="px-4 py-2 bg-white border border-brand-200 rounded-full text-brand-700 text-xs font-bold hover:bg-brand-50 hover:border-brand-400 transition-all shadow-sm"
+                                                            className="px-5 py-2.5 rounded-full text-xs font-semibold transition-all shadow-sm"
+                                                            style={{
+                                                                background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.08) 100%)',
+                                                                color: '#1E3A8A',
+                                                                border: '1px solid rgba(212, 175, 55, 0.25)'
+                                                            }}
                                                         >
                                                             {opt}
                                                         </motion.button>
@@ -667,51 +820,56 @@ export const DivineAssistant: React.FC = () => {
                                     </div>
                                 </motion.div>
                             ))}
+
+                            {/* Typing Indicator */}
                             {isTyping && (
                                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-2xl bg-brand-50 flex items-center justify-center animate-pulse">
-                                        <Loader className="w-4 h-4 text-brand-400 animate-spin" />
+                                    <div className="w-10 h-10 rounded-lg flex items-center justify-center text-sm shadow-md" style={{background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)'}}>
+                                        <Loader className="w-5 h-5 animate-spin text-blue-200" />
                                     </div>
-                                    <div className="h-10 px-6 bg-brand-50 rounded-full flex items-center gap-1.5">
-                                        <span className="w-1.5 h-1.5 bg-brand-300 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                                        <span className="w-1.5 h-1.5 bg-brand-300 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                                        <span className="w-1.5 h-1.5 bg-brand-300 rounded-full animate-bounce" />
+                                    <div className="h-10 px-5 rounded-xl flex items-center gap-2 shadow-md" style={{background: 'rgba(255, 255, 255, 0.95)', border: '1px solid rgba(212, 175, 55, 0.2)'}}>
+                                        <span className="text-sm font-serif font-semibold text-brand-900 flex items-center gap-2 animate-pulse">
+                                            📜 Searching Scripture...
+                                        </span>
                                     </div>
                                 </motion.div>
                             )}
                             <div ref={messagesEndRef} />
                         </div>
 
-                        {/* Royal Footer */}
-                        <div className="p-6 bg-white border-t border-brand-50">
-                            <form onSubmit={handleSendMessage} className="relative group">
-                                <div className="absolute -inset-1 bg-gradient-to-r from-brand-400 to-indigo-500 rounded-[28px] blur opacity-10 group-focus-within:opacity-25 transition duration-1000 group-focus-within:duration-200"></div>
-                                <div className="relative flex items-center gap-3 p-2 bg-slate-50/50 border border-slate-200 rounded-[24px] focus-within:bg-white focus-within:border-brand-500/50 transition-all">
+                        {/* Input Area */}
+                        <div className="p-4 shrink-0" style={{background: 'linear-gradient(135deg, #F8FAFF 0%, #F0F4FF 100%)'}}>
+                            <form onSubmit={handleSendMessage} className="relative">
+                                <div className="relative flex items-center gap-2 px-4 py-3 rounded-2xl shadow-md" style={{background: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(10px)'}}>
                                     <input
                                         type="text"
                                         value={inputValue}
                                         onChange={(e) => setInputValue(e.target.value)}
-                                        placeholder="Seek guidance or ask about ministry..."
-                                        className="flex-1 px-4 py-3 bg-transparent text-slate-700 placeholder-slate-400 text-sm focus:outline-none"
+                                        placeholder="Ask for guidance..."
+                                        className="flex-1 bg-transparent text-slate-700 placeholder-slate-400 text-sm focus:outline-none"
+                                        style={{color: '#1F2937'}}
                                     />
                                     <motion.button
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
+                                        whileHover={{ scale: 1.08 }}
+                                        whileTap={{ scale: 0.92 }}
                                         disabled={!inputValue.trim() || isTyping}
                                         type="submit"
-                                        className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-600 to-indigo-700 text-white flex items-center justify-center shadow-xl shadow-brand-900/20 disabled:grayscale disabled:opacity-50 transition-all"
+                                        className="w-10 h-10 rounded-lg text-white flex items-center justify-center transition-all disabled:opacity-40 shadow-md"
+                                        style={{background: 'linear-gradient(135deg, #D4AF37 0%, #E8BC2F 100%)'}}
                                     >
-                                        <Send size={20} className={inputValue.trim() ? "translate-x-0.5 -translate-y-0.5" : ""} />
+                                        <Send size={18} />
                                     </motion.button>
                                 </div>
                             </form>
-                            <p className="text-center mt-3 text-[9px] font-black uppercase tracking-[0.2em] text-slate-300">
-                                Guided by the spirit · Powered by <span className="text-brand-400">S.Shaveesh Jeshurun</span>
+                            <p className="text-center mt-3 text-[10px] text-slate-500 font-light tracking-wide flex items-center justify-center gap-1.5" style={{color: '#94A3B8'}}>
+                                <LordIconWrapper icon="bible" size={12} trigger="hover" colors={{ primary: '#D4AF37', secondary: '#94A3B8' }} />
+                                City of Truth Ministries
                             </p>
                         </div>
                     </motion.div>
                 )}
             </AnimatePresence>
         </div>
+        </>
     );
 };

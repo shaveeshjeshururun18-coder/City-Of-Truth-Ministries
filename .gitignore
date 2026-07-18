@@ -16,3 +16,11 @@ stamp_transparent.png
 
 scratch_*.txt
 *.diff.txt
+
+# Build logs and tool execution configs
+build.log
+*.log
+tsc_errors.txt
+step_*.json
+temp_codepen/
+temp_paleo_svgs/

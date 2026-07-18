@@ -1,6 +1,8 @@
-import React from 'react';
-import { Scroll } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Scroll, Download, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 const hebrewLetters = [
     { letter: "א", name: "ALEPH", number: 1 },
@@ -28,12 +30,48 @@ const hebrewLetters = [
 ];
 
 export const HebrewPage: React.FC = () => {
+    const [isExporting, setIsExporting] = useState(false);
+    const exportRef = useRef<HTMLDivElement>(null);
+
+    const handleExportPDF = async () => {
+        if (!exportRef.current) return;
+        setIsExporting(true);
+        try {
+            const canvas = await html2canvas(exportRef.current, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#050505'
+            });
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`COT-Hebrew-Grammar-${Date.now()}.pdf`);
+        } catch (error) {
+            console.error('Export failed:', error);
+            alert('Could not export PDF. Please try again.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-[#050505] text-[#e5e5e5] font-['Poppins'] flex justify-center pt-32 pb-20">
+        <div ref={exportRef} className="min-h-screen bg-[#050505] text-[#e5e5e5] font-['Poppins'] flex justify-center pt-32 pb-20">
             <div className="w-full max-w-[1100px] px-5">
 
                 {/* Header Section */}
-                <header className="text-center mb-16">
+                <header className="text-center mb-16 relative">
+                    {/* Download Button */}
+                    <button
+                        onClick={handleExportPDF}
+                        disabled={isExporting}
+                        data-html2canvas-ignore="true"
+                        className="absolute top-0 right-0 flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs transition-all disabled:opacity-50 cursor-pointer"
+                    >
+                        {isExporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                        Download PDF
+                    </button>
                     <motion.div
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}

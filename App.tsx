@@ -67,6 +67,7 @@ import { GoldenMenorah } from './components/GoldenMenorah';
 import { GoldenMenorahPage } from './components/GoldenMenorahPage';
 import { AIPage } from './components/AIPage';
 import { DivineAssistant } from './components/DivineAssistant';
+import AIChatAssistant from './components/AIChatAssistant';
 import { MinistryHighlights, HebrewSanctuaryIntro, HebrewPagesPreviewSection, PastorBaruchPreviewSection, ValparaiPresence, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, CommunityMembersSection } from './components/HomeSections';
 import { MessageFromLeader } from './components/MessageFromLeader';
 import { HebrewAlphabetPage } from './components/HebrewAlphabetPage';
@@ -205,9 +206,9 @@ interface MemberNotification {
   from: 'admin' | 'user';
   message: string;
   createdAt: string;
-  kind?: 'message' | 'approved' | 'disapproved' | 'recycle' | 'recycle-removed' | 'leader';
+  kind: 'message' | 'approved' | 'disapproved' | 'recycle' | 'recycle-removed' | 'leader';
   ctaView?: ViewState;
-  read?: boolean;
+  read: boolean;
   deletedAt?: string;
   autoDeleteAt?: string;
   imageUrl?: string;
@@ -585,6 +586,9 @@ const App: React.FC = () => {
       view: ViewState.HEBREW_TOOLS,
       submenu: HEBREW_TOOLS_SUBMENU
     },
+    { label: 'HEBREW GRAMMAR', view: ViewState.HEBREW_GRAMMAR },
+    { label: 'ERETZ ISRAEL', view: ViewState.HEBREW_ISRAEL },
+    { label: 'PDF DOWNLOADS', view: ViewState.PDF_DOWNLOADS },
     { label: 'VALPARAI', view: ViewState.ABOUT_VALPARAI },
     { label: 'PASTOR', view: ViewState.PASTOR },
     { label: 'MINISTRIES', view: ViewState.MINISTRIES },
@@ -697,6 +701,50 @@ const App: React.FC = () => {
       navigate('/hebrew-alphabet');
     }
   }, [currentView, navigate]);
+
+  // Analytics: Track Site Visits
+  const hasTrackedVisit = React.useRef(false);
+  useEffect(() => {
+    if (hasTrackedVisit.current) return;
+    hasTrackedVisit.current = true;
+
+    const trackVisit = async () => {
+      try {
+        let deviceId = localStorage.getItem('cot_device_id');
+        let visitCountStr = localStorage.getItem('cot_visit_count');
+        let isNewDevice = false;
+        
+        if (!deviceId) {
+          deviceId = 'dev_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+          localStorage.setItem('cot_device_id', deviceId);
+          isNewDevice = true;
+        }
+
+        let visitCount = visitCountStr ? parseInt(visitCountStr, 10) : 0;
+        visitCount += 1;
+        localStorage.setItem('cot_visit_count', visitCount.toString());
+
+        const visitId = 'visit_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
+        const userId = currentUser ? currentUser.id : 'Guest';
+
+        const visit = {
+          id: visitId,
+          deviceId,
+          userId,
+          isNewDevice,
+          visitCount,
+          timestamp: new Date().toISOString()
+        };
+
+        await api.recordVisit(visit);
+      } catch (err) {
+        console.error('Failed to record site visit', err);
+      }
+    };
+
+    trackVisit();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   useEffect(() => {
     localStorage.setItem('cot_contact_messages', JSON.stringify(contactMessages));
@@ -917,6 +965,7 @@ const App: React.FC = () => {
       from: 'user',
       message: trimmed,
       createdAt: new Date().toISOString(),
+      kind: 'message',
       read: false
     };
     setMemberNotifications(prev => [reply, ...prev].slice(0, 1000));
@@ -1576,6 +1625,7 @@ const App: React.FC = () => {
       '/hebrew-grammar': ViewState.HEBREW_GRAMMAR,
       '/hebrew-reference': ViewState.HEBREW_REFERENCE,
       '/hebrew-israel': ViewState.HEBREW_ISRAEL,
+      '/pdf-downloads': ViewState.PDF_DOWNLOADS,
       '/menorah': ViewState.GOLDEN_MENORAH,
       '/golden-menorah': ViewState.GOLDEN_MENORAH,
       '/baruch-hashem': ViewState.BARUCH_HASHEM,
@@ -1638,6 +1688,7 @@ const App: React.FC = () => {
       [ViewState.HEBREW_GRAMMAR]: '/hebrew-grammar',
       [ViewState.HEBREW_REFERENCE]: '/hebrew-reference',
       [ViewState.HEBREW_ISRAEL]: '/hebrew-israel',
+      [ViewState.PDF_DOWNLOADS]: '/pdf-downloads',
       [ViewState.GOLDEN_MENORAH]: '/golden-menorah',
       [ViewState.BARUCH_HASHEM]: '/baruch-hashem',
       [ViewState.AI]: '/ai',
@@ -1682,6 +1733,7 @@ const App: React.FC = () => {
       [ViewState.HEBREW_GRAMMAR]: '/hebrew-grammar',
       [ViewState.HEBREW_REFERENCE]: '/hebrew-reference',
       [ViewState.HEBREW_ISRAEL]: '/hebrew-israel',
+      [ViewState.PDF_DOWNLOADS]: '/pdf-downloads',
       [ViewState.GOLDEN_MENORAH]: '/golden-menorah',
       [ViewState.BARUCH_HASHEM]: '/baruch-hashem',
       [ViewState.AI]: '/ai',
@@ -1713,6 +1765,7 @@ const App: React.FC = () => {
       case ViewState.MINISTRIES: return "bg-[#f0f9ff] text-sky-950";
       case ViewState.HEBREW: return "bg-black text-amber-500";
       case ViewState.HEBREW_ISRAEL: return "bg-[#fffdf6] text-brand-950";
+      case ViewState.PDF_DOWNLOADS: return "bg-gradient-to-br from-[#fdfcf0] to-[#fff8e7] text-brand-950";
       case ViewState.HEBREW_TOOLS: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.HEBREW_WORDS: return "bg-[#fdfcf0] text-brand-950";
       case ViewState.HEBREW_LETTERS_AUDIO: return "bg-[#fdfcf0] text-brand-950";
@@ -2464,7 +2517,7 @@ const App: React.FC = () => {
                 switch (sectionId) {
                   case 'hero':
                     return (
-                      <section key="hero" className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden py-20">
+                      <section key="hero" className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden py-8 md:py-12">
                 {/* Background with slow zoom animation */}
                 <div className="absolute inset-0 z-0 overflow-hidden">
                   <motion.img
@@ -2513,7 +2566,7 @@ const App: React.FC = () => {
                       transition={{ duration: 0.8, delay: 0.3 }}
                       className="mb-2"
                     >
-                      <h2 className="text-xl md:text-2xl font-semibold tracking-[0.2em] uppercase" style={{ color: "rgba(253,230,138,0.85)", letterSpacing: "0.2em" }}>City of Truth Ministries</h2>
+                      <h2 className="text-xl md:text-2xl font-semibold tracking-[0.2em] uppercase" style={{ color: "rgba(253,230,138,0.85)", letterSpacing: "0.2em" }}>City of Truth Ministries • வால்பாறை</h2>
                     </motion.div>
 
                     {/* Support text */}
@@ -2523,7 +2576,7 @@ const App: React.FC = () => {
                       transition={{ duration: 0.7, delay: 0.4 }}
                       className="mb-10"
                     >
-                      <span className="text-lg md:text-xl font-medium tracking-[0.25em]" style={{ color: "rgba(251,191,36,0.65)" }}>ஊழியங்கள்</span>
+                      <span className="text-lg md:text-xl font-medium md:font-bold tracking-[0.25em]" style={{ color: "rgba(251,191,36,0.65)" }}>ஊழியங்கள்</span>
                     </motion.div>
                   </div>
 
@@ -2539,7 +2592,7 @@ const App: React.FC = () => {
                         <span className="pure-gold-text inline-block text-4xl xs:text-5xl pt-2 pb-3 px-4 mb-1">சத்திய நகரம்</span>
                         <span className="pure-gold-text inline-block text-5xl xs:text-6xl pt-2 pb-4 px-4 mb-2">ஊழியங்கள்</span>
                       </h1>
-                      <h2 className="text-xs font-bold tracking-[0.25em] uppercase mt-2" style={{ color: "rgba(253,230,138,0.85)" }}>City of Truth Ministries</h2>
+                      <h2 className="text-xs font-bold tracking-[0.25em] uppercase mt-2" style={{ color: "rgba(253,230,138,0.85)" }}>City of Truth Ministries • வால்பாறை</h2>
                     </motion.div>
                   </div>
 
@@ -2853,7 +2906,7 @@ const App: React.FC = () => {
             </motion.div>
           )}
 
-          {[ViewState.ABOUT, ViewState.HEBREW_CALENDAR, ViewState.HEBREW_CLOCK, ViewState.HEBREW_FESTIVALS, ViewState.HEBREW_REFERENCE, ViewState.HEBREW_GRAMMAR, ViewState.HEBREW_ISRAEL].includes(currentView) && (
+          {[ViewState.ABOUT, ViewState.HEBREW_CALENDAR, ViewState.HEBREW_CLOCK, ViewState.HEBREW_FESTIVALS, ViewState.HEBREW_REFERENCE, ViewState.HEBREW_GRAMMAR, ViewState.HEBREW_ISRAEL, ViewState.PDF_DOWNLOADS].includes(currentView) && (
             <div key="hebrew-hub-content">
               <HebrewResources mode="content" currentUser={currentUser || undefined} currentView={currentView} setView={setCurrentView} />
             </div>

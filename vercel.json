@@ -1,1 +1,25 @@
-{"headers":[{"source":"/(.*)","headers":[{"key":"Cache-Control","value":"no-cache, no-store, must-revalidate"}]}],"rewrites":[{"source":"/(.*)","destination":"/index.html"}]}
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/dailyGreetings",
+      "schedule": "0 5,12,18,21 * * *"
+    }
+  ]
+}

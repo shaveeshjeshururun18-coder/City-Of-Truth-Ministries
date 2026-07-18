@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Globe, MapPin, Sparkles, Scroll, Landmark, History, Compass, ArrowRight, Volume2, ShieldCheck, Heart } from 'lucide-react';
+import { Globe, MapPin, Sparkles, Scroll, Landmark, History, Compass, ArrowRight, Volume2, ShieldCheck, Heart, Download, Loader2 } from 'lucide-react';
 import { audioService } from '../services/audioService';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 interface RegionData {
     id: string;
@@ -82,13 +84,38 @@ const REGIONS: RegionData[] = [
 export const IsraelPage: React.FC = () => {
     const [selectedRegion, setSelectedRegion] = useState<RegionData>(REGIONS[2]); // Jerusalem default
     const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'geography' | 'archaeology' | 'language'>('overview');
+    const [isExporting, setIsExporting] = useState(false);
+    const exportRef = useRef<HTMLDivElement>(null);
 
     const handlePlayAudio = (text: string) => {
         audioService.playHebrew(text);
     };
 
+    const handleExportPDF = async () => {
+        if (!exportRef.current) return;
+        setIsExporting(true);
+        try {
+            const canvas = await html2canvas(exportRef.current, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#fffdf6'
+            });
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`COT-Eretz-Israel-Guide-${Date.now()}.pdf`);
+        } catch (error) {
+            console.error('Export failed:', error);
+            alert('Could not export PDF. Please try again.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     return (
-        <div className="bg-[#fffdf6] text-slate-800 min-h-screen py-10 px-4 md:px-8 font-sans">
+        <div ref={exportRef} className="bg-[#fffdf6] text-slate-800 min-h-screen py-10 px-4 md:px-8 font-sans">
             <style>{`
                 @keyframes flagWave {
                     0% { transform: translate3d(0, 0, 0) rotate(0deg) skewY(0deg); }
@@ -114,6 +141,17 @@ export const IsraelPage: React.FC = () => {
                 {/* Header Block */}
                 <header className="text-center relative py-8 overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-slate-900 via-brand-950 to-slate-950 text-white shadow-xl border border-white/5">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(251,191,36,0.08)_0%,transparent_70%)] pointer-events-none" />
+                    
+                    {/* Download Button */}
+                    <button
+                        onClick={handleExportPDF}
+                        disabled={isExporting}
+                        data-html2canvas-ignore="true"
+                        className="absolute top-4 right-4 flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs transition-all disabled:opacity-50 cursor-pointer"
+                    >
+                        {isExporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                        Download PDF
+                    </button>
                     
                     <motion.div 
                         initial={{ opacity: 0, scale: 0.8 }}

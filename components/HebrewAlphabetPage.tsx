@@ -1,36 +1,37 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Scroll, Volume2, Sparkles, ArrowLeft, X } from 'lucide-react';
+import { Scroll, Volume2, Sparkles, ArrowLeft, X, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { audioService } from '../services/audioService';
 import { MouthPronunciationAnimator, HEBREW_LETTER_PHONEMES } from './MouthPronunciationAnimator';
+import { generateHebrewAlphabetPDF } from './HebrewAlphabetPDF';
 
-const PALEO_HEBREW_PATHS: Record<string, string> = {
-    ALEPH: "M35,45 C25,35 45,25 55,35 C65,45 45,55 35,45 Z M50,32 C60,22 75,15 80,10 M48,48 C65,58 75,70 80,75",
-    BET: "M25,25 L75,25 L75,75 L25,75 L25,50 L55,50",
-    GIMEL: "M25,40 L45,75 L80,25",
-    DALET: "M30,25 L75,35 L45,75 Z",
-    HE: "M50,80 L50,50 M25,40 C35,55 65,55 75,40 M25,40 L25,20 M50,50 L50,20 M75,40 L75,20",
-    VAV: "M50,80 L50,45 M25,20 C35,45 50,45 50,45 M75,20 C65,45 50,45 50,45",
-    ZAYIN: "M30,30 L70,30 M50,30 L50,70 M30,70 L70,70",
-    CHET: "M35,20 L35,80 M65,20 L65,80 M35,30 L65,30 M35,50 L65,50 M35,70 L65,70",
-    TET: "M50,50 m-35,0 a35,35 0 1,0 70,0 a35,35 0 1,0 -70,0 M25,25 L75,75 M75,25 L25,75",
-    YOD: "M25,40 L70,40 M70,40 L50,65 M25,40 L30,65",
-    KAF: "M50,80 L50,20 M50,80 L25,30 M50,80 L75,30",
-    LAMED: "M25,25 L65,65 C75,75 80,60 70,50",
-    MEM: "M20,50 L32,35 L44,65 L56,35 L68,65 L80,35",
-    NUN: "M30,30 L45,30 L55,60 L75,70",
-    SAMEKH: "M50,15 L50,85 M30,30 L70,30 M30,45 L70,45 M30,60 L70,60",
-    AYIN: "M50,50 m-30,0 a30,18 0 1,0 60,0 a30,18 0 1,0 -60,0 M50,50 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0",
-    PE: "M30,50 C30,35 70,35 70,50 C70,65 30,65 30,50 Z",
-    TSADE: "M35,30 L35,55 L65,55 L65,75",
-    QOPH: "M50,40 m-20,0 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0 M50,15 L50,85",
-    RESH: "M60,80 L60,40 C60,25 35,25 35,45 C35,55 50,65 50,80",
-    SHIN: "M25,35 Q37,70 50,45 Q62,70 75,35",
-    TAV: "M50,20 L50,80 M20,50 L80,50"
+const PALEO_IMAGE_MAP: Record<string, string> = {
+    ALEPH: "/paleo_letters/04_Aleph.png",
+    BET: "/paleo_letters/03_Bet.png",
+    GIMEL: "/paleo_letters/02_Gimel.png",
+    DALET: "/paleo_letters/01_Dalet.png",
+    HE: "/paleo_letters/08_He.png",
+    VAV: "/paleo_letters/07_Waw.png",
+    ZAYIN: "/paleo_letters/06_Zayin.png",
+    CHET: "/paleo_letters/05_Het.png",
+    TET: "/paleo_letters/12_Tet.png",
+    YOD: "/paleo_letters/11_Yod.png",
+    KAF: "/paleo_letters/10_Kaph.png",
+    LAMED: "/paleo_letters/09_Lamed.png",
+    MEM: "/paleo_letters/16_Mem.png",
+    NUN: "/paleo_letters/15_Nun.png",
+    SAMEKH: "/paleo_letters/14_Samekh.png",
+    AYIN: "/paleo_letters/13_Ayin.png",
+    PE: "/paleo_letters/20_Pe.png",
+    TSADE: "/paleo_letters/19_Tsade.png",
+    QOPH: "/paleo_letters/18_Qoph.png",
+    RESH: "/paleo_letters/17_Resh.png",
+    SHIN: "/paleo_letters/22_Shin.png",
+    TAV: "/paleo_letters/21_Taw.png"
 };
 
 const HEBREW_LETTERS = [
-    { letter: "א", name: "ALEPH", hebrewName: "אלף", number: 1, latinPronunciation: "Ah-lef", tamilPronunciation: "ஆலெஃப்", tamilGuide: "ஆலெஃப். வாயை திறந்து மெதுவாக ஆ ஒலி சொல்லி, பிறகு லெஃப் சொல்லுங்கள்.", symbolic: "Ox, Strength, Leader", pictographNumber: "No.1 (Headship)" },
+    { letter: "א", name: "ALEPH", hebrewName: "אלף", number: 1, latinPronunciation: "Ah-lef", tamilPronunciation: "ஆலெஃப்", tamilGuide: "ஆலெஃப் உச்சரிப்பு: முதலில் வாயை திறந்து ஆ என்று சொல்லுங்கள். அடுத்தது நாக்கை மேலே தொட்டு லெ என்று சொல்லி, கடைசியில் கீழ் உதட்டை பற்களுக்கு அருகில் வைத்து ஃப் என்று மெதுவாக முடிக்கவும்.", symbolic: "Ox, Strength, Leader", pictographNumber: "No.1 (Headship)" },
     { letter: "ב", name: "BET", hebrewName: "בית", number: 2, latinPronunciation: "Bet", tamilPronunciation: "பெத்", tamilGuide: "பெத். பே என்று தொடங்கி, முடிவில் த் ஒலியை மெதுவாக சேர்க்கவும்.", symbolic: "House, Family, Inside", pictographNumber: "No.2 (House)" },
     { letter: "ג", name: "GIMEL", hebrewName: "גימל", number: 3, latinPronunciation: "Gee-mel", tamilPronunciation: "கீமெல்", tamilGuide: "கீமெல். கீ என்று நீட்டி, பிறகு மெல் என்று மெதுவாக சொல்லுங்கள்.", symbolic: "Camel, Pride, To Lift Up", pictographNumber: "No.3 (Foot)" },
     { letter: "ד", name: "DALET", hebrewName: "דלת", number: 4, latinPronunciation: "Dah-let", tamilPronunciation: "தாலெத்", tamilGuide: "தாலெத். தா என்று தொடங்கி, லெத் என்று முடிக்கவும்.", symbolic: "Door, Pathway, To Enter", pictographNumber: "No.4 (Door)" },
@@ -54,6 +55,31 @@ const HEBREW_LETTERS = [
     { letter: "ת", name: "TAV", hebrewName: "תו", number: 400, latinPronunciation: "Tav", tamilPronunciation: "தாவ்", tamilGuide: "தாவ். தா என்று கூறி, வ் ஒலி மெதுவாக முடிக்கவும்.", symbolic: "Mark, Sign, Covenant", pictographNumber: "No.400 (Crossed Sticks)" },
 ];
 
+const TAMIL_PRONUNCIATION_PARTS: Record<string, string[]> = {
+    "א": ["ஆ", "லெஃப்"],
+    "ב": ["பெத்"],
+    "ג": ["கீ", "மெல்"],
+    "ד": ["தா", "லெத்"],
+    "ה": ["ஹே"],
+    "ו": ["வாவ்"],
+    "ז": ["ச", "யின்"],
+    "ח": ["க்ஹெட்"],
+    "ט": ["டெட்"],
+    "י": ["யோத்"],
+    "כ": ["காஃப்"],
+    "ל": ["லா", "மெட்"],
+    "מ": ["மேம்"],
+    "נ": ["நூன்"],
+    "ס": ["சா", "மெக்"],
+    "ע": ["ஆ", "யின்"],
+    "פ": ["பே"],
+    "צ": ["ட்சா", "தே"],
+    "ק": ["கோஃப்"],
+    "ר": ["ரேஷ்"],
+    "ש": ["ஷீன்"],
+    "ת": ["தாவ்"],
+};
+
 // Responsive column counts for breakpoints
 const COLS_MAP = { default: 2, sm: 3, md: 4, lg: 5 };
 
@@ -65,7 +91,12 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
     const [cols, setCols] = useState(COLS_MAP.default);
-    const [viewMode, setViewMode] = useState<'modern' | 'paleo' | 'both'>('both');
+    const [viewMode, setViewMode] = useState<'modern' | 'paleo'>('modern');
+    const [mouthMode, setMouthMode] = useState<'hebrew' | 'tamil'>('hebrew');
+    const [mouthSlow, setMouthSlow] = useState(false);
+    const [mouthPlayKey, setMouthPlayKey] = useState(0);
+    const [pdfGenerating, setPdfGenerating] = useState(false);
+    const [pdfError, setPdfError] = useState<string | null>(null);
     const panelRef = useRef<HTMLDivElement>(null);
 
     // Responsive column detection
@@ -91,8 +122,15 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
         }
     }, [selectedIndex]);
 
-    const handlePlay = async (index: number, hebrewText: string, rate: number = 0.8) => {
+    const triggerMouth = (mode: 'hebrew' | 'tamil', slow = false) => {
+        setMouthMode(mode);
+        setMouthSlow(slow);
+        setMouthPlayKey(key => key + 1);
+    };
+
+    const handleHebrewPlay = async (index: number, hebrewText: string, rate: number = 0.8, slow = false) => {
         setActiveIndex(index);
+        triggerMouth('hebrew', slow);
         try {
             await audioService.playHebrew(hebrewText, rate);
         } catch (error) {
@@ -102,9 +140,39 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
         }
     };
 
+    const handleTamilTeachingPlay = async (index: number, tamilText: string) => {
+        setActiveIndex(index);
+        triggerMouth('tamil', false);
+        try {
+            await audioService.playTamil(tamilText, 0.78);
+        } catch (error) {
+            console.warn('Tamil teaching playback failed:', error);
+        } finally {
+            setTimeout(() => setActiveIndex(null), 2000);
+        }
+    };
+
     const handleAudioButtonClick = (event: React.MouseEvent<HTMLButtonElement>, index: number, hebrewText: string) => {
         event.stopPropagation();
-        handlePlay(index, hebrewText);
+        handleHebrewPlay(index, hebrewText);
+    };
+
+    const handleGeneratePDF = async () => {
+        setPdfGenerating(true);
+        try {
+            const link = document.createElement('a');
+            link.href = '/downloads/Sacred_Alphabet_Gematria_Chart.pdf';
+            link.download = 'Sacred_Alphabet_Gematria_Chart.pdf';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (error) {
+            console.error('PDF download error:', error);
+            setPdfError('Failed to download PDF.');
+            setTimeout(() => setPdfError(null), 5000);
+        } finally {
+            setTimeout(() => setPdfGenerating(false), 500);
+        }
     };
 
     const selectedLetter = selectedIndex !== null ? HEBREW_LETTERS[selectedIndex] : null;
@@ -143,7 +211,7 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                     </motion.div>
                     <h1 className="font-serif text-5xl md:text-7xl text-transparent bg-clip-text bg-gradient-to-b from-[#FBBF24] via-[#F59E0B] to-[#D97706] tracking-wider uppercase font-bold px-2 drop-shadow-xl">Lashon HaKodesh</h1>
                     <div className="w-24 h-[1px] bg-gradient-to-r from-transparent via-[#F59E0B]/50 to-transparent mx-auto mt-4 mb-4"></div>
-                    <p className="text-xs md:text-sm tracking-[4px] md:tracking-[6px] text-[#F59E0B]/50 uppercase font-bold">The Holy Tongue: Hebrew Aleph-Bet · ஆலெஃப்-பேத்</p>
+                    <p className="text-xs md:text-sm tracking-[4px] md:tracking-[6px] text-[#F59E0B]/50 uppercase font-bold">The Holy Tongue: Hebrew Aleph-Tav · ஆலெஃப்-தாவ்</p>
                     <div className="flex items-center justify-center gap-3 md:gap-4 pt-2">
                         <div className="px-4 py-2 rounded-2xl border border-[#F59E0B]/40 bg-[#F59E0B]/10 text-[#FBBF24] text-xs md:text-sm font-black tracking-[0.15em] uppercase">
                             {letterCount} Letters
@@ -154,10 +222,34 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                     </div>
                 </header>
 
-                {/* View Mode Toggle */}
+                {/* Download PDF Button */}
+                <div className="flex justify-center mb-12 flex-col items-center gap-3">
+                    <motion.button
+                        onClick={handleGeneratePDF}
+                        disabled={pdfGenerating}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        whileHover={!pdfGenerating ? { scale: 1.05 } : {}}
+                        whileTap={!pdfGenerating ? { scale: 0.95 } : {}}
+                        className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-[#F59E0B] to-[#D97706] hover:from-[#FBBF24] hover:to-[#F59E0B] text-white font-black text-sm uppercase tracking-wider shadow-lg hover:shadow-[0_0_30px_rgba(245,158,11,0.4)] transition-all duration-300 border border-[#F59E0B]/50 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                        <Download size={18} strokeWidth={2.5} />
+                        <span>{pdfGenerating ? 'Generating...' : 'Download HD PDF'}</span>
+                    </motion.button>
+                    {pdfError && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="px-6 py-3 rounded-xl bg-red-500/20 border border-red-500/50 text-red-200 text-sm font-semibold text-center"
+                        >
+                            {pdfError}
+                        </motion.div>
+                    )}
+                </div>
                 <div className="flex justify-center mb-10">
                     <div className="inline-flex p-1 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md">
-                        {(['both', 'modern', 'paleo'] as const).map((mode) => (
+                        {(['modern', 'paleo'] as const).map((mode) => (
                             <button
                                 key={mode}
                                 onClick={() => setViewMode(mode)}
@@ -167,7 +259,7 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                         : 'text-white/60 hover:text-white/90 hover:bg-white/5'
                                 }`}
                             >
-                                {mode === 'both' ? 'Both' : mode === 'modern' ? 'Modern' : 'Paleo-Hebrew'}
+                                {mode === 'modern' ? 'Modern' : 'Paleo-Hebrew'}
                             </button>
                         ))}
                     </div>
@@ -195,7 +287,7 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                                     setSelectedIndex(null);
                                                 } else {
                                                     setSelectedIndex(index);
-                                                    handlePlay(index, item.hebrewName);
+                                                    handleTamilTeachingPlay(index, item.tamilGuide);
                                                 }
                                             }}
                                             className={`bg-gradient-to-br from-white/[0.04] to-white/[0.02] border rounded-[2rem] p-6 md:p-8 flex flex-col items-center justify-center transition-all cursor-pointer relative overflow-hidden backdrop-blur-sm group
@@ -219,59 +311,31 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                                 <Volume2 size={14} className="text-[#F59E0B]" />
                                             </button>
                                             
-                                            {/* Conditional representation based on viewMode */}
-                                            {viewMode === 'both' && (
-                                                <div className="flex items-center gap-5 mb-5 h-20 md:h-24">
-                                                    <span className={`text-5xl md:text-6xl text-transparent bg-clip-text font-serif transition-transform duration-500 drop-shadow-lg leading-none ${
-                                                        selectedIndex === index
-                                                            ? 'bg-gradient-to-b from-white to-white/80 scale-105'
-                                                            : 'bg-gradient-to-b from-[#FBBF24] to-[#F59E0B] group-hover:from-white group-hover:to-white/70 group-hover:scale-105'
-                                                    }`}>
-                                                        {item.letter}
-                                                    </span>
-                                                    <div className="w-px h-10 bg-white/15" />
-                                                    <svg viewBox="0 0 100 100" className={`w-10 h-10 md:w-12 md:h-12 transition-transform duration-500 ${
-                                                        selectedIndex === index ? 'text-white scale-105' : 'text-[#FBBF24] group-hover:text-white group-hover:scale-105'
-                                                    }`}>
-                                                        <path 
-                                                            d={PALEO_HEBREW_PATHS[item.name] || ''} 
-                                                            fill="none" 
-                                                            stroke="currentColor" 
-                                                            strokeWidth="8" 
-                                                            strokeLinecap="round" 
-                                                            strokeLinejoin="round" 
-                                                        />
-                                                    </svg>
-                                                </div>
-                                            )}
-
-                                            {viewMode === 'modern' && (
-                                                <div className="flex items-center justify-center mb-5 h-20 md:h-24">
-                                                    <span className={`text-6xl md:text-[5rem] text-transparent bg-clip-text font-serif transition-transform duration-500 drop-shadow-lg leading-none ${
-                                                        selectedIndex === index
-                                                            ? 'bg-gradient-to-b from-white to-white/80 scale-110'
+                                            {viewMode === 'paleo' && PALEO_IMAGE_MAP[item.name] ? (
+                                                <img 
+                                                    src={PALEO_IMAGE_MAP[item.name]} 
+                                                    alt={`Paleo ${item.name}`}
+                                                    className={`h-20 md:h-24 lg:h-28 mb-5 object-contain transition-all duration-500 drop-shadow-lg ${
+                                                        selectedIndex === index ? 'scale-110' : activeIndex === index ? 'scale-110 opacity-80' : 'group-hover:scale-110 opacity-90'
+                                                    }`}
+                                                    style={{
+                                                        filter: selectedIndex === index 
+                                                            ? 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.8)) brightness(1.1) hue-rotate(40deg) saturate(1.8)'
+                                                            : activeIndex === index
+                                                                ? 'drop-shadow(0 0 12px rgba(255, 255, 255, 0.6)) brightness(1.2) hue-rotate(40deg) saturate(1.5)'
+                                                                : 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.6)) brightness(0.95) hue-rotate(40deg) saturate(1.8) opacity-90'
+                                                    }}
+                                                />
+                                            ) : (
+                                                <span className={`text-7xl md:text-[6rem] lg:text-[7rem] text-transparent bg-clip-text mb-5 font-serif transition-transform duration-500 drop-shadow-lg leading-none ${
+                                                    selectedIndex === index
+                                                        ? 'bg-gradient-to-b from-[#FBBF24] to-[#F59E0B] scale-110'
+                                                        : activeIndex === index
+                                                            ? 'bg-gradient-to-b from-white to-white/70 scale-110'
                                                             : 'bg-gradient-to-b from-[#FBBF24] to-[#F59E0B] group-hover:from-white group-hover:to-white/70 group-hover:scale-110'
-                                                    }`}>
-                                                        {item.letter}
-                                                    </span>
-                                                </div>
-                                            )}
-
-                                            {viewMode === 'paleo' && (
-                                                <div className="flex items-center justify-center mb-5 h-20 md:h-24">
-                                                    <svg viewBox="0 0 100 100" className={`w-14 h-14 md:w-16 md:h-16 transition-transform duration-500 ${
-                                                        selectedIndex === index ? 'text-white scale-110' : 'text-[#FBBF24] group-hover:text-white group-hover:scale-110'
-                                                    }`}>
-                                                        <path 
-                                                            d={PALEO_HEBREW_PATHS[item.name] || ''} 
-                                                            fill="none" 
-                                                            stroke="currentColor" 
-                                                            strokeWidth="8" 
-                                                            strokeLinecap="round" 
-                                                            strokeLinejoin="round" 
-                                                        />
-                                                    </svg>
-                                                </div>
+                                                }`}>
+                                                    {item.letter}
+                                                </span>
                                             )}
 
                                             <div className="text-center space-y-1">
@@ -338,17 +402,15 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                                                 <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1px] bg-sky-400/15" />
                                                                 <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[1px] bg-amber-400/20" />
                                                             </div>
-                                                            <div className="absolute inset-0 flex items-center justify-center p-5">
-                                                                <svg viewBox="0 0 100 100" className="w-full h-full text-[#FBBF24] drop-shadow-[0_0_15px_rgba(245,158,11,0.7)]">
-                                                                    <path 
-                                                                        d={PALEO_HEBREW_PATHS[selectedLetter.name] || ''} 
-                                                                        fill="none" 
-                                                                        stroke="currentColor" 
-                                                                        strokeWidth="7" 
-                                                                        strokeLinecap="round" 
-                                                                        strokeLinejoin="round" 
-                                                                    />
-                                                                </svg>
+                                                            <div className="absolute inset-0 flex items-center justify-center p-3">
+                                                                <img 
+                                                                    src={PALEO_IMAGE_MAP[selectedLetter.name] || ''} 
+                                                                    alt={`${selectedLetter.name} Paleo-Hebrew letter`}
+                                                                    className="w-full h-full object-contain"
+                                                                    style={{
+                                                                        filter: 'drop-shadow(0 0 12px rgba(251, 191, 36, 0.8)) brightness(1.1) hue-rotate(40deg) saturate(1.8)'
+                                                                    }}
+                                                                />
                                                             </div>
                                                             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-amber-500/80 border border-amber-400 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full whitespace-nowrap">
                                                                 Paleo-Hebrew
@@ -406,7 +468,7 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                                         <button
                                                             onClick={() => {
                                                                 if (selectedIndex === null) return;
-                                                                handlePlay(selectedIndex, selectedLetter.hebrewName);
+                                                                handleHebrewPlay(selectedIndex, selectedLetter.hebrewName);
                                                             }}
                                                             className="h-9 px-3.5 rounded-xl bg-[#F59E0B]/15 border border-[#F59E0B]/40 text-[#FBBF24] text-xs font-bold tracking-wide hover:bg-[#F59E0B]/25 transition-colors flex items-center gap-1.5"
                                                         >
@@ -417,7 +479,7 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                                                 if (selectedIndex === null) return;
                                                                 // Strip vowels and space out letters to force spelling
                                                                 const consonants = selectedLetter.hebrewName.replace(/[\u0591-\u05C7]/g, '');
-                                                                handlePlay(selectedIndex, consonants.split('').join(' '), 0.55);
+                                                                handleHebrewPlay(selectedIndex, consonants.split('').join(' '), 0.55, true);
                                                             }}
                                                             className="h-9 px-3.5 rounded-xl bg-white/10 border border-white/20 text-white text-xs font-bold tracking-wide hover:bg-white/20 transition-colors flex items-center gap-1.5"
                                                         >
@@ -425,8 +487,8 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                                         </button>
                                                         <button
                                                             onClick={() => {
-                                                                if (!selectedLetter) return;
-                                                                audioService.playTamil(selectedLetter.tamilGuide, 0.78);
+                                                                if (selectedIndex === null || !selectedLetter) return;
+                                                                handleTamilTeachingPlay(selectedIndex, selectedLetter.tamilGuide);
                                                             }}
                                                             className="h-9 px-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-300 text-xs font-bold tracking-wide hover:bg-emerald-500/20 transition-colors flex items-center gap-1.5"
                                                         >
@@ -442,11 +504,15 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                                         wordText={selectedLetter.hebrewName}
                                                         phonetic={selectedLetter.latinPronunciation}
                                                         tamilPhonetic={selectedLetter.tamilPronunciation}
+                                                        tamilSyllables={TAMIL_PRONUNCIATION_PARTS[selectedLetter.letter]}
                                                         lang="he"
                                                         theme="blue"
-                                                        autoPlay={true}
+                                                        autoPlay={false}
                                                         showControls={true}
                                                         size={180}
+                                                        externalPlayKey={mouthPlayKey}
+                                                        externalSlow={mouthSlow}
+                                                        externalMode={mouthMode}
                                                     />
                                                 </div>
                                             </div>
@@ -462,7 +528,7 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                     <Sparkles className="mx-auto text-white/30" size={36} />
                     <p className="text-[10px] md:text-xs uppercase tracking-[0.28em] text-white/40 font-black">Quick Snapshot</p>
-                    <div className="grid sm:grid-cols-3 gap-3 md:gap-4 max-w-3xl mx-auto">
+                    <div className="grid sm:grid-cols-2 gap-3 md:gap-4 max-w-3xl mx-auto">
                         <div className="rounded-2xl border border-[#F59E0B]/35 bg-[#F59E0B]/12 px-4 py-4">
                             <div className="text-3xl md:text-4xl font-black text-[#FBBF24] leading-none">{letterCount}</div>
                             <p className="text-[10px] md:text-xs font-black tracking-[0.14em] uppercase text-[#F59E0B]/80 mt-2">Letters</p>
@@ -470,10 +536,6 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                         <div className="rounded-2xl border border-white/20 bg-white/10 px-4 py-4">
                             <div className="text-3xl md:text-4xl font-black text-white leading-none">{letterCount}</div>
                             <p className="text-[10px] md:text-xs font-black tracking-[0.14em] uppercase text-white/70 mt-2">Name Words</p>
-                        </div>
-                        <div className="rounded-2xl border border-emerald-400/35 bg-emerald-500/10 px-4 py-4">
-                            <div className="text-3xl md:text-4xl font-black text-emerald-300 leading-none">5</div>
-                            <p className="text-[10px] md:text-xs font-black tracking-[0.14em] uppercase text-emerald-200/80 mt-2">Final Forms</p>
                         </div>
                     </div>
                     <p className="text-white/30 text-[11px] md:text-xs font-bold">Tap a letter card to learn pronunciation with mouth animation.</p>

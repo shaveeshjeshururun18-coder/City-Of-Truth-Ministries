@@ -40,7 +40,7 @@ interface AdminIDCardProps {
     sizeVariation?: 'standard' | 'large' | 'extralarge' | 'compact';
 }
 
-export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user, onPhotoClick, onCotIdClick, onLocationClick, onMemberSinceClick, onThemeChange, sizeVariation = 'standard' }) => {
+export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user, onPhotoClick, onCotIdClick, onLocationClick, onMemberSinceClick, sizeVariation = 'standard' }) => {
     const qrData = `CITY OF TRUTH MINISTRIES\nID: ${user.id}\nName: ${user.name}\nRole: ${user.role}`;
     const tone = user.cardThemeTone || 'blue';
     const qrColor = {
@@ -69,8 +69,11 @@ export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user, onPhotoClick, on
             icon: "text-sky-300",
             detailsText: "text-sky-100",
             footer: "bg-white/10 border-sky-200/30 text-sky-100",
+            footerIdText: "text-sky-50",
+            copyrightText: "text-sky-100/70",
             decor1: "bg-sky-300/20",
-            decor2: "bg-blue-400/15"
+            decor2: "bg-blue-400/15",
+            foil: "from-sky-200/0 via-sky-100/20 to-transparent"
         },
         purple: {
             header: "from-[#1f1147] via-[#6d28d9] to-[#d946ef]",
@@ -87,8 +90,11 @@ export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user, onPhotoClick, on
             icon: "text-fuchsia-200",
             detailsText: "text-fuchsia-50",
             footer: "bg-white/10 border-fuchsia-200/30 text-fuchsia-100",
+            footerIdText: "text-fuchsia-50",
+            copyrightText: "text-fuchsia-100/70",
             decor1: "bg-fuchsia-300/20",
-            decor2: "bg-violet-300/15"
+            decor2: "bg-violet-300/15",
+            foil: "from-fuchsia-200/0 via-fuchsia-100/20 to-transparent"
         },
         green: {
             header: "from-emerald-950 via-emerald-800 to-teal-500",
@@ -105,26 +111,32 @@ export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user, onPhotoClick, on
             icon: "text-emerald-200",
             detailsText: "text-emerald-50",
             footer: "bg-white/10 border-emerald-200/30 text-emerald-100",
+            footerIdText: "text-emerald-50",
+            copyrightText: "text-emerald-100/70",
             decor1: "bg-emerald-300/20",
-            decor2: "bg-teal-300/15"
+            decor2: "bg-teal-300/15",
+            foil: "from-emerald-200/0 via-emerald-100/20 to-transparent"
         },
         red: {
-            header: "from-rose-500 to-red-600",
-            body: "from-rose-50 via-red-50 to-rose-100",
-            border: "border-red-200",
-            headerText: "text-red-100",
-            rolePill: "bg-white/20 border-white/30 text-white",
-            photoBorder: "border-white bg-red-100",
-            photoIcon: "text-red-300",
-            qrBorder: "border-red-200",
-            name: "text-red-900",
-            idBtn: "text-red-600 bg-red-100 border-red-200 hover:bg-red-200 focus-visible:ring-red-300",
-            detailsBtn: "hover:bg-red-100/70 focus-visible:ring-red-300",
-            icon: "text-red-500",
-            detailsText: "text-red-800",
-            footer: "bg-white/70 border-red-200 text-red-500",
-            decor1: "bg-red-200/40",
-            decor2: "bg-red-300/30"
+            header: "from-[#3f0713] via-[#8f1230] to-[#f43f5e]",
+            body: "from-[#21040a] via-[#4c0718] to-[#9f1239]",
+            border: "border-rose-300/55",
+            headerText: "text-rose-100",
+            rolePill: "bg-white/10 border-rose-100/40 text-white",
+            photoBorder: "border-rose-100 bg-rose-950",
+            photoIcon: "text-rose-200",
+            qrBorder: "border-rose-300/60",
+            name: "text-white",
+            idBtn: "text-rose-100 bg-rose-300/15 border-rose-200/40 hover:bg-rose-200/20 focus-visible:ring-rose-300",
+            detailsBtn: "hover:bg-white/10 focus-visible:ring-rose-300",
+            icon: "text-rose-200",
+            detailsText: "text-rose-50",
+            footer: "bg-white/10 border-rose-200/35 text-rose-100",
+            footerIdText: "text-rose-50",
+            copyrightText: "text-rose-100/70",
+            decor1: "bg-rose-200/20",
+            decor2: "bg-red-300/15",
+            foil: "from-rose-200/0 via-rose-100/20 to-transparent"
         },
         gold: {
             header: "from-[#2a1606] via-[#a16207] to-[#fbbf24]",
@@ -141,8 +153,11 @@ export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user, onPhotoClick, on
             icon: "text-amber-200",
             detailsText: "text-amber-50",
             footer: "bg-white/10 border-amber-200/35 text-amber-100",
+            footerIdText: "text-amber-50",
+            copyrightText: "text-amber-100/75",
             decor1: "bg-amber-200/25",
-            decor2: "bg-yellow-300/15"
+            decor2: "bg-yellow-300/15",
+            foil: "from-amber-200/0 via-amber-100/25 to-transparent"
         },
         lightblue: {
             header: "from-blue-400 via-sky-500 to-blue-500",
@@ -159,8 +174,11 @@ export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user, onPhotoClick, on
             icon: "text-blue-700",
             detailsText: "text-blue-900",
             footer: "bg-white/40 border-blue-200 text-blue-800",
+            footerIdText: "text-blue-950",
+            copyrightText: "text-blue-900/65",
             decor1: "bg-blue-300/20",
-            decor2: "bg-sky-300/15"
+            decor2: "bg-sky-300/15",
+            foil: "from-white/0 via-white/40 to-transparent"
         }
     }[tone];
 
@@ -169,11 +187,15 @@ export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user, onPhotoClick, on
             whileHover={{ y: -6, scale: 1.02 }}
             className={`group relative w-full bg-gradient-to-br ${themeClasses.body} rounded-3xl shadow-xl border ${themeClasses.border} overflow-hidden`}
         >
+            <div className={`absolute inset-0 bg-gradient-to-br ${themeClasses.foil} opacity-80 pointer-events-none`} />
+            <div className="absolute inset-[1px] rounded-[1.35rem] border border-white/10 pointer-events-none" />
+            <div className="absolute left-5 right-5 top-[3.55rem] h-px bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
             {/* Top Header Bar */}
-            <div className={`bg-gradient-to-r ${themeClasses.header} px-5 py-3 flex items-center justify-between`}>
+            <div className={`relative z-10 bg-gradient-to-r ${themeClasses.header} px-5 py-3 flex items-center justify-between`}>
                 <div>
                     <p className={`text-[9px] font-black uppercase tracking-[0.25em] ${themeClasses.headerText}`}>City of Truth</p>
                     <p className="text-[11px] font-bold text-white uppercase tracking-widest leading-tight">Ministries</p>
+                    <p className="mt-0.5 text-[7px] font-black uppercase tracking-[0.22em] text-white/65">Official Entrust ID - Copyright 2026</p>
                 </div>
                 <div className={`flex items-center gap-1.5 backdrop-blur px-2.5 py-1 rounded-full border ${themeClasses.rolePill}`}>
                     <ShieldCheck size={11} className="text-white" />
@@ -182,7 +204,7 @@ export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user, onPhotoClick, on
             </div>
 
             {/* Card Body */}
-            <div className="p-5 flex gap-4">
+            <div className="relative z-10 p-5 flex gap-4">
                 {/* Photo */}
                 <div className="shrink-0 flex flex-col items-center gap-2">
                     <button
@@ -260,39 +282,16 @@ export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user, onPhotoClick, on
                         </button>
                     </div>
 
-                    {/* Theme Customizer Dots */}
-                    {onThemeChange && (
-                        <div className="flex items-center gap-1.5 mt-2 pt-1 border-t border-slate-200/20">
-                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest shrink-0">Theme:</span>
-                            <div className="flex items-center gap-1">
-                                {(['blue', 'purple', 'green', 'red', 'gold'] as const).map((t) => (
-                                    <button
-                                        key={t}
-                                        type="button"
-                                        onClick={(event) => {
-                                            event.stopPropagation();
-                                            onThemeChange(t);
-                                        }}
-                                        className={`w-3.5 h-3.5 rounded-full border transition-all ${
-                                            t === 'blue' ? 'bg-blue-500 border-blue-600' :
-                                            t === 'purple' ? 'bg-purple-500 border-purple-600' :
-                                            t === 'green' ? 'bg-emerald-500 border-emerald-600' :
-                                            t === 'red' ? 'bg-rose-500 border-rose-600' :
-                                            'bg-amber-400 border-amber-500'
-                                        } ${tone === t ? 'ring-2 ring-slate-400 ring-offset-1 scale-110' : 'hover:scale-110 opacity-70 hover:opacity-100'}`}
-                                        title={`Set card theme to ${t}`}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
 
             {/* Footer Strip */}
-            <div className={`mx-5 mb-4 backdrop-blur border rounded-2xl px-3 py-2.5 flex items-center justify-between gap-3 ${themeClasses.footer}`}>
-                <p className="text-[9px] font-mono tracking-widest truncate text-white/90">
+            <div className={`relative z-10 mx-5 mb-4 backdrop-blur border rounded-2xl px-3 py-2.5 flex items-center justify-between gap-3 ${themeClasses.footer}`}>
+                <p className={`text-[9px] font-mono tracking-widest truncate ${themeClasses.footerIdText}`}>
                     {user.id}
+                </p>
+                <p className={`text-[7px] font-black uppercase tracking-[0.18em] truncate ${themeClasses.copyrightText}`}>
+                    Copyright 2026 - City of Truth Ministries
                 </p>
                 {user.status && (
                     <div className="flex items-center shrink-0">

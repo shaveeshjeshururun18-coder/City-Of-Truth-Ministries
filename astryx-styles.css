@@ -1,3 +1,195 @@
 @import '@astryxdesign/core/reset.css';
 @import '@astryxdesign/core/astryx.css';
 @import '@astryxdesign/theme-neutral/theme.css';
+
+/* Royal Hebrew Theme - Divine Assistant Widget */
+
+/* Custom Scrollbar for Premium Feel */
+.scroll-smooth::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scroll-smooth::-webkit-scrollbar-track {
+  background: rgba(30, 58, 138, 0.05);
+  border-radius: 10px;
+}
+
+.scroll-smooth::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%);
+  border-radius: 10px;
+  border: 2px solid rgba(248, 250, 255, 1);
+  transition: all 0.3s ease;
+}
+
+.scroll-smooth::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%);
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.4);
+}
+
+/* Firefox Scrollbar */
+.scroll-smooth {
+  scrollbar-color: #1E3A8A rgba(30, 58, 138, 0.05);
+  scrollbar-width: thin;
+}
+
+
+
+/* Smooth Transitions */
+* {
+  transition: box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+
+
+/* ========== DARK THEME STYLES ========== */
+
+.dark-theme {
+  color-scheme: dark;
+}
+
+.dark-theme body,
+.dark-theme {
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+/* Background Colors */
+.dark-theme .bg-white,
+.dark-theme .bg-slate-50,
+.dark-theme .bg-gray-50 {
+  background-color: #1e293b;
+}
+
+.dark-theme .bg-slate-100,
+.dark-theme .bg-gray-100 {
+  background-color: #334155;
+}
+
+.dark-theme .bg-slate-200,
+.dark-theme .bg-gray-200 {
+  background-color: #475569;
+}
+
+.dark-theme .bg-slate-300,
+.dark-theme .bg-gray-300 {
+  background-color: #64748b;
+}
+
+/* Border Colors */
+.dark-theme .border-slate-200,
+.dark-theme .border-gray-200,
+.dark-theme .border-slate-300,
+.dark-theme .border-gray-300 {
+  border-color: #334155;
+}
+
+.dark-theme .border-slate-400,
+.dark-theme .border-gray-400 {
+  border-color: #475569;
+}
+
+/* Text Colors */
+.dark-theme .text-slate-900,
+.dark-theme .text-gray-900 {
+  color: #e2e8f0;
+}
+
+.dark-theme .text-slate-800,
+.dark-theme .text-gray-800 {
+  color: #cbd5e1;
+}
+
+.dark-theme .text-slate-700,
+.dark-theme .text-gray-700 {
+  color: #cbd5e1;
+}
+
+.dark-theme .text-slate-600,
+.dark-theme .text-gray-600 {
+  color: #94a3b8;
+}
+
+.dark-theme .text-slate-500,
+.dark-theme .text-gray-500 {
+  color: #64748b;
+}
+
+.dark-theme .text-slate-400,
+.dark-theme .text-gray-400 {
+  color: #475569;
+}
+
+/* Hover States */
+.dark-theme .hover\:bg-slate-100:hover,
+.dark-theme .hover\:bg-gray-100:hover {
+  background-color: #334155;
+}
+
+.dark-theme .hover\:bg-slate-200:hover,
+.dark-theme .hover\:bg-gray-200:hover {
+  background-color: #475569;
+}
+
+.dark-theme .hover\:text-slate-900:hover,
+.dark-theme .hover\:text-gray-900:hover {
+  color: #e2e8f0;
+}
+
+/* Shadows */
+.dark-theme .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+.dark-theme .shadow {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.6);
+}
+
+.dark-theme .shadow-md {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.7);
+}
+
+.dark-theme .shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.8);
+}
+
+.dark-theme .shadow-xl {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.9);
+}
+
+/* Form Elements */
+.dark-theme input,
+.dark-theme textarea,
+.dark-theme select {
+  background-color: #1e293b;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+
+.dark-theme input:focus,
+.dark-theme textarea:focus,
+.dark-theme select:focus {
+  background-color: #334155;
+  border-color: #475569;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
+}
+
+/* Modal & Dialog Backgrounds */
+.dark-theme .modal,
+.dark-theme [role="dialog"],
+.dark-theme .fixed.inset-0 > div {
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+/* ========== LIGHT THEME STYLES ========== */
+
+.light-theme {
+  color-scheme: light;
+}
+
+.light-theme body,
+.light-theme {
+  background-color: #ffffff;
+  color: #1e293b;
+}

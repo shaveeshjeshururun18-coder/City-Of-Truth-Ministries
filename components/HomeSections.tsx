@@ -1,10 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Star, ArrowRight, BookOpen, MapPin, Globe, Sparkles, MessageSquare, QrCode, Heart, Users } from 'lucide-react';
+import { Star, ArrowRight, BookOpen, MapPin, Globe, Sparkles, MessageSquare, QrCode, Heart, Users, Mountain, Leaf, CloudRain, Video, Sun, Music, FileText, Eye } from 'lucide-react';
 import { ViewState, User } from '../types';
 import { MessageFromLeader } from './MessageFromLeader';
 import { HEBREW_PAGES } from '../hebrewRegistry';
+import { LordIconWrapper } from './LordIconWrapper';
 
 const useSectionInfo = (sectionId: string, defaultName: string, defaultDesc: string) => {
     return React.useMemo(() => {
@@ -31,9 +32,9 @@ interface SectionProps {
 export const MinistryHighlights: React.FC<SectionProps> = ({ setView }) => {
     const { name, desc } = useSectionInfo('highlights', 'Our Ministries', 'A Legacy of Service and Faith');
     const ministries = [
-        { name: 'Spiritual Gatherings', icon: <Sparkles size={24} />, color: 'bg-blue-500' },
-        { name: 'Youth Ministry', icon: <Star size={24} />, color: 'bg-amber-500' },
-        { name: 'Community Impact', icon: <Globe size={24} />, color: 'bg-green-500' },
+        { name: 'Spiritual Gatherings', Icon: Sparkles, color: 'bg-blue-500' },
+        { name: 'Youth Ministry', Icon: Star, color: 'bg-amber-500' },
+        { name: 'Community Impact', Icon: Users, color: 'bg-green-500' },
     ];
 
     return (
@@ -72,7 +73,7 @@ export const MinistryHighlights: React.FC<SectionProps> = ({ setView }) => {
                             className="group relative p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 hover:border-brand-200 transition-colors"
                         >
                             <div className={`w-14 h-14 ${m.color} text-white rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-brand-500/10`}>
-                                {m.icon}
+                                <m.Icon size={28} className="text-white" />
                             </div>
                             <h3 className="text-2xl font-bold text-brand-950 mb-3">{m.name}</h3>
                             <p className="text-slate-500 text-sm leading-relaxed mb-6">
@@ -152,166 +153,196 @@ export const HebrewSanctuaryIntro: React.FC<SectionProps> = ({ setView }) => {
 };
 
 export const HebrewPagesPreviewSection: React.FC<SectionProps> = ({ setView }) => {
-    const { name, desc } = useSectionInfo('hebrewPages', 'All Page Previews', 'Every Page Preview on Home');
+    const { name, desc } = useSectionInfo('hebrewPages', 'Pages', 'Manage all dynamic pages with visibility controls.');
     const navigate = useNavigate();
 
-    type PreviewItem = {
-        name: string;
-        description: string;
-        view?: ViewState;
-        href?: string;
-    };
-
-    const openPreviewItem = (item: PreviewItem) => {
-        if (item.view) {
-            setView(item.view);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            return;
-        }
-        if (item.href) {
-            if (item.href.startsWith('/')) {
-                navigate(item.href);
-                return;
-            }
-            window.location.assign(item.href);
-        }
-    };
-
-    const previewGroups = [
-        {
-            title: 'Hebrew Content',
-            icon: <BookOpen size={18} />,
-            wrapperClass: 'bg-gradient-to-br from-brand-50 to-white border-brand-100',
-            titleClass: 'text-brand-950',
-            actionClass: 'text-brand-600 hover:text-brand-700',
-            itemClass: 'border-brand-100 hover:border-brand-300 hover:bg-brand-50/60',
-            accentClass: 'text-brand-700',
-            ctaView: ViewState.ABOUT,
-            items: [
-                { name: 'Hebrew Hub', view: ViewState.ABOUT, description: 'Main Hebrew learning landing page' },
-                ...HEBREW_PAGES.filter(p => p.type === 'content').map(p => ({
-                    name: p.label,
-                    view: p.isStandalone ? undefined : p.view,
-                    href: p.route,
-                    description: p.description
-                }))
-            ],
-        },
-        {
-            title: 'Hebrew Tools',
-            icon: <Sparkles size={18} />,
-            wrapperClass: 'bg-gradient-to-br from-amber-50 to-white border-amber-100',
-            titleClass: 'text-brand-950',
-            actionClass: 'text-amber-700 hover:text-amber-800',
-            itemClass: 'border-amber-100 hover:border-amber-300 hover:bg-amber-50/70',
-            accentClass: 'text-amber-800',
-            ctaView: ViewState.HEBREW_TOOLS,
-            items: [
-                { name: 'Tools Hub', view: ViewState.HEBREW_TOOLS, description: 'Launch all Hebrew study tools' },
-                ...HEBREW_PAGES.filter(p => p.type === 'tools').map(p => ({
-                    name: p.label,
-                    view: p.view,
-                    description: p.description
-                }))
-            ],
-        },
-        {
-            title: 'Ministry Pages',
-            icon: <Globe size={18} />,
-            wrapperClass: 'bg-gradient-to-br from-emerald-50 to-white border-emerald-100',
-            titleClass: 'text-brand-950',
-            actionClass: 'text-emerald-700 hover:text-emerald-800',
-            itemClass: 'border-emerald-100 hover:border-emerald-300 hover:bg-emerald-50/70',
-            accentClass: 'text-emerald-800',
-            ctaView: ViewState.MINISTRIES,
-            items: [
-                { name: 'Home', view: ViewState.HOME, description: 'Return to the main landing page' },
-                { name: 'Ministries', view: ViewState.MINISTRIES, description: 'See ministry areas and service focus' },
-                { name: 'Pastor Page', view: ViewState.PASTOR, description: 'Meet the shepherd and vision' },
-                { name: 'Valparai Sanctuary', view: ViewState.ABOUT_VALPARAI, description: 'Visit the hill-station presence' },
-                { name: 'Golden Menorah', view: ViewState.GOLDEN_MENORAH, description: 'Symbolism and sacred design' },
-                { name: 'Baruch Hashem', view: ViewState.BARUCH_HASHEM, description: 'Praise-centered visual worship page' },
-                { name: 'AI Assistance', view: ViewState.AI, description: 'Ask ministry and Bible questions' },
-            ],
-        },
-        {
-            title: 'Connect & Access',
-            icon: <Users size={18} />,
-            wrapperClass: 'bg-gradient-to-br from-violet-50 to-white border-violet-100',
-            titleClass: 'text-brand-950',
-            actionClass: 'text-violet-700 hover:text-violet-800',
-            itemClass: 'border-violet-100 hover:border-violet-300 hover:bg-violet-50/70',
-            accentClass: 'text-violet-800',
-            ctaView: ViewState.ID_CARD,
-            items: [
-                { name: 'Entrust Card', view: ViewState.ID_CARD, description: 'Registration and digital identity card' },
-                { name: 'Contact Page', view: ViewState.CONTACT, description: 'Reach the ministry directly' },
-                { name: 'Verify ID', view: ViewState.VERIFY_ID, description: 'Member verification portal' },
-                { name: 'Login Page', href: '/auth?view=login', description: 'Open member login route' },
-                { name: 'Register Page', href: '/auth?view=register', description: 'Open member registration route' },
-                { name: 'Forgot ID Page', href: '/auth?view=forgot-id', description: 'Recover your member ID route' },
-                { name: 'Admin Dashboard', href: '/admin', description: 'Open protected admin dashboard route' },
-            ],
-        },
+    const ALL_PAGES = [
+        // Hebrew Content
+        { id: 'HEBREW', label: 'Hebrew Hub', category: 'Hebrew Content', desc: 'Main Hebrew learning landing page' },
+        { id: 'HEBREW_WORDS', label: 'Hebrew Words', category: 'Hebrew Content', desc: 'Interactive word explorer' },
+        { id: 'HEBREW_LETTERS_AUDIO', label: 'Hebrew Letters Audio', category: 'Hebrew Content', desc: 'Pronunciation guide' },
+        { id: 'HEBREW_GEMATRIA', label: 'Gematria Calculator', category: 'Hebrew Content', desc: 'Numerical value finder' },
+        { id: 'HEBREW_FESTIVALS', label: 'Festivals', category: 'Hebrew Content', desc: 'Sacred calendar events' },
+        { id: 'HEBREW_GRAMMAR', label: 'Grammar Guide', category: 'Hebrew Content', desc: 'Language structure lessons' },
+        { id: 'HEBREW_REFERENCE', label: 'Quick Reference', category: 'Hebrew Content', desc: 'Essential resources' },
+        { id: 'HEBREW_ISRAEL', label: 'Israel Guide', category: 'Hebrew Content', desc: 'Geographic & cultural info' },
+        { id: 'PDF_DOWNLOADS', label: 'Download PDFs', category: 'Hebrew Content', desc: 'Resource PDFs & documents' },
+        // Hebrew Tools
+        { id: 'HEBREW_TOOLS', label: 'Tools Hub', category: 'Hebrew Tools', desc: 'Launch all Hebrew study tools' },
+        { id: 'HEBREW_CALENDAR', label: 'Hebrew Calendar', category: 'Hebrew Tools', desc: 'Sacred calendar view' },
+        { id: 'HEBREW_CLOCK', label: 'Hebrew Clock', category: 'Hebrew Tools', desc: 'Time display converter' },
+        { id: 'HEBREW_NUMBERS', label: 'Hebrew Numbers', category: 'Hebrew Tools', desc: 'Numeric system converter' },
+        // Ministry Pages
+        { id: 'HOME', label: 'Home', category: 'Ministry Pages', desc: 'Main landing page' },
+        { id: 'MINISTRIES', label: 'Ministries', category: 'Ministry Pages', desc: 'Service focus & areas' },
+        { id: 'PASTOR', label: 'Pastor Page', category: 'Ministry Pages', desc: 'Meet the shepherd' },
+        { id: 'ABOUT_VALPARAI', label: 'Valparai Sanctuary', category: 'Ministry Pages', desc: 'Hill-station presence' },
+        { id: 'GOLDEN_MENORAH', label: 'Golden Menorah', category: 'Ministry Pages', desc: 'Sacred design & symbolism' },
+        { id: 'BARUCH_HASHEM', label: 'Baruch Hashem', category: 'Ministry Pages', desc: 'Praise-centered worship' },
+        { id: 'AI', label: 'AI Assistance', category: 'Ministry Pages', desc: 'Divine Assistant Q&A' },
+        // Connect & Access
+        { id: 'ID_CARD', label: 'Entrust Card', category: 'Connect & Access', desc: 'Digital identity card' },
+        { id: 'CONTACT', label: 'Contact Page', category: 'Connect & Access', desc: 'Ministry contact form' },
+        { id: 'VERIFY_ID', label: 'Verify ID', category: 'Connect & Access', desc: 'Member verification' },
+        { id: 'AUTH', label: 'Auth Pages', category: 'Connect & Access', desc: 'Login/Register/Forgot ID' },
+        { id: 'MEMBER_FORM', label: 'Member Form', category: 'Connect & Access', desc: 'Registration form' },
+        { id: 'USER_DASHBOARD', label: 'User Dashboard', category: 'Connect & Access', desc: 'Member portal' },
+        { id: 'ADMIN_DASHBOARD', label: 'Admin Dashboard', category: 'Connect & Access', desc: 'Admin control panel' },
+        // Other Pages
+        { id: 'ABOUT', label: 'About', category: 'Other Pages', desc: 'Organization information' },
+        { id: 'MENORAH', label: 'Menorah', category: 'Other Pages', desc: 'Menorah visualization' },
+        { id: 'MENORAH_FLAG', label: 'Menorah Flag', category: 'Other Pages', desc: 'Flag design view' },
+        { id: 'DEVELOPER', label: 'Developer', category: 'Other Pages', desc: 'Development info' },
+        { id: 'BUGS_FIXED', label: 'Bugs Fixed', category: 'Other Pages', desc: 'Changelog & fixes' },
     ];
+
+    const handleOpenPage = (pageId: string) => {
+        const pageMap: Record<string, ViewState | string> = {
+            'HEBREW': ViewState.HEBREW,
+            'HEBREW_WORDS': ViewState.HEBREW_WORDS,
+            'HEBREW_LETTERS_AUDIO': ViewState.HEBREW_LETTERS_AUDIO,
+            'HEBREW_GEMATRIA': ViewState.HEBREW_GEMATRIA,
+            'HEBREW_FESTIVALS': ViewState.HEBREW_FESTIVALS,
+            'HEBREW_GRAMMAR': ViewState.HEBREW_GRAMMAR,
+            'HEBREW_REFERENCE': ViewState.HEBREW_REFERENCE,
+            'HEBREW_ISRAEL': ViewState.HEBREW_ISRAEL,
+            'HEBREW_TOOLS': ViewState.HEBREW_TOOLS,
+            'HEBREW_CALENDAR': ViewState.HEBREW_CALENDAR,
+            'HEBREW_CLOCK': ViewState.HEBREW_CLOCK,
+            'HEBREW_NUMBERS': ViewState.HEBREW_NUMBERS,
+            'HOME': ViewState.HOME,
+            'MINISTRIES': ViewState.MINISTRIES,
+            'PASTOR': ViewState.PASTOR,
+            'ABOUT_VALPARAI': ViewState.ABOUT_VALPARAI,
+            'GOLDEN_MENORAH': ViewState.GOLDEN_MENORAH,
+            'BARUCH_HASHEM': ViewState.BARUCH_HASHEM,
+            'AI': ViewState.AI,
+            'ID_CARD': ViewState.ID_CARD,
+            'CONTACT': ViewState.CONTACT,
+            'VERIFY_ID': ViewState.VERIFY_ID,
+        };
+
+        const target = pageMap[pageId];
+        if (target && typeof target === 'string') {
+            setView(target as ViewState);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    };
+
+    const categoryStyles = {
+        'Hebrew Content': {
+            wrapperClass: 'bg-gradient-to-br from-brand-50 to-white border-brand-100',
+            headerClass: 'bg-gradient-to-r from-brand-600 to-brand-700',
+            icon: <BookOpen size={24} />,
+            iconColor: 'text-white',
+            badge: 'bg-brand-100 text-brand-700',
+            linkColor: 'text-slate-900 group-hover:text-brand-600',
+            descColor: 'text-slate-500',
+        },
+        'Hebrew Tools': {
+            wrapperClass: 'bg-gradient-to-br from-amber-50 to-white border-amber-100',
+            headerClass: 'bg-gradient-to-r from-amber-600 to-amber-700',
+            icon: <Sparkles size={24} />,
+            iconColor: 'text-white',
+            badge: 'bg-amber-100 text-amber-700',
+            linkColor: 'text-slate-900 group-hover:text-amber-600',
+            descColor: 'text-slate-500',
+        },
+        'Ministry Pages': {
+            wrapperClass: 'bg-gradient-to-br from-emerald-50 to-white border-emerald-100',
+            headerClass: 'bg-gradient-to-r from-emerald-600 to-emerald-700',
+            icon: <Globe size={24} />,
+            iconColor: 'text-white',
+            badge: 'bg-emerald-100 text-emerald-700',
+            linkColor: 'text-slate-900 group-hover:text-emerald-600',
+            descColor: 'text-slate-500',
+        },
+        'Connect & Access': {
+            wrapperClass: 'bg-gradient-to-br from-violet-50 to-white border-violet-100',
+            headerClass: 'bg-gradient-to-r from-violet-600 to-violet-700',
+            icon: <Users size={24} />,
+            iconColor: 'text-white',
+            badge: 'bg-violet-100 text-violet-700',
+            linkColor: 'text-slate-900 group-hover:text-violet-600',
+            descColor: 'text-slate-500',
+        },
+        'Other Pages': {
+            wrapperClass: 'bg-gradient-to-br from-orange-50 to-white border-orange-100',
+            headerClass: 'bg-gradient-to-r from-orange-600 to-orange-700',
+            icon: <FileText size={24} />,
+            iconColor: 'text-white',
+            badge: 'bg-orange-100 text-orange-700',
+            linkColor: 'text-slate-900 group-hover:text-orange-600',
+            descColor: 'text-slate-500',
+        }
+    };
 
     return (
         <section className="py-24 bg-white">
             <div className="container mx-auto px-6">
-                <div className="text-center mb-14">
+                {/* Header */}
+                <div className="text-center mb-16">
                     <span className="inline-flex items-center gap-2 bg-brand-50 text-brand-700 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em]">
-                        <BookOpen size={12} /> {name}
+                        <Eye size={12} /> {name}
                     </span>
                     <h2 className="mt-5 text-4xl md:text-6xl font-serif font-black text-brand-950 tracking-tight">
                         {desc}
                     </h2>
                     <p className="mt-5 max-w-3xl mx-auto text-slate-500 text-base md:text-lg leading-relaxed">
-                        Browse Hebrew content, Hebrew tools, ministry highlights, and community access pages directly from the home section before opening the full page.
+                        Browse all {ALL_PAGES.length} pages organized by category. Click any page to explore the full content.
                     </p>
                 </div>
 
-                <div className="grid xl:grid-cols-2 gap-8">
-                    {previewGroups.map((group, groupIndex) => (
-                        <motion.div
-                            key={group.title}
-                            initial={{ opacity: 0, y: 18 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: groupIndex * 0.08 }}
-                            className={`rounded-[2.5rem] border p-8 ${group.wrapperClass}`}
-                        >
-                            <div className="flex items-center justify-between gap-4 mb-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-11 h-11 rounded-2xl bg-white shadow-sm border border-white/80 flex items-center justify-center text-brand-700">
-                                        {group.icon}
+                {/* Page Groups Grid */}
+                <div className="grid xl:grid-cols-2 gap-6 mb-12">
+                    {['Hebrew Content', 'Hebrew Tools', 'Ministry Pages', 'Connect & Access', 'Other Pages'].map((category, catIdx) => {
+                        const categoryPages = ALL_PAGES.filter(p => p.category === category);
+                        const styles = categoryStyles[category as keyof typeof categoryStyles];
+
+                        return (
+                            <motion.div
+                                key={category}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: catIdx * 0.08 }}
+                                className="rounded-2xl border border-slate-200 shadow-md bg-white overflow-hidden"
+                            >
+                                {/* Category Header — matches live site style */}
+                                <div className={`${styles.headerClass} px-6 py-5 flex items-center justify-between`}>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                                            <div className={styles.iconColor}>{styles.icon}</div>
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-bold text-white leading-tight">{category}</h3>
+                                            <p className="text-white/70 text-xs">Preview the pages available from this section.</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 className={`text-2xl font-bold ${group.titleClass}`}>{group.title}</h3>
-                                        <p className="text-xs font-medium text-slate-500 mt-1">Preview the pages available from this section.</p>
-                                    </div>
-                                </div>
-                                <button
-                                    id={group.title === 'Hebrew Content' ? 'tour-hebrew-content-open' : group.title === 'Hebrew Tools' ? 'tour-hebrew-tools-open' : undefined}
-                                    onClick={() => setView(group.ctaView)}
-                                    className={`shrink-0 text-xs font-black uppercase tracking-wider ${group.actionClass}`}
-                                >
-                                    Open <ArrowRight size={14} className="inline ml-1" />
-                                </button>
-                            </div>
-                            <div className="grid sm:grid-cols-2 gap-3">
-                                {group.items.map((item) => (
                                     <button
-                                        key={item.name}
-                                        onClick={() => openPreviewItem(item)}
-                                        className={`bg-white border rounded-2xl px-4 py-4 text-left transition-all hover:-translate-y-0.5 ${group.itemClass}`}
+                                        onClick={() => handleOpenPage(categoryPages[0]?.id)}
+                                        className="flex items-center gap-1 text-white/90 hover:text-white text-xs font-bold uppercase tracking-wider transition-colors"
                                     >
-                                        <div className={`text-sm font-black ${group.accentClass}`}>{item.name}</div>
-                                        <div className="mt-1 text-xs leading-relaxed text-slate-500">{item.description}</div>
+                                        OPEN <span className="text-base">→</span>
                                     </button>
-                                ))}
-                            </div>
-                        </motion.div>
-                    ))}
+                                </div>
+
+                                {/* Pages as plain text links — matches live site */}
+                                <div className="p-5 grid grid-cols-2 gap-x-6 gap-y-4">
+                                    {categoryPages.map((page) => (
+                                        <button
+                                            key={page.id}
+                                            onClick={() => handleOpenPage(page.id)}
+                                            className="text-left group"
+                                        >
+                                            <p className={`font-semibold text-sm transition-colors ${styles.linkColor}`}>{page.label}</p>
+                                            <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{page.desc}</p>
+                                        </button>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        );
+                    })}
                 </div>
             </div>
         </section>
@@ -405,18 +436,18 @@ export const PastorBaruchPreviewSection: React.FC<SectionProps> = ({ setView }) 
                         </div>
                     </motion.div>
 
-                    {/* Baruch Hashem Showcase */}
+                    {/* Baruch Hashem Showcase - ENLARGED */}
                     <motion.div 
                         initial={{ opacity: 0, y: 36 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true, amount: 0.2 }}
                         transition={{ duration: 0.7, delay: 0.1, ease: "easeOut" }}
-                        className="group relative overflow-hidden rounded-[2rem] border border-amber-200 bg-[#fffaf0] shadow-[0_34px_90px_-52px_rgba(180,83,9,0.4)]"
+                        className="group relative overflow-hidden rounded-[2.5rem] border border-amber-200 bg-[#fffaf0] shadow-[0_34px_90px_-52px_rgba(180,83,9,0.4)]"
                     >
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,rgba(251,191,36,0.22),transparent_34%),radial-gradient(circle_at_84%_82%,rgba(248,113,113,0.18),transparent_30%)]" />
-                        <div className="relative grid items-center min-h-[340px] lg:grid-cols-[1.5fr_0.5fr]">
-                            <div className="relative order-2 h-[280px] lg:h-[320px] max-w-[260px] mx-auto w-full lg:order-2 p-4 sm:p-5 lg:p-6">
-                                <div className="relative h-full w-full overflow-hidden rounded-[1.5rem] border-[6px] border-white bg-amber-50 shadow-xl ring-1 ring-amber-100">
+                        <div className="relative grid items-center min-h-[500px] lg:grid-cols-[1.5fr_1fr] gap-6 lg:gap-10">
+                            <div className="relative order-2 h-[420px] lg:h-[500px] max-w-[420px] mx-auto w-full lg:order-2 p-5 sm:p-6 lg:p-8">
+                                <div className="relative h-full w-full overflow-hidden rounded-[1.75rem] border-[8px] border-white bg-amber-50 shadow-2xl ring-1 ring-amber-100">
                                     <img 
                                         src="/barch_hasem/New folder/ஆத்தும நன்றி பள்ளிகள் wrapper (1).jpg" 
                                         alt="Baruch Hashem Worship" 
@@ -425,32 +456,32 @@ export const PastorBaruchPreviewSection: React.FC<SectionProps> = ({ setView }) 
                                     <div className="absolute inset-0 bg-gradient-to-t from-amber-950/80 via-amber-900/20 to-transparent" />
                                     <div className="absolute inset-3 rounded-xl border border-white/20 pointer-events-none" />
                                     <div className="absolute bottom-6 left-6 right-6">
-                                        <div className="mb-3 h-1 w-16 rounded-full bg-orange-400 transition-all duration-500 group-hover:w-32" />
-                                        <h3 className="text-3xl font-serif font-black tracking-tight text-white drop-shadow md:text-4xl">Baruch Hashem</h3>
+                                        <div className="mb-3 h-1.5 w-20 rounded-full bg-orange-400 transition-all duration-500 group-hover:w-40" />
+                                        <h3 className="text-4xl font-serif font-black tracking-tight text-white drop-shadow md:text-5xl">Baruch Hashem</h3>
                                     </div>
                                 </div>
                             </div>
                             
-                            <div className="relative order-1 flex flex-col justify-center px-6 pb-8 pt-6 sm:px-8 lg:px-10 lg:py-8">
-                                <div className="mb-6 flex items-center justify-between">
-                                    <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg shadow-orange-500/20">
-                                        <Sparkles size={24} />
+                            <div className="relative order-1 flex flex-col justify-center px-6 pb-10 pt-8 sm:px-10 lg:px-14 lg:py-12">
+                                <div className="mb-10 flex items-center justify-between">
+                                    <div className="inline-flex h-20 w-20 items-center justify-center rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg shadow-orange-500/20">
+                                        <Sparkles size={36} />
                                     </div>
-                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 text-amber-800 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] border border-amber-200">
-                                        <Sparkles size={10} className="text-amber-600" /> Worship
+                                    <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 text-amber-800 px-5 py-3 text-xs font-bold uppercase tracking-[0.15em] border border-amber-200">
+                                        <Sparkles size={13} className="text-amber-600" /> Worship
                                     </span>
                                 </div>
-                                <p className="mb-3 text-[11px] font-black uppercase tracking-[0.25em] text-orange-600">Hebrew Tamil Praise</p>
-                                <h4 className="mb-4 text-2xl font-serif font-black leading-tight tracking-tight text-brand-950 md:text-3xl">
+                                <p className="mb-5 text-sm font-black uppercase tracking-[0.25em] text-orange-600">Hebrew Tamil Praise</p>
+                                <h4 className="mb-7 text-4xl font-serif font-black leading-tight tracking-tight text-brand-950 md:text-5xl">
                                     A majestic gallery for praise and devotion.
                                 </h4>
-                                <p className="mb-8 text-base leading-relaxed text-slate-700">
+                                <p className="mb-12 text-lg leading-relaxed text-slate-700">
                                     Immerse yourself in divine worship and experience the presence of God through pure praise.
                                 </p>
-                                <button onClick={() => setView(ViewState.BARUCH_HASHEM)} className="group/btn relative overflow-hidden inline-flex w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-8 py-4 text-[15px] font-black text-white shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(245,158,11,0.6)] active:scale-95 sm:w-auto">
+                                <button onClick={() => setView(ViewState.BARUCH_HASHEM)} className="group/btn relative overflow-hidden inline-flex w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-10 py-6 text-lg font-black text-white shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(245,158,11,0.6)] active:scale-95 sm:w-auto">
                                     <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover/btn:translate-x-full transition-transform duration-1000 ease-in-out" />
                                     <span className="relative z-10 flex items-center gap-2">
-                                        Visit Baruch Hashem <ArrowRight size={18} className="transition-transform duration-300 group-hover/btn:translate-x-2 group-hover/btn:scale-125" />
+                                        Visit Baruch Hashem <ArrowRight size={20} className="transition-transform duration-300 group-hover/btn:translate-x-2 group-hover/btn:scale-125" />
                                     </span>
                                 </button>
                             </div>
@@ -464,32 +495,150 @@ export const PastorBaruchPreviewSection: React.FC<SectionProps> = ({ setView }) 
 
 export const ValparaiPresence: React.FC<SectionProps> = ({ setView }) => {
     return (
-        <section className="py-24 bg-brand-950 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-1/2 h-full opacity-10 bg-[url('https://images.unsplash.com/photo-1542332213-31f87348057f?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center" />
+        <section className="py-32 bg-gradient-to-br from-brand-950 via-brand-900 to-brand-950 relative overflow-hidden">
+            {/* Animated Background Elements */}
+            <div className="absolute top-0 right-0 w-1/2 h-full opacity-15 bg-[url('https://images.unsplash.com/photo-1542332213-31f87348057f?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center" />
+            <div className="absolute top-20 left-10 w-72 h-72 bg-accent-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse" />
+            <div className="absolute -bottom-32 right-20 w-96 h-96 bg-accent-300 rounded-full mix-blend-multiply filter blur-3xl opacity-5" />
 
             <div className="container mx-auto px-6 relative z-10">
-                <div className="max-w-3xl">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                    {/* Left Content */}
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        className="inline-flex items-center gap-2 bg-white/10 text-white px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] mb-6 border border-white/10"
+                        initial={{ opacity: 0, x: -40 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.8 }}
+                        className="space-y-8"
                     >
-                        <MapPin size={12} className="text-accent-400" />
-                        Valparai Sanctuary
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            whileInView={{ opacity: 1, scale: 1 }}
+                            className="inline-flex items-center gap-3 bg-white/10 text-white px-6 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-[0.25em] border border-accent-400/30 backdrop-blur-sm"
+                        >
+                            <MapPin size={14} className="text-accent-400" />
+                            வால்பாறை புனிதத்தளம்
+                        </motion.div>
+
+                        <div className="space-y-6">
+                            <h2 className="text-6xl md:text-7xl font-serif font-black text-white leading-[1.1] tracking-tight">
+                                வால்பாறைப் <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-400 via-accent-300 to-accent-200">சரணம்</span>
+                            </h2>
+                            
+                            <p className="text-lg text-white/70 font-light leading-relaxed max-w-2xl">
+                                மூடுபனிப் புரவலஞ்சாலைகளுக்கு இடையே தனிமையாய் இருக்கும் எமது ஆன்மீக வாழ்க்கையின் மூலம் ஆண்டவரின் சரணத்தை அவிழ்ந்தெடுங்கள். இங்கு இயற்கையும் வழிபாடும் ஐக்கியமாய் திருமண்ணின் வேதத்தை கண்டறியங்கள்.
+                            </p>
+
+                            <div className="grid grid-cols-3 gap-4 pt-4">
+                                <motion.div
+                                    whileHover={{ scale: 1.05 }}
+                                    className="bg-gradient-to-br from-white/10 to-white/5 border border-accent-400/30 rounded-2xl p-4 text-center backdrop-blur-md shadow-[0_0_15px_rgba(251,191,36,0.1)] relative overflow-hidden group"
+                                >
+                                    <div className="absolute inset-0 bg-accent-400/20 blur-xl rounded-full scale-0 group-hover:scale-150 transition-transform duration-500"></div>
+                                    <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-br from-accent-400 to-amber-600 rounded-full flex items-center justify-center shadow-lg relative z-10">
+                                        <Mountain size={24} className="text-white drop-shadow-md" />
+                                    </div>
+                                    <p className="text-xs font-black text-white uppercase tracking-wider relative z-10 drop-shadow-sm">மலைக் கூடம்</p>
+                                </motion.div>
+                                <motion.div
+                                    whileHover={{ scale: 1.05 }}
+                                    className="bg-gradient-to-br from-white/10 to-white/5 border border-emerald-400/30 rounded-2xl p-4 text-center backdrop-blur-md shadow-[0_0_15px_rgba(52,211,153,0.1)] relative overflow-hidden group"
+                                >
+                                    <div className="absolute inset-0 bg-emerald-400/20 blur-xl rounded-full scale-0 group-hover:scale-150 transition-transform duration-500"></div>
+                                    <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-br from-emerald-400 to-green-600 rounded-full flex items-center justify-center shadow-lg relative z-10">
+                                        <Leaf size={24} className="text-white drop-shadow-md" />
+                                    </div>
+                                    <p className="text-xs font-black text-white uppercase tracking-wider relative z-10 drop-shadow-sm">பசுமை நிலம்</p>
+                                </motion.div>
+                                <motion.div
+                                    whileHover={{ scale: 1.05 }}
+                                    className="bg-gradient-to-br from-white/10 to-white/5 border border-cyan-400/30 rounded-2xl p-4 text-center backdrop-blur-md shadow-[0_0_15px_rgba(34,211,238,0.1)] relative overflow-hidden group"
+                                >
+                                    <div className="absolute inset-0 bg-cyan-400/20 blur-xl rounded-full scale-0 group-hover:scale-150 transition-transform duration-500"></div>
+                                    <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg relative z-10">
+                                        <CloudRain size={24} className="text-white drop-shadow-md" />
+                                    </div>
+                                    <p className="text-xs font-black text-white uppercase tracking-wider relative z-10 drop-shadow-sm">பொழில் சோலை</p>
+                                </motion.div>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => setView(ViewState.ABOUT_VALPARAI)}
+                                className="group flex items-center justify-center gap-3 bg-gradient-to-r from-accent-400 to-accent-300 text-brand-950 px-10 py-4 rounded-full font-black text-sm hover:shadow-2xl hover:shadow-accent-400/50 transition-all uppercase tracking-widest"
+                            >
+                                புனிதத்தளத்திற்குச் செல்லுங்கள்
+                                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                            </motion.button>
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className="group flex items-center justify-center gap-2 border-2 border-white/30 text-white px-10 py-4 rounded-full font-bold text-sm hover:border-accent-400 hover:bg-white/10 transition-all uppercase tracking-wide"
+                            >
+                                <Video size={18} />
+                                பிரசாரங்கள்
+                            </motion.button>
+                        </div>
                     </motion.div>
-                    <h2 className="text-5xl md:text-8xl font-serif font-black text-white leading-[0.8] tracking-tighter mb-8">
-                        A Haven in the <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-400 to-accent-200 italic font-light whitespace-nowrap">Mist-Clad Hills</span>
-                    </h2>
-                    <p className="text-xl text-white/60 font-light leading-relaxed mb-12 max-w-2xl">
-                        Experience the serenity of our spiritual home nestled among the tea estates of Valparai, where nature and worship meet.
-                    </p>
-                    <button
-                        onClick={() => setView(ViewState.ABOUT_VALPARAI)}
-                        className="group flex items-center gap-4 bg-white text-brand-950 px-10 py-5 rounded-full font-black text-sm hover:bg-accent-400 hover:text-brand-950 transition-all uppercase tracking-widest"
+
+                    {/* Right Visual Stats */}
+                    <motion.div
+                        initial={{ opacity: 0, x: 40 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.8 }}
+                        className="space-y-6"
                     >
-                        Visit the Sanctuary
-                        <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform" />
-                    </button>
+                        <div className="bg-gradient-to-br from-white/10 to-white/5 border border-accent-400/20 rounded-3xl p-8 backdrop-blur-xl">
+                            <h3 className="text-white font-bold text-lg mb-6 flex items-center gap-2">
+                                <Sparkles size={20} className="text-accent-400" />
+                                பரிசுத்த அனுபவங்கள்
+                            </h3>
+                            <div className="space-y-4">
+                                {[
+                                    { icon: Sun, color: 'text-amber-400', title: 'நாள்தோறும் ஆராதனை', desc: 'சூரியோதயத்திலும் மாலையிலும்' },
+                                    { icon: BookOpen, color: 'text-blue-400', title: 'வேத அத்யயனம்', desc: 'ஆண்டவரின் திருவாக்கைக் கேளுங்கள்' },
+                                    { icon: Music, color: 'text-pink-400', title: 'ஆன்மீக பாடல்கள்', desc: 'நிலைத்த மெய்நிலை அனுபவங்கள்' },
+                                    { icon: Users, color: 'text-emerald-400', title: 'சமுதாய சேவை', desc: 'ஒன்றாய் பணிபுரியும் குடும்பம்' }
+                                ].map((item, i) => (
+                                    <motion.div
+                                        key={i}
+                                        initial={{ opacity: 0, x: 20 }}
+                                        whileInView={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: i * 0.1 }}
+                                        className="flex gap-4 items-start p-4 bg-white/5 rounded-2xl border border-white/10 hover:border-accent-400/30 transition-all group"
+                                    >
+                                        <div className={`p-2.5 rounded-xl bg-white/5 border border-white/10 group-hover:scale-110 group-hover:bg-white/10 transition-all ${item.color}`}>
+                                            <item.icon size={24} />
+                                        </div>
+                                        <div className="flex-1 pt-1">
+                                            <h4 className="text-white font-bold text-sm mb-1">{item.title}</h4>
+                                            <p className="text-white/60 text-xs leading-relaxed">{item.desc}</p>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Stats Cards */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <motion.div
+                                whileHover={{ scale: 1.05, y: -5 }}
+                                className="bg-gradient-to-br from-accent-400/20 to-transparent border border-accent-400/30 rounded-2xl p-6 text-center backdrop-blur-sm"
+                            >
+                                <p className="text-3xl font-black text-accent-300 mb-2">200+</p>
+                                <p className="text-white/60 text-xs font-bold uppercase tracking-wide">குடும்பங்கள்</p>
+                            </motion.div>
+                            <motion.div
+                                whileHover={{ scale: 1.05, y: -5 }}
+                                className="bg-gradient-to-br from-accent-400/20 to-transparent border border-accent-400/30 rounded-2xl p-6 text-center backdrop-blur-sm"
+                            >
+                                <p className="text-3xl font-black text-accent-300 mb-2">15 வருஷ்</p>
+                                <p className="text-white/60 text-xs font-bold uppercase tracking-wide">சேவை கதை</p>
+                            </motion.div>
+                        </div>
+                    </motion.div>
                 </div>
             </div>
         </section>

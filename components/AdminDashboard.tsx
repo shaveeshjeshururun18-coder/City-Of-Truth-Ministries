@@ -9,7 +9,7 @@ import {
     Sparkles, CircleUser, Menu, Youtube, Facebook, Instagram, UploadCloud, Zap, Share2, Sun,
     Type, Volume2, Hash, Calculator, BookOpen, Languages, Clock3, Flame, ExternalLink, AlertTriangle, Bell
 } from 'lucide-react';
-import { User, UserRole, UserStatus, Testimonial, Ministry, DeletedUser, Permalink } from '../types';
+import { User, UserRole, UserStatus, Testimonial, Ministry, DeletedUser, Permalink, MemberNotification, MessageKind } from '../types';
 import { Button } from './Button';
 import { api } from '../services/api';
 import { getOpenRouterKeyDetails, getOpenRouterModelDetails, setSelectedOpenRouterModel } from '../services/openRouterService';
@@ -17,6 +17,7 @@ import { firebaseConfig, storage } from '../services/firebase';
 import { getDownloadURL, listAll, ref as storageRef, uploadBytes } from 'firebase/storage';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import JSZip from 'jszip';
 import { ImageCropper } from './ImageCropper';
 import { EntrustCard3D } from './WorshipperIDCard';
@@ -85,17 +86,7 @@ interface ContactMessage {
     autoDeleteAt?: string;
 }
 
-interface MemberNotification {
-    id: string;
-    userId: string;
-    from: 'admin' | 'user';
-    message: string;
-    createdAt: string;
-    read?: boolean;
-    deletedAt?: string;
-    autoDeleteAt?: string;
-    imageUrl?: string;
-}
+
 
 interface AdminDashboardProps {
     users: User[];
@@ -1188,6 +1179,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [applyingCardThemeTone, setApplyingCardThemeTone] = useState<User['cardThemeTone'] | null>(null);
     const [isBulkDownloading, setIsBulkDownloading] = useState(false);
     const [bulkDownloadFormat, setBulkDownloadFormat] = useState<'pdf' | 'zip'>('pdf');
+    const [bulkDownloadGrouping, setBulkDownloadGrouping] = useState<'user-wise' | 'theme-wise' | 'location-wise' | 'status-wise' | 'memberSince-wise'>('user-wise');
+    const [analyticsTimeFrame, setAnalyticsTimeFrame] = useState<'day' | 'month' | 'year'>('day');
     const [bulkDownloadType, setBulkDownloadType] = useState<'Interest Card' | 'Cart ID' | 'Location' | 'Join date' | 'ID Card' | 'All'>('ID Card');
 
     const [activeTab, setActiveTab] = useState<AdminTabId>('users');

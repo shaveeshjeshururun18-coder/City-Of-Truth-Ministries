@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, Maximize2, Minimize2, Loader, Sparkles, MessageCircle, Heart, Trash2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { X, Send, Maximize2, Minimize2, Loader, Trash2, BookOpen, ChevronRight } from 'lucide-react';
+import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { generateSpatulaAIResponse } from '../services/openRouterService';
+import LordIconWrapper from './LordIconWrapper';
 
 interface Message {
     id: string;
@@ -14,22 +15,45 @@ interface Message {
 export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { isAdmin?: boolean; onHelpHighlight?: (target: string, title: string, message: string) => void }) {
     const [isOpen, setIsOpen] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
+    // Looping label visibility state: cycles between shown and hidden
+    const [labelVisible, setLabelVisible] = useState(true);
+    const labelCycleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const labelControls = useAnimation();
+    const [position, setPosition] = useState(() => {
+        try {
+            const saved = localStorage.getItem('cot_chat_widget_position');
+            return saved ? JSON.parse(saved) : { x: 0, y: 0 };
+        } catch {
+            return { x: 0, y: 0 };
+        }
+    });
+
+    const handleDragEnd = (_event: any, info: any) => {
+        const newPos = {
+            x: position.x + info.offset.x,
+            y: position.y + info.offset.y
+        };
+        setPosition(newPos);
+        try {
+            localStorage.setItem('cot_chat_widget_position', JSON.stringify(newPos));
+        } catch {}
+    };
     const [widgetSettings, setWidgetSettings] = useState(() => {
         try {
             const saved = localStorage.getItem('cot_widget_settings');
             const defaults = {
-                aiVisible: true,
-                aiSize: 1,
-                aiLabelVisible: true,
-                aiLabelText: 'Ask Divine AI Assistant',
+                cotChatVisible: true,
+                cotChatSize: 1,
+                cotChatLabelVisible: true,
+                cotChatLabelText: 'Ask Divine AI Assistant',
             };
             return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
         } catch {
             return {
-                aiVisible: true,
-                aiSize: 1,
-                aiLabelVisible: true,
-                aiLabelText: 'Ask Divine AI Assistant',
+                cotChatVisible: true,
+                cotChatSize: 1,
+                cotChatLabelVisible: true,
+                cotChatLabelText: 'Ask Divine AI Assistant',
             };
         }
     });
@@ -38,12 +62,46 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
         const handleWidgetSettingsUpdate = () => {
             try {
                 const saved = localStorage.getItem('cot_widget_settings');
-                if (saved) setWidgetSettings(JSON.parse(saved));
+                if (saved) {
+                    const defaults = {
+                        cotChatVisible: true,
+                        cotChatSize: 1,
+                        cotChatLabelVisible: true,
+                        cotChatLabelText: 'Ask Divine AI Assistant',
+                    };
+                    setWidgetSettings({ ...defaults, ...JSON.parse(saved) });
+                }
             } catch (e) {}
         };
         window.addEventListener('widget-settings-updated', handleWidgetSettingsUpdate);
         return () => window.removeEventListener('widget-settings-updated', handleWidgetSettingsUpdate);
     }, []);
+
+    // Looping label animation: appear for 3.5s, slide out, wait 2s, repeat
+    useEffect(() => {
+        if (isOpen) return;
+        if (!(widgetSettings.cotChatLabelVisible ?? true)) return;
+
+        let cancelled = false;
+        const cycle = async () => {
+            while (!cancelled) {
+                // Slide IN from right
+                await labelControls.start({ opacity: 1, x: 0, transition: { duration: 0.5, ease: [0.34, 1.56, 0.64, 1] } });
+                // Stay visible
+                await new Promise(r => setTimeout(r, 3500));
+                if (cancelled) break;
+                // Slide OUT back to the right (goes inside/disappears)
+                await labelControls.start({ opacity: 0, x: 28, transition: { duration: 0.45, ease: [0.4, 0, 1, 1] } });
+                // Hidden pause
+                await new Promise(r => setTimeout(r, 2000));
+                if (cancelled) break;
+            }
+        };
+        // Start hidden
+        labelControls.set({ opacity: 0, x: 28 });
+        setTimeout(cycle, 800); // small initial delay
+        return () => { cancelled = true; };
+    }, [isOpen, widgetSettings.cotChatLabelVisible, widgetSettings.cotChatLabelText, labelControls]);
 
     const [messages, setMessages] = useState<Message[]>(() => {
         try {
@@ -131,9 +189,10 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
         };
     }, [isOpen, messages.length]);
 
-    const addBotMessage = (text: string, options?: string[]) => {
+    const addBotMessage = (text: string, options?: string[]): string => {
+        const id = Date.now().toString();
         const newMessage: Message = {
-            id: Date.now().toString(),
+            id,
             text,
             sender: 'bot',
             timestamp: new Date(),
@@ -141,6 +200,7 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
         };
         setMessages(prev => [...prev, newMessage]);
         setIsTyping(false);
+        return id;
     };
 
     const addUserMessage = (text: string) => {
@@ -213,19 +273,19 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
                 }
             }
 
-            // Convert app message format to history format for service
-            const chatHistory = messages.map(m => ({
-                role: m.sender === 'user' ? 'user' : 'model',
-                content: m.text
-            }));
-
-            const responseText = await generateSpatulaAIResponse(userMessage);
-
-            addBotMessage(responseText,
-                isAdmin
-                    ? ["Show me how to manage Users", "How to manage ID cards", "What is COT ID Manager?", "How to use Firebase tab"]
-                    : ["Learn about ministry", "Service times", "Contact us"]
+            // Stream the response word-by-word
+            const botMsgId = addBotMessage('', isAdmin
+                ? ["Show me how to manage Users", "How to manage ID cards", "What is COT ID Manager?", "How to use Firebase tab"]
+                : ["Learn about ministry", "Service times", "Contact us"]
             );
+
+            let fullText = '';
+            await streamSpatulaAIResponse(userMessage, (chunk) => {
+                fullText += chunk;
+                setMessages(prev => prev.map(m =>
+                    m.id === botMsgId ? { ...m, text: fullText } : m
+                ));
+            });
         } catch (error) {
             console.error("Error getting AI response:", error);
             addBotMessage("I apologize, but I'm having trouble connecting right now. Please try again later.", ["Try again"]);
@@ -255,57 +315,82 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
     };
 
     return (
-        <div ref={containerRef} className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+        <div ref={containerRef} className="fixed inset-0 pointer-events-none z-50">
             <AnimatePresence>
                 {/* Floating Chat Button */}
-                {!isOpen && widgetSettings.aiVisible !== false && (
+                {!isOpen && widgetSettings.cotChatVisible !== false && (
                     <motion.button
                         key="launcher"
                         id="ai-chat-launcher-btn"
-                        initial={{ scale: 0, rotate: -180 }}
-                        animate={{ scale: 1 * (widgetSettings?.aiSize || 1), rotate: 0 }}
+                        drag
+                        dragMomentum={false}
+                        dragElastic={0.08}
+                        onDragEnd={handleDragEnd}
+                        initial={{ scale: 0, rotate: -180, x: position.x, y: position.y }}
+                        animate={{
+                            scale: 1 * (widgetSettings?.cotChatSize || 1),
+                            rotate: 0,
+                            x: position.x,
+                            y: [position.y, position.y - 7, position.y, position.y - 4, position.y],
+                        }}
+                        transition={{
+                            scale: { duration: 0.5, ease: 'backOut' },
+                            rotate: { duration: 0.5, ease: 'backOut' },
+                            y: { duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay: 0.6 }
+                        }}
                         exit={{ scale: 0, rotate: 180 }}
-                        whileHover={{ scale: 1.1 * (widgetSettings?.aiSize || 1), cursor: 'grab' }}
-                        whileTap={{ scale: 0.9 * (widgetSettings?.aiSize || 1) }}
+                        whileHover={{ scale: 1.12 * (widgetSettings?.cotChatSize || 1), cursor: 'grab' }}
+                        whileTap={{ scale: 0.88 * (widgetSettings?.cotChatSize || 1) }}
                         onClick={() => setIsOpen(true)}
-                        className="pointer-events-auto fixed bottom-6 right-6 z-50 w-12 h-12 md:w-16 md:h-16 rounded-full shadow-2xl flex items-center justify-center bg-gradient-to-tr from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 border border-white/20 backdrop-blur-md group"
-                        style={{ touchAction: 'none' }}
-                        title={widgetSettings.aiLabelText || 'Ask Divine AI Assistant'}
-                        aria-label={widgetSettings.aiLabelText || 'Ask Divine AI Assistant'}
+                        className="pointer-events-auto fixed bottom-[100px] right-6 z-50 w-14 h-14 md:w-16 md:h-16 rounded-full shadow-2xl flex items-center justify-center border-2 border-amber-400/60 group"
+                        style={{
+                            touchAction: 'none',
+                            background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #1e40af 100%)',
+                            boxShadow: '0 0 0 0 rgba(251,191,36,0.5), 0 8px 32px rgba(15,23,42,0.7)'
+                        }}
+                        title={widgetSettings.cotChatLabelText || 'Ask Divine AI Assistant'}
+                        aria-label={widgetSettings.cotChatLabelText || 'Ask Divine AI Assistant'}
                     >
-                        {(widgetSettings.aiLabelVisible ?? true) && (
-                            <motion.span
-                                initial={{ opacity: 0, x: 42, scaleX: 0.25, scaleY: 0.82 }}
-                                animate={{
-                                    opacity: [0, 1, 1, 0],
-                                    x: [42, 0, 0, 42],
-                                    scaleX: [0.25, 1, 1, 0.25],
-                                    scaleY: [0.82, 1, 1, 0.82],
-                                }}
-                                transition={{
-                                    duration: 5.2,
-                                    times: [0, 0.22, 0.7, 1],
-                                    repeat: Infinity,
-                                    repeatDelay: 0.8,
-                                    ease: 'easeInOut',
-                                }}
-                                style={{ transformOrigin: 'right center' }}
-                                className="absolute right-[calc(100%+14px)] top-1/2 -translate-y-1/2 whitespace-nowrap rounded-2xl border border-violet-200/80 bg-white/95 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-violet-800 shadow-[0_18px_50px_-22px_rgba(124,58,237,0.85)] backdrop-blur-md sm:px-4 sm:py-2.5 sm:text-xs pointer-events-none overflow-hidden"
-                            >
-                                <span className="flex items-center gap-2">
-                                    <span className="h-2 w-2 rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 shadow-[0_0_14px_rgba(124,58,237,0.75)]" />
-                                    {widgetSettings.aiLabelText || 'Ask Divine AI Assistant'}
-                                </span>
-                                <span className="absolute top-1/2 -right-1.5 h-3 w-3 -translate-y-1/2 rotate-45 border-r border-t border-violet-200/80 bg-white/95" />
-                            </motion.span>
-                        )}
-                        <div className="relative">
-                            <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-white fill-white/20" />
-                            <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                            </span>
-                        </div>
+                        <AnimatePresence>
+                            {(widgetSettings.cotChatLabelVisible ?? true) && (
+                                <motion.div
+                                    animate={labelControls}
+                                    initial={{ opacity: 0, x: 28 }}
+                                    style={{ transformOrigin: 'right center' }}
+                                    className="absolute right-[calc(100%+14px)] top-1/2 -translate-y-1/2 whitespace-nowrap rounded-2xl border border-amber-300/60 bg-[#0f172a]/95 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-amber-300 shadow-[0_8px_32px_rgba(15,23,42,0.9)] backdrop-blur-md sm:px-4 sm:py-2.5 sm:text-xs z-0 pointer-events-none overflow-hidden"
+                                >
+                                    <span className="flex items-center gap-2">
+                                        <span className="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)] animate-pulse" />
+                                        {widgetSettings.cotChatLabelText || 'Ask Divine AI Assistant'}
+                                    </span>
+                                    <div className="absolute top-1/2 -translate-y-1/2 -right-1.5 h-3 w-3 rotate-45 border-r border-t border-amber-300/60 bg-[#0f172a]/95" />
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/* Pulse ring */}
+                        <span className="absolute inset-0 rounded-full animate-ping opacity-30" style={{ background: 'radial-gradient(circle, rgba(251,191,36,0.6) 0%, transparent 70%)' }} />
+
+                        {/* COT Bible Icon — inline SVG, always renders */}
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#fde047"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="relative z-10 w-7 h-7 md:w-8 md:h-8 drop-shadow-[0_0_6px_rgba(253,224,71,0.8)]"
+                        >
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                        </svg>
+
+                        {/* Online dot */}
+                        <span className="absolute top-1 right-1 flex h-3 w-3 z-20">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border border-white/50"></span>
+                        </span>
                     </motion.button>
                 )}
 
@@ -323,49 +408,71 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
                             bottom: isExpanded ? 16 : 80
                         }}
                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="pointer-events-auto fixed bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl flex flex-col border border-white/40 overflow-hidden"
+                        className="pointer-events-auto fixed rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+                        style={{
+                            border: '1px solid rgba(251,191,36,0.25)',
+                            background: 'linear-gradient(180deg, #f8faff 0%, #ffffff 100%)',
+                            boxShadow: '0 32px 80px rgba(15,23,42,0.35), 0 0 0 1px rgba(251,191,36,0.15)'
+                        }}
                     >
                         {/* Header */}
-                        <div
-                            className="cursor-move bg-gradient-to-r from-violet-600 to-indigo-700 px-6 py-4 flex items-center justify-between shadow-lg"
+                        <div className="relative flex items-center justify-between px-4 py-3 shadow-lg overflow-hidden"
+                            style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0f2460 45%, #1e3a8a 100%)' }}
                         >
+                            {/* Gold shimmer line at top */}
+                            <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: 'linear-gradient(90deg, transparent, #D4AF37, #FDE047, #D4AF37, transparent)' }} />
+
                             <div className="flex items-center gap-3 select-none">
-                                <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-inner border border-white/10">
-                                    <Sparkles className="w-6 h-6 text-white" />
+                                {/* COT Logo avatar */}
+                                <div className="relative w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
+                                    style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(212,175,55,0.5)', boxShadow: '0 0 16px rgba(212,175,55,0.25)' }}
+                                >
+                                    <LordIconWrapper icon="bible" size={28} trigger="hover" colors={{ primary: '#FDE047', secondary: '#ffffff' }} />
+                                    <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border border-[#0f2460]"></span>
+                                    </span>
                                 </div>
                                 <div>
-                                    <h3 className="text-white font-bold text-lg leading-tight">Divine Help</h3>
-                                    <p className="text-violet-100/80 text-xs flex items-center gap-1.5 font-medium">
-                                        <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
-                                        Online
-                                    </p>
+                                    <h3 className="font-bold text-base leading-tight" style={{ color: '#FDE047', textShadow: '0 0 12px rgba(253,224,71,0.4)', fontFamily: 'Georgia, serif', letterSpacing: '0.02em' }}>Ancient Wisdom</h3>
+                                    <p className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: 'rgba(251,191,36,0.7)' }}>• Truth • Scripture • Prayer</p>
                                 </div>
                             </div>
+
                             <div className="flex items-center gap-1">
                                 <button
                                     onClick={handleClearChat}
-                                    className="text-white/70 hover:text-white hover:bg-white/10 p-2 rounded-xl transition-all"
+                                    className="text-amber-300/60 hover:text-amber-300 hover:bg-white/10 p-2 rounded-xl transition-all"
                                     title="Clear Chat"
                                 >
-                                    <Trash2 size={18} />
+                                    <Trash2 size={16} />
                                 </button>
                                 <button
                                     onClick={() => setIsExpanded(!isExpanded)}
-                                    className="text-white/70 hover:text-white hover:bg-white/10 p-2 rounded-xl transition-all"
+                                    className="text-amber-300/60 hover:text-amber-300 hover:bg-white/10 p-2 rounded-xl transition-all"
                                 >
-                                    {isExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                                    {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
                                 </button>
                                 <button
                                     onClick={() => setIsOpen(false)}
-                                    className="text-white/70 hover:text-red-400 hover:bg-white/10 p-2 rounded-xl transition-all"
+                                    className="text-amber-300/60 hover:text-red-400 hover:bg-white/10 p-2 rounded-xl transition-all"
                                 >
-                                    <X size={18} />
+                                    <X size={16} />
                                 </button>
                             </div>
                         </div>
 
+                        {/* Scripture banner */}
+                        <div className="px-4 py-2 flex items-center gap-2 text-[11px] font-medium" style={{ background: 'linear-gradient(90deg, #0f172a, #1e3a8a)', color: 'rgba(253,224,71,0.85)', borderBottom: '1px solid rgba(212,175,55,0.2)' }}>
+                            <BookOpen size={11} className="flex-shrink-0" style={{ color: '#D4AF37' }} />
+                            <span className="italic truncate">"Thy word is a lamp unto my feet" — Psalm 119:105</span>
+                            <ChevronRight size={11} className="flex-shrink-0 ml-auto opacity-50" />
+                        </div>
+
                         {/* Messages Container */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gradient-to-b from-violet-50/50 to-white/50 scroll-smooth custom-scrollbar">
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth custom-scrollbar"
+                            style={{ background: 'linear-gradient(180deg, #f0f4ff 0%, #fafbff 100%)' }}
+                        >
                             {messages.map((message) => (
                                 <motion.div
                                     key={message.id}
@@ -373,26 +480,35 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
                                     animate={{ opacity: 1, y: 0 }}
                                     className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                                 >
-                                    <div className={`flex gap-3 max-w-[85%] ${message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                                    <div className={`flex gap-2.5 max-w-[85%] ${message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
 
                                         {/* Avatar */}
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-md mt-1
-                                            ${message.sender === 'bot'
-                                                ? 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white'
-                                                : 'bg-gradient-to-br from-slate-700 to-slate-800 text-white'
-                                            }`}
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-md mt-1 overflow-hidden ${
+                                            message.sender === 'bot' ? '' : ''
+                                        }`}
+                                            style={message.sender === 'bot'
+                                                ? { background: 'linear-gradient(135deg, #0a1628, #1e3a8a)', border: '1.5px solid rgba(212,175,55,0.45)', boxShadow: '0 0 10px rgba(212,175,55,0.2)' }
+                                                : { background: 'linear-gradient(135deg, #0f172a, #1e293b)', border: '1.5px solid rgba(255,255,255,0.15)' }
+                                            }
                                         >
-                                            {message.sender === 'bot' ? <Sparkles size={14} /> : <div className="text-[10px] font-bold">YOU</div>}
+                                            {message.sender === 'bot'
+                                                ? <LordIconWrapper icon="bible" size={20} trigger="hover" colors={{ primary: '#fbbf24', secondary: '#ffffff' }} />
+                                                : <div className="text-[9px] font-black text-amber-300 tracking-tight">YOU</div>
+                                            }
                                         </div>
 
                                         <div className="flex flex-col gap-1 w-full">
                                             <div className="flex items-start gap-2 group/msg w-full">
                                                 <div
-                                                    className={`px-4 py-3 rounded-2xl shadow-sm text-sm leading-relaxed relative
-                                                    ${message.sender === 'bot'
-                                                            ? 'bg-white border border-gray-100 text-gray-700 rounded-tl-none'
-                                                            : 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-tr-none'
-                                                        }`}
+                                                    className={`px-4 py-3 rounded-2xl shadow-sm text-sm leading-relaxed relative ${
+                                                        message.sender === 'bot'
+                                                            ? 'rounded-tl-none text-gray-700'
+                                                            : 'text-white rounded-tr-none'
+                                                    }`}
+                                                    style={message.sender === 'bot'
+                                                        ? { background: '#ffffff', border: '1px solid rgba(212,175,55,0.2)', boxShadow: '0 2px 12px rgba(15,23,42,0.08)' }
+                                                        : { background: 'linear-gradient(135deg, #0f2460, #1e3a8a)', boxShadow: '0 4px 16px rgba(15,23,42,0.3)' }
+                                                    }
                                                 >
                                                     {message.text}
                                                 </div>
@@ -408,7 +524,7 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
                                                 {formatTime(message.timestamp)}
                                             </span>
 
-                                            {/* Option Buttons (Right Aligned for 'Reply' feel) */}
+                                            {/* Option Buttons */}
                                             {message.options && message.options.length > 0 && (
                                                 <div className="flex flex-wrap justify-end gap-2 mt-2">
                                                     {message.options.map((option, optIndex) => (
@@ -417,7 +533,8 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
                                                             whileTap={{ scale: 0.95 }}
                                                             key={optIndex}
                                                             onClick={() => handleOptionClick(option)}
-                                                            className="px-3 py-1.5 rounded-xl bg-white border border-violet-200 text-violet-600 text-xs font-semibold hover:bg-violet-50 hover:border-violet-300 transition-all shadow-sm"
+                                                            className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shadow-sm"
+                                                            style={{ background: '#fff', border: '1px solid rgba(30,58,138,0.25)', color: '#1e3a8a', boxShadow: '0 2px 8px rgba(15,23,42,0.08)' }}
                                                         >
                                                             {option}
                                                         </motion.button>
@@ -434,10 +551,11 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
                                 <motion.div
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="flex items-center gap-2 text-gray-400 text-xs ml-12"
+                                    className="flex items-center gap-2 text-xs ml-11"
+                                    style={{ color: '#64748b' }}
                                 >
-                                    <Loader className="animate-spin w-3 h-3" />
-                                    <span>Assistant is typing...</span>
+                                    <Loader className="animate-spin w-3 h-3" style={{ color: '#D4AF37' }} />
+                                    <span>Ancient Wisdom is pondering...</span>
                                 </motion.div>
                             )}
 
@@ -445,8 +563,10 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
                         </div>
 
                         {/* Input Area */}
-                        <div className="p-4 bg-white/80 backdrop-blur-md border-t border-gray-100">
-                            <form onSubmit={handleSendMessage} className="relative flex items-center gap-2 p-1.5 bg-gray-50 border border-gray-200 rounded-full shadow-inner focus-within:ring-2 focus-within:ring-violet-200 transition-all">
+                        <div className="p-3 backdrop-blur-md" style={{ background: 'rgba(255,255,255,0.95)', borderTop: '1px solid rgba(212,175,55,0.2)' }}>
+                            <form onSubmit={handleSendMessage} className="relative flex items-center gap-2 p-1.5 rounded-full shadow-inner focus-within:ring-2 transition-all"
+                                style={{ background: '#f1f5f9', border: '1px solid rgba(30,58,138,0.15)', boxShadow: 'inset 0 1px 4px rgba(15,23,42,0.07)' }}
+                            >
                                 <input
                                     type="text"
                                     value={inputValue}
@@ -459,14 +579,16 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
                                     whileTap={{ scale: 0.9 }}
                                     type="submit"
                                     disabled={!inputValue.trim()}
-                                    className="w-10 h-10 rounded-full bg-gradient-to-tr from-violet-600 to-indigo-600 text-white flex items-center justify-center shadow-lg hover:shadow-indigo-500/30 disabled:opacity-50 disabled:shadow-none transition-all"
+                                    className="w-10 h-10 rounded-full text-white flex items-center justify-center shadow-lg disabled:opacity-40 disabled:shadow-none transition-all flex-shrink-0"
+                                    style={{ background: 'linear-gradient(135deg, #D4AF37, #f0c93a)', boxShadow: '0 4px 16px rgba(212,175,55,0.45)' }}
                                 >
-                                    <Send size={16} className={inputValue.trim() ? "ml-0.5" : ""} />
+                                    <Send size={15} className={inputValue.trim() ? 'ml-0.5 text-[#0f172a]' : 'text-[#0f172a]'} />
                                 </motion.button>
                             </form>
-                            <div className="text-center mt-2.5">
-                                <span className="text-[10px] text-gray-400 font-medium tracking-wide">
-                                    powered by <span className="text-violet-500">S.Shaveesh Jeshurun</span>
+                            <div className="text-center mt-2">
+                                <span className="text-[10px] font-medium tracking-wide" style={{ color: '#94a3b8' }}>
+                                    <LordIconWrapper icon="bible" size={14} trigger="hover" colors={{ primary: '#D4AF37', secondary: '#94a3b8' }} className="inline-block mr-1 align-middle opacity-80" />
+                                    City of Truth Ministries
                                 </span>
                             </div>
                         </div>
