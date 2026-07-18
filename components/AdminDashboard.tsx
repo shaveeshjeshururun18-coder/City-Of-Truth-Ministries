@@ -133,7 +133,7 @@ const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any
 
 
 
-type AdminTabId = 'users' | 'edit-page' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin' | 'admin-tabs' | 'member-forms' | 'permalinks' | 'widgets' | 'notifications' | 'ai-analytics';
+type AdminTabId = 'users' | 'edit-page' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin' | 'admin-tabs' | 'member-forms' | 'permalinks' | 'widgets' | 'notifications' | 'ai-analytics' | 'baruch-hashem';
 type AdminTabConfig = { id: AdminTabId; label: string; icon: string; order: number; hidden: boolean };
 
 type WidgetSettingsConfig = {
@@ -1522,7 +1522,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     });
 
     const handleSaveSectionInfo = (sectionId: string, name: string, desc: string, hidden?: boolean) => {
-        const currentInfo = sectionsInfo[sectionId] || {};
+        const currentInfo: { name: string; desc: string; hidden?: boolean } = sectionsInfo[sectionId] || { name: '', desc: '', hidden: false };
         const next = { 
             ...sectionsInfo, 
             [sectionId]: { 
@@ -9708,9 +9708,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                             <span className="text-[10px] font-mono text-slate-400">({note.userId})</span>
                                                             <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
                                                                 note.kind === 'approved' ? 'bg-emerald-100 text-emerald-700' :
-                                                                note.kind === 'rejected' ? 'bg-red-100 text-red-700' :
-                                                                note.kind === 'alert' ? 'bg-amber-100 text-amber-700' :
-                                                                note.kind === 'update' ? 'bg-blue-100 text-blue-700' :
+                                                                note.kind === 'disapproved' ? 'bg-red-100 text-red-700' :
+                                                                note.kind === 'recycle' ? 'bg-amber-100 text-amber-700' :
+                                                                note.kind === 'leader' ? 'bg-blue-100 text-blue-700' :
                                                                 'bg-slate-100 text-slate-700'
                                                             }`}>
                                                                 {note.kind || 'message'}
