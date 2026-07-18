@@ -1,11 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import * as admin from 'firebase-admin';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getMessaging, MulticastMessage } from 'firebase-admin/messaging';
+import { getFirestore } from 'firebase-admin/firestore';
 
 // Initialize Firebase Admin if not already initialized
-if (!admin.apps.length) {
+if (!getApps().length) {
   try {
-    admin.initializeApp({
-      credential: admin.credential.cert({
+    initializeApp({
+      credential: cert({
         projectId: process.env.FIREBASE_PROJECT_ID,
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
         privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
@@ -24,7 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const db = admin.firestore();
+    const db = getFirestore();
     
     // 1. Check if the setting is enabled
     const settingsDoc = await db.collection("settings").doc("dailyGreeting").get();
@@ -86,7 +88,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     for (let i = 0; i < allTokens.length; i += maxChunkSize) {
       const tokenChunk = allTokens.slice(i, i + maxChunkSize);
       
-      const message: admin.messaging.MulticastMessage = {
+      const message: MulticastMessage = {
         tokens: tokenChunk,
         notification: {
           title: title,
@@ -99,7 +101,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       };
 
       try {
-        const response = await admin.messaging().sendEachForMulticast(message);
+        const response = await getMessaging().sendEachForMulticast(message);
         totalSuccess += response.successCount;
         totalFailures += response.failureCount;
       } catch (err) {
