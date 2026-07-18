@@ -19,7 +19,7 @@
   "crons": [
     {
       "path": "/api/dailyGreetings",
-      "schedule": "0 5,12,18,21 * * *"
+      "schedule": "0 5 * * *"
     }
   ]
 }
