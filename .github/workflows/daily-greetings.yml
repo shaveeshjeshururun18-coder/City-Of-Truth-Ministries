@@ -1,0 +1,28 @@
+name: Daily Hebrew Greetings
+
+on:
+  schedule:
+    # All times in UTC. Israel (IDT) is UTC+3 in summer.
+    - cron: '0 2 * * *'   # 05:00 Israel → Boker Tov (Morning)
+    - cron: '0 9 * * *'   # 12:00 Israel → Tzoharaim Tovim (Noon)
+    - cron: '0 15 * * *'  # 18:00 Israel → Erev Tov (Evening)
+    - cron: '0 18 * * *'  # 21:00 Israel → Laila Tov (Night)
+  workflow_dispatch: # Allow manual trigger from GitHub Actions UI
+
+jobs:
+  send-greeting:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Daily Hebrew Greeting
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.VERCEL_APP_URL }}/api/dailyGreetings")
+          echo "Response code: $response"
+          if [ "$response" -ge 200 ] && [ "$response" -lt 300 ]; then
+            echo "✅ Greeting sent successfully!"
+          else
+            echo "❌ Failed with HTTP $response"
+            exit 1
+          fi
