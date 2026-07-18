@@ -8120,7 +8120,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                             <button
                                                                 onClick={() => {
                                                                     // Toggle section visibility/hide
-                                                                    const currentInfo = sectionsInfo[sectionId] || {};
+                                                                    const currentInfo: { name: string; desc: string; hidden?: boolean } = sectionsInfo[sectionId] || { name: '', desc: '', hidden: false };
                                                                     const isHidden = currentInfo.hidden || false;
                                                                     handleSaveSectionInfo(
                                                                         sectionId, 
