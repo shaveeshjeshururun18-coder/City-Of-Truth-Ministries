@@ -1,0 +1,663 @@
+diff --git a/components/AdminDashboard.tsx b/components/AdminDashboard.tsx
+index 4549d91..b24aff6 100644
+--- a/components/AdminDashboard.tsx
++++ b/components/AdminDashboard.tsx
+@@ -12,7 +12,7 @@ import {
+ import { User, UserRole, UserStatus, Testimonial, Ministry, DeletedUser, Permalink } from '../types';
+ import { Button } from './Button';
+ import { api } from '../services/api';
+-import { getOpenRouterKeyDetails, getOpenRouterModelDetails } from '../services/openRouterService';
++import { getOpenRouterKeyDetails, getOpenRouterModelDetails, setSelectedOpenRouterModel } from '../services/openRouterService';
+ import { firebaseConfig, storage } from '../services/firebase';
+ import { getDownloadURL, listAll, ref as storageRef, uploadBytes } from 'firebase/storage';
+ import { toPng } from 'html-to-image';
+@@ -1234,6 +1234,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
+     const [aiKeyDetails, setAiKeyDetails] = useState<any>(null);
+     const [aiModelDetails, setAiModelDetails] = useState<any>(null);
+     const [isLoadingAiDetails, setIsLoadingAiDetails] = useState(true);
++    const [modelSearchQuery, setModelSearchQuery] = useState('');
++
++    const filteredModels = useMemo(() => {
++        const list = aiModelDetails?.allModels || [];
++        if (!modelSearchQuery.trim()) return list;
++        const q = modelSearchQuery.toLowerCase();
++        return list.filter((m: any) => 
++            (m.name || '').toLowerCase().includes(q) || 
++            (m.id || '').toLowerCase().includes(q)
++        );
++    }, [aiModelDetails, modelSearchQuery]);
++
++    const handleSelectModel = async (modelId: string) => {
++        try {
++            setSelectedOpenRouterModel(modelId);
++            const models = await getOpenRouterModelDetails();
++            setAiModelDetails(models);
++            alert(`AI Model successfully changed to:\n${modelId}`);
++        } catch (e) {
++            console.error('Failed to change AI Model:', e);
++            alert('Failed to change AI Model');
++        }
++    };
+ 
+     useEffect(() => {
+         if (activeTab === 'ai-analytics') {
+@@ -1388,6 +1411,48 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
+     const [adminPasswordMessage, setAdminPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+     const [memberFormPageUser, setMemberFormPageUser] = useState<any | null>(null);
+     const [showMemberFormEditor, setShowMemberFormEditor] = useState(false);
++    const [highlightedUserId, setHighlightedUserId] = useState<string | null>(null);
++
++    const handleGoToUserInList = (user: User) => {
++        // Clear filters to ensure the user shows up in the list
++        setSearchQuery('');
++        setFilterStatus('All');
++        setFilterRole('All');
++        setFilterLocation('All');
++        
++        // Highlight this user
++        setHighlightedUserId(user.id);
++        
++        // Switch tab
++        setActiveTab('users');
++        
++        // Close modal
++        setViewingDetailsUser(null);
++        
++        // Clear highlight after a delay (e.g. 5 seconds)
++        setTimeout(() => {
++            setHighlightedUserId(null);
++        }, 5000);
++    };
++
++    useEffect(() => {
++        if (activeTab === 'users' && highlightedUserId) {
++            const timer = setTimeout(() => {
++                // Try scrolling desktop row
++                const element = document.getElementById(`user-row-${highlightedUserId}`);
++                if (element) {
++                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
++                } else {
++                    // Try scrolling mobile row
++                    const mobileElement = document.getElementById(`user-row-mobile-${highlightedUserId}`);
++                    if (mobileElement) {
++                        mobileElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
++                    }
++                }
++            }, 150);
++            return () => clearTimeout(timer);
++        }
++    }, [activeTab, highlightedUserId]);
+     const [memberFormPageParentId, setMemberFormPageParentId] = useState<string | null>(null);
+     const [selectedDenominationCategory, setSelectedDenominationCategory] = useState<string>('Form Not Filled');
+     const [broadcastSubject, setBroadcastSubject] = useState('');
+@@ -1810,8 +1875,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
+             }
+         });
+ 
+-        const total = allProfiles.length;
+-        const filledUsers = allProfiles.filter(u => u.communityProfile && (u.communityProfile.denomination || u.communityProfile.churchName || u.communityProfile.role || u.communityProfile.bio));
++        // Deduplicate allProfiles by ID, preferring the main profile (isSubProfile: false)
++        const uniqueProfilesMap = new Map<string, any>();
++        allProfiles.forEach(p => {
++            if (!p.isSubProfile) {
++                uniqueProfilesMap.set(p.id, p);
++            }
++        });
++        allProfiles.forEach(p => {
++            if (p.isSubProfile && !uniqueProfilesMap.has(p.id)) {
++                uniqueProfilesMap.set(p.id, p);
++            }
++        });
++        const deduplicatedProfiles = Array.from(uniqueProfilesMap.values());
++
++        const total = deduplicatedProfiles.length;
++        const filledUsers = deduplicatedProfiles.filter(u => u.communityProfile && (u.communityProfile.denomination || u.communityProfile.churchName || u.communityProfile.role || u.communityProfile.bio));
+         const filled = filledUsers.length;
+         const missing = total - filled;
+         const rate = total > 0 ? Math.round((filled / total) * 100) : 0;
+@@ -1826,7 +1905,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
+         ];
+ 
+         const groupCounts: Record<string, any[]> = {
+-            'Form Not Filled': allProfiles.filter(u => !u.communityProfile || !(u.communityProfile.denomination || u.communityProfile.churchName || u.communityProfile.role || u.communityProfile.bio))
++            'Form Not Filled': deduplicatedProfiles.filter(u => !u.communityProfile || !(u.communityProfile.denomination || u.communityProfile.churchName || u.communityProfile.role || u.communityProfile.bio))
+         };
+ 
+         STANDARD_DENOMINATIONS.forEach(denom => {
+@@ -3076,7 +3155,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
+ 
+     const handleSaveEdit = async () => {
+         if (!editingUser) return;
+-        const cleanedPhone = editingUser.phone.replace(/\D/g, '');
++        let cleanedPhone = editingUser.phone.replace(/\D/g, '');
++        if (cleanedPhone.length === 12 && cleanedPhone.startsWith('91')) {
++            cleanedPhone = cleanedPhone.slice(2);
++        }
+         if (cleanedPhone.length !== 10) {
+             alert('Phone number must be exactly 10 digits.');
+             return;
+@@ -3085,8 +3167,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
+         try {
+             const updatedUser = { 
+                 ...editingUser, 
+-                phone: cleanedPhone, 
+-                emergency: cleanedPhone 
++                phone: `+91${cleanedPhone}`, 
++                emergency: `+91${cleanedPhone}` 
+             };
+             await onUpdateUser(updatedUser);
+             setEditingUser(null);
+@@ -3114,7 +3196,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
+     const handleAddNewUser = async () => {
+         if (!newUserData.name.trim()) { alert('Name is required.'); return; }
+         if (!newUserData.phone.trim()) { alert('Phone number is required.'); return; }
+-        const cleanedPhone = newUserData.phone.replace(/\D/g, '');
++        let cleanedPhone = newUserData.phone.replace(/\D/g, '');
++        if (cleanedPhone.length === 12 && cleanedPhone.startsWith('91')) {
++            cleanedPhone = cleanedPhone.slice(2);
++        }
+         if (cleanedPhone.length !== 10) {
+             alert('Phone number must be exactly 10 digits.');
+             return;
+@@ -3149,10 +3234,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
+             const user: User = {
+                 id: newId,
+                 name: newUserData.name.trim(),
+-                phone: cleanedPhone,
++                phone: `+91${cleanedPhone}`,
+                 email: newUserData.email.trim(),
+                 location: newUserData.location,
+-                emergency: cleanedPhone,
++                emergency: `+91${cleanedPhone}`,
+                 role: newUserData.role,
+                 status: 'Active',
+                 photo: newUserData.photo || '',
+@@ -4977,11 +5062,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
+                                 <tbody className="divide-y divide-slate-100">
+                                     {filteredUsers.map((user, index) => (
+                                         <motion.tr
++                                            id={`user-row-${user.id}`}
+                                             key={user.id}
+                                             initial={{ opacity: 0 }}
+-                                            animate={{ opacity: 1 }}
++                                            animate={{ 
++                                                opacity: 1,
++                                                backgroundColor: highlightedUserId === user.id ? '#fef08a' : 'transparent'
++                                            }}
+                                             transition={{ delay: index * 0.05 }}
+-                                            className="hover:bg-slate-50 transition-colors cursor-pointer"
++                                            className={`transition-colors cursor-pointer ${
++                                                highlightedUserId === user.id 
++                                                    ? 'bg-yellow-100 ring-2 ring-yellow-400 ring-offset-2 z-10 relative' 
++                                                    : 'hover:bg-slate-50'
++                                            }`}
+                                             onClick={() => setViewingDetailsUser(user)}
+                                         >
+                                             <td className="px-6 py-4">
+@@ -5202,11 +5295,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
+                     <div className="lg:hidden space-y-4">
+                         {filteredUsers.map((user, index) => (
+                             <motion.div
++                                id={`user-row-mobile-${user.id}`}
+                                 key={user.id}
+                                 initial={{ opacity: 0, y: 20 }}
+                                 animate={{ opacity: 1, y: 0 }}
+                                 transition={{ delay: index * 0.05 }}
+-                                className="bg-white p-4 sm:p-6 rounded-3xl border border-slate-100 shadow-sm"
++                                className={`bg-white p-4 sm:p-6 rounded-3xl border transition-all ${
++                                    highlightedUserId === user.id
++                                        ? 'border-yellow-400 bg-yellow-50 ring-4 ring-yellow-100 z-10 relative'
++                                        : 'border-slate-100 shadow-sm'
++                                }`}
+                             >
+                                 <button
+                                     type="button"
+@@ -9271,6 +9369,100 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
+                                             </div>
+                                         </div>
+                                     </div>
++
++                                    {/* Model Selector Panel */}
++                                    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-4">
++                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
++                                            <div>
++                                                <h3 className="text-lg font-serif font-black text-slate-800">Model Selector</h3>
++                                                <p className="text-xs text-slate-400 font-semibold mt-0.5">Select the active LLM routing for COT AI Assistant</p>
++                                            </div>
++                                            <div className="text-[10px] font-black bg-brand-50 text-brand-700 px-2.5 py-1 rounded-full uppercase tracking-wider self-start sm:self-center">
++                                                {aiModelDetails?.allModels?.length || 0} Models Available
++                                            </div>
++                                        </div>
++
++                                        <div className="space-y-4">
++                                            {/* Search input */}
++                                            <div className="relative">
++                                                <input
++                                                    type="text"
++                                                    placeholder="Search OpenRouter models (e.g. gemma, llama, claude)..."
++                                                    value={modelSearchQuery}
++                                                    onChange={(e) => setModelSearchQuery(e.target.value)}
++                                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-brand-500 font-semibold text-slate-700 placeholder-slate-400 text-sm transition-all"
++                                                />
++                                                <Search className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
++                                                {modelSearchQuery && (
++                                                    <button
++                                                        onClick={() => setModelSearchQuery('')}
++                                                        className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 font-bold text-xs"
++                                                    >
++                                                        Clear
++                                                    </button>
++                                                )}
++                                            </div>
++
++                                            {/* Scrollable list of models */}
++                                            <div className="max-h-64 overflow-y-auto border border-slate-100 rounded-2xl divide-y divide-slate-100 bg-white">
++                                                {filteredModels.length === 0 ? (
++                                                    <div className="p-8 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">
++                                                        No models found matching "{modelSearchQuery}"
++                                                    </div>
++                                                ) : (
++                                                    filteredModels.map((m: any) => {
++                                                        const isActive = m.id === (aiModelDetails?.defaultModel?.id || 'google/gemma-4-26b-a4b-it:free');
++                                                        return (
++                                                            <button
++                                                                key={m.id}
++                                                                type="button"
++                                                                onClick={() => handleSelectModel(m.id)}
++                                                                className={`w-full text-left p-3.5 transition-all flex items-center justify-between ${
++                                                                    isActive 
++                                                                        ? 'bg-brand-50/50 hover:bg-brand-50' 
++                                                                        : 'hover:bg-slate-50'
++                                                                }`}
++                                                            >
++                                                                <div className="space-y-0.5 flex-1 min-w-0 pr-4">
++                                                                    <div className="flex items-center gap-2">
++                                                                        <span className="font-extrabold text-xs text-slate-800 truncate block">
++                                                                            {m.name || m.id}
++                                                                        </span>
++                                                                        {isActive && (
++                                                                            <span className="text-[8px] font-black text-brand-700 bg-brand-100 px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0">
++                                                                                Active
++                                                                            </span>
++                                                                        )}
++                                                                        {m.id.includes(':free') && (
++                                                                            <span className="text-[8px] font-black text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0">
++                                                                                Free
++                                                                            </span>
++                                                                        )}
++                                                                    </div>
++                                                                    <span className="font-mono text-[9px] text-slate-400 truncate block">
++                                                                        {m.id}
++                                                                    </span>
++                                                                </div>
++                                                                <div className="text-right shrink-0">
++                                                                    <span className="text-[10px] font-bold text-slate-400 block">
++                                                                        {m.context_length ? `${m.context_length.toLocaleString()} ctx` : '8k ctx'}
++                                                                    </span>
++                                                                    {m.pricing && (
++                                                                        <span className="text-[9px] font-semibold text-slate-500 block">
++                                                                            {Number(m.pricing.prompt) === 0 && Number(m.pricing.completion) === 0
++                                                                                ? 'Free tier'
++                                                                                : `$${(Number(m.pricing.prompt) * 1000000).toFixed(2)}/M tokens`
++                                                                            }
++                                                                        </span>
++                                                                    )}
++                                                                </div>
++                                                            </button>
++                                                        );
++                                                    })
++                                                )}
++                                            </div>
++                                        </div>
++                                    </div>
+                                 </div>
+ 
+                                 {/* Right Side: API Key details & Interpretation */}
+@@ -10080,6 +10272,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
+                                     </div>
+                                 </div>
+ 
++                                {editingUser.linkedProfiles && editingUser.linkedProfiles.length > 0 && (
++                                    <div className="space-y-3 pt-4 border-t border-slate-100">
++                                        <label className="text-xs font-bold text-slate-500 uppercase block">Linked Additional Members ({editingUser.linkedProfiles.length})</label>
++                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
++                                            {editingUser.linkedProfiles.map(profile => (
++                                                <div key={profile.id} className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
++                                                    <div className="flex items-center gap-2 min-w-0">
++                                                        {profile.photo ? (
++                                                            <img src={profile.photo} alt={profile.name} className="w-8 h-8 rounded-lg object-cover shrink-0" />
++                                                        ) : (
++                                                            <div className="w-8 h-8 rounded-lg bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-xs shrink-0">
++                                                                {profile.name.charAt(0)}
++                                                            </div>
++                                                        )}
++                                                        <div className="min-w-0">
++                                                            <p className="text-xs font-bold text-slate-800 truncate">{profile.name}</p>
++                                                            <p className="text-[9px] font-mono text-slate-400 truncate">{profile.id}</p>
++                                                        </div>
++                                                    </div>
++                                                    <button
++                                                        type="button"
++                                                        onClick={() => {
++                                                            if (confirm(`Are you sure you want to remove linked profile ${profile.name}?`)) {
++                                                                setEditingUser({
++                                                                    ...editingUser,
++                                                                    linkedProfiles: editingUser.linkedProfiles?.filter(p => p.id !== profile.id) || []
++                                                                });
++                                                            }
++                                                        }}
++                                                        className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors shrink-0"
++                                                        title="Delete Linked Profile"
++                                                    >
++                                                        <Trash2 size={14} />
++                                                    </button>
++                                                </div>
++                                            ))}
++                                        </div>
++                                    </div>
++                                )}
++
+                                 <div className="flex gap-3 pt-6">
+                                     <button
+                                         onClick={() => setEditingUser(null)}
+@@ -10612,6 +10844,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
+                                         <><FileText size={16} /> Download Member Form PDF</>
+                                     )}
+                                 </button>
++                                <button
++                                    type="button"
++                                    onClick={() => handleGoToUserInList(viewingDetailsUser)}
++                                    className="w-full mb-3 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
++                                >
++                                    <Users size={16} /> Locate in Users Tab
++                                </button>
+                                 <button
+                                     onClick={() => setViewingDetailsUser(null)}
+                                     className="w-full px-6 py-3 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 transition-colors"
+diff --git a/dist/index.html b/dist/index.html
+index 931ad41..4ae1923 100644
+--- a/dist/index.html
++++ b/dist/index.html
+@@ -41,6 +41,8 @@
+             fontFamily: {
+               serif: ['Playfair Display', 'serif'],
+               sans: ['Inter', 'sans-serif'],
++              bamini25: ['Bamini_25', 'sans-serif'],
++              bamini03: ['Bamini_03', 'sans-serif'],
+             },
+             animation: {
+               'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+@@ -51,6 +53,18 @@
+     </script>
+     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+     <style>
++      @font-face {
++        font-family: 'Bamini_25';
++        src: url('/fonts/Bamini_Tamil_25.ttf') format('truetype');
++        font-weight: normal;
++        font-style: normal;
++      }
++      @font-face {
++        font-family: 'Bamini_03';
++        src: url('/fonts/Bamini_Tamil_03.ttf') format('truetype');
++        font-weight: normal;
++        font-style: normal;
++      }
+       body {
+         margin: 0;
+         font-family: 'Inter', sans-serif;
+@@ -102,6 +116,7 @@
+         filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.8)) drop-shadow(0px 4px 16px rgba(251, 191, 36, 0.45));
+         font-weight: 900;
+         animation: gold-shimmer 4s linear infinite;
++      }
+       body.lightbox-open nav {
+         opacity: 0 !important;
+         pointer-events: none !important;
+@@ -125,7 +140,7 @@
+         scrollbar-color: #cbd5e1 transparent;
+       }
+     </style>
+-    <script type="module" crossorigin src="/assets/index-BeGT95Sz.js"></script>
++    <script type="module" crossorigin src="/assets/index-VKmDSL7b.js"></script>
+     <link rel="stylesheet" crossorigin href="/assets/index-BmOdniPI.css">
+   </head>
+   <body>
+diff --git a/index.html b/index.html
+index aea7db8..98af772 100644
+--- a/index.html
++++ b/index.html
+@@ -41,6 +41,8 @@
+             fontFamily: {
+               serif: ['Playfair Display', 'serif'],
+               sans: ['Inter', 'sans-serif'],
++              bamini25: ['Bamini_25', 'sans-serif'],
++              bamini03: ['Bamini_03', 'sans-serif'],
+             },
+             animation: {
+               'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+@@ -51,6 +53,18 @@
+     </script>
+     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+     <style>
++      @font-face {
++        font-family: 'Bamini_25';
++        src: url('/fonts/Bamini_Tamil_25.ttf') format('truetype');
++        font-weight: normal;
++        font-style: normal;
++      }
++      @font-face {
++        font-family: 'Bamini_03';
++        src: url('/fonts/Bamini_Tamil_03.ttf') format('truetype');
++        font-weight: normal;
++        font-style: normal;
++      }
+       body {
+         margin: 0;
+         font-family: 'Inter', sans-serif;
+@@ -102,6 +116,7 @@
+         filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.8)) drop-shadow(0px 4px 16px rgba(251, 191, 36, 0.45));
+         font-weight: 900;
+         animation: gold-shimmer 4s linear infinite;
++      }
+       body.lightbox-open nav {
+         opacity: 0 !important;
+         pointer-events: none !important;
+diff --git a/public/fonts/Bamini_Tamil_03.ttf b/public/fonts/Bamini_Tamil_03.ttf
+new file mode 100644
+index 0000000..c7dba11
+Binary files /dev/null and b/public/fonts/Bamini_Tamil_03.ttf differ
+diff --git a/public/fonts/Bamini_Tamil_25.ttf b/public/fonts/Bamini_Tamil_25.ttf
+new file mode 100644
+index 0000000..05269ff
+Binary files /dev/null and b/public/fonts/Bamini_Tamil_25.ttf differ
+diff --git a/services/api.ts b/services/api.ts
+index 78e8094..3ba7035 100644
+--- a/services/api.ts
++++ b/services/api.ts
+@@ -12,7 +12,7 @@ import {
+     writeBatch
+ } from 'firebase/firestore';
+ import { db } from './firebase';
+-import { User, Testimonial, DeletedUser, Permalink } from '../types';
++import { User, Testimonial, DeletedUser, Permalink, MemberNotification } from '../types';
+ import { ref as storageRef, listAll, deleteObject } from 'firebase/storage';
+ import { storage } from './firebase';
+ 
+@@ -21,6 +21,7 @@ const DELETED_USERS_COLLECTION = 'deleted_users';
+ const TESTIMONIALS_COLLECTION = 'testimonials';
+ const PERMALINKS_COLLECTION = 'permalinks';
+ const BARUCH_VIDEOS_COLLECTION = 'baruch_videos';
++const MEMBER_NOTIFICATIONS_COLLECTION = 'member_notifications';
+ 
+ export interface BaruchVideo {
+     id: string;
+@@ -1038,6 +1039,76 @@ export const api = {
+         }
+     },
+ 
++    // Fetch all member notifications
++    getNotifications: async (): Promise<MemberNotification[]> => {
++        try {
++            const notificationsCollection = collection(db, MEMBER_NOTIFICATIONS_COLLECTION);
++            const snapshot = await getDocs(notificationsCollection);
++            return snapshot.docs.map(doc => ({
++                ...doc.data(),
++                id: doc.id
++            } as MemberNotification));
++        } catch (error: any) {
++            console.error('Firestore Error (Notifications):', error);
++            if (error.code === 'permission-denied') {
++                try {
++                    const saved = localStorage.getItem('cot_member_notifications');
++                    const parsed = saved ? JSON.parse(saved) : [];
++                    return Array.isArray(parsed) ? parsed : [];
++                } catch (e) {
++                    console.error('Fallback getNotifications failed:', e);
++                }
++            }
++            return [];
++        }
++    },
++
++    // Save or update a member notification
++    saveNotification: async (notification: MemberNotification): Promise<MemberNotification> => {
++        try {
++            const docRef = doc(db, MEMBER_NOTIFICATIONS_COLLECTION, notification.id);
++            const { id, ...data } = notification;
++            await setDoc(docRef, data);
++            return notification;
++        } catch (error: any) {
++            console.error('Error saving notification:', error);
++            if (error.code === 'permission-denied') {
++                try {
++                    const saved = localStorage.getItem('cot_member_notifications');
++                    const existing = saved ? JSON.parse(saved) : [];
++                    const filtered = existing.filter((n: MemberNotification) => n.id !== notification.id);
++                    localStorage.setItem('cot_member_notifications', JSON.stringify([notification, ...filtered].slice(0, 1000)));
++                    return notification;
++                } catch (e) {
++                    console.error('Fallback saveNotification failed:', e);
++                }
++            }
++            throw error;
++        }
++    },
++
++    // Delete a member notification
++    deleteNotification: async (notificationId: string): Promise<void> => {
++        try {
++            const docRef = doc(db, MEMBER_NOTIFICATIONS_COLLECTION, notificationId);
++            await deleteDoc(docRef);
++        } catch (error: any) {
++            console.error('Error deleting notification:', error);
++            if (error.code === 'permission-denied') {
++                try {
++                    const saved = localStorage.getItem('cot_member_notifications');
++                    const existing = saved ? JSON.parse(saved) : [];
++                    const filtered = existing.filter((n: MemberNotification) => n.id !== notificationId);
++                    localStorage.setItem('cot_member_notifications', JSON.stringify(filtered));
++                    return;
++                } catch (e) {
++                    console.error('Fallback deleteNotification failed:', e);
++                }
++            }
++            throw error;
++        }
++    },
++
+     // --- Complete Reboot ---
+ 
+     // Complete system reboot - deletes all data from Firestore, Storage, and localStorage
+@@ -1062,6 +1133,7 @@ export const api = {
+                 DELETED_USERS_COLLECTION,
+                 TESTIMONIALS_COLLECTION,
+                 PERMALINKS_COLLECTION,
++                MEMBER_NOTIFICATIONS_COLLECTION,
+                 'ministries',
+                 'config'
+             ];
+diff --git a/services/openRouterService.ts b/services/openRouterService.ts
+index 420b7b4..41f6ce8 100644
+--- a/services/openRouterService.ts
++++ b/services/openRouterService.ts
+@@ -17,6 +17,27 @@ Core Guidelines:
+ const DEFAULT_MODEL = 'google/gemma-4-26b-a4b-it:free';
+ const FALLBACK_MODEL = 'openrouter/free';
+ 
++export function getSelectedModel(): string {
++    try {
++        if (typeof window !== 'undefined' && window.localStorage) {
++            return localStorage.getItem('cot_selected_openrouter_model') || DEFAULT_MODEL;
++        }
++    } catch (e) {
++        console.warn('Failed to access localStorage for openrouter model:', e);
++    }
++    return DEFAULT_MODEL;
++}
++
++export function setSelectedOpenRouterModel(modelId: string): void {
++    try {
++        if (typeof window !== 'undefined' && window.localStorage) {
++            localStorage.setItem('cot_selected_openrouter_model', modelId);
++        }
++    } catch (e) {
++        console.error('Failed to save selected OpenRouter model:', e);
++    }
++}
++
+ /**
+  * Helper to fetch chat completion from OpenRouter using fetch
+  */
+@@ -50,10 +71,11 @@ async function fetchOpenRouterCompletion(messages: any[], jsonFormat = false): P
+         return response.json();
+     };
+ 
++    const activeModel = getSelectedModel();
+     try {
+-        return await makeRequest(DEFAULT_MODEL);
++        return await makeRequest(activeModel);
+     } catch (primaryError) {
+-        console.warn(`Primary model ${DEFAULT_MODEL} failed, trying fallback ${FALLBACK_MODEL}:`, primaryError);
++        console.warn(`Primary model ${activeModel} failed, trying fallback ${FALLBACK_MODEL}:`, primaryError);
+         try {
+             return await makeRequest(FALLBACK_MODEL);
+         } catch (fallbackError) {
+@@ -148,8 +170,9 @@ export async function streamSpatulaAIResponse(
+         }
+     };
+ 
++    const activeModel = getSelectedModel();
+     try {
+-        await makeStreamRequest(DEFAULT_MODEL);
++        await makeStreamRequest(activeModel);
+     } catch (primaryError) {
+         console.warn(`Primary model streaming failed, trying fallback ${FALLBACK_MODEL}:`, primaryError);
+         try {
+@@ -261,17 +284,21 @@ export async function getOpenRouterModelDetails(): Promise<any> {
+             throw new Error(`Failed to fetch model details: ${response.statusText}`);
+         }
+         const data = await response.json();
+-        const defaultModelInfo = data.data?.find((m: any) => m.id === DEFAULT_MODEL);
++        const activeModelId = getSelectedModel();
++        const defaultModelInfo = data.data?.find((m: any) => m.id === activeModelId);
+         const fallbackModelInfo = data.data?.find((m: any) => m.id === FALLBACK_MODEL);
+         return {
+-            defaultModel: defaultModelInfo || { id: DEFAULT_MODEL, name: 'Gemma 4 26B Instruct (Free)', context_length: 8192 },
+-            fallbackModel: fallbackModelInfo || { id: FALLBACK_MODEL, name: 'OpenRouter Free Auto-Router', context_length: 4096 }
++            defaultModel: defaultModelInfo || { id: activeModelId, name: activeModelId, context_length: 8192 },
++            fallbackModel: fallbackModelInfo || { id: FALLBACK_MODEL, name: 'OpenRouter Free Auto-Router', context_length: 4096 },
++            allModels: data.data || []
+         };
+     } catch (error) {
+         console.error('Error fetching model details:', error);
++        const activeModelId = getSelectedModel();
+         return {
+-            defaultModel: { id: DEFAULT_MODEL, name: 'Gemma 4 26B Instruct (Free)', context_length: 8192 },
+-            fallbackModel: { id: FALLBACK_MODEL, name: 'OpenRouter Free Auto-Router', context_length: 4096 }
++            defaultModel: { id: activeModelId, name: activeModelId, context_length: 8192 },
++            fallbackModel: { id: FALLBACK_MODEL, name: 'OpenRouter Free Auto-Router', context_length: 4096 },
++            allModels: []
+         };
+     }
+ }
