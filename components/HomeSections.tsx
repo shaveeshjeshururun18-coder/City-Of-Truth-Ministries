@@ -634,7 +634,7 @@ export const ValparaiPresence: React.FC<SectionProps> = ({ setView }) => {
                                 whileHover={{ scale: 1.05, y: -5 }}
                                 className="bg-gradient-to-br from-accent-400/20 to-transparent border border-accent-400/30 rounded-2xl p-6 text-center backdrop-blur-sm"
                             >
-                                <p className="text-3xl font-black text-accent-300 mb-2">15 வருஷ்</p>
+                                <p className="text-3xl font-black text-accent-300 mb-2">{new Date().getFullYear() - 2009} வருஷ்</p>
                                 <p className="text-white/60 text-xs font-bold uppercase tracking-wide">சேவை கதை</p>
                             </motion.div>
                         </div>
