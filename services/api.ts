@@ -12,7 +12,7 @@ import {
     writeBatch
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { User, Testimonial, DeletedUser, Permalink, MemberNotification } from '../types';
+import { User, Testimonial, DeletedUser, Permalink, MemberNotification, SiteVisit } from '../types';
 import { ref as storageRef, listAll, deleteObject } from 'firebase/storage';
 import { storage } from './firebase';
 
@@ -22,6 +22,7 @@ const TESTIMONIALS_COLLECTION = 'testimonials';
 const PERMALINKS_COLLECTION = 'permalinks';
 const BARUCH_VIDEOS_COLLECTION = 'baruch_videos';
 const MEMBER_NOTIFICATIONS_COLLECTION = 'member_notifications';
+const VISITS_COLLECTION = 'analytics_visits';
 
 export interface BaruchVideo {
     id: string;
@@ -29,7 +30,128 @@ export interface BaruchVideo {
     youtubeId: string;
 }
 
+export interface DailyGreetingSlot {
+    enabled: boolean;
+    title: string;
+    body: string;
+    /** 'all' | 'active' | 'pending' | 'ministry:<name>' */
+    targetGroup: string;
+}
+
+export interface DailyGreetingSettings {
+    enabled: boolean;
+    imageUrl: string;
+    slots?: {
+        morning?: DailyGreetingSlot;
+        noon?: DailyGreetingSlot;
+        evening?: DailyGreetingSlot;
+        night?: DailyGreetingSlot;
+    };
+}
+
+export interface WebsiteGreetingSlot {
+    enabled: boolean;
+    greeting: string;
+    phrase: string;
+    audio: string;
+}
+
+export interface WebsiteGreetingSettings {
+    enabled: boolean;
+    targetGroup: 'all' | 'active' | 'pending' | 'admin';
+    slots?: {
+        morning?: WebsiteGreetingSlot;
+        noon?: WebsiteGreetingSlot;
+        evening?: WebsiteGreetingSlot;
+        night?: WebsiteGreetingSlot;
+    };
+}
+
+const SETTINGS_COLLECTION = 'admin_settings';
+const DAILY_GREETINGS_DOC = 'daily_greetings';
+
 export const api = {
+    recordVisit: async (visit: SiteVisit): Promise<void> => {
+        try {
+            const visitDoc = doc(db, VISITS_COLLECTION, visit.id);
+            await setDoc(visitDoc, visit);
+        } catch (error) {
+            console.error('Error recording visit:', error);
+        }
+    },
+    getVisits: async (): Promise<SiteVisit[]> => {
+        try {
+            const q = query(collection(db, VISITS_COLLECTION));
+            const snapshot = await getDocs(q);
+            return snapshot.docs.map(doc => doc.data() as SiteVisit);
+        } catch (error) {
+            console.error('Error fetching visits:', error);
+            return [];
+        }
+    },
+
+    getDailyGreetingSettings: async (): Promise<DailyGreetingSettings> => {
+        const defaultSlots = {
+            morning: { enabled: true, title: 'בוקר טוב (BOKER TOV)', body: 'May your day be filled with peace, wisdom, strength, and abundant blessings.', targetGroup: 'all' },
+            noon:    { enabled: true, title: 'צהריים טובים (TZOHARAIM TOVIM)', body: "May your afternoon be productive, peaceful, and filled with God's favor.", targetGroup: 'all' },
+            evening: { enabled: true, title: 'ערב טוב (EREV TOV)', body: 'May your evening bring peace, gratitude, and joyful fellowship.', targetGroup: 'all' },
+            night:   { enabled: true, title: 'לילה טוב (LAILA TOV)', body: 'May the Lord watch over you through the night and grant you peaceful rest.', targetGroup: 'all' },
+        };
+        try {
+            const docRef = doc(db, SETTINGS_COLLECTION, DAILY_GREETINGS_DOC);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                const data = docSnap.data() as DailyGreetingSettings;
+                return { ...data, slots: { ...defaultSlots, ...(data.slots || {}) } };
+            }
+            return { enabled: true, imageUrl: '', slots: defaultSlots };
+        } catch (error) {
+            console.error("Error fetching daily greeting settings:", error);
+            return { enabled: true, imageUrl: '', slots: defaultSlots };
+        }
+    },
+
+    saveDailyGreetingSettings: async (settings: DailyGreetingSettings): Promise<void> => {
+        try {
+            const docRef = doc(db, SETTINGS_COLLECTION, DAILY_GREETINGS_DOC);
+            await setDoc(docRef, settings, { merge: true });
+        } catch (error) {
+            console.error("Error saving daily greeting settings:", error);
+            throw error;
+        }
+    },
+
+    getWebsiteGreetingSettings: async (): Promise<WebsiteGreetingSettings> => {
+        const defaultSlots = {
+            morning: { enabled: true, greeting: 'בוקר טוב (BOKER TOV)',           phrase: 'May your day be filled with peace, wisdom, strength, and abundant blessings.', audio: 'boker_tov.mp3' },
+            noon:    { enabled: true, greeting: 'צהריים טובים (TZOHARAIM TOVIM)', phrase: "May your afternoon be productive, peaceful, and filled with God's favor.", audio: 'tzoharaim_tovim.mp3' },
+            evening: { enabled: true, greeting: 'ערב טוב (EREV TOV)',             phrase: 'May your evening bring peace, gratitude, and joyful fellowship.', audio: 'erev_tov.mp3' },
+            night:   { enabled: true, greeting: 'לילה טוב (LAILA TOV)',            phrase: 'May the Lord watch over you through the night and grant you peaceful rest.', audio: 'laila_tov.mp3' },
+        };
+        try {
+            const docRef = doc(db, SETTINGS_COLLECTION, 'website_greeting');
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                const data = docSnap.data() as WebsiteGreetingSettings;
+                return { ...data, slots: { ...defaultSlots, ...(data.slots || {}) } };
+            }
+            return { enabled: true, targetGroup: 'all', slots: defaultSlots };
+        } catch (error) {
+            console.error("Error fetching website greeting settings:", error);
+            return { enabled: true, targetGroup: 'all', slots: defaultSlots };
+        }
+    },
+
+    saveWebsiteGreetingSettings: async (settings: WebsiteGreetingSettings): Promise<void> => {
+        try {
+            const docRef = doc(db, SETTINGS_COLLECTION, 'website_greeting');
+            await setDoc(docRef, settings, { merge: true });
+        } catch (error) {
+            console.error("Error saving website greeting settings:", error);
+            throw error;
+        }
+    },
+
     // Fetch all users
     getUsers: async (): Promise<User[]> => {
         try {
