@@ -24,3 +24,6 @@ tsc_errors.txt
 step_*.json
 temp_codepen/
 temp_paleo_svgs/
+
+# Prevent exposing secrets
+.env
