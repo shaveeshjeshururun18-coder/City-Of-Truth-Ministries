@@ -101,6 +101,31 @@ export const GoldenMenorahPage: React.FC<GoldenMenorahPageProps> = () => {
                         </div>
                     </motion.div>
                 </div>
+
+                <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4 }} className="mt-16 text-center max-w-4xl mx-auto pb-12">
+                     <div className="relative group p-6 md:p-8 bg-gradient-to-b from-white/[0.05] to-white/[0.02] backdrop-blur-md rounded-[2.5rem] border border-amber-500/20 shadow-[0_0_50px_rgba(245,158,11,0.05)]">
+                         <div className="relative rounded-2xl overflow-hidden border border-amber-500/30 shadow-[0_0_30px_rgba(245,158,11,0.15)] group-hover:shadow-[0_0_50px_rgba(245,158,11,0.3)] transition-all duration-700">
+                             <img src="/assets/golden_menorah.png" alt="Golden Menorah Temple" className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-[2s] ease-out-quint" />
+                         </div>
+                         <div className="mt-8">
+                            <h3 className="text-2xl font-bold text-amber-200 mb-2 font-serif tracking-wide">The Golden Menorah Concept</h3>
+                            <p className="text-amber-100/70 mb-6 font-light max-w-2xl mx-auto">A visual representation of the divine shrine to be established.</p>
+                             <motion.a
+                                href="/assets/golden_menorah.png"
+                                download="Golden-Menorah-Temple.png"
+                                whileHover={{ y: -2, scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                className="group relative inline-flex items-center gap-3 px-8 py-4 rounded-full bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-amber-950 font-black text-sm uppercase tracking-[0.2em] shadow-[0_10px_30px_-10px_rgba(251,191,36,0.5)] hover:shadow-[0_15px_40px_-10px_rgba(251,191,36,0.7)] transition-all duration-500 overflow-hidden"
+                            >
+                                <span className="pointer-events-none absolute -inset-x-8 top-0 h-[2px] bg-gradient-to-r from-transparent via-white/80 to-transparent opacity-50 group-hover:animate-pulse" />
+                                <Sparkles size={16} className="relative z-10 animate-pulse" />
+                                <Download size={16} className="relative z-10" />
+                                <span className="relative z-10">Download Image</span>
+                            </motion.a>
+                         </div>
+                     </div>
+                </motion.div>
+
             </div>
         </div>
     );
