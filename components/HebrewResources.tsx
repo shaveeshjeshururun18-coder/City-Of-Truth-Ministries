@@ -2351,7 +2351,7 @@ const HebrewLettersAudioLab: React.FC = () => {
             </div>
 
             {/* ── WORD BUILDER (Always visible full-width at top, static on mobile, sticky on desktop alone) ── */}
-            <div className={`bg-gradient-to-r from-fuchsia-500 via-sky-500 to-emerald-500 p-[2px] rounded-[2rem] z-20 ${isBuilderStickyActive ? 'md:sticky md:top-[7rem]' : ''}`}>
+            <div className={`bg-white border border-slate-200 shadow-md p-1 rounded-[2rem] z-20 ${isBuilderStickyActive ? 'sticky top-[5rem]' : ''}`}>
                 <div className="bg-white rounded-[2rem] p-4 md:p-6">
                     <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
                         <div className="flex-1 min-w-0">
