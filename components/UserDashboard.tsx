@@ -2436,8 +2436,20 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                             return (
                                 <div className="flex flex-col items-center gap-3 mb-7">
-                                    <div className="w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-slate-100 shadow-lg">
-                                        {renderAvatarContent(displayProfile.photo, displayProfile.name, 'text-2xl', 'from-brand-600 via-brand-700 to-violet-800')}
+                                    <div className="relative group">
+                                        <div className="w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-slate-100 shadow-lg relative">
+                                            {renderAvatarContent(displayProfile.photo, displayProfile.name, 'text-2xl', 'from-brand-600 via-brand-700 to-violet-800')}
+                                            {displayProfile.photo && (
+                                                <a
+                                                    href={displayProfile.photo}
+                                                    download={`${displayProfile.name.replace(/\s+/g, '_')}_photo`}
+                                                    className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    title="Download Photo"
+                                                >
+                                                    <Download size={24} className="text-white" />
+                                                </a>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <button
