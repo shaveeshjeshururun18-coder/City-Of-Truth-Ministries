@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { User, SubProfile, UserRole } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
-import { generateHebrewAlphabetPDF } from './HebrewAlphabetPDF';
 import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag, Copy, ExternalLink, Moon, Sun } from 'lucide-react';
 import { Button } from './Button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -1936,15 +1935,15 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                                 onClick={() => window.open(qrUrl, '_blank')}
                                                 className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-brand-700 hover:text-brand-900 transition-colors"
                                             >
-                                                <ExternalLink size={12} /> Click QR to view link
+                                                <ExternalLink size={12} /> Visit the verify page
                                             </button>
 
                                             <button
                                                 type="button"
-                                                onClick={() => generateHebrewAlphabetPDF()}
+                                                onClick={handleDownloadPDF}
                                                 className="mt-4 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-700 hover:text-amber-900 transition-colors"
                                             >
-                                                <Download size={12} /> Download Hebrew Alphabet PDF
+                                                <Download size={12} /> DOWNLOAD ENTRUST CARD
                                             </button>
                                             </>
 

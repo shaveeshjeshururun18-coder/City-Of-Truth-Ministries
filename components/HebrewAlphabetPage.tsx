@@ -3,7 +3,6 @@ import { Scroll, Volume2, Sparkles, ArrowLeft, X, Download } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { audioService } from '../services/audioService';
 import { MouthPronunciationAnimator, HEBREW_LETTER_PHONEMES } from './MouthPronunciationAnimator';
-import { generateHebrewAlphabetPDF } from './HebrewAlphabetPDF';
 
 const PALEO_IMAGE_MAP: Record<string, string> = {
     ALEPH: "/paleo_letters/04_Aleph.png",

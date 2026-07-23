@@ -33,27 +33,13 @@ export const HebrewPage: React.FC = () => {
     const [isExporting, setIsExporting] = useState(false);
     const exportRef = useRef<HTMLDivElement>(null);
 
-    const handleExportPDF = async () => {
-        if (!exportRef.current) return;
-        setIsExporting(true);
-        try {
-            const canvas = await html2canvas(exportRef.current, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#050505'
-            });
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save(`COT-Hebrew-Grammar-${Date.now()}.pdf`);
-        } catch (error) {
-            console.error('Export failed:', error);
-            alert('Could not export PDF. Please try again.');
-        } finally {
-            setIsExporting(false);
-        }
+    const handleExportPDF = () => {
+        const link = document.createElement('a');
+        link.href = '/downloads/Sacred_Alphabet_Gematria_Chart.pdf';
+        link.download = 'Sacred_Alphabet_Gematria_Chart.pdf';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     return (
