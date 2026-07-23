@@ -320,10 +320,10 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                                     }`}
                                                     style={{
                                                         filter: selectedIndex === index 
-                                                            ? 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.8)) brightness(1.1) hue-rotate(40deg) saturate(1.8)'
+                                                            ? 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.8)) brightness(1.1) saturate(1.8)'
                                                             : activeIndex === index
-                                                                ? 'drop-shadow(0 0 12px rgba(255, 255, 255, 0.6)) brightness(1.2) hue-rotate(40deg) saturate(1.5)'
-                                                                : 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.6)) brightness(0.95) hue-rotate(40deg) saturate(1.8) opacity-90'
+                                                                ? 'drop-shadow(0 0 12px rgba(255, 255, 255, 0.6)) brightness(1.2) saturate(1.5)'
+                                                                : 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.6)) brightness(0.95) saturate(1.8) opacity-90'
                                                     }}
                                                 />
                                             ) : (
@@ -408,7 +408,7 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                                                     alt={`${selectedLetter.name} Paleo-Hebrew letter`}
                                                                     className="w-full h-full object-contain"
                                                                     style={{
-                                                                        filter: 'drop-shadow(0 0 12px rgba(251, 191, 36, 0.8)) brightness(1.1) hue-rotate(40deg) saturate(1.8)'
+                                                                        filter: 'drop-shadow(0 0 12px rgba(251, 191, 36, 0.8)) brightness(1.1) saturate(1.8)'
                                                                     }}
                                                                 />
                                                             </div>

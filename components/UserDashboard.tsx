@@ -610,7 +610,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         // Ensure pending profile updates for the deleted member are also removed
         let newPendingUpdate = user.pendingProfileUpdate;
         if (newPendingUpdate && newPendingUpdate.linkedProfiles) {
-            const newPendingLinkedProfiles = newPendingUpdate.linkedProfiles.filter(p => p.id !== profileId);
+            const newPendingLinkedProfiles = newPendingUpdate.linkedProfiles.filter((p: any) => p.id !== profileId);
             newPendingUpdate = { ...newPendingUpdate };
             if (newPendingLinkedProfiles.length > 0) {
                 newPendingUpdate.linkedProfiles = newPendingLinkedProfiles;
@@ -620,10 +620,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         }
 
         const updatedUser = { ...user, linkedProfiles: updatedProfiles };
+        if (newPendingUpdate && Object.keys(newPendingUpdate).length === 0) {
+            newPendingUpdate = null;
+        }
+
         if (newPendingUpdate !== undefined) {
             updatedUser.pendingProfileUpdate = newPendingUpdate;
         } else {
-            delete updatedUser.pendingProfileUpdate;
+            updatedUser.pendingProfileUpdate = null;
         }
 
         onUpdate(updatedUser);
@@ -1648,12 +1652,15 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 <button 
                                     onClick={() => {
                                         if (window.confirm("Are you sure you want to cancel and reset this family member's pending profile and photo updates?")) {
-                                            const newPending = { ...(user.pendingProfileUpdate || {}) };
+                                            let newPending: any = { ...(user.pendingProfileUpdate || {}) };
                                             if (newPending.linkedProfiles) {
-                                                newPending.linkedProfiles = newPending.linkedProfiles.filter(p => p.id !== activeProfileId);
+                                                newPending.linkedProfiles = newPending.linkedProfiles.filter((p: any) => p.id !== activeProfileId);
                                                 if (newPending.linkedProfiles.length === 0) {
                                                     delete newPending.linkedProfiles;
                                                 }
+                                            }
+                                            if (Object.keys(newPending).length === 0) {
+                                                newPending = null;
                                             }
                                             onUpdate({ ...user, pendingProfileUpdate: newPending } as User);
                                         }
