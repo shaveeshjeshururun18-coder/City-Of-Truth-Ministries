@@ -194,8 +194,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             <img src="/logo.png" alt="COT Logo" className="w-full h-full object-contain" />
           </div>
           <div className="flex flex-col justify-center">
-              <span className={`font-bold text-[1.1rem] leading-[1.1] tracking-[-0.5px] transition-colors duration-300 ${isTransparentNavbar ? 'text-white' : 'text-black'}`}>City of Truth</span>
-              <span className={`text-[0.65rem] font-bold tracking-[1px] uppercase transition-colors duration-300 ${isTransparentNavbar ? 'text-blue-200' : 'text-blue-600'}`}>MINISTRIES</span>
+              <span className={`font-black text-[1.15rem] leading-[1.1] tracking-tight transition-colors duration-300 ${isTransparentNavbar ? 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]' : 'text-[#1e3a8a] drop-shadow-sm'}`}>City of Truth</span>
+              <span className={`text-[0.65rem] font-bold tracking-[1px] uppercase transition-colors duration-300 ${isTransparentNavbar ? 'text-blue-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]' : 'text-blue-600'}`}>MINISTRIES</span>
           </div>
         </div>
 
