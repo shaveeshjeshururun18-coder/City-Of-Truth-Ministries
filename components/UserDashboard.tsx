@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, SubProfile, UserRole } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
+import { generateHebrewAlphabetPDF } from './HebrewAlphabetPDF';
 import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag, Copy, ExternalLink, Moon, Sun } from 'lucide-react';
 import { Button } from './Button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -1929,13 +1930,24 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             <Copy size={12} /> {qrLinkCopied ? 'Copied' : 'Copy Website Link'}
                                         </button>
                                         {!qrImageUnavailable && (
+                                            <>
                                             <button
                                                 type="button"
-                                                onClick={handleOpenQrPreview}
+                                                onClick={() => window.open(qrUrl, '_blank')}
                                                 className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-brand-700 hover:text-brand-900 transition-colors"
                                             >
-                                                <ExternalLink size={12} /> Click QR to view link + copy
+                                                <ExternalLink size={12} /> Click QR to view link
                                             </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => generateHebrewAlphabetPDF()}
+                                                className="mt-4 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-700 hover:text-amber-900 transition-colors"
+                                            >
+                                                <Download size={12} /> Download Hebrew Alphabet PDF
+                                            </button>
+                                            </>
+
                                         )}
                                     </div>
                                     <button
@@ -2547,7 +2559,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                     </div>
                                     <div>
                                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Joined Date</label>
-                                        <input type="date" value={(formData as any).joinedDate ?? user.joinedDate ?? ''} onChange={e => setFormData(p => ({ ...p, joinedDate: e.target.value } as any))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                                        <input type="date" readOnly disabled value={(formData as any).joinedDate ?? user.joinedDate ?? ''} className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-500 outline-none cursor-not-allowed opacity-70" />
                                     </div>
                                 </>
                             ) : (

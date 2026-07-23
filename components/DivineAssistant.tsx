@@ -610,7 +610,7 @@ export const DivineAssistant: React.FC = () => {
             </AnimatePresence>
 
             {/* Chat Window */}
-            <div ref={containerRef} className="fixed inset-0 pointer-events-none z-[99998]">
+            <div ref={containerRef} className="fixed inset-0 pointer-events-none z-40">
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
