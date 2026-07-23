@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type, Volume2, Loader2, Info, Fingerprint, FileImage, Download, Printer, Globe } from 'lucide-react';
+import { Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type, Volume2, Loader2, Info, Fingerprint, FileImage, Download, Printer, Globe, Sunrise, Sunset, Moon } from 'lucide-react';
 import { analyzeHebrewWord } from '../services/openRouterService';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { HebrewYearDropdown } from './HebrewYearDropdown';
@@ -1117,22 +1117,25 @@ const AnalogDial: React.FC<{
     minuteAngle: number;
     secondAngle: number;
     is24Hour: boolean;
-}> = ({ label, hourAngle, minuteAngle, secondAngle, is24Hour }) => {
+    isCounterClockwise?: boolean;
+}> = ({ label, hourAngle, minuteAngle, secondAngle, is24Hour, isCounterClockwise = false }) => {
     const letters = is24Hour 
         ? ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'יא', 'יב', 'יג', 'יד', 'טו', 'טז', 'יז', 'יח', 'יט', 'כ', 'כא', 'כב', 'כג', 'כד'] 
         : ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ', 'ל'];
 
+    const getRotation = (angle: number) => isCounterClockwise ? 360 - angle : angle;
+
     return (
-        <div className="bg-[#0f1026] border border-white/10 rounded-[2.5rem] p-6 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col items-center hover:border-[#C5A880]/30 transition-all relative group overflow-hidden w-full max-w-sm">
+        <div className="bg-[#0f1026] border border-white/10 rounded-[2.5rem] p-6 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col items-center transition-all relative group overflow-hidden w-full max-w-sm ring-1 ring-amber-500/0 hover:ring-amber-500/50 hover:shadow-[0_0_40px_rgba(245,158,11,0.2)]">
             <div className="absolute inset-0 bg-gradient-to-b from-[#C5A880]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#C5A880] text-center mb-6 relative z-10">{label}</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#C5A880] text-center mb-6 relative z-10 group-hover:text-amber-400 transition-colors">{label}</p>
             
             {/* Clock Face Circle - Bigger and Bold! */}
-            <div className="relative w-64 h-64 sm:w-76 sm:h-76 md:w-80 md:h-80 rounded-full border-[8px] border-double border-[#C5A880] bg-gradient-to-br from-[#121330] to-[#08091a] shadow-[0_0_35px_rgba(197,168,128,0.25),inset_0_0_20px_rgba(0,0,0,0.8)] flex items-center justify-center">
+            <div className="relative w-64 h-64 sm:w-76 sm:h-76 md:w-80 md:h-80 rounded-full border-[8px] border-double border-[#C5A880] group-hover:border-amber-400 bg-gradient-to-br from-[#121330] to-[#08091a] shadow-[0_0_35px_rgba(197,168,128,0.25),inset_0_0_20px_rgba(0,0,0,0.8)] group-hover:shadow-[0_0_50px_rgba(245,158,11,0.4),inset_0_0_30px_rgba(0,0,0,0.9)] transition-all duration-500 flex items-center justify-center">
                 {/* Dial numbers placed using polar trigonometry */}
                 {letters.map((char, i) => {
                     const value = i + 1;
-                    const angle = value * (is24Hour ? 15 : 30);
+                    const angle = getRotation(value * (is24Hour ? 15 : 30));
                     const angleRad = (angle * Math.PI) / 180;
                     const radiusPercent = 38; // Radius of letters placement
                     const left = 50 + radiusPercent * Math.sin(angleRad);
@@ -1141,49 +1144,49 @@ const AnalogDial: React.FC<{
                     return (
                         <div
                             key={value}
-                            className="absolute flex flex-col items-center justify-center leading-none text-center select-none"
+                            className="absolute flex flex-col items-center justify-center leading-none text-center select-none transition-all duration-700"
                             style={{
                                 left: `${left}%`,
                                 top: `${top}%`,
                                 transform: 'translate(-50%, -50%)',
                             }}
                         >
-                            <span className="text-[10px] sm:text-[12px] font-extrabold text-white">{value}</span>
-                            <span className="text-[8px] sm:text-[9px] font-black text-[#C5A880] mt-0.5">{char}</span>
+                            <span className="text-[10px] sm:text-[12px] font-extrabold text-white group-hover:text-amber-100 transition-colors">{value}</span>
+                            <span className="text-[8px] sm:text-[9px] font-black text-[#C5A880] group-hover:text-amber-400 mt-0.5 transition-colors">{char}</span>
                         </div>
                     );
                 })}
 
                 {/* Hour Hand */}
                 <div
-                    className="absolute left-1/2 top-1/2 w-[5px] sm:w-[6px] h-[30%] bg-gradient-to-t from-[#C5A880] to-white rounded-full shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
+                    className="absolute left-1/2 top-1/2 w-[5px] sm:w-[6px] h-[30%] bg-gradient-to-t from-[#C5A880] group-hover:from-amber-400 to-white rounded-full shadow-[0_2px_8px_rgba(0,0,0,0.5)] transition-transform duration-300 ease-out"
                     style={{
-                        transform: `translate(-50%, -100%) rotate(${hourAngle}deg)`,
+                        transform: `translate(-50%, -100%) rotate(${getRotation(hourAngle)}deg)`,
                         transformOrigin: '50% 100%',
                     }}
                 />
 
                 {/* Minute Hand */}
                 <div
-                    className="absolute left-1/2 top-1/2 w-[3px] sm:w-[4px] h-[38%] bg-gradient-to-t from-slate-300 to-white rounded-full shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
+                    className="absolute left-1/2 top-1/2 w-[3px] sm:w-[4px] h-[38%] bg-gradient-to-t from-slate-300 to-white rounded-full shadow-[0_2px_8px_rgba(0,0,0,0.5)] transition-transform duration-300 ease-out"
                     style={{
-                        transform: `translate(-50%, -100%) rotate(${minuteAngle}deg)`,
+                        transform: `translate(-50%, -100%) rotate(${getRotation(minuteAngle)}deg)`,
                         transformOrigin: '50% 100%',
                     }}
                 />
 
                 {/* Second Hand */}
                 <div
-                    className="absolute left-1/2 top-1/2 w-[1.5px] h-[44%] bg-red-500 rounded-full shadow-[0_1px_4px_rgba(0,0,0,0.3)]"
+                    className="absolute left-1/2 top-1/2 w-[1.5px] h-[44%] bg-red-500 rounded-full shadow-[0_1px_4px_rgba(0,0,0,0.3)] transition-transform duration-75 ease-linear"
                     style={{
-                        transform: `translate(-50%, -100%) rotate(${secondAngle}deg)`,
+                        transform: `translate(-50%, -100%) rotate(${getRotation(secondAngle)}deg)`,
                         transformOrigin: '50% 100%',
                     }}
                 />
 
                 {/* Center Pivot Point */}
-                <div className="absolute left-1/2 top-1/2 w-4 h-4 bg-slate-950 rounded-full -translate-x-1/2 -translate-y-1/2 border-2 border-[#C5A880] shadow-md flex items-center justify-center">
-                    <div className="w-1.5 h-1.5 bg-[#C5A880] rounded-full" />
+                <div className="absolute left-1/2 top-1/2 w-4 h-4 bg-slate-950 rounded-full -translate-x-1/2 -translate-y-1/2 border-2 border-[#C5A880] group-hover:border-amber-400 shadow-md flex items-center justify-center transition-colors">
+                    <div className="w-1.5 h-1.5 bg-[#C5A880] group-hover:bg-amber-400 rounded-full transition-colors" />
                 </div>
             </div>
         </div>
@@ -1194,6 +1197,17 @@ const HebrewClockView: React.FC = () => {
     const [now, setNow] = useState(() => new Date());
     const clockRef = useRef<HTMLDivElement>(null);
     const [isExporting, setIsExporting] = useState(false);
+    const [useJerusalemTime, setUseJerusalemTime] = useState(false);
+    const [is24HourFormat, setIs24HourFormat] = useState(false);
+    const [isCounterClockwise, setIsCounterClockwise] = useState(false);
+    const [selectedHebrewHourInfo, setSelectedHebrewHourInfo] = useState<{
+        letter: string;
+        gematria: number;
+        meaning: string;
+        scripture: string;
+    } | null>(null);
+
+    const activeTimezone = useJerusalemTime ? 'Asia/Jerusalem' : CHENNAI_TIMEZONE;
 
     useEffect(() => {
         const timer = window.setInterval(() => setNow(new Date()), 1000);
@@ -1203,25 +1217,25 @@ const HebrewClockView: React.FC = () => {
     const digitalTime = useMemo(
         () =>
             now.toLocaleTimeString('en-IN', {
-                timeZone: CHENNAI_TIMEZONE,
+                timeZone: activeTimezone,
                 hour12: false,
                 hour: '2-digit',
                 minute: '2-digit',
                 second: '2-digit',
             }),
-        [now]
+        [now, activeTimezone]
     );
 
     const dateLine = useMemo(
         () =>
             now.toLocaleDateString('en-IN', {
-                timeZone: CHENNAI_TIMEZONE,
+                timeZone: activeTimezone,
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
             }),
-        [now]
+        [now, activeTimezone]
     );
 
     const [hour = 0, minute = 0, second = 0] = digitalTime.split(':').map((v) => Number(v));
@@ -1231,6 +1245,39 @@ const HebrewClockView: React.FC = () => {
     const secondAngle = second * 6;
     const hebrewDigitalTime = `${toHebrew((hour % 12) || 12)}:${toHebrew(minute)}:${toHebrew(second)}`;
     const hebrewDigital24Time = `${toHebrew(hour)}:${toHebrew(minute)}:${toHebrew(second)}`;
+
+    const hebrewHourInfoMap = [
+        { letter: 'א', gematria: 1, meaning: 'God is One, Beginnings', scripture: 'Genesis 1:1' },
+        { letter: 'ב', gematria: 2, meaning: 'House, Duality, Creation', scripture: 'Genesis 1:2' },
+        { letter: 'ג', gematria: 3, meaning: 'Camel, Pride, Reward/Punishment', scripture: 'Psalm 119:17' },
+        { letter: 'ד', gematria: 4, meaning: 'Door, Path, Humility', scripture: 'John 10:9' },
+        { letter: 'ה', gematria: 5, meaning: 'Breath, Revelation, Grace', scripture: 'Ephesians 2:8' },
+        { letter: 'ו', gematria: 6, meaning: 'Nail, Man, Connection', scripture: 'Revelation 13:18' },
+        { letter: 'ז', gematria: 7, meaning: 'Sword, Perfection, Completion', scripture: 'Genesis 2:2' },
+        { letter: 'ח', gematria: 8, meaning: 'Fence, New Beginnings, Life', scripture: '1 Peter 3:20' },
+        { letter: 'ט', gematria: 9, meaning: 'Snake, Basket, Fruitfulness', scripture: 'Galatians 5:22-23' },
+        { letter: 'י', gematria: 10, meaning: 'Hand, Divine Order, Completion', scripture: 'Exodus 20:1-17' },
+        { letter: 'יא', gematria: 11, meaning: 'Chaos, Transition', scripture: 'Genesis 11' },
+        { letter: 'יב', gematria: 12, meaning: 'Authority, Government, Apostles', scripture: 'Revelation 21:14' },
+        { letter: 'יג', gematria: 13, meaning: 'Love, Unity', scripture: '1 Corinthians 13' },
+        { letter: 'יד', gematria: 14, meaning: 'Deliverance, Salvation', scripture: 'Exodus 14' },
+        { letter: 'טו', gematria: 15, meaning: 'Rest, Elevation', scripture: 'Leviticus 23:34' },
+        { letter: 'טז', gematria: 16, meaning: 'Love, Action', scripture: 'John 3:16' },
+        { letter: 'יז', gematria: 17, meaning: 'Victory, Election', scripture: 'Romans 8:37' },
+        { letter: 'יח', gematria: 18, meaning: 'Life (Chai)', scripture: 'Proverbs 18:21' },
+        { letter: 'יט', gematria: 19, meaning: 'Faith, Hearing', scripture: 'Romans 10:17' },
+        { letter: 'כ', gematria: 20, meaning: 'Redemption, Hand', scripture: 'Exodus 30:14' },
+        { letter: 'כא', gematria: 21, meaning: 'Exceeding Sinfulness of Sin', scripture: '2 Timothy 3:1-5' },
+        { letter: 'כב', gematria: 22, meaning: 'Light, Revelation', scripture: 'Revelation 22' },
+        { letter: 'כג', gematria: 23, meaning: 'Death, Protection', scripture: 'Psalm 23' },
+        { letter: 'כד', gematria: 24, meaning: 'Priesthood, Heavenly Worship', scripture: 'Revelation 4:4' }
+    ];
+
+    const handleClockClick = () => {
+        const currentHour = (hour % (is24HourFormat ? 24 : 12)) || (is24HourFormat ? 24 : 12);
+        const info = hebrewHourInfoMap[currentHour - 1];
+        setSelectedHebrewHourInfo(info || null);
+    };
 
     const handleDownloadClock = async () => {
         if (!clockRef.current) return;
@@ -1250,33 +1297,96 @@ const HebrewClockView: React.FC = () => {
     };
 
     return (
-        <div className="space-y-6">
-            <div ref={clockRef} className="space-y-10 bg-slate-950 text-white rounded-[2.5rem] p-6 md:p-10 border border-white/10 shadow-2xl relative overflow-hidden">
+        <div className="space-y-8">
+            {/* Hero Section */}
+            <div className="text-center space-y-4 max-w-3xl mx-auto px-4">
+                <h2 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-600 via-amber-500 to-orange-600 drop-shadow-sm">
+                    God's Appointed Times
+                </h2>
+                <p className="text-slate-600 text-lg md:text-xl font-medium leading-relaxed">
+                    Experience biblical time through the Hebrew clock, learn the Hebrew roots of Scripture, and grow with our ministry community.
+                </p>
+            </div>
+
+            {/* Live Information Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 max-w-6xl mx-auto px-4">
+                {[
+                    { icon: <Clock size={16} />, label: 'Hebrew Time', value: hebrewDigitalTime, color: 'text-amber-600' },
+                    { icon: <Sunrise size={16} />, label: 'Sunrise', value: '06:00', color: 'text-orange-500' },
+                    { icon: <Sunset size={16} />, label: 'Sunset', value: '18:00', color: 'text-red-500' },
+                    { icon: <CalendarIcon size={16} />, label: 'Hebrew Date', value: '14 Nisan', color: 'text-emerald-600' },
+                    { icon: <Moon size={16} />, label: 'Moon Phase', value: 'Full', color: 'text-indigo-500' },
+                    { icon: <Globe size={16} />, label: 'Month', value: 'Nisan', color: 'text-blue-500' }
+                ].map((stat, idx) => (
+                    <div key={idx} className="bg-white border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-center text-center shadow-sm hover:shadow-md transition-shadow">
+                        <div className={`mb-1 ${stat.color}`}>{stat.icon}</div>
+                        <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">{stat.label}</p>
+                        <p className="font-serif font-bold text-brand-950 mt-1">{stat.value}</p>
+                    </div>
+                ))}
+            </div>
+
+            {/* Clock Controls */}
+            <div className="flex flex-wrap justify-center gap-4 max-w-3xl mx-auto px-4">
+                <button
+                    onClick={() => setUseJerusalemTime(!useJerusalemTime)}
+                    className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${useJerusalemTime ? 'bg-amber-100 border-amber-300 text-amber-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                >
+                    {useJerusalemTime ? '📍 Jerusalem Time' : '📍 Chennai Time'}
+                </button>
+                <button
+                    onClick={() => setIs24HourFormat(!is24HourFormat)}
+                    className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${is24HourFormat ? 'bg-amber-100 border-amber-300 text-amber-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                >
+                    {is24HourFormat ? '⏱️ 24-Hour Format' : '⏱️ 12-Hour Format'}
+                </button>
+                <button
+                    onClick={() => setIsCounterClockwise(!isCounterClockwise)}
+                    className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${isCounterClockwise ? 'bg-amber-100 border-amber-300 text-amber-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                >
+                    {isCounterClockwise ? '↺ Counter-Clockwise' : '↻ Clockwise'}
+                </button>
+            </div>
+
+            <div ref={clockRef} onClick={handleClockClick} className="space-y-10 bg-slate-950 text-white rounded-[2.5rem] p-6 md:p-10 border border-white/10 shadow-2xl relative overflow-hidden max-w-5xl mx-auto cursor-pointer group hover:ring-2 ring-amber-500/30 transition-all">
                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
 
                 <div className="text-center relative z-10 space-y-2">
-                    <h3 className="text-3xl md:text-5xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 drop-shadow-md">Hebrew Clock — Chennai Time</h3>
-                    <p className="text-slate-400 max-w-xl mx-auto text-xs sm:text-sm">Synchronized to Chennai, India (Asia/Kolkata timezone)</p>
+                    <h3 className="text-3xl md:text-4xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 drop-shadow-md">Hebrew Clock — {useJerusalemTime ? 'Jerusalem Time' : 'Chennai Time'}</h3>
+                    <p className="text-slate-400 max-w-xl mx-auto text-xs sm:text-sm">Synchronized to {useJerusalemTime ? 'Jerusalem, Israel (Asia/Jerusalem)' : 'Chennai, India (Asia/Kolkata)'} timezone. Click clock for insights.</p>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-2 relative z-10 justify-items-center">
-                    {/* 12-Hour Clock */}
+                <div className="flex justify-center relative z-10">
                     <AnalogDial
-                        label="12-Hour Sacred Dial (Hebrew Letters + Numbers)"
-                        hourAngle={hourAngle}
+                        label={is24HourFormat ? "24-Hour Solar Dial (Full Day Cycle א - כד)" : "12-Hour Sacred Dial (Hebrew Letters + Numbers)"}
+                        hourAngle={is24HourFormat ? hour24Angle : hourAngle}
                         minuteAngle={minuteAngle}
                         secondAngle={secondAngle}
-                        is24Hour={false}
-                    />
-                    {/* 24-Hour Clock */}
-                    <AnalogDial
-                        label="24-Hour Solar Dial (Full Day Cycle א - כד)"
-                        hourAngle={hour24Angle}
-                        minuteAngle={minuteAngle}
-                        secondAngle={secondAngle}
-                        is24Hour={true}
+                        is24Hour={is24HourFormat}
+                        isCounterClockwise={isCounterClockwise}
                     />
                 </div>
+
+                {/* Hebrew Hour Info Popup (Inline) */}
+                <AnimatePresence>
+                    {selectedHebrewHourInfo && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className="absolute inset-x-8 bottom-8 md:inset-x-20 md:bottom-12 bg-white/10 backdrop-blur-md border border-amber-500/30 rounded-3xl p-6 text-center shadow-2xl z-20 flex flex-col items-center justify-center gap-3"
+                        >
+                            <button onClick={(e) => { e.stopPropagation(); setSelectedHebrewHourInfo(null); }} className="absolute top-4 right-4 text-white/50 hover:text-white">✕</button>
+                            <div className="text-4xl md:text-6xl font-black text-amber-400 drop-shadow-md" dir="rtl">{selectedHebrewHourInfo.letter}</div>
+                            <div className="flex items-center gap-4 text-sm font-bold text-amber-100">
+                                <span>Value: {selectedHebrewHourInfo.gematria}</span>
+                                <span>•</span>
+                                <span>{selectedHebrewHourInfo.meaning}</span>
+                            </div>
+                            <div className="text-xs font-black uppercase tracking-widest text-slate-400 mt-2">{selectedHebrewHourInfo.scripture}</div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 relative z-10">
                     <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 text-center shadow-lg hover:border-amber-500/20 transition-all flex flex-col justify-center">
@@ -1297,7 +1407,7 @@ const HebrewClockView: React.FC = () => {
                 </div>
             </div>
 
-            <div className="flex justify-center mt-6">
+            <div className="flex justify-center mt-6 relative z-10">
                 <button
                     onClick={handleDownloadClock}
                     disabled={isExporting}
@@ -1309,6 +1419,77 @@ const HebrewClockView: React.FC = () => {
                         <><Download size={18} /> Download and use it</>
                     )}
                 </button>
+            </div>
+
+            {/* Daily Scripture */}
+            <div className="max-w-3xl mx-auto bg-amber-50/50 border border-amber-200/50 rounded-3xl p-8 text-center shadow-sm">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-600 mb-4 flex items-center justify-center gap-2">
+                    <BookOpen size={14} /> Verse of the Day
+                </p>
+                <blockquote className="text-2xl md:text-3xl font-serif text-brand-900 italic mb-4">
+                    "To everything there is a season..."
+                </blockquote>
+                <cite className="text-sm font-bold text-slate-500 not-italic uppercase tracking-widest">
+                    Ecclesiastes 3:1
+                </cite>
+            </div>
+
+            {/* Educational Section */}
+            <div className="max-w-5xl mx-auto pt-8">
+                <h3 className="text-2xl md:text-3xl font-serif font-bold text-center text-brand-950 mb-8">Learn Biblical Time</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[
+                        { icon: <BookOpen className="text-amber-600" size={24} />, title: 'What is Biblical Time?' },
+                        { icon: <Hash className="text-blue-600" size={24} />, title: 'Hebrew Numbers' },
+                        { icon: <Clock className="text-emerald-600" size={24} />, title: '12 Hebrew Hours' },
+                        { icon: <Flame className="text-orange-600" size={24} />, title: 'Biblical Watches' },
+                        { icon: <Globe className="text-indigo-600" size={24} />, title: 'Jerusalem vs Local Time' },
+                    ].map((item, i) => (
+                        <div key={i} className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-lg hover:border-amber-300 transition-all cursor-pointer flex flex-col items-center text-center gap-4 group">
+                            <div className="p-4 bg-slate-50 rounded-full group-hover:bg-amber-50 group-hover:scale-110 transition-all">
+                                {item.icon}
+                            </div>
+                            <h4 className="font-bold text-brand-900">{item.title}</h4>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Community Section */}
+            <div className="max-w-5xl mx-auto pt-8">
+                <div className="bg-gradient-to-br from-brand-900 to-brand-950 rounded-[2.5rem] p-10 md:p-14 text-center text-white shadow-xl relative overflow-hidden">
+                    <div className="absolute inset-0 bg-[url('/pattern-light.png')] opacity-5 mix-blend-overlay"></div>
+                    <div className="relative z-10 space-y-6">
+                        <h3 className="text-3xl md:text-4xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-500">
+                            Discover the Truth
+                        </h3>
+                        <p className="text-amber-100/80 text-lg max-w-2xl mx-auto">
+                            Deepen your understanding of Scripture through our Hebrew resources, biblical calendar, Hebrew clock, AI Bible assistant, and growing community of believers.
+                        </p>
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 max-w-3xl mx-auto">
+                            {[
+                                { icon: <BookOpen size={20} />, label: 'Hebrew Resources' },
+                                { icon: <Sparkles size={20} />, label: 'Ask Divine AI' },
+                                { icon: <Heart size={20} />, label: 'Bible Studies' },
+                                { icon: <Type size={20} />, label: 'Join Our Community' },
+                            ].map((item, i) => (
+                                <div key={i} className="flex flex-col items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-amber-400/50 transition-all cursor-pointer">
+                                    <div className="text-amber-400">{item.icon}</div>
+                                    <span className="text-xs font-bold uppercase tracking-wider text-slate-300">{item.label}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Footer */}
+            <div className="max-w-3xl mx-auto pt-12 pb-8 text-center border-t border-slate-200 mt-12">
+                <h4 className="text-xl font-serif font-bold text-brand-900 mb-3">Walk in God's Appointed Times</h4>
+                <p className="text-sm text-slate-500">
+                    Explore Hebrew wisdom, biblical festivals, Scripture, and our ministry community.
+                </p>
             </div>
         </div>
     );
