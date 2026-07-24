@@ -1235,7 +1235,12 @@ export const api = {
 
     // Complete system reboot - deletes all data from Firestore, Storage, and localStorage
     completeReboot: async (password: string): Promise<{ success: boolean; message: string; details?: any }> => {
-        const REBOOT_PASSWORD = import.meta.env.VITE_REBOOT_PASSWORD || 'steveharrington';
+        const REBOOT_PASSWORD = import.meta.env.VITE_REBOOT_PASSWORD;
+
+        if (!REBOOT_PASSWORD) {
+            console.error('Reboot operation is not configured.');
+            return { success: false, message: 'Reboot operation is not configured.' };
+        }
         
         if (password !== REBOOT_PASSWORD) {
             return { success: false, message: 'Invalid reboot password' };
