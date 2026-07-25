@@ -315,7 +315,7 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
     };
 
     return (
-        <div ref={containerRef} className="fixed inset-0 pointer-events-none z-50">
+        <div ref={containerRef} className="fixed inset-0 pointer-events-none z-[99999]">
             <AnimatePresence>
                 {/* Floating Chat Button */}
                 {!isOpen && widgetSettings.cotChatVisible !== false && (
@@ -342,7 +342,7 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
                         whileHover={{ scale: 1.12 * (widgetSettings?.cotChatSize || 1), cursor: 'grab' }}
                         whileTap={{ scale: 0.88 * (widgetSettings?.cotChatSize || 1) }}
                         onClick={() => setIsOpen(true)}
-                        className="pointer-events-auto fixed bottom-[100px] right-6 z-50 w-14 h-14 md:w-16 md:h-16 rounded-full shadow-2xl flex items-center justify-center border-2 border-amber-400/60 group"
+                        className="pointer-events-auto fixed bottom-6 right-6 z-[99999] w-14 h-14 md:w-16 md:h-16 rounded-full shadow-2xl flex items-center justify-center border-2 border-amber-400/60 group"
                         style={{
                             touchAction: 'none',
                             background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #1e40af 100%)',
@@ -402,17 +402,18 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
                             opacity: 1,
                             scale: 1,
                             y: 0,
-                            width: isExpanded ? 'calc(100vw - 32px)' : 'min(380px, calc(100vw - 32px))',
-                            height: isExpanded ? 'calc(100vh - 32px)' : 'min(560px, calc(100dvh - 120px))',
+                            width: isExpanded ? 'calc(100vw - 32px)' : 'min(400px, calc(100vw - 32px))',
+                            height: isExpanded ? 'calc(100vh - 32px)' : 'min(580px, calc(100vh - 110px))',
                             right: isExpanded ? 16 : 16,
-                            bottom: isExpanded ? 16 : 80
+                            bottom: isExpanded ? 16 : 20
                         }}
                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="pointer-events-auto fixed rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+                        className="pointer-events-auto fixed rounded-2xl shadow-2xl flex flex-col overflow-hidden z-[99999]"
                         style={{
-                            border: '1px solid rgba(251,191,36,0.25)',
+                            maxHeight: 'calc(100vh - 40px)',
+                            border: '1px solid rgba(251,191,36,0.3)',
                             background: 'linear-gradient(180deg, #f8faff 0%, #ffffff 100%)',
-                            boxShadow: '0 32px 80px rgba(15,23,42,0.35), 0 0 0 1px rgba(251,191,36,0.15)'
+                            boxShadow: '0 32px 80px rgba(15,23,42,0.45), 0 0 0 1px rgba(251,191,36,0.2)'
                         }}
                     >
                         {/* Header */}
@@ -526,14 +527,14 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
 
                                             {/* Option Buttons */}
                                             {message.options && message.options.length > 0 && (
-                                                <div className="flex flex-wrap justify-end gap-2 mt-2">
+                                                <div className="flex flex-wrap justify-start gap-2 mt-2">
                                                     {message.options.map((option, optIndex) => (
                                                         <motion.button
                                                             whileHover={{ scale: 1.05 }}
                                                             whileTap={{ scale: 0.95 }}
                                                             key={optIndex}
                                                             onClick={() => handleOptionClick(option)}
-                                                            className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shadow-sm"
+                                                            className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shadow-sm hover:border-amber-400 hover:bg-amber-50"
                                                             style={{ background: '#fff', border: '1px solid rgba(30,58,138,0.25)', color: '#1e3a8a', boxShadow: '0 2px 8px rgba(15,23,42,0.08)' }}
                                                         >
                                                             {option}

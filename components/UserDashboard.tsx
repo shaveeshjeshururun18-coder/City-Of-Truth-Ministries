@@ -1636,11 +1636,21 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             <div className={`absolute -bottom-0.5 -right-0.5 z-30 w-4 h-4 rounded-full border-2 border-white ${user.status === 'Active' ? 'bg-green-500' : user.status === 'Rejected' ? 'bg-red-500' : 'bg-amber-400'}`} />
                         </div>
 
-                        {/* Family member avatars */}
+                        {/* Family member avatars with flowing medal structure */}
                         {user.linkedProfiles?.map(pf => (
-                            <button key={pf.id} onClick={() => setActiveProfileId(pf.id)} title={pf.name}
-                                className={`relative shrink-0 w-10 h-10 rounded-full overflow-hidden border-2 transition-all ${activeProfileId === pf.id ? 'border-brand-500 shadow-lg scale-110' : 'border-white/70 opacity-70 hover:opacity-100 hover:scale-105'}`}>
-                                {renderAvatarContent(pf.photo, pf.name, 'text-[10px]', 'from-violet-600 to-fuchsia-700')}
+                            <button
+                                key={pf.id}
+                                onClick={() => {
+                                    setActiveProfileId(pf.id);
+                                    handleMedalClick();
+                                }}
+                                title={pf.name}
+                                className="relative shrink-0 p-0.5 group select-none cursor-pointer"
+                            >
+                                <div className={`absolute inset-0 rounded-full p-[2px] bg-[conic-gradient(from_0deg,#00F2FE,#4FACFE,#F6D365,#FDA085,#FF0844,#FFB199,#00F2FE)] animate-[spin_5s_linear_infinite] ${activeProfileId === pf.id ? 'opacity-100 shadow-md' : 'opacity-40 group-hover:opacity-90'} transition-opacity`} />
+                                <div className={`relative w-10 h-10 rounded-full overflow-hidden border-2 transition-all ${activeProfileId === pf.id ? 'border-brand-500 scale-105' : 'border-white opacity-80'}`}>
+                                    {renderAvatarContent(pf.photo, pf.name, 'text-[10px]', 'from-violet-600 to-fuchsia-700')}
+                                </div>
                             </button>
                         ))}
 
@@ -1855,16 +1865,40 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     </div>
 
                     {/* ════════════════════════════════════
-                    mAadhaar-Style Wallet Card
+                    mAadhaar-Style Wallet Card Bundle (Flowing Medal Ring Structure)
                 ════════════════════════════════════ */}
-                    <div id="dashboard-wallet-card" className="bg-white rounded-[28px] shadow-xl mb-5 overflow-hidden">
-                        {/* Gold ID Number Header - show full ID, no masking */}
-                        <div className="bg-gradient-to-r from-[#d4a547] via-[#f0c040] to-[#c8922a] px-5 py-3.5 flex items-center justify-between">
-                            <span className="font-black text-[#3d2500] text-xl tracking-[3px] font-mono">
-                                {displayProfile.id.toUpperCase()}
-                            </span>
-                            <span className="text-[#5a3500]/60 text-[10px] font-bold uppercase tracking-widest">COT ID</span>
-                        </div>
+                    <div
+                        id="dashboard-wallet-card"
+                        onClick={handleMedalClick}
+                        className="relative group bg-white rounded-[28px] shadow-xl mb-5 overflow-hidden transition-all hover:shadow-2xl cursor-pointer p-[3px]"
+                    >
+                        {/* Flowing Conic Gradient Border Aura */}
+                        <div className="absolute inset-0 rounded-[28px] bg-[conic-gradient(from_0deg,#00F2FE,#4FACFE,#F6D365,#FDA085,#FF0844,#FFB199,#00F2FE)] opacity-75 group-hover:opacity-100 animate-[spin_8s_linear_infinite] transition-opacity" />
+
+                        {/* Staggered Ripples on Click */}
+                        {isStaggeringMedal && (
+                            <>
+                                <div className="absolute -inset-1 rounded-[30px] border-2 border-cyan-400 animate-[ping_0.9s_cubic-bezier(0,0,0.2,1)_infinite] pointer-events-none" />
+                                <div className="absolute -inset-3 rounded-[34px] border-2 border-amber-400 animate-[ping_0.9s_cubic-bezier(0,0,0.2,1)_infinite]" style={{ animationDelay: '150ms' }} />
+                                <div className="absolute -inset-5 rounded-[38px] border-2 border-rose-500 animate-[ping_0.9s_cubic-bezier(0,0,0.2,1)_infinite]" style={{ animationDelay: '300ms' }} />
+                            </>
+                        )}
+
+                        <div className="relative bg-white rounded-[25px] overflow-hidden z-10">
+                            {/* Gold ID Number Header - show full ID, no masking */}
+                            <div className="bg-gradient-to-r from-[#d4a547] via-[#f0c040] to-[#c8922a] px-5 py-3.5 flex items-center justify-between">
+                                <span className="font-black text-[#3d2500] text-xl tracking-[3px] font-mono">
+                                    {displayProfile.id.toUpperCase()}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                    <div className="relative p-0.5 rounded-full bg-amber-950/20">
+                                        <div className="w-5 h-5 rounded-full bg-amber-950 flex items-center justify-center text-amber-300">
+                                            <Award size={12} />
+                                        </div>
+                                    </div>
+                                    <span className="text-[#5a3500]/80 text-[10px] font-bold uppercase tracking-widest">COT ID</span>
+                                </div>
+                            </div>
 
                         {/* Desktop Content Row: 3D Preview + QR */}
                         <div className="flex flex-col xl:flex-row items-center xl:items-start justify-between p-4 md:p-6 lg:p-10 gap-6">
@@ -2064,6 +2098,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             </div>
                         )}
 
+                        </div>
                     </div>
 
                     {/* ── ACTION CARDS GRID ── */}
