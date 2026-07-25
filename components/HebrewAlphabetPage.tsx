@@ -161,8 +161,8 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
         setPdfGenerating(true);
         try {
             const link = document.createElement('a');
-            link.href = '/downloads/Sacred_Alphabet_Gematria_Chart.pdf';
-            link.download = 'Sacred_Alphabet_Gematria_Chart.pdf';
+            link.href = '/downloads/ilovepdf_merged_organized.pdf';
+            link.download = 'ilovepdf_merged_organized.pdf';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);

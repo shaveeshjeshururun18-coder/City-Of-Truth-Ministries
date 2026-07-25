@@ -283,7 +283,7 @@ export const generateHebrewAlphabetPDF = async () => {
     pdf.text(`Page 4`, pageWidth - margin - 20, pageHeight - 8);
 
     // Save the PDF
-    pdf.save('Sacred_Alphabet_Gematria_Chart-2_organized.pdf');
+    pdf.save('ilovepdf_merged_organized.pdf');
     return true;
   } catch (error) {
     console.error('Error generating PDF:', error);

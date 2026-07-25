@@ -1933,7 +1933,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                                     onClick={handleOpenQrPreview}
                                                     className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-brand-700 hover:text-brand-900 transition-colors"
                                                 >
-                                                    <ExternalLink size={12} /> Click QR to view link + copy
+                                                    <ExternalLink size={12} /> Visit the Verify Page
                                                 </button>
                                             )}
                                         </div>
@@ -2210,8 +2210,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 return;
                             }
                             const link = document.createElement('a');
-                            link.href = '/downloads/Sacred_Alphabet_Gematria_Chart.pdf';
-                            link.download = 'Sacred_Alphabet_Gematria_Chart.pdf';
+                            link.href = '/downloads/ilovepdf_merged_organized.pdf';
+                            link.download = 'ilovepdf_merged_organized.pdf';
                             document.body.appendChild(link);
                             link.click();
                             document.body.removeChild(link);
