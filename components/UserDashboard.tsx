@@ -380,6 +380,20 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         }
     };
 
+    const handleDownloadProfilePhoto = () => {
+        const photoToDownload = displayProfile.photo || user.photo;
+        if (!photoToDownload) {
+            alert('No profile photo available to download.');
+            return;
+        }
+        const link = document.createElement('a');
+        link.href = photoToDownload;
+        link.download = `${(displayProfile.name || user.name || 'profile').replace(/\s+/g, '_')}_profile_photo.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const handleDownloadPDF = async () => {
         if (!canAccessEntrustFeatures) {
             alert('Entrust card download is available only after admin approval.');
@@ -1557,20 +1571,37 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             <div className="w-14 h-14 rounded-full overflow-hidden border-[3px] border-white shadow-lg bg-brand-100">
                                 {renderAvatarContent(user.photo, user.name, 'text-sm', 'from-brand-600 to-violet-700')}
                             </div>
-                            <div
-                                onClick={() => {
-                                    if (!user.photo) {
-                                        alert('No existing photo to crop. Please use the "Add New Photo" button in Edit Details.');
-                                        return;
-                                    }
-                                    setCropTarget({ type: 'primary', isNewUpload: false });
-                                    setCroppingImage(user.photo);
-                                    setIsEditing(false);
-                                }}
-                                className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 cursor-pointer transition-all"
-                                title="Crop Profile Photo"
-                            >
-                                <Camera size={14} className="text-white" />
+                            <div className="absolute inset-0 flex items-center justify-center gap-1.5 bg-black/60 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all">
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (!user.photo) {
+                                            alert('No existing photo to crop. Please use the "Add New Photo" button in Edit Details.');
+                                            return;
+                                        }
+                                        setWasEditingBeforeCrop(isEditing);
+                                        setCropTarget({ type: 'primary', isNewUpload: false });
+                                        setCroppingImage(user.photo);
+                                    }}
+                                    className="p-1 hover:scale-110 text-white transition-transform"
+                                    title="Crop Profile Photo"
+                                >
+                                    <Camera size={14} />
+                                </button>
+                                {(user.photo || displayProfile.photo) && (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDownloadProfilePhoto();
+                                        }}
+                                        className="p-1 hover:scale-110 text-white transition-transform"
+                                        title="Download Profile Photo"
+                                    >
+                                        <Download size={14} />
+                                    </button>
+                                )}
                             </div>
                             {/* Active indicator */}
                             <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white ${user.status === 'Active' ? 'bg-green-500' : user.status === 'Rejected' ? 'bg-red-500' : 'bg-amber-400'}`} />
