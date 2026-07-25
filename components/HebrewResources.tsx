@@ -18,7 +18,7 @@ import { HebrewGrammar3D } from './HebrewGrammar3D';
 import { IsraelPage } from './IsraelPage';
 import { MouthPronunciationAnimator, type PhonemeStep } from './MouthPronunciationAnimator';
 
-const captureNodeToJpeg = async (
+export const captureNodeToJpeg = async (
     sourceNode: HTMLElement,
     options: { backgroundColor: string; width?: number }
 ) => {
@@ -1192,6 +1192,8 @@ const AnalogDial: React.FC<{
 
 const HebrewClockView: React.FC = () => {
     const [now, setNow] = useState(() => new Date());
+    const clockRef = useRef<HTMLDivElement>(null);
+    const [isExporting, setIsExporting] = useState(false);
 
     useEffect(() => {
         const timer = window.setInterval(() => setNow(new Date()), 1000);
@@ -1230,50 +1232,83 @@ const HebrewClockView: React.FC = () => {
     const hebrewDigitalTime = `${toHebrew((hour % 12) || 12)}:${toHebrew(minute)}:${toHebrew(second)}`;
     const hebrewDigital24Time = `${toHebrew(hour)}:${toHebrew(minute)}:${toHebrew(second)}`;
 
+    const handleDownloadClock = async () => {
+        if (!clockRef.current) return;
+        setIsExporting(true);
+        try {
+            const dataUrl = await captureNodeToJpeg(clockRef.current, { backgroundColor: '#020617', width: 900 });
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = `COT-Hebrew-Clock-${Date.now()}.jpg`;
+            link.click();
+        } catch (e) {
+            console.error('Failed to export clock:', e);
+            alert('Failed to export clock. Please try again.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     return (
-        <div className="space-y-10 bg-slate-950 text-white rounded-[2.5rem] p-6 md:p-10 border border-white/10 shadow-2xl relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
-            
-            <div className="text-center relative z-10 space-y-2">
-                <h3 className="text-3xl md:text-5xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 drop-shadow-md">Hebrew Clock — Chennai Time</h3>
-                <p className="text-slate-400 max-w-xl mx-auto text-xs sm:text-sm">Synchronized to Chennai, India (Asia/Kolkata timezone)</p>
+        <div className="space-y-6">
+            <div ref={clockRef} className="space-y-10 bg-slate-950 text-white rounded-[2.5rem] p-6 md:p-10 border border-white/10 shadow-2xl relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
+
+                <div className="text-center relative z-10 space-y-2">
+                    <h3 className="text-3xl md:text-5xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 drop-shadow-md">Hebrew Clock — Chennai Time</h3>
+                    <p className="text-slate-400 max-w-xl mx-auto text-xs sm:text-sm">Synchronized to Chennai, India (Asia/Kolkata timezone)</p>
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-2 relative z-10 justify-items-center">
+                    {/* 12-Hour Clock */}
+                    <AnalogDial
+                        label="12-Hour Sacred Dial (Hebrew Letters + Numbers)"
+                        hourAngle={hourAngle}
+                        minuteAngle={minuteAngle}
+                        secondAngle={secondAngle}
+                        is24Hour={false}
+                    />
+                    {/* 24-Hour Clock */}
+                    <AnalogDial
+                        label="24-Hour Solar Dial (Full Day Cycle א - כד)"
+                        hourAngle={hour24Angle}
+                        minuteAngle={minuteAngle}
+                        secondAngle={secondAngle}
+                        is24Hour={true}
+                    />
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 relative z-10">
+                    <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 text-center shadow-lg hover:border-amber-500/20 transition-all flex flex-col justify-center">
+                        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-400 mb-2">Sacred 12H Time</p>
+                        <div className="text-3xl sm:text-4xl font-black tracking-wider text-white drop-shadow-md" dir="rtl">{hebrewDigitalTime}</div>
+                        <p className="text-[9px] text-slate-400 mt-2">Hebrew numerals (12H cycle)</p>
+                    </div>
+                    <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 text-center shadow-lg hover:border-amber-500/20 transition-all flex flex-col justify-center">
+                        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-400 mb-2">Solar 24H Time</p>
+                        <div className="text-3xl sm:text-4xl font-black tracking-wider text-white drop-shadow-md" dir="rtl">{hebrewDigital24Time}</div>
+                        <p className="text-[9px] text-slate-400 mt-2">Hebrew numerals (24H cycle)</p>
+                    </div>
+                    <div className="sm:col-span-2 lg:col-span-3 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-amber-500/50 rounded-[2rem] p-8 text-center shadow-[0_0_30px_rgba(245,158,11,0.15)] flex flex-col justify-center items-center">
+                        <p className="text-xs font-black uppercase tracking-[0.3em] text-amber-500 mb-3 flex items-center gap-2"><Sparkles size={14} /> Standard Digital Time <Sparkles size={14} /></p>
+                        <div className="text-5xl md:text-6xl font-black font-mono tracking-widest text-amber-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.5)]">{digitalTime}</div>
+                        <p className="text-sm text-slate-300 mt-4 font-bold uppercase tracking-widest">{dateLine}</p>
+                    </div>
+                </div>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2 relative z-10 justify-items-center">
-                {/* 12-Hour Clock */}
-                <AnalogDial
-                    label="12-Hour Sacred Dial (Hebrew Letters + Numbers)"
-                    hourAngle={hourAngle}
-                    minuteAngle={minuteAngle}
-                    secondAngle={secondAngle}
-                    is24Hour={false}
-                />
-                {/* 24-Hour Clock */}
-                <AnalogDial
-                    label="24-Hour Solar Dial (Full Day Cycle א - כד)"
-                    hourAngle={hour24Angle}
-                    minuteAngle={minuteAngle}
-                    secondAngle={secondAngle}
-                    is24Hour={true}
-                />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3 relative z-10">
-                <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 text-center shadow-lg hover:border-amber-500/20 transition-all">
-                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-400 mb-2">Sacred 12H Time</p>
-                    <div className="text-2xl sm:text-3xl font-black tracking-wider text-white" dir="rtl">{hebrewDigitalTime}</div>
-                    <p className="text-[9px] text-slate-400 mt-2">Hebrew numerals (12H cycle)</p>
-                </div>
-                <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 text-center shadow-lg hover:border-amber-500/20 transition-all">
-                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-400 mb-2">Solar 24H Time</p>
-                    <div className="text-2xl sm:text-3xl font-black tracking-wider text-white" dir="rtl">{hebrewDigital24Time}</div>
-                    <p className="text-[9px] text-slate-400 mt-2">Hebrew numerals (24H cycle)</p>
-                </div>
-                <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 text-center shadow-lg hover:border-amber-500/20 transition-all">
-                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-400 mb-2">Standard Timing</p>
-                    <div className="text-2xl sm:text-3xl font-black font-mono tracking-wider text-white">{digitalTime}</div>
-                    <p className="text-[9px] text-slate-400 mt-2">{dateLine}</p>
-                </div>
+            <div className="flex justify-center mt-6">
+                <button
+                    onClick={handleDownloadClock}
+                    disabled={isExporting}
+                    className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-brand-950 rounded-full hover:from-amber-400 hover:to-amber-500 font-black text-sm uppercase tracking-widest transition-all shadow-[0_10px_20px_rgba(245,158,11,0.3)] hover:shadow-[0_15px_30px_rgba(245,158,11,0.5)] hover:-translate-y-0.5 disabled:opacity-50"
+                >
+                    {isExporting ? (
+                        <><span className="animate-spin text-sm">⏳</span> Exporting Image...</>
+                    ) : (
+                        <><Download size={18} /> Download and use it</>
+                    )}
+                </button>
             </div>
         </div>
     );
@@ -2351,7 +2386,7 @@ const HebrewLettersAudioLab: React.FC = () => {
             </div>
 
             {/* ── WORD BUILDER (Always visible full-width at top, static on mobile, sticky on desktop alone) ── */}
-            <div className={`bg-gradient-to-r from-fuchsia-500 via-sky-500 to-emerald-500 p-[2px] rounded-[2rem] z-20 ${isBuilderStickyActive ? 'md:sticky md:top-[7rem]' : ''}`}>
+            <div className={`bg-white border border-slate-200 shadow-md p-1 rounded-[2rem] z-20 ${isBuilderStickyActive ? 'sticky top-[5rem]' : ''}`}>
                 <div className="bg-white rounded-[2rem] p-4 md:p-6">
                     <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
                         <div className="flex-1 min-w-0">

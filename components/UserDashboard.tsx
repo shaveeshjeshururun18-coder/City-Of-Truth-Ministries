@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, SubProfile, UserRole } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
+import { generateHebrewAlphabetPDF } from './HebrewAlphabetPDF';
 import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag, Copy, ExternalLink, Moon, Sun } from 'lucide-react';
 import { Button } from './Button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -610,7 +611,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         // Ensure pending profile updates for the deleted member are also removed
         let newPendingUpdate = user.pendingProfileUpdate;
         if (newPendingUpdate && newPendingUpdate.linkedProfiles) {
-            const newPendingLinkedProfiles = newPendingUpdate.linkedProfiles.filter(p => p.id !== profileId);
+            const newPendingLinkedProfiles = newPendingUpdate.linkedProfiles.filter((p: any) => p.id !== profileId);
             newPendingUpdate = { ...newPendingUpdate };
             if (newPendingLinkedProfiles.length > 0) {
                 newPendingUpdate.linkedProfiles = newPendingLinkedProfiles;
@@ -620,10 +621,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         }
 
         const updatedUser = { ...user, linkedProfiles: updatedProfiles };
+        if (newPendingUpdate && Object.keys(newPendingUpdate).length === 0) {
+            newPendingUpdate = null;
+        }
+
         if (newPendingUpdate !== undefined) {
             updatedUser.pendingProfileUpdate = newPendingUpdate;
         } else {
-            delete updatedUser.pendingProfileUpdate;
+            updatedUser.pendingProfileUpdate = null;
         }
 
         onUpdate(updatedUser);
@@ -1952,6 +1957,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                                     alt={`QR code for ${displayProfile.id}`}
                                                     className="w-44 h-44 md:w-52 md:h-52 object-contain blur-[3px] pointer-events-none select-none"
                                                 />
+<<<<<<< HEAD
                                                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 gap-2">
                                                     <ShieldCheck size={28} className="text-amber-300" />
                                                     <p className="font-black text-white text-xs uppercase tracking-widest">Not Verified</p>
@@ -1972,6 +1978,67 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             >
                                                 <Copy size={12} /> {qrLinkCopied ? 'Copied' : 'Copy Website Link'}
                                             </button>
+=======
+                                            </button>
+                                        )}
+                                        <p className="mt-4 text-sm font-bold text-brand-950">{displayProfile.name}</p>
+                                        <p className="text-[11px] text-slate-500 font-mono mt-1">{displayProfile.id.toUpperCase()}</p>
+                                        <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
+                                            Scan this code to open the official verification page for this Entrust profile.
+                                        </p>
+                                        <p className="mt-3 text-[10px] text-slate-500 break-all">{qrUrl}</p>
+                                        <button
+                                            type="button"
+                                            onClick={handleCopyQrLink}
+                                            className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-brand-700 hover:text-brand-900 transition-colors"
+                                        >
+                                            <Copy size={12} /> {qrLinkCopied ? 'Copied' : 'Copy Website Link'}
+                                        </button>
+                                        {!qrImageUnavailable && (
+                                            <>
+                                            <button
+                                                type="button"
+                                                onClick={() => window.open(qrUrl, '_blank')}
+                                                className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-brand-700 hover:text-brand-900 transition-colors"
+                                            >
+                                                <ExternalLink size={12} /> Click QR to view link
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => generateHebrewAlphabetPDF()}
+                                                className="mt-4 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-700 hover:text-amber-900 transition-colors"
+                                            >
+                                                <Download size={12} /> Download Hebrew Alphabet PDF
+                                            </button>
+                                            </>
+
+                                        )}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleDownloadQrCode}
+                                        className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-black uppercase tracking-wider transition-colors"
+                                    >
+                                        <QrCode size={14} /> Download QR Code
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center text-center">
+                                    <div className="w-full max-w-[320px] rounded-[28px] border border-slate-200 bg-slate-50 px-5 py-6">
+                                        <div className="mx-auto w-fit rounded-full bg-slate-200 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-slate-500 mb-4">
+                                            QR Locked
+                                        </div>
+                                        <div className="relative mx-auto rounded-[24px] overflow-hidden border border-slate-200 shadow-md bg-white p-3 w-fit">
+                                            <img
+                                                src={qrImgSrc}
+                                                alt={`QR code for ${displayProfile.id}`}
+                                                className="w-44 h-44 md:w-52 md:h-52 object-contain blur-[3px] pointer-events-none select-none"
+                                            />
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 gap-2">
+                                            <ShieldCheck size={28} className="text-amber-300" />
+                                            <p className="font-black text-white text-xs uppercase tracking-widest">Not Verified</p>
+>>>>>>> origin/main
                                         </div>
                                     </div>
                                 )}
@@ -2418,8 +2485,20 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                             return (
                                 <div className="flex flex-col items-center gap-3 mb-7">
-                                    <div className="w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-slate-100 shadow-lg">
-                                        {renderAvatarContent(displayProfile.photo, displayProfile.name, 'text-2xl', 'from-brand-600 via-brand-700 to-violet-800')}
+                                    <div className="relative group">
+                                        <div className="w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-slate-100 shadow-lg relative">
+                                            {renderAvatarContent(displayProfile.photo, displayProfile.name, 'text-2xl', 'from-brand-600 via-brand-700 to-violet-800')}
+                                            {displayProfile.photo && (
+                                                <a
+                                                    href={displayProfile.photo}
+                                                    download={`${displayProfile.name.replace(/\s+/g, '_')}_photo`}
+                                                    className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    title="Download Photo"
+                                                >
+                                                    <Download size={24} className="text-white" />
+                                                </a>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <button
@@ -2509,6 +2588,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Full Name</label>
                                             <input type="text" value={formData.name ?? user.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
                                         </div>
+<<<<<<< HEAD
                                         <div>
                                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Phone / Contact</label>
                                             <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl overflow-hidden focus-within:border-brand-500">
@@ -2588,6 +2668,81 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         </div>
                                     </>
                                 )}
+=======
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Email Address</label>
+                                        <input type="email" value={formData.email ?? user.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Date of Birth</label>
+                                        <input type="date" value={(formData as any).dob ?? (user as any).dob ?? ''} onChange={e => setFormData(p => ({ ...p, dob: e.target.value } as any))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Location</label>
+                                        <select
+                                            value={formData.location ?? user.location}
+                                            onChange={e => setFormData(p => ({ ...p, location: e.target.value }))}
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500"
+                                        >
+                                            {!TAMIL_NADU_LOCATIONS.includes((formData.location ?? user.location) || '') && (
+                                                <option value={formData.location ?? user.location}>{formData.location ?? user.location}</option>
+                                            )}
+                                            {TAMIL_NADU_LOCATIONS.map(location => (
+                                                <option key={location} value={location}>{location}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Joined Date</label>
+                                        <input type="date" readOnly disabled value={(formData as any).joinedDate ?? user.joinedDate ?? ''} className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-500 outline-none cursor-not-allowed opacity-70" />
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Full Name</label>
+                                        <input type="text" value={formData.name || ''} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Role / Relationship</label>
+                                        <select
+                                            value={(formData as any).role || ''}
+                                            onChange={e => setFormData(p => ({ ...p, role: e.target.value } as any))}
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500"
+                                        >
+                                            <option value="">Select Relationship</option>
+                                            <option value="Spouse">Spouse</option>
+                                            <option value="Child">Child</option>
+                                            <option value="Parent">Parent</option>
+                                            <option value="Sibling">Sibling</option>
+                                            <option value="Relative">Relative</option>
+                                            <option value="Dependent">Dependent</option>
+                                            <option value="Guardian">Guardian</option>
+                                            <option value="Ministry Partner">Ministry Partner</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Date of Birth</label>
+                                        <input type="date" value={(formData as any).dob || ''} onChange={e => setFormData(p => ({ ...p, dob: e.target.value } as any))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Blood Group</label>
+                                        <select value={(formData as any).bloodGroup || ''} onChange={e => setFormData(p => ({ ...p, bloodGroup: e.target.value } as any))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500">
+                                            <option value="">Select Blood Group</option>
+                                            <option value="A+">A+</option>
+                                            <option value="A-">A-</option>
+                                            <option value="B+">B+</option>
+                                            <option value="B-">B-</option>
+                                            <option value="AB+">AB+</option>
+                                            <option value="AB-">AB-</option>
+                                            <option value="O+">O+</option>
+                                            <option value="O-">O-</option>
+                                        </select>
+                                    </div>
+                                </>
+                            )}
+>>>>>>> origin/main
                             </div>
 
                             <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700 font-medium">

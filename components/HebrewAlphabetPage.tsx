@@ -317,11 +317,11 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                                     className={`h-20 md:h-24 lg:h-28 mb-5 object-contain transition-all duration-500 drop-shadow-lg ${selectedIndex === index ? 'scale-110' : activeIndex === index ? 'scale-110 opacity-80' : 'group-hover:scale-110 opacity-90'
                                                         }`}
                                                     style={{
-                                                        filter: selectedIndex === index
-                                                            ? 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.8)) brightness(1.1) hue-rotate(40deg) saturate(1.8)'
+                                                        filter: selectedIndex === index 
+                                                            ? 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.8)) brightness(1.1) saturate(1.8)'
                                                             : activeIndex === index
-                                                                ? 'drop-shadow(0 0 12px rgba(255, 255, 255, 0.6)) brightness(1.2) hue-rotate(40deg) saturate(1.5)'
-                                                                : 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.6)) brightness(0.95) hue-rotate(40deg) saturate(1.8) opacity-90'
+                                                                ? 'drop-shadow(0 0 12px rgba(255, 255, 255, 0.6)) brightness(1.2) saturate(1.5)'
+                                                                : 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.6)) brightness(0.95) saturate(1.8) opacity-90'
                                                     }}
                                                 />
                                             ) : (
@@ -405,7 +405,7 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                                                     alt={`${selectedLetter.name} Paleo-Hebrew letter`}
                                                                     className="w-full h-full object-contain"
                                                                     style={{
-                                                                        filter: 'drop-shadow(0 0 12px rgba(251, 191, 36, 0.8)) brightness(1.1) hue-rotate(40deg) saturate(1.8)'
+                                                                        filter: 'drop-shadow(0 0 12px rgba(251, 191, 36, 0.8)) brightness(1.1) saturate(1.8)'
                                                                     }}
                                                                 />
                                                             </div>

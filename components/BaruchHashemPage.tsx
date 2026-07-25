@@ -263,12 +263,7 @@ export const BaruchHashemPage: React.FC = () => {
                                 </p>
 
                                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                                     <Button 
-                                         className="bg-amber-600 hover:bg-amber-700 text-white border-0 shadow-lg shadow-amber-900/40"
-                                     >
-                                         Get the Digital Book
-                                     </Button>
-                                    <div
+                                     <div
                                         onClick={toggleAudio}
                                         className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 hover:bg-white/20 transition-all cursor-pointer group"
                                     >
@@ -378,6 +373,12 @@ export const BaruchHashemPage: React.FC = () => {
                                                     href={`https://www.youtube.com/watch?v=${youtubeId}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
+                                                    onClick={() => {
+                                                        if (audioRef.current) {
+                                                            audioRef.current.pause();
+                                                            setIsPlaying(false);
+                                                        }
+                                                    }}
                                                     className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 hover:text-red-700 transition-colors uppercase tracking-wider"
                                                 >
                                                     <Video size={14} />

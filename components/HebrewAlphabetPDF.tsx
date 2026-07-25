@@ -14,10 +14,10 @@ export const generateHebrewAlphabetPDF = async () => {
     const margin = 12;
 
     // Color scheme
-    const primaryGold = [251, 191, 36]; // #FBBF24
-    const darkBg = [15, 23, 42]; // #0F172A
-    const white = [255, 255, 255];
-    const lightGray = [200, 200, 200];
+    const primaryGold = [139, 69, 19]; // Deeper brown/gold
+    const darkBg = [245, 245, 220]; // Beige/Parchment
+    const white = [30, 30, 30]; // Dark ink
+    const lightGray = [80, 80, 80];
 
     const HEBREW_LETTERS = [
       { letter: "א", paleo: "𐤀", name: "ALEPH", hebrew: "אלף", value: 1, meaning: "Ox, Strength, Leader" },
@@ -283,7 +283,7 @@ export const generateHebrewAlphabetPDF = async () => {
     pdf.text(`Page 4`, pageWidth - margin - 20, pageHeight - 8);
 
     // Save the PDF
-    pdf.save('Hebrew_Alphabet_City_of_Truth.pdf');
+    pdf.save('Sacred_Alphabet_Gematria_Chart-2_organized.pdf');
     return true;
   } catch (error) {
     console.error('Error generating PDF:', error);

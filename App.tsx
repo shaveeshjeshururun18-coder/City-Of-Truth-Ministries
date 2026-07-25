@@ -50,7 +50,7 @@ import {
   CheckCircle,
   CreditCard,
   Globe
-} from 'lucide-react';
+, HelpCircle } from 'lucide-react';
 import { ViewState, User, UserRole, UserStatus, NavItem, DeletedUser, SubProfile, Permalink } from './types';
 import { HEBREW_PAGES } from './hebrewRegistry';
 import { Navbar } from './components/Navbar';
@@ -2425,7 +2425,7 @@ const App: React.FC = () => {
         </>
       )}
 
-      <main className="relative">
+      <main className="relative pb-24 md:pb-0">
         {isHebrewAlphabetRoute ? (
           <AnimatePresence mode="wait">
             <motion.div key="hebrew-alphabet" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -3853,6 +3853,19 @@ const App: React.FC = () => {
             liveWebsiteTour.start();
           }}
         />
+      )}
+
+
+      {/* Global Question Mark Widget (Help Tour) */}
+      {currentView !== ViewState.HOME && (
+        <button
+          onClick={() => liveWebsiteTour.start()}
+          className="fixed bottom-24 left-6 z-[100] w-12 h-12 bg-white rounded-full shadow-lg border border-slate-200 flex items-center justify-center text-brand-600 hover:bg-brand-50 hover:scale-110 transition-all hover:shadow-brand-500/30 group"
+          aria-label="Start Page Tour"
+          title="How to use this page"
+        >
+          <HelpCircle size={24} className="group-hover:rotate-12 transition-transform" />
+        </button>
       )}
 
       {/* Live Website Guided Tour */}

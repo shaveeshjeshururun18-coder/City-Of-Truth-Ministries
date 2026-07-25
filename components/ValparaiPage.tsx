@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Mountain, History, Leaf, TrendingUp, CloudRain, Plane, Navigation, Sparkles, Scroll, ArrowRight, Video, Camera, Compass, Globe, Info } from 'lucide-react';
+import { MapPin, Mountain, History, Leaf, TrendingUp, CloudRain, Plane, Navigation, Sparkles, Scroll, ArrowRight, Video, Camera, Compass, Globe, Info, Download, Loader2 } from 'lucide-react';
+import { toJpeg } from 'html-to-image';
+import { jsPDF } from 'jspdf';
 
 interface DestinationData {
     name: string;
@@ -108,6 +110,54 @@ const letterChild = {
 export const ValparaiPage: React.FC = () => {
     const [selectedDest, setSelectedDest] = useState<DestinationData | null>(DESTINATIONS[0]);
     const [activeTab, setActiveTab] = useState<'heritage' | 'biodiversity' | 'climate' | 'estate'>('heritage');
+    const [isExporting, setIsExporting] = useState(false);
+    const pdfRef = useRef<HTMLDivElement>(null);
+
+    const handleDownloadPDF = async () => {
+        if (!pdfRef.current) return;
+        setIsExporting(true);
+        try {
+            const dataUrl = await toJpeg(pdfRef.current, {
+                quality: 0.95,
+                backgroundColor: '#ffffff',
+                cacheBust: true,
+                pixelRatio: 2
+            });
+
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+
+            const img = new Image();
+            img.src = dataUrl;
+            await new Promise<void>((resolve, reject) => {
+                img.onload = () => resolve();
+                img.onerror = () => reject(new Error('Image failed to load'));
+            });
+
+            const imgRatio = img.height / img.width;
+            let imgHeight = pageWidth * imgRatio;
+            let heightLeft = imgHeight;
+            let position = 0;
+
+            pdf.addImage(dataUrl, 'JPEG', 0, position, pageWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(dataUrl, 'JPEG', 0, position, pageWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+
+            pdf.save('City-of-Truth-Valparai-Guide.pdf');
+        } catch (error) {
+            console.error('Failed to export PDF:', error);
+            alert('Failed to generate PDF. Please try again.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     return (
         <motion.div
@@ -282,6 +332,91 @@ export const ValparaiPage: React.FC = () => {
                                 )}
                             </AnimatePresence>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Download PDF Button */}
+            <div className="container mx-auto px-6 max-w-5xl mb-8 flex justify-end">
+                <button
+                    onClick={handleDownloadPDF}
+                    disabled={isExporting}
+                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full hover:from-blue-700 hover:to-indigo-700 font-black text-xs uppercase tracking-widest transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50"
+                >
+                    {isExporting ? (
+                        <><Loader2 size={16} className="animate-spin" /> Generating PDF...</>
+                    ) : (
+                        <><Download size={16} /> Download Guide PDF</>
+                    )}
+                </button>
+            </div>
+
+            {/* Hidden Printable PDF Section */}
+            <div className="fixed left-[-9999px] top-0 pointer-events-none opacity-100 z-[-50]">
+                <div ref={pdfRef} className="w-[800px] bg-white p-12 text-slate-800 font-serif">
+                    <div className="text-center mb-8 border-b-2 border-blue-100 pb-6">
+                        <h1 className="text-4xl font-bold text-blue-900 mb-2">Valparai Travel Guide</h1>
+                        <h2 className="text-xl text-blue-600 mb-4">City of Truth Ministries - Information Hub</h2>
+                        <p className="text-slate-600 italic">A comprehensive guide to the ecology, history, and destinations of Valparai.</p>
+                    </div>
+
+                    <div className="space-y-10">
+                        {/* Destinations */}
+                        <div>
+                            <h3 className="text-2xl font-bold text-blue-800 border-b border-blue-50 mb-4 pb-2">Top Destinations</h3>
+                            {DESTINATIONS.map((dest, idx) => (
+                                <div key={idx} className="mb-6">
+                                    <h4 className="text-lg font-bold text-slate-900">{dest.name} <span className="text-sm font-normal text-blue-600">({dest.tamilName})</span></h4>
+                                    <p className="text-sm text-slate-500 mb-1 flex items-center gap-1"><MapPin size={12}/> {dest.distance}</p>
+                                    <p className="text-sm text-slate-700 mb-2 leading-relaxed">{dest.desc}</p>
+                                    <p className="text-xs text-slate-500 italic bg-slate-50 p-2 rounded border-l-2 border-slate-200">{dest.tips}</p>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* History */}
+                        <div>
+                            <h3 className="text-2xl font-bold text-blue-800 border-b border-blue-50 mb-4 pb-2">Historical Timeline</h3>
+                            <div className="space-y-4 pl-4 border-l-2 border-blue-100">
+                                {HISTORICAL_TIMELINE.map((time, idx) => (
+                                    <div key={idx} className="relative">
+                                        <div className="absolute -left-[21px] top-1 w-2 h-2 rounded-full bg-blue-500"></div>
+                                        <span className="text-xs font-bold text-blue-600">{time.year}</span>
+                                        <h4 className="font-bold text-slate-900">{time.title}</h4>
+                                        <p className="text-sm text-slate-700">{time.desc}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Ecology */}
+                        <div>
+                            <h3 className="text-2xl font-bold text-blue-800 border-b border-blue-50 mb-4 pb-2">Ecology & Wildlife</h3>
+                            <p className="text-sm text-slate-700 mb-4">Valparai is surrounded by the Anaimalai Tiger Reserve, containing extensive rainforest corridors protecting unique and endangered species.</p>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-3 bg-slate-50 rounded">
+                                    <h4 className="font-bold text-sm">Lion-tailed Macaque</h4>
+                                    <p className="text-xs text-slate-600">Endangered. Iconic arboreal monkey with silver-white mane.</p>
+                                </div>
+                                <div className="p-3 bg-slate-50 rounded">
+                                    <h4 className="font-bold text-sm">Nilgiri Tahr</h4>
+                                    <p className="text-xs text-slate-600">Endangered. State animal of TN, mountain ungulate.</p>
+                                </div>
+                                <div className="p-3 bg-slate-50 rounded">
+                                    <h4 className="font-bold text-sm">Indian Gaur (Bison)</h4>
+                                    <p className="text-xs text-slate-600">Vulnerable. Largest bovine species.</p>
+                                </div>
+                                <div className="p-3 bg-slate-50 rounded">
+                                    <h4 className="font-bold text-sm">Great Indian Hornbill</h4>
+                                    <p className="text-xs text-slate-600">Vulnerable. Massive canopy bird.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-12 pt-6 border-t border-slate-200 text-center">
+                        <p className="text-sm font-bold text-blue-900 uppercase tracking-widest">City of Truth Ministries</p>
+                        <p className="text-xs text-slate-500 mt-1">© {new Date().getFullYear()} City of Truth Ministries · All rights reserved · Valparai, TN, India</p>
                     </div>
                 </div>
             </div>
@@ -466,6 +601,20 @@ export const ValparaiPage: React.FC = () => {
                                 <span className="text-[10px] font-black uppercase text-blue-400 tracking-wider block mb-1">Sanctuary Address</span>
                                 <p className="text-white text-sm">New Market Road, Valparai</p>
                                 <p className="text-white text-xs opacity-75">Coimbatore, Tamil Nadu, 642127</p>
+                            </div>
+                        </div>
+
+                        <div className="pt-6 border-t border-white/10 mt-6">
+                            <div className="flex justify-center">
+                                <a
+                                    href="/சத்திய_நகரம்_City_of_Truth_Min.mp4"
+                                    download="City_of_Truth_Ministries_Valparai.mp4"
+                                    className="group relative inline-flex items-center gap-3 px-6 py-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-black text-xs uppercase tracking-widest shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all overflow-hidden"
+                                >
+                                    <span className="pointer-events-none absolute -inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/80 to-transparent opacity-50 group-hover:animate-pulse" />
+                                    <Video size={16} />
+                                    Download Video
+                                </a>
                             </div>
                         </div>
                     </div>

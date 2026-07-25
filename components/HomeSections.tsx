@@ -180,14 +180,6 @@ export const HebrewPagesPreviewSection: React.FC<SectionProps> = ({ setView }) =
         { id: 'GOLDEN_MENORAH', label: 'Golden Menorah', category: 'Ministry Pages', desc: 'Sacred design & symbolism' },
         { id: 'BARUCH_HASHEM', label: 'Baruch Hashem', category: 'Ministry Pages', desc: 'Praise-centered worship' },
         { id: 'AI', label: 'AI Assistance', category: 'Ministry Pages', desc: 'Divine Assistant Q&A' },
-        // Connect & Access
-        { id: 'ID_CARD', label: 'Entrust Card', category: 'Connect & Access', desc: 'Digital identity card' },
-        { id: 'CONTACT', label: 'Contact Page', category: 'Connect & Access', desc: 'Ministry contact form' },
-        { id: 'VERIFY_ID', label: 'Verify ID', category: 'Connect & Access', desc: 'Member verification' },
-        { id: 'AUTH', label: 'Auth Pages', category: 'Connect & Access', desc: 'Login/Register/Forgot ID' },
-        { id: 'MEMBER_FORM', label: 'Member Form', category: 'Connect & Access', desc: 'Registration form' },
-        { id: 'USER_DASHBOARD', label: 'User Dashboard', category: 'Connect & Access', desc: 'Member portal' },
-        { id: 'ADMIN_DASHBOARD', label: 'Admin Dashboard', category: 'Connect & Access', desc: 'Admin control panel' },
         // Other Pages
         { id: 'ABOUT', label: 'About', category: 'Other Pages', desc: 'Organization information' },
         { id: 'MENORAH', label: 'Menorah', category: 'Other Pages', desc: 'Menorah visualization' },
@@ -257,15 +249,7 @@ export const HebrewPagesPreviewSection: React.FC<SectionProps> = ({ setView }) =
             linkColor: 'text-slate-900 group-hover:text-emerald-600',
             descColor: 'text-slate-500',
         },
-        'Connect & Access': {
-            wrapperClass: 'bg-gradient-to-br from-violet-50 to-white border-violet-100',
-            headerClass: 'bg-gradient-to-r from-violet-600 to-violet-700',
-            icon: <Users size={24} />,
-            iconColor: 'text-white',
-            badge: 'bg-violet-100 text-violet-700',
-            linkColor: 'text-slate-900 group-hover:text-violet-600',
-            descColor: 'text-slate-500',
-        },
+
         'Other Pages': {
             wrapperClass: 'bg-gradient-to-br from-orange-50 to-white border-orange-100',
             headerClass: 'bg-gradient-to-r from-orange-600 to-orange-700',
@@ -295,7 +279,7 @@ export const HebrewPagesPreviewSection: React.FC<SectionProps> = ({ setView }) =
 
                 {/* Page Groups Grid */}
                 <div className="grid xl:grid-cols-2 gap-6 mb-12">
-                    {['Hebrew Content', 'Hebrew Tools', 'Ministry Pages', 'Connect & Access', 'Other Pages'].map((category, catIdx) => {
+                    {['Hebrew Content', 'Hebrew Tools', 'Ministry Pages', 'Other Pages'].map((category, catIdx) => {
                         const categoryPages = ALL_PAGES.filter(p => p.category === category);
                         const styles = categoryStyles[category as keyof typeof categoryStyles];
 
@@ -634,7 +618,7 @@ export const ValparaiPresence: React.FC<SectionProps> = ({ setView }) => {
                                 whileHover={{ scale: 1.05, y: -5 }}
                                 className="bg-gradient-to-br from-accent-400/20 to-transparent border border-accent-400/30 rounded-2xl p-6 text-center backdrop-blur-sm"
                             >
-                                <p className="text-3xl font-black text-accent-300 mb-2">15 வருஷ்</p>
+                                <p className="text-3xl font-black text-accent-300 mb-2">{new Date().getFullYear() - 2009} வருஷ்</p>
                                 <p className="text-white/60 text-xs font-bold uppercase tracking-wide">சேவை கதை</p>
                             </motion.div>
                         </div>

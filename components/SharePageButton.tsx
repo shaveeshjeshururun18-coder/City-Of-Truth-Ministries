@@ -139,7 +139,7 @@ export const SharePageButton: React.FC<SharePageButtonProps> = ({
             onHoverStart={() => setIsHovered(true)}
             onHoverEnd={() => setIsHovered(false)}
             onClick={handleNativeShare}
-            className={`fixed bottom-[176px] right-6 z-40 bg-gradient-to-r from-brand-600 to-brand-700 text-white p-3 rounded-full shadow-2xl hover:shadow-brand-500/50 hover:scale-[1.05] transition-all group flex items-center justify-center ${className}`}
+            className={`fixed bottom-[120px] right-6 z-40 bg-gradient-to-r from-brand-600 to-brand-700 text-white p-3 rounded-full shadow-2xl hover:shadow-brand-500/50 hover:scale-[1.05] transition-all group flex items-center justify-center ${className}`}
             style={{ transformOrigin: 'center', touchAction: 'none', width: '3.5rem', height: '3.5rem' }}
             title={widgetSettings.shareLabelText || 'Share this page'}
             aria-label={widgetSettings.shareLabelText || 'Share this page'}
