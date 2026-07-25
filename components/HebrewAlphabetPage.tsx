@@ -193,7 +193,7 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
     return (
         <div className="min-h-[100dvh] w-full bg-[#000000] text-[#e5e5e5] pb-24 overflow-x-hidden relative">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/5 via-white/0 to-transparent pointer-events-none"></div>
-            
+
             {onBack && (
                 <button
                     onClick={onBack}
@@ -253,11 +253,10 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                             <button
                                 key={mode}
                                 onClick={() => setViewMode(mode)}
-                                className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 cursor-pointer ${
-                                    viewMode === mode
+                                className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 cursor-pointer ${viewMode === mode
                                         ? 'bg-gradient-to-r from-[#F59E0B] to-[#D97706] text-white shadow-lg'
                                         : 'text-white/60 hover:text-white/90 hover:bg-white/5'
-                                }`}
+                                    }`}
                             >
                                 {mode === 'modern' ? 'Modern' : 'Paleo-Hebrew'}
                             </button>
@@ -310,16 +309,15 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                             >
                                                 <Volume2 size={14} className="text-[#F59E0B]" />
                                             </button>
-                                            
+
                                             {viewMode === 'paleo' && PALEO_IMAGE_MAP[item.name] ? (
-                                                <img 
-                                                    src={PALEO_IMAGE_MAP[item.name]} 
+                                                <img
+                                                    src={PALEO_IMAGE_MAP[item.name]}
                                                     alt={`Paleo ${item.name}`}
-                                                    className={`h-20 md:h-24 lg:h-28 mb-5 object-contain transition-all duration-500 drop-shadow-lg ${
-                                                        selectedIndex === index ? 'scale-110' : activeIndex === index ? 'scale-110 opacity-80' : 'group-hover:scale-110 opacity-90'
-                                                    }`}
+                                                    className={`h-20 md:h-24 lg:h-28 mb-5 object-contain transition-all duration-500 drop-shadow-lg ${selectedIndex === index ? 'scale-110' : activeIndex === index ? 'scale-110 opacity-80' : 'group-hover:scale-110 opacity-90'
+                                                        }`}
                                                     style={{
-                                                        filter: selectedIndex === index 
+                                                        filter: selectedIndex === index
                                                             ? 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.8)) brightness(1.1) hue-rotate(40deg) saturate(1.8)'
                                                             : activeIndex === index
                                                                 ? 'drop-shadow(0 0 12px rgba(255, 255, 255, 0.6)) brightness(1.2) hue-rotate(40deg) saturate(1.5)'
@@ -327,13 +325,12 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                                     }}
                                                 />
                                             ) : (
-                                                <span className={`text-7xl md:text-[6rem] lg:text-[7rem] text-transparent bg-clip-text mb-5 font-serif transition-transform duration-500 drop-shadow-lg leading-none ${
-                                                    selectedIndex === index
+                                                <span className={`text-7xl md:text-[6rem] lg:text-[7rem] text-transparent bg-clip-text mb-5 font-serif transition-transform duration-500 drop-shadow-lg leading-none ${selectedIndex === index
                                                         ? 'bg-gradient-to-b from-[#FBBF24] to-[#F59E0B] scale-110'
                                                         : activeIndex === index
                                                             ? 'bg-gradient-to-b from-white to-white/70 scale-110'
                                                             : 'bg-gradient-to-b from-[#FBBF24] to-[#F59E0B] group-hover:from-white group-hover:to-white/70 group-hover:scale-110'
-                                                }`}>
+                                                    }`}>
                                                     {item.letter}
                                                 </span>
                                             )}
@@ -403,8 +400,8 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                                                 <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[1px] bg-amber-400/20" />
                                                             </div>
                                                             <div className="absolute inset-0 flex items-center justify-center p-3">
-                                                                <img 
-                                                                    src={PALEO_IMAGE_MAP[selectedLetter.name] || ''} 
+                                                                <img
+                                                                    src={PALEO_IMAGE_MAP[selectedLetter.name] || ''}
                                                                     alt={`${selectedLetter.name} Paleo-Hebrew letter`}
                                                                     className="w-full h-full object-contain"
                                                                     style={{

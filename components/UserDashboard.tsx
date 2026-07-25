@@ -83,11 +83,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     });
     const toggleUserDarkMode = () => setIsDarkMode(prev => {
         const next = !prev;
-        try { localStorage.setItem('cot_user_dashboard_theme', next ? 'dark' : 'light'); } catch {}
+        try { localStorage.setItem('cot_user_dashboard_theme', next ? 'dark' : 'light'); } catch { }
         return next;
     });
     const notificationsSectionRef = React.useRef<HTMLDivElement | null>(null);
-    
+
     // Global Mobile Toast state
     const [mobileToast, setMobileToast] = useState<{ message: string, type: 'success' | 'error' | 'info', id: string } | null>(null);
 
@@ -110,14 +110,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         if (sub) {
             const realUser = allUsers?.find(u => u.id === sub.id);
             if (realUser) {
-                return { 
-                    ...user, 
-                    id: realUser.id, 
-                    name: realUser.name, 
-                    photo: realUser.photo, 
-                    bloodGroup: realUser.bloodGroup || sub.bloodGroup, 
+                return {
+                    ...user,
+                    id: realUser.id,
+                    name: realUser.name,
+                    photo: realUser.photo,
+                    bloodGroup: realUser.bloodGroup || sub.bloodGroup,
                     dob: realUser.dob || sub.dob,
-                    status: realUser.status, 
+                    status: realUser.status,
                     emergency: realUser.emergency || user.emergency,
                     phone: realUser.phone || user.phone,
                     location: realUser.location || user.location,
@@ -176,7 +176,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         if (displayProfile?.communityProfile?.status === 'Rejected') {
             showToast('Your Member Form was rejected by Admin. Please review and fill it again.', 'error');
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [displayProfile?.communityProfile?.status]);
 
     const hasPermanentCotId = /^COT-\d{4,}$/.test((displayProfile.id || '').trim());
@@ -211,7 +211,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         // Show welcome tour for first-time visitors
         const timer = setTimeout(() => dashboardTour.promptIfNew(), 1200);
         return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const dashboardTourSteps = [
@@ -392,14 +392,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 // Reduced wait time for images and shorter overall timeout
                 await Promise.all([waitForNodeImages(frontNode, 1500), waitForNodeImages(backNode, 1500)]);
                 await new Promise(r => setTimeout(r, 300)); // Reduced from 600ms to 300ms
-                
+
                 // Optimized PNG export with balanced quality and speed
-                const opts = { 
+                const opts = {
                     pixelRatio: 2.5, // Further reduced from 3 to 2.5 for faster processing
                     quality: 0.9, // Reduced from 0.95 to 0.9 for faster processing
-                    backgroundColor: '#ffffff', 
-                    cacheBust: true, 
-                    width: 340, 
+                    backgroundColor: '#ffffff',
+                    cacheBust: true,
+                    width: 340,
                     height: 215,
                     skipFonts: false,
                     style: {
@@ -409,10 +409,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 };
                 const frontDataUrl = await toPng(frontNode, opts);
                 const backDataUrl = await toPng(backNode, opts);
-                const pdf = new jsPDF({ 
-                    orientation: 'landscape', 
-                    unit: 'mm', 
-                    format: 'a4', 
+                const pdf = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'mm',
+                    format: 'a4',
                     compress: true,
                     precision: 6 // Further reduced from 8 to 6 for faster processing
                 });
@@ -424,21 +424,21 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 // Fallback: try jpeg with even faster settings
                 try {
                     const { toJpeg: toJpeg2 } = await import('html-to-image');
-                    const opts2 = { 
+                    const opts2 = {
                         pixelRatio: 2, // Further reduced from 2.5 to 2 for faster processing
                         quality: 0.85, // Reduced from 0.92 to 0.85 for faster processing
-                        backgroundColor: '#ffffff', 
-                        cacheBust: true, 
-                        width: 340, 
+                        backgroundColor: '#ffffff',
+                        cacheBust: true,
+                        width: 340,
                         height: 215,
                         skipFonts: false
                     };
                     const frontDataUrl2 = await toJpeg2(frontNode!, opts2);
                     const backDataUrl2 = await toJpeg2(backNode!, opts2);
-                    const pdf2 = new jsPDF({ 
-                        orientation: 'landscape', 
-                        unit: 'mm', 
-                        format: 'a4', 
+                    const pdf2 = new jsPDF({
+                        orientation: 'landscape',
+                        unit: 'mm',
+                        format: 'a4',
                         compress: true,
                         precision: 6
                     });
@@ -458,10 +458,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const handleDownloadCalendar = async (options: CalendarOptions) => {
         setIsGeneratingCalendar(true); setGenerationProgress(0); setIsCalendarModalOpen(false);
         try {
-            const pdf = new jsPDF({ 
-                orientation: 'landscape', 
-                unit: 'mm', 
-                format: 'a4', 
+            const pdf = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: 'a4',
                 compress: true, // Re-enable compression for faster processing
                 precision: 8 // Reduced from 16 to 8
             });
@@ -469,12 +469,12 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 const node = document.getElementById('printable-calendar-dashboard');
                 if (!node) throw new Error('Calendar element not found');
                 await new Promise(resolve => setTimeout(resolve, 300));
-                const dataUrl = await toJpeg(node, { 
-                    width: 1122, 
-                    height: 793, 
+                const dataUrl = await toJpeg(node, {
+                    width: 1122,
+                    height: 793,
                     pixelRatio: 2.5, // Reduced from 4.0 to 2.5 for faster processing
                     quality: 0.9, // Reduced from 1.0 to 0.9 for faster processing
-                    backgroundColor: '#ffffff', 
+                    backgroundColor: '#ffffff',
                     cacheBust: true,
                     skipFonts: false
                 });
@@ -512,11 +512,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 try {
                     const refNode = document.getElementById('printable-reference-guide-dashboard');
                     if (refNode) {
-                        const refDataUrl = await toJpeg(refNode, { 
+                        const refDataUrl = await toJpeg(refNode, {
                             pixelRatio: 2.5, // Reduced from 4.0 to 2.5 for faster processing
                             quality: 0.9, // Reduced from 1.0 to 0.9 for faster processing
-                            backgroundColor: '#ffffff', 
-                            cacheBust: true, 
+                            backgroundColor: '#ffffff',
+                            cacheBust: true,
                             width: 800,
                             skipFonts: false
                         });
@@ -566,17 +566,17 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         setIsEditing(true);
     };
     const cancelEditing = () => { setIsEditing(false); setFormData({}); };
-    const saveChanges = (e: React.FormEvent) => { 
-        e.preventDefault(); 
+    const saveChanges = (e: React.FormEvent) => {
+        e.preventDefault();
         if (activeProfileId === user.id) {
-            onUpdate({ ...user, ...formData } as User); 
+            onUpdate({ ...user, ...formData } as User);
         } else {
-            const updatedLinkedProfiles = (user.linkedProfiles || []).map(p => 
+            const updatedLinkedProfiles = (user.linkedProfiles || []).map(p =>
                 p.id === activeProfileId ? { ...p, ...formData } : p
             );
             onUpdate({ ...user, linkedProfiles: updatedLinkedProfiles });
         }
-        setIsEditing(false); 
+        setIsEditing(false);
     };
     const handleAddSubProfile = (e: React.FormEvent) => {
         e.preventDefault();
@@ -646,10 +646,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
     const handleExportProfileDetailsPDF = () => {
         try {
-            const pdf = new jsPDF({ 
-                orientation: 'portrait', 
-                unit: 'mm', 
-                format: 'a4', 
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4',
                 compress: true, // Re-enable compression for faster processing
                 precision: 8 // Reduced from 16 to 8
             });
@@ -1031,10 +1031,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         }
         setIsProcessing(true);
         try {
-            const pdf = new jsPDF({ 
-                orientation: 'portrait', 
-                unit: 'mm', 
-                format: 'a4', 
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4',
                 compress: true, // Re-enable compression for faster processing
                 precision: 8 // Reduced from 16 to 8
             });
@@ -1194,7 +1194,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 pdf.setFont('helvetica', 'bold');
                 pdf.setFontSize(8);
                 pdf.text('AUTHORISED BY:', x + 4, y + 5.5);
-                
+
                 if (signatureDataUrl) {
                     pdf.addImage(signatureDataUrl, 'PNG', x + (signatureWidth - 45) / 2, y + 9.5, 45, 12, undefined, 'FAST');
                 } else {
@@ -1206,7 +1206,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     pdf.setLineWidth(0.8);
                     pdf.line(x + 12, y + 20, x + signatureWidth - 12, y + 20);
                 }
-                
+
                 pdf.setTextColor(navyDark);
                 pdf.setFont('helvetica', 'bold');
                 pdf.setFontSize(6.5);
@@ -1345,7 +1345,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     return (
         <div className={`min-h-screen pt-28 pb-20 ${isDarkMode ? 'bg-slate-900 text-slate-100' : 'bg-[#f0f2f5] text-slate-900'} relative flex flex-col items-center overflow-x-hidden px-3 sm:px-5 user-dashboard-root`}>
             {isDarkMode && (
-                <style dangerouslySetInnerHTML={{ __html: `
+                <style dangerouslySetInnerHTML={{
+                    __html: `
                     .user-dashboard-root .bg-white { background-color: #1e293b !important; }
                     .user-dashboard-root .bg-slate-50 { background-color: #0f172a !important; }
                     .user-dashboard-root .text-slate-900, .user-dashboard-root .text-slate-800, .user-dashboard-root .text-slate-700 { color: #f1f5f9 !important; }
@@ -1430,7 +1431,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     if (activeProfileId === user.id) {
                         onUpdate({ ...user, communityProfile: { ...data, status: 'Pending' } } as User);
                     } else {
-                        const updatedLinkedProfiles = (user.linkedProfiles || []).map(p => 
+                        const updatedLinkedProfiles = (user.linkedProfiles || []).map(p =>
                             p.id === activeProfileId ? { ...p, communityProfile: { ...data, status: 'Pending' } } : p
                         );
                         onUpdate({ ...user, linkedProfiles: updatedLinkedProfiles } as User);
@@ -1545,698 +1546,698 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 {/* ── LEFT COLUMN (Profile, Family, Actions, Logout on Desktop) ── */}
                 <div className={`${user.linkedProfiles && user.linkedProfiles.length > 0 ? 'lg:col-span-4 xl:col-span-3' : 'lg:col-span-5 xl:col-span-4'} flex flex-col gap-5`}>
 
-                <div className="flex items-center gap-3 mb-5 px-1">
-                    {/* Primary profile + family avatars */}
-                    <div className="relative group shrink-0">
-                        <div className="w-14 h-14 rounded-full overflow-hidden border-[3px] border-white shadow-lg bg-brand-100">
-                            {renderAvatarContent(user.photo, user.name, 'text-sm', 'from-brand-600 to-violet-700')}
+                    <div className="flex items-center gap-3 mb-5 px-1">
+                        {/* Primary profile + family avatars */}
+                        <div className="relative group shrink-0">
+                            <div className="w-14 h-14 rounded-full overflow-hidden border-[3px] border-white shadow-lg bg-brand-100">
+                                {renderAvatarContent(user.photo, user.name, 'text-sm', 'from-brand-600 to-violet-700')}
+                            </div>
+                            <div
+                                onClick={() => {
+                                    if (!user.photo) {
+                                        alert('No existing photo to crop. Please use the "Add New Photo" button in Edit Details.');
+                                        return;
+                                    }
+                                    setCropTarget({ type: 'primary', isNewUpload: false });
+                                    setCroppingImage(user.photo);
+                                    setIsEditing(false);
+                                }}
+                                className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 cursor-pointer transition-all"
+                                title="Crop Profile Photo"
+                            >
+                                <Camera size={14} className="text-white" />
+                            </div>
+                            {/* Active indicator */}
+                            <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white ${user.status === 'Active' ? 'bg-green-500' : user.status === 'Rejected' ? 'bg-red-500' : 'bg-amber-400'}`} />
                         </div>
-                        <div 
-                            onClick={() => {
-                                if (!user.photo) {
-                                    alert('No existing photo to crop. Please use the "Add New Photo" button in Edit Details.');
-                                    return;
-                                }
-                                setCropTarget({ type: 'primary', isNewUpload: false });
-                                setCroppingImage(user.photo);
-                                setIsEditing(false);
-                            }}
-                            className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 cursor-pointer transition-all"
-                            title="Crop Profile Photo"
-                        >
-                            <Camera size={14} className="text-white" />
-                        </div>
-                        {/* Active indicator */}
-                        <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white ${user.status === 'Active' ? 'bg-green-500' : user.status === 'Rejected' ? 'bg-red-500' : 'bg-amber-400'}`} />
-                    </div>
 
-                    {/* Family member avatars */}
-                    {user.linkedProfiles?.map(pf => (
-                        <button key={pf.id} onClick={() => setActiveProfileId(pf.id)} title={pf.name}
-                            className={`relative shrink-0 w-10 h-10 rounded-full overflow-hidden border-2 transition-all ${activeProfileId === pf.id ? 'border-brand-500 shadow-lg scale-110' : 'border-white/70 opacity-70 hover:opacity-100 hover:scale-105'}`}>
-                            {renderAvatarContent(pf.photo, pf.name, 'text-[10px]', 'from-violet-600 to-fuchsia-700')}
-                        </button>
-                    ))}
-
-                    {/* Add Profile button */}
-                    <button onClick={handleGoToLogin} title="Add Family Member — Register or Login"
-                        className="shrink-0 w-10 h-10 rounded-full border-2 border-dashed border-slate-300 bg-white hover:border-brand-400 hover:bg-brand-50 flex items-center justify-center transition-all text-slate-400 hover:text-brand-500">
-                        <PlusCircle size={20} />
-                    </button>
-
-                    <div className="flex-1 min-w-0 ml-1">
-                        <h1 className="font-bold text-slate-900 text-base leading-tight truncate">{displayProfile.name}</h1>
-                        <p className="text-[11px] text-slate-500 font-medium">{activeProfileId !== user.id ? 'Family Member' : (user.role || 'Member')}</p>
-                    </div>
-
-                    {/* Dark mode toggle */}
-                    <button onClick={toggleUserDarkMode} title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'} className="shrink-0 text-slate-400 hover:text-indigo-600 p-2 rounded-full hover:bg-white transition-all">
-                        {isDarkMode ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} />}
-                    </button>
-                    {/* Edit button */}
-                    <button onClick={startEditing} className="shrink-0 text-slate-400 hover:text-brand-600 p-2 rounded-full hover:bg-white transition-all">
-                        <Edit2 size={18} />
-                    </button>
-                </div>
-
-                {/* ── PROFILE SWITCHER TABS ── */}
-                {(user.linkedProfiles && user.linkedProfiles.length > 0) && (
-                    <div className="flex gap-2 mb-5 overflow-x-auto no-scrollbar">
-                        <button onClick={() => setActiveProfileId(user.id)} className={`flex items-center gap-1.5 px-4 py-2 rounded-full font-bold text-[11px] uppercase whitespace-nowrap transition-all shadow-sm ${activeProfileId === user.id ? 'bg-brand-700 text-white shadow-brand-400/30 shadow-md' : 'bg-white text-slate-500 border border-slate-200'}`}>
-                            Me
-                        </button>
-                        {user.linkedProfiles.map(pf => (
-                            <button key={pf.id} onClick={() => setActiveProfileId(pf.id)} className={`flex items-center gap-1.5 px-4 py-2 rounded-full font-bold text-[11px] uppercase whitespace-nowrap transition-all shadow-sm ${activeProfileId === pf.id ? 'bg-accent-600 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200'}`}>
-                                {pf.name.split(' ')[0]}
+                        {/* Family member avatars */}
+                        {user.linkedProfiles?.map(pf => (
+                            <button key={pf.id} onClick={() => setActiveProfileId(pf.id)} title={pf.name}
+                                className={`relative shrink-0 w-10 h-10 rounded-full overflow-hidden border-2 transition-all ${activeProfileId === pf.id ? 'border-brand-500 shadow-lg scale-110' : 'border-white/70 opacity-70 hover:opacity-100 hover:scale-105'}`}>
+                                {renderAvatarContent(pf.photo, pf.name, 'text-[10px]', 'from-violet-600 to-fuchsia-700')}
                             </button>
                         ))}
+
+                        {/* Add Profile button */}
+                        <button onClick={handleGoToLogin} title="Add Family Member — Register or Login"
+                            className="shrink-0 w-10 h-10 rounded-full border-2 border-dashed border-slate-300 bg-white hover:border-brand-400 hover:bg-brand-50 flex items-center justify-center transition-all text-slate-400 hover:text-brand-500">
+                            <PlusCircle size={20} />
+                        </button>
+
+                        <div className="flex-1 min-w-0 ml-1">
+                            <h1 className="font-bold text-slate-900 text-base leading-tight truncate">{displayProfile.name}</h1>
+                            <p className="text-[11px] text-slate-500 font-medium">{activeProfileId !== user.id ? 'Family Member' : (user.role || 'Member')}</p>
+                        </div>
+
+                        {/* Dark mode toggle */}
+                        <button onClick={toggleUserDarkMode} title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'} className="shrink-0 text-slate-400 hover:text-indigo-600 p-2 rounded-full hover:bg-white transition-all">
+                            {isDarkMode ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} />}
+                        </button>
+                        {/* Edit button */}
+                        <button onClick={startEditing} className="shrink-0 text-slate-400 hover:text-brand-600 p-2 rounded-full hover:bg-white transition-all">
+                            <Edit2 size={18} />
+                        </button>
                     </div>
-                )}
-                 {(() => {
-                    const hasPrimaryPending = activeProfileId === user.id && user.pendingProfileUpdate && Object.keys(user.pendingProfileUpdate).filter(k => k !== 'linkedProfiles').length > 0;
-                    const activeFamilyPending = activeProfileId !== user.id && user.pendingProfileUpdate?.linkedProfiles?.find(p => p.id === activeProfileId);
-                    const hasFamilyPending = !!activeFamilyPending;
 
-                    if (hasPrimaryPending) {
-                        return (
-                            <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-4 py-3 text-xs font-semibold flex items-center justify-between gap-3">
-                                <span>Your profile update request is pending admin approval.</span>
-                                <button 
-                                    onClick={() => {
-                                        if (window.confirm('Are you sure you want to cancel and reset your pending profile and photo updates?')) {
-                                            const newPending = { ...(user.pendingProfileUpdate || {}) };
-                                            Object.keys(newPending).forEach(k => {
-                                                if (k !== 'linkedProfiles') {
-                                                    delete (newPending as any)[k];
-                                                }
-                                            });
-                                            onUpdate({ ...user, pendingProfileUpdate: newPending } as User);
-                                        }
-                                    }}
-                                    className="shrink-0 px-2.5 py-1 bg-white border border-amber-300 text-amber-900 rounded-lg hover:bg-amber-100 transition-colors font-bold text-[10px] uppercase tracking-wider"
-                                >
-                                    Cancel & Reset
+                    {/* ── PROFILE SWITCHER TABS ── */}
+                    {(user.linkedProfiles && user.linkedProfiles.length > 0) && (
+                        <div className="flex gap-2 mb-5 overflow-x-auto no-scrollbar">
+                            <button onClick={() => setActiveProfileId(user.id)} className={`flex items-center gap-1.5 px-4 py-2 rounded-full font-bold text-[11px] uppercase whitespace-nowrap transition-all shadow-sm ${activeProfileId === user.id ? 'bg-brand-700 text-white shadow-brand-400/30 shadow-md' : 'bg-white text-slate-500 border border-slate-200'}`}>
+                                Me
+                            </button>
+                            {user.linkedProfiles.map(pf => (
+                                <button key={pf.id} onClick={() => setActiveProfileId(pf.id)} className={`flex items-center gap-1.5 px-4 py-2 rounded-full font-bold text-[11px] uppercase whitespace-nowrap transition-all shadow-sm ${activeProfileId === pf.id ? 'bg-accent-600 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200'}`}>
+                                    {pf.name.split(' ')[0]}
                                 </button>
-                            </div>
-                        );
-                    }
+                            ))}
+                        </div>
+                    )}
+                    {(() => {
+                        const hasPrimaryPending = activeProfileId === user.id && user.pendingProfileUpdate && Object.keys(user.pendingProfileUpdate).filter(k => k !== 'linkedProfiles').length > 0;
+                        const activeFamilyPending = activeProfileId !== user.id && user.pendingProfileUpdate?.linkedProfiles?.find(p => p.id === activeProfileId);
+                        const hasFamilyPending = !!activeFamilyPending;
 
-                    if (hasFamilyPending) {
-                        return (
-                            <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-4 py-3 text-xs font-semibold flex items-center justify-between gap-3">
-                                <span>This family member's profile update request is pending admin approval.</span>
-                                <button 
-                                    onClick={() => {
-                                        if (window.confirm("Are you sure you want to cancel and reset this family member's pending profile and photo updates?")) {
-                                            const newPending = { ...(user.pendingProfileUpdate || {}) };
-                                            if (newPending.linkedProfiles) {
-                                                newPending.linkedProfiles = newPending.linkedProfiles.filter(p => p.id !== activeProfileId);
-                                                if (newPending.linkedProfiles.length === 0) {
-                                                    delete newPending.linkedProfiles;
-                                                }
+                        if (hasPrimaryPending) {
+                            return (
+                                <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-4 py-3 text-xs font-semibold flex items-center justify-between gap-3">
+                                    <span>Your profile update request is pending admin approval.</span>
+                                    <button
+                                        onClick={() => {
+                                            if (window.confirm('Are you sure you want to cancel and reset your pending profile and photo updates?')) {
+                                                const newPending = { ...(user.pendingProfileUpdate || {}) };
+                                                Object.keys(newPending).forEach(k => {
+                                                    if (k !== 'linkedProfiles') {
+                                                        delete (newPending as any)[k];
+                                                    }
+                                                });
+                                                onUpdate({ ...user, pendingProfileUpdate: newPending } as User);
                                             }
-                                            onUpdate({ ...user, pendingProfileUpdate: newPending } as User);
-                                        }
-                                    }}
-                                    className="shrink-0 px-2.5 py-1 bg-white border border-amber-300 text-amber-900 rounded-lg hover:bg-amber-100 transition-colors font-bold text-[10px] uppercase tracking-wider"
-                                >
-                                    Cancel & Reset
+                                        }}
+                                        className="shrink-0 px-2.5 py-1 bg-white border border-amber-300 text-amber-900 rounded-lg hover:bg-amber-100 transition-colors font-bold text-[10px] uppercase tracking-wider"
+                                    >
+                                        Cancel & Reset
+                                    </button>
+                                </div>
+                            );
+                        }
+
+                        if (hasFamilyPending) {
+                            return (
+                                <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-4 py-3 text-xs font-semibold flex items-center justify-between gap-3">
+                                    <span>This family member's profile update request is pending admin approval.</span>
+                                    <button
+                                        onClick={() => {
+                                            if (window.confirm("Are you sure you want to cancel and reset this family member's pending profile and photo updates?")) {
+                                                const newPending = { ...(user.pendingProfileUpdate || {}) };
+                                                if (newPending.linkedProfiles) {
+                                                    newPending.linkedProfiles = newPending.linkedProfiles.filter(p => p.id !== activeProfileId);
+                                                    if (newPending.linkedProfiles.length === 0) {
+                                                        delete newPending.linkedProfiles;
+                                                    }
+                                                }
+                                                onUpdate({ ...user, pendingProfileUpdate: newPending } as User);
+                                            }
+                                        }}
+                                        className="shrink-0 px-2.5 py-1 bg-white border border-amber-300 text-amber-900 rounded-lg hover:bg-amber-100 transition-colors font-bold text-[10px] uppercase tracking-wider"
+                                    >
+                                        Cancel & Reset
+                                    </button>
+                                </div>
+                            );
+                        }
+
+                        return null;
+                    })()}
+
+                    {/* ── FAMILY MEMBERS LIST ── */}
+                    {user.linkedProfiles && user.linkedProfiles.length > 0 && (
+                        <div className="bg-white rounded-[24px] shadow-md overflow-hidden mt-8">
+                            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                                <h3 className="font-bold text-slate-800 flex items-center gap-2"><Users size={16} className="text-brand-500" /> Family</h3>
+                                <button onClick={handleGoToLogin} className="text-xs font-bold text-brand-600 hover:text-brand-800 flex items-center gap-1">
+                                    <PlusCircle size={14} /> Add
                                 </button>
                             </div>
-                        );
-                    }
-
-                    return null;
-                 })()}
-
-                {/* ── FAMILY MEMBERS LIST ── */}
-                {user.linkedProfiles && user.linkedProfiles.length > 0 && (
-                    <div className="bg-white rounded-[24px] shadow-md overflow-hidden mt-8">
-                        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-                            <h3 className="font-bold text-slate-800 flex items-center gap-2"><Users size={16} className="text-brand-500" /> Family</h3>
-                            <button onClick={handleGoToLogin} className="text-xs font-bold text-brand-600 hover:text-brand-800 flex items-center gap-1">
-                                <PlusCircle size={14} /> Add
-                            </button>
-                        </div>
-                        <div className="p-4 space-y-3 bg-slate-50">
-                            <button onClick={() => setActiveProfileId(user.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all text-left ${activeProfileId === user.id ? 'bg-brand-50 border-brand-200' : 'bg-white border-slate-200 hover:border-brand-200'}`}>
-                                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-brand-100 shrink-0">
-                                    {renderAvatarContent(user.photo, user.name, 'text-[10px]', 'from-brand-600 to-violet-700')}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="font-bold text-slate-900 text-sm truncate">{user.name}</p>
-                                    <p className="text-[10px] text-slate-500 font-medium">{user.id} · Primary</p>
-                                </div>
-                                {activeProfileId === user.id && <CheckCircle size={16} className="text-brand-500 shrink-0" />}
-                            </button>
-                            {user.linkedProfiles.map((pf, index) => {
-                                const pendingPf = user.pendingProfileUpdate?.linkedProfiles?.find(p => p.id === pf.id);
-                                const isPending = !!pendingPf;
-                                const displayPhoto = pendingPf?.photo || pf.photo;
-
-                                return (
-                                    <div key={pf.id} className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all group ${activeProfileId === pf.id ? 'bg-accent-50 border-accent-200' : 'bg-white border-slate-200 hover:border-accent-200'} ${isPending ? 'ring-2 ring-amber-300 ring-offset-2' : ''}`}>
-                                        <button onClick={() => setActiveProfileId(pf.id)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
-                                            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-100 shrink-0 relative">
-                                                {renderAvatarContent(displayPhoto, pf.name, 'text-[10px]', 'from-violet-600 to-fuchsia-700')}
-                                                {isPending && (
-                                                    <div className="absolute inset-0 bg-amber-500/25 flex items-center justify-center">
-                                                        <span className="text-[6px] bg-amber-500 text-white font-black px-1 rounded-full leading-none tracking-widest scale-75">PENDING</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-bold text-slate-900 text-sm truncate">{pf.name}</p>
-                                                <p className="text-[10px] text-slate-500 font-medium">
-                                                    {(index === 0 ? 'First Family Member' : `Additional Member ${index}`)} · {pf.role || 'Family'}
-                                                </p>
-                                            </div>
-                                            {activeProfileId === pf.id && <CheckCircle size={16} className="text-accent-500 shrink-0" />}
-                                        </button>
-                                        <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteSubProfile(pf.id); }} aria-label={`Remove ${pf.name}`} className="opacity-100 p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-all ml-2 shrink-0">
-                                            <Trash2 size={16} />
-                                        </button>
+                            <div className="p-4 space-y-3 bg-slate-50">
+                                <button onClick={() => setActiveProfileId(user.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all text-left ${activeProfileId === user.id ? 'bg-brand-50 border-brand-200' : 'bg-white border-slate-200 hover:border-brand-200'}`}>
+                                    <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-brand-100 shrink-0">
+                                        {renderAvatarContent(user.photo, user.name, 'text-[10px]', 'from-brand-600 to-violet-700')}
                                     </div>
-                                );
-                            })}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-bold text-slate-900 text-sm truncate">{user.name}</p>
+                                        <p className="text-[10px] text-slate-500 font-medium">{user.id} · Primary</p>
+                                    </div>
+                                    {activeProfileId === user.id && <CheckCircle size={16} className="text-brand-500 shrink-0" />}
+                                </button>
+                                {user.linkedProfiles.map((pf, index) => {
+                                    const pendingPf = user.pendingProfileUpdate?.linkedProfiles?.find(p => p.id === pf.id);
+                                    const isPending = !!pendingPf;
+                                    const displayPhoto = pendingPf?.photo || pf.photo;
+
+                                    return (
+                                        <div key={pf.id} className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all group ${activeProfileId === pf.id ? 'bg-accent-50 border-accent-200' : 'bg-white border-slate-200 hover:border-accent-200'} ${isPending ? 'ring-2 ring-amber-300 ring-offset-2' : ''}`}>
+                                            <button onClick={() => setActiveProfileId(pf.id)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                                                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-100 shrink-0 relative">
+                                                    {renderAvatarContent(displayPhoto, pf.name, 'text-[10px]', 'from-violet-600 to-fuchsia-700')}
+                                                    {isPending && (
+                                                        <div className="absolute inset-0 bg-amber-500/25 flex items-center justify-center">
+                                                            <span className="text-[6px] bg-amber-500 text-white font-black px-1 rounded-full leading-none tracking-widest scale-75">PENDING</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-bold text-slate-900 text-sm truncate">{pf.name}</p>
+                                                    <p className="text-[10px] text-slate-500 font-medium">
+                                                        {(index === 0 ? 'First Family Member' : `Additional Member ${index}`)} · {pf.role || 'Family'}
+                                                    </p>
+                                                </div>
+                                                {activeProfileId === pf.id && <CheckCircle size={16} className="text-accent-500 shrink-0" />}
+                                            </button>
+                                            <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteSubProfile(pf.id); }} aria-label={`Remove ${pf.name}`} className="opacity-100 p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-all ml-2 shrink-0">
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
-                )}
-                
-                {/* ── LOGOUT ── */}
-                <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 bg-white border border-red-100 text-red-400 hover:bg-red-50 hover:border-red-200 hover:text-red-600 rounded-2xl py-3.5 font-bold text-xs tracking-widest uppercase transition-all shadow-sm">
-                    <LogOut size={15} /> Logout
-                </button>
+                    )}
+
+                    {/* ── LOGOUT ── */}
+                    <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 bg-white border border-red-100 text-red-400 hover:bg-red-50 hover:border-red-200 hover:text-red-600 rounded-2xl py-3.5 font-bold text-xs tracking-widest uppercase transition-all shadow-sm">
+                        <LogOut size={15} /> Logout
+                    </button>
                 </div>
 
                 {/* ── RIGHT COLUMN (Wallet Card & Content on Desktop) ── */}
                 <div className={`${user.linkedProfiles && user.linkedProfiles.length > 0 ? 'lg:col-span-8 xl:col-span-9' : 'lg:col-span-7 xl:col-span-8'} flex flex-col gap-5`}>
-                <div id="dashboard-notifications-card" ref={notificationsSectionRef} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
-                    <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-black text-brand-950">Notifications</h3>
-                        <span className="text-[10px] font-bold text-brand-600 bg-brand-50 border border-brand-100 px-2 py-0.5 rounded-full">{notifications.length}</span>
-                    </div>
-                    {notifications.length === 0 ? (
-                        <p className="text-xs text-slate-400">No admin notifications yet.</p>
-                    ) : (
-                        <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-                            {notifications.slice(0, 8).map(note => (
-                                <div key={note.id} className={`rounded-xl border px-3 py-2 ${note.kind === 'message' ? 'border-indigo-200 bg-gradient-to-r from-indigo-50 to-white shadow-sm' : note.kind === 'approved' ? 'border-emerald-200 bg-emerald-50/70' : note.kind === 'disapproved' ? 'border-red-200 bg-red-50/70' : note.kind === 'recycle' ? 'border-amber-200 bg-amber-50/70' : 'border-slate-100 bg-slate-50'}`}>
-                                    <div className="flex items-start justify-between gap-2">
-                                        <p className={`text-xs whitespace-pre-wrap break-words ${note.kind === 'message' ? 'text-indigo-900 font-bold' : 'text-slate-700'}`}>{note.message}</p>
-                                        {onDeleteNotification && (
-                                            <button
-                                                type="button"
-                                                onClick={() => onDeleteNotification(note.id)}
-                                                className="shrink-0 p-1 rounded-lg text-red-600 hover:bg-red-100"
-                                                title="Delete notification"
-                                            >
-                                                <Trash2 size={12} />
-                                            </button>
-                                        )}
-                                    </div>
-                                    <p className="text-[10px] text-slate-400 mt-1">{new Date(note.createdAt).toLocaleString()}</p>
-                                </div>
-                            ))}
+                    <div id="dashboard-notifications-card" ref={notificationsSectionRef} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                        <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-sm font-black text-brand-950">Notifications</h3>
+                            <span className="text-[10px] font-bold text-brand-600 bg-brand-50 border border-brand-100 px-2 py-0.5 rounded-full">{notifications.length}</span>
                         </div>
-                    )}
-                    <div className="mt-3 flex flex-col sm:flex-row gap-2">
-                        <input
-                            value={adminReply}
-                            onChange={(e) => setAdminReply(e.target.value)}
-                            placeholder="Reply to admin..."
-                            className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs outline-none focus:border-brand-500"
-                        />
-                        <button
-                            type="button"
-                            onClick={() => {
-                                if (!adminReply.trim()) return;
-                                onSendReply?.(adminReply.trim());
-                                setAdminReply('');
-                            }}
-                            className="px-3 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold"
-                        >
-                            Send Reply
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => onSendReply?.('I request a new COT ID. Please review and reassign my ID.')}
-                            className="px-3 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold"
-                        >
-                            Request COT ID Change
-                        </button>
+                        {notifications.length === 0 ? (
+                            <p className="text-xs text-slate-400">No admin notifications yet.</p>
+                        ) : (
+                            <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                                {notifications.slice(0, 8).map(note => (
+                                    <div key={note.id} className={`rounded-xl border px-3 py-2 ${note.kind === 'message' ? 'border-indigo-200 bg-gradient-to-r from-indigo-50 to-white shadow-sm' : note.kind === 'approved' ? 'border-emerald-200 bg-emerald-50/70' : note.kind === 'disapproved' ? 'border-red-200 bg-red-50/70' : note.kind === 'recycle' ? 'border-amber-200 bg-amber-50/70' : 'border-slate-100 bg-slate-50'}`}>
+                                        <div className="flex items-start justify-between gap-2">
+                                            <p className={`text-xs whitespace-pre-wrap break-words ${note.kind === 'message' ? 'text-indigo-900 font-bold' : 'text-slate-700'}`}>{note.message}</p>
+                                            {onDeleteNotification && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onDeleteNotification(note.id)}
+                                                    className="shrink-0 p-1 rounded-lg text-red-600 hover:bg-red-100"
+                                                    title="Delete notification"
+                                                >
+                                                    <Trash2 size={12} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 mt-1">{new Date(note.createdAt).toLocaleString()}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                            <input
+                                value={adminReply}
+                                onChange={(e) => setAdminReply(e.target.value)}
+                                placeholder="Reply to admin..."
+                                className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs outline-none focus:border-brand-500"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (!adminReply.trim()) return;
+                                    onSendReply?.(adminReply.trim());
+                                    setAdminReply('');
+                                }}
+                                className="px-3 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold"
+                            >
+                                Send Reply
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => onSendReply?.('I request a new COT ID. Please review and reassign my ID.')}
+                                className="px-3 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold"
+                            >
+                                Request COT ID Change
+                            </button>
+                        </div>
                     </div>
-                </div>
 
-                {/* ════════════════════════════════════
+                    {/* ════════════════════════════════════
                     mAadhaar-Style Wallet Card
                 ════════════════════════════════════ */}
-                <div id="dashboard-wallet-card" className="bg-white rounded-[28px] shadow-xl mb-5 overflow-hidden">
-                    {/* Gold ID Number Header - show full ID, no masking */}
-                    <div className="bg-gradient-to-r from-[#d4a547] via-[#f0c040] to-[#c8922a] px-5 py-3.5 flex items-center justify-between">
-                        <span className="font-black text-[#3d2500] text-xl tracking-[3px] font-mono">
-                            {displayProfile.id.toUpperCase()}
-                        </span>
-                        <span className="text-[#5a3500]/60 text-[10px] font-bold uppercase tracking-widest">COT ID</span>
-                    </div>
+                    <div id="dashboard-wallet-card" className="bg-white rounded-[28px] shadow-xl mb-5 overflow-hidden">
+                        {/* Gold ID Number Header - show full ID, no masking */}
+                        <div className="bg-gradient-to-r from-[#d4a547] via-[#f0c040] to-[#c8922a] px-5 py-3.5 flex items-center justify-between">
+                            <span className="font-black text-[#3d2500] text-xl tracking-[3px] font-mono">
+                                {displayProfile.id.toUpperCase()}
+                            </span>
+                            <span className="text-[#5a3500]/60 text-[10px] font-bold uppercase tracking-widest">COT ID</span>
+                        </div>
 
-                    {/* Desktop Content Row: 3D Preview + QR */}
-                    <div className="flex flex-col xl:flex-row items-center xl:items-start justify-between p-4 md:p-6 lg:p-10 gap-6">
+                        {/* Desktop Content Row: 3D Preview + QR */}
+                        <div className="flex flex-col xl:flex-row items-center xl:items-start justify-between p-4 md:p-6 lg:p-10 gap-6">
 
-                        {/* Left: Card Preview */}
-                        <div className="w-full xl:w-3/5">
-                            {/* Card Preview (MOBILE) — shows real card scaled down */}
-                            <div className="md:hidden relative cursor-pointer" onClick={canAccessEntrustFeatures ? handleDownloadPDF : handleBlockedFeature}>
-                                <div className={`relative w-full flex justify-center origin-top ${!canAccessEntrustFeatures ? 'blur-[2px]' : ''}`}
-                                    style={{ height: '220px', overflow: 'hidden' }}>
-                                    <div style={{ transform: 'scale(0.92)', transformOrigin: 'top center', position: 'absolute', top: 0 }}>
-                                        <EntrustCard3D
-                                            name={displayProfile.name}
-                                            email={user.email}
-                                            location={user.location}
-                                            emergency={user.emergency}
-                                            uniqueId={displayProfile.id}
-                                            memberSince={user.joinedDate || user.memberSince}
-                                            photo={displayProfile.photo}
-                                            status={user.status}
-                                            isStatic={true}
-                                            isBackSide={false}
-                                            cardThemeTone="blue"
-                                            cardLayoutMode={user.cardLayoutMode}
-                                            cardShapeMode={user.cardShapeMode}
-                                            cardSizeMode={user.cardSizeMode}
-                                        />
-                                    </div>
-                                </div>
-                                {!canAccessEntrustFeatures && (
-                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                        <span className="bg-black/55 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">Awaiting Approval</span>
-                                    </div>
-                                )}
-                                <p className="text-center text-slate-500 text-xs font-semibold mt-2 mb-1">Tap card to download instantly ✨</p>
-                            </div>
-
-                            {/* Real EntrustCard3D Preview (DESKTOP ONLY) */}
-                            <div className="hidden md:block w-full cursor-pointer hover:scale-[1.01] transition-transform duration-300" onClick={canAccessEntrustFeatures ? handleDownloadPDF : handleBlockedFeature}>
-                                <div className="w-full flex justify-center items-center py-6 md:py-10 lg:py-12 overflow-hidden relative">
-                                    <div className={`transform origin-center transition-all scale-100 md:scale-[1.12] lg:scale-[1.22] xl:scale-[1.35] ${!canAccessEntrustFeatures ? 'blur-[2px]' : ''}`}>
-                                        <EntrustCard3D
-                                            name={displayProfile.name}
-                                            email={user.email}
-                                            location={user.location}
-                                            emergency={user.emergency}
-                                            uniqueId={displayProfile.id}
-                                            memberSince={user.joinedDate || user.memberSince}
-                                            photo={displayProfile.photo}
-                                            status={user.status}
-                                            isStatic={true}
-                                            isBackSide={cardFlipped}
-                                            cardThemeTone="blue"
-                                            cardLayoutMode={user.cardLayoutMode}
-                                            cardShapeMode={user.cardShapeMode}
-                                            cardSizeMode={user.cardSizeMode}
-                                        />
+                            {/* Left: Card Preview */}
+                            <div className="w-full xl:w-3/5">
+                                {/* Card Preview (MOBILE) — shows real card scaled down */}
+                                <div className="md:hidden relative cursor-pointer" onClick={canAccessEntrustFeatures ? handleDownloadPDF : handleBlockedFeature}>
+                                    <div className={`relative w-full flex justify-center origin-top ${!canAccessEntrustFeatures ? 'blur-[2px]' : ''}`}
+                                        style={{ height: '220px', overflow: 'hidden' }}>
+                                        <div style={{ transform: 'scale(0.92)', transformOrigin: 'top center', position: 'absolute', top: 0 }}>
+                                            <EntrustCard3D
+                                                name={displayProfile.name}
+                                                email={user.email}
+                                                location={user.location}
+                                                emergency={user.emergency}
+                                                uniqueId={displayProfile.id}
+                                                memberSince={user.joinedDate || user.memberSince}
+                                                photo={displayProfile.photo}
+                                                status={user.status}
+                                                isStatic={true}
+                                                isBackSide={false}
+                                                cardThemeTone="blue"
+                                                cardLayoutMode={user.cardLayoutMode}
+                                                cardShapeMode={user.cardShapeMode}
+                                                cardSizeMode={user.cardSizeMode}
+                                            />
+                                        </div>
                                     </div>
                                     {!canAccessEntrustFeatures && (
                                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                             <span className="bg-black/55 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">Awaiting Approval</span>
                                         </div>
                                     )}
+                                    <p className="text-center text-slate-500 text-xs font-semibold mt-2 mb-1">Tap card to download instantly ✨</p>
                                 </div>
-                                <p className="text-center text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">✨ Click card to download instantly ✨</p>
-                            </div>
 
-                            {/* Edit Details Action (Directly below card preview to balance layout) */}
-                            <div className="flex justify-center mt-6">
-                                <button id="dashboard-edit-btn" onClick={startEditing} className="flex items-center gap-2 cursor-pointer bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 text-slate-500 hover:text-brand-600 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all shadow-sm">
-                                    <Edit2 size={13} /> Edit Details
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Right: Entrust card preview + QR download */}
-                        <div className="w-full xl:w-2/5 flex flex-col items-center justify-center border-t xl:border-t-0 xl:border-l border-slate-100 pt-6 xl:pt-0 xl:pl-6">
-                            {canAccessEntrustFeatures ? (
-                                <div className="flex flex-col items-center w-full">
-                                    <div className="w-full max-w-[320px] rounded-[28px] border border-slate-200 bg-gradient-to-br from-slate-50 to-white shadow-md px-5 py-6 flex flex-col items-center text-center">
-                                        <div className="inline-flex items-center gap-2 rounded-full bg-brand-50 border border-brand-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-brand-600 mb-4">
-                                            <QrCode size={12} />
-                                            Verify QR
+                                {/* Real EntrustCard3D Preview (DESKTOP ONLY) */}
+                                <div className="hidden md:block w-full cursor-pointer hover:scale-[1.01] transition-transform duration-300" onClick={canAccessEntrustFeatures ? handleDownloadPDF : handleBlockedFeature}>
+                                    <div className="w-full flex justify-center items-center py-6 md:py-10 lg:py-12 overflow-hidden relative">
+                                        <div className={`transform origin-center transition-all scale-100 md:scale-[1.12] lg:scale-[1.22] xl:scale-[1.35] ${!canAccessEntrustFeatures ? 'blur-[2px]' : ''}`}>
+                                            <EntrustCard3D
+                                                name={displayProfile.name}
+                                                email={user.email}
+                                                location={user.location}
+                                                emergency={user.emergency}
+                                                uniqueId={displayProfile.id}
+                                                memberSince={user.joinedDate || user.memberSince}
+                                                photo={displayProfile.photo}
+                                                status={user.status}
+                                                isStatic={true}
+                                                isBackSide={cardFlipped}
+                                                cardThemeTone="blue"
+                                                cardLayoutMode={user.cardLayoutMode}
+                                                cardShapeMode={user.cardShapeMode}
+                                                cardSizeMode={user.cardSizeMode}
+                                            />
                                         </div>
-                                        {qrImageUnavailable ? (
-                                            <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-inner w-full">
-                                                <p className="text-xs font-black text-slate-600 uppercase tracking-wider">QR unavailable</p>
-                                                <p className="text-[11px] text-slate-500 mt-2 break-all">{qrUrl}</p>
+                                        {!canAccessEntrustFeatures && (
+                                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                <span className="bg-black/55 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">Awaiting Approval</span>
                                             </div>
-                                        ) : (
+                                        )}
+                                    </div>
+                                    <p className="text-center text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">✨ Click card to download instantly ✨</p>
+                                </div>
+
+                                {/* Edit Details Action (Directly below card preview to balance layout) */}
+                                <div className="flex justify-center mt-6">
+                                    <button id="dashboard-edit-btn" onClick={startEditing} className="flex items-center gap-2 cursor-pointer bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 text-slate-500 hover:text-brand-600 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all shadow-sm">
+                                        <Edit2 size={13} /> Edit Details
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Right: Entrust card preview + QR download */}
+                            <div className="w-full xl:w-2/5 flex flex-col items-center justify-center border-t xl:border-t-0 xl:border-l border-slate-100 pt-6 xl:pt-0 xl:pl-6">
+                                {canAccessEntrustFeatures ? (
+                                    <div className="flex flex-col items-center w-full">
+                                        <div className="w-full max-w-[320px] rounded-[28px] border border-slate-200 bg-gradient-to-br from-slate-50 to-white shadow-md px-5 py-6 flex flex-col items-center text-center">
+                                            <div className="inline-flex items-center gap-2 rounded-full bg-brand-50 border border-brand-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-brand-600 mb-4">
+                                                <QrCode size={12} />
+                                                Verify QR
+                                            </div>
+                                            {qrImageUnavailable ? (
+                                                <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-inner w-full">
+                                                    <p className="text-xs font-black text-slate-600 uppercase tracking-wider">QR unavailable</p>
+                                                    <p className="text-[11px] text-slate-500 mt-2 break-all">{qrUrl}</p>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleDownloadQrCode}
+                                                    className="rounded-[24px] border border-slate-200 bg-white p-3 shadow-inner cursor-zoom-in hover:scale-[1.01] transition-transform relative overflow-hidden"
+                                                    title="Click to download QR code"
+                                                >
+                                                    <img
+                                                        src="/logo.png"
+                                                        alt="Logo watermark"
+                                                        className="absolute inset-0 w-full h-full object-contain p-8 opacity-20 pointer-events-none"
+                                                    />
+                                                    <img
+                                                        src={qrImgSrc}
+                                                        alt={`QR code for ${displayProfile.id}`}
+                                                        className="w-44 h-44 md:w-52 md:h-52 object-contain relative z-10 mix-blend-multiply"
+                                                        onError={() => setQrImageUnavailable(true)}
+                                                    />
+                                                </button>
+                                            )}
+                                            <p className="mt-4 text-sm font-bold text-brand-950">{displayProfile.name}</p>
+                                            <p className="text-[11px] text-slate-500 font-mono mt-1">{displayProfile.id.toUpperCase()}</p>
+                                            <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
+                                                Scan this code to open the official verification page for this Entrust profile.
+                                            </p>
+                                            <p className="mt-3 text-[10px] text-slate-500 break-all">{qrUrl}</p>
                                             <button
                                                 type="button"
-                                                onClick={handleDownloadQrCode}
-                                                className="rounded-[24px] border border-slate-200 bg-white p-3 shadow-inner cursor-zoom-in hover:scale-[1.01] transition-transform relative overflow-hidden"
-                                                title="Click to download QR code"
+                                                onClick={handleCopyQrLink}
+                                                className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-brand-700 hover:text-brand-900 transition-colors"
                                             >
-                                                <img
-                                                    src="/logo.png"
-                                                    alt="Logo watermark"
-                                                    className="absolute inset-0 w-full h-full object-contain p-8 opacity-20 pointer-events-none"
-                                                />
+                                                <Copy size={12} /> {qrLinkCopied ? 'Copied' : 'Copy Website Link'}
+                                            </button>
+                                            {!qrImageUnavailable && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleOpenQrPreview}
+                                                    className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-brand-700 hover:text-brand-900 transition-colors"
+                                                >
+                                                    <ExternalLink size={12} /> Click QR to view link + copy
+                                                </button>
+                                            )}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleDownloadQrCode}
+                                            className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-black uppercase tracking-wider transition-colors"
+                                        >
+                                            <QrCode size={14} /> Download QR Code
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center text-center">
+                                        <div className="w-full max-w-[320px] rounded-[28px] border border-slate-200 bg-slate-50 px-5 py-6">
+                                            <div className="mx-auto w-fit rounded-full bg-slate-200 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-slate-500 mb-4">
+                                                QR Locked
+                                            </div>
+                                            <div className="relative mx-auto rounded-[24px] overflow-hidden border border-slate-200 shadow-md bg-white p-3 w-fit">
                                                 <img
                                                     src={qrImgSrc}
                                                     alt={`QR code for ${displayProfile.id}`}
-                                                    className="w-44 h-44 md:w-52 md:h-52 object-contain relative z-10 mix-blend-multiply"
-                                                    onError={() => setQrImageUnavailable(true)}
+                                                    className="w-44 h-44 md:w-52 md:h-52 object-contain blur-[3px] pointer-events-none select-none"
                                                 />
-                                            </button>
-                                        )}
-                                        <p className="mt-4 text-sm font-bold text-brand-950">{displayProfile.name}</p>
-                                        <p className="text-[11px] text-slate-500 font-mono mt-1">{displayProfile.id.toUpperCase()}</p>
-                                        <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
-                                            Scan this code to open the official verification page for this Entrust profile.
-                                        </p>
-                                        <p className="mt-3 text-[10px] text-slate-500 break-all">{qrUrl}</p>
-                                        <button
-                                            type="button"
-                                            onClick={handleCopyQrLink}
-                                            className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-brand-700 hover:text-brand-900 transition-colors"
-                                        >
-                                            <Copy size={12} /> {qrLinkCopied ? 'Copied' : 'Copy Website Link'}
-                                        </button>
-                                        {!qrImageUnavailable && (
+                                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 gap-2">
+                                                    <ShieldCheck size={28} className="text-amber-300" />
+                                                    <p className="font-black text-white text-xs uppercase tracking-widest">Not Verified</p>
+                                                </div>
+                                            </div>
+                                            <p className={`text-[10px] mt-2 ${user.status === 'Rejected' ? 'text-red-500' : 'text-slate-400'}`}>
+                                                {user.status === 'Rejected'
+                                                    ? 'Denied by admin. Please contact support.'
+                                                    : hasPermanentCotId
+                                                        ? 'Pending admin verification'
+                                                        : 'Temporary account. COT ID activation pending.'}
+                                            </p>
+                                            <p className="text-[10px] mt-2 text-slate-500 break-all">{qrUrl}</p>
                                             <button
                                                 type="button"
-                                                onClick={handleOpenQrPreview}
+                                                onClick={handleCopyQrLink}
                                                 className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-brand-700 hover:text-brand-900 transition-colors"
                                             >
-                                                <ExternalLink size={12} /> Click QR to view link + copy
+                                                <Copy size={12} /> {qrLinkCopied ? 'Copied' : 'Copy Website Link'}
                                             </button>
-                                        )}
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={handleDownloadQrCode}
-                                        className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-black uppercase tracking-wider transition-colors"
-                                    >
-                                        <QrCode size={14} /> Download QR Code
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center text-center">
-                                    <div className="w-full max-w-[320px] rounded-[28px] border border-slate-200 bg-slate-50 px-5 py-6">
-                                        <div className="mx-auto w-fit rounded-full bg-slate-200 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-slate-500 mb-4">
-                                            QR Locked
-                                        </div>
-                                        <div className="relative mx-auto rounded-[24px] overflow-hidden border border-slate-200 shadow-md bg-white p-3 w-fit">
-                                            <img
-                                                src={qrImgSrc}
-                                                alt={`QR code for ${displayProfile.id}`}
-                                                className="w-44 h-44 md:w-52 md:h-52 object-contain blur-[3px] pointer-events-none select-none"
-                                            />
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 gap-2">
-                                            <ShieldCheck size={28} className="text-amber-300" />
-                                            <p className="font-black text-white text-xs uppercase tracking-widest">Not Verified</p>
                                         </div>
                                     </div>
-                                    <p className={`text-[10px] mt-2 ${user.status === 'Rejected' ? 'text-red-500' : 'text-slate-400'}`}>
-                                        {user.status === 'Rejected'
-                                            ? 'Denied by admin. Please contact support.'
-                                            : hasPermanentCotId
-                                                ? 'Pending admin verification'
-                                                : 'Temporary account. COT ID activation pending.'}
-                                    </p>
-                                    <p className="text-[10px] mt-2 text-slate-500 break-all">{qrUrl}</p>
-                                    <button
-                                        type="button"
-                                        onClick={handleCopyQrLink}
-                                        className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-brand-700 hover:text-brand-900 transition-colors"
-                                    >
-                                        <Copy size={12} /> {qrLinkCopied ? 'Copied' : 'Copy Website Link'}
-                                    </button>
-                                    </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
+
+
+
+                        {/* Action buttons row (mAadhaar style) */}
+                        {canAccessEntrustFeatures && (
+                            <div id="dashboard-actions-row" className={`grid ${activeProfileId === user.id && hasMemberFormSubmitted ? 'grid-cols-5' : 'grid-cols-4'} gap-1 px-4 pb-5 pt-3`}>
+                                {[
+                                    { icon: <Share2 size={20} />, label: 'Share', action: handleShare, id: 'dashboard-share-top-btn' },
+                                    { icon: <Download size={20} />, label: 'Download', action: handleDownloadPDF, loading: isProcessing },
+                                    { icon: <FileText size={20} />, label: 'Details PDF', action: handleExportProfileDetailsPDF },
+                                    { icon: <QrCode size={20} />, label: 'Download QR', action: handleDownloadQrCode, id: 'dashboard-scanner-btn' },
+                                    ...(activeProfileId === user.id && hasMemberFormSubmitted ? [{ icon: <FileText size={20} />, label: 'Member Form PDF', action: handleExportMemberFormPDF }] : []),
+                                ].map(({ icon, label, action, loading, id }, i) => (
+                                    <button id={id} key={i} onClick={action} disabled={loading}
+                                        className="flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-2xl bg-slate-50 hover:bg-brand-50 hover:text-brand-700 text-slate-600 transition-all disabled:opacity-60 border border-transparent hover:border-brand-100">
+                                        {loading ? <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" /> : icon}
+                                        <span className="text-[9px] font-bold uppercase tracking-wide leading-tight text-center">{loading ? 'Wait…' : label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
                     </div>
 
-
-
-                    {/* Action buttons row (mAadhaar style) */}
-                    {canAccessEntrustFeatures && (
-                        <div id="dashboard-actions-row" className={`grid ${activeProfileId === user.id && hasMemberFormSubmitted ? 'grid-cols-5' : 'grid-cols-4'} gap-1 px-4 pb-5 pt-3`}>
-                            {[
-                                { icon: <Share2 size={20} />, label: 'Share', action: handleShare, id: 'dashboard-share-top-btn' },
-                                { icon: <Download size={20} />, label: 'Download', action: handleDownloadPDF, loading: isProcessing },
-                                { icon: <FileText size={20} />, label: 'Details PDF', action: handleExportProfileDetailsPDF },
-                                { icon: <QrCode size={20} />, label: 'Download QR', action: handleDownloadQrCode, id: 'dashboard-scanner-btn' },
-                                ...(activeProfileId === user.id && hasMemberFormSubmitted ? [{ icon: <FileText size={20} />, label: 'Member Form PDF', action: handleExportMemberFormPDF }] : []),
-                            ].map(({ icon, label, action, loading, id }, i) => (
-                                <button id={id} key={i} onClick={action} disabled={loading}
-                                    className="flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-2xl bg-slate-50 hover:bg-brand-50 hover:text-brand-700 text-slate-600 transition-all disabled:opacity-60 border border-transparent hover:border-brand-100">
-                                    {loading ? <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" /> : icon}
-                                    <span className="text-[9px] font-bold uppercase tracking-wide leading-tight text-center">{loading ? 'Wait…' : label}</span>
-                                </button>
-                            ))}
-                        </div>
-                    )}
-
-                </div>
-
-                {/* ── ACTION CARDS GRID ── */}
+                    {/* ── ACTION CARDS GRID ── */}
                     <div id="dashboard-action-cards" className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
 
-                    {/* QR Card (Mobile priority #1) */}
-                    {canAccessEntrustFeatures ? (
-                        <button onClick={handleDownloadQrCode}
-                            className="bg-gradient-to-br from-[#1a237e] to-[#3949ab] text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
-                            <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><QrCode size={18} /></div>
-                            <p className="font-bold text-sm leading-tight mb-1">Download QR</p>
-                            <p className="text-white/70 text-[10px] leading-snug">Official verification QR for your profile</p>
-                            <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
-                                <QrCode size={11} /> Download QR
-                            </span>
-                        </button>
-                    ) : (
-                        <div className="bg-slate-100 rounded-[22px] p-4 border border-slate-200">
-                            <div className="w-9 h-9 bg-slate-200 rounded-xl flex items-center justify-center mb-3"><QrCode size={18} className="text-slate-400" /></div>
-                            <p className="font-bold text-sm text-slate-500 mb-1">Download QR</p>
-                            <p className={`text-[10px] ${user.status === 'Rejected' ? 'text-red-500' : 'text-slate-400'}`}>
-                                {user.status === 'Rejected'
-                                    ? 'Denied by admin'
-                                    : hasPermanentCotId
-                                        ? 'Pending verification'
-                                        : 'Temporary account'}
-                            </p>
-                            <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase bg-slate-200 rounded-lg px-2.5 py-1.5 text-slate-400">
-                                <AlertCircle size={11} /> Locked
-                            </span>
-                        </div>
-                    )}
-
-                    {/* Interest / Member Form (Mobile priority #2) */}
-                    {canAccessEntrustFeatures ? (
-                        activeProfileId === user.id && hasMemberFormSubmitted ? (
-                            <button onClick={handleExportMemberFormPDF}
-                                className="rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] hover:brightness-110 border border-[#d4a547]/30 cursor-pointer">
-                                <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center mb-3"><FileText size={18} className="text-[#f0c040]" /></div>
-                                <p className="font-bold text-sm leading-tight mb-1">Download Member Form</p>
-                                <p className="text-[#f8e7b0] text-[10px]">Download your submitted member form details in themed PDF format.</p>
-                                <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5 text-[#f0c040]">
-                                    <Download size={11} /> Download PDF
+                        {/* QR Card (Mobile priority #1) */}
+                        {canAccessEntrustFeatures ? (
+                            <button onClick={handleDownloadQrCode}
+                                className="bg-gradient-to-br from-[#1a237e] to-[#3949ab] text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
+                                <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><QrCode size={18} /></div>
+                                <p className="font-bold text-sm leading-tight mb-1">Download QR</p>
+                                <p className="text-white/70 text-[10px] leading-snug">Official verification QR for your profile</p>
+                                <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
+                                    <QrCode size={11} /> Download QR
                                 </span>
                             </button>
                         ) : (
-                            <button onClick={() => setShowCommunityProfileForm(true)}
-                                className="rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] hover:brightness-110 border border-[#d4a547]/30 cursor-pointer">
-                                <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center mb-3"><Users size={18} className="text-[#f0c040]" /></div>
-                                <p className="font-bold text-sm leading-tight mb-1">Member Form Column</p>
-                                <p className="text-[#f8e7b0] text-[10px]">Professional themed profile form for User Book.</p>
-                                <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5 text-[#f0c040]">
-                                    <Edit2 size={11} /> Open Form
+                            <div className="bg-slate-100 rounded-[22px] p-4 border border-slate-200">
+                                <div className="w-9 h-9 bg-slate-200 rounded-xl flex items-center justify-center mb-3"><QrCode size={18} className="text-slate-400" /></div>
+                                <p className="font-bold text-sm text-slate-500 mb-1">Download QR</p>
+                                <p className={`text-[10px] ${user.status === 'Rejected' ? 'text-red-500' : 'text-slate-400'}`}>
+                                    {user.status === 'Rejected'
+                                        ? 'Denied by admin'
+                                        : hasPermanentCotId
+                                            ? 'Pending verification'
+                                            : 'Temporary account'}
+                                </p>
+                                <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase bg-slate-200 rounded-lg px-2.5 py-1.5 text-slate-400">
+                                    <AlertCircle size={11} /> Locked
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Interest / Member Form (Mobile priority #2) */}
+                        {canAccessEntrustFeatures ? (
+                            activeProfileId === user.id && hasMemberFormSubmitted ? (
+                                <button onClick={handleExportMemberFormPDF}
+                                    className="rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] hover:brightness-110 border border-[#d4a547]/30 cursor-pointer">
+                                    <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center mb-3"><FileText size={18} className="text-[#f0c040]" /></div>
+                                    <p className="font-bold text-sm leading-tight mb-1">Download Member Form</p>
+                                    <p className="text-[#f8e7b0] text-[10px]">Download your submitted member form details in themed PDF format.</p>
+                                    <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5 text-[#f0c040]">
+                                        <Download size={11} /> Download PDF
+                                    </span>
+                                </button>
+                            ) : (
+                                <button onClick={() => setShowCommunityProfileForm(true)}
+                                    className="rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group bg-gradient-to-br from-[#1a1b4b] to-[#2a2b6b] text-[#f0c040] hover:brightness-110 border border-[#d4a547]/30 cursor-pointer">
+                                    <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center mb-3"><Users size={18} className="text-[#f0c040]" /></div>
+                                    <p className="font-bold text-sm leading-tight mb-1">Member Form Column</p>
+                                    <p className="text-[#f8e7b0] text-[10px]">Professional themed profile form for User Book.</p>
+                                    <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5 text-[#f0c040]">
+                                        <Edit2 size={11} /> Open Form
+                                    </span>
+                                </button>
+                            )
+                        ) : (
+                            <div className="bg-slate-100 rounded-[22px] p-4 border border-slate-200">
+                                <div className="w-9 h-9 bg-slate-200 rounded-xl flex items-center justify-center mb-3"><Users size={18} className="text-slate-400" /></div>
+                                <p className="font-bold text-sm text-slate-500 mb-1">Member Form Column</p>
+                                <p className="text-slate-400 text-[10px]">Professional themed profile form for User Book.</p>
+                                <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase bg-slate-200 rounded-lg px-2.5 py-1.5 text-slate-400">
+                                    <AlertCircle size={11} /> Locked
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Testimony */}
+                        {canAccessEntrustFeatures ? (
+                            <button id="dashboard-testimony-btn" onClick={() => setShowTestimonialModal(true)}
+                                className="rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group bg-gradient-to-br from-brand-700 to-brand-900 text-white hover:brightness-110 cursor-pointer">
+                                <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><MessageSquare size={18} /></div>
+                                <p className="font-bold text-sm leading-tight mb-1">Write Testimony</p>
+                                <p className="text-white/70 text-[10px]">Share what God has done</p>
+                                <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest rounded-lg px-2.5 py-1.5 bg-white/20">
+                                    <MessageSquare size={11} /> Write Now
                                 </span>
                             </button>
-                        )
-                    ) : (
-                        <div className="bg-slate-100 rounded-[22px] p-4 border border-slate-200">
-                            <div className="w-9 h-9 bg-slate-200 rounded-xl flex items-center justify-center mb-3"><Users size={18} className="text-slate-400" /></div>
-                            <p className="font-bold text-sm text-slate-500 mb-1">Member Form Column</p>
-                            <p className="text-slate-400 text-[10px]">Professional themed profile form for User Book.</p>
-                            <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase bg-slate-200 rounded-lg px-2.5 py-1.5 text-slate-400">
-                                <AlertCircle size={11} /> Locked
-                            </span>
-                        </div>
-                    )}
+                        ) : (
+                            <div className="bg-slate-100 rounded-[22px] p-4 border border-slate-200">
+                                <div className="w-9 h-9 bg-slate-200 rounded-xl flex items-center justify-center mb-3"><MessageSquare size={18} className="text-slate-400" /></div>
+                                <p className="font-bold text-sm text-slate-500 mb-1">Write Testimony</p>
+                                <p className="text-slate-400 text-[10px]">Share what God has done (Restricted)</p>
+                                <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase bg-slate-200 rounded-lg px-2.5 py-1.5 text-slate-400">
+                                    <AlertCircle size={11} /> Locked
+                                </span>
+                            </div>
+                        )}
 
-                    {/* Testimony */}
-                    {canAccessEntrustFeatures ? (
-                        <button id="dashboard-testimony-btn" onClick={() => setShowTestimonialModal(true)}
-                            className="rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group bg-gradient-to-br from-brand-700 to-brand-900 text-white hover:brightness-110 cursor-pointer">
-                            <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><MessageSquare size={18} /></div>
-                            <p className="font-bold text-sm leading-tight mb-1">Write Testimony</p>
-                            <p className="text-white/70 text-[10px]">Share what God has done</p>
-                            <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest rounded-lg px-2.5 py-1.5 bg-white/20">
-                                <MessageSquare size={11} /> Write Now
+                        {/* Share Profile Link */}
+                        <button id="dashboard-share-btn" onClick={canAccessEntrustFeatures ? handleShare : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
+                            className={`rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-emerald-600 to-teal-700 text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                            <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Share2 size={18} /></div>
+                            <p className="font-bold text-sm leading-tight mb-1">Share Profile Link</p>
+                            <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[10px]`}>Share unique login URL for this profile</p>
+                            <span className={`mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest rounded-lg px-2.5 py-1.5 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
+                                <Share2 size={11} /> {canAccessEntrustFeatures ? 'Share' : 'Locked'}
                             </span>
                         </button>
-                    ) : (
-                        <div className="bg-slate-100 rounded-[22px] p-4 border border-slate-200">
-                            <div className="w-9 h-9 bg-slate-200 rounded-xl flex items-center justify-center mb-3"><MessageSquare size={18} className="text-slate-400" /></div>
-                            <p className="font-bold text-sm text-slate-500 mb-1">Write Testimony</p>
-                            <p className="text-slate-400 text-[10px]">Share what God has done (Restricted)</p>
-                            <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase bg-slate-200 rounded-lg px-2.5 py-1.5 text-slate-400">
-                                <AlertCircle size={11} /> Locked
+
+                        {/* Family Portfolio PDF */}
+                        <button onClick={canAccessEntrustFeatures ? handleExportProfileDetailsPDF : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
+                            className={`rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-indigo-700 to-violet-800 text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                            <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><FileText size={18} /></div>
+                            <p className="font-bold text-sm leading-tight mb-1">Family Portfolio PDF</p>
+                            <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[10px]`}>Download a polished member, family, and active-profile portfolio</p>
+                            <span className={`mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest rounded-lg px-2.5 py-1.5 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
+                                <Download size={11} /> {canAccessEntrustFeatures ? 'Download PDF' : 'Locked'}
                             </span>
-                        </div>
-                    )}
+                        </button>
 
-                    {/* Share Profile Link */}
-                    <button id="dashboard-share-btn" onClick={canAccessEntrustFeatures ? handleShare : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
-                        className={`rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-emerald-600 to-teal-700 text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
-                        <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Share2 size={18} /></div>
-                        <p className="font-bold text-sm leading-tight mb-1">Share Profile Link</p>
-                        <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[10px]`}>Share unique login URL for this profile</p>
-                        <span className={`mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest rounded-lg px-2.5 py-1.5 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
-                            <Share2 size={11} /> {canAccessEntrustFeatures ? 'Share' : 'Locked'}
-                        </span>
-                    </button>
+                        {/* Jewish Calendar — amber (full width row) */}
+                        {activeProfileId === user.id && (
+                            <button onClick={canAccessEntrustFeatures ? () => setIsCalendarModalOpen(true) : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
+                                className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#8B4500] via-[#C07000] to-[#D97706] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                                <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Calendar size={22} /></div>
+                                <p className="font-bold text-base leading-tight mb-1">Jewish Calendar 5786</p>
+                                <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-0.5`}>Download the official City of Truth Ministries Jewish Calendar.</p>
+                                <p className={`${canAccessEntrustFeatures ? 'text-white/60' : 'text-slate-400'} text-[10px] mb-3`}>Pro Max Quality Edition.</p>
+                                <span className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 ${canAccessEntrustFeatures ? 'bg-[#fff8e8] text-[#7B3F00]' : 'bg-slate-200 text-slate-500'}`}>
+                                    <Download size={12} /> {canAccessEntrustFeatures ? 'DOWNLOAD PDF' : 'LOCKED'}
+                                </span>
+                                <div className="absolute right-4 bottom-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                    <Calendar size={64} />
+                                </div>
+                            </button>
+                        )}
 
-                    {/* Family Portfolio PDF */}
-                    <button onClick={canAccessEntrustFeatures ? handleExportProfileDetailsPDF : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
-                        className={`rounded-[22px] p-4 text-left shadow-lg transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-indigo-700 to-violet-800 text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
-                        <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><FileText size={18} /></div>
-                        <p className="font-bold text-sm leading-tight mb-1">Family Portfolio PDF</p>
-                        <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[10px]`}>Download a polished member, family, and active-profile portfolio</p>
-                        <span className={`mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest rounded-lg px-2.5 py-1.5 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
-                            <Download size={11} /> {canAccessEntrustFeatures ? 'Download PDF' : 'Locked'}
-                        </span>
-                    </button>
-
-                    {/* Jewish Calendar — amber (full width row) */}
-                    {activeProfileId === user.id && (
-                        <button onClick={canAccessEntrustFeatures ? () => setIsCalendarModalOpen(true) : handleBlockedFeature} disabled={!canAccessEntrustFeatures}
-                            className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#8B4500] via-[#C07000] to-[#D97706] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
-                            <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Calendar size={22} /></div>
-                            <p className="font-bold text-base leading-tight mb-1">Jewish Calendar 5786</p>
-                            <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-0.5`}>Download the official City of Truth Ministries Jewish Calendar.</p>
-                            <p className={`${canAccessEntrustFeatures ? 'text-white/60' : 'text-slate-400'} text-[10px] mb-3`}>Pro Max Quality Edition.</p>
-                            <span className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 ${canAccessEntrustFeatures ? 'bg-[#fff8e8] text-[#7B3F00]' : 'bg-slate-200 text-slate-500'}`}>
-                                <Download size={12} /> {canAccessEntrustFeatures ? 'DOWNLOAD PDF' : 'LOCKED'}
+                        {/* Mobile App — navy (full width row) */}
+                        <button type="button" onClick={() => {
+                            if (!canAccessEntrustFeatures) {
+                                handleBlockedFeature();
+                                return;
+                            }
+                            const link = document.createElement('a');
+                            link.href = '/COT Ministries.apk';
+                            link.download = 'COT Ministries.apk';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                        }}
+                            className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#1a237e] to-[#3949ab] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                            <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3">
+                                <svg viewBox="0 0 24 24" className="w-[22px] h-[22px] fill-white"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.38.07 2.33.76 3.13.8 1.18-.25 2.31-.94 3.56-.84 1.5.12 2.63.72 3.37 1.8-3.09 1.85-2.56 5.93.28 7.05-.55 1.5-1.27 2.98-2.34 4.07zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" /></svg>
+                            </div>
+                            <p className="font-bold text-base leading-tight mb-1">Get the Mobile App</p>
+                            <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-3`}>Access your ID card offline and get instant ministry updates on your Android device.</p>
+                            <span className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
+                                <Download size={12} /> {canAccessEntrustFeatures ? 'Download Our App' : 'Locked'}
                             </span>
-                            <div className="absolute right-4 bottom-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                <Calendar size={64} />
+                            <div className="absolute right-4 bottom-4 opacity-10 group-hover:opacity-20 transition-opacity text-[64px] font-bold">
+                                📱
                             </div>
                         </button>
-                    )}
 
-                    {/* Mobile App — navy (full width row) */}
-                    <button type="button" onClick={() => {
-                        if (!canAccessEntrustFeatures) {
-                            handleBlockedFeature();
-                            return;
-                        }
-                        const link = document.createElement('a');
-                        link.href = '/COT Ministries.apk';
-                        link.download = 'COT Ministries.apk';
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                    }}
-                        className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#1a237e] to-[#3949ab] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
-                        <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3">
-                            <svg viewBox="0 0 24 24" className="w-[22px] h-[22px] fill-white"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.38.07 2.33.76 3.13.8 1.18-.25 2.31-.94 3.56-.84 1.5.12 2.63.72 3.37 1.8-3.09 1.85-2.56 5.93.28 7.05-.55 1.5-1.27 2.98-2.34 4.07zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" /></svg>
-                        </div>
-                        <p className="font-bold text-base leading-tight mb-1">Get the Mobile App</p>
-                        <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-3`}>Access your ID card offline and get instant ministry updates on your Android device.</p>
-                        <span className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
-                            <Download size={12} /> {canAccessEntrustFeatures ? 'Download Our App' : 'Locked'}
-                        </span>
-                        <div className="absolute right-4 bottom-4 opacity-10 group-hover:opacity-20 transition-opacity text-[64px] font-bold">
-                            📱
-                        </div>
-                    </button>
+                        {/* WhatsApp Community Group */}
+                        <button type="button" onClick={() => {
+                            if (!canAccessEntrustFeatures) {
+                                handleBlockedFeature();
+                                return;
+                            }
+                            window.open('https://chat.whatsapp.com/KyifBLN6FFzFj8lSfZFrQb?s=cl&p=a&ilr=1&amv=2', '_blank', 'noopener,noreferrer');
+                        }}
+                            className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#075e54] to-[#128c7e] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                            <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3">
+                                <MessageSquare size={22} className={canAccessEntrustFeatures ? 'text-white' : 'text-slate-400'} />
+                            </div>
+                            <p className="font-bold text-base leading-tight mb-1">Official WhatsApp Community</p>
+                            <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-3`}>Join our official WhatsApp group to connect with other registered members, share fellowship, and receive direct announcements.</p>
+                            <span className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 ${canAccessEntrustFeatures ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                                <ExternalLink size={12} /> {canAccessEntrustFeatures ? 'JOIN CHAT' : 'Locked'}
+                            </span>
+                            <div className="absolute right-4 bottom-4 opacity-10 group-hover:opacity-20 transition-opacity text-[64px] font-bold">
+                                💬
+                            </div>
+                        </button>
 
-                    {/* WhatsApp Community Group */}
-                    <button type="button" onClick={() => {
-                        if (!canAccessEntrustFeatures) {
-                            handleBlockedFeature();
-                            return;
-                        }
-                        window.open('https://chat.whatsapp.com/KyifBLN6FFzFj8lSfZFrQb?s=cl&p=a&ilr=1&amv=2', '_blank', 'noopener,noreferrer');
-                    }}
-                        className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#075e54] to-[#128c7e] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
-                        <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3">
-                            <MessageSquare size={22} className={canAccessEntrustFeatures ? 'text-white' : 'text-slate-400'} />
-                        </div>
-                        <p className="font-bold text-base leading-tight mb-1">Official WhatsApp Community</p>
-                        <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-3`}>Join our official WhatsApp group to connect with other registered members, share fellowship, and receive direct announcements.</p>
-                        <span className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 ${canAccessEntrustFeatures ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-500'}`}>
-                            <ExternalLink size={12} /> {canAccessEntrustFeatures ? 'JOIN CHAT' : 'Locked'}
-                        </span>
-                        <div className="absolute right-4 bottom-4 opacity-10 group-hover:opacity-20 transition-opacity text-[64px] font-bold">
-                            💬
-                        </div>
-                    </button>
+                        {/* Menorah Flag Download */}
+                        <button type="button" onClick={() => {
+                            if (!canAccessEntrustFeatures) {
+                                handleBlockedFeature();
+                                return;
+                            }
+                            const link = document.createElement('a');
+                            link.href = '/menorah-flag-image.png';
+                            link.download = 'COT-Menorah-Flag.png';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                        }}
+                            className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#7c4d00] to-[#f59e0b] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                            <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Flag size={22} /></div>
+                            <p className="font-bold text-base leading-tight mb-1">Download Menorah Flag</p>
+                            <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-3`}>Save the official ministry flag image to your device.</p>
+                            <span className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
+                                <Download size={12} /> {canAccessEntrustFeatures ? 'Download Flag' : 'Locked'}
+                            </span>
+                        </button>
 
-                    {/* Menorah Flag Download */}
-                    <button type="button" onClick={() => {
-                        if (!canAccessEntrustFeatures) {
-                            handleBlockedFeature();
-                            return;
-                        }
-                        const link = document.createElement('a');
-                        link.href = '/menorah-flag-image.png';
-                        link.download = 'COT-Menorah-Flag.png';
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                    }}
-                        className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#7c4d00] to-[#f59e0b] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
-                        <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Flag size={22} /></div>
-                        <p className="font-bold text-base leading-tight mb-1">Download Menorah Flag</p>
-                        <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-3`}>Save the official ministry flag image to your device.</p>
-                        <span className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
-                            <Download size={12} /> {canAccessEntrustFeatures ? 'Download Flag' : 'Locked'}
-                        </span>
-                    </button>
+                        {/* Hebrew Alphabet Chart Download */}
+                        <button type="button" onClick={() => {
+                            if (!canAccessEntrustFeatures) {
+                                handleBlockedFeature();
+                                return;
+                            }
+                            const link = document.createElement('a');
+                            link.href = '/downloads/Sacred_Alphabet_Gematria_Chart.pdf';
+                            link.download = 'Sacred_Alphabet_Gematria_Chart.pdf';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                        }}
+                            className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#064e3b] to-[#10b981] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                            <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Download size={22} /></div>
+                            <p className="font-bold text-base leading-tight mb-1">Hebrew Alphabet Chart</p>
+                            <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-3`}>Sacred Alphabet & Gematria Chart PDF.</p>
+                            <span className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
+                                <Download size={12} /> {canAccessEntrustFeatures ? 'Download Chart' : 'Locked'}
+                            </span>
+                        </button>
 
-                    {/* Hebrew Alphabet Chart Download */}
-                    <button type="button" onClick={() => {
-                        if (!canAccessEntrustFeatures) {
-                            handleBlockedFeature();
-                            return;
-                        }
-                        const link = document.createElement('a');
-                        link.href = '/downloads/Sacred_Alphabet_Gematria_Chart.pdf';
-                        link.download = 'Sacred_Alphabet_Gematria_Chart.pdf';
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                    }}
-                        className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#064e3b] to-[#10b981] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
-                        <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Download size={22} /></div>
-                        <p className="font-bold text-base leading-tight mb-1">Hebrew Alphabet Chart</p>
-                        <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-3`}>Sacred Alphabet & Gematria Chart PDF.</p>
-                        <span className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
-                            <Download size={12} /> {canAccessEntrustFeatures ? 'Download Chart' : 'Locked'}
-                        </span>
-                    </button>
+                        {/* Entire Website PDFs Download */}
+                        <button type="button" onClick={() => {
+                            if (!canAccessEntrustFeatures) {
+                                handleBlockedFeature();
+                                return;
+                            }
+                            alert("Preparing entire website PDFs bundle... This feature will combine all PDFs into a single ZIP file.");
+                        }}
+                            className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#4c1d95] to-[#7c3aed] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                            <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><FileText size={22} /></div>
+                            <p className="font-bold text-base leading-tight mb-1">Entire Website PDFs</p>
+                            <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-3`}>Download a bundle of all official ministry PDFs.</p>
+                            <span className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
+                                <Download size={12} /> {canAccessEntrustFeatures ? 'Download All PDFs' : 'Locked'}
+                            </span>
+                        </button>
 
-                    {/* Entire Website PDFs Download */}
-                    <button type="button" onClick={() => {
-                        if (!canAccessEntrustFeatures) {
-                            handleBlockedFeature();
-                            return;
-                        }
-                        alert("Preparing entire website PDFs bundle... This feature will combine all PDFs into a single ZIP file.");
-                    }}
-                        className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#4c1d95] to-[#7c3aed] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
-                        <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><FileText size={22} /></div>
-                        <p className="font-bold text-base leading-tight mb-1">Entire Website PDFs</p>
-                        <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-3`}>Download a bundle of all official ministry PDFs.</p>
-                        <span className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
-                            <Download size={12} /> {canAccessEntrustFeatures ? 'Download All PDFs' : 'Locked'}
-                        </span>
-                    </button>
-
-                </div>
+                    </div>
 
                 </div>
             </div>
@@ -2263,14 +2264,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         <p className="text-[11px] text-slate-500 mt-2 break-all">{qrUrl}</p>
                                     </div>
                                 ) : (
-                                        <>
-                                            <img
-                                                src="/logo.png"
-                                                alt="Logo watermark"
-                                                className="absolute inset-0 w-full h-full object-contain p-8 opacity-20 pointer-events-none"
-                                            />
-                                            <img src={qrImgSrc} alt={`QR preview for ${displayProfile.id}`} className="w-full max-w-[300px] mx-auto object-contain relative z-10 mix-blend-multiply" onError={() => setQrImageUnavailable(true)} />
-                                        </>
+                                    <>
+                                        <img
+                                            src="/logo.png"
+                                            alt="Logo watermark"
+                                            className="absolute inset-0 w-full h-full object-contain p-8 opacity-20 pointer-events-none"
+                                        />
+                                        <img src={qrImgSrc} alt={`QR preview for ${displayProfile.id}`} className="w-full max-w-[300px] mx-auto object-contain relative z-10 mix-blend-multiply" onError={() => setQrImageUnavailable(true)} />
+                                    </>
                                 )}
                             </div>
                             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Verification Link</p>
@@ -2502,91 +2503,91 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             setIsEditing(false);
                         }} className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {activeProfileId === user.id ? (
-                                <>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Full Name</label>
-                                        <input type="text" value={formData.name ?? user.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Phone / Contact</label>
-                                        <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl overflow-hidden focus-within:border-brand-500">
-                                            <span className="px-3 py-3 text-sm font-bold text-slate-500 bg-slate-100 border-r border-slate-200 shrink-0">+91</span>
-                                            <input type="tel" value={((formData.emergency ?? user.emergency) || '').replace(/^\+91/, '')} onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 10); setFormData(p => ({ ...p, emergency: `+91${v}`, phone: `+91${v}` })); }} className="flex-1 px-3 py-3 bg-transparent outline-none text-sm font-medium text-slate-800" />
+                                {activeProfileId === user.id ? (
+                                    <>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Full Name</label>
+                                            <input type="text" value={formData.name ?? user.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
                                         </div>
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Email Address</label>
-                                        <input type="email" value={formData.email ?? user.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Date of Birth</label>
-                                        <input type="date" value={(formData as any).dob ?? (user as any).dob ?? ''} onChange={e => setFormData(p => ({ ...p, dob: e.target.value } as any))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Location</label>
-                                        <select
-                                            value={formData.location ?? user.location}
-                                            onChange={e => setFormData(p => ({ ...p, location: e.target.value }))}
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500"
-                                        >
-                                            {!TAMIL_NADU_LOCATIONS.includes((formData.location ?? user.location) || '') && (
-                                                <option value={formData.location ?? user.location}>{formData.location ?? user.location}</option>
-                                            )}
-                                            {TAMIL_NADU_LOCATIONS.map(location => (
-                                                <option key={location} value={location}>{location}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Joined Date</label>
-                                        <input type="date" value={(formData as any).joinedDate ?? user.joinedDate ?? ''} onChange={e => setFormData(p => ({ ...p, joinedDate: e.target.value } as any))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Full Name</label>
-                                        <input type="text" value={formData.name || ''} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Role / Relationship</label>
-                                        <select
-                                            value={(formData as any).role || ''}
-                                            onChange={e => setFormData(p => ({ ...p, role: e.target.value } as any))}
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500"
-                                        >
-                                            <option value="">Select Relationship</option>
-                                            <option value="Spouse">Spouse</option>
-                                            <option value="Child">Child</option>
-                                            <option value="Parent">Parent</option>
-                                            <option value="Sibling">Sibling</option>
-                                            <option value="Relative">Relative</option>
-                                            <option value="Dependent">Dependent</option>
-                                            <option value="Guardian">Guardian</option>
-                                            <option value="Ministry Partner">Ministry Partner</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Date of Birth</label>
-                                        <input type="date" value={(formData as any).dob || ''} onChange={e => setFormData(p => ({ ...p, dob: e.target.value } as any))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Blood Group</label>
-                                        <select value={(formData as any).bloodGroup || ''} onChange={e => setFormData(p => ({ ...p, bloodGroup: e.target.value } as any))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500">
-                                            <option value="">Select Blood Group</option>
-                                            <option value="A+">A+</option>
-                                            <option value="A-">A-</option>
-                                            <option value="B+">B+</option>
-                                            <option value="B-">B-</option>
-                                            <option value="AB+">AB+</option>
-                                            <option value="AB-">AB-</option>
-                                            <option value="O+">O+</option>
-                                            <option value="O-">O-</option>
-                                        </select>
-                                    </div>
-                                </>
-                            )}
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Phone / Contact</label>
+                                            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl overflow-hidden focus-within:border-brand-500">
+                                                <span className="px-3 py-3 text-sm font-bold text-slate-500 bg-slate-100 border-r border-slate-200 shrink-0">+91</span>
+                                                <input type="tel" value={((formData.emergency ?? user.emergency) || '').replace(/^\+91/, '')} onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 10); setFormData(p => ({ ...p, emergency: `+91${v}`, phone: `+91${v}` })); }} className="flex-1 px-3 py-3 bg-transparent outline-none text-sm font-medium text-slate-800" />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Email Address</label>
+                                            <input type="email" value={formData.email ?? user.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Date of Birth</label>
+                                            <input type="date" value={(formData as any).dob ?? (user as any).dob ?? ''} onChange={e => setFormData(p => ({ ...p, dob: e.target.value } as any))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Location</label>
+                                            <select
+                                                value={formData.location ?? user.location}
+                                                onChange={e => setFormData(p => ({ ...p, location: e.target.value }))}
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500"
+                                            >
+                                                {!TAMIL_NADU_LOCATIONS.includes((formData.location ?? user.location) || '') && (
+                                                    <option value={formData.location ?? user.location}>{formData.location ?? user.location}</option>
+                                                )}
+                                                {TAMIL_NADU_LOCATIONS.map(location => (
+                                                    <option key={location} value={location}>{location}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Joined Date</label>
+                                            <input type="date" value={(formData as any).joinedDate ?? user.joinedDate ?? ''} onChange={e => setFormData(p => ({ ...p, joinedDate: e.target.value } as any))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Full Name</label>
+                                            <input type="text" value={formData.name || ''} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Role / Relationship</label>
+                                            <select
+                                                value={(formData as any).role || ''}
+                                                onChange={e => setFormData(p => ({ ...p, role: e.target.value } as any))}
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500"
+                                            >
+                                                <option value="">Select Relationship</option>
+                                                <option value="Spouse">Spouse</option>
+                                                <option value="Child">Child</option>
+                                                <option value="Parent">Parent</option>
+                                                <option value="Sibling">Sibling</option>
+                                                <option value="Relative">Relative</option>
+                                                <option value="Dependent">Dependent</option>
+                                                <option value="Guardian">Guardian</option>
+                                                <option value="Ministry Partner">Ministry Partner</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Date of Birth</label>
+                                            <input type="date" value={(formData as any).dob || ''} onChange={e => setFormData(p => ({ ...p, dob: e.target.value } as any))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Blood Group</label>
+                                            <select value={(formData as any).bloodGroup || ''} onChange={e => setFormData(p => ({ ...p, bloodGroup: e.target.value } as any))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-brand-500">
+                                                <option value="">Select Blood Group</option>
+                                                <option value="A+">A+</option>
+                                                <option value="A-">A-</option>
+                                                <option value="B+">B+</option>
+                                                <option value="B-">B-</option>
+                                                <option value="AB+">AB+</option>
+                                                <option value="AB-">AB-</option>
+                                                <option value="O+">O+</option>
+                                                <option value="O-">O-</option>
+                                            </select>
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
                             <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700 font-medium">
@@ -2667,7 +2668,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             exit={{ opacity: 0 }}
                             onClick={() => {
                                 setShowWhatsAppInviteModal(false);
-                                try { localStorage.setItem(`cot_whatsapp_invited_${displayProfile.id}`, 'true'); } catch {}
+                                try { localStorage.setItem(`cot_whatsapp_invited_${displayProfile.id}`, 'true'); } catch { }
                             }}
                             className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
                         />
@@ -2693,7 +2694,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             <p className="text-sm font-bold text-[#075e54] mb-3 uppercase tracking-widest">
                                 Join the WhatsApp Community
                             </p>
-                            
+
                             <p className="text-slate-600 text-xs font-semibold leading-relaxed mb-6 px-2">
                                 Shalom, {displayProfile.name}! Your account has been officially approved. We invite you to join our official WhatsApp Community Group to stay connected, receive announcements, and grow in fellowship.
                             </p>
@@ -2703,7 +2704,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                     onClick={() => {
                                         window.open('https://chat.whatsapp.com/KyifBLN6FFzFj8lSfZFrQb?s=cl&p=a&ilr=1&amv=2', '_blank', 'noopener,noreferrer');
                                         setShowWhatsAppInviteModal(false);
-                                        try { localStorage.setItem(`cot_whatsapp_invited_${displayProfile.id}`, 'true'); } catch {}
+                                        try { localStorage.setItem(`cot_whatsapp_invited_${displayProfile.id}`, 'true'); } catch { }
                                     }}
                                     className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#075e54] to-[#128c7e] hover:brightness-110 text-white font-black text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
                                 >
@@ -2712,7 +2713,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 <button
                                     onClick={() => {
                                         setShowWhatsAppInviteModal(false);
-                                        try { localStorage.setItem(`cot_whatsapp_invited_${displayProfile.id}`, 'true'); } catch {}
+                                        try { localStorage.setItem(`cot_whatsapp_invited_${displayProfile.id}`, 'true'); } catch { }
                                     }}
                                     className="w-full py-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-700 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer border border-slate-100"
                                 >

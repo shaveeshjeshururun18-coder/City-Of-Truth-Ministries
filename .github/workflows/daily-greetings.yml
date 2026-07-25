@@ -15,10 +15,15 @@ jobs:
     steps:
       - name: Send Daily Hebrew Greeting
         run: |
+          URL=$(echo "${{ secrets.VERCEL_APP_URL }}" | tr -d '\r\n ' | sed 's#/*$##')
+          if [ -z "$URL" ]; then
+            echo "❌ VERCEL_APP_URL secret is empty!"
+            exit 1
+          fi
           response=$(curl -s -o /dev/null -w "%{http_code}" \
             -X GET \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.VERCEL_APP_URL }}/api/dailyGreetings")
+            "${URL}/api/dailyGreetings")
           echo "Response code: $response"
           if [ "$response" -ge 200 ] && [ "$response" -lt 300 ]; then
             echo "✅ Greeting sent successfully!"
