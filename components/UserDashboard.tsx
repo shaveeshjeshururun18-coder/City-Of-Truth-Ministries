@@ -400,6 +400,20 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         setTimeout(() => setIsStaggeringMedal(false), 1400);
     };
 
+    const handleDownloadEntirePDFBundle = () => {
+        if (!canAccessEntrustFeatures) {
+            handleBlockedFeature();
+            return;
+        }
+        handleMedalClick();
+        const link = document.createElement('a');
+        link.href = '/downloads/ilovepdf_merged_organized.pdf';
+        link.download = 'ilovepdf_merged_organized.pdf';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const handleDownloadPDF = async () => {
         if (!canAccessEntrustFeatures) {
             alert('Entrust card download is available only after admin approval.');
@@ -2337,14 +2351,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                         {/* Entire Website PDFs Download — Transformed into Award Medal Structure */}
                         <div
-                            onClick={(e) => {
-                                if (!canAccessEntrustFeatures) {
-                                    handleBlockedFeature();
-                                    return;
-                                }
-                                handleMedalClick();
-                                alert("Preparing entire website PDFs bundle... Downloading all official ministry PDFs!");
-                            }}
+                            onClick={handleDownloadEntirePDFBundle}
                             className={`col-span-2 lg:col-span-full relative group rounded-[26px] p-[3px] transition-all duration-300 shadow-2xl overflow-hidden cursor-pointer ${
                                 canAccessEntrustFeatures ? 'hover:scale-[1.01]' : 'opacity-70 cursor-not-allowed'
                             }`}
