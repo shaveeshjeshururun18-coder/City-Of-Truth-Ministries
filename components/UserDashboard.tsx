@@ -1669,8 +1669,12 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         <button onClick={toggleUserDarkMode} title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'} className="shrink-0 text-slate-400 hover:text-indigo-600 p-2 rounded-full hover:bg-white transition-all">
                             {isDarkMode ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} />}
                         </button>
+                        {/* Download Profile Photo button */}
+                        <button onClick={handleDownloadProfilePhoto} title="Download Profile Image" className="shrink-0 text-slate-400 hover:text-emerald-600 p-2 rounded-full hover:bg-white transition-all">
+                            <Download size={18} />
+                        </button>
                         {/* Edit button */}
-                        <button onClick={startEditing} className="shrink-0 text-slate-400 hover:text-brand-600 p-2 rounded-full hover:bg-white transition-all">
+                        <button onClick={startEditing} title="Edit Profile Details" className="shrink-0 text-slate-400 hover:text-brand-600 p-2 rounded-full hover:bg-white transition-all">
                             <Edit2 size={18} />
                         </button>
                     </div>
@@ -2081,13 +2085,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                         {/* Action buttons row (mAadhaar style) */}
                         {canAccessEntrustFeatures && (
-                            <div id="dashboard-actions-row" className={`grid ${activeProfileId === user.id && hasMemberFormSubmitted ? 'grid-cols-5' : 'grid-cols-4'} gap-1 px-4 pb-5 pt-3`}>
+                            <div id="dashboard-actions-row" className="grid grid-cols-5 gap-1 px-4 pb-5 pt-3">
                                 {[
                                     { icon: <Share2 size={20} />, label: 'Share', action: handleShare, id: 'dashboard-share-top-btn' },
-                                    { icon: <Download size={20} />, label: 'Download', action: handleDownloadPDF, loading: isProcessing },
+                                    { icon: <Download size={20} />, label: 'Download Card', action: handleDownloadPDF, loading: isProcessing },
+                                    { icon: <Camera size={20} />, label: 'Profile Photo', action: handleDownloadProfilePhoto, id: 'dashboard-download-photo-btn' },
                                     { icon: <FileText size={20} />, label: 'Details PDF', action: handleExportProfileDetailsPDF },
                                     { icon: <QrCode size={20} />, label: 'Download QR', action: handleDownloadQrCode, id: 'dashboard-scanner-btn' },
-                                    ...(activeProfileId === user.id && hasMemberFormSubmitted ? [{ icon: <FileText size={20} />, label: 'Member Form PDF', action: handleExportMemberFormPDF }] : []),
                                 ].map(({ icon, label, action, loading, id }, i) => (
                                     <button id={id} key={i} onClick={action} disabled={loading}
                                         className="flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-2xl bg-slate-50 hover:bg-brand-50 hover:text-brand-700 text-slate-600 transition-all disabled:opacity-60 border border-transparent hover:border-brand-100">
@@ -2103,6 +2107,17 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                     {/* ── ACTION CARDS GRID ── */}
                     <div id="dashboard-action-cards" className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
+
+                        {/* Profile Photo Download Card (Standalone Prominent Button) */}
+                        <button onClick={handleDownloadProfilePhoto}
+                            className="bg-gradient-to-br from-emerald-600 via-teal-700 to-cyan-800 text-white rounded-[22px] p-4 text-left shadow-lg hover:brightness-110 transition-all relative overflow-hidden group">
+                            <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Camera size={18} /></div>
+                            <p className="font-bold text-sm leading-tight mb-1">Download Photo</p>
+                            <p className="text-white/70 text-[10px] leading-snug">Save original profile image file</p>
+                            <span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white/20 rounded-lg px-2.5 py-1.5">
+                                <Download size={11} /> Save Image
+                            </span>
+                        </button>
 
                         {/* QR Card (Mobile priority #1) */}
                         {canAccessEntrustFeatures ? (
