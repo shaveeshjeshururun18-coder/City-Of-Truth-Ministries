@@ -78,6 +78,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [dismissedTopNotificationId, setDismissedTopNotificationId] = useState<string | null>(null);
     const [wasEditingBeforeCrop, setWasEditingBeforeCrop] = useState(false);
     const [showFormSubmittedBanner, setShowFormSubmittedBanner] = useState(false);
+    const [isStaggeringMedal, setIsStaggeringMedal] = useState(false);
     const [showWhatsAppInviteModal, setShowWhatsAppInviteModal] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(() => {
         try { return localStorage.getItem('cot_user_dashboard_theme') === 'dark'; } catch { return false; }
@@ -392,6 +393,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    };
+
+    const handleMedalClick = () => {
+        setIsStaggeringMedal(true);
+        setTimeout(() => setIsStaggeringMedal(false), 1400);
     };
 
     const handleDownloadPDF = async () => {
@@ -1567,11 +1573,34 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                     <div className="flex items-center gap-3 mb-5 px-1">
                         {/* Primary profile + family avatars */}
-                        <div className="relative group shrink-0">
-                            <div className="w-14 h-14 rounded-full overflow-hidden border-[3px] border-white shadow-lg bg-brand-100">
+                        {/* Primary profile avatar with flowing medal ring */}
+                        <div
+                            onClick={handleMedalClick}
+                            className="relative group shrink-0 p-1 cursor-pointer select-none"
+                            title="Click for flowing medal animation!"
+                        >
+                            {/* Animated Flowing Conic Ring */}
+                            <div className="absolute inset-0 rounded-full p-[3px] bg-[conic-gradient(from_0deg,#00F2FE,#4FACFE,#F6D365,#FDA085,#FF0844,#FFB199,#00F2FE)] animate-[spin_5s_linear_infinite] shadow-lg shadow-cyan-500/20" />
+
+                            {/* Glowing Blur Aura */}
+                            <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,#00F2FE,#4FACFE,#F6D365,#FDA085,#FF0844,#FFB199,#00F2FE)] blur-sm opacity-70 group-hover:opacity-100 animate-[spin_5s_linear_infinite] transition-opacity" />
+
+                            {/* Staggered Ripples on Click */}
+                            {isStaggeringMedal && (
+                                <>
+                                    <div className="absolute -inset-1.5 rounded-full border-2 border-cyan-400 animate-[ping_0.8s_cubic-bezier(0,0,0.2,1)_infinite] pointer-events-none" />
+                                    <div className="absolute -inset-3.5 rounded-full border-2 border-amber-400 animate-[ping_0.8s_cubic-bezier(0,0,0.2,1)_infinite]" style={{ animationDelay: '150ms' }} />
+                                    <div className="absolute -inset-5.5 rounded-full border-2 border-rose-500 animate-[ping_0.8s_cubic-bezier(0,0,0.2,1)_infinite]" style={{ animationDelay: '300ms' }} />
+                                </>
+                            )}
+
+                            {/* Avatar Circle */}
+                            <div className="relative w-14 h-14 rounded-full overflow-hidden border-[3px] border-white shadow-lg bg-brand-100 z-10">
                                 {renderAvatarContent(user.photo, user.name, 'text-sm', 'from-brand-600 to-violet-700')}
                             </div>
-                            <div className="absolute inset-0 flex items-center justify-center gap-1.5 bg-black/60 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all">
+
+                            {/* Hover Overlay */}
+                            <div className="absolute inset-1 z-20 flex items-center justify-center gap-1.5 bg-black/65 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all">
                                 <button
                                     type="button"
                                     onClick={(e) => {
@@ -1604,7 +1633,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 )}
                             </div>
                             {/* Active indicator */}
-                            <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white ${user.status === 'Active' ? 'bg-green-500' : user.status === 'Rejected' ? 'bg-red-500' : 'bg-amber-400'}`} />
+                            <div className={`absolute -bottom-0.5 -right-0.5 z-30 w-4 h-4 rounded-full border-2 border-white ${user.status === 'Active' ? 'bg-green-500' : user.status === 'Rejected' ? 'bg-red-500' : 'bg-amber-400'}`} />
                         </div>
 
                         {/* Family member avatars */}
