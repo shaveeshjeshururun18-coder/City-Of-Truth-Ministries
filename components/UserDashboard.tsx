@@ -1645,17 +1645,17 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             title="Click for flowing medal animation!"
                         >
                             {/* Animated Flowing Conic Ring */}
-                            <div className="absolute inset-0 rounded-full p-[3px] bg-[conic-gradient(from_0deg,#00F2FE,#4FACFE,#F6D365,#FDA085,#FF0844,#FFB199,#00F2FE)] animate-[spin_5s_linear_infinite] shadow-lg shadow-cyan-500/20" />
+                            <div className="absolute inset-0 rounded-full p-[3px] bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] animate-[spin_5s_linear_infinite] shadow-lg shadow-cyan-500/20" />
 
                             {/* Glowing Blur Aura */}
-                            <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,#00F2FE,#4FACFE,#F6D365,#FDA085,#FF0844,#FFB199,#00F2FE)] blur-sm opacity-70 group-hover:opacity-100 animate-[spin_5s_linear_infinite] transition-opacity" />
+                            <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] blur-sm opacity-70 group-hover:opacity-100 animate-[spin_5s_linear_infinite] transition-opacity" />
 
                             {/* Staggered Ripples on Click */}
                             {isStaggeringMedal && (
                                 <>
                                     <div className="absolute -inset-1.5 rounded-full border-2 border-cyan-400 animate-[ping_0.8s_cubic-bezier(0,0,0.2,1)_infinite] pointer-events-none" />
                                     <div className="absolute -inset-3.5 rounded-full border-2 border-amber-400 animate-[ping_0.8s_cubic-bezier(0,0,0.2,1)_infinite]" style={{ animationDelay: '150ms' }} />
-                                    <div className="absolute -inset-5.5 rounded-full border-2 border-rose-500 animate-[ping_0.8s_cubic-bezier(0,0,0.2,1)_infinite]" style={{ animationDelay: '300ms' }} />
+                                    <div className="absolute -inset-5.5 rounded-full border-2 border-blue-400 animate-[ping_0.8s_cubic-bezier(0,0,0.2,1)_infinite]" style={{ animationDelay: '300ms' }} />
                                 </>
                             )}
 
@@ -1712,7 +1712,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 title={pf.name}
                                 className="relative shrink-0 p-0.5 group select-none cursor-pointer"
                             >
-                                <div className={`absolute inset-0 rounded-full p-[2px] bg-[conic-gradient(from_0deg,#00F2FE,#4FACFE,#F6D365,#FDA085,#FF0844,#FFB199,#00F2FE)] animate-[spin_5s_linear_infinite] ${activeProfileId === pf.id ? 'opacity-100 shadow-md' : 'opacity-40 group-hover:opacity-90'} transition-opacity`} />
+                                <div className={`absolute inset-0 rounded-full p-[2px] bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] animate-[spin_5s_linear_infinite] ${activeProfileId === pf.id ? 'opacity-100 shadow-md' : 'opacity-40 group-hover:opacity-90'} transition-opacity`} />
                                 <div className={`relative w-10 h-10 rounded-full overflow-hidden border-2 transition-all ${activeProfileId === pf.id ? 'border-brand-500 scale-105' : 'border-white opacity-80'}`}>
                                     {renderAvatarContent(pf.photo, pf.name, 'text-[10px]', 'from-violet-600 to-fuchsia-700')}
                                 </div>
@@ -1942,14 +1942,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         className="relative group bg-white rounded-[28px] shadow-xl mb-5 overflow-hidden transition-all hover:shadow-2xl cursor-pointer p-[3px]"
                     >
                         {/* Flowing Conic Gradient Border Aura */}
-                        <div className="absolute inset-0 rounded-[28px] bg-[conic-gradient(from_0deg,#00F2FE,#4FACFE,#F6D365,#FDA085,#FF0844,#FFB199,#00F2FE)] opacity-75 group-hover:opacity-100 animate-[spin_8s_linear_infinite] transition-opacity" />
+                        <div className="absolute inset-0 rounded-[28px] bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] opacity-75 group-hover:opacity-100 animate-[spin_8s_linear_infinite] transition-opacity" />
 
                         {/* Staggered Ripples on Click */}
                         {isStaggeringMedal && (
                             <>
                                 <div className="absolute -inset-1 rounded-[30px] border-2 border-cyan-400 animate-[ping_0.9s_cubic-bezier(0,0,0.2,1)_infinite] pointer-events-none" />
                                 <div className="absolute -inset-3 rounded-[34px] border-2 border-amber-400 animate-[ping_0.9s_cubic-bezier(0,0,0.2,1)_infinite]" style={{ animationDelay: '150ms' }} />
-                                <div className="absolute -inset-5 rounded-[38px] border-2 border-rose-500 animate-[ping_0.9s_cubic-bezier(0,0,0.2,1)_infinite]" style={{ animationDelay: '300ms' }} />
+                                <div className="absolute -inset-5 rounded-[38px] border-2 border-blue-400 animate-[ping_0.9s_cubic-bezier(0,0,0.2,1)_infinite]" style={{ animationDelay: '300ms' }} />
                             </>
                         )}
 
@@ -2408,17 +2408,17 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             }`}
                         >
                             {/* Flowing Conic Gradient Ring Border around Entire Bundle */}
-                            <div className="absolute inset-0 rounded-[26px] bg-[conic-gradient(from_0deg,#00F2FE,#4FACFE,#F6D365,#FDA085,#FF0844,#FFB199,#00F2FE)] animate-[spin_6s_linear_infinite] opacity-80 group-hover:opacity-100 transition-opacity" />
+                            <div className="absolute inset-0 rounded-[26px] bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] animate-[spin_6s_linear_infinite] opacity-80 group-hover:opacity-100 transition-opacity" />
 
                             {/* Glowing Blur Aura */}
-                            <div className="absolute inset-0 rounded-[26px] bg-[conic-gradient(from_0deg,#00F2FE,#4FACFE,#F6D365,#FDA085,#FF0844,#FFB199,#00F2FE)] blur-md opacity-60 group-hover:opacity-100 animate-[spin_6s_linear_infinite] transition-opacity" />
+                            <div className="absolute inset-0 rounded-[26px] bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] blur-md opacity-60 group-hover:opacity-100 animate-[spin_6s_linear_infinite] transition-opacity" />
 
                             {/* Staggered Pulsing Ripples on Click */}
                             {isStaggeringMedal && (
                                 <>
                                     <div className="absolute -inset-1 rounded-[28px] border-2 border-cyan-400 animate-[ping_0.9s_cubic-bezier(0,0,0.2,1)_infinite] pointer-events-none" />
                                     <div className="absolute -inset-3 rounded-[32px] border-2 border-amber-400 animate-[ping_0.9s_cubic-bezier(0,0,0.2,1)_infinite] pointer-events-none" style={{ animationDelay: '150ms' }} />
-                                    <div className="absolute -inset-5 rounded-[36px] border-2 border-rose-500 animate-[ping_0.9s_cubic-bezier(0,0,0.2,1)_infinite] pointer-events-none" style={{ animationDelay: '300ms' }} />
+                                    <div className="absolute -inset-5 rounded-[36px] border-2 border-blue-400 animate-[ping_0.9s_cubic-bezier(0,0,0.2,1)_infinite] pointer-events-none" style={{ animationDelay: '300ms' }} />
                                 </>
                             )}
 
@@ -2430,10 +2430,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                     {/* Circular Flowing Medal Badge */}
                                     <div className="relative group shrink-0 p-1 select-none">
                                         {/* Spinning Medal Conic Ring */}
-                                        <div className="absolute inset-0 rounded-full p-[3px] bg-[conic-gradient(from_0deg,#00F2FE,#4FACFE,#F6D365,#FDA085,#FF0844,#FFB199,#00F2FE)] animate-[spin_4s_linear_infinite] shadow-lg shadow-amber-500/30" />
+                                        <div className="absolute inset-0 rounded-full p-[3px] bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] animate-[spin_4s_linear_infinite] shadow-lg shadow-amber-500/30" />
                                         
                                         {/* Glowing Blur Aura */}
-                                        <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,#00F2FE,#4FACFE,#F6D365,#FDA085,#FF0844,#FFB199,#00F2FE)] blur-sm opacity-80 animate-[spin_4s_linear_infinite]" />
+                                        <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] blur-sm opacity-80 animate-[spin_4s_linear_infinite]" />
 
                                         {/* Metallic Inner Medal Icon Container */}
                                         <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 via-amber-500 to-amber-700 p-0.5 shadow-2xl flex items-center justify-center z-10">
