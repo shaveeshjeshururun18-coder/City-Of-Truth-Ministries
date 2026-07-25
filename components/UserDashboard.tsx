@@ -2335,22 +2335,82 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             </span>
                         </button>
 
-                        {/* Entire Website PDFs Download */}
-                        <button type="button" onClick={() => {
-                            if (!canAccessEntrustFeatures) {
-                                handleBlockedFeature();
-                                return;
-                            }
-                            alert("Preparing entire website PDFs bundle... This feature will combine all PDFs into a single ZIP file.");
-                        }}
-                            className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#4c1d95] to-[#7c3aed] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
-                            <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><FileText size={22} /></div>
-                            <p className="font-bold text-base leading-tight mb-1">Entire Website PDFs</p>
-                            <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-3`}>Download a bundle of all official ministry PDFs.</p>
-                            <span className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-2 ${canAccessEntrustFeatures ? 'bg-white/20' : 'bg-slate-200 text-slate-500'}`}>
-                                <Download size={12} /> {canAccessEntrustFeatures ? 'Download All PDFs' : 'Locked'}
-                            </span>
-                        </button>
+                        {/* Entire Website PDFs Download — Transformed into Award Medal Structure */}
+                        <div
+                            onClick={(e) => {
+                                if (!canAccessEntrustFeatures) {
+                                    handleBlockedFeature();
+                                    return;
+                                }
+                                handleMedalClick();
+                                alert("Preparing entire website PDFs bundle... Downloading all official ministry PDFs!");
+                            }}
+                            className={`col-span-2 lg:col-span-full relative group rounded-[26px] p-[3px] transition-all duration-300 shadow-2xl overflow-hidden cursor-pointer ${
+                                canAccessEntrustFeatures ? 'hover:scale-[1.01]' : 'opacity-70 cursor-not-allowed'
+                            }`}
+                        >
+                            {/* Flowing Conic Gradient Ring Border around Entire Bundle */}
+                            <div className="absolute inset-0 rounded-[26px] bg-[conic-gradient(from_0deg,#00F2FE,#4FACFE,#F6D365,#FDA085,#FF0844,#FFB199,#00F2FE)] animate-[spin_6s_linear_infinite] opacity-80 group-hover:opacity-100 transition-opacity" />
+
+                            {/* Glowing Blur Aura */}
+                            <div className="absolute inset-0 rounded-[26px] bg-[conic-gradient(from_0deg,#00F2FE,#4FACFE,#F6D365,#FDA085,#FF0844,#FFB199,#00F2FE)] blur-md opacity-60 group-hover:opacity-100 animate-[spin_6s_linear_infinite] transition-opacity" />
+
+                            {/* Staggered Pulsing Ripples on Click */}
+                            {isStaggeringMedal && (
+                                <>
+                                    <div className="absolute -inset-1 rounded-[28px] border-2 border-cyan-400 animate-[ping_0.9s_cubic-bezier(0,0,0.2,1)_infinite] pointer-events-none" />
+                                    <div className="absolute -inset-3 rounded-[32px] border-2 border-amber-400 animate-[ping_0.9s_cubic-bezier(0,0,0.2,1)_infinite] pointer-events-none" style={{ animationDelay: '150ms' }} />
+                                    <div className="absolute -inset-5 rounded-[36px] border-2 border-rose-500 animate-[ping_0.9s_cubic-bezier(0,0,0.2,1)_infinite] pointer-events-none" style={{ animationDelay: '300ms' }} />
+                                </>
+                            )}
+
+                            {/* Inner Bundle Card Container */}
+                            <div className="relative z-10 rounded-[23px] bg-gradient-to-br from-[#1e0e4b] via-[#3b1578] to-[#5b21b6] p-6 text-white overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
+
+                                {/* Left Side: Circular Flowing Award Medal Badge + Title */}
+                                <div className="flex items-center gap-5">
+                                    {/* Circular Flowing Medal Badge */}
+                                    <div className="relative group shrink-0 p-1 select-none">
+                                        {/* Spinning Medal Conic Ring */}
+                                        <div className="absolute inset-0 rounded-full p-[3px] bg-[conic-gradient(from_0deg,#00F2FE,#4FACFE,#F6D365,#FDA085,#FF0844,#FFB199,#00F2FE)] animate-[spin_4s_linear_infinite] shadow-lg shadow-amber-500/30" />
+                                        
+                                        {/* Glowing Blur Aura */}
+                                        <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,#00F2FE,#4FACFE,#F6D365,#FDA085,#FF0844,#FFB199,#00F2FE)] blur-sm opacity-80 animate-[spin_4s_linear_infinite]" />
+
+                                        {/* Metallic Inner Medal Icon Container */}
+                                        <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 via-amber-500 to-amber-700 p-0.5 shadow-2xl flex items-center justify-center z-10">
+                                            <div className="w-full h-full rounded-full bg-gradient-to-br from-[#2a1154] to-[#12062b] flex items-center justify-center text-amber-300 shadow-inner">
+                                                <Award size={32} className="drop-shadow-[0_0_10px_rgba(251,191,36,0.8)]" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 text-[10px] font-black uppercase tracking-widest mb-2">
+                                            <Award size={12} /> Official PDF Bundle Medal
+                                        </div>
+                                        <h3 className="font-black text-xl md:text-2xl text-white tracking-tight leading-tight">Entire Website PDFs Bundle</h3>
+                                        <p className="text-purple-200 text-xs md:text-sm mt-1 max-w-lg">
+                                            Download all official ministry documents, charts, guides, and certificates in one complete bundle.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Right Side: Action Button */}
+                                <div className="shrink-0">
+                                    <button
+                                        type="button"
+                                        className={`inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition-all shadow-xl ${
+                                            canAccessEntrustFeatures
+                                                ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-slate-950 shadow-amber-500/20 active:scale-95'
+                                                : 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                                        }`}
+                                    >
+                                        <Download size={16} /> {canAccessEntrustFeatures ? 'Download Complete Bundle' : 'Locked (Pending Verification)'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
 
                     </div>
 
