@@ -283,18 +283,19 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
         <div className="flex items-center gap-1.5 sm:gap-2 ml-1 sm:ml-2 relative z-50">
 
 
-          <div className="relative group p-0.5 rounded-2xl select-none">
-            {/* Animated Flowing Conic Ring */}
-            <div className="absolute inset-0 rounded-2xl p-[2px] bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] animate-[spin_6s_linear_infinite] shadow-lg shadow-cyan-500/30" />
+          <div className={`flex items-center gap-3 sm:gap-3.5 p-1 sm:p-1.5 rounded-2xl backdrop-blur-md border transition-all duration-300 ${isTransparentNavbar ? 'bg-white/10 border-white/20' : 'bg-white/95 border-brand-200/80'}`}>
+            {/* Glowing Border Ring strictly around Profile Avatar */}
+            <div className="relative group p-[2px] rounded-2xl select-none shrink-0">
+              {/* Animated Flowing Conic Border Ring */}
+              <div className="absolute inset-0 rounded-2xl p-[2px] bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] animate-[spin_5s_linear_infinite] shadow-md shadow-cyan-500/30" />
+              
+              {/* Glowing Blur Border Aura */}
+              <div className="absolute inset-0 rounded-2xl bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] blur-[2px] opacity-75 group-hover:opacity-100 animate-[spin_5s_linear_infinite] transition-opacity" />
 
-            {/* Glowing Blur Aura */}
-            <div className="absolute inset-0 rounded-2xl bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] blur-sm opacity-80 group-hover:opacity-100 animate-[spin_6s_linear_infinite] transition-opacity" />
-
-            <div className={`relative z-10 flex items-center gap-3 sm:gap-3.5 p-1 sm:p-1.5 rounded-2xl backdrop-blur-md border transition-all duration-300 ${isTransparentNavbar ? 'bg-slate-900/90 border-white/20' : 'bg-white/95 border-brand-200/80'}`}>
               <button
                 id={currentUser ? undefined : 'nav-register-btn'}
                 onClick={() => currentUser ? setView(ViewState.USER_DASHBOARD) : setView(ViewState.ID_CARD)}
-                className={`${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-11 h-11 rounded-2xl shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 border border-blue-300/50 px-3.5 h-10 rounded-2xl shadow-[0_14px_24px_-12px_rgba(37,99,235,0.7)] hover:shadow-[0_18px_28px_-12px_rgba(37,99,235,0.8)] hover:from-blue-700 hover:via-blue-600 hover:to-blue-800'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group overflow-hidden`}
+                className={`relative z-10 ${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-11 h-11 rounded-2xl shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 border border-blue-300/50 px-3.5 h-10 rounded-2xl shadow-[0_14px_24px_-12px_rgba(37,99,235,0.7)] hover:shadow-[0_18px_28px_-12px_rgba(37,99,235,0.8)] hover:from-blue-700 hover:via-blue-600 hover:to-blue-800'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group overflow-hidden`}
                 title={currentUser ? "My Account" : "Register"}
                 aria-label={currentUser ? "Open my account dashboard" : "Register account"}
               >
@@ -311,17 +312,17 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                   </>
                 )}
               </button>
-
-              <button
-                id="nav-hamburger-btn"
-                onClick={() => setMobileMenuOpen(true)}
-                className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl cursor-pointer flex items-center justify-center transition-all duration-300 border border-blue-300/50 bg-gradient-to-r from-blue-700 via-blue-600 to-blue-800 text-white hover:from-blue-800 hover:via-blue-700 hover:to-blue-900 shadow-[0_12px_22px_-12px_rgba(37,99,235,0.75)] hover:shadow-[0_16px_26px_-12px_rgba(37,99,235,0.85)] relative z-[70] block"
-                title="Open menu"
-                aria-label="Open navigation menu"
-              >
-                <Menu size={18} strokeWidth={2.5} className="text-white drop-shadow-lg" />
-              </button>
             </div>
+
+            <button
+              id="nav-hamburger-btn"
+              onClick={() => setMobileMenuOpen(true)}
+              className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl cursor-pointer flex items-center justify-center transition-all duration-300 border border-blue-300/50 bg-gradient-to-r from-blue-700 via-blue-600 to-blue-800 text-white hover:from-blue-800 hover:via-blue-700 hover:to-blue-900 shadow-[0_12px_22px_-12px_rgba(37,99,235,0.75)] hover:shadow-[0_16px_26px_-12px_rgba(37,99,235,0.85)] relative z-[70] block"
+              title="Open menu"
+              aria-label="Open navigation menu"
+            >
+              <Menu size={18} strokeWidth={2.5} className="text-white drop-shadow-lg" />
+            </button>
           </div>
         </div>
       </nav>
