@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TestimonialModal } from './TestimonialModal';
 import { toPng, toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
+import JSZip from 'jszip';
 import { ImageCropper } from './ImageCropper';
 import { PrintableHebrewCalendar } from './PrintableHebrewCalendar';
 import { PrintableReferenceGuide } from './PrintableReferenceGuide';
@@ -400,18 +401,68 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         setTimeout(() => setIsStaggeringMedal(false), 1400);
     };
 
-    const handleDownloadEntirePDFBundle = () => {
+    const handleDownloadEntirePDFBundle = async () => {
         if (!canAccessEntrustFeatures) {
             handleBlockedFeature();
             return;
         }
         handleMedalClick();
-        const link = document.createElement('a');
-        link.href = '/downloads/ilovepdf_merged_organized.pdf';
-        link.download = 'ilovepdf_merged_organized.pdf';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        setIsProcessing(true);
+
+        try {
+            const zip = new JSZip();
+            const bundleName = `COT_Entire_Website_PDF_Bundle_${(displayProfile.name || user.name || 'member').replace(/\s+/g, '_')}`;
+
+            // 1. Fetch Official Merged Hebrew & Ministry PDF
+            try {
+                const resMerged = await fetch('/downloads/ilovepdf_merged_organized.pdf');
+                if (resMerged.ok) {
+                    const blobMerged = await resMerged.blob();
+                    zip.file("1_Official_Ministry_Hebrew_Alphabet_Gematria_Bundle.pdf", blobMerged);
+                }
+            } catch (err) {
+                console.warn("Could not fetch ilovepdf_merged_organized.pdf", err);
+            }
+
+            // 2. Fetch Hebrew Calendar 5786 PDF
+            try {
+                const resCal = await fetch('/assets/COT-Hebrew-Menorah-Calendar-5786 (7).pdf');
+                if (resCal.ok) {
+                    const blobCal = await resCal.blob();
+                    zip.file("2_COT_Hebrew_Menorah_Calendar_5786.pdf", blobCal);
+                }
+            } catch (err) {
+                console.warn("Could not fetch calendar PDF", err);
+            }
+
+            // Generate ZIP package
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            const zipLink = document.createElement('a');
+            zipLink.href = URL.createObjectURL(zipBlob);
+            zipLink.download = `${bundleName}.zip`;
+            document.body.appendChild(zipLink);
+            zipLink.click();
+            document.body.removeChild(zipLink);
+
+            // Also trigger direct download of main PDF bundle
+            const directLink = document.createElement('a');
+            directLink.href = '/downloads/ilovepdf_merged_organized.pdf';
+            directLink.download = 'ilovepdf_merged_organized.pdf';
+            document.body.appendChild(directLink);
+            directLink.click();
+            document.body.removeChild(directLink);
+
+        } catch (error) {
+            console.error("Error creating PDF bundle zip:", error);
+            const link = document.createElement('a');
+            link.href = '/downloads/ilovepdf_merged_organized.pdf';
+            link.download = 'ilovepdf_merged_organized.pdf';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     const handleDownloadPDF = async () => {
