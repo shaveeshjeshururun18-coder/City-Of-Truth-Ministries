@@ -153,7 +153,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentView, setView }) =>
     );
 
     return (
-        <div className={`fixed bottom-4 left-0 right-0 z-50 md:hidden flex justify-center transition-transform duration-300 ${!isVisible ? 'translate-y-[150%]' : 'translate-y-0'}`}>
+        <div className={`fixed bottom-4 left-0 right-0 z-30 md:hidden flex justify-center transition-transform duration-300 ${!isVisible ? 'translate-y-[150%]' : 'translate-y-0'}`}>
             <div className="w-[90%] max-w-sm relative">
                 <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-amber-300/60 to-transparent" />
                 <div className="bg-white/96 backdrop-blur-3xl rounded-[1.75rem] shadow-[0_-2px_20px_rgba(0,0,0,0.08),0_8px_32px_rgba(0,0,0,0.12)] border border-slate-100/80 px-2 py-2">

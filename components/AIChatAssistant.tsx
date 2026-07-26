@@ -348,7 +348,7 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
     };
 
     return (
-        <div ref={containerRef} className={`fixed inset-0 pointer-events-none ${isAdmin ? 'z-[999999999]' : 'z-[99999]'}`}>
+        <div ref={containerRef} className={`fixed inset-0 pointer-events-none ${isOpen ? 'z-[999999999]' : 'z-20'}`}>
             <AnimatePresence>
                 {/* Floating Chat Button */}
                 {!isOpen && (isAdmin || widgetSettings.cotChatVisible !== false) && (
@@ -377,7 +377,7 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
                         whileHover={{ scale: 1.12 * (widgetSettings?.cotChatSize || 1), cursor: 'grab' }}
                         whileTap={{ scale: 0.88 * (widgetSettings?.cotChatSize || 1) }}
                         onClick={() => setIsOpen(true)}
-                        className={`pointer-events-auto fixed bottom-6 ${widgetSettings.aiPosition === 'left' ? 'left-6' : 'right-6'} z-[999999999] w-14 h-14 md:w-16 md:h-16 rounded-full shadow-2xl flex items-center justify-center border-2 border-amber-400/60 group`}
+                        className={`pointer-events-auto fixed bottom-6 ${widgetSettings.aiPosition === 'left' ? 'left-6' : 'right-6'} z-20 w-14 h-14 md:w-16 md:h-16 rounded-full shadow-2xl flex items-center justify-center border-2 border-amber-400/60 group`}
                         style={{
                             touchAction: 'none',
                             background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #1e40af 100%)',

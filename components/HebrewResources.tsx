@@ -3959,7 +3959,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
                 </motion.div>
 
                 {/* Mobile Bottom navigation menu: Shows on scroll up, hides on scroll down */}
-                <div className={`md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-amber-500/10 shadow-[0_-4px_20px_-10px_rgba(217,119,6,0.1)] transition-all duration-300 ${tabNavVisible ? 'translate-y-0' : 'translate-y-full'}`}>
+                <div className={`md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-amber-500/10 shadow-[0_-4px_20px_-10px_rgba(217,119,6,0.1)] transition-all duration-300 ${tabNavVisible ? 'translate-y-0' : 'translate-y-full'}`}>
                     <div className="flex overflow-x-auto items-center gap-2 px-3 py-3" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                         {availableTabs.map((t) => {
                             const isActive = tab === t.id;
