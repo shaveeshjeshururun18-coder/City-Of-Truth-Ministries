@@ -2994,7 +2994,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 memberSince: (formData as any).memberSince || '',
                                 joinedDate: (formData as any).joinedDate || '',
                             };
-                            onUpdate({ ...user, pendingProfileUpdate: requestedChanges } as User);
+                            onUpdate({
+                                ...user,
+                                pendingProfileUpdate: {
+                                    ...(user.pendingProfileUpdate || {}),
+                                    ...requestedChanges
+                                }
+                            } as User);
                             setIsEditing(false);
                         }} className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
