@@ -3120,70 +3120,140 @@ const HebrewGematriaCalc: React.FC = () => {
                 <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
                     <div className="flex-[1.5] w-full space-y-4">
                         <label className="text-xs font-bold text-[#C5A880] uppercase tracking-widest flex items-center gap-2">
-                            <Search size={14} className="text-[#C5A880]" /> Type Hebrew Word
+                            <Search size={14} className="text-[#C5A880]" /> Enter Hebrew Word
                         </label>
                         <input
                             type="text"
-                            placeholder="Type any Hebrew word..."
+                            placeholder="e.g. שלום"
                             dir="rtl"
                             className="w-full text-4xl sm:text-5xl md:text-6xl font-serif bg-transparent border-b-2 border-white/10 py-4 outline-none focus:border-[#C5A880] transition-colors text-white placeholder:text-slate-700 text-right"
                             value={word}
                             onChange={e => setWord(e.target.value)}
                         />
                     </div>
-                    <div className="hidden md:block w-px h-28 bg-white/10" />
-                    <div className="flex-1 w-full text-center md:text-right space-y-2">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block">Calculated Sum</label>
-                        <div className="text-6xl sm:text-7xl md:text-8xl font-mono text-amber-400 font-black">{total || '0'}</div>
-                    </div>
                 </div>
 
-                {word.trim() && (
-                    <div className="pt-6 border-t border-white/15 mt-6 flex gap-3 flex-wrap">
-                        <button
-                            onClick={() => handleGematriaExport('pdf')}
-                            disabled={isExportingGematria}
-                            className="px-5 py-2.5 rounded-full bg-gradient-to-r from-emerald-400 via-sky-500 to-indigo-500 text-white font-bold text-sm shadow-lg disabled:opacity-50 flex items-center gap-2 cursor-pointer active:scale-95"
+                <AnimatePresence>
+                    {word.trim() && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="space-y-8 mt-8 pt-8 border-t border-white/10"
+                            ref={gematriaExportRef}
                         >
-                            {isExportingGematria ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                            Export PDF Study Card
-                        </button>
-                        <button
-                            onClick={() => handleGematriaExport('png')}
-                            disabled={isExportingGematria}
-                            className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-sm disabled:opacity-50 flex items-center gap-2 cursor-pointer active:scale-95"
-                        >
-                            {isExportingGematria ? <Loader2 size={14} className="animate-spin" /> : <FileImage size={14} />}
-                            Save Image
-                        </button>
-                    </div>
-                )}
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Numerical Breakdown</div>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => handleGematriaExport('pdf')}
+                                        disabled={isExportingGematria}
+                                        className="px-5 py-2.5 rounded-full bg-gradient-to-r from-emerald-400 via-sky-500 to-indigo-500 text-white font-bold text-sm shadow-lg disabled:opacity-50 flex items-center gap-2 cursor-pointer active:scale-95"
+                                    >
+                                        {isExportingGematria ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                                        PDF
+                                    </button>
+                                    <button
+                                        onClick={() => handleGematriaExport('png')}
+                                        disabled={isExportingGematria}
+                                        className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-sm disabled:opacity-50 flex items-center gap-2 cursor-pointer active:scale-95"
+                                    >
+                                        {isExportingGematria ? <Loader2 size={14} className="animate-spin" /> : <FileImage size={14} />}
+                                        Image
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2 sm:gap-3 items-center justify-start overflow-x-auto no-scrollbar py-2">
+                                {letterBreakdown.map((item, i, arr) => (
+                                    <React.Fragment key={i}>
+                                        <div className="flex flex-col items-center bg-white/5 border border-white/10 rounded-2xl p-3 sm:p-4 min-w-[64px] sm:min-w-[72px] shadow-sm">
+                                            <span className="text-3xl sm:text-4xl font-serif text-white leading-none">{item.char}</span>
+                                            <span className="text-sm font-bold text-amber-500 mt-2">{item.value}</span>
+                                        </div>
+                                        {i < arr.length - 1 && (
+                                            <span className="text-slate-500 text-2xl font-light">＋</span>
+                                        )}
+                                    </React.Fragment>
+                                ))}
+                                {letterBreakdown.length > 0 && (
+                                    <span className="text-slate-500 text-2xl font-light mx-2">＝</span>
+                                )}
+                                {letterBreakdown.length > 0 && (
+                                    <div className="flex flex-col items-center bg-amber-500 rounded-2xl p-3 sm:p-4 min-w-[72px] sm:min-w-[84px] shadow-lg">
+                                        <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest mb-1">Total</span>
+                                        <span className="text-3xl sm:text-4xl font-black text-slate-900">{total}</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* ── Gematria Significance Panel ── */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.15 }}
+                                className="bg-gradient-to-br from-slate-900 to-slate-950 rounded-3xl p-6 space-y-4 shadow-xl border border-white/5 relative overflow-hidden mt-6"
+                            >
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                                        <Sparkles size={16} className="text-amber-400" />
+                                    </div>
+                                    <span className="text-xs font-black text-amber-400 uppercase tracking-widest">Gematria Significance</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Letter Count</div>
+                                        <div className="text-3xl font-black text-white">{letterBreakdown.length}</div>
+                                        <div className="text-[10px] text-slate-500 mt-1">Hebrew letters</div>
+                                    </div>
+                                    <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Value</div>
+                                        <div className="text-3xl font-black text-amber-400">{total}</div>
+                                        <div className="text-[10px] text-slate-500 mt-1">{total % 7 === 0 ? '✡ Multiple of 7' : total % 3 === 0 ? '△ Multiple of 3' : total % 10 === 0 ? '✕ Round number' : 'Standard value'}</div>
+                                    </div>
+                                </div>
+                                {/* Letter meanings row */}
+                                {letterBreakdown.length > 0 && (
+                                    <div className="border-t border-white/5 pt-4 mt-2">
+                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Letter Values</div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {letterBreakdown.map((item, i) => (
+                                                <div key={i} className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-1.5 border border-white/5">
+                                                    <span className="text-base font-serif text-amber-300" dir="rtl">{item.char}</span>
+                                                    <span className="text-xs font-bold text-slate-400">=</span>
+                                                    <span className="text-xs font-black text-white">{item.value}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </motion.div>
+
+                            {/* ── Scripture / Tip card ── */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.25 }}
+                                className="bg-gradient-to-r from-sky-900/40 to-blue-900/40 border border-sky-500/20 rounded-3xl p-6"
+                            >
+                                <div className="flex items-start gap-4">
+                                    <div className="shrink-0 w-10 h-10 rounded-2xl bg-sky-500/20 flex items-center justify-center text-sky-400">
+                                        <BookOpen size={20} />
+                                    </div>
+                                    <div>
+                                        <div className="text-xs font-black text-sky-400 uppercase tracking-widest mb-2">Did You Know?</div>
+                                        <p className="text-sm text-slate-300 leading-relaxed">
+                                            In Hebrew, every letter has a numerical value — the ancient practice of <strong>Gematria</strong> reveals hidden connections between words that share the same total. The sages taught that words with equal Gematria values share a spiritual bond.
+                                        </p>
+                                        <p className="text-xs text-sky-400 font-bold mt-3 italic">"The seal of the Holy One, blessed be He, is truth (אמת)." — Talmud, Shabbat 55a</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
-            {/* Letter breakdown */}
-            {letterBreakdown.length > 0 && (
-                <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 shadow-lg relative z-10">
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Letter Breakdown</h3>
-                    <div className="flex flex-wrap gap-2.5 items-center">
-                        {letterBreakdown.map((item, i) => (
-                            <React.Fragment key={i}>
-                                <div className="flex flex-col items-center gap-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 min-w-[58px] shadow-sm">
-                                    <span className="text-2xl font-serif text-white">{item.char}</span>
-                                    <span className="text-xs font-bold text-amber-400 font-mono">{item.value}</span>
-                                </div>
-                                {i < letterBreakdown.length - 1 && (
-                                    <span className="text-white/20 text-lg font-light">＋</span>
-                                )}
-                            </React.Fragment>
-                        ))}
-                        <span className="text-white/20 text-lg font-light mx-1">＝</span>
-                        <div className="flex flex-col items-center justify-center gap-0.5 bg-gradient-to-r from-amber-500 to-amber-600 rounded-2xl px-5 py-3 min-w-[62px] shadow-lg">
-                            <span className="text-[9px] font-black uppercase text-brand-950 tracking-widest">Total</span>
-                            <span className="text-2xl font-black text-brand-950 font-mono">{total}</span>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Alphabet reference */}
             <div className="space-y-6 relative z-10 pt-4">
