@@ -7,7 +7,7 @@ import {
     Save, GripVertical, Globe, Plus, ImagePlus, Camera, Image as ImageIcon, MessageSquare, Check, XCircle, FileText,
     PanelLeft, PanelTop, Database, RotateCcw, Dice6, Eye, EyeOff, Video, Tag, Settings, Crop, Lock, Send,
     Sparkles, CircleUser, Menu, Youtube, Facebook, Instagram, UploadCloud, Zap, Share2, Sun,
-    Type, Volume2, Hash, Calculator, BookOpen, Languages, Clock3, Flame, ExternalLink, AlertTriangle, Bell
+    Type, Volume2, Hash, Calculator, BookOpen, Languages, Clock3, Flame, ExternalLink, AlertTriangle, Bell, Activity
 } from 'lucide-react';
 import { User, UserRole, UserStatus, Testimonial, Ministry, DeletedUser, Permalink, MemberNotification, MessageKind } from '../types';
 import { Button } from './Button';
