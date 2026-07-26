@@ -2956,12 +2956,12 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                         {/* Details Comparison Section if there is a pending text detail */}
                         {user.pendingProfileUpdate && Object.keys(user.pendingProfileUpdate).filter(k => k !== 'photo' && k !== 'linkedProfiles').some(k => (user.pendingProfileUpdate as any)[k] !== (user as any)[k]) && (
-                            <div className="mb-7 bg-amber-50/50 border border-amber-100/60 p-5 rounded-[2rem] w-full">
-                                <div className="flex items-center gap-2 mb-3">
+                            <div className="mb-7 bg-amber-50/50 border border-amber-100/60 p-4 rounded-3xl w-full flex flex-col md:flex-row items-start md:items-center gap-3">
+                                <div className="flex items-center gap-2 shrink-0 mb-2 md:mb-0">
                                     <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                                    <h4 className="text-xs font-black text-amber-700 uppercase tracking-widest">Pending Profile Changes Awaiting Approval</h4>
+                                    <h4 className="text-[10px] font-black text-amber-700 uppercase tracking-widest whitespace-nowrap">Pending Details ({Object.keys(user.pendingProfileUpdate).filter(k => k !== 'photo' && k !== 'linkedProfiles' && (user.pendingProfileUpdate as any)[k] !== (user as any)[k]).length})</h4>
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-medium">
+                                <div className="flex flex-wrap gap-1.5 text-xs font-medium w-full">
                                     {Object.entries(user.pendingProfileUpdate)
                                         .filter(([key]) => key !== 'photo' && key !== 'linkedProfiles')
                                         .map(([key, pendingVal]) => {
@@ -2969,11 +2969,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             if (pendingVal && pendingVal !== originalVal) {
                                                 const label = key === 'emergency' ? 'Emergency Contact' : key.charAt(0).toUpperCase() + key.slice(1);
                                                 return (
-                                                    <div key={key} className="bg-white border border-amber-200/50 rounded-2xl p-3 shadow-sm flex flex-col">
-                                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">{label}</span>
-                                                        <span className="text-slate-500 line-through">Original: {originalVal || 'Not provided'}</span>
-                                                        <span className="text-amber-700 font-bold mt-0.5">Proposed: {pendingVal}</span>
-                                                    </div>
+                                                    <span key={key} className="bg-white border border-amber-200/80 text-amber-800 px-3 py-1.5 rounded-full shadow-sm text-[10px] font-bold inline-flex items-center gap-1.5 flex-wrap">
+                                                        <span className="text-amber-600/70">{label}:</span> <span className="text-amber-600/50 line-through decoration-amber-500/30">{originalVal || 'None'}</span> <span className="text-amber-900 bg-amber-100/50 px-1.5 rounded-md">{String(pendingVal)}</span>
+                                                    </span>
                                                 );
                                             }
                                             return null;

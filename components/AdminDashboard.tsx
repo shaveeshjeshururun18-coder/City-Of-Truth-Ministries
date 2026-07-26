@@ -3628,6 +3628,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     updatedUser.linkedProfiles = pending.linkedProfiles;
                 }
                 await onUpdateUser(updatedUser);
+
+                const changedKeys = Object.keys(changes);
+                if (changedKeys.length > 0 && onSendMessageToUsers) {
+                    onSendMessageToUsers([user.id], `Your profile update requests have been approved! ${changedKeys.length} detail(s) updated.`);
+                }
             } else {
                 // No pending edits — activating a new user
                 const historyEntry = {
@@ -3675,7 +3680,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }, 'Failed to disapprove user');
     };
     const rejectPendingEdit = async (user: User) => {
-        await runUserAction(() => onUpdateUser({ ...user, pendingProfileUpdate: {} }), 'Failed to reject pending edit');
+        await runUserAction(async () => {
+            await onUpdateUser({ ...user, pendingProfileUpdate: {} });
+            if (onSendMessageToUsers) {
+                onSendMessageToUsers([user.id], `Your recent profile update requests have been disapproved by an admin.`);
+            }
+        }, 'Failed to reject pending edit');
     };
 
     const toggleSelectAll = () => {
