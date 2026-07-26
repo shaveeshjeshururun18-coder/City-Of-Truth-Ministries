@@ -271,18 +271,22 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
 
           <div className={`flex items-center gap-3 sm:gap-3.5 p-1 sm:p-1.5 rounded-2xl backdrop-blur-md border transition-all duration-300 ${isTransparentNavbar ? 'bg-white/10 border-white/20' : 'bg-white/95 border-brand-200/80'}`}>
-            {/* Glowing Border Ring strictly around Profile Avatar */}
+            {/* Profile Avatar / Register Button */}
             <div className="relative group p-[2px] rounded-2xl select-none shrink-0">
-              {/* Animated Flowing Conic Border Ring */}
-              <div className="absolute inset-0 rounded-2xl p-[2px] bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] animate-[spin_5s_linear_infinite] shadow-md shadow-cyan-500/30" />
-              
-              {/* Glowing Blur Border Aura */}
-              <div className="absolute inset-0 rounded-2xl bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] blur-[2px] opacity-75 group-hover:opacity-100 animate-[spin_5s_linear_infinite] transition-opacity" />
+              {currentUser && (
+                <>
+                  {/* Animated Flowing Conic Border Ring ONLY for registered user */}
+                  <div className="absolute inset-0 rounded-2xl p-[2px] bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] animate-[spin_5s_linear_infinite] shadow-md shadow-cyan-500/30" />
+
+                  {/* Glowing Blur Border Aura */}
+                  <div className="absolute inset-0 rounded-2xl bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] blur-[2px] opacity-75 group-hover:opacity-100 animate-[spin_5s_linear_infinite] transition-opacity" />
+                </>
+              )}
 
               <button
                 id={currentUser ? undefined : 'nav-register-btn'}
                 onClick={() => currentUser ? setView(ViewState.USER_DASHBOARD) : setView(ViewState.ID_CARD)}
-                className={`relative z-10 ${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-11 h-11 rounded-2xl shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-slate-900/90 hover:bg-slate-950 backdrop-blur-md border border-cyan-400/40 px-4 h-10 rounded-2xl shadow-[0_10px_20px_-10px_rgba(56,189,248,0.5)]'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group overflow-hidden`}
+                className={`relative z-10 ${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-11 h-11 rounded-2xl shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-[#1a2133] hover:bg-[#1a2133]/90 border-[1.5px] border-cyan-500/80 px-4 h-[38px] sm:h-10 rounded-full shadow-[0_0_15px_-3px_rgba(6,182,212,0.3)]'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group overflow-hidden`}
                 title={currentUser ? "My Account" : "Register"}
                 aria-label={currentUser ? "Open my account dashboard" : "Register account"}
               >
