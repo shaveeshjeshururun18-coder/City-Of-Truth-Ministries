@@ -8,6 +8,8 @@ interface ImageCropperProps {
     onCancel: () => void;
 }
 
+const MAX_OUTPUT_DIM = 1024;
+
 export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComplete, onCancel }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -24,6 +26,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
     const [cropDragStart, setCropDragStart] = useState({ x: 0, y: 0 });
 
     const imgRef = useRef<HTMLImageElement>(new Image());
+    const [minAllowedScale, setMinAllowedScale] = useState(0.1);
 
     // Load image
     useEffect(() => {
@@ -36,7 +39,10 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
                 const scaleY = canvas.height / img.height;
                 // Fit whole image inside 300x300 box without aggressive zoom
                 const fitScale = Math.min(scaleX, scaleY);
-                setScale(fitScale);
+
+                const calculatedMinScale = Math.max(0.1, 150 / Math.max(img.width, img.height));
+                setMinAllowedScale(calculatedMinScale);
+                setScale(Math.max(calculatedMinScale, fitScale));
 
                 const imgW = img.width * fitScale;
                 const imgH = img.height * fitScale;
@@ -108,10 +114,24 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
     useEffect(() => {
         const handleMove = (clientX: number, clientY: number) => {
             if (isDraggingImage) {
-                setImagePosition({
-                    x: clientX - dragStart.x,
-                    y: clientY - dragStart.y
-                });
+                let newX = clientX - dragStart.x;
+                let newY = clientY - dragStart.y;
+
+                const img = imgRef.current;
+                if (img && img.complete) {
+                    const imgW = img.width * scale;
+                    const imgH = img.height * scale;
+
+                    const minX = -imgW + 50;
+                    const maxX = 300 - 50;
+                    const minY = -imgH + 50;
+                    const maxY = 300 - 50;
+
+                    newX = Math.max(minX, Math.min(maxX, newX));
+                    newY = Math.max(minY, Math.min(maxY, newY));
+                }
+
+                setImagePosition({ x: newX, y: newY });
             }
             if (isDraggingCrop) {
                 const dx = clientX - cropDragStart.x;
@@ -230,18 +250,38 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
     };
 
     const handleCrop = () => {
-        const canvas = canvasRef.current;
-        if (canvas) {
+        const img = imgRef.current;
+        if (img && img.complete && img.naturalWidth > 0) {
+            const scaleX = 1 / scale;
+            const scaleY = 1 / scale;
+
+            const sourceX = (cropArea.x - imagePosition.x) * scaleX;
+            const sourceY = (cropArea.y - imagePosition.y) * scaleY;
+            const sourceWidth = cropArea.width * scaleX;
+            const sourceHeight = cropArea.height * scaleY;
+
+            let targetWidth = sourceWidth;
+            let targetHeight = sourceHeight;
+
+            if (targetWidth > MAX_OUTPUT_DIM || targetHeight > MAX_OUTPUT_DIM) {
+                const ratio = Math.min(MAX_OUTPUT_DIM / targetWidth, MAX_OUTPUT_DIM / targetHeight);
+                targetWidth *= ratio;
+                targetHeight *= ratio;
+            }
+
             const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = cropArea.width;
-            tempCanvas.height = cropArea.height;
+            tempCanvas.width = targetWidth;
+            tempCanvas.height = targetHeight;
             const tempCtx = tempCanvas.getContext('2d');
 
             if (tempCtx) {
+                tempCtx.fillStyle = '#ffffff';
+                tempCtx.fillRect(0, 0, targetWidth, targetHeight);
+
                 tempCtx.drawImage(
-                    canvas,
-                    cropArea.x, cropArea.y, cropArea.width, cropArea.height,
-                    0, 0, cropArea.width, cropArea.height
+                    img,
+                    sourceX, sourceY, sourceWidth, sourceHeight,
+                    0, 0, targetWidth, targetHeight
                 );
                 const dataUrl = tempCanvas.toDataURL('image/jpeg', 0.95);
                 onCropComplete(dataUrl);
@@ -353,14 +393,14 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
                         </div>
                         <div className="flex items-center gap-3">
                             <button
-                                onClick={() => setScale(prev => Math.max(0.1, prev - 0.1))}
+                                onClick={() => setScale(prev => Math.max(minAllowedScale, prev - 0.1))}
                                 className="w-8 h-8 flex items-center justify-center bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
                             >
                                 <span className="text-xl font-bold">-</span>
                             </button>
                             <input
                                 type="range"
-                                min="0.1"
+                                min={minAllowedScale}
                                 max="3"
                                 step="0.01"
                                 value={scale}
