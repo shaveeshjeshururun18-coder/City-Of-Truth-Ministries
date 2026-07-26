@@ -128,6 +128,9 @@ export interface MouthAnimatorProps {
   externalPlayKey?: number;
   externalSlow?: boolean;
   externalMode?: 'hebrew' | 'tamil';
+  isPlaying?: boolean;
+  animationState?: string;
+  className?: string;
   onPlayStateChange?: (playing: boolean) => void;
 }
 
@@ -193,7 +196,38 @@ export const MouthPronunciationAnimator: React.FC<MouthAnimatorProps> = ({
     onPlayStateChange?.(true);
     const shouldSpeak = options?.speak ?? true;
     const shouldSlow = options?.slow ?? isSlow;
-    const speedFactor = shouldSlow ? 1.85 : 1.0;
+
+    const startPhonemeTimers = () => {
+      if (phonemeSequence.length === 0) {
+        const emptyTimer = setTimeout(() => stopAnimation(false), 500);
+        timeoutsRef.current.push(emptyTimer);
+        return;
+      }
+
+      const speedFactor = shouldSlow ? 1.55 : 1.0;
+
+      let elapsed = 0;
+      phonemeSequence.forEach((step, idx) => {
+        const stepDuration = step.duration * speedFactor;
+        const timer = setTimeout(() => {
+          if (!mountedRef.current) return;
+          setActivePhonemeIdx(idx);
+          setActivePhonemeName(step.phoneme);
+          if (idx === phonemeSequence.length - 1) {
+            const endTimer = setTimeout(() => {
+              if (!mountedRef.current) return;
+              setActivePhonemeName('REST');
+              setIsPlaying(false);
+              setActivePhonemeIdx(-1);
+              onPlayStateChange?.(false);
+            }, stepDuration);
+            timeoutsRef.current.push(endTimer);
+          }
+        }, elapsed);
+        timeoutsRef.current.push(timer);
+        elapsed += stepDuration;
+      });
+    };
 
     if (shouldSpeak && 'speechSynthesis' in window && wordText) {
       window.speechSynthesis.cancel();
@@ -201,36 +235,28 @@ export const MouthPronunciationAnimator: React.FC<MouthAnimatorProps> = ({
       const utterance = new SpeechSynthesisUtterance(cleanToSpeak);
       utterance.rate = shouldSlow ? 0.55 : 0.85;
       utterance.lang = lang === 'ta' ? 'ta-IN' : lang === 'he' ? 'he-IL' : 'en-IN';
-      window.speechSynthesis.speak(utterance);
-    }
 
-    if (phonemeSequence.length === 0) {
-      const emptyTimer = setTimeout(() => stopAnimation(false), 500);
-      timeoutsRef.current.push(emptyTimer);
-      return;
-    }
-
-    let elapsed = 0;
-    phonemeSequence.forEach((step, idx) => {
-      const stepDuration = step.duration * speedFactor;
-      const timer = setTimeout(() => {
-        if (!mountedRef.current) return;
-        setActivePhonemeIdx(idx);
-        setActivePhonemeName(step.phoneme);
-        if (idx === phonemeSequence.length - 1) {
-          const endTimer = setTimeout(() => {
-            if (!mountedRef.current) return;
-            setActivePhonemeName('REST');
-            setIsPlaying(false);
-            setActivePhonemeIdx(-1);
-            onPlayStateChange?.(false);
-          }, stepDuration);
-          timeoutsRef.current.push(endTimer);
+      // PERFECT AUDIO-MOUTH SYNC: Trigger mouth animation when audio starts playing
+      let hasStarted = false;
+      utterance.onstart = () => {
+        if (mountedRef.current && !hasStarted) {
+          hasStarted = true;
+          startPhonemeTimers();
         }
-      }, elapsed);
-      timeoutsRef.current.push(timer);
-      elapsed += stepDuration;
-    });
+      };
+
+      const fallbackTimer = setTimeout(() => {
+        if (mountedRef.current && !hasStarted) {
+          hasStarted = true;
+          startPhonemeTimers();
+        }
+      }, 300);
+      timeoutsRef.current.push(fallbackTimer);
+
+      window.speechSynthesis.speak(utterance);
+    } else {
+      startPhonemeTimers();
+    }
   }, [activeMode, clearAllTimers, isSlow, lang, onPlayStateChange, phonemeSequence, stopAnimation, wordText]);
 
   const triggerPronunciation = useCallback(() => {
@@ -240,7 +266,7 @@ export const MouthPronunciationAnimator: React.FC<MouthAnimatorProps> = ({
     }
 
     runMouthAnimation({ speak: true, slow: isSlow, mode: activeMode });
-  }, [isPlaying, isSlow, runMouthAnimation, stopAnimation]);
+  }, [isPlaying, isSlow, runMouthAnimation, stopAnimation, activeMode]);
 
   // Auto-play
   useEffect(() => {
@@ -268,7 +294,6 @@ export const MouthPronunciationAnimator: React.FC<MouthAnimatorProps> = ({
     if (!uniqueSyllables.includes(s.syllable)) uniqueSyllables.push(s.syllable);
   });
   const activeSyllableIndex = activeSyllable ? uniqueSyllables.indexOf(activeSyllable) : -1;
-  const tamilParts = tamilSyllables && tamilSyllables.length > 0 ? tamilSyllables : tamilPhonetic ? [tamilPhonetic] : [];
 
   return (
     <div className={`flex ${compact ? 'flex-row items-center gap-4' : 'flex-col items-center gap-3'}`}>
@@ -319,116 +344,68 @@ export const MouthPronunciationAnimator: React.FC<MouthAnimatorProps> = ({
                   ? 'bg-black/70 text-[#FBBF24] border border-[#F59E0B]/30'
                   : 'bg-slate-900/80 text-white'
               }`}>
-                {activePhonemeName}
+                {currentPhonemeData.label}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Info + Controls */}
-      <div className={`flex flex-col ${compact ? 'gap-2 min-w-0' : 'items-center gap-3 w-full'}`}>
-        {/* Phoneme description */}
-        <AnimatePresence mode="wait">
-          {isPlaying && activePhonemeName !== 'REST' && (
-            <motion.div
-              key={activePhonemeName}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="text-center"
-            >
-              <div className={`text-[10px] font-bold ${isGold ? 'text-[#FBBF24]' : 'text-[#1A73E8]'}`}>
-                {currentPhonemeData.label}
-              </div>
-              <div className={`text-[10px] font-medium ${isGold ? 'text-[#F59E0B]/60' : 'text-slate-400'}`}>
-                {currentPhonemeData.labelTa}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Syllable highlighting */}
-        {phonetic && (
-          <div className="flex items-center gap-1.5 flex-wrap justify-center">
-            {uniqueSyllables.map((syl, i) => (
-              <React.Fragment key={i}>
-                {i > 0 && <span className={`text-xs ${isGold ? 'text-[#F59E0B]/30' : 'text-slate-300'}`}>·</span>}
-                <span className={`text-sm font-black transition-all duration-150 ${
-                  activeSyllable === syl
-                    ? isGold ? 'text-[#FBBF24] scale-110' : 'text-[#1A73E8] scale-110'
-                    : isGold ? 'text-white/70' : 'text-slate-700'
-                }`}>
-                  {syl}
-                </span>
-              </React.Fragment>
-            ))}
-          </div>
-        )}
-
-        {/* Tamil pronunciation teaching */}
-        {(pronunciationGuide || tamilPhonetic) && (
-          <div className={`max-w-[min(92vw,22rem)] rounded-xl px-3 py-2 text-center ${
-            isGold ? 'bg-[#F59E0B]/10 text-[#F59E0B]/80 border border-[#F59E0B]/20' : 'bg-indigo-50 text-indigo-700 border border-indigo-100/70'
-          }`}>
-            <div className="text-[9px] font-black uppercase tracking-[0.16em] opacity-70">How to pronounce</div>
-            {pronunciationGuide ? (
-              <p className="mt-1 text-[11px] font-bold leading-relaxed">{pronunciationGuide}</p>
-            ) : (
-              <div className="mt-1 text-[11px] font-bold">
-                {tamilParts.map((part, index) => (
-                  <span
-                    key={`${part}-${index}`}
-                    className={`inline-block rounded px-0.5 transition-all duration-150 ${
-                      activeMode === 'tamil' && activeSyllableIndex === index
-                        ? isGold ? 'bg-[#F59E0B]/25 text-[#FBBF24] scale-110' : 'bg-[#1A73E8]/15 text-[#1A73E8] scale-110'
-                        : ''
-                    }`}
-                  >
-                    {part}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Controls */}
-        {showControls && (
+      {showControls && (
+        <div className="flex flex-col items-center gap-2 w-full">
           <div className="flex items-center gap-2">
             <button
               onClick={triggerPronunciation}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 ${
+              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95 ${
                 isPlaying
-                  ? isGold
-                    ? 'bg-[#F59E0B] text-black shadow-lg shadow-[#F59E0B]/20'
-                    : 'bg-[#1A73E8] text-white'
+                  ? 'bg-red-500 text-white shadow-red-500/20'
                   : isGold
-                    ? 'bg-[#F59E0B]/15 text-[#FBBF24] border border-[#F59E0B]/30 hover:bg-[#F59E0B]/25'
-                    : 'bg-[#E8F0FE] text-[#1A73E8] hover:bg-[#D2E3FC]'
+                  ? 'bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/20'
+                  : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/20'
               }`}
             >
-              {isPlaying ? <Pause size={12} /> : <Play size={12} />}
-              {isPlaying ? 'Stop' : 'Play'}
+              {isPlaying ? <Pause size={14} /> : <Play size={14} />}
+              {isPlaying ? 'Pause' : 'Pronounce'}
             </button>
 
-            {!isPlaying && (
-              <button
-                onClick={() => {
-                  setActivePhonemeIdx(-1);
-                  setActivePhonemeName('REST');
-                }}
-                className={`p-1.5 rounded-lg transition-all ${
-                  isGold ? 'text-white/30 hover:text-white/60 hover:bg-white/5' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
-                }`}
-                title="Reset"
-              >
-                <RotateCcw size={12} />
-              </button>
-            )}
+            <button
+              onClick={() => {
+                const nextSlow = !isSlow;
+                setIsSlow(nextSlow);
+                if (isPlaying) {
+                  stopAnimation(true);
+                  setTimeout(() => runMouthAnimation({ speak: true, slow: nextSlow }), 100);
+                }
+              }}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
+                isSlow
+                  ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+                  : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+              }`}
+            >
+              Slow 0.5x
+            </button>
           </div>
-        )}
-      </div>
+
+          {/* Syllable indicators */}
+          {uniqueSyllables.length > 0 && (
+            <div className="flex items-center gap-1 mt-1">
+              {uniqueSyllables.map((syl, i) => (
+                <span
+                  key={i}
+                  className={`text-[10px] px-2 py-0.5 rounded-md font-mono transition-all ${
+                    activeSyllableIndex === i
+                      ? 'bg-amber-500 text-black font-bold scale-110'
+                      : 'bg-white/5 text-slate-400'
+                  }`}
+                >
+                  {syl}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

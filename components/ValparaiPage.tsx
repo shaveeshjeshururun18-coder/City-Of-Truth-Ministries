@@ -116,51 +116,63 @@ export const ValparaiPage: React.FC = () => {
     const handleDownloadPDF = async () => {
         if (!pdfRef.current) return;
         setIsExporting(true);
+        const TABS: Array<'heritage' | 'biodiversity' | 'climate' | 'estate'> = ['heritage', 'biodiversity', 'climate', 'estate'];
+        const savedTab = activeTab;
+        const savedDest = selectedDest;
         try {
-            const dataUrl = await toJpeg(pdfRef.current, {
-                quality: 0.95,
-                backgroundColor: '#ffffff',
-                cacheBust: true,
-                pixelRatio: 2
-            });
-
             const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
             const pageWidth = pdf.internal.pageSize.getWidth();
             const pageHeight = pdf.internal.pageSize.getHeight();
+            let isFirstPage = true;
 
-            const img = new Image();
-            img.src = dataUrl;
-            await new Promise<void>((resolve, reject) => {
-                img.onload = () => resolve();
-                img.onerror = () => reject(new Error('Image failed to load'));
-            });
-
-            const imgRatio = img.height / img.width;
-            let imgHeight = pageWidth * imgRatio;
-            let heightLeft = imgHeight;
-            let position = 0;
-
-            pdf.addImage(dataUrl, 'JPEG', 0, position, pageWidth, imgHeight);
-            heightLeft -= pageHeight;
-
-            while (heightLeft >= 0) {
-                position = heightLeft - imgHeight;
-                pdf.addPage();
-                pdf.addImage(dataUrl, 'JPEG', 0, position, pageWidth, imgHeight);
+            const captureAndAppend = async () => {
+                if (!pdfRef.current) return;
+                await new Promise(r => setTimeout(r, 400));
+                const dataUrl = await toJpeg(pdfRef.current, {
+                    quality: 0.97, backgroundColor: '#f8fafc',
+                    cacheBust: true, pixelRatio: 2
+                });
+                const img = new Image();
+                img.src = dataUrl;
+                await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = () => rej(); });
+                const imgRatio = img.height / img.width;
+                const imgHeight = pageWidth * imgRatio;
+                let pos = 0, heightLeft = imgHeight;
+                if (!isFirstPage) pdf.addPage(); else isFirstPage = false;
+                pdf.addImage(dataUrl, 'JPEG', 0, pos, pageWidth, imgHeight);
                 heightLeft -= pageHeight;
+                while (heightLeft > 0) {
+                    pos = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(dataUrl, 'JPEG', 0, pos, pageWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+            };
+
+            // Capture each destination with each info tab — nothing omitted
+            for (const dest of DESTINATIONS) {
+                setSelectedDest(dest);
+                for (const tab of TABS) {
+                    setActiveTab(tab);
+                    await captureAndAppend();
+                }
             }
 
-            pdf.save('City-of-Truth-Valparai-Guide.pdf');
+            pdf.save('COT-Valparai-Complete-Guide.pdf');
         } catch (error) {
             console.error('Failed to export PDF:', error);
             alert('Failed to generate PDF. Please try again.');
         } finally {
+            setActiveTab(savedTab);
+            setSelectedDest(savedDest);
             setIsExporting(false);
         }
     };
 
+
     return (
         <motion.div
+            ref={pdfRef}
             key="valparai"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

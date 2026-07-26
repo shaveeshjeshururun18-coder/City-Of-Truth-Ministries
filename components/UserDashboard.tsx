@@ -133,15 +133,18 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         return user;
     };
     const getAvatarInitials = (name?: string) => {
-        const parts = (name || '').trim().split(/\s+/).filter(Boolean);
-        if (parts.length >= 2) return `${parts[0][0] || 'C'}${parts[1][0] || 'T'}`.toUpperCase();
-        return ((parts[0] || 'CT').slice(0, 2)).toUpperCase();
+        const clean = (name || '').replace(/[^a-zA-Z0-9\s]/g, ' ').trim();
+        const parts = clean.split(/\s+/).filter(Boolean);
+        if (parts.length >= 3) return `${parts[0][0]}${parts[1][0]}${parts[2][0]}`.toUpperCase();
+        if (parts.length === 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+        if (parts.length === 1) return parts[0].slice(0, 3).toUpperCase();
+        return 'COT';
     };
     const renderAvatarContent = (
         photo: string | undefined,
         name: string,
         initialClass = 'text-sm',
-        gradientClass = 'from-brand-600 to-violet-700'
+        _gradientClass = ''
     ) => {
         const candidate = (photo || '').trim();
         if (candidate) {
@@ -167,8 +170,12 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             }
         }
         return (
-            <div className={`w-full h-full bg-gradient-to-br ${gradientClass} flex items-center justify-center text-white ${initialClass} font-black tracking-[0.2em]`}>
-                {getAvatarInitials(name)}
+            <div className="relative w-full h-full rounded-full bg-[radial-gradient(circle_at_30%_30%,#0052D4,#032870,#000926)] flex items-center justify-center p-0.5 border-2 border-[#00F2FE] shadow-[0_0_10px_rgba(0,242,254,0.55),inset_0_2px_4px_rgba(255,255,255,0.3)] overflow-hidden select-none">
+                <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-cyan-300/25 to-transparent pointer-events-none rounded-t-full" />
+                <div className="absolute inset-[1.5px] rounded-full border border-cyan-300/30 pointer-events-none" />
+                <span className={`${initialClass} font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-100 to-cyan-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] transform -skew-x-6 z-10 leading-none`}>
+                    {getAvatarInitials(name)}
+                </span>
             </div>
         );
     };
@@ -411,25 +418,69 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
         try {
             const zip = new JSZip();
-            const bundleName = `COT_Entire_Website_PDF_Bundle_${(displayProfile.name || user.name || 'member').replace(/\s+/g, '_')}`;
+            const bundleName = `COT_Complete_Website_PDF_Bundle_${(displayProfile.name || user.name || 'member').replace(/\s+/g, '_')}`;
 
-            // 1. Fetch Official Merged Hebrew & Ministry PDF
+            // 1. Website Logo
+            try {
+                const resLogo = await fetch('/logo.png');
+                if (resLogo.ok) {
+                    const blobLogo = await resLogo.blob();
+                    zip.file("1_City_Of_Truth_Website_Logo.png", blobLogo);
+                }
+            } catch (err) {
+                console.warn("Could not fetch logo.png", err);
+            }
+
+            // 2. Golden Menorah Asset
+            try {
+                const resMenorah = await fetch('/assets/golden_menorah.png');
+                if (resMenorah.ok) {
+                    const blobMenorah = await resMenorah.blob();
+                    zip.file("2_Golden_Menorah_Symbol.png", blobMenorah);
+                }
+            } catch (err) {
+                console.warn("Could not fetch golden_menorah.png", err);
+            }
+
+            // 3. Capture User's Entrust ID Card (Front/Back PNGs & PDF)
+            try {
+                const frontNode = document.getElementById('capture-front');
+                const backNode = document.getElementById('capture-back');
+                if (frontNode && backNode) {
+                    await Promise.all([waitForNodeImages(frontNode, 1000), waitForNodeImages(backNode, 1000)]);
+                    const opts = { pixelRatio: 2, quality: 0.9, backgroundColor: '#ffffff', width: 340, height: 215 };
+                    const frontDataUrl = await toPng(frontNode, opts);
+                    const backDataUrl = await toPng(backNode, opts);
+
+                    zip.file(`3_User_Entrust_Card_Front_${displayProfile.id}.png`, frontDataUrl.split(',')[1], { base64: true });
+                    zip.file(`3_User_Entrust_Card_Back_${displayProfile.id}.png`, backDataUrl.split(',')[1], { base64: true });
+
+                    const pdfCard = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
+                    addCenteredCardPage(pdfCard, frontDataUrl, 'PNG', true);
+                    addCenteredCardPage(pdfCard, backDataUrl, 'PNG', false);
+                    zip.file(`3_User_Entrust_ID_Card_${displayProfile.id}.pdf`, pdfCard.output('arraybuffer'));
+                }
+            } catch (err) {
+                console.warn("Could not capture Entrust Card for bundle", err);
+            }
+
+            // 4. Official Merged Hebrew & Ministry PDF
             try {
                 const resMerged = await fetch('/downloads/ilovepdf_merged_organized.pdf');
                 if (resMerged.ok) {
                     const blobMerged = await resMerged.blob();
-                    zip.file("1_Official_Ministry_Hebrew_Alphabet_Gematria_Bundle.pdf", blobMerged);
+                    zip.file("4_Official_Ministry_Hebrew_Alphabet_Gematria_Bundle.pdf", blobMerged);
                 }
             } catch (err) {
                 console.warn("Could not fetch ilovepdf_merged_organized.pdf", err);
             }
 
-            // 2. Fetch Hebrew Calendar 5786 PDF
+            // 5. Hebrew Calendar 5786 PDF
             try {
                 const resCal = await fetch('/assets/COT-Hebrew-Menorah-Calendar-5786 (7).pdf');
                 if (resCal.ok) {
                     const blobCal = await resCal.blob();
-                    zip.file("2_COT_Hebrew_Menorah_Calendar_5786.pdf", blobCal);
+                    zip.file("5_COT_Hebrew_Menorah_Calendar_5786.pdf", blobCal);
                 }
             } catch (err) {
                 console.warn("Could not fetch calendar PDF", err);
@@ -1069,7 +1120,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 dob: user.dob,
                 status: user.status,
             }, [
-                ['Joined Date', formatValue(user.joinedDate || user.memberSince)],
+                ['Joined Date', user.joinedDate || user.memberSince || 'Not provided'],
                 ['Status', formatValue(user.status)],
             ]);
 
@@ -1413,8 +1464,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             handleBlockedFeature();
             return;
         }
-        setQrLinkCopied(false);
-        setShowQrPreview(true);
+        // Redirect to the verify page
+        const verifyLink = `${window.location.origin}/verify/${displayProfile.id}`;
+        window.location.href = verifyLink;
     };
 
     const handleCopyQrLink = async () => {
@@ -1636,177 +1688,351 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 {/* ── LEFT COLUMN (Profile, Family, Actions, Logout on Desktop) ── */}
                 <div className={`${user.linkedProfiles && user.linkedProfiles.length > 0 ? 'lg:col-span-4 xl:col-span-3' : 'lg:col-span-5 xl:col-span-4'} flex flex-col gap-5`}>
 
-                    <div className="flex items-center gap-3 mb-5 px-1">
-                        {/* Primary profile + family avatars */}
-                        {/* Primary profile avatar with flowing medal ring */}
-                        <div
-                            onClick={handleMedalClick}
-                            className="relative group shrink-0 p-1 cursor-pointer select-none"
-                            title="Click for flowing medal animation!"
-                        >
-                            {/* Animated Flowing Conic Ring */}
-                            <div className="absolute inset-0 rounded-full p-[3px] bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] animate-[spin_5s_linear_infinite] shadow-lg shadow-cyan-500/20" />
+                    {/* ── PROFILE HEADER CARD ── */}
+                    <div className="bg-white rounded-3xl p-4 sm:p-5 shadow-md border border-slate-100 mb-5 relative overflow-hidden">
+                        {/* ROW 1: Avatar + Name */}
+                        <div className="flex items-center gap-3">
+                            {/* Primary Profile Avatar with Flowing Medal Ring */}
+                            <div
+                                onClick={handleMedalClick}
+                                className="relative group shrink-0 p-1 cursor-pointer select-none"
+                                title="Click for flowing medal animation!"
+                            >
+                                {/* Animated Flowing Conic Ring */}
+                                <div className="absolute inset-0 rounded-full p-[3px] bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] animate-[spin_5s_linear_infinite] shadow-lg shadow-cyan-500/20" />
+                                <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] blur-sm opacity-70 group-hover:opacity-100 animate-[spin_5s_linear_infinite] transition-opacity" />
 
-                            {/* Glowing Blur Aura */}
-                            <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] blur-sm opacity-70 group-hover:opacity-100 animate-[spin_5s_linear_infinite] transition-opacity" />
+                                {/* Staggered Ripples */}
+                                {isStaggeringMedal && (
+                                    <>
+                                        <div className="absolute -inset-1.5 rounded-full border-2 border-cyan-400 animate-[ping_0.8s_cubic-bezier(0,0,0.2,1)_infinite] pointer-events-none" />
+                                        <div className="absolute -inset-3.5 rounded-full border-2 border-amber-400 animate-[ping_0.8s_cubic-bezier(0,0,0.2,1)_infinite]" style={{ animationDelay: '150ms' }} />
+                                        <div className="absolute -inset-5.5 rounded-full border-2 border-blue-400 animate-[ping_0.8s_cubic-bezier(0,0,0.2,1)_infinite]" style={{ animationDelay: '300ms' }} />
+                                    </>
+                                )}
 
-                            {/* Staggered Ripples on Click */}
-                            {isStaggeringMedal && (
-                                <>
-                                    <div className="absolute -inset-1.5 rounded-full border-2 border-cyan-400 animate-[ping_0.8s_cubic-bezier(0,0,0.2,1)_infinite] pointer-events-none" />
-                                    <div className="absolute -inset-3.5 rounded-full border-2 border-amber-400 animate-[ping_0.8s_cubic-bezier(0,0,0.2,1)_infinite]" style={{ animationDelay: '150ms' }} />
-                                    <div className="absolute -inset-5.5 rounded-full border-2 border-blue-400 animate-[ping_0.8s_cubic-bezier(0,0,0.2,1)_infinite]" style={{ animationDelay: '300ms' }} />
-                                </>
-                            )}
+                                {/* Avatar Circle */}
+                                <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border-[3px] border-white shadow-md bg-brand-100 z-10">
+                                    {renderAvatarContent(displayProfile.photo || user.photo, displayProfile.name, 'text-base', 'from-brand-600 to-violet-700')}
+                                </div>
 
-                            {/* Avatar Circle */}
-                            <div className="relative w-14 h-14 rounded-full overflow-hidden border-[3px] border-white shadow-lg bg-brand-100 z-10">
-                                {renderAvatarContent(user.photo, user.name, 'text-sm', 'from-brand-600 to-violet-700')}
-                            </div>
-
-                            {/* Hover Overlay */}
-                            <div className="absolute inset-1 z-20 flex items-center justify-center gap-1.5 bg-black/65 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all">
+                                {/* Crop Photo Badge Button */}
                                 <button
                                     type="button"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        if (!user.photo) {
+                                        const targetPhoto = displayProfile.photo || user.photo;
+                                        if (!targetPhoto) {
                                             alert('No existing photo to crop. Please use the "Add New Photo" button in Edit Details.');
                                             return;
                                         }
                                         setWasEditingBeforeCrop(isEditing);
-                                        setCropTarget({ type: 'primary', isNewUpload: false });
-                                        setCroppingImage(user.photo);
+                                        setCropTarget({ type: activeProfileId === user.id ? 'primary' : 'linked-profile', profileId: activeProfileId, isNewUpload: false });
+                                        setCroppingImage(targetPhoto);
                                     }}
-                                    className="p-1 hover:scale-110 text-white transition-transform"
+                                    className="absolute -top-1 -left-1 z-30 w-6 h-6 rounded-full bg-slate-900/90 hover:bg-brand-600 text-white border-2 border-white flex items-center justify-center shadow-md transition-all cursor-pointer"
                                     title="Crop Profile Photo"
                                 >
-                                    <Camera size={14} />
+                                    <Camera size={11} />
                                 </button>
-                                {(user.photo || displayProfile.photo) && (
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDownloadProfilePhoto();
-                                        }}
-                                        className="p-1 hover:scale-110 text-white transition-transform"
-                                        title="Download Profile Photo"
-                                    >
-                                        <Download size={14} />
-                                    </button>
-                                )}
+
+                                {/* Active Status Indicator Dot */}
+                                <div className={`absolute -bottom-0.5 -right-0.5 z-30 w-4 h-4 rounded-full border-2 border-white ${user.status === 'Active' ? 'bg-green-500' : user.status === 'Rejected' ? 'bg-red-500' : 'bg-amber-400'}`} />
                             </div>
-                            {/* Active indicator */}
-                            <div className={`absolute -bottom-0.5 -right-0.5 z-30 w-4 h-4 rounded-full border-2 border-white ${user.status === 'Active' ? 'bg-green-500' : user.status === 'Rejected' ? 'bg-red-500' : 'bg-amber-400'}`} />
-                        </div>
 
-                        {/* Family member avatars with flowing medal structure */}
-                        {user.linkedProfiles?.map(pf => (
-                            <button
-                                key={pf.id}
-                                onClick={() => {
-                                    setActiveProfileId(pf.id);
-                                    handleMedalClick();
-                                }}
-                                title={pf.name}
-                                className="relative shrink-0 p-0.5 group select-none cursor-pointer"
-                            >
-                                <div className={`absolute inset-0 rounded-full p-[2px] bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] animate-[spin_5s_linear_infinite] ${activeProfileId === pf.id ? 'opacity-100 shadow-md' : 'opacity-40 group-hover:opacity-90'} transition-opacity`} />
-                                <div className={`relative w-10 h-10 rounded-full overflow-hidden border-2 transition-all ${activeProfileId === pf.id ? 'border-brand-500 scale-105' : 'border-white opacity-80'}`}>
-                                    {renderAvatarContent(pf.photo, pf.name, 'text-[10px]', 'from-violet-600 to-fuchsia-700')}
+                            {/* Name + Details */}
+                            <div className="flex-1 min-w-0">
+                                <h1 className="font-bold text-slate-900 text-base sm:text-lg leading-tight truncate">
+                                    {displayProfile.name}
+                                </h1>
+                                <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-brand-50 text-brand-700 border border-brand-200/60 whitespace-nowrap">
+                                        {activeProfileId !== user.id ? 'Family Member' : (user.role || 'Member')}
+                                    </span>
+                                    <span className="text-[11px] font-bold text-slate-500 whitespace-nowrap">
+                                        {displayProfile.id}
+                                    </span>
                                 </div>
-                            </button>
-                        ))}
-
-                        {/* Add Profile button */}
-                        <button onClick={handleGoToLogin} title="Add Family Member — Register or Login"
-                            className="shrink-0 w-10 h-10 rounded-full border-2 border-dashed border-slate-300 bg-white hover:border-brand-400 hover:bg-brand-50 flex items-center justify-center transition-all text-slate-400 hover:text-brand-500">
-                            <PlusCircle size={20} />
-                        </button>
-
-                        <div className="flex-1 min-w-0 ml-1">
-                            <h1 className="font-bold text-slate-900 text-base leading-tight truncate">{displayProfile.name}</h1>
-                            <p className="text-[11px] text-slate-500 font-medium">{activeProfileId !== user.id ? 'Family Member' : (user.role || 'Member')}</p>
+                            </div>
                         </div>
 
-                        {/* Dark mode toggle */}
-                        <button onClick={toggleUserDarkMode} title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'} className="shrink-0 text-slate-400 hover:text-indigo-600 p-2 rounded-full hover:bg-white transition-all">
-                            {isDarkMode ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} />}
-                        </button>
-                        {/* Download Profile Photo button */}
-                        <button onClick={handleDownloadProfilePhoto} title="Download Profile Image" className="shrink-0 text-slate-400 hover:text-emerald-600 p-2 rounded-full hover:bg-white transition-all">
-                            <Download size={18} />
-                        </button>
-                        {/* Edit button */}
-                        <button onClick={startEditing} title="Edit Profile Details" className="shrink-0 text-slate-400 hover:text-brand-600 p-2 rounded-full hover:bg-white transition-all">
-                            <Edit2 size={18} />
-                        </button>
+                        {/* ROW 2: Action Buttons */}
+                        <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 overflow-x-auto no-scrollbar">
+                            {/* Dark mode toggle */}
+                            <button
+                                onClick={toggleUserDarkMode}
+                                title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-600 hover:text-indigo-600 bg-slate-50 hover:bg-white border border-slate-200/80 transition-all text-xs font-bold"
+                            >
+                                {isDarkMode ? <Sun size={15} className="text-yellow-400" /> : <Moon size={15} />}
+                                <span className="text-[11px]">{isDarkMode ? 'Light' : 'Dark'}</span>
+                            </button>
+
+                            {/* Download Photo */}
+                            <button
+                                onClick={handleDownloadProfilePhoto}
+                                title="Download Profile Photo"
+                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-600 hover:text-emerald-600 bg-slate-50 hover:bg-white border border-slate-200/80 transition-all text-xs font-bold"
+                            >
+                                <Download size={15} />
+                                <span className="text-[11px]">Photo</span>
+                            </button>
+
+                            {/* Download Entrust Card */}
+                            <button
+                                onClick={handleDownloadPDF}
+                                disabled={isProcessing}
+                                title="Download Entrust Card"
+                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-600 hover:text-blue-600 bg-slate-50 hover:bg-white border border-slate-200/80 transition-all text-xs font-bold disabled:opacity-50"
+                            >
+                                {isProcessing ? (
+                                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <FileText size={15} />
+                                )}
+                                <span className="text-[11px]">{isProcessing ? 'Generating...' : 'Entrust'}</span>
+                            </button>
+
+                            {/* Add Profile */}
+                            <button
+                                onClick={() => window.location.href = '/auth?view=login'}
+                                title="Add Profile - Login Required"
+                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-600 hover:text-purple-600 bg-slate-50 hover:bg-white border border-slate-200/80 transition-all text-xs font-bold"
+                            >
+                                <UserPlus size={15} />
+                                <span className="text-[11px]">Add</span>
+                            </button>
+
+                            {/* Edit Details — pushed to the end */}
+                            <button
+                                onClick={startEditing}
+                                title="Edit Details"
+                                className="shrink-0 ml-auto flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-white bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 shadow-md shadow-brand-500/20 transition-all text-xs font-bold"
+                            >
+                                <Edit2 size={15} />
+                                <span className="text-[11px]">Edit</span>
+                            </button>
+                        </div>
+
+                        {/* Dedicated Family Profiles Horizontal Avatar Switcher Bar */}
+                        {(user.linkedProfiles && user.linkedProfiles.length > 0) && (
+                            <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center gap-2.5 overflow-x-auto no-scrollbar pb-1">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 shrink-0 mr-1">Profiles:</span>
+                                
+                                {/* Primary Me Avatar Pill */}
+                                <button
+                                    onClick={() => {
+                                        setActiveProfileId(user.id);
+                                        handleMedalClick();
+                                    }}
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 border ${activeProfileId === user.id ? 'bg-brand-700 text-white border-brand-700 shadow-md shadow-brand-500/30' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'}`}
+                                >
+                                    <div className="w-5 h-5 rounded-full overflow-hidden shrink-0 border border-white">
+                                        {renderAvatarContent(user.photo, user.name, 'text-[8px]')}
+                                    </div>
+                                    <span>Me (Primary)</span>
+                                </button>
+
+                                {/* Linked Family Members */}
+                                {user.linkedProfiles.map(pf => (
+                                    <button
+                                        key={pf.id}
+                                        onClick={() => {
+                                            setActiveProfileId(pf.id);
+                                            handleMedalClick();
+                                        }}
+                                        title={pf.name}
+                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 border ${activeProfileId === pf.id ? 'bg-accent-600 text-white border-accent-600 shadow-md shadow-accent-500/30' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'}`}
+                                    >
+                                        <div className="w-5 h-5 rounded-full overflow-hidden shrink-0 border border-white">
+                                            {renderAvatarContent(pf.photo, pf.name, 'text-[8px]')}
+                                        </div>
+                                        <span>{pf.name.split(' ')[0]}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
-                    {/* ── PROFILE SWITCHER TABS ── */}
-                    {(user.linkedProfiles && user.linkedProfiles.length > 0) && (
-                        <div className="flex gap-2 mb-5 overflow-x-auto no-scrollbar">
-                            <button onClick={() => setActiveProfileId(user.id)} className={`flex items-center gap-1.5 px-4 py-2 rounded-full font-bold text-[11px] uppercase whitespace-nowrap transition-all shadow-sm ${activeProfileId === user.id ? 'bg-brand-700 text-white shadow-brand-400/30 shadow-md' : 'bg-white text-slate-500 border border-slate-200'}`}>
-                                Me
-                            </button>
-                            {user.linkedProfiles.map(pf => (
-                                <button key={pf.id} onClick={() => setActiveProfileId(pf.id)} className={`flex items-center gap-1.5 px-4 py-2 rounded-full font-bold text-[11px] uppercase whitespace-nowrap transition-all shadow-sm ${activeProfileId === pf.id ? 'bg-accent-600 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200'}`}>
-                                    {pf.name.split(' ')[0]}
-                                </button>
-                            ))}
-                        </div>
-                    )}
+
                     {(() => {
                         const hasPrimaryPending = activeProfileId === user.id && user.pendingProfileUpdate && Object.keys(user.pendingProfileUpdate).filter(k => k !== 'linkedProfiles').length > 0;
                         const activeFamilyPending = activeProfileId !== user.id && user.pendingProfileUpdate?.linkedProfiles?.find(p => p.id === activeProfileId);
                         const hasFamilyPending = !!activeFamilyPending;
 
                         if (hasPrimaryPending) {
+                            const pendingObj = user.pendingProfileUpdate || {};
+                            const changedEntries = Object.entries(pendingObj)
+                                .filter(([key]) => key !== 'linkedProfiles')
+                                .map(([key, value]) => {
+                                    const orig = (user as any)[key];
+                                    return { key, pendingVal: value, origVal: orig };
+                                });
+
                             return (
-                                <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-4 py-3 text-xs font-semibold flex items-center justify-between gap-3">
-                                    <span>Your profile update request is pending admin approval.</span>
-                                    <button
-                                        onClick={() => {
-                                            if (window.confirm('Are you sure you want to cancel and reset your pending profile and photo updates?')) {
-                                                const newPending = { ...(user.pendingProfileUpdate || {}) };
-                                                Object.keys(newPending).forEach(k => {
-                                                    if (k !== 'linkedProfiles') {
-                                                        delete (newPending as any)[k];
-                                                    }
-                                                });
-                                                onUpdate({ ...user, pendingProfileUpdate: newPending } as User);
-                                            }
-                                        }}
-                                        className="shrink-0 px-2.5 py-1 bg-white border border-amber-300 text-amber-900 rounded-lg hover:bg-amber-100 transition-colors font-bold text-[10px] uppercase tracking-wider"
-                                    >
-                                        Cancel & Reset
-                                    </button>
+                                <div className="bg-gradient-to-r from-amber-500/10 via-amber-50 to-orange-50/50 border-2 border-amber-300/80 text-amber-900 rounded-[24px] p-5 shadow-lg space-y-4">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200/80 pb-3">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-3 h-3 rounded-full bg-amber-500 animate-ping" />
+                                            <span className="text-xs font-black uppercase tracking-widest text-amber-900 flex items-center gap-1.5">
+                                                <AlertCircle size={16} className="text-amber-600" /> Pending Profile Edit Request (Awaiting Admin Approval)
+                                            </span>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                if (window.confirm('Are you sure you want to cancel and reset your pending profile and photo updates?')) {
+                                                    const newPending = { ...(user.pendingProfileUpdate || {}) };
+                                                    Object.keys(newPending).forEach(k => {
+                                                        if (k !== 'linkedProfiles') {
+                                                            delete (newPending as any)[k];
+                                                        }
+                                                    });
+                                                    onUpdate({ ...user, pendingProfileUpdate: newPending } as User);
+                                                }
+                                            }}
+                                            className="shrink-0 px-3.5 py-1.5 bg-white border border-amber-300 hover:border-amber-400 text-amber-900 hover:bg-amber-100 rounded-xl transition-all font-bold text-[10px] uppercase tracking-wider shadow-sm cursor-pointer"
+                                        >
+                                            Cancel & Reset Request
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <p className="text-xs font-bold text-amber-950 flex items-center gap-2">
+                                            <span>Submitted Requested Changes:</span>
+                                            <span className="text-[10px] font-black uppercase tracking-wider bg-amber-200/70 text-amber-900 px-2 py-0.5 rounded-md">
+                                                {changedEntries.length} {changedEntries.length === 1 ? 'Field' : 'Fields'} Modified
+                                            </span>
+                                        </p>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                            {changedEntries.map(({ key, pendingVal, origVal }) => {
+                                                if (key === 'photo') {
+                                                    return (
+                                                        <div key={key} className="bg-white/90 border border-amber-200/80 rounded-2xl p-3 shadow-sm flex items-center gap-3">
+                                                            <div className="w-12 h-12 rounded-xl overflow-hidden border border-amber-400 shrink-0 bg-slate-100 shadow-inner">
+                                                                <img src={pendingVal as string} alt="Pending Photo" className="w-full h-full object-cover" />
+                                                            </div>
+                                                            <div className="min-w-0 flex-1">
+                                                                <span className="text-[10px] font-black text-amber-800 uppercase tracking-wider block">Profile Photo</span>
+                                                                <span className="text-xs font-bold text-amber-950 block truncate">New Cropped Photo Submitted</span>
+                                                                <span className="text-[9px] text-amber-700">Pending Review</span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                }
+
+                                                const labelMap: Record<string, string> = {
+                                                    name: 'Full Name',
+                                                    phone: 'Phone Number',
+                                                    email: 'Email Address',
+                                                    location: 'Location / City',
+                                                    emergency: 'Emergency Contact',
+                                                    dob: 'Date of Birth',
+                                                    memberSince: 'Member Since',
+                                                    joinedDate: 'Joined Date',
+                                                    bloodGroup: 'Blood Group'
+                                                };
+                                                const label = labelMap[key] || key.charAt(0).toUpperCase() + key.slice(1);
+                                                const displayPending = `${pendingVal || 'N/A'}`;
+                                                const displayOrig = `${origVal || 'Not provided'}`;
+
+                                                return (
+                                                    <div key={key} className="bg-white/90 border border-amber-200/80 rounded-2xl p-3 shadow-sm flex flex-col justify-between space-y-1">
+                                                        <span className="text-[10px] font-black text-amber-800 uppercase tracking-wider block">{label}</span>
+                                                        <div className="text-xs text-slate-400 line-through truncate" title={`Original: ${displayOrig}`}>
+                                                            Original: {displayOrig}
+                                                        </div>
+                                                        <div className="text-xs font-black text-amber-950 flex items-center gap-1 font-mono">
+                                                            <span className="text-amber-600 font-sans">➔</span> {displayPending}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
                                 </div>
                             );
                         }
 
-                        if (hasFamilyPending) {
+                        if (hasFamilyPending && activeFamilyPending) {
+                            const familyPendingObj = activeFamilyPending;
+                            const familyMember = user.linkedProfiles?.find(p => p.id === activeProfileId);
+                            const familyChangedEntries = Object.entries(familyPendingObj).filter(([key]) => key !== 'id');
+
                             return (
-                                <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-4 py-3 text-xs font-semibold flex items-center justify-between gap-3">
-                                    <span>This family member's profile update request is pending admin approval.</span>
-                                    <button
-                                        onClick={() => {
-                                            if (window.confirm("Are you sure you want to cancel and reset this family member's pending profile and photo updates?")) {
-                                                const newPending = { ...(user.pendingProfileUpdate || {}) };
-                                                if (newPending.linkedProfiles) {
-                                                    newPending.linkedProfiles = newPending.linkedProfiles.filter(p => p.id !== activeProfileId);
-                                                    if (newPending.linkedProfiles.length === 0) {
-                                                        delete newPending.linkedProfiles;
+                                <div className="bg-gradient-to-r from-amber-500/10 via-amber-50 to-orange-50/50 border-2 border-amber-300/80 text-amber-900 rounded-[24px] p-5 shadow-lg space-y-4">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200/80 pb-3">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-3 h-3 rounded-full bg-amber-500 animate-ping" />
+                                            <span className="text-xs font-black uppercase tracking-widest text-amber-900 flex items-center gap-1.5">
+                                                <AlertCircle size={16} className="text-amber-600" /> {familyMember?.name || 'Family Member'}'s Pending Profile Edit Request
+                                            </span>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                if (window.confirm("Are you sure you want to cancel and reset this family member's pending profile and photo updates?")) {
+                                                    const newPending = { ...(user.pendingProfileUpdate || {}) };
+                                                    if (newPending.linkedProfiles) {
+                                                        newPending.linkedProfiles = newPending.linkedProfiles.filter(p => p.id !== activeProfileId);
+                                                        if (newPending.linkedProfiles.length === 0) {
+                                                            delete newPending.linkedProfiles;
+                                                        }
                                                     }
+                                                    onUpdate({ ...user, pendingProfileUpdate: newPending } as User);
                                                 }
-                                                onUpdate({ ...user, pendingProfileUpdate: newPending } as User);
-                                            }
-                                        }}
-                                        className="shrink-0 px-2.5 py-1 bg-white border border-amber-300 text-amber-900 rounded-lg hover:bg-amber-100 transition-colors font-bold text-[10px] uppercase tracking-wider"
-                                    >
-                                        Cancel & Reset
-                                    </button>
+                                            }}
+                                            className="shrink-0 px-3.5 py-1.5 bg-white border border-amber-300 hover:border-amber-400 text-amber-900 hover:bg-amber-100 rounded-xl transition-all font-bold text-[10px] uppercase tracking-wider shadow-sm cursor-pointer"
+                                        >
+                                            Cancel & Reset Request
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <p className="text-xs font-bold text-amber-950 flex items-center gap-2">
+                                            <span>Submitted Requested Changes for {familyMember?.name}:</span>
+                                            <span className="text-[10px] font-black uppercase tracking-wider bg-amber-200/70 text-amber-900 px-2 py-0.5 rounded-md">
+                                                {familyChangedEntries.length} {familyChangedEntries.length === 1 ? 'Field' : 'Fields'} Modified
+                                            </span>
+                                        </p>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                            {familyChangedEntries.map(([key, pendingVal]) => {
+                                                if (key === 'photo') {
+                                                    return (
+                                                        <div key={key} className="bg-white/90 border border-amber-200/80 rounded-2xl p-3 shadow-sm flex items-center gap-3">
+                                                            <div className="w-12 h-12 rounded-xl overflow-hidden border border-amber-400 shrink-0 bg-slate-100 shadow-inner">
+                                                                <img src={pendingVal as string} alt="Pending Photo" className="w-full h-full object-cover" />
+                                                            </div>
+                                                            <div className="min-w-0 flex-1">
+                                                                <span className="text-[10px] font-black text-amber-800 uppercase tracking-wider block">Member Photo</span>
+                                                                <span className="text-xs font-bold text-amber-950 block truncate">New Cropped Photo Submitted</span>
+                                                                <span className="text-[9px] text-amber-700">Pending Review</span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                }
+
+                                                const labelMap: Record<string, string> = {
+                                                    name: 'Full Name',
+                                                    role: 'Family Role',
+                                                    dob: 'Date of Birth',
+                                                    bloodGroup: 'Blood Group'
+                                                };
+                                                const label = labelMap[key] || key.charAt(0).toUpperCase() + key.slice(1);
+                                                const origVal = (familyMember as any)?.[key];
+
+                                                return (
+                                                    <div key={key} className="bg-white/90 border border-amber-200/80 rounded-2xl p-3 shadow-sm flex flex-col justify-between space-y-1">
+                                                        <span className="text-[10px] font-black text-amber-800 uppercase tracking-wider block">{label}</span>
+                                                        <div className="text-xs text-slate-400 line-through truncate">
+                                                            Original: {origVal || 'Not provided'}
+                                                        </div>
+                                                        <div className="text-xs font-black text-amber-950 flex items-center gap-1 font-mono">
+                                                            <span className="text-amber-600 font-sans">➔</span> {`${pendingVal}`}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
                                 </div>
                             );
                         }
@@ -2423,39 +2649,63 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             )}
 
                             {/* Inner Bundle Card Container */}
-                            <div className="relative z-10 rounded-[23px] bg-gradient-to-br from-[#1e0e4b] via-[#3b1578] to-[#5b21b6] p-6 text-white overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
+                            <div className="relative z-10 rounded-[23px] bg-gradient-to-br from-[#1e0e4b] via-[#3b1578] to-[#5b21b6] p-6 text-white overflow-hidden flex flex-col xl:flex-row xl:items-center justify-between gap-6">
 
-                                {/* Left Side: Circular Flowing Award Medal Badge + Title */}
-                                <div className="flex items-center gap-5">
-                                    {/* Circular Flowing Medal Badge */}
-                                    <div className="relative group shrink-0 p-1 select-none">
-                                        {/* Spinning Medal Conic Ring */}
-                                        <div className="absolute inset-0 rounded-full p-[3px] bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] animate-[spin_4s_linear_infinite] shadow-lg shadow-amber-500/30" />
-                                        
-                                        {/* Glowing Blur Aura */}
-                                        <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] blur-sm opacity-80 animate-[spin_4s_linear_infinite]" />
+                                {/* Left Side: Dual Badges (Website Logo & Golden Temple) + Title */}
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+                                    {/* Flowing Emblem Badges: Website Logo & Golden Temple Symbol */}
+                                    <div className="flex items-center -space-x-3 shrink-0 select-none">
+                                        {/* Website Logo Badge */}
+                                        <div className="relative group p-0.5" title="City of Truth Website Logo">
+                                            <div className="absolute inset-0 rounded-full p-[2px] bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] animate-[spin_4s_linear_infinite] shadow-lg" />
+                                            <div className="relative w-14 h-14 rounded-full bg-slate-950 p-1.5 shadow-2xl flex items-center justify-center z-10 overflow-hidden border border-cyan-400/40">
+                                                <img src="/logo.png" alt="Website Logo" className="w-full h-full object-contain drop-shadow" />
+                                            </div>
+                                        </div>
 
-                                        {/* Metallic Inner Medal Icon Container */}
-                                        <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 via-amber-500 to-amber-700 p-0.5 shadow-2xl flex items-center justify-center z-10">
-                                            <div className="w-full h-full rounded-full bg-gradient-to-br from-[#2a1154] to-[#12062b] flex items-center justify-center text-amber-300 shadow-inner">
-                                                <Award size={32} className="drop-shadow-[0_0_10px_rgba(251,191,36,0.8)]" />
+                                        {/* Golden Temple / Menorah Symbol Badge */}
+                                        <div className="relative group p-0.5" title="Golden Menorah Temple Symbol">
+                                            <div className="absolute inset-0 rounded-full p-[2px] bg-[conic-gradient(from_0deg,#F0C040,#D4A547,#F59E0B,#38BDF8,#F0C040)] animate-[spin_5s_linear_infinite] shadow-lg shadow-amber-500/40" />
+                                            <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-amber-950 via-slate-900 to-amber-900 p-1 shadow-2xl flex items-center justify-center z-20 overflow-hidden border border-amber-400/60">
+                                                <img src="/assets/golden_menorah.png" alt="Golden Temple Symbol" className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]" />
                                             </div>
                                         </div>
                                     </div>
 
                                     <div>
                                         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 text-[10px] font-black uppercase tracking-widest mb-2">
-                                            <Award size={12} /> Official PDF Bundle Medal
+                                            <Award size={12} /> Official PDF & Asset Bundle Medal
                                         </div>
-                                        <h3 className="font-black text-xl md:text-2xl text-white tracking-tight leading-tight">Entire Website PDFs Bundle</h3>
-                                        <p className="text-purple-200 text-xs md:text-sm mt-1 max-w-lg">
-                                            Download all official ministry documents, charts, guides, and certificates in one complete bundle.
+                                        <h3 className="font-black text-xl md:text-2xl text-white tracking-tight leading-tight flex items-center gap-2 flex-wrap">
+                                            Entire Website PDFs & Logo Bundle
+                                        </h3>
+                                        <p className="text-purple-200 text-xs md:text-sm mt-1 max-w-xl">
+                                            Download official Website Logos, Golden Temple Symbol, Entrust Card PNGs/PDF, Hebrew Alphabet & Gematria Chart, and Menorah Calendar 5786 in one complete package.
                                         </p>
+
+                                        {/* Included Asset Tags Preview */}
+                                        <div className="flex items-center gap-2 mt-3 flex-wrap">
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-500/20 border border-cyan-400/30 text-cyan-200 text-[10px] font-bold">
+                                                <img src="/logo.png" className="w-3.5 h-3.5 object-contain" alt="" /> Website Logo
+                                            </span>
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-400/30 text-amber-200 text-[10px] font-bold">
+                                                <img src="/assets/golden_menorah.png" className="w-3.5 h-3.5 object-contain" alt="" /> Golden Temple Symbol
+                                            </span>
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-500/20 border border-purple-400/30 text-purple-200 text-[10px] font-bold">
+                                                💳 Entrust Card PDF & PNGs
+                                            </span>
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-400/30 text-emerald-200 text-[10px] font-bold">
+                                                📜 Hebrew Chart PDF
+                                            </span>
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-500/20 border border-indigo-400/30 text-indigo-200 text-[10px] font-bold">
+                                                🗓️ Hebrew Calendar 5786
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* Right Side: Action Button */}
-                                <div className="shrink-0">
+                                <div className="shrink-0 mt-2 xl:mt-0">
                                     <button
                                         type="button"
                                         className={`inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition-all shadow-xl ${

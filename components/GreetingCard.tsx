@@ -144,7 +144,7 @@ const MagicPen = () => (
     <div className="absolute bottom-[3px] left-[3px] w-[6px] h-[6px] bg-[#fde047] rounded-full blur-[1px]"></div>
 
     {/* Majestic, Highly Detailed Pen Artifact */}
-    <svg className="absolute bottom-0 left-0 w-full h-full origin-bottom-left -translate-y-[3px] -translate-x-[3px] filter drop-shadow-[6px_12px_15px_rgba(0,0,0,0.8)] overflow-visible" viewBox="0 0 100 100" fill="none">
+    <svg className="absolute bottom-0 left-0 w-full h-full origin-bottom-left -translate-y-[3px] -translate-x-[3px] filter drop-shadow-[6px_12px_15px_rgba(0,0,0,0.8)] overflow-visible" viewBox="-10 -10 120 120" fill="none">
       {/* Intricate Gold Nib */}
       <path d="M0 100 L 15 75 L 25 85 Z" fill="url(#pureGold)" />
       <path d="M5 95 L 15 75 L 20 80 Z" fill="rgba(0,0,0,0.4)" />
@@ -232,14 +232,14 @@ const CinematicText: React.FC<{
   let globalIndex = 0;
 
   return (
-    <div className={`flex flex-wrap justify-center ${className}`} dir={isHebrew ? "rtl" : "ltr"}>
+    <div className={`flex flex-wrap justify-center max-w-full overflow-visible ${className}`} dir={isHebrew ? "rtl" : "ltr"}>
       {groups.map((group, gIdx) => {
         const isLastGroup = gIdx === groups.length - 1;
         const groupWithSpace = isLastGroup ? group : group + ' ';
         const isEnglishGroup = /[a-zA-Z]/.test(group);
 
         return (
-          <span key={gIdx} className="inline-block whitespace-pre" dir={isEnglishGroup ? "ltr" : "rtl"}>
+          <span key={gIdx} className="inline-block whitespace-normal break-words max-w-full" dir={isEnglishGroup ? "ltr" : "rtl"}>
             {groupWithSpace.split('').map((char, cIdx) => {
               const currentIndex = globalIndex++;
               const isVisible = currentIndex < visibleCount;
@@ -418,6 +418,24 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
     return base + dateStr;
   }, [currentUser, isAdmin, dateStr]);
 
+  const playVoiceFallback = (text: string) => {
+    try {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const cleanText = (text || '').replace(/[\(\)]/g, '').trim();
+        if (cleanText) {
+          const utterance = new SpeechSynthesisUtterance(cleanText);
+          utterance.rate = 0.95;
+          utterance.pitch = 1.0;
+          utterance.volume = 1.0;
+          window.speechSynthesis.speak(utterance);
+        }
+      }
+    } catch (e) {
+      console.warn("Speech synthesis fallback error:", e);
+    }
+  };
+
   // Autoplay immediately on load
   useEffect(() => {
     if (!hasInteracted) {
@@ -430,18 +448,24 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
       }
       if (audioRef.current) {
         audioRef.current.volume = 0.7;
-        audioRef.current.play().catch(e => console.log("Autoplay blocked or audio load failed", e));
+        audioRef.current.play().catch(e => {
+          console.log("Autoplay blocked or audio load failed", e);
+          playVoiceFallback(currentData.greeting);
+        });
       }
 
       const voiceAudio = document.getElementById("voiceGreetingAudio") as HTMLAudioElement;
       if (voiceAudio) {
         voiceAudio.volume = 0.9;
-        voiceAudio.play().catch(e => console.log("Voice autoplay blocked", e));
+        voiceAudio.play().catch(e => {
+          console.log("Voice autoplay blocked", e);
+          playVoiceFallback(currentData.greeting);
+        });
       }
 
       setHasInteracted(true);
     }
-  }, [hasInteracted]);
+  }, [hasInteracted, currentData]);
 
   // Animation Sequence
   useEffect(() => {
@@ -564,26 +588,26 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
         <GoldDustSystem isErasing={phase === 'erase'} />
 
         {/* Small horizontal card layout */}
-        <div className={`postal-frame w-full px-5 sm:px-10 py-6 sm:py-8 flex flex-col justify-between min-h-[300px] aspect-[16/9] shadow-[0_25px_60px_rgba(0,0,0,0.85)] border border-white/5 ${cardClass}`}>
+        <div className={`postal-frame w-full max-w-[92vw] sm:max-w-[620px] px-3 sm:px-8 py-5 sm:py-8 flex flex-col justify-between min-h-[280px] shadow-[0_25px_60px_rgba(0,0,0,0.85)] border border-white/5 overflow-visible ${cardClass}`}>
           
           {/* Subtle background embers in card itself */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-lg z-0 opacity-40">
             <RoyalEmbers />
           </div>
 
-          <div className="flex-1 flex flex-col justify-center items-center w-full z-10">
+          <div className="flex-1 flex flex-col justify-center items-center w-full z-10 overflow-visible">
             
-            <div className="h-10 sm:h-12 flex items-center justify-center w-full mb-2">
+            <div className="min-h-10 sm:min-h-12 flex items-center justify-center w-full mb-2 overflow-visible px-2">
               <CinematicText 
                 text={currentData.greeting} 
                 type="icy-blue" 
                 visibleCount={counts.greeting}
                 isTyping={activeSection === 'greeting'}
-                className="font-cinzel text-xl sm:text-2xl md:text-3xl font-black uppercase tracking-widest text-center"
+                className="font-cinzel text-lg sm:text-2xl md:text-3xl font-black uppercase tracking-wider sm:tracking-widest text-center max-w-full"
               />
             </div>
 
-            <div className="relative mb-4 sm:mb-5 px-4 py-2 max-w-lg w-full text-center">
+            <div className="relative mb-3 sm:mb-5 px-2 sm:px-4 py-2 max-w-full sm:max-w-lg w-full text-center overflow-visible">
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-[1px] bg-gradient-to-r from-transparent via-[#D4AF37]/45 to-transparent"></div>
               
               <CinematicText 
@@ -591,7 +615,7 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
                 type="standard" 
                 visibleCount={counts.phrase}
                 isTyping={activeSection === 'phrase'}
-                className="italic text-slate-100 text-xs sm:text-sm md:text-base leading-relaxed tracking-wider font-light"
+                className="italic text-slate-100 text-[11px] sm:text-sm md:text-base leading-relaxed tracking-normal sm:tracking-wider font-light max-w-full"
               />
               
               <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-[1px] bg-gradient-to-r from-transparent via-[#D4AF37]/45 to-transparent"></div>

@@ -447,10 +447,102 @@ export const HebrewWordHub: React.FC = () => {
                                             <Info size={14} /> {error}
                                         </motion.div>
                                     )}
+
+                                    {/* ── Gematria Significance Panel ── */}
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.15 }}
+                                        className="bg-gradient-to-br from-brand-950 to-slate-900 rounded-2xl p-4 space-y-3 shadow-xl border border-white/5 relative overflow-hidden"
+                                    >
+                                        <div className="absolute top-0 right-0 w-24 h-24 bg-accent-400/10 rounded-full blur-2xl pointer-events-none" />
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <div className="w-6 h-6 rounded-lg bg-accent-500/20 flex items-center justify-center">
+                                                <Sparkles size={12} className="text-accent-400" />
+                                            </div>
+                                            <span className="text-[10px] font-black text-accent-400 uppercase tracking-widest">Gematria Significance</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+                                                <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Letter Count</div>
+                                                <div className="text-2xl font-black text-white">{wordInput.split('').filter(ch => gematriaValues[ch]).length}</div>
+                                                <div className="text-[9px] text-slate-500 mt-0.5">Hebrew letters</div>
+                                            </div>
+                                            <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+                                                <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Value</div>
+                                                <div className="text-2xl font-black text-accent-400">{currentGematria}</div>
+                                                <div className="text-[9px] text-slate-500 mt-0.5">{currentGematria % 7 === 0 ? '✡ Multiple of 7' : currentGematria % 3 === 0 ? '△ Multiple of 3' : currentGematria % 10 === 0 ? '✕ Round number' : 'Standard value'}</div>
+                                            </div>
+                                        </div>
+                                        {/* Letter meanings row */}
+                                        {wordInput.split('').filter(ch => gematriaValues[ch]).length > 0 && (
+                                            <div className="border-t border-white/5 pt-3">
+                                                <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Letter Values</div>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {wordInput.split('').filter(ch => gematriaValues[ch]).map((ch, i) => (
+                                                        <div key={i} className="flex items-center gap-1 bg-white/5 rounded-lg px-2 py-1 border border-white/5">
+                                                            <span className="text-sm font-serif text-accent-300" dir="rtl">{ch}</span>
+                                                            <span className="text-[10px] font-bold text-slate-400">=</span>
+                                                            <span className="text-[10px] font-black text-white">{gematriaValues[ch]}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </motion.div>
+
+                                    {/* ── Scripture / Tip card ── */}
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.25 }}
+                                        className="bg-gradient-to-r from-sky-50 to-blue-50 border border-sky-100 rounded-2xl p-4"
+                                    >
+                                        <div className="flex items-start gap-3">
+                                            <div className="shrink-0 w-8 h-8 rounded-xl bg-sky-100 flex items-center justify-center text-sky-600">
+                                                <BookOpen size={16} />
+                                            </div>
+                                            <div>
+                                                <div className="text-[10px] font-black text-sky-600 uppercase tracking-widest mb-1">Did You Know?</div>
+                                                <p className="text-xs text-slate-600 leading-relaxed">
+                                                    In Hebrew, every letter has a numerical value — the ancient practice of <strong>Gematria</strong> reveals hidden connections between words that share the same total. The sages taught that words with equal Gematria values share a spiritual bond.
+                                                </p>
+                                                <p className="text-[10px] text-sky-500 font-bold mt-2 italic">"The seal of the Holy One, blessed be He, is truth (אמת)." — Talmud, Shabbat 55a</p>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+
+                                    {/* ── Hebrew Alphabet Quick Reference ── */}
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.35 }}
+                                        className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm"
+                                    >
+                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Quick Reference — Letter Values</div>
+                                        <div className="grid grid-cols-5 gap-1.5 text-center">
+                                            {[
+                                                { l: 'א', v: 1 }, { l: 'ב', v: 2 }, { l: 'ג', v: 3 }, { l: 'ד', v: 4 }, { l: 'ה', v: 5 },
+                                                { l: 'ו', v: 6 }, { l: 'ז', v: 7 }, { l: 'ח', v: 8 }, { l: 'ט', v: 9 }, { l: 'י', v: 10 },
+                                                { l: 'כ', v: 20 }, { l: 'ל', v: 30 }, { l: 'מ', v: 40 }, { l: 'נ', v: 50 }, { l: 'ס', v: 60 },
+                                                { l: 'ע', v: 70 }, { l: 'פ', v: 80 }, { l: 'צ', v: 90 }, { l: 'ק', v: 100 }, { l: 'ר', v: 200 },
+                                                { l: 'ש', v: 300 }, { l: 'ת', v: 400 },
+                                            ].map(({ l, v }) => {
+                                                const isInWord = wordInput.includes(l);
+                                                return (
+                                                    <div key={l} className={`rounded-lg p-1.5 border transition-all ${isInWord ? 'bg-brand-950 border-brand-800 shadow-md' : 'bg-slate-50 border-slate-100'}`}>
+                                                        <div className={`text-base font-serif leading-none ${isInWord ? 'text-accent-400' : 'text-brand-950'}`} dir="rtl">{l}</div>
+                                                        <div className={`text-[9px] font-black mt-0.5 ${isInWord ? 'text-accent-300' : 'text-slate-400'}`}>{v}</div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </motion.div>
                                 </motion.div>
                             )}
                         </AnimatePresence>
                     </div>
+
 
                     {/* Right Section */}
                     <div className="flex-1 min-w-0">

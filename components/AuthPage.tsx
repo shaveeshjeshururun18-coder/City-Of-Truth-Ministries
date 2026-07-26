@@ -1108,7 +1108,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                                     <span className="absolute top-0 right-0 w-[22%] h-[22%] border-t-[5px] border-r-[5px] border-[#ffb020] rounded-tr-2xl" />
                                                     <span className="absolute bottom-0 left-0 w-[22%] h-[22%] border-b-[5px] border-l-[5px] border-[#4f8cff] rounded-bl-2xl" />
                                                     <span className="absolute bottom-0 right-0 w-[22%] h-[22%] border-b-[5px] border-r-[5px] border-[#27c46b] rounded-br-2xl" />
-                                                    <div className="absolute inset-0 border border-white/10 rounded-2xl" />
                                                 </div>
                                             )}
 

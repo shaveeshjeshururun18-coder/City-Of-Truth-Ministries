@@ -68,7 +68,7 @@ const AnimatedBotMessage = ({ text }: { text: string }) => {
                         key={idx}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.7, duration: 0.5 }}
+                        transition={{ duration: 0.3 }}
                         className={`${isQuote ? 'italic text-amber-900 bg-amber-50/70 p-3 rounded-xl border border-amber-200/50 my-2 shadow-sm' : ''}`}
                     >
                         {section}
@@ -111,7 +111,7 @@ export const DivineAssistant: React.FC = () => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [showAnalytics, setShowAnalytics] = useState(false);
-    const [isVisible, setIsVisible] = useState(true); // Visibility control from widget settings
+    const [isVisible, setIsVisible] = useState(true); // Force visible initially
     const [messages, setMessages] = useState<Message[]>(() => {
         try {
             const saved = localStorage.getItem('divine_assistant_history');
@@ -161,10 +161,16 @@ export const DivineAssistant: React.FC = () => {
                         label: parsed.aiLabelText || 'Ask Divine AI',
                         showAnimation: parsed.aiAnimation !== false
                     }));
-                    // Update visibility
-                    setIsVisible(parsed.aiVisible !== false);
+                    // Force visibility to true if setting is missing or false
+                    setIsVisible(parsed.aiVisible !== false); // This will default to true if aiVisible is undefined
+                } else {
+                    // No settings found, ensure visibility is true
+                    setIsVisible(true);
                 }
-            } catch (e) {}
+            } catch (e) {
+                // Error reading settings, default to visible
+                setIsVisible(true);
+            }
         };
 
         updateFromSettings();
@@ -211,7 +217,10 @@ export const DivineAssistant: React.FC = () => {
     // Debug logging
     useEffect(() => {
         console.log('🔥 Divine Assistant Loaded!');
-    }, []);
+        console.log('👁️  isVisible:', isVisible);
+        console.log('🖼️  isFrame:', typeof window !== 'undefined' ? (window.self !== window.top && window.location.search.includes('preview=true')) : false);
+        console.log('🎛️  config:', config);
+    }, [isVisible, config]);
 
     // Advanced analytics calculation
     const analytics = useMemo(() => {
@@ -556,21 +565,31 @@ export const DivineAssistant: React.FC = () => {
                 {!isOpen && (
                     <motion.button
                         key="launcher"
+                        drag
+                        dragConstraints={{
+                            top: 0,
+                            left: 0,
+                            right: window.innerWidth - config.size,
+                            bottom: window.innerHeight - config.size
+                        }}
+                        dragElastic={0.1}
+                        dragTransition={{ bounceStiffness: 600, bounceDamping: 20 }}
                         initial={{ scale: 0, opacity: 0, rotate: -45 }}
                         animate={{ scale: 1, opacity: 1, rotate: 0 }}
                         exit={{ scale: 0, opacity: 0, rotate: 45 }}
                         whileHover={{ scale: 1.1, boxShadow: "0 20px 40px rgba(251, 191, 36, 0.4)" }}
                         whileTap={{ scale: 0.9 }}
+                        whileDrag={{ scale: 1.05, boxShadow: "0 25px 50px rgba(251, 191, 36, 0.6)" }}
                         onClick={() => setIsOpen(true)}
-                        style={{
-                            width: `${config.size}px`,
-                            height: `${config.size}px`,
-                            position: 'fixed',
-                            bottom: '1.5rem',
-                            right: '1.5rem',
-                            zIndex: 99999,
-                        }}
-                        className={`pointer-events-auto rounded-full bg-slate-950 shadow-[0_20px_50px_-5px_rgba(251,191,36,0.8)] border-3 border-amber-400 flex items-center justify-center group ring-4 ring-amber-400/50 cursor-pointer ${config.showAnimation ? 'animate-pulse' : ''}`}
+                        className={`pointer-events-auto rounded-full bg-slate-950 shadow-[0_20px_50px_-5px_rgba(251,191,36,0.8)] border-3 border-amber-400 flex items-center justify-center group ring-4 ring-amber-400/50 cursor-grab active:cursor-grabbing fixed divine-assistant-widget ${config.showAnimation ? 'animate-pulse' : ''}`}
+        style={{
+            width: `${config.size}px`,
+            height: `${config.size}px`,
+            position: 'fixed',
+            zIndex: 999999999, // Even higher z-index for admin dashboard
+            bottom: '24px',
+            right: '16px'
+        }}
                     >
                         {/* Inner container for background masking */}
                         <div className="absolute inset-0 rounded-full overflow-hidden">
@@ -580,11 +599,11 @@ export const DivineAssistant: React.FC = () => {
                             <div className="absolute inset-0 bg-gradient-to-t from-amber-900/40 to-transparent"></div>
                         </div>
 
-                        {/* Label */}
+                        {/* Label (Desktop Only) */}
                         <motion.div
                             initial={{ opacity: 0, x: 28 }}
                             animate={labelControls}
-                            className="absolute right-[calc(100%+16px)] whitespace-nowrap bg-white text-blue-700 text-[10px] font-black uppercase tracking-wider px-4 py-2 rounded-full shadow-lg border border-slate-100 flex items-center gap-2 pointer-events-none"
+                            className="hidden sm:flex absolute right-[calc(100%+16px)] whitespace-nowrap bg-white text-blue-700 text-[10px] font-black uppercase tracking-wider px-4 py-2 rounded-full shadow-lg border border-slate-100 items-center gap-2 pointer-events-none"
                         >
                             <LordIconWrapper icon="bible" size={14} trigger="loop" colors={{ primary: '#2563EB', secondary: '#D4AF37' }} />
                             {config.label}
@@ -610,7 +629,6 @@ export const DivineAssistant: React.FC = () => {
             </AnimatePresence>
 
             {/* Chat Window */}
-            <div ref={containerRef} className="fixed inset-0 pointer-events-none z-40">
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
@@ -619,17 +637,21 @@ export const DivineAssistant: React.FC = () => {
                             opacity: 1, 
                             y: 0, 
                             scale: 1,
-                            width: isExpanded ? 'calc(100vw - 40px)' : '420px',
-                            height: isExpanded ? 'calc(100vh - 40px)' : '740px',
-                            bottom: isExpanded ? 20 : 20,
-                            right: isExpanded ? 20 : 20,
-                            borderRadius: isExpanded ? '24px' : '20px'
+                            width: isExpanded ? 'min(calc(100vw - 40px), 1200px)' : 'min(420px, calc(100vw - 40px))',
+                            height: isExpanded ? 'calc(100vh - 40px)' : 'min(740px, calc(100vh - 100px))',
                         }}
                         exit={{ opacity: 0, y: 100, scale: 0.8 }}
-                        className="pointer-events-auto fixed shadow-2xl flex flex-col overflow-hidden"
+                        className="fixed shadow-2xl flex flex-col overflow-hidden"
                         style={{
                             background: 'linear-gradient(135deg, #F8FAFF 0%, #F0F4FF 100%)',
-                            zIndex: 99999,
+                            zIndex: 999999,
+                            bottom: isExpanded ? '20px' : '20px',
+                            right: isExpanded ? '20px' : '20px',
+                            left: isExpanded ? '20px' : 'auto',
+                            top: isExpanded ? '20px' : 'auto',
+                            borderRadius: isExpanded ? '24px' : '20px',
+                            maxWidth: isExpanded ? '100%' : '420px',
+                            margin: isExpanded ? '0' : '0 auto'
                         }}
                     >
                         {/* Royal Blue Header */}
@@ -648,6 +670,14 @@ export const DivineAssistant: React.FC = () => {
                             </div>
 
                             <div className="flex items-center gap-1">
+                                <button 
+                                    onClick={() => setIsExpanded(!isExpanded)} 
+                                    className="p-2 rounded-lg transition-all hover:bg-white/20"
+                                    style={{color: '#D4AF37'}}
+                                    title={isExpanded ? "Minimize" : "Maximize"}
+                                >
+                                    {isExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                                </button>
                                 <button 
                                     onClick={() => setShowSettings(!showSettings)} 
                                     className="p-2 rounded-lg transition-all hover:bg-white/20"
@@ -680,12 +710,13 @@ export const DivineAssistant: React.FC = () => {
                                         <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Sound Effects</label>
                                         <button
                                             onClick={() => setConfig(p => ({ ...p, soundEnabled: !p.soundEnabled }))}
-                                            className={`w-11 h-6 rounded-full transition-all flex items-center`}
+                                            className={`w-11 h-6 rounded-full transition-all flex items-center relative`}
                                             style={{background: config.soundEnabled ? '#2563EB' : '#E5E7EB'}}
                                         >
                                             <motion.div 
                                                 animate={{x: config.soundEnabled ? 20 : 2}}
-                                                className="w-5 h-5 bg-white rounded-full"
+                                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                                className="w-5 h-5 bg-white rounded-full absolute"
                                             />
                                         </button>
                                     </div>
@@ -723,7 +754,7 @@ export const DivineAssistant: React.FC = () => {
                                     transition={{ duration: 0.3 }}
                                     className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                                 >
-                                    <div className={`flex gap-2 max-w-[90%] ${msg.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                                    <div className={`flex gap-2 max-w-[85%] ${msg.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                                         {/* Avatar */}
                                         <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-lg shadow-md ${
                                             msg.sender === 'bot' 
@@ -741,7 +772,7 @@ export const DivineAssistant: React.FC = () => {
                                         </div>
 
                                         {/* Message Bubble */}
-                                        <div className="space-y-2 flex-1">
+                                        <div className="space-y-2 flex-1 min-w-0">
                                             <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-md transition-all ${
                                                 msg.sender === 'bot'
                                                 ? 'rounded-tl-none'
@@ -761,7 +792,7 @@ export const DivineAssistant: React.FC = () => {
                                             
                                             {/* Action Buttons */}
                                             {msg.sender === 'bot' && (
-                                                <div className="flex gap-2 pl-1">
+                                                <div className="flex gap-2 pl-1 justify-start">
                                                     <motion.button
                                                         whileHover={{ scale: 1.1 }}
                                                         whileTap={{ scale: 0.95 }}
@@ -823,14 +854,16 @@ export const DivineAssistant: React.FC = () => {
 
                             {/* Typing Indicator */}
                             {isTyping && (
-                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-lg flex items-center justify-center text-sm shadow-md" style={{background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)'}}>
-                                        <Loader className="w-5 h-5 animate-spin text-blue-200" />
-                                    </div>
-                                    <div className="h-10 px-5 rounded-xl flex items-center gap-2 shadow-md" style={{background: 'rgba(255, 255, 255, 0.95)', border: '1px solid rgba(212, 175, 55, 0.2)'}}>
-                                        <span className="text-sm font-serif font-semibold text-brand-900 flex items-center gap-2 animate-pulse">
-                                            📜 Searching Scripture...
-                                        </span>
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
+                                    <div className="flex items-center gap-3 max-w-[85%]">
+                                        <div className="w-9 h-9 rounded-lg flex items-center justify-center text-sm shadow-md" style={{background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)'}}>
+                                            <Loader className="w-5 h-5 animate-spin text-blue-200" />
+                                        </div>
+                                        <div className="h-10 px-5 rounded-xl flex items-center gap-2 shadow-md rounded-tl-none" style={{background: 'rgba(255, 255, 255, 0.95)', border: '1px solid rgba(212, 175, 55, 0.2)'}}>
+                                            <span className="text-sm font-serif font-semibold text-brand-900 flex items-center gap-2 animate-pulse">
+                                                📜 Searching Scripture...
+                                            </span>
+                                        </div>
                                     </div>
                                 </motion.div>
                             )}
@@ -869,7 +902,6 @@ export const DivineAssistant: React.FC = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
         </>
     );
 };

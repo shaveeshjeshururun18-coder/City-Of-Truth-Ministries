@@ -41,6 +41,8 @@
             fontFamily: {
               serif: ['Playfair Display', 'serif'],
               sans: ['Inter', 'sans-serif'],
+              tamil: ['Mukta Malar', 'Noto Sans Tamil', 'Catamaran', 'sans-serif'],
+              tamilSerif: ['Noto Serif Tamil', 'serif'],
               bamini25: ['Bamini_25', 'sans-serif'],
               bamini03: ['Bamini_03', 'sans-serif'],
             },
@@ -51,7 +53,7 @@
         }
       }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Catamaran:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&family=Mukta+Malar:wght@400;500;600;700;800&family=Noto+Sans+Tamil:wght@400;500;600;700;800&family=Noto+Serif+Tamil:wght@400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
       @font-face {
         font-family: 'Bamini_25';
@@ -65,9 +67,18 @@
         font-weight: normal;
         font-style: normal;
       }
+
+      /* Automatic Tamil Unicode Font Fallback for all Tamil text */
+      .font-tamil, [lang="ta"] {
+        font-family: 'Mukta Malar', 'Noto Sans Tamil', 'Catamaran', sans-serif !important;
+      }
+      .font-tamil-serif {
+        font-family: 'Noto Serif Tamil', serif !important;
+      }
+
       body {
         margin: 0;
-        font-family: 'Inter', sans-serif;
+        font-family: 'Inter', 'Mukta Malar', 'Noto Sans Tamil', sans-serif;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
         background-color: #f8fafc;

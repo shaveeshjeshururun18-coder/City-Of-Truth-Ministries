@@ -92,7 +92,7 @@ export const PastorPage: React.FC<PastorPageProps> = ({
                     <div className="flex-1 flex flex-col justify-center">
                         
                         <motion.div variants={itemVariants} className="mb-8">
-                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-sky-500 mb-4 flex items-center gap-2">
+                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-sky-500 mb-4 flex items-center gap-2 font-tamil">
                                 <span className="w-6 h-[2px] bg-sky-300"></span> ஆசிரியர் குறிப்பு <span className="w-6 h-[2px] bg-sky-300"></span>
                             </h3>
 
@@ -110,7 +110,7 @@ export const PastorPage: React.FC<PastorPageProps> = ({
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-[#d19b4b] font-black text-sm uppercase tracking-[0.1em]">Rabbi Masal Ben El Etzar</p>
-                                    <p className="text-brand-900 font-bold text-lg font-tamil">ரப்பி மசால் பென் எல் எட்சர்</p>
+                                    <p className="text-brand-900 font-bold text-xl font-tamil tracking-wide">ரப்பி மசால் பென் எல் எட்சர்</p>
                                 </div>
                             </div>
 
@@ -124,9 +124,9 @@ export const PastorPage: React.FC<PastorPageProps> = ({
                                 </div>
                                 <div className="flex items-start gap-3">
                                     <Globe className="shrink-0 text-sky-500 mt-1" size={20} />
-                                    <p className="font-medium text-sky-800">
+                                    <p className="font-semibold text-sky-900 font-tamil text-base leading-relaxed">
                                         USA-விலுள்ள TPI-யில் எபிரேயத்தில் மேம்பட்ட படிப்பு பெற்றவர். <br/>
-                                        <span className="text-sm text-sky-600">(Advanced Hebrew Studies at TPI - USA)</span>
+                                        <span className="text-sm text-sky-600 font-sans font-normal">(Advanced Hebrew Studies at TPI - USA)</span>
                                     </p>
                                 </div>
                             </div>
@@ -138,13 +138,13 @@ export const PastorPage: React.FC<PastorPageProps> = ({
                                 <motion.div 
                                     key={i}
                                     variants={itemVariants}
-                                    whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.9)" }}
-                                    className="bg-white/60 p-4 rounded-2xl border border-sky-100 shadow-sm flex items-start gap-3 transition-colors text-left"
+                                    whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.95)" }}
+                                    className="bg-white/70 p-4 rounded-2xl border border-sky-100 shadow-sm flex items-start gap-3 transition-colors text-left"
                                 >
-                                    <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center shrink-0">
+                                    <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center shrink-0 mt-0.5">
                                         <feature.icon size={16} className="text-sky-600" />
                                     </div>
-                                    <p className="text-sm text-sky-900 font-medium leading-relaxed pt-1">
+                                    <p className="text-sm md:text-base text-sky-950 font-semibold leading-relaxed font-tamil">
                                         {feature.text}
                                     </p>
                                 </motion.div>

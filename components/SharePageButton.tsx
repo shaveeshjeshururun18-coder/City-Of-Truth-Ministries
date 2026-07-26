@@ -133,13 +133,23 @@ export const SharePageButton: React.FC<SharePageButtonProps> = ({
         
         return (
           <motion.button
+            drag
+            dragConstraints={{
+              top: 0,
+              left: 0,
+              right: window.innerWidth - 56,
+              bottom: window.innerHeight - 56
+            }}
+            dragElastic={0.1}
+            dragTransition={{ bounceStiffness: 600, bounceDamping: 20 }}
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: effectiveScale, opacity: 1 }}
             transition={{ delay: 0.5, type: 'spring', stiffness: 260, damping: 20 }}
             onHoverStart={() => setIsHovered(true)}
             onHoverEnd={() => setIsHovered(false)}
+            whileDrag={{ scale: effectiveScale * 1.05, boxShadow: "0 25px 50px rgba(37, 99, 235, 0.6)" }}
             onClick={handleNativeShare}
-            className={`fixed bottom-[120px] right-6 z-40 bg-gradient-to-r from-brand-600 to-brand-700 text-white p-3 rounded-full shadow-2xl hover:shadow-brand-500/50 hover:scale-[1.05] transition-all group flex items-center justify-center ${className}`}
+            className={`fixed bottom-[120px] right-6 z-[999998] hidden md:flex bg-gradient-to-r from-brand-600 to-brand-700 text-white p-3 rounded-full shadow-2xl hover:shadow-brand-500/50 hover:scale-[1.05] transition-all group items-center justify-center cursor-grab active:cursor-grabbing ${className}`}
             style={{ transformOrigin: 'center', touchAction: 'none', width: '3.5rem', height: '3.5rem' }}
             title={widgetSettings.shareLabelText || 'Share this page'}
             aria-label={widgetSettings.shareLabelText || 'Share this page'}

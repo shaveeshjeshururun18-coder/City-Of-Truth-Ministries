@@ -85,6 +85,7 @@ export const IsraelPage: React.FC = () => {
     const [selectedRegion, setSelectedRegion] = useState<RegionData>(REGIONS[2]); // Jerusalem default
     const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'geography' | 'archaeology' | 'language'>('overview');
     const [isExporting, setIsExporting] = useState(false);
+    const [exportProgress, setExportProgress] = useState('');
     const exportRef = useRef<HTMLDivElement>(null);
 
     const handlePlayAudio = (text: string) => {
@@ -94,23 +95,63 @@ export const IsraelPage: React.FC = () => {
     const handleExportPDF = async () => {
         if (!exportRef.current) return;
         setIsExporting(true);
+        setExportProgress('Preparing...');
+        const TABS: Array<'overview' | 'history' | 'geography' | 'archaeology' | 'language'> = ['overview', 'history', 'geography', 'archaeology', 'language'];
+        const savedRegion = selectedRegion;
+        const savedTab = activeTab;
         try {
-            const canvas = await html2canvas(exportRef.current, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#fffdf6'
-            });
-            const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save(`COT-Eretz-Israel-Guide-${Date.now()}.pdf`);
+            const pdfW = pdf.internal.pageSize.getWidth();
+            const pdfH = pdf.internal.pageSize.getHeight();
+            let firstPage = true;
+            let pageNum = 0;
+            const totalPages = 1 + (REGIONS.length * TABS.length); // 26 pages
+
+            const capturePage = async () => {
+                if (!exportRef.current) return;
+                pageNum++;
+                setExportProgress(`${pageNum}/${totalPages}`);
+                await new Promise(r => setTimeout(r, 60));
+                const canvas = await html2canvas(exportRef.current, {
+                    scale: 1.2,
+                    useCORS: true,
+                    backgroundColor: '#fffdf6',
+                    logging: false,
+                    ignoreElements: (el: Element) => el.hasAttribute('data-html2canvas-ignore')
+                });
+                const imgData = canvas.toDataURL('image/jpeg', 0.82);
+                const imgH = (canvas.height * pdfW) / canvas.width;
+                let y = 0, heightLeft = imgH;
+                if (!firstPage) pdf.addPage(); else firstPage = false;
+                pdf.addImage(imgData, 'JPEG', 0, y, pdfW, imgH);
+                heightLeft -= pdfH;
+                while (heightLeft > 0) {
+                    y -= pdfH; pdf.addPage();
+                    pdf.addImage(imgData, 'JPEG', 0, y, pdfW, imgH);
+                    heightLeft -= pdfH;
+                }
+            };
+            // Cover page
+            setSelectedRegion(REGIONS[2]);
+            setActiveTab('overview');
+            await capturePage();
+            // Cycle all regions x all tabs
+            for (const region of REGIONS) {
+                setSelectedRegion(region);
+                for (const tab of TABS) {
+                    setActiveTab(tab);
+                    await capturePage();
+                }
+            }
+            pdf.save('COT-Eretz-Israel-Complete-Guide.pdf');
         } catch (error) {
             console.error('Export failed:', error);
             alert('Could not export PDF. Please try again.');
         } finally {
+            setSelectedRegion(savedRegion);
+            setActiveTab(savedTab);
             setIsExporting(false);
+            setExportProgress('');
         }
     };
 
@@ -137,23 +178,14 @@ export const IsraelPage: React.FC = () => {
                 }
             `}</style>
             <div className="max-w-6xl mx-auto space-y-12">
-                
+
                 {/* Header Block */}
                 <header className="text-center relative py-8 overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-slate-900 via-brand-950 to-slate-950 text-white shadow-xl border border-white/5">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(251,191,36,0.08)_0%,transparent_70%)] pointer-events-none" />
-                    
-                    {/* Download Button */}
-                    <button
-                        onClick={handleExportPDF}
-                        disabled={isExporting}
-                        data-html2canvas-ignore="true"
-                        className="absolute top-4 right-4 flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs transition-all disabled:opacity-50 cursor-pointer"
-                    >
-                        {isExporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                        Download PDF
-                    </button>
-                    
-                    <motion.div 
+
+
+
+                    <motion.div
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         className="w-16 h-16 mx-auto bg-gradient-to-br from-amber-400/20 to-amber-500/5 rounded-full flex items-center justify-center border border-amber-400/25 mb-4 shadow-[0_0_30px_rgba(245,158,11,0.15)]"
@@ -174,23 +206,23 @@ export const IsraelPage: React.FC = () => {
                 {/* Flags Section - Attractive CSS Waving Flags */}
                 <section className="grid md:grid-cols-2 gap-8 bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl pointer-events-none"></div>
-                    
+
                     {/* Flag 1: State of Israel */}
                     <div className="flex flex-col items-center p-6 bg-slate-50 rounded-2xl border border-slate-100 shadow-inner group">
                         <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                             <ShieldCheck size={14} className="text-blue-600" /> State Flag of Israel
                         </h3>
-                        
+
                         {/* Waving Israel Flag */}
                         <div className="relative w-full max-w-[280px] aspect-[3/2] overflow-hidden rounded-lg shadow-lg border border-slate-200 group-hover:scale-[1.02] transition-transform duration-500">
                             {/* Flag Canvas/CSS wave wrapper */}
                             <div className="w-full h-full bg-white relative flex flex-col justify-between py-[12%] px-[5%] animate-flag-wave overflow-hidden">
                                 {/* Ambient shine */}
                                 <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-black/10 z-10 pointer-events-none" />
-                                
+
                                 {/* Top Blue Stripe */}
                                 <div className="w-full h-[15%] bg-[#003399]" />
-                                
+
                                 {/* Magen David Star */}
                                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                     <svg className="w-[30%] aspect-square text-[#003399]" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="8">
@@ -199,7 +231,7 @@ export const IsraelPage: React.FC = () => {
                                         <polygon points="50,85 80,30 20,30" />
                                     </svg>
                                 </div>
-                                
+
                                 {/* Bottom Blue Stripe */}
                                 <div className="w-full h-[15%] bg-[#003399]" />
                             </div>
@@ -214,7 +246,7 @@ export const IsraelPage: React.FC = () => {
                         <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                             <Sparkles size={14} className="text-amber-500" /> COT Golden Menorah Flag
                         </h3>
-                        
+
                         {/* Waving Golden Menorah Flag - Dynamic Video */}
                         <div className="relative w-full max-w-[280px] aspect-[3/2] overflow-hidden rounded-lg shadow-lg border border-slate-200 group-hover:scale-[1.02] transition-transform duration-500 bg-black">
                             <video
@@ -245,16 +277,16 @@ export const IsraelPage: React.FC = () => {
                     </div>
 
                     <div className="grid lg:grid-cols-12 gap-8 items-stretch">
-                        
+
                         {/* Column 1: Interactive SVG Map (occupies 5 cols) */}
                         <div className="lg:col-span-5 flex flex-col items-center justify-center bg-slate-50 p-6 rounded-3xl border border-slate-150 relative min-h-[360px]">
                             {/* Map Labels Overlay */}
                             <div className="absolute top-4 left-4 text-[9px] text-slate-400 uppercase tracking-wider font-mono">
                                 Map boundaries illustrative
                             </div>
-                            
-                            <svg 
-                                className="w-full max-w-[260px] h-auto text-slate-300 drop-shadow-md" 
+
+                            <svg
+                                className="w-full max-w-[260px] h-auto text-slate-300 drop-shadow-md"
                                 viewBox="0 0 200 350"
                                 fill="none"
                                 stroke="#cbd5e1"
@@ -267,7 +299,7 @@ export const IsraelPage: React.FC = () => {
                                     const isSelected = selectedRegion.id === region.id;
                                     return (
                                         <g key={region.id} className="cursor-pointer">
-                                            <motion.path 
+                                            <motion.path
                                                 d={region.coordinates}
                                                 className="transition-all duration-300 outline-none"
                                                 fill={isSelected ? '#d97706' : '#e2e8f0'}
@@ -294,18 +326,17 @@ export const IsraelPage: React.FC = () => {
                                 <ellipse cx="112" cy="180" rx="5" ry="25" fill="#3b82f6" fillOpacity="0.8" stroke="#1d4ed8" strokeWidth="1" />
                                 <text x="120" y="183" fill="#1e3a8a" fontSize="7" fontWeight="bold" fontFamily="sans-serif">Dead Sea</text>
                             </svg>
-                            
+
                             {/* Region quick selector buttons */}
                             <div className="flex flex-wrap justify-center gap-1.5 mt-6 w-full">
                                 {REGIONS.map(r => (
                                     <button
                                         key={r.id}
                                         onClick={() => setSelectedRegion(r)}
-                                        className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider transition-all border ${
-                                            selectedRegion.id === r.id
+                                        className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider transition-all border ${selectedRegion.id === r.id
                                                 ? 'bg-amber-500 border-amber-600 text-white shadow-sm'
                                                 : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-100'
-                                        }`}
+                                            }`}
                                     >
                                         {r.name.split(' ')[0]}
                                     </button>
@@ -326,7 +357,7 @@ export const IsraelPage: React.FC = () => {
                                 >
                                     {/* Glowing side accent */}
                                     <div className={`absolute top-0 left-0 w-2 h-full bg-gradient-to-b ${selectedRegion.color}`}></div>
-                                    
+
                                     <div className="space-y-5">
                                         <div className="flex items-start justify-between">
                                             <div>
@@ -335,7 +366,7 @@ export const IsraelPage: React.FC = () => {
                                                     <span>{selectedRegion.hebrew}</span> · <span>{selectedRegion.tamilName}</span>
                                                 </p>
                                             </div>
-                                            <button 
+                                            <button
                                                 onClick={() => handlePlayAudio(selectedRegion.hebrew)}
                                                 className="p-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 hover:bg-amber-100 transition-colors shadow-sm"
                                                 title="Hear Hebrew pronunciation"
@@ -394,11 +425,10 @@ export const IsraelPage: React.FC = () => {
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as any)}
-                                className={`flex items-center gap-2 px-6 py-4 text-xs font-black uppercase tracking-wider transition-all border-r border-slate-100 shrink-0 ${
-                                    activeTab === tab.id
+                                className={`flex items-center gap-2 px-6 py-4 text-xs font-black uppercase tracking-wider transition-all border-r border-slate-100 shrink-0 ${activeTab === tab.id
                                         ? 'bg-white text-slate-900 border-b-2 border-b-amber-500'
                                         : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100/50'
-                                }`}
+                                    }`}
                             >
                                 {tab.icon}
                                 {tab.label}
@@ -534,7 +564,7 @@ export const IsraelPage: React.FC = () => {
                                             <p>
                                                 Few places in the world have been excavated as thoroughly as Israel. Over 30,000 archaeological sites have been mapped, revealing massive historic proofs that confirm biblical narratives down to exact details, locations, and names.
                                             </p>
-                                            
+
                                             <div className="grid md:grid-cols-2 gap-6 pt-2">
                                                 <div className="p-5 rounded-2xl border border-slate-150 bg-gradient-to-br from-white to-slate-50 shadow-sm">
                                                     <h4 className="font-bold text-slate-900 text-base flex items-center gap-2">

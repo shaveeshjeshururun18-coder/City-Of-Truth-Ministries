@@ -1,21 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getMessaging, MulticastMessage } from 'firebase-admin/messaging';
-
-// Initialize Firebase Admin if not already initialized
-if (!getApps().length) {
-  try {
-    initializeApp({
-      credential: cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-      }),
-    });
-  } catch (error) {
-    console.error('Firebase admin initialization error', error);
-  }
-}
+import { MulticastMessage } from 'firebase-admin/messaging';
+import { initFirebaseAdmin } from './_firebaseAdmin';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS setup
@@ -33,36 +18,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ success: false, error: 'Method Not Allowed' });
   }
 
-  const { tokens, title, body, imageUrl } = req.body;
+  const { tokens, title, body, imageUrl } = req.body || {};
 
   if (!tokens || !Array.isArray(tokens) || tokens.length === 0) {
     return res.status(400).json({ success: false, error: 'No device tokens provided' });
   }
 
-  const message: MulticastMessage = {
-    tokens: tokens,
-    notification: {
-      title: title,
-      body: body,
-      ...(imageUrl ? { imageUrl: imageUrl } : {})
-    },
-    android: {
-      priority: 'high',
+  try {
+    const { messaging } = initFirebaseAdmin();
+
+    const message: MulticastMessage = {
+      tokens: tokens,
       notification: {
-        sound: 'default'
-      }
-    },
-    apns: {
-      payload: {
-        aps: {
+        title: title,
+        body: body,
+        ...(imageUrl ? { imageUrl: imageUrl } : {})
+      },
+      android: {
+        priority: 'high',
+        notification: {
           sound: 'default'
         }
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: 'default'
+          }
+        }
       }
-    }
-  };
+    };
 
-  try {
-    const response = await getMessaging().sendEachForMulticast(message);
+    const response = await messaging.sendEachForMulticast(message);
     return res.status(200).json({ 
       success: true, 
       successCount: response.successCount, 

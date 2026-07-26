@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type, Volume2, Loader2, Info, Fingerprint, FileImage, Download, Printer, Globe } from 'lucide-react';
+import { Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type, Volume2, Loader2, Info, Fingerprint, FileImage, Download, Printer, Globe, Star, Moon, Sun, MapPin, Share2, X, Mic } from 'lucide-react';
 import { analyzeHebrewWord } from '../services/openRouterService';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { HebrewYearDropdown } from './HebrewYearDropdown';
@@ -8,6 +8,10 @@ import { HebrewWordHub } from './HebrewWordHub';
 import { InteractiveMenorah } from './InteractiveMenorah';
 import { PrintableHebrewCalendar } from './PrintableHebrewCalendar';
 import { PrintableReferenceGuide, HEBREW_MONTHS_DATA, KEY_DETAILS } from './PrintableReferenceGuide';
+
+// Timezone constants - Define early to avoid hoisting issues
+const JERUSALEM_TIMEZONE = 'Asia/Jerusalem';
+const CHENNAI_TIMEZONE = 'Asia/Kolkata';
 import { toPng, toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { User, ViewState } from '../types';
@@ -94,7 +98,7 @@ const toHebrew = (num: number): string => {
                 res += units[rem];
             }
         }
-        
+
         if (res.length > 1) {
             const last = res.slice(-1);
             const rest = res.slice(0, -1);
@@ -114,7 +118,7 @@ const toHebrew = (num: number): string => {
     for (let i = 0; i < groups.length; i++) {
         const val = groups[i];
         if (val === 0) continue;
-        
+
         let formatted = formatGroup(val);
         if (formatted) {
             if (i > 0) {
@@ -123,7 +127,7 @@ const toHebrew = (num: number): string => {
             parts.unshift(formatted);
         }
     }
-    
+
     return parts.join('');
 };
 
@@ -235,15 +239,335 @@ const getFirstDayOfWeek = (year: number, monthIdx: number): number => {
     return (baseDay + totalDays) % 7;
 };
 
+// --- Calendar Enrichment Data ---
+
+const FAST_DAYS = ['Yom Kippur', "Tisha B'Av", 'Tzom Tammuz', 'Fast of Gedaliah', 'Fast of Esther', 'Fast of Tevet', '17 Tammuz'];
+const NEW_MOON_DAYS = ['Rosh Chodesh'];
+const FEAST_DAYS = ['Pesach', 'Shavuot', 'Sukkot', 'Rosh Hashanah', 'Simchat Torah', 'Shemini Atzeret', 'Hanukkah', 'Purim', "Tu B'Av", "Tu Bishvat", "Lag B'Omer"];
+
+const TORAH_PORTIONS: Record<number, string> = {
+    1: 'Bereishit', 2: 'Noach', 3: 'Lech Lecha', 4: 'Vayeira', 5: 'Chayei Sara',
+    6: 'Toldot', 7: 'Vayetzei', 8: 'Vayishlach', 9: 'Vayeishev', 10: 'Miketz',
+    11: 'Vayigash', 12: 'Vayechi', 13: 'Shemot', 14: 'Vaeira', 15: 'Bo',
+    16: 'Beshalach', 17: 'Yitro', 18: 'Mishpatim', 19: 'Terumah', 20: 'Tetzaveh',
+    21: 'Ki Tisa', 22: 'Vayakhel', 23: 'Pekudei', 24: 'Vayikra', 25: 'Tzav',
+    26: 'Shemini', 27: 'Tazria', 28: 'Metzora', 29: 'Achrei Mot', 30: 'Kedoshim',
+    31: 'Emor', 32: 'Behar', 33: 'Bechukotai', 34: 'Bamidbar', 35: 'Naso',
+    36: "Beha'alotcha", 37: "Sh'lach", 38: 'Korach', 39: 'Chukat', 40: 'Balak',
+    41: 'Pinchas', 42: 'Matot', 43: 'Masei', 44: 'Devarim', 45: "Va'etchanan",
+    46: 'Eikev', 47: "Re'eh", 48: 'Shoftim', 49: 'Ki Teitzei', 50: 'Ki Tavo',
+    51: 'Nitzavim', 52: 'Vayelech', 53: 'Haazinu', 54: "V'Zot HaBerachah"
+};
+
+const DAILY_PSALMS: Record<number, string> = {
+    1: 'Psalm 1', 2: 'Psalm 2', 3: 'Psalm 23', 4: 'Psalm 46', 5: 'Psalm 90',
+    6: 'Psalm 91', 7: 'Psalm 100', 8: 'Psalm 121', 9: 'Psalm 130', 10: 'Psalm 145',
+    11: 'Psalm 150', 12: 'Psalm 51', 13: 'Psalm 8', 14: 'Psalm 19', 15: 'Psalm 24',
+    16: 'Psalm 27', 17: 'Psalm 34', 18: 'Psalm 37', 19: 'Psalm 42', 20: 'Psalm 63',
+    21: 'Psalm 103', 22: 'Psalm 119', 23: 'Psalm 133', 24: 'Psalm 136', 25: 'Psalm 139',
+    26: 'Psalm 147', 27: 'Psalm 148', 28: 'Psalm 149', 29: 'Psalm 117', 30: 'Psalm 113'
+};
+
+const HISTORICAL_NOTES: Record<string, string> = {
+    "Tisha B'Av": 'Destruction of both Temples, Expulsion from Spain (1492), many national tragedies.',
+    'Pesach': 'Exodus from Egypt; the Passover Seder retells the story of liberation.',
+    'Shavuot': 'Giving of the Torah at Mt. Sinai; also Pentecost in Christian tradition.',
+    'Rosh Hashanah': 'Birthday of the World (Yom Harat Olam); Books of Life are opened.',
+    'Yom Kippur': 'Moses descended with the second tablets; day of national atonement.',
+    'Sukkot': 'Remembrance of 40 years in the wilderness; harvest festival.',
+    'Hanukkah': 'Maccabean rededication of the Temple; miracle of the oil.',
+    'Purim': 'Salvation of Jews in Persia through Queen Esther and Mordecai.',
+};
+
+const getDayType = (festivals: string[], isShabbat: boolean, dayOfWeek: number) => {
+    if (isShabbat || dayOfWeek === 6) return 'shabbat';
+    if (festivals.some(f => FAST_DAYS.some(fd => f.includes(fd)))) return 'fast';
+    if (festivals.some(f => f.includes('Rosh Chodesh'))) return 'newmoon';
+    if (festivals.some(f => FEAST_DAYS.some(fd => f.includes(fd)))) return 'feast';
+    if (festivals.length > 0) return 'festival';
+    return 'normal';
+};
+
+interface MoonPhaseInfo {
+    emoji: string;
+    name: string;
+    hebrewName: string;
+    illumination: number;
+    lunarAge: number;
+    jerusalemTimeStr: string;
+    chennaiTimeStr: string;
+    hebrewSignificance: string;
+}
+
+const getMoonPhaseInfo = (date: Date): MoonPhaseInfo => {
+    const msDay = 86400000;
+    const ref = new Date('2000-01-06T18:14:00Z').getTime();
+    const diff = (date.getTime() - ref) / msDay;
+    const cycle = (diff % 29.53058867 + 29.53058867) % 29.53058867;
+    const illumination = Math.round((1 - Math.cos((cycle / 29.53058867) * 2 * Math.PI)) / 2 * 100);
+
+    const jerusalemTimeStr = date.toLocaleTimeString('en-US', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const chennaiTimeStr = date.toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    let emoji = '🌑';
+    let name = 'New Moon';
+    let hebrewName = 'מולד הלבנה';
+    let significance = 'Sanctification of the New Month (Rosh Chodesh). Biblical Renewal.';
+
+    if (cycle < 1.85) {
+        emoji = '🌑';
+        name = 'New Moon (Rosh Chodesh)';
+        hebrewName = 'מולד הלבנה';
+        significance = 'Beginning of the Hebrew Month. Sanctification of the Crescent.';
+    } else if (cycle < 7.38) {
+        emoji = '🌒';
+        name = 'Waxing Crescent';
+        hebrewName = 'לבנה מתחדשת';
+        significance = 'First light after New Moon; building momentum into the month.';
+    } else if (cycle < 9.22) {
+        emoji = '🌓';
+        name = 'First Quarter';
+        hebrewName = 'חצי לבנה ראשון';
+        significance = 'Half moon illuminated; mid-waxing phase.';
+    } else if (cycle < 14.77) {
+        emoji = '🌔';
+        name = 'Waxing Gibbous';
+        hebrewName = 'לבנה כמעט מלאה';
+        significance = 'Approaching peak illumination; biblical festival preparations.';
+    } else if (cycle < 16.61) {
+        emoji = '🌕';
+        name = 'Full Moon (Milui HaLevana)';
+        hebrewName = 'מילוא הלבנה';
+        significance = 'Peak Lunar Illumination. Associated with Passover (15 Nisan) & Sukkot (15 Tishrei).';
+    } else if (cycle < 22.15) {
+        emoji = '🌖';
+        name = 'Waning Gibbous';
+        hebrewName = 'לבנה מתמעטת';
+        significance = 'Lunar harvest reflection phase following peak festivals.';
+    } else if (cycle < 23.99) {
+        emoji = '🌗';
+        name = 'Last Quarter';
+        hebrewName = 'חצי לבנה אחרון';
+        significance = 'Third quarter phase leading into quiet reflection.';
+    } else {
+        emoji = '🌘';
+        name = 'Waning Crescent';
+        hebrewName = 'חרמש לבנה אחרון';
+        significance = 'Final silver sliver before the next Rosh Chodesh.';
+    }
+
+    return {
+        emoji,
+        name,
+        hebrewName,
+        illumination,
+        lunarAge: Number(cycle.toFixed(1)),
+        jerusalemTimeStr,
+        chennaiTimeStr,
+        hebrewSignificance: significance
+    };
+};
+
+const getMoonPhase = (date: Date) => getMoonPhaseInfo(date);
+
+const getDaysUntilShabbat = (today: Date): number => {
+    const dow = today.getDay(); // 0=Sun
+    if (dow === 5) return 0;
+    if (dow === 6) return 6;
+    return 6 - dow;
+};
+
+const CALENDAR_LEGEND = [
+    { label: 'Feast Day', color: 'bg-emerald-500', text: 'text-emerald-700', border: 'border-emerald-200', bg: 'bg-emerald-50' },
+    { label: 'New Moon', color: 'bg-blue-500', text: 'text-blue-700', border: 'border-blue-200', bg: 'bg-blue-50' },
+    { label: 'Fast Day', color: 'bg-orange-500', text: 'text-orange-700', border: 'border-orange-200', bg: 'bg-orange-50' },
+    { label: 'Shabbat', color: 'bg-violet-500', text: 'text-violet-700', border: 'border-violet-200', bg: 'bg-violet-50' },
+    { label: 'Today', color: 'bg-amber-400', text: 'text-amber-700', border: 'border-amber-200', bg: 'bg-amber-50' },
+];
+
+export interface AllMoonPhaseDetail {
+    id: string;
+    name: string;
+    hebrewName: string;
+    transliteration: string;
+    tamilName: string;
+    tamilMeaning: string;
+    emoji: string;
+    lunarAge: string;
+    illumination: string;
+    hebrewCalendarDay: string;
+    biblicalSignificance: string;
+    scriptureRef?: string;
+    bgGradient: string;
+    badgeColor: string;
+}
+
+export const ALL_MOON_PHASES: AllMoonPhaseDetail[] = [
+    {
+        id: 'new-moon',
+        name: 'New Moon',
+        hebrewName: 'מֹלַד הַלְּבָנָה',
+        transliteration: 'Molad HaLevana',
+        tamilName: 'அமாவாசை / புதிய நிலவு',
+        tamilMeaning: 'ரோஷ் ஹோதேஷ் - புதிய எபிரேய மாதத்தின் தொடக்கம் மற்றும் பிரதிஷ்டை நாள். பழைய மாதம் முடிந்து புதிய மாதம் உதயமாகும் பரிசுத்த நாள்.',
+        emoji: '🌑',
+        lunarAge: '0 – 1.85 Days',
+        illumination: '0% – 2%',
+        hebrewCalendarDay: 'Day 1 (Rosh Chodesh)',
+        biblicalSignificance: 'Marks Rosh Chodesh (Head of the Month). Blowing of the Shofar, special offerings (Numbers 10:10, Psalm 81:3), and spiritual renewal for the new biblical month.',
+        scriptureRef: 'Numbers 10:10 • Psalm 81:3',
+        bgGradient: 'from-slate-900 via-indigo-950 to-slate-950',
+        badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-400/30'
+    },
+    {
+        id: 'waxing-crescent',
+        name: 'Waxing Crescent',
+        hebrewName: 'לְבָנָה מִתְחַדֶּשֶׁת',
+        transliteration: 'Levana Mitkhadheshet',
+        tamilName: 'வளர்பிறை முதல் பிறை',
+        tamilMeaning: 'நிலவு வெளிச்சம் வளரும் பருவம் - ஆன்மீக வளர்ச்சி, புதுப்பித்தல் மற்றும் தேவ ஒளியில் நடத்தல்.',
+        emoji: '🌒',
+        lunarAge: '1.85 – 7.38 Days',
+        illumination: '3% – 49%',
+        hebrewCalendarDay: 'Days 2 – 7',
+        biblicalSignificance: 'The first sliver of crescent light becomes visible in the evening sky over Jerusalem. Symbolizes spiritual growth, building divine momentum, and walking in increasing light.',
+        scriptureRef: 'Proverbs 4:18',
+        bgGradient: 'from-slate-900 via-slate-800 to-indigo-950',
+        badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-400/30'
+    },
+    {
+        id: 'first-quarter',
+        name: 'First Quarter',
+        hebrewName: 'חֲצִי לְבָנָה רִאשׁוֹן',
+        transliteration: 'Chatzi Levana Rishon',
+        tamilName: 'முதல் அரை நிலவு',
+        tamilMeaning: 'பாதி நிலவு ஒளிபெறும் பருவம் - பலம், சமநிலை மற்றும் நடுமாத ஆசீர்வாதம்.',
+        emoji: '🌓',
+        lunarAge: '7.38 – 9.22 Days',
+        illumination: '50%',
+        hebrewCalendarDay: 'Days 8 – 9',
+        biblicalSignificance: 'Exactly half of the lunar disc is illuminated. Represents spiritual equilibrium, steadfast foundation, and mid-month readiness for upcoming high holy feast days.',
+        scriptureRef: 'Isaiah 40:29',
+        bgGradient: 'from-indigo-950 via-slate-900 to-slate-950',
+        badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-400/30'
+    },
+    {
+        id: 'waxing-gibbous',
+        name: 'Waxing Gibbous',
+        hebrewName: 'לְבָנָה כִּמְעַט מְלֵאָה',
+        transliteration: 'Levana Kemat Melea',
+        tamilName: 'வளர்பிறை முக்கால் நிலவு',
+        tamilMeaning: 'முழு நிலவுக்கு முந்தைய பருவம் - பரிசுத்த பண்டிகைகளுக்கான ஆயத்தம்.',
+        emoji: '🌔',
+        lunarAge: '9.22 – 14.77 Days',
+        illumination: '51% – 99%',
+        hebrewCalendarDay: 'Days 10 – 14',
+        biblicalSignificance: 'Greater than half illuminated, rapidly building to full strength. Time of final sanctification and preparation before major pilgrimage festivals like Passover and Sukkot.',
+        scriptureRef: 'Exodus 12:3–6',
+        bgGradient: 'from-slate-900 via-amber-950/40 to-slate-950',
+        badgeColor: 'bg-yellow-500/20 text-yellow-300 border-yellow-400/30'
+    },
+    {
+        id: 'full-moon',
+        name: 'Full Moon',
+        hebrewName: 'מִלּוּא הַלְּבָנָה',
+        transliteration: 'Milui HaLevana',
+        tamilName: 'பௌர்ணமி / முழு நிலவு',
+        tamilMeaning: 'மிலுய் ஹலெவனா - பூரண ஒளி, பஸ்கா (15 நிசான்) மற்றும் கூடாரப் பண்டிகை (15 திஷ்ரே) பெருவிழா நாள்.',
+        emoji: '🌕',
+        lunarAge: '14.77 – 16.61 Days',
+        illumination: '100%',
+        hebrewCalendarDay: 'Day 15 (Mid-Month)',
+        biblicalSignificance: 'Maximum celestial illumination. Associated directly with key Biblical appointed times: Pesach (Passover, 15 Nisan) & Sukkot (Feast of Tabernacles, 15 Tishrei). Symbolizes divine fullness, redemption, and holy joy.',
+        scriptureRef: 'Leviticus 23:5-6 • Leviticus 23:34',
+        bgGradient: 'from-amber-950/60 via-slate-900 to-slate-950',
+        badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30'
+    },
+    {
+        id: 'waning-gibbous',
+        name: 'Waning Gibbous',
+        hebrewName: 'לְבָנָה מִתְמַעֶטֶת',
+        transliteration: 'Levana Mitma\'etet',
+        tamilName: 'தேய்பிறை முக்கால் நிலவு',
+        tamilMeaning: 'அறுவடை மற்றும் தியானப் பருவம் - பண்டிகை ஆசீர்வாதங்களை வாழ்வில் கடைப்பிடித்தல்.',
+        emoji: '🌖',
+        lunarAge: '16.61 – 22.15 Days',
+        illumination: '99% – 51%',
+        hebrewCalendarDay: 'Days 16 – 21',
+        biblicalSignificance: 'Light begins to gently diminish after the full moon. Represents gratitude, assimilating spiritual revelations received during festival days, and walking out the covenant in daily life.',
+        scriptureRef: 'Deuteronomy 16:15',
+        bgGradient: 'from-slate-900 via-indigo-950 to-slate-900',
+        badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-400/30'
+    },
+    {
+        id: 'last-quarter',
+        name: 'Last Quarter',
+        hebrewName: 'חֲצִי לְבָנָה אַחֲרוֹן',
+        transliteration: 'Chatzi Levana Acharon',
+        tamilName: 'கடைசி அரை நிலவு',
+        tamilMeaning: 'இரண்டாவது பாதி நிலவு பருவம் - சுயபரிசோதனை, பாவ அறிக்கை மற்றும் ஆன்மீக தூய்மை.',
+        emoji: '🌗',
+        lunarAge: '22.15 – 23.99 Days',
+        illumination: '50%',
+        hebrewCalendarDay: 'Days 22 – 23',
+        biblicalSignificance: 'The final half moon illuminated on the left. A season of introspection, releasing burdens, spiritual purification, and turning inward as the month nears its close.',
+        scriptureRef: 'Psalm 51:10',
+        bgGradient: 'from-slate-900 via-slate-950 to-indigo-950',
+        badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-400/30'
+    },
+    {
+        id: 'waning-crescent',
+        name: 'Waning Crescent',
+        hebrewName: 'חֶרְמֵשׁ לְבָנָה אַחֲרוֹן',
+        transliteration: 'Khermesh Levana Acharon',
+        tamilName: 'தேய்பிறை இறுதிப் பிறை',
+        tamilMeaning: 'கடைசி பிறை ஒளி - அடுத்த புதிய மாதத்திற்கான (ரோஷ் ஹோதேஷ்) ஜெப எதிர்பார்ப்பு.',
+        emoji: '🌘',
+        lunarAge: '23.99 – 29.53 Days',
+        illumination: '49% – 1%',
+        hebrewCalendarDay: 'Days 24 – 29/30',
+        biblicalSignificance: 'The final delicate silver crescent before complete dark phase. Time of quiet prayer, deep meditation, fasting before Rosh Chodesh, and eager anticipation for the next new moon.',
+        scriptureRef: 'Lamentations 3:22–23',
+        bgGradient: 'from-slate-950 via-slate-900 to-slate-950',
+        badgeColor: 'bg-sky-500/20 text-sky-300 border-sky-400/30'
+    }
+];
+
 // --- View Components ---
 
 const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) => {
     const [year, setYear] = useState(5786);
-    const [currentMonthIdx, setCurrentMonthIdx] = useState(0); // Nisan (Default 0)
+    const [currentMonthIdx, setCurrentMonthIdx] = useState(0);
     const [selectedDay, setSelectedDay] = useState<number | null>(null);
+    const [calendarScope, setCalendarScope] = useState<'day' | 'week' | 'month' | 'year' | 'decade'>('month');
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     const [isGeneratingCurrentMonth, setIsGeneratingCurrentMonth] = useState(false);
     const [calendarRenderMode, setCalendarRenderMode] = useState<{ mode: 'cover' | 'month', monthData?: any } | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [showSearch, setShowSearch] = useState(false);
+    const [now, setNow] = useState(new Date());
+    const [selectedMoonPhase, setSelectedMoonPhase] = useState<AllMoonPhaseDetail | null>(null);
+
+    useEffect(() => {
+        const timer = setInterval(() => setNow(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const moonPhase = useMemo(() => getMoonPhase(now), [now]);
+    const daysToShabbat = useMemo(() => getDaysUntilShabbat(now), [now]);
+
+    // Jerusalem time (UTC+3)
+    const jerusalemOffset = 3 * 60;
+    const localOffset = -now.getTimezoneOffset();
+    const diff = (jerusalemOffset - localOffset) * 60000;
+    const jeruTime = new Date(now.getTime() + diff);
+    const jeruH = jeruTime.getUTCHours();
+    const jeruM = jeruTime.getUTCMinutes();
+    const jeruS = jeruTime.getUTCSeconds();
+    const jeruAMPM = jeruH >= 12 ? 'PM' : 'AM';
+    const jeruH12 = jeruH % 12 || 12;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const jeruTimeStr = `${pad(jeruH12)}:${pad(jeruM)}:${pad(jeruS)}`;
 
     // Use a safe fallback year if input is invalid
     const safeYear = (!year || isNaN(year) || year < 1 || year > 9999) ? 5786 : year;
@@ -394,13 +718,39 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
         }
     };
 
+    const nextFeast = useMemo(() => {
+        for (let m = 0; m < calendarData.length; m++) {
+            for (const w of calendarData[m].weeks) {
+                for (const d of w) {
+                    if (d.day && d.festivals.length > 0 && d.gregorianDate) {
+                        return { day: d.day, month: calendarData[m].name, festivals: d.festivals };
+                    }
+                }
+            }
+        }
+        return null;
+    }, [calendarData, now]);
+
+    const searchResults = useMemo(() => {
+        if (!searchQuery.trim()) return [];
+        const q = searchQuery.toLowerCase();
+        const results: { monthIdx: number; day: number; festivals: string[]; monthName: string }[] = [];
+        calendarData.forEach((month, mIdx) => {
+            month.weeks.flat().forEach(d => {
+                if (d.day && d.festivals.some(f => f.toLowerCase().includes(q))) {
+                    results.push({ monthIdx: mIdx, day: d.day, festivals: d.festivals, monthName: month.name });
+                }
+            });
+        });
+        return results.slice(0, 5);
+    }, [searchQuery, calendarData]);
+
     return (
-        <div className="space-y-6 md:space-y-12 w-full max-w-none mx-auto px-0 md:px-2">
-            {/* Hidden Print Config */}
-            {/* Hidden Print Config - Mounted on-screen for capture */}
-            {/* Hidden Print Config - Mounted off-screen for capture but visible to DOM */}
-            {/* Hidden Print Config - Mounted off-screen for capture but visible to DOM */}
-            <div id="printable-calendar-resource" className="fixed left-0 top-0 pointer-events-none -z-50 " style={{ opacity: 0.01 }}>
+        <div className="space-y-0 w-full max-w-none mx-auto px-0">
+            {/* ═══════════════════════════════════════════════════════
+                 HIDDEN PRINT / PDF CAPTURE NODES
+            ═══════════════════════════════════════════════════════ */}
+            <div id="printable-calendar-resource" className="fixed left-0 top-0 pointer-events-none -z-50" style={{ opacity: 0.01 }}>
                 {calendarRenderMode && (
                     <PrintableHebrewCalendar
                         mode={calendarRenderMode.mode}
@@ -410,376 +760,987 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                     />
                 )}
             </div>
-            {/* Reference Guide for Capture */}
             <div className="fixed left-[-10000px] top-0 pointer-events-none -z-50 opacity-100">
                 <PrintableReferenceGuide year={year} />
             </div>
 
-            <div id="active-calendar-card" className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-12 shadow-[0_20px_60px_rgba(0,0,0,0.05)] border border-slate-100 font-serif">
-                <div className="flex flex-col xl:flex-row items-center justify-between gap-6 md:gap-8 mb-8 md:mb-12">
-                    <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4 bg-slate-50 p-2 md:p-3 rounded-2xl w-full xl:w-auto">
-                        <HebrewYearDropdown
-                            selectedYear={safeYear}
-                            onYearChange={(selectedYear) => setYear(selectedYear)}
+            {/* ═══════════════════════════════════════════════════════
+                 HERO SECTION — Jerusalem Royal Blue / Gold
+            ═══════════════════════════════════════════════════════ */}
+            <div className="relative overflow-hidden rounded-[1.5rem] md:rounded-[2.5rem] mb-6">
+                {/* Deep blue + stars background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-[#0c1445] via-[#1e1b4b] to-[#020617]" />
+                <div className="absolute inset-0 opacity-20"
+                    style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, #D4AF37 0%, transparent 50%), radial-gradient(circle at 80% 20%, #1E3A8A 0%, transparent 50%)' }} />
+                {/* Twinkling stars */}
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    {[...Array(24)].map((_, i) => (
+                        <motion.div
+                            key={i}
+                            className="absolute w-0.5 h-0.5 bg-white rounded-full"
+                            style={{ left: `${(i * 37 + 11) % 100}%`, top: `${(i * 53 + 7) % 100}%` }}
+                            animate={{ opacity: [0.2, 1, 0.2], scale: [1, 1.5, 1] }}
+                            transition={{ duration: 2 + (i % 4), repeat: Infinity, delay: i * 0.3 }}
                         />
-                        <div className="bg-white px-3 py-1.5 rounded-lg border border-slate-100 text-xs font-bold text-slate-500 shadow-sm">
-                            Year {safeYear}
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-4 md:gap-8">
-                        <button
-                            onClick={() => setCurrentMonthIdx(prev => Math.max(0, prev - 1))}
-                            disabled={currentMonthIdx === 0}
-                            className="p-2 rounded-full hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-brand-900"
-                        >
-                            <ChevronLeft size={24} />
-                        </button>
-
-                        <div className="text-center min-w-[180px]">
-                            <div className="text-2xl md:text-4xl xl:text-5xl font-bold text-brand-950 mb-1 leading-tight">{name}</div>
-                            <div className="text-accent-600 text-lg md:text-2xl font-serif">{hebrew}</div>
-                            {firstGregorian && lastGregorian && (
-                                <div className="text-[10px] md:text-xs text-slate-500 font-bold uppercase tracking-widest mt-2">
-                                    {firstGregorianYear === lastGregorianYear
-                                        ? `${firstGregorian} - ${lastGregorian}, ${firstGregorianYear}`
-                                        : `${firstGregorian}, ${firstGregorianYear} - ${lastGregorian}, ${lastGregorianYear}`
-                                    }
-                                </div>
-                            )}
-                        </div>
-
-                        <button
-                            onClick={() => setCurrentMonthIdx(prev => Math.min(calendarData.length - 1, prev + 1))}
-                            disabled={currentMonthIdx === calendarData.length - 1}
-                            className="p-2 rounded-full hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-brand-900"
-                        >
-                            <ChevronRight size={24} className="md:w-8 md:h-8" />
-                        </button>
-
-                    </div>
-                </div>
-
-                <div className="today-notice-container mb-6 rounded-2xl border border-amber-100 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3 text-center">
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-amber-700 font-black">Today</p>
-                    <p className="text-sm md:text-base font-bold text-brand-950">
-                        {todayDayName}, {today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                    </p>
-                    <p className="text-xs text-slate-500">Current Hebrew month view: {name} ({hebrew})</p>
-                </div>
-
-                {/* PDF & PNG Actions */}
-                <div className="download-actions-container flex flex-wrap justify-center gap-4 mb-8">
-                    <button
-                        onClick={handleDownloadCurrentMonth}
-                        disabled={isGeneratingCurrentMonth}
-                        className="flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-amber-400 to-amber-500 text-white rounded-full hover:from-amber-500 hover:to-amber-600 font-black text-xs uppercase tracking-widest transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50"
-                    >
-                        {isGeneratingCurrentMonth ? (
-                            <><span className="animate-spin text-xs">⏳</span> Exporting PNG...</>
-                        ) : (
-                            <><FileImage size={15} /> Download Current Month (Fast PNG)</>
-                        )}
-                    </button>
-
-                    <button
-                        onClick={handleDownloadFullCalendar}
-                        disabled={isGeneratingPdf}
-                        className="flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-orange-500 to-amber-600 text-white rounded-full hover:from-orange-600 hover:to-amber-700 font-black text-xs uppercase tracking-widest transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50"
-                    >
-                        {isGeneratingPdf ? (
-                            <><span className="animate-spin text-xs">⏳</span> Bulk Exporting PDF...</>
-                        ) : (
-                            <><Download size={15} /> Download Full Calendar (Bulk PDF)</>
-                        )}
-                    </button>
-                </div>
-
-                {/* Grid Header */}
-                <div className="grid grid-cols-7 gap-1 md:gap-2 mb-4 md:mb-6 text-center bg-brand-50 rounded-xl p-2 items-center">
-                    {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((d, i) => {
-                        const hebDay = HEBREW_DAYS[i];
-                        return (
-                            <div key={i} className="flex flex-col items-center justify-center gap-0.5">
-                                <span className="text-[10px] md:text-xs font-black text-brand-900 tracking-widest leading-none">{d}</span>
-                                <span className="text-[9px] md:text-[11px] font-bold text-amber-700 leading-none mt-0.5">{hebDay.hebrew}</span>
-                                <span className="text-[8px] md:text-[9px] font-black text-blue-600 leading-none mt-0.5" title={hebDay.tamil}>
-                                    {hebDay.tamil.split(' (')[0]}
-                                </span>
-                            </div>
-                        );
-                    })}
-                </div>
-
-                {/* Days Grid */}
-                <div className="grid grid-cols-7 gap-1.5 md:gap-3">
-                    {currentMonthData.weeks.map((week, wIdx) => (
-                        <React.Fragment key={wIdx}>
-                            {week.map((dayObj, dIdx) => (
-                                <div key={`${wIdx}-${dIdx}`} className="aspect-square">
-                                    {dayObj.day ? (
-                                        (() => {
-                                            const isSelected = selectedDay === dayObj.day;
-                                            const isToday = dayObj.gregorianDate === todayKey;
-                                            return (
-                                        <motion.button
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            onClick={() => setSelectedDay(dayObj.day)}
-                                            className={`w-full h-full flex flex-col items-between justify-between p-1 md:p-2 rounded-xl md:rounded-2xl border transition-all relative overflow-hidden ${isSelected
-                                                ? 'bg-brand-600 border-brand-600 text-white shadow-xl ring-2 ring-brand-200'
-                                                : isToday
-                                                    ? 'bg-amber-100 border-amber-400 text-brand-900 shadow-lg ring-2 ring-amber-200'
-                                                : dayObj.isShabbat
-                                                    ? 'bg-brand-50 border-brand-100 text-brand-900'
-                                                    : 'bg-white border-slate-100 hover:border-brand-200 text-slate-500'
-                                                }`}
-                                        >
-                                            <div className="w-full flex justify-between items-start">
-                                                <span className={`text-base md:text-xl font-bold ${isSelected ? 'text-white' : 'text-brand-950'}`}>{dayObj.day}</span>
-                                                {/* Friday/Saturday Symbols */}
-                                                {dIdx === 5 && (
-                                                    <img src="/assets/friday-symbol.png" alt="Friday" className="w-4 h-4 md:w-5 md:h-5 object-contain" />
-                                                )}
-                                                {dIdx === 6 && (
-                                                    <img src="/assets/saturday-icon.png" alt="Saturday" className="w-4 h-4 md:w-5 md:h-5 object-contain" />
-                                                )}
-                                            </div>
-
-                                            {isToday && !isSelected && (
-                                                <div className="text-[8px] font-black uppercase tracking-wide text-amber-700">Today</div>
-                                            )}
-
-                                            {/* Festival Text Name */}
-                                            {dayObj.festivals.length > 0 && (
-                                                <div className="text-[8px] md:text-[10px] font-bold leading-tight text-center w-full mt-1">
-                                                    {dayObj.festivals.map(f => (
-                                                        <div key={f} className={`truncate ${isSelected ? 'text-white' : 'text-red-600'}`}>
-                                                            {f}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </motion.button>
-                                            );
-                                        })()
-                                    ) : (
-                                        <div className="w-full h-full" />
-                                    )}
-                                </div>
-                            ))}
-                        </React.Fragment>
                     ))}
                 </div>
 
-                {/* Copyright Footer */}
-                <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2">
-                    <div className="flex items-center gap-3">
-                        <img src="/brand-logo.png" alt="COT Logo" className="w-7 h-7 object-contain opacity-70" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-                        <div>
-                            <p className="text-[11px] font-black text-brand-950 uppercase tracking-[0.15em]">City of Truth Ministries</p>
-                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Valparai · Tamil Nadu · India</p>
+                <div className="relative z-10 px-4 md:px-10 pt-8 pb-6 md:py-12">
+                    {/* Top Bar: Location + Badges */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 mb-5 md:mb-7">
+                        <div className="flex items-center gap-2 text-[#D4AF37]/80 text-xs font-bold tracking-widest uppercase">
+                            <MapPin size={12} className="text-[#D4AF37]" />
+                            <span>Jerusalem Time · הזמן בירושלים</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-3 py-1.5 text-xs text-white font-bold">
+                                <span className="text-base leading-none">{moonPhase.emoji}</span>
+                                <span className="text-white/70 hidden sm:inline">{moonPhase.name}</span>
+                            </div>
+                            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border ${daysToShabbat === 0
+                                    ? 'bg-violet-500/30 border-violet-400/50 text-violet-200'
+                                    : 'bg-white/10 border-white/20 text-white/80'
+                                }`}>
+                                <Star size={10} className="text-[#D4AF37]" />
+                                {daysToShabbat === 0 ? 'Shabbat Shalom!' : `${daysToShabbat}d to Shabbat`}
+                            </div>
                         </div>
                     </div>
-                    <div className="text-center flex flex-col items-center justify-center gap-1.5 py-2">
-                        <p className="text-[11px] font-black text-amber-600 uppercase tracking-[0.2em] drop-shadow-sm">Hebrew Calendar {safeYear}</p>
-                        <p className="text-[10px] text-slate-500 font-bold tracking-wide">© {new Date().getFullYear()} <span className="text-brand-800 font-black">City of Truth Ministries</span> · All rights reserved</p>
-                    </div>
-                    <div className="flex items-center gap-4 text-[9px] text-slate-400 font-bold">
-                        <span>📞 +91 8056125478</span>
-                        <span>🌐 city-of-truth-ministries.vercel.app</span>
+
+                    {/* Main Hero Content */}
+                    <div className="flex flex-col lg:flex-row items-center lg:items-start justify-between gap-8">
+                        {/* Left: Date Info */}
+                        <div className="text-center lg:text-left flex-1">
+                            <p className="text-[#D4AF37]/70 text-[10px] md:text-xs font-black uppercase tracking-[0.3em] mb-2">Today's Hebrew Date</p>
+                            <div className="text-3xl md:text-5xl xl:text-6xl font-black text-white leading-tight mb-1" style={{ fontFamily: 'Playfair Display, serif' }}>
+                                {todayKey}
+                            </div>
+                            <div className="text-[#D4AF37] text-lg md:text-2xl font-bold mb-1">{name} {safeYear}</div>
+                            <div className="text-white/60 text-sm font-semibold mb-4">
+                                {todayDayName}, {today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                            </div>
+                            {/* Scripture Verse */}
+                            <motion.blockquote
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.4 }}
+                                className="border-l-2 border-[#D4AF37]/60 pl-4 max-w-md mx-auto lg:mx-0"
+                            >
+                                <p className="text-white/70 text-xs md:text-sm italic leading-relaxed">
+                                    "Teach us to number our days, that we may gain a heart of wisdom."
+                                </p>
+                                <cite className="text-[#D4AF37]/80 text-[10px] font-bold tracking-widest not-italic mt-1 block">— Psalm 90:12</cite>
+                            </motion.blockquote>
+                        </div>
+
+                        {/* Right: Stats Widgets */}
+                        <div className="flex flex-wrap lg:flex-col gap-3 justify-center lg:justify-start">
+                            {/* Month Meaning */}
+                            <motion.div
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.2 }}
+                                className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-4 py-3 min-w-[160px]"
+                            >
+                                <p className="text-[#D4AF37]/70 text-[9px] font-black uppercase tracking-widest mb-0.5">Month Meaning</p>
+                                <p className="text-white text-xs md:text-sm font-bold leading-snug">{MONTH_MEANINGS[name] || `Month of ${name}`}</p>
+                                <p className="text-white/50 text-[9px] font-bold mt-0.5">{hebrew}</p>
+                            </motion.div>
+
+                            {/* Next Feast */}
+                            {nextFeast && (
+                                <motion.div
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: 0.35 }}
+                                    className="bg-emerald-500/20 backdrop-blur-xl border border-emerald-400/30 rounded-2xl px-4 py-3 min-w-[160px]"
+                                >
+                                    <p className="text-emerald-300/80 text-[9px] font-black uppercase tracking-widest mb-0.5">Next Feast</p>
+                                    <p className="text-white text-xs font-bold leading-snug">{nextFeast.festivals[0]}</p>
+                                    <p className="text-white/50 text-[9px] font-bold mt-0.5">{nextFeast.day} {nextFeast.month}</p>
+                                </motion.div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Selected Date Details */}
-            <AnimatePresence mode="wait">
-                {selectedDay && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="p-8 bg-white border border-slate-200 rounded-[2rem] shadow-xl relative overflow-hidden"
-                    >
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-brand-50 rounded-bl-[100%] -mr-16 -mt-16 z-0" />
-                        <div className="relative z-10">
-                            <h4 className="text-xs font-bold text-brand-500 uppercase tracking-widest mb-2">Selected Date</h4>
-                            <div className="text-4xl font-black text-brand-950 mb-4">{selectedDay} {name}, {year}</div>
+            {/* ═══════════════════════════════════════════════════════
+                 CONTROLS: Year + Month Navigation + Search + Downloads
+            ═══════════════════════════════════════════════════════ */}
+            <div id="active-calendar-card" className="bg-white rounded-[1.5rem] md:rounded-[2rem] shadow-[0_8px_40px_rgba(0,0,0,0.07)] border border-slate-100 overflow-hidden font-serif mb-4">
 
-                            {/* Find festivals for this day */}
-                            {(() => {
-                                // Find the day object
-                                const dayObj = currentMonthData.weeks.flat().find(d => d.day === selectedDay);
-                                const selectedGregorian = dayObj?.gregorianDate;
-                                if (dayObj && dayObj.festivals.length > 0) {
-                                    return (
-                                        <div className="space-y-3 mt-4">
-                                            {selectedGregorian && (
-                                                <div className="text-sm text-slate-500 font-semibold">
-                                                    Gregorian date: {selectedGregorian}
+                {/* Top Control Bar */}
+                <div className="bg-gradient-to-r from-[#1E3A8A]/5 to-[#D4AF37]/5 border-b border-slate-100 px-4 md:px-8 py-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        {/* Year Selector */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <HebrewYearDropdown
+                                selectedYear={safeYear}
+                                onYearChange={(selectedYear) => setYear(selectedYear)}
+                            />
+                            {/* Scope Selector: Day, Week, Month, Year, Decade */}
+                            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                                {[
+                                    { scope: 'day', label: 'Day' },
+                                    { scope: 'week', label: 'Week' },
+                                    { scope: 'month', label: 'Month' },
+                                    { scope: 'year', label: 'Year' },
+                                    { scope: 'decade', label: 'Decade' }
+                                ].map(({ scope, label }) => (
+                                    <button
+                                        key={scope}
+                                        onClick={() => setCalendarScope(scope as any)}
+                                        className={`px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                                            calendarScope === scope
+                                                ? 'bg-[#1E3A8A] text-white shadow-sm'
+                                                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                                        }`}
+                                    >
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Month Nav */}
+                        <div className="flex items-center gap-2 md:gap-4">
+                            <button
+                                onClick={() => setCurrentMonthIdx(prev => Math.max(0, prev - 1))}
+                                disabled={currentMonthIdx === 0}
+                                className="w-9 h-9 rounded-full flex items-center justify-center bg-[#1E3A8A]/10 hover:bg-[#1E3A8A]/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[#1E3A8A] border border-[#1E3A8A]/20"
+                            >
+                                <ChevronLeft size={18} />
+                            </button>
+
+                            <div className="text-center min-w-[140px] md:min-w-[200px]">
+                                <div className="text-lg md:text-2xl font-black text-[#1E3A8A] leading-tight">{name}</div>
+                                <div className="text-[#D4AF37] text-base md:text-lg font-serif">{hebrew}</div>
+                                {firstGregorian && lastGregorian && (
+                                    <div className="text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                                        {firstGregorianYear === lastGregorianYear
+                                            ? `${firstGregorian} – ${lastGregorian}, ${firstGregorianYear}`
+                                            : `${firstGregorian}, ${firstGregorianYear} – ${lastGregorian}, ${lastGregorianYear}`}
+                                    </div>
+                                )}
+                            </div>
+
+                            <button
+                                onClick={() => setCurrentMonthIdx(prev => Math.min(calendarData.length - 1, prev + 1))}
+                                disabled={currentMonthIdx === calendarData.length - 1}
+                                className="w-9 h-9 rounded-full flex items-center justify-center bg-[#1E3A8A]/10 hover:bg-[#1E3A8A]/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[#1E3A8A] border border-[#1E3A8A]/20"
+                            >
+                                <ChevronRight size={18} />
+                            </button>
+                        </div>
+
+                        {/* Today + Search + Download pills */}
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => {
+                                    for (let m = 0; m < calendarData.length; m++) {
+                                        const found = calendarData[m].weeks.flat().find(d => d.day !== null && d.gregorianDate === todayKey);
+                                        if (found) { setCurrentMonthIdx(m); setSelectedDay(found.day); break; }
+                                    }
+                                }}
+                                className="px-3 py-1.5 rounded-full bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30 text-[#1E3A8A] font-black text-[10px] uppercase tracking-widest border border-[#D4AF37]/40 transition-all"
+                            >
+                                Today
+                            </button>
+                            <button
+                                onClick={() => setShowSearch(s => !s)}
+                                className="w-8 h-8 rounded-full flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-500 transition-all border border-slate-200"
+                                title="Search festivals"
+                            >
+                                <Search size={14} />
+                            </button>
+                            <button
+                                onClick={handleDownloadCurrentMonth}
+                                disabled={isGeneratingCurrentMonth}
+                                className="w-8 h-8 rounded-full flex items-center justify-center bg-amber-100 hover:bg-amber-200 text-amber-700 transition-all border border-amber-200 disabled:opacity-50"
+                                title="Download month as PNG"
+                            >
+                                {isGeneratingCurrentMonth ? <Loader2 size={13} className="animate-spin" /> : <FileImage size={13} />}
+                            </button>
+                            <button
+                                onClick={handleDownloadFullCalendar}
+                                disabled={isGeneratingPdf}
+                                className="w-8 h-8 rounded-full flex items-center justify-center bg-[#1E3A8A]/10 hover:bg-[#1E3A8A]/20 text-[#1E3A8A] transition-all border border-[#1E3A8A]/20 disabled:opacity-50"
+                                title="Download full calendar as PDF"
+                            >
+                                {isGeneratingPdf ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Search Bar */}
+                    <AnimatePresence>
+                        {showSearch && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                                animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+                                exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                                className="overflow-hidden"
+                            >
+                                <div className="relative">
+                                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <input
+                                        autoFocus
+                                        value={searchQuery}
+                                        onChange={e => setSearchQuery(e.target.value)}
+                                        placeholder="Search festivals… (e.g. Pesach, Shabbat, Purim)"
+                                        className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]/30 focus:border-[#1E3A8A]/50 placeholder:text-slate-300"
+                                    />
+                                    {searchQuery && (
+                                        <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                            <X size={14} />
+                                        </button>
+                                    )}
+                                </div>
+                                {searchResults.length > 0 && (
+                                    <div className="mt-2 rounded-xl border border-slate-100 bg-white shadow-lg overflow-hidden">
+                                        {searchResults.map((r, i) => (
+                                            <button
+                                                key={i}
+                                                onClick={() => { setCurrentMonthIdx(r.monthIdx); setSelectedDay(r.day); setShowSearch(false); setSearchQuery(''); }}
+                                                className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#1E3A8A]/5 transition-colors border-b border-slate-50 last:border-0 text-left"
+                                            >
+                                                <div>
+                                                    <p className="text-xs font-bold text-[#1E3A8A]">{r.festivals.join(', ')}</p>
+                                                    <p className="text-[10px] text-slate-400 font-semibold">{r.day} {r.monthName} {safeYear}</p>
                                                 </div>
-                                            )}
-                                            <div className="flex flex-wrap gap-2">
-                                                {dayObj.festivals.map(f => (
-                                                    <span key={f} className="px-3 py-1 bg-red-50 text-red-600 rounded-full text-sm font-bold border border-red-100 flex items-center gap-2">
-                                                        <Sparkles size={14} /> {f}
-                                                    </span>
-                                                ))}
-                                            </div>
+                                                <ChevronRight size={14} className="text-slate-300" />
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                {searchQuery && searchResults.length === 0 && (
+                                    <p className="mt-2 text-xs text-slate-400 font-semibold text-center py-2">No festivals found for "{searchQuery}"</p>
+                                )}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                {/* ═══ COLOR LEGEND ═══ */}
+                <div className="px-4 md:px-8 py-3 bg-slate-50/70 border-b border-slate-100">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 justify-center md:justify-start">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mr-1">Legend:</span>
+                        {CALENDAR_LEGEND.map(l => (
+                            <div key={l.label} className="flex items-center gap-1.5">
+                                <div className={`w-2.5 h-2.5 rounded-full ${l.color}`} />
+                                <span className={`text-[10px] font-bold ${l.text}`}>{l.label}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* ═══ CALENDAR GRID / SCOPE VIEWS ═══ */}
+                <div className="px-3 md:px-8 py-4 md:py-6">
+
+                    {/* ═══ MOON PHASE & CELESTIAL OBSERVER ═══ */}
+                    <div className="mb-6 bg-gradient-to-r from-slate-950 via-[#0B132B] to-slate-950 rounded-2xl md:rounded-3xl p-5 md:p-7 text-white border border-[#D4AF37]/30 shadow-xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+
+                        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
+                            {/* Left: Moon Phase Highlight */}
+                            <div className="flex items-center gap-4">
+                                <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-amber-400/20 to-amber-600/10 border border-[#D4AF37]/40 flex items-center justify-center text-4xl md:text-5xl shadow-[0_0_20px_rgba(212,175,55,0.2)] shrink-0">
+                                    {moonPhase.emoji}
+                                </div>
+                                <div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#D4AF37]">ASTRONOMICAL LUNAR PHASE</span>
+                                        <span className="text-[9px] font-bold bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-400/30">
+                                            {moonPhase.illumination}% Illuminated
+                                        </span>
+                                    </div>
+                                    <h4 className="text-xl md:text-2xl font-black text-white mt-0.5">{moonPhase.name}</h4>
+                                    <p className="text-sm font-serif text-[#D4AF37] font-semibold">{moonPhase.hebrewName}</p>
+                                    <p className="text-xs text-slate-300 mt-1 max-w-lg">{moonPhase.hebrewSignificance}</p>
+                                </div>
+                            </div>
+
+                            {/* Right: Dual Location Observation Readouts (Jerusalem & Chennai) */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full lg:w-auto shrink-0">
+                                <div className="bg-white/5 border border-white/10 rounded-xl p-3.5 text-center sm:text-left">
+                                    <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-400">
+                                        <MapPin size={12} /> Jerusalem Observation
+                                    </div>
+                                    <div className="text-xs font-mono font-bold text-white mt-1">
+                                        {moonPhase.jerusalemTimeStr} <span className="text-[9px] text-slate-400">(UTC+3)</span>
+                                    </div>
+                                    <p className="text-[9px] text-slate-300 font-semibold mt-1">Lunar Age: {moonPhase.lunarAge} Days</p>
+                                </div>
+
+                                <div className="bg-white/5 border border-white/10 rounded-xl p-3.5 text-center sm:text-left">
+                                    <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-cyan-400">
+                                        <MapPin size={12} /> Chennai Observation
+                                    </div>
+                                    <div className="text-xs font-mono font-bold text-white mt-1">
+                                        {moonPhase.chennaiTimeStr} <span className="text-[9px] text-slate-400">(UTC+5:30)</span>
+                                    </div>
+                                    <p className="text-[9px] text-slate-300 font-semibold mt-1">Hebrew Calendar Sync</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* SCOPE 1: DAY VIEW */}
+                    {calendarScope === 'day' && (
+                        <div className="bg-gradient-to-br from-[#0c1445] via-[#1e1b4b] to-[#020617] text-white p-6 md:p-8 rounded-3xl border border-[#D4AF37]/30 shadow-2xl space-y-6">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/10 pb-5">
+                                <div>
+                                    <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#D4AF37]">DAY VIEW · {name}</span>
+                                    <h3 className="text-3xl sm:text-5xl font-black text-white mt-1">Day {selectedDay || 1}</h3>
+                                    <p className="text-sm text-slate-300 font-serif">{name} {safeYear} · {hebrew}</p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setSelectedDay(prev => Math.max(1, (prev || 1) - 1))}
+                                        className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold transition-all border border-white/10 cursor-pointer"
+                                    >
+                                        ← Prev Day
+                                    </button>
+                                    <button
+                                        onClick={() => setSelectedDay(prev => Math.min(30, (prev || 1) + 1))}
+                                        className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold transition-all border border-white/10 cursor-pointer"
+                                    >
+                                        Next Day →
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-1">
+                                    <div className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37]">Jerusalem Time Sync</div>
+                                    <div className="text-2xl font-mono font-bold text-white">{jeruTimeStr} {jeruAMPM}</div>
+                                    <p className="text-xs text-slate-400">Synced to Israel (UTC+3)</p>
+                                </div>
+                                <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-1">
+                                    <div className="text-[10px] font-black uppercase tracking-widest text-amber-400">Moon Phase & Cycle</div>
+                                    <div className="text-xl font-bold text-white">{moonPhase.name} {moonPhase.emoji}</div>
+                                    <p className="text-xs text-slate-400">Days to Shabbat: {daysToShabbat} days</p>
+                                </div>
+                                <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-1">
+                                    <div className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Daily Psalm Reading</div>
+                                    <div className="text-xl font-bold text-white">{DAILY_PSALMS[(selectedDay || 1) % 30 || 30]}</div>
+                                    <p className="text-xs text-slate-400">Spiritual Meditation</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* SCOPE 2: WEEK VIEW */}
+                    {calendarScope === 'week' && (
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center px-1">
+                                <h4 className="text-sm font-black uppercase tracking-widest text-[#1E3A8A]">7-Day Week Overview — {name}</h4>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-7 gap-3">
+                                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Shabbat'].map((dayName, idx) => {
+                                    const dayNumber = ((selectedDay || 1) + idx) % 30 || 1;
+                                    return (
+                                        <div
+                                            key={dayName}
+                                            onClick={() => setSelectedDay(dayNumber)}
+                                            className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                                                idx === 6
+                                                    ? 'bg-violet-950 text-white border-violet-500 shadow-lg'
+                                                    : 'bg-white border-slate-200 hover:border-[#1E3A8A]'
+                                            }`}
+                                        >
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-amber-500">{dayName}</div>
+                                            <div className="text-3xl font-black mt-1">{dayNumber}</div>
+                                            <div className="text-xs font-bold opacity-75 mt-0.5">{name}</div>
                                         </div>
                                     );
-                                }
-                                return (
-                                    <div className="space-y-2">
-                                        {selectedGregorian && <div className="text-sm text-slate-500 font-semibold">Gregorian date: {selectedGregorian}</div>}
-                                        <div className="text-slate-400 italic">No major festivals on this date.</div>
-                                    </div>
-                                );
-                            })()}
+                                })}
+                            </div>
                         </div>
-                    </motion.div>
-                )}
+                    )}
+
+                    {/* SCOPE 3: MONTH VIEW (Standard Grid) */}
+                    {calendarScope === 'month' && (
+                        <>
+                            {/* Day Headers */}
+                            <div className="grid grid-cols-7 gap-1 md:gap-2 mb-3 md:mb-4 text-center">
+                                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Shabbat'].map((d, i) => {
+                                    const hebDay = HEBREW_DAYS[i];
+                                    return (
+                                        <div key={i} className={`flex flex-col items-center justify-center gap-0.5 py-2 rounded-lg ${i === 6 ? 'bg-violet-50 border border-violet-100' : 'bg-slate-50'
+                                            }`}>
+                                            <span className={`text-[10px] md:text-xs font-black tracking-widest leading-none ${i === 6 ? 'text-violet-700' : 'text-[#1E3A8A]'
+                                                }`}>{d}</span>
+                                            <span className="text-[9px] md:text-[11px] font-bold text-[#D4AF37] leading-none mt-0.5">{hebDay.hebrew}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Days */}
+                            <div className="grid grid-cols-7 gap-1 md:gap-2">
+                                {currentMonthData.weeks.map((week, wIdx) => (
+                                    <React.Fragment key={wIdx}>
+                                        {week.map((dayObj, dIdx) => (
+                                            <div key={`${wIdx}-${dIdx}`} className="aspect-square">
+                                                {dayObj.day ? (() => {
+                                                    const isSelected = selectedDay === dayObj.day;
+                                                    const isToday = dayObj.gregorianDate === todayKey;
+                                                    const dayType = getDayType(dayObj.festivals, dayObj.isShabbat, dIdx);
+
+                                                    const cellClass = isSelected
+                                                        ? 'bg-[#1E3A8A] border-[#1E3A8A] text-white shadow-xl ring-2 ring-[#1E3A8A]/40'
+                                                        : isToday
+                                                            ? 'bg-amber-50 border-amber-400 shadow-md ring-2 ring-amber-200'
+                                                            : dayType === 'shabbat'
+                                                                ? 'bg-violet-50 border-violet-200 hover:border-violet-400'
+                                                                : dayType === 'feast'
+                                                                    ? 'bg-emerald-50 border-emerald-200 hover:border-emerald-400'
+                                                                    : dayType === 'fast'
+                                                                        ? 'bg-orange-50 border-orange-200 hover:border-orange-400'
+                                                                        : dayType === 'newmoon'
+                                                                            ? 'bg-blue-50 border-blue-200 hover:border-blue-400'
+                                                                            : dayType === 'festival'
+                                                                                ? 'bg-red-50 border-red-100 hover:border-red-300'
+                                                                                : 'bg-white border-slate-100 hover:border-[#1E3A8A]/30 hover:bg-[#1E3A8A]/5';
+
+                                                    const dotColor = dayType === 'feast' ? 'bg-emerald-500'
+                                                        : dayType === 'fast' ? 'bg-orange-500'
+                                                            : dayType === 'newmoon' ? 'bg-blue-500'
+                                                                : dayType === 'shabbat' ? 'bg-violet-500'
+                                                                    : dayType === 'festival' ? 'bg-red-400'
+                                                                        : null;
+
+                                                    return (
+                                                        <motion.button
+                                                            whileHover={{ scale: 1.06, y: -2 }}
+                                                            whileTap={{ scale: 0.96 }}
+                                                            onClick={() => setSelectedDay(dayObj.day)}
+                                                            className={`w-full h-full flex flex-col items-center justify-between p-1 md:p-2 rounded-xl md:rounded-2xl border-2 transition-all duration-200 relative overflow-hidden group ${cellClass}`}
+                                                        >
+                                                            {/* Day number */}
+                                                            <span className={`text-sm md:text-xl font-black leading-none mt-0.5 ${isSelected ? 'text-white'
+                                                                    : isToday ? 'text-amber-800'
+                                                                        : dayType === 'shabbat' ? 'text-violet-800'
+                                                                            : dayType === 'feast' ? 'text-emerald-800'
+                                                                                : dayType === 'fast' ? 'text-orange-800'
+                                                                                    : dayType === 'newmoon' ? 'text-blue-800'
+                                                                                        : 'text-[#1E3A8A]'
+                                                                }`}>{dayObj.day}</span>
+
+                                                            {/* Center content */}
+                                                            <div className="flex flex-col items-center gap-0.5 w-full">
+                                                                {isToday && (
+                                                                    <div className="text-[7px] md:text-[8px] font-black uppercase tracking-wide text-amber-700 bg-amber-200/60 rounded px-1">TODAY</div>
+                                                                )}
+                                                                {dotColor && !isSelected && (
+                                                                    <div className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+                                                                )}
+                                                            </div>
+
+                                                            {/* Festival label — tiny */}
+                                                            {dayObj.festivals.length > 0 && (
+                                                                <div className={`text-[7px] md:text-[9px] font-bold leading-tight text-center w-full truncate px-0.5 ${isSelected ? 'text-white/90' : 'text-slate-500'
+                                                                    }`}>
+                                                                    {dayObj.festivals[0].length > 10 ? dayObj.festivals[0].substring(0, 9) + '…' : dayObj.festivals[0]}
+                                                                </div>
+                                                            )}
+
+                                                            {/* Shabbat icon top-right */}
+                                                            {dIdx === 6 && !isSelected && (
+                                                                <div className="absolute top-0.5 right-0.5">
+                                                                    <Star size={8} className="text-violet-400 fill-violet-200" />
+                                                                </div>
+                                                            )}
+                                                        </motion.button>
+                                                    );
+                                                })() : (
+                                                    <div className="w-full h-full" />
+                                                )}
+                                            </div>
+                                        ))}
+                                    </React.Fragment>
+                                ))}
+                            </div>
+                        </>
+                    )}
+
+                    {/* SCOPE 4: YEAR VIEW (All 12-13 Months Grid) */}
+                    {calendarScope === 'year' && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {calendarData.map((mObj, mIdx) => (
+                                <div
+                                    key={mObj.name}
+                                    onClick={() => { setCurrentMonthIdx(mIdx); setCalendarScope('month'); }}
+                                    className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                                        currentMonthIdx === mIdx
+                                            ? 'bg-gradient-to-br from-[#1E3A8A] to-[#0c1445] text-white border-[#D4AF37] shadow-xl'
+                                            : 'bg-white border-slate-200 hover:border-[#1E3A8A] hover:shadow-md'
+                                    }`}
+                                >
+                                    <div className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37]">Month {mIdx + 1}</div>
+                                    <h4 className="text-lg font-black mt-1 leading-tight">{mObj.name}</h4>
+                                    <p className="text-xs font-serif text-amber-500 font-bold">{mObj.hebrew}</p>
+                                    <p className="text-[10px] opacity-60 mt-2 font-mono">30 Days · Open Month →</p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* SCOPE 5: DECADE VIEW (10-Year Hebrew Timeline) */}
+                    {calendarScope === 'decade' && (
+                        <div className="space-y-4">
+                            <div className="text-center space-y-1 mb-6">
+                                <h4 className="text-2xl font-serif font-black text-[#1E3A8A]">10-Year Hebrew Decade Timeline (5780 – 5789)</h4>
+                                <p className="text-xs text-slate-500 max-w-xl mx-auto">
+                                    Explore Hebrew years across the decade, highlighting Shmita (Sabbatical Year) cycles and Biblical appointments.
+                                </p>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+                                {Array.from({ length: 10 }, (_, i) => 5780 + i).map((decadeYear) => {
+                                    const isShmita = decadeYear % 7 === 2; // 5782 was Shmita
+                                    const isSelectedYear = decadeYear === safeYear;
+                                    return (
+                                        <div
+                                            key={decadeYear}
+                                            onClick={() => { setYear(decadeYear); setCalendarScope('year'); }}
+                                            className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                                                isSelectedYear
+                                                    ? 'bg-gradient-to-br from-amber-500 to-amber-700 text-slate-950 border-amber-300 shadow-xl'
+                                                    : isShmita
+                                                        ? 'bg-emerald-950 text-white border-emerald-500 shadow-md'
+                                                        : 'bg-white border-slate-200 hover:border-[#1E3A8A] text-slate-900'
+                                            }`}
+                                        >
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="text-[10px] font-black uppercase tracking-widest opacity-80">Year</span>
+                                                {isShmita && <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-emerald-400 text-slate-950">Shmita</span>}
+                                            </div>
+                                            <div className="text-2xl font-black leading-tight">{decadeYear}</div>
+                                            <p className="text-[10px] opacity-75 mt-1">Tap to inspect year</p>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Copyright Footer */}
+                <div className="px-4 md:px-8 py-3 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                        <img src="/brand-logo.png" alt="COT" className="w-6 h-6 object-contain opacity-60" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                        <p className="text-[10px] font-black text-[#1E3A8A] uppercase tracking-[0.15em]">City of Truth Ministries</p>
+                    </div>
+                    <p className="text-[10px] font-black text-[#D4AF37] uppercase tracking-[0.2em]">Hebrew Calendar {safeYear}</p>
+                    <div className="flex items-center gap-3 text-[9px] text-slate-400 font-bold">
+                        <span>📞 +91 8056125478</span>
+                        <span className="hidden sm:inline">🌐 city-of-truth-ministries.vercel.app</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* ═══════════════════════════════════════════════════════
+                 SELECTED DATE — Premium Dark Glass Popup Card
+            ═══════════════════════════════════════════════════════ */}
+            <AnimatePresence mode="wait">
+                {selectedDay && (() => {
+                    const dayObj = currentMonthData.weeks.flat().find(d => d.day === selectedDay);
+                    const dIdx = currentMonthData.weeks.flat().findIndex(d => d.day === selectedDay) % 7;
+                    const dayType = dayObj ? getDayType(dayObj.festivals, dayObj.isShabbat, dIdx) : 'normal';
+                    const isShabbatDay = dayType === 'shabbat';
+                    const torahPortionKey = selectedDay % 54 === 0 ? 54 : selectedDay % 54;
+                    const torahPortion = isShabbatDay ? (TORAH_PORTIONS[torahPortionKey] || 'Bereishit') : null;
+                    const psalm = DAILY_PSALMS[selectedDay % 30 === 0 ? 30 : selectedDay % 30] || 'Psalm 23';
+                    const historicalNote = dayObj?.festivals.map(f =>
+                        Object.entries(HISTORICAL_NOTES).find(([k]) => f.includes(k))?.[1]
+                    ).filter(Boolean)[0] || null;
+
+                    const cardBg = dayType === 'shabbat' ? 'from-violet-900 via-indigo-900 to-[#1e1b4b]'
+                        : dayType === 'feast' ? 'from-emerald-900 via-[#1e1b4b] to-[#020617]'
+                            : dayType === 'fast' ? 'from-orange-900 via-[#1e1b4b] to-[#020617]'
+                                : dayType === 'newmoon' ? 'from-blue-900 via-[#1e1b4b] to-[#020617]'
+                                    : 'from-[#0c1445] via-[#1e1b4b] to-[#020617]';
+
+                    return (
+                        <motion.div
+                            key={`${selectedDay}-${name}`}
+                            initial={{ opacity: 0, y: 24 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.96 }}
+                            className={`relative rounded-[1.5rem] md:rounded-[2rem] overflow-hidden bg-gradient-to-br ${cardBg} shadow-2xl mb-4`}
+                        >
+                            {/* Glowing orb */}
+                            <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-[#D4AF37]/10 blur-3xl pointer-events-none" />
+
+                            <div className="relative z-10 p-5 md:p-8">
+                                {/* Close button */}
+                                <button
+                                    onClick={() => setSelectedDay(null)}
+                                    className="absolute top-4 right-4 w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white transition-all"
+                                >
+                                    <X size={14} />
+                                </button>
+
+                                <div className="flex flex-col md:flex-row gap-6">
+                                    {/* Left: Big Date Display */}
+                                    <div className="flex flex-col items-start justify-center md:border-r md:border-white/10 md:pr-6 md:min-w-[200px]">
+                                        <p className="text-[#D4AF37]/70 text-[9px] font-black uppercase tracking-[0.3em] mb-1">Hebrew Date</p>
+                                        <div className="text-5xl md:text-7xl font-black text-white leading-none mb-1">{selectedDay}</div>
+                                        <div className="text-[#D4AF37] text-xl font-bold">{name}</div>
+                                        <div className="text-white/50 text-sm font-semibold">{safeYear}</div>
+                                        {dayObj?.gregorianDate && (
+                                            <div className="mt-2 flex items-center gap-1.5 bg-white/10 rounded-full px-3 py-1">
+                                                <CalendarIcon size={11} className="text-[#D4AF37]" />
+                                                <span className="text-white/70 text-xs font-bold">{dayObj.gregorianDate}{dayObj.gregorianYear ? `, ${dayObj.gregorianYear}` : ''}</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Right: Details */}
+                                    <div className="flex-1 space-y-4">
+                                        {/* Festivals */}
+                                        {dayObj && dayObj.festivals.length > 0 && (
+                                            <div>
+                                                <p className="text-white/40 text-[9px] font-black uppercase tracking-widest mb-2">Events & Festivals</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {dayObj.festivals.map(f => (
+                                                        <span key={f} className="px-3 py-1.5 bg-[#D4AF37]/20 border border-[#D4AF37]/40 text-[#D4AF37] rounded-full text-xs font-bold flex items-center gap-1.5">
+                                                            <Sparkles size={10} /> {f}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Torah Portion (Shabbat only) */}
+                                        {torahPortion && (
+                                            <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+                                                <p className="text-white/40 text-[9px] font-black uppercase tracking-widest mb-1">📖 Torah Portion (Parasha)</p>
+                                                <p className="text-white font-bold text-sm">{torahPortion}</p>
+                                            </div>
+                                        )}
+
+                                        {/* Historical Note */}
+                                        {historicalNote && (
+                                            <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+                                                <p className="text-white/40 text-[9px] font-black uppercase tracking-widest mb-1">📜 Historical Significance</p>
+                                                <p className="text-white/80 text-xs leading-relaxed">{historicalNote}</p>
+                                            </div>
+                                        )}
+
+                                        {/* Day Type badge + Psalm */}
+                                        <div className="flex flex-wrap gap-3">
+                                            <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex-1 min-w-[120px]">
+                                                <p className="text-white/40 text-[9px] font-black uppercase tracking-widest mb-1">📿 Day Type</p>
+                                                <p className="text-white font-bold text-xs capitalize">{dayType === 'normal' ? 'Regular Day' : dayType.charAt(0).toUpperCase() + dayType.slice(1)}</p>
+                                            </div>
+                                            <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex-1 min-w-[120px]">
+                                                <p className="text-white/40 text-[9px] font-black uppercase tracking-widest mb-1">📘 Psalm of the Day</p>
+                                                <p className="text-white font-bold text-xs">{psalm}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Prayer + Actions */}
+                                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                                            <div className="bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-xl px-4 py-2 flex-1">
+                                                <p className="text-[#D4AF37]/70 text-[9px] font-black uppercase tracking-widest mb-0.5">🙏 Daily Prayer</p>
+                                                <p className="text-white/70 text-[10px] italic leading-relaxed">
+                                                    {isShabbatDay
+                                                        ? '"May this Shabbat restore your soul and draw you nearer to His throne."'
+                                                        : dayType === 'feast'
+                                                            ? '"Lord, may this appointed time renew my faith and deepen my covenant walk."'
+                                                            : dayType === 'fast'
+                                                                ? '"In fasting, may my heart be humbled and turned fully to You, O Lord."'
+                                                                : '"Guide my steps today, O Lord; let Your Word be a lamp unto my path."'}
+                                                </p>
+                                            </div>
+                                            <div className="flex flex-col gap-2">
+                                                <button
+                                                    onClick={handleDownloadCurrentMonth}
+                                                    className="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-white text-[10px] font-bold transition-all"
+                                                    title="Download month image"
+                                                >
+                                                    <Download size={11} /> Save
+                                                </button>
+                                                <button
+                                                    onClick={() => { if (navigator.share) navigator.share({ title: `${selectedDay} ${name} ${safeYear}`, text: `Hebrew Date: ${selectedDay} ${name} ${safeYear}\n${dayObj?.gregorianDate || ''}\nCity of Truth Ministries` }).catch(() => { }); }}
+                                                    className="flex items-center gap-1.5 px-3 py-2 bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30 border border-[#D4AF37]/40 rounded-xl text-[#D4AF37] text-[10px] font-bold transition-all"
+                                                    title="Share this date"
+                                                >
+                                                    <Share2 size={11} /> Share
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    );
+                })()}
             </AnimatePresence>
 
-            {/* Hebrew Calendar & Leap Year Facts Section */}
-            <div className="bg-gradient-to-br from-slate-50 to-brand-50/30 rounded-[1.5rem] md:rounded-[2.5rem] p-6 md:p-10 border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.02)] space-y-6 md:space-y-8 font-serif">
+            {/* ═══════════════════════════════════════════════════════
+                 FACTS SECTION (preserved, lightly restyled)
+            ═══════════════════════════════════════════════════════ */}
+            <div className="bg-gradient-to-br from-slate-50 to-[#1E3A8A]/5 rounded-[1.5rem] md:rounded-[2.5rem] p-6 md:p-10 border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.02)] space-y-6 md:space-y-8 font-serif">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/60 pb-5">
                     <div>
-                        <h3 className="text-xl md:text-3xl font-bold text-brand-950 flex items-center gap-2 md:gap-3">
-                            <Sparkles className="text-amber-500 w-5 h-5 md:w-7 md:h-7" /> Hebrew Calendar & Leap Year Facts
+                        <h3 className="text-xl md:text-3xl font-bold text-[#1E3A8A] flex items-center gap-2 md:gap-3">
+                            <Sparkles className="text-[#D4AF37] w-5 h-5 md:w-7 md:h-7" /> Hebrew Calendar & Leap Year Facts
                         </h3>
                         <p className="text-xs md:text-sm text-slate-500 font-sans mt-1">Understanding the divine astronomical alignment of the Biblical calendar</p>
                     </div>
-                    <div className="bg-amber-100 border border-amber-200 px-4 py-1.5 rounded-full text-[10px] md:text-xs font-black text-amber-800 uppercase tracking-widest self-start md:self-auto shadow-sm">
+                    <div className="bg-[#D4AF37]/20 border border-[#D4AF37]/40 px-4 py-1.5 rounded-full text-[10px] md:text-xs font-black text-[#1E3A8A] uppercase tracking-widest self-start md:self-auto shadow-sm">
                         Lunisolar System • Shanah Me'uberet
                     </div>
                 </div>
 
-                {/* Stats Bar - MOVED TO TOP with animations and Hebrew New Year info */}
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6 }}
                     className="space-y-4"
                 >
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-                        <motion.div 
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.1, type: "spring" }}
-                            whileHover={{ scale: 1.05, rotate: 2 }}
-                            className="p-3 md:p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all"
-                        >
-                            <div className="text-xl md:text-2xl font-black text-brand-900 leading-none">19 Years</div>
-                            <p className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 mt-1.5 font-sans tracking-wider">Metonic Cycle</p>
-                        </motion.div>
-                        <motion.div 
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.2, type: "spring" }}
-                            whileHover={{ scale: 1.05, rotate: -2 }}
-                            className="p-3 md:p-4 bg-white rounded-xl border border-amber-100 shadow-sm hover:shadow-md transition-all"
-                        >
-                            <div className="text-xl md:text-2xl font-black text-amber-600 leading-none">7 Leap Years</div>
-                            <p className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 mt-1.5 font-sans tracking-wider">Per Cycle</p>
-                        </motion.div>
-                        <motion.div 
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.3, type: "spring" }}
-                            whileHover={{ scale: 1.05, rotate: 2 }}
-                            className="p-3 md:p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all"
-                        >
-                            <div className="text-xl md:text-2xl font-black text-brand-900 leading-none">383-385 Days</div>
-                            <p className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 mt-1.5 font-sans tracking-wider">Leap Year Length</p>
-                        </motion.div>
-                        <motion.div 
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.4, type: "spring" }}
-                            whileHover={{ scale: 1.05, rotate: -2 }}
-                            className="p-3 md:p-4 bg-white rounded-xl border border-amber-100 shadow-sm hover:shadow-md transition-all"
-                        >
-                            <div className="text-xl md:text-2xl font-black text-amber-600 leading-none">Passover</div>
-                            <p className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 mt-1.5 font-sans tracking-wider">Anchored in Spring</p>
-                        </motion.div>
+                        {[{ val: '19 Years', label: 'Metonic Cycle', color: 'text-[#1E3A8A]', border: 'border-slate-100' },
+                        { val: '7 Leap Years', label: 'Per Cycle', color: 'text-[#D4AF37]', border: 'border-[#D4AF37]/20' },
+                        { val: '383–385 Days', label: 'Leap Year Length', color: 'text-[#1E3A8A]', border: 'border-slate-100' },
+                        { val: 'Passover', label: 'Anchored in Spring', color: 'text-[#D4AF37]', border: 'border-[#D4AF37]/20' },
+                        ].map((s, i) => (
+                            <motion.div
+                                key={i}
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.1 * (i + 1), type: 'spring' }}
+                                whileHover={{ scale: 1.05 }}
+                                className={`p-3 md:p-4 bg-white rounded-xl border ${s.border} shadow-sm hover:shadow-md transition-all`}
+                            >
+                                <div className={`text-xl md:text-2xl font-black leading-none ${s.color}`}>{s.val}</div>
+                                <p className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 mt-1.5 font-sans tracking-wider">{s.label}</p>
+                            </motion.div>
+                        ))}
                     </div>
-                    
-                    {/* Hebrew New Year Celebration Info */}
-                    <motion.div 
+
+                    <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.5 }}
-                        className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-2 border-amber-200 rounded-2xl p-4 md:p-5 text-center"
+                        className="bg-gradient-to-r from-[#1E3A8A]/5 via-[#D4AF37]/10 to-[#1E3A8A]/5 border-2 border-[#D4AF37]/30 rounded-2xl p-4 md:p-5 text-center"
                     >
                         <div className="flex items-center justify-center gap-2 mb-2">
-                            <CalendarIcon className="text-amber-600 w-5 h-5" />
-                            <h4 className="font-black text-brand-950 text-sm md:text-base uppercase tracking-wider">Hebrew New Year Celebration</h4>
+                            <CalendarIcon className="text-[#D4AF37] w-5 h-5" />
+                            <h4 className="font-black text-[#1E3A8A] text-sm md:text-base uppercase tracking-wider">Hebrew New Year Celebration</h4>
                         </div>
                         <p className="text-xs md:text-sm text-slate-700 leading-relaxed font-sans">
-                            <strong className="text-amber-700">Rosh Hashanah (ראש השנה)</strong> - The Jewish New Year is celebrated on <strong>1st and 2nd of Tishrei</strong> (usually September/October). It marks the beginning of the High Holy Days and the civil new year, while Nisan remains the first month of the religious calendar.
+                            <strong className="text-[#1E3A8A]">Rosh Hashanah (ראש השנה)</strong> — The Jewish New Year is celebrated on <strong>1st and 2nd of Tishrei</strong> (usually September/October). It marks the beginning of the High Holy Days and the civil new year, while Nisan remains the first month of the religious calendar.
                         </p>
-                        <p className="text-[10px] text-amber-700 font-bold mt-2 uppercase tracking-widest">
-                            தலை வருடம் - திஷ்ரே மாதம் 1 & 2
-                        </p>
+                        <p className="text-[10px] text-[#D4AF37] font-bold mt-2 uppercase tracking-widest">தலை வருடம் - திஷ்ரே மாதம் 1 & 2</p>
                     </motion.div>
                 </motion.div>
 
                 <div className="grid md:grid-cols-2 gap-6 md:gap-8">
-                    {/* Left Column: Lunar/Solar Alignment */}
-                    <div className="space-y-4">
-                        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
-                                <Globe size={20} />
-                            </div>
-                            <div className="space-y-1">
-                                <h4 className="font-bold text-brand-950 text-sm md:text-base">Lunisolar Alignment • சந்திர-சூரிய நாட்காட்டி</h4>
-                                <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-sans">
-                                    Unlike the Gregorian calendar (purely solar) or the Islamic calendar (purely lunar), the Hebrew calendar is <strong>lunisolar</strong>. Months align with the moon cycles, but years adjust to align with the sun, keeping biblical festivals in their proper agricultural seasons.
-                                </p>
-                            </div>
+                    <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
+                            <CalendarIcon size={20} />
                         </div>
-
-                        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
-                                <BookOpen size={20} />
-                            </div>
-                            <div className="space-y-1">
-                                <h4 className="font-bold text-brand-950 text-sm md:text-base">The Biblical Command • வேத கட்டளை</h4>
-                                <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-sans">
-                                    Deuteronomy 16:1 commands: <em>"Observe the month of Aviv (Spring) and keep the Passover..."</em>. Since a standard lunar year is 11 days shorter than a solar year, Passover would drift backward into winter without intercalation. The leap month keeps it anchored in the spring.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Right Column: The Metonic Cycle */}
-                    <div className="space-y-4">
-                        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
-                                <Calculator size={20} />
-                            </div>
-                            <div className="space-y-1">
-                                <h4 className="font-bold text-brand-950 text-sm md:text-base">The 19-Year Cycle (Metonic) • 19-ஆண்டு சுழற்சி</h4>
-                                <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-sans">
-                                    To balance the solar and lunar cycles, the calendar uses a 19-year cycle. Every 19 years, a leap month is added 7 times to correct the drift. These leap years occur in the <strong>3rd, 6th, 8th, 11th, 14th, 17th, and 19th</strong> years of the cycle.
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
-                                <CalendarIcon size={20} />
-                            </div>
-                            <div className="space-y-1">
-                                <h4 className="font-bold text-brand-950 text-sm md:text-base">Adar I & Adar II Structure • அதார் I மற்றும் II</h4>
-                                <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-sans">
-                                    During a leap year, a 30-day month named <strong>Adar I (Adar Rishon)</strong> is inserted before the standard Adar. The regular month of Adar becomes <strong>Adar II (Adar Sheni)</strong> and is 29 days. Joyous festivals like Purim are celebrated in Adar II to stay close to Nisan.
-                                </p>
-                            </div>
+                        <div className="space-y-1">
+                            <h4 className="font-bold text-brand-950 text-sm md:text-base">Adar I & Adar II Structure • அதார் I மற்றும் II</h4>
+                            <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-sans">
+                                During a leap year, a 30-day month named <strong>Adar I (Adar Rishon)</strong> is inserted before the standard Adar. The regular month of Adar becomes <strong>Adar II (Adar Sheni)</strong> and is 29 days. Joyous festivals like Purim are celebrated in Adar II to stay close to Nisan.
+                            </p>
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* ═══════════════════════════════════════════════════════
+                 ALL 8 MOON PHASES CELESTIAL SPECTRUM GUIDE
+            ═══════════════════════════════════════════════════════ */}
+            <div className="mt-8 bg-gradient-to-br from-slate-950 via-[#0B132B] to-slate-900 rounded-[1.5rem] md:rounded-[2.5rem] p-6 md:p-10 border border-[#D4AF37]/30 shadow-2xl text-white space-y-8 font-sans relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
+
+                {/* Section Header */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/10 pb-6 relative z-10">
+                    <div>
+                        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.25em] text-[#D4AF37]">
+                            <Moon className="w-4 h-4 text-amber-400" /> Celestial Lunar Spectrum • சந்திர பருவங்களின் வழிகாட்டி
+                        </div>
+                        <h3 className="text-2xl md:text-4xl font-black text-white mt-1">
+                            The 8 Moon Phases of the Biblical Hebrew Calendar
+                        </h3>
+                        <p className="text-xs md:text-sm text-slate-300 font-serif mt-1">
+                            Comprehensive astronomical guide to the 8 stages of lunar illumination in Israel's Biblical calendar
+                        </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                        <span className="bg-[#D4AF37]/20 border border-[#D4AF37]/40 px-3.5 py-1.5 rounded-full text-xs font-black text-amber-300 uppercase tracking-wider">
+                            29.53 Day Synodic Month
+                        </span>
+                        <span className="bg-blue-500/20 border border-blue-400/40 px-3.5 py-1.5 rounded-full text-xs font-black text-blue-300 uppercase tracking-wider">
+                            8 Lunar Stages
+                        </span>
+                    </div>
+                </div>
+
+                {/* Live Moon Phase Banner */}
+                <div className="bg-gradient-to-r from-amber-500/15 via-[#D4AF37]/10 to-amber-500/15 border border-[#D4AF37]/40 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <span className="text-3xl md:text-4xl bg-white/10 p-2 rounded-xl border border-white/20">{moonPhase.emoji}</span>
+                        <div>
+                            <div className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37]">Live Jerusalem Moon Observation</div>
+                            <div className="text-base md:text-lg font-bold text-white flex items-center gap-2">
+                                {moonPhase.name} <span className="text-xs font-mono text-amber-300">({moonPhase.illumination}% Illuminated)</span>
+                            </div>
+                            <div className="text-xs text-slate-300 font-serif">{moonPhase.hebrewName} • Lunar Age: {moonPhase.lunarAge} Days</div>
+                        </div>
+                    </div>
+                    <div className="text-xs text-amber-200/90 bg-black/40 px-4 py-2 rounded-xl border border-amber-500/30 text-center sm:text-right">
+                        <span className="font-bold">Jerusalem Time:</span> {moonPhase.jerusalemTimeStr} (UTC+3)
+                    </div>
+                </div>
+
+                {/* Grid of All 8 Moon Phases */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
+                    {ALL_MOON_PHASES.map((phase) => {
+                        const isCurrent = moonPhase.name.toLowerCase().includes(phase.name.toLowerCase().split(' ')[0]);
+                        return (
+                            <motion.div
+                                key={phase.id}
+                                whileHover={{ scale: 1.02, y: -4 }}
+                                onClick={() => setSelectedMoonPhase(phase)}
+                                className={`bg-gradient-to-b ${phase.bgGradient} rounded-2xl p-5 border ${isCurrent ? 'border-amber-400 ring-2 ring-amber-400/50 shadow-[0_0_25px_rgba(212,175,55,0.25)]' : 'border-white/10 hover:border-[#D4AF37]/50'} cursor-pointer transition-all flex flex-col justify-between space-y-4 group`}
+                            >
+                                <div>
+                                    <div className="flex items-start justify-between gap-2 mb-2">
+                                        <span className="text-4xl md:text-5xl drop-shadow-md group-hover:scale-110 transition-transform">{phase.emoji}</span>
+                                        <span className={`text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border ${phase.badgeColor}`}>
+                                            {phase.illumination}
+                                        </span>
+                                    </div>
+
+                                    <div>
+                                        <div className="flex items-center gap-1.5">
+                                            <h4 className="text-lg font-black text-white group-hover:text-[#D4AF37] transition-colors">{phase.name}</h4>
+                                            {isCurrent && (
+                                                <span className="bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.5 rounded uppercase">Current</span>
+                                            )}
+                                        </div>
+                                        <p className="text-sm font-serif text-[#D4AF37] font-semibold">{phase.hebrewName}</p>
+                                        <p className="text-[11px] font-mono text-slate-400 italic">{phase.transliteration}</p>
+                                        <p className="text-xs font-bold text-amber-200/90 mt-1">{phase.tamilName}</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2 border-t border-white/10 pt-3 text-xs">
+                                    <div className="flex justify-between text-[11px] text-slate-300">
+                                        <span className="text-slate-400">Lunar Age:</span>
+                                        <span className="font-mono font-bold text-white">{phase.lunarAge}</span>
+                                    </div>
+                                    <div className="flex justify-between text-[11px] text-slate-300">
+                                        <span className="text-slate-400">Calendar Window:</span>
+                                        <span className="font-semibold text-[#D4AF37]">{phase.hebrewCalendarDay}</span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-300 line-clamp-3 leading-snug font-serif">
+                                        {phase.biblicalSignificance}
+                                    </p>
+                                </div>
+
+                                <button
+                                    className="w-full mt-2 py-1.5 rounded-xl bg-white/5 hover:bg-[#D4AF37]/20 border border-white/10 hover:border-[#D4AF37]/40 text-[10px] font-black uppercase tracking-wider text-slate-300 hover:text-white transition-all flex items-center justify-center gap-1 cursor-pointer"
+                                >
+                                    <Info size={12} /> View Details & Tamil
+                                </button>
+                            </motion.div>
+                        );
+                    })}
+                </div>
+
+                {/* Selected Moon Phase Details Modal */}
+                <AnimatePresence>
+                    {selectedMoonPhase && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4"
+                            onClick={() => setSelectedMoonPhase(null)}
+                        >
+                            <motion.div
+                                initial={{ scale: 0.9, y: 20 }}
+                                animate={{ scale: 1, y: 0 }}
+                                exit={{ scale: 0.9, y: 20 }}
+                                onClick={(e) => e.stopPropagation()}
+                                className={`bg-gradient-to-br ${selectedMoonPhase.bgGradient} border-2 border-[#D4AF37] rounded-3xl p-6 md:p-8 max-w-2xl w-full text-white shadow-2xl relative space-y-6 max-h-[90vh] overflow-y-auto`}
+                            >
+                                <button
+                                    onClick={() => setSelectedMoonPhase(null)}
+                                    className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-all cursor-pointer"
+                                >
+                                    <X size={16} />
+                                </button>
+
+                                <div className="flex items-center gap-4 border-b border-white/10 pb-4">
+                                    <span className="text-6xl md:text-7xl p-3 bg-white/10 rounded-2xl border border-white/20 shadow-inner">{selectedMoonPhase.emoji}</span>
+                                    <div>
+                                        <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${selectedMoonPhase.badgeColor}`}>
+                                            Illumination: {selectedMoonPhase.illumination}
+                                        </span>
+                                        <h3 className="text-2xl md:text-3xl font-black text-white mt-1">{selectedMoonPhase.name}</h3>
+                                        <div className="flex items-center gap-2 text-lg font-serif text-[#D4AF37]">
+                                            <span>{selectedMoonPhase.hebrewName}</span>
+                                            <span className="text-xs text-slate-300 font-sans font-normal">({selectedMoonPhase.transliteration})</span>
+                                        </div>
+                                        <p className="text-sm font-bold text-amber-300 mt-0.5">{selectedMoonPhase.tamilName}</p>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-1">
+                                        <div className="text-[10px] font-black uppercase tracking-wider text-[#D4AF37]">Lunar Cycle Age</div>
+                                        <div className="text-xl font-bold font-mono text-white">{selectedMoonPhase.lunarAge}</div>
+                                        <p className="text-xs text-slate-400">Synodic month cycle timestamp</p>
+                                    </div>
+                                    <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-1">
+                                        <div className="text-[10px] font-black uppercase tracking-wider text-cyan-400">Hebrew Calendar Position</div>
+                                        <div className="text-xl font-bold text-white">{selectedMoonPhase.hebrewCalendarDay}</div>
+                                        <p className="text-xs text-slate-400">Approximate days of the Hebrew month</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <h4 className="text-sm font-black uppercase tracking-wider text-[#D4AF37] flex items-center gap-2">
+                                        <BookOpen size={16} /> Biblical & Spiritual Significance
+                                    </h4>
+                                    <p className="text-sm text-slate-200 leading-relaxed font-serif bg-white/5 border border-white/10 rounded-2xl p-4">
+                                        {selectedMoonPhase.biblicalSignificance}
+                                    </p>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <h4 className="text-sm font-black uppercase tracking-wider text-amber-300 flex items-center gap-2">
+                                        <Globe size={16} /> தமிழ் விளக்கம் (Tamil Translation & Context)
+                                    </h4>
+                                    <p className="text-sm text-amber-100 leading-relaxed bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4">
+                                        {selectedMoonPhase.tamilMeaning}
+                                    </p>
+                                </div>
+
+                                {selectedMoonPhase.scriptureRef && (
+                                    <div className="bg-indigo-950/80 border border-indigo-400/30 rounded-2xl p-4 flex items-center justify-between gap-3">
+                                        <div>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-indigo-300">Key Scripture References</span>
+                                            <div className="text-sm font-bold text-white">{selectedMoonPhase.scriptureRef}</div>
+                                        </div>
+                                        <Sparkles className="text-indigo-400 w-6 h-6" />
+                                    </div>
+                                )}
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );
@@ -968,7 +1929,7 @@ const ReferenceView: React.FC = () => {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px' }}>
                             {HEBREW_MONTHS_DATA.map((m, i) => (
                                 <div key={i} style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '12px', padding: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                    <div style={{ fontSize: '12px', fontWeight: 900, color: '#f0c040' }}>{(i+1).toString().padStart(2,'0')}. {m.name}</div>
+                                    <div style={{ fontSize: '12px', fontWeight: 900, color: '#f0c040' }}>{(i + 1).toString().padStart(2, '0')}. {m.name}</div>
                                     <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.8)', direction: 'rtl', margin: '4px 0' }}>{m.hebrewScript}</div>
                                     <div style={{ fontSize: '11px', color: '#93c5fd', marginBottom: '4px' }}>{m.tamil}</div>
                                     <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>{m.gregorian}</div>
@@ -1109,35 +2070,45 @@ const ReferenceView: React.FC = () => {
     );
 };
 
-const CHENNAI_TIMEZONE = 'Asia/Kolkata';
-
 const AnalogDial: React.FC<{
     label: string;
     hourAngle: number;
     minuteAngle: number;
     secondAngle: number;
     is24Hour: boolean;
-}> = ({ label, hourAngle, minuteAngle, secondAngle, is24Hour }) => {
-    const letters = is24Hour 
-        ? ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'יא', 'יב', 'יג', 'יד', 'טו', 'טז', 'יז', 'יח', 'יט', 'כ', 'כא', 'כב', 'כג', 'כד'] 
-        : ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ', 'ל'];
+    subtitle?: string;
+}> = ({ label, hourAngle, minuteAngle, secondAngle, is24Hour, subtitle }) => {
+    const letters = is24Hour
+        ? ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'יא', 'יב', 'יג', 'יד', 'טו', 'טז', 'יז', 'יח', 'יט', 'כ', 'כא', 'כב', 'כג', 'כד']
+        : ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'יא', 'יב'];
 
     return (
-        <div className="bg-[#0f1026] border border-white/10 rounded-[2.5rem] p-6 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col items-center hover:border-[#C5A880]/30 transition-all relative group overflow-hidden w-full max-w-sm">
-            <div className="absolute inset-0 bg-gradient-to-b from-[#C5A880]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#C5A880] text-center mb-6 relative z-10">{label}</p>
-            
-            {/* Clock Face Circle - Bigger and Bold! */}
-            <div className="relative w-64 h-64 sm:w-76 sm:h-76 md:w-80 md:h-80 rounded-full border-[8px] border-double border-[#C5A880] bg-gradient-to-br from-[#121330] to-[#08091a] shadow-[0_0_35px_rgba(197,168,128,0.25),inset_0_0_20px_rgba(0,0,0,0.8)] flex items-center justify-center">
+        <div className="bg-gradient-to-b from-[#0f1026] via-[#0b0c1e] to-[#050512] border-2 border-[#C5A880]/40 rounded-[2.5rem] p-6 sm:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.6)] flex flex-col items-center hover:border-[#C5A880] transition-all relative group overflow-hidden w-full max-w-lg mx-auto">
+            <div className="absolute inset-0 bg-gradient-to-b from-[#C5A880]/10 via-transparent to-black/50 pointer-events-none" />
+
+            {/* Header Badge & Title with clear headroom */}
+            <div className="flex flex-col items-center gap-1 mb-6 relative z-10 text-center">
+                <span className="text-[11px] font-black uppercase tracking-[0.25em] text-[#C5A880] bg-[#C5A880]/15 px-4 py-1.5 rounded-full border border-[#C5A880]/40 shadow-sm">
+                    {label}
+                </span>
+                {subtitle && <p className="text-xs text-slate-400 font-serif mt-1">{subtitle}</p>}
+            </div>
+
+            {/* Clock Face Circle - Grand, Big & Clear */}
+            <div className="relative w-72 h-72 sm:w-88 sm:h-88 md:w-96 md:h-96 lg:w-[420px] lg:h-[420px] rounded-full border-[10px] border-double border-[#C5A880] bg-gradient-to-br from-[#121330] via-[#0b0c20] to-[#040510] shadow-[0_0_50px_rgba(197,168,128,0.3),inset_0_0_35px_rgba(0,0,0,0.9)] flex items-center justify-center">
+                {/* Outer Decorative Ring Ticks */}
+                <div className="absolute inset-2 rounded-full border border-[#C5A880]/20 pointer-events-none" />
+
                 {/* Dial numbers placed using polar trigonometry */}
                 {letters.map((char, i) => {
                     const value = i + 1;
-                    const angle = value * (is24Hour ? 15 : 30);
+                    const totalSteps = is24Hour ? 24 : 12;
+                    const angle = value * (360 / totalSteps);
                     const angleRad = (angle * Math.PI) / 180;
-                    const radiusPercent = 38; // Radius of letters placement
+                    const radiusPercent = is24Hour ? 39 : 37;
                     const left = 50 + radiusPercent * Math.sin(angleRad);
                     const top = 50 - radiusPercent * Math.cos(angleRad);
-                    
+
                     return (
                         <div
                             key={value}
@@ -1148,15 +2119,15 @@ const AnalogDial: React.FC<{
                                 transform: 'translate(-50%, -50%)',
                             }}
                         >
-                            <span className="text-[10px] sm:text-[12px] font-extrabold text-white">{value}</span>
-                            <span className="text-[8px] sm:text-[9px] font-black text-[#C5A880] mt-0.5">{char}</span>
+                            <span className={`${is24Hour ? 'text-[9px] sm:text-[11px] md:text-[12px]' : 'text-[11px] sm:text-[13px] md:text-[15px]'} font-extrabold text-white tracking-tighter`}>{value}</span>
+                            <span className={`${is24Hour ? 'text-[8px] sm:text-[9px] md:text-[10px]' : 'text-[10px] sm:text-[11px] md:text-[13px]'} font-black text-[#C5A880] mt-0.5 font-serif`}>{char}</span>
                         </div>
                     );
                 })}
 
                 {/* Hour Hand */}
                 <div
-                    className="absolute left-1/2 top-1/2 w-[5px] sm:w-[6px] h-[30%] bg-gradient-to-t from-[#C5A880] to-white rounded-full shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
+                    className="absolute left-1/2 top-1/2 w-[6px] sm:w-[7px] md:w-[8px] h-[28%] bg-gradient-to-t from-[#C5A880] via-[#E5C890] to-white rounded-full shadow-[0_2px_12px_rgba(0,0,0,0.7)] z-10"
                     style={{
                         transform: `translate(-50%, -100%) rotate(${hourAngle}deg)`,
                         transformOrigin: '50% 100%',
@@ -1165,7 +2136,7 @@ const AnalogDial: React.FC<{
 
                 {/* Minute Hand */}
                 <div
-                    className="absolute left-1/2 top-1/2 w-[3px] sm:w-[4px] h-[38%] bg-gradient-to-t from-slate-300 to-white rounded-full shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
+                    className="absolute left-1/2 top-1/2 w-[4px] sm:w-[5px] h-[38%] bg-gradient-to-t from-slate-300 via-slate-100 to-white rounded-full shadow-[0_2px_12px_rgba(0,0,0,0.7)] z-20"
                     style={{
                         transform: `translate(-50%, -100%) rotate(${minuteAngle}deg)`,
                         transformOrigin: '50% 100%',
@@ -1174,7 +2145,7 @@ const AnalogDial: React.FC<{
 
                 {/* Second Hand */}
                 <div
-                    className="absolute left-1/2 top-1/2 w-[1.5px] h-[44%] bg-red-500 rounded-full shadow-[0_1px_4px_rgba(0,0,0,0.3)]"
+                    className="absolute left-1/2 top-1/2 w-[2px] h-[45%] bg-gradient-to-t from-red-600 via-red-500 to-amber-300 rounded-full shadow-[0_1px_6px_rgba(239,68,68,0.5)] z-30"
                     style={{
                         transform: `translate(-50%, -100%) rotate(${secondAngle}deg)`,
                         transformOrigin: '50% 100%',
@@ -1182,8 +2153,8 @@ const AnalogDial: React.FC<{
                 />
 
                 {/* Center Pivot Point */}
-                <div className="absolute left-1/2 top-1/2 w-4 h-4 bg-slate-950 rounded-full -translate-x-1/2 -translate-y-1/2 border-2 border-[#C5A880] shadow-md flex items-center justify-center">
-                    <div className="w-1.5 h-1.5 bg-[#C5A880] rounded-full" />
+                <div className="absolute left-1/2 top-1/2 w-5 h-5 bg-slate-950 rounded-full -translate-x-1/2 -translate-y-1/2 border-2 border-[#C5A880] shadow-lg z-40 flex items-center justify-center">
+                    <div className="w-2 h-2 bg-[#C5A880] rounded-full shadow-inner" />
                 </div>
             </div>
         </div>
@@ -1194,49 +2165,61 @@ const HebrewClockView: React.FC = () => {
     const [now, setNow] = useState(() => new Date());
     const clockRef = useRef<HTMLDivElement>(null);
     const [isExporting, setIsExporting] = useState(false);
+    const [dialMode, setDialMode] = useState<'both' | '12h' | '24h'>('both');
 
     useEffect(() => {
         const timer = window.setInterval(() => setNow(new Date()), 1000);
         return () => window.clearInterval(timer);
     }, []);
 
-    const digitalTime = useMemo(
-        () =>
-            now.toLocaleTimeString('en-IN', {
-                timeZone: CHENNAI_TIMEZONE,
-                hour12: false,
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-            }),
+    // Jerusalem Time Telemetry (Asia/Jerusalem)
+    const jerusalemDigitalTime12 = useMemo(
+        () => now.toLocaleTimeString('en-US', { timeZone: JERUSALEM_TIMEZONE, hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        [now]
+    );
+    const jerusalemDigitalTime24 = useMemo(
+        () => now.toLocaleTimeString('en-US', { timeZone: JERUSALEM_TIMEZONE, hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        [now]
+    );
+    const jerusalemDateLine = useMemo(
+        () => now.toLocaleDateString('en-US', { timeZone: JERUSALEM_TIMEZONE, weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
         [now]
     );
 
-    const dateLine = useMemo(
-        () =>
-            now.toLocaleDateString('en-IN', {
-                timeZone: CHENNAI_TIMEZONE,
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-            }),
+    // Chennai Time Telemetry (Asia/Kolkata)
+    const chennaiDigitalTime12 = useMemo(
+        () => now.toLocaleTimeString('en-IN', { timeZone: CHENNAI_TIMEZONE, hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        [now]
+    );
+    const chennaiDigitalTime24 = useMemo(
+        () => now.toLocaleTimeString('en-IN', { timeZone: CHENNAI_TIMEZONE, hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        [now]
+    );
+    const chennaiDateLine = useMemo(
+        () => now.toLocaleDateString('en-IN', { timeZone: CHENNAI_TIMEZONE, weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
         [now]
     );
 
-    const [hour = 0, minute = 0, second = 0] = digitalTime.split(':').map((v) => Number(v));
-    const hourAngle = ((hour % 12) + minute / 60 + second / 3600) * 30;
-    const hour24Angle = (hour + minute / 60 + second / 3600) * 15;
-    const minuteAngle = (minute + second / 60) * 6;
-    const secondAngle = second * 6;
-    const hebrewDigitalTime = `${toHebrew((hour % 12) || 12)}:${toHebrew(minute)}:${toHebrew(second)}`;
-    const hebrewDigital24Time = `${toHebrew(hour)}:${toHebrew(minute)}:${toHebrew(second)}`;
+    // Angles for Analog Dial
+    const [jHour = 0, jMinute = 0, jSecond = 0] = jerusalemDigitalTime24.split(':').map(Number);
+    const hour12Angle = ((jHour % 12) + jMinute / 60 + jSecond / 3600) * 30;
+    const hour24Angle = ((jHour % 24) + jMinute / 60 + jSecond / 3600) * 15;
+    const minuteAngle = (jMinute + jSecond / 60) * 6;
+    const secondAngle = jSecond * 6;
+
+    const jeruHebrew12 = `${toHebrew((jHour % 12) || 12)}:${toHebrew(jMinute)}:${toHebrew(jSecond)}`;
+    const jeruHebrew24 = `${toHebrew(jHour)}:${toHebrew(jMinute)}:${toHebrew(jSecond)}`;
+
+    const [cHour = 0, cMinute = 0, cSecond = 0] = chennaiDigitalTime24.split(':').map(Number);
+    const chennaiHebrew12 = `${toHebrew((cHour % 12) || 12)}:${toHebrew(cMinute)}:${toHebrew(cSecond)}`;
+
+    const moonInfo = useMemo(() => getMoonPhaseInfo(now), [now]);
 
     const handleDownloadClock = async () => {
         if (!clockRef.current) return;
         setIsExporting(true);
         try {
-            const dataUrl = await captureNodeToJpeg(clockRef.current, { backgroundColor: '#020617', width: 900 });
+            const dataUrl = await captureNodeToJpeg(clockRef.current, { backgroundColor: '#020617', width: 1200 });
             const link = document.createElement('a');
             link.href = dataUrl;
             link.download = `COT-Hebrew-Clock-${Date.now()}.jpg`;
@@ -1250,49 +2233,205 @@ const HebrewClockView: React.FC = () => {
     };
 
     return (
-        <div className="space-y-6">
-            <div ref={clockRef} className="space-y-10 bg-slate-950 text-white rounded-[2.5rem] p-6 md:p-10 border border-white/10 shadow-2xl relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
+        <div className="space-y-8 font-serif">
+            <div ref={clockRef} className="space-y-10 bg-slate-950 text-white rounded-[2.5rem] p-6 md:p-12 border border-white/10 shadow-2xl relative overflow-hidden">
+                {/* Background lighting */}
+                <div className="absolute -top-32 -left-32 w-96 h-96 bg-[#D4AF37]/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-[#1E3A8A]/30 rounded-full blur-3xl pointer-events-none" />
 
-                <div className="text-center relative z-10 space-y-2">
-                    <h3 className="text-3xl md:text-5xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 drop-shadow-md">Hebrew Clock — Chennai Time</h3>
-                    <p className="text-slate-400 max-w-xl mx-auto text-xs sm:text-sm">Synchronized to Chennai, India (Asia/Kolkata timezone)</p>
+                {/* Header */}
+                <div className="text-center relative z-10 space-y-3">
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#D4AF37]/15 border border-[#D4AF37]/30 text-[#D4AF37] text-xs font-black uppercase tracking-[0.25em]">
+                        <Clock size={14} /> Sacred Astronomical Clock & Dual Timezone Sync
+                    </div>
+                    <h3 className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 drop-shadow-md">
+                        Jerusalem & Chennai Live Time
+                    </h3>
+                    <p className="text-slate-400 max-w-2xl mx-auto text-xs sm:text-sm">
+                        Synchronized live to Jerusalem, Israel (Asia/Jerusalem · UTC+3) and Chennai, India (Asia/Kolkata · UTC+5:30) with 12-Hour Sacred & 24-Hour Solar Hebrew Dials.
+                    </p>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-2 relative z-10 justify-items-center">
-                    {/* 12-Hour Clock */}
-                    <AnalogDial
-                        label="12-Hour Sacred Dial (Hebrew Letters + Numbers)"
-                        hourAngle={hourAngle}
-                        minuteAngle={minuteAngle}
-                        secondAngle={secondAngle}
-                        is24Hour={false}
-                    />
-                    {/* 24-Hour Clock */}
-                    <AnalogDial
-                        label="24-Hour Solar Dial (Full Day Cycle א - כד)"
-                        hourAngle={hour24Angle}
-                        minuteAngle={minuteAngle}
-                        secondAngle={secondAngle}
-                        is24Hour={true}
-                    />
+                {/* ═══ ROW 1: DUAL DIGITAL TIME CARDS ═══ */}
+                <div className="grid gap-6 md:grid-cols-2 relative z-10">
+                    {/* JERUSALEM TIME (YERUSHALAYIM) */}
+                    <div className="bg-gradient-to-b from-amber-950/40 via-slate-900/80 to-slate-950 border border-amber-500/40 rounded-[2rem] p-6 shadow-[0_0_30px_rgba(212,175,55,0.15)] flex flex-col justify-between relative overflow-hidden group hover:border-amber-400/60 transition-all">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                                    <span className="text-xs font-black uppercase tracking-widest text-amber-400">Jerusalem Time (Yerushalayim)</span>
+                                </div>
+                                <span className="text-[10px] font-bold text-amber-300/80 uppercase tracking-widest bg-amber-500/10 px-2.5 py-1 rounded-md border border-amber-500/20">Israel · UTC+3</span>
+                            </div>
+
+                            <div className="text-center py-4 bg-black/50 rounded-2xl border border-amber-500/30 shadow-inner">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400/80 mb-1">Jerusalem Live Digital Time</p>
+                                <div className="text-4xl sm:text-5xl font-black font-mono tracking-wider text-amber-300 drop-shadow-[0_0_15px_rgba(251,191,36,0.4)]">
+                                    {jerusalemDigitalTime12}
+                                </div>
+                                <p className="text-xs text-slate-300 font-bold mt-2 tracking-wide">{jerusalemDateLine}</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 pt-2">
+                                <div className="bg-white/5 p-3.5 rounded-xl border border-white/10 text-center">
+                                    <p className="text-[9px] font-black text-amber-400/70 uppercase tracking-wider">Sacred 12H (Hebrew)</p>
+                                    <div className="text-xl font-black text-white mt-1" dir="rtl">{jeruHebrew12}</div>
+                                </div>
+                                <div className="bg-white/5 p-3.5 rounded-xl border border-white/10 text-center">
+                                    <p className="text-[9px] font-black text-amber-400/70 uppercase tracking-wider">Solar 24H (Hebrew)</p>
+                                    <div className="text-xl font-black text-white mt-1" dir="rtl">{jeruHebrew24}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-4 pt-3 border-t border-white/10 text-center text-[10px] text-amber-200/80 font-bold flex items-center justify-center gap-1">
+                            <MapPin size={12} className="text-amber-400" /> Capital of Israel · Temple Mount Astronomical Sync
+                        </div>
+                    </div>
+
+                    {/* CHENNAI TIME (INDIA) */}
+                    <div className="bg-gradient-to-b from-blue-950/40 via-slate-900/80 to-slate-950 border border-blue-500/40 rounded-[2rem] p-6 shadow-[0_0_30px_rgba(30,58,138,0.2)] flex flex-col justify-between relative overflow-hidden group hover:border-blue-400/60 transition-all">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
+
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between border-b border-blue-500/20 pb-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
+                                    <span className="text-xs font-black uppercase tracking-widest text-cyan-400">Chennai Time (India)</span>
+                                </div>
+                                <span className="text-[10px] font-bold text-cyan-300/80 uppercase tracking-widest bg-cyan-500/10 px-2.5 py-1 rounded-md border border-cyan-500/20">India · UTC+5:30</span>
+                            </div>
+
+                            <div className="text-center py-4 bg-black/50 rounded-2xl border border-blue-500/30 shadow-inner">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400/80 mb-1">Chennai Live Digital Time</p>
+                                <div className="text-4xl sm:text-5xl font-black font-mono tracking-wider text-cyan-300 drop-shadow-[0_0_15px_rgba(6,182,212,0.4)]">
+                                    {chennaiDigitalTime12}
+                                </div>
+                                <p className="text-xs text-slate-300 font-bold mt-2 tracking-wide">{chennaiDateLine}</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 pt-2">
+                                <div className="bg-white/5 p-3.5 rounded-xl border border-white/10 text-center">
+                                    <p className="text-[9px] font-black text-cyan-400/70 uppercase tracking-wider">Sacred 12H (Hebrew)</p>
+                                    <div className="text-xl font-black text-white mt-1" dir="rtl">{chennaiHebrew12}</div>
+                                </div>
+                                <div className="bg-white/5 p-3.5 rounded-xl border border-white/10 text-center">
+                                    <p className="text-[9px] font-black text-cyan-400/70 uppercase tracking-wider">Time Offset</p>
+                                    <div className="text-sm font-black text-amber-300 mt-1">+2h 30m</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-4 pt-3 border-t border-white/10 text-center text-[10px] text-cyan-200/80 font-bold flex items-center justify-center gap-1">
+                            <Sparkles size={12} className="text-cyan-400" /> +2 Hours 30 Minutes Ahead of Jerusalem
+                        </div>
+                    </div>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 relative z-10">
-                    <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 text-center shadow-lg hover:border-amber-500/20 transition-all flex flex-col justify-center">
-                        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-400 mb-2">Sacred 12H Time</p>
-                        <div className="text-3xl sm:text-4xl font-black tracking-wider text-white drop-shadow-md" dir="rtl">{hebrewDigitalTime}</div>
-                        <p className="text-[9px] text-slate-400 mt-2">Hebrew numerals (12H cycle)</p>
+                {/* ═══ ROW 2: GRAND SACRED & SOLAR ANALOG CLOCKS (BIG DIALS) ═══ */}
+                <div className="bg-gradient-to-b from-[#090b1c] via-[#050612] to-slate-950 border border-[#D4AF37]/30 rounded-[2.5rem] p-6 md:p-8 shadow-2xl relative z-10 space-y-6">
+                    {/* Dial Selector Controls */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-white/10 pb-4">
+                        <div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#D4AF37]">Sacred & Solar Analog Display</span>
+                            <h4 className="text-xl md:text-2xl font-black text-white">Jerusalem Astronomical Dials</h4>
+                        </div>
+
+                        {/* Dial Mode Buttons */}
+                        <div className="flex flex-wrap items-center bg-black/60 p-1.5 rounded-2xl border border-white/10 gap-1">
+                            <button
+                                onClick={() => setDialMode('both')}
+                                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${dialMode === 'both' ? 'bg-[#D4AF37] text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'}`}
+                            >
+                                🌓 Dual Dials (12H & 24H)
+                            </button>
+                            <button
+                                onClick={() => setDialMode('12h')}
+                                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${dialMode === '12h' ? 'bg-[#D4AF37] text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'}`}
+                            >
+                                📜 12-Hour Sacred (א - יב)
+                            </button>
+                            <button
+                                onClick={() => setDialMode('24h')}
+                                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${dialMode === '24h' ? 'bg-[#D4AF37] text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'}`}
+                            >
+                                ☀️ 24-Hour Solar (א - כד)
+                            </button>
+                        </div>
                     </div>
-                    <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 text-center shadow-lg hover:border-amber-500/20 transition-all flex flex-col justify-center">
-                        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-400 mb-2">Solar 24H Time</p>
-                        <div className="text-3xl sm:text-4xl font-black tracking-wider text-white drop-shadow-md" dir="rtl">{hebrewDigital24Time}</div>
-                        <p className="text-[9px] text-slate-400 mt-2">Hebrew numerals (24H cycle)</p>
+
+                    {/* Analog Dials Rendering Container */}
+                    <div className="pt-2">
+                        {dialMode === 'both' && (
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center justify-items-center">
+                                <AnalogDial
+                                    label="12-Hour Sacred Dial"
+                                    subtitle="Sacred Cycle (א - יב • 1 to 12)"
+                                    hourAngle={hour12Angle}
+                                    minuteAngle={minuteAngle}
+                                    secondAngle={secondAngle}
+                                    is24Hour={false}
+                                />
+                                <AnalogDial
+                                    label="24-Hour Solar Dial"
+                                    subtitle="Solar Full Cycle (א - כד • 1 to 24)"
+                                    hourAngle={hour24Angle}
+                                    minuteAngle={minuteAngle}
+                                    secondAngle={secondAngle}
+                                    is24Hour={true}
+                                />
+                            </div>
+                        )}
+
+                        {dialMode === '12h' && (
+                            <div className="flex justify-center">
+                                <AnalogDial
+                                    label="12-Hour Sacred Dial"
+                                    subtitle="Sacred Hebrew Cycle (א - יב • 1 to 12)"
+                                    hourAngle={hour12Angle}
+                                    minuteAngle={minuteAngle}
+                                    secondAngle={secondAngle}
+                                    is24Hour={false}
+                                />
+                            </div>
+                        )}
+
+                        {dialMode === '24h' && (
+                            <div className="flex justify-center">
+                                <AnalogDial
+                                    label="24-Hour Solar Dial"
+                                    subtitle="Solar Hebrew Cycle (א - כד • 1 to 24)"
+                                    hourAngle={hour24Angle}
+                                    minuteAngle={minuteAngle}
+                                    secondAngle={secondAngle}
+                                    is24Hour={true}
+                                />
+                            </div>
+                        )}
                     </div>
-                    <div className="sm:col-span-2 lg:col-span-3 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-amber-500/50 rounded-[2rem] p-8 text-center shadow-[0_0_30px_rgba(245,158,11,0.15)] flex flex-col justify-center items-center">
-                        <p className="text-xs font-black uppercase tracking-[0.3em] text-amber-500 mb-3 flex items-center gap-2"><Sparkles size={14} /> Standard Digital Time <Sparkles size={14} /></p>
-                        <div className="text-5xl md:text-6xl font-black font-mono tracking-widest text-amber-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.5)]">{digitalTime}</div>
-                        <p className="text-sm text-slate-300 mt-4 font-bold uppercase tracking-widest">{dateLine}</p>
+                </div>
+
+                {/* ═══ ROW 3: DUAL TIMEZONE SUMMARY BANNER ═══ */}
+                <div className="relative z-10 bg-gradient-to-r from-slate-900 via-amber-950/30 to-slate-900 border border-amber-500/40 rounded-[2rem] p-6 text-center shadow-xl flex flex-col md:flex-row items-center justify-around gap-6">
+                    <div className="flex items-center gap-3">
+                        <span className="text-2xl">{moonInfo.emoji}</span>
+                        <div className="text-left">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">Current Moon Phase</p>
+                            <p className="text-sm font-bold text-white">{moonInfo.name} ({moonInfo.illumination}% Illuminated)</p>
+                        </div>
+                    </div>
+                    <div className="h-8 w-px bg-white/10 hidden md:block" />
+                    <div className="text-center">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">Jerusalem 24H</p>
+                        <p className="text-2xl font-black font-mono text-amber-300">{jerusalemDigitalTime24}</p>
+                    </div>
+                    <div className="h-8 w-px bg-white/10 hidden md:block" />
+                    <div className="text-center">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-cyan-400">Chennai 24H</p>
+                        <p className="text-2xl font-black font-mono text-cyan-300">{chennaiDigitalTime24}</p>
                     </div>
                 </div>
             </div>
@@ -1301,12 +2440,12 @@ const HebrewClockView: React.FC = () => {
                 <button
                     onClick={handleDownloadClock}
                     disabled={isExporting}
-                    className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-brand-950 rounded-full hover:from-amber-400 hover:to-amber-500 font-black text-sm uppercase tracking-widest transition-all shadow-[0_10px_20px_rgba(245,158,11,0.3)] hover:shadow-[0_15px_30px_rgba(245,158,11,0.5)] hover:-translate-y-0.5 disabled:opacity-50"
+                    className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-brand-950 rounded-full hover:from-amber-400 hover:to-amber-500 font-black text-sm uppercase tracking-widest transition-all shadow-[0_10px_20px_rgba(245,158,11,0.3)] hover:shadow-[0_15px_30px_rgba(245,158,11,0.5)] hover:-translate-y-0.5 disabled:opacity-50 cursor-pointer"
                 >
                     {isExporting ? (
-                        <><span className="animate-spin text-sm">⏳</span> Exporting Image...</>
+                        <><span className="animate-spin text-sm">⏳</span> Exporting Clock Image...</>
                     ) : (
-                        <><Download size={18} /> Download and use it</>
+                        <><Download size={18} /> Download High-Res Clock</>
                     )}
                 </button>
             </div>
@@ -1480,7 +2619,7 @@ const GrammarView: React.FC = () => {
     return (
         <div className="space-y-10 bg-slate-950 text-white rounded-[2.5rem] p-6 md:p-10 border border-white/10 shadow-2xl relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
-            
+
             {/* Header */}
             <div className="text-center max-w-3xl mx-auto relative z-10 space-y-2">
                 <h3 className="text-3xl md:text-5xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 drop-shadow-md">Hebrew Grammar</h3>
@@ -1563,7 +2702,7 @@ const GrammarView: React.FC = () => {
                 >
                     <div style={{ background: 'linear-gradient(135deg, #0f0c29 0%, #1a1450 50%, #0f0c29 100%)', padding: '48px', fontFamily: 'Georgia, serif', color: '#ffffff', borderRadius: '24px', position: 'relative', overflow: 'hidden' }}>
                         <div style={{ position: 'absolute', inset: 0, opacity: 0.04, backgroundImage: 'repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)', backgroundSize: '12px 12px', borderRadius: '24px' }} />
-                        
+
                         {/* Header */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', paddingBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -1701,7 +2840,7 @@ const HebrewConverterNumbers: React.FC = () => {
     return (
         <div className="space-y-10 bg-slate-950 text-white rounded-[2.5rem] p-6 md:p-10 border border-white/10 shadow-2xl relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
-            
+
             <div className="text-center relative z-10 space-y-2">
                 <h2 className="text-3xl md:text-5xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 drop-shadow-md">Number → Hebrew Numeral</h2>
                 <p className="text-slate-400 text-xs sm:text-sm max-w-xl mx-auto">Convert any number to its sacred Hebrew representation</p>
@@ -1725,24 +2864,23 @@ const HebrewConverterNumbers: React.FC = () => {
                         <label className="text-xs font-bold text-[#C5A880] uppercase tracking-widest flex items-center gap-2">
                             <Hash size={14} className="text-[#C5A880]" /> Enter Number
                         </label>
-                        <input 
-                            type="number" 
-                            placeholder="e.g. 2026" 
-                            className="w-full text-4xl md:text-6xl font-mono bg-transparent border-b-2 border-white/10 py-4 outline-none focus:border-[#C5A880] transition-colors text-white placeholder:text-slate-700" 
-                            value={input} 
-                            onChange={e => setInput(e.target.valueAsNumber || '')} 
+                        <input
+                            type="number"
+                            placeholder="e.g. 2026"
+                            className="w-full text-4xl md:text-6xl font-mono bg-transparent border-b-2 border-white/10 py-4 outline-none focus:border-[#C5A880] transition-colors text-white placeholder:text-slate-700"
+                            value={input}
+                            onChange={e => setInput(e.target.valueAsNumber || '')}
                         />
                     </div>
                     <div className="hidden md:block w-px h-28 bg-white/10" />
                     <div className="flex-1 w-full text-center md:text-right space-y-2">
                         <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block">Hebrew Numeral</label>
-                        <div className={`${
-                            hebrewResult.length > 15 ? 'text-xl md:text-5xl' :
-                            hebrewResult.length > 10 ? 'text-2xl md:text-6xl' :
-                            hebrewResult.length > 8 ? 'text-3xl md:text-7xl' :
-                            hebrewResult.length > 5 ? 'text-4xl md:text-8xl' :
-                            'text-6xl md:text-8xl'
-                        } font-serif text-amber-400 font-black min-h-[1.5em] flex items-center justify-center md:justify-end drop-shadow-md`}>
+                        <div className={`${hebrewResult.length > 15 ? 'text-xl md:text-5xl' :
+                                hebrewResult.length > 10 ? 'text-2xl md:text-6xl' :
+                                    hebrewResult.length > 8 ? 'text-3xl md:text-7xl' :
+                                        hebrewResult.length > 5 ? 'text-4xl md:text-8xl' :
+                                            'text-6xl md:text-8xl'
+                            } font-serif text-amber-400 font-black min-h-[1.5em] flex items-center justify-center md:justify-end drop-shadow-md`}>
                             {hebrewResult || '—'}
                         </div>
                     </div>
@@ -1828,12 +2966,12 @@ const HebrewConverterNumbers: React.FC = () => {
                     <h3 className="text-lg font-serif font-bold text-[#C5A880]">Numeral Reference Guide</h3>
                     <div className="relative w-full md:w-72">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                        <input 
-                            type="text" 
-                            placeholder="Find number or character…" 
-                            className="w-full pl-11 pr-5 py-2.5 bg-white/5 border border-white/10 rounded-full outline-none focus:border-[#C5A880] text-sm text-white placeholder:text-slate-600 shadow-inner" 
-                            value={search} 
-                            onChange={e => setSearch(e.target.value)} 
+                        <input
+                            type="text"
+                            placeholder="Find number or character…"
+                            className="w-full pl-11 pr-5 py-2.5 bg-white/5 border border-white/10 rounded-full outline-none focus:border-[#C5A880] text-sm text-white placeholder:text-slate-600 shadow-inner"
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
                         />
                     </div>
                 </div>
@@ -1960,7 +3098,7 @@ const HebrewGematriaCalc: React.FC = () => {
     return (
         <div className="space-y-10 bg-slate-950 text-white rounded-[2.5rem] p-6 md:p-10 border border-white/10 shadow-2xl relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
-            
+
             <div className="text-center relative z-10 space-y-2">
                 <h2 className="text-3xl md:text-5xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 drop-shadow-md">Gematria Calculator</h2>
                 <p className="text-slate-400 text-xs sm:text-sm">Type any Hebrew word to calculate its sacred numerical value</p>
@@ -1984,13 +3122,13 @@ const HebrewGematriaCalc: React.FC = () => {
                         <label className="text-xs font-bold text-[#C5A880] uppercase tracking-widest flex items-center gap-2">
                             <Search size={14} className="text-[#C5A880]" /> Type Hebrew Word
                         </label>
-                        <input 
-                            type="text" 
-                            placeholder="Type any Hebrew word..." 
-                            dir="rtl" 
-                            className="w-full text-4xl sm:text-5xl md:text-6xl font-serif bg-transparent border-b-2 border-white/10 py-4 outline-none focus:border-[#C5A880] transition-colors text-white placeholder:text-slate-700 text-right" 
-                            value={word} 
-                            onChange={e => setWord(e.target.value)} 
+                        <input
+                            type="text"
+                            placeholder="Type any Hebrew word..."
+                            dir="rtl"
+                            className="w-full text-4xl sm:text-5xl md:text-6xl font-serif bg-transparent border-b-2 border-white/10 py-4 outline-none focus:border-[#C5A880] transition-colors text-white placeholder:text-slate-700 text-right"
+                            value={word}
+                            onChange={e => setWord(e.target.value)}
                         />
                     </div>
                     <div className="hidden md:block w-px h-28 bg-white/10" />
@@ -2052,10 +3190,10 @@ const HebrewGematriaCalc: React.FC = () => {
                 <h3 className="text-lg font-serif font-bold text-[#C5A880] text-center">Alphabet Values Reference</h3>
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-11 gap-2.5 justify-center">
                     {ALPHABET_REF.map(item => (
-                        <button 
-                            key={item.letter} 
-                            onClick={() => setWord(w => w + item.letter)} 
-                            className="bg-white/5 p-4 rounded-2xl border border-white/10 shadow-sm flex flex-col items-center gap-1 text-center hover:bg-white/10 hover:scale-105 hover:border-[#C5A880]/30 transition-all cursor-pointer" 
+                        <button
+                            key={item.letter}
+                            onClick={() => setWord(w => w + item.letter)}
+                            className="bg-white/5 p-4 rounded-2xl border border-white/10 shadow-sm flex flex-col items-center gap-1 text-center hover:bg-white/10 hover:scale-105 hover:border-[#C5A880]/30 transition-all cursor-pointer"
                             title={`Add ${item.name}`}
                         >
                             <span className="text-3xl font-serif text-white">{item.letter}</span>
@@ -2075,7 +3213,7 @@ const HebrewGematriaCalc: React.FC = () => {
                 >
                     <div style={{ background: 'linear-gradient(135deg, #0f0c29 0%, #1a1450 50%, #0f0c29 100%)', padding: '48px', fontFamily: 'Georgia, serif', color: '#ffffff', borderRadius: '24px', position: 'relative', overflow: 'hidden' }}>
                         <div style={{ position: 'absolute', inset: 0, opacity: 0.04, backgroundImage: 'repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)', backgroundSize: '12px 12px', borderRadius: '24px' }} />
-                        
+
                         {/* Header */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', paddingBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -2385,16 +3523,16 @@ const HebrewLettersAudioLab: React.FC = () => {
                 </p>
             </div>
 
-            {/* ── WORD BUILDER (Always visible full-width at top, static on mobile, sticky on desktop alone) ── */}
-            <div className={`bg-white border border-slate-200 shadow-md p-1 rounded-[2rem] z-20 ${isBuilderStickyActive ? 'sticky top-[5rem]' : ''}`}>
-                <div className="bg-white rounded-[2rem] p-4 md:p-6">
-                    <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-3 mb-2">
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Word Builder — {selectedLetters.length} letter{selectedLetters.length !== 1 ? 's' : ''} (unlimited)</p>
+            {/* ── WORD BUILDER (Space-Optimized, Compact & Sleek) ── */}
+            <div className={`bg-white border border-slate-200 shadow-md p-0.5 rounded-2xl md:rounded-[2rem] z-20 ${isBuilderStickyActive ? 'sticky top-[4.5rem]' : ''}`}>
+                <div className="bg-white rounded-2xl md:rounded-[2rem] p-2.5 sm:p-4 md:p-5">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+                        <div className="flex-1 min-w-0 w-full">
+                            <div className="flex items-center justify-between gap-2 mb-1.5">
+                                <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Word Builder — {selectedLetters.length} letter{selectedLetters.length !== 1 ? 's' : ''}</p>
                                 <button
                                     onClick={() => setBuilderSticky((v) => !v)}
-                                    className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border transition-colors ${isBuilderStickyActive ? 'bg-brand-50 text-brand-700 border-brand-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}
+                                    className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border transition-colors ${isBuilderStickyActive ? 'bg-brand-50 text-brand-700 border-brand-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}
                                 >
                                     {isBuilderStickyActive ? 'Sticky On' : 'Sticky Off'}
                                 </button>
@@ -2404,76 +3542,76 @@ const HebrewLettersAudioLab: React.FC = () => {
                                     onDragOver={handleBuilderDragOver}
                                     onDrop={handleBuilderDrop}
                                     onDragLeave={() => setIsBuilderDragOver(false)}
-                                    className={`text-sm italic rounded-2xl border-2 border-dashed p-4 transition-colors ${isBuilderDragOver ? 'border-brand-400 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-300'}`}
+                                    className={`text-xs italic rounded-xl border border-dashed p-2.5 text-center transition-colors ${isBuilderDragOver ? 'border-brand-400 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-400'}`}
                                 >
-                                    Drag and drop letters here, or tap + Add below.
+                                    Drag & drop letters here, or tap + ADD on letter cards.
                                 </div>
                             ) : (
-                                <div
-                                    className={`overflow-x-auto no-scrollbar pb-1 pr-1 rounded-xl transition-colors ${isBuilderDragOver ? 'bg-brand-50/70' : ''}`}
-                                    dir="ltr"
-                                    onDragOver={handleBuilderDragOver}
-                                    onDrop={handleBuilderDrop}
-                                    onDragLeave={() => setIsBuilderDragOver(false)}
-                                >
-                                    <Reorder.Group
-                                        axis="x"
-                                        values={selectedLetters}
-                                        onReorder={(next) => {
-                                            setSelectedLetters(next);
-                                            setAiResult(null);
-                                            setAiError(null);
-                                            setBuilderSticky(true);
-                                        }}
-                                        className={`flex flex-wrap items-center gap-2 ${isBuilderDragOver ? 'py-1' : ''}`}
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <div
+                                        className={`overflow-x-auto no-scrollbar pb-0.5 rounded-xl transition-colors max-w-full ${isBuilderDragOver ? 'bg-brand-50/70' : ''}`}
+                                        dir="ltr"
+                                        onDragOver={handleBuilderDragOver}
+                                        onDrop={handleBuilderDrop}
+                                        onDragLeave={() => setIsBuilderDragOver(false)}
                                     >
-                                        {selectedLetters.map((l) => (
-                                            <Reorder.Item
-                                                key={l.key}
-                                                value={l}
-                                                whileDrag={{ scale: 1.03, boxShadow: '0 10px 30px rgba(15,23,42,0.15)' }}
-                                                className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-2xl border-2 border-slate-200 bg-slate-50 hover:border-brand-300 cursor-grab active:cursor-grabbing select-none transition-colors duration-200 touch-pan-x"
-                                            >
-                                                <span className="text-2xl font-serif text-brand-950 leading-none">{l.letter}</span>
-                                                <span className="text-[9px] font-bold text-slate-400 uppercase">{l.name}</span>
-                                                <button
-                                                    onClick={() => removeLetterByKey(l.key)}
-                                                    className="w-5 h-5 rounded-full bg-slate-200 hover:bg-red-100 hover:text-red-500 text-slate-400 flex items-center justify-center transition-colors text-[10px] font-black ml-1"
-                                                    title={`Remove ${l.name}`}
+                                        <Reorder.Group
+                                            axis="x"
+                                            values={selectedLetters}
+                                            onReorder={(next) => {
+                                                setSelectedLetters(next);
+                                                setAiResult(null);
+                                                setAiError(null);
+                                                setBuilderSticky(true);
+                                            }}
+                                            className={`flex items-center gap-1.5 ${isBuilderDragOver ? 'py-0.5' : ''}`}
+                                        >
+                                            {selectedLetters.map((l) => (
+                                                <Reorder.Item
+                                                    key={l.key}
+                                                    value={l}
+                                                    whileDrag={{ scale: 1.03, boxShadow: '0 10px 30px rgba(15,23,42,0.15)' }}
+                                                    className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-xl border border-slate-200 bg-slate-50 hover:border-brand-300 cursor-grab active:cursor-grabbing select-none transition-colors duration-200 touch-pan-x"
                                                 >
-                                                    ✕
-                                                </button>
-                                            </Reorder.Item>
-                                        ))}
-                                    </Reorder.Group>
+                                                    <span className="text-xl font-serif text-brand-950 leading-none">{l.letter}</span>
+                                                    <span className="text-[8px] font-bold text-slate-400 uppercase">{l.name}</span>
+                                                    <button
+                                                        onClick={() => removeLetterByKey(l.key)}
+                                                        className="w-4 h-4 rounded-full bg-slate-200 hover:bg-red-100 hover:text-red-500 text-slate-400 flex items-center justify-center transition-colors text-[9px] font-black ml-0.5"
+                                                        title={`Remove ${l.name}`}
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                </Reorder.Item>
+                                            ))}
+                                        </Reorder.Group>
+                                    </div>
+                                    <div className="text-2xl sm:text-3xl font-serif text-brand-950 max-h-10 overflow-x-auto no-scrollbar leading-none whitespace-nowrap shrink-0" dir="rtl">{combinedWord}</div>
                                 </div>
                             )}
-                            {selectedLetters.length > 0 && (
-                                <div className="text-3xl md:text-4xl font-serif text-brand-950 mt-2 max-h-12 max-w-full overflow-x-auto overflow-y-hidden no-scrollbar leading-tight whitespace-nowrap" dir="rtl">{combinedWord}</div>
-                            )}
                         </div>
-                        <div className="flex gap-2 shrink-0 flex-wrap">
+                        <div className="flex gap-1.5 shrink-0 flex-wrap w-full md:w-auto justify-end">
                             <button
                                 onClick={playCombined}
                                 disabled={!combinedWord}
-                                className="px-5 py-2.5 rounded-full bg-brand-950 text-white font-bold text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-900 transition-colors cursor-pointer"
+                                className="px-3.5 py-1.5 rounded-xl bg-brand-950 text-white font-bold text-xs flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-900 transition-colors cursor-pointer"
                             >
-                                <Volume2 size={15} /> Play Word
+                                <Volume2 size={13} /> Play Word
                             </button>
                             {selectedLetters.length > 0 && !aiResult && (
                                 <button
                                     onClick={handleDeepAnalysis}
                                     disabled={isAnalyzing}
-                                    className="px-5 py-2.5 rounded-full bg-accent-500 text-brand-950 font-bold text-sm flex items-center gap-2 disabled:opacity-50 hover:bg-accent-400 transition-colors shadow-lg cursor-pointer"
+                                    className="px-3.5 py-1.5 rounded-xl bg-accent-500 text-brand-950 font-bold text-xs flex items-center gap-1.5 disabled:opacity-50 hover:bg-accent-400 transition-colors shadow-md cursor-pointer"
                                 >
-                                    {isAnalyzing ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
+                                    {isAnalyzing ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
                                     {isAnalyzing ? 'Analyzing…' : 'Word Analysis'}
                                 </button>
                             )}
                             {selectedLetters.length > 0 && (
                                 <button
                                     onClick={() => { setSelectedLetters([]); setAiResult(null); setAiError(null); setBuilderSticky(true); }}
-                                    className="px-4 py-2.5 rounded-full border border-slate-200 text-slate-500 font-bold text-sm hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors cursor-pointer"
+                                    className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-500 font-bold text-xs hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors cursor-pointer"
                                 >
                                     Clear All
                                 </button>
@@ -2493,7 +3631,7 @@ const HebrewLettersAudioLab: React.FC = () => {
                         </motion.div>
                     )}
 
-                    {/* ── AI ANALYSIS RESULT ── */}
+                    {/* ── AI ANALYSIS RESULT CARD (FULL FEATURED AS IN SCREENSHOT 2) ── */}
                     <AnimatePresence>
                         {aiResult && (
                             <motion.div
@@ -2502,23 +3640,37 @@ const HebrewLettersAudioLab: React.FC = () => {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -12 }}
                                 transition={{ duration: 0.35 }}
-                                className="bg-slate-950 text-white rounded-[2rem] p-6 md:p-8 flex flex-col space-y-5 shadow-2xl relative overflow-hidden"
+                                className="bg-slate-950 text-white rounded-[2rem] p-6 md:p-8 flex flex-col space-y-5 shadow-2xl relative overflow-hidden border border-white/10"
                             >
-                                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-                                {/* Header row */}
-                                <div className="flex justify-between items-start gap-3">
+                                <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-brand-950/40 pointer-events-none" />
+
+                                {/* 1. Pronunciation Header Row */}
+                                <div className="flex justify-between items-start gap-3 relative z-10">
                                     <div className="space-y-1 min-w-0">
-                                        <div className="text-[10px] font-black text-brand-400 uppercase tracking-[0.2em]">AI Word Analysis</div>
+                                        <div className="text-[10px] font-black text-brand-400 uppercase tracking-[0.2em]">PRONUNCIATION</div>
                                         <div className="text-2xl font-black flex items-center gap-2 text-white flex-wrap">
                                             <span>{aiResult.pronunciation}</span>
-                                            <button onClick={playCombined} className="shrink-0 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-accent-400 cursor-pointer">
+                                            <button
+                                                onClick={playCombined}
+                                                className="shrink-0 p-1.5 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-accent-400 cursor-pointer"
+                                                title="Listen in English"
+                                            >
                                                 <Volume2 size={16} />
                                             </button>
                                         </div>
                                         {aiResult.pronunciationTa && (
-                                            <div className="text-sm font-bold text-slate-400 flex items-center gap-2 mt-1">
-                                                <div className="w-4 h-[1px] bg-slate-700" />
-                                                {aiResult.pronunciationTa} (தமிழ்)
+                                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                                <div className="text-sm font-bold text-slate-400 flex items-center gap-2">
+                                                    <div className="w-4 h-[1px] bg-slate-700" />
+                                                    {aiResult.pronunciationTa} (தமிழ்)
+                                                </div>
+                                                <button
+                                                    onClick={() => audioService.playTamil(aiResult.pronunciationTa)}
+                                                    className="p-1.5 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-accent-400 cursor-pointer"
+                                                    title="Listen in Tamil"
+                                                >
+                                                    <Volume2 size={14} />
+                                                </button>
                                             </div>
                                         )}
                                     </div>
@@ -2527,58 +3679,99 @@ const HebrewLettersAudioLab: React.FC = () => {
                                     </div>
                                 </div>
 
-                                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                                    <div className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-300/80">
-                                        <Volume2 size={13} />
-                                        Mouth Pronunciation
+                                {/* 2. Root Word (Shoresh) Section */}
+                                {aiResult.root && (
+                                    <div className="relative group/root cursor-default z-10">
+                                        <div className="absolute inset-0 bg-accent-500/10 blur-2xl opacity-0 group-hover/root:opacity-100 transition-opacity duration-700"></div>
+                                        <div className="relative bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between gap-3 group-hover/root:border-accent-500/30 transition-all">
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="shrink-0 w-8 h-8 bg-accent-500/20 rounded-xl flex items-center justify-center text-accent-400">
+                                                    <Fingerprint size={16} />
+                                                </div>
+                                                <div className="space-y-0.5 min-w-0">
+                                                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">SHORESH (HEBREW ROOT)</div>
+                                                    <div className="text-xs text-brand-400 font-bold">The spiritual foundation</div>
+                                                </div>
+                                            </div>
+                                            <div className="text-2xl sm:text-3xl font-serif text-accent-400 tracking-[0.2em] shrink-0" dir="rtl">
+                                                {aiResult.root}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="flex justify-center">
-                                        <MouthPronunciationAnimator
-                                            phonemeSequence={buildAudioMouthSequence(aiResult.breakdownEn || aiResult.pronunciation)}
-                                            isPlaying={false}
-                                            animationState="idle"
-                                            className="transform scale-110"
-                                        />
+                                )}
+
+                                {/* 3. Syllables & Splitting Grid */}
+                                <div className="grid grid-cols-2 gap-3 py-4 border-y border-white/10 relative z-10">
+                                    <div className="space-y-1.5">
+                                        <div className="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em]">HEBREW SYLLABLES</div>
+                                        <div className="text-sm sm:text-base font-serif tracking-widest text-white/90 break-words" dir="rtl">{aiResult.breakdownHe || aiResult.word}</div>
+                                    </div>
+                                    <div className="space-y-1.5 border-l border-white/10 pl-3">
+                                        <div className="text-[10px] font-black text-brand-400 uppercase tracking-[0.2em]">ENGLISH SPLITTING</div>
+                                        <div className="text-sm sm:text-base font-mono font-bold text-accent-200 tracking-tight break-words">{aiResult.breakdownEn || aiResult.pronunciation}</div>
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Meaning (EN)</p>
-                                        <p className="text-base text-slate-100 font-medium leading-relaxed">{aiResult.meaningEn}</p>
-                                    </div>
+                                {/* 4. Meanings Section */}
+                                <div className="space-y-4 relative z-10">
+                                    {aiResult.meaningEn && (
+                                        <div className="space-y-1">
+                                            <div className="text-xs font-bold text-amber-500 uppercase tracking-widest">ENGLISH MEANING</div>
+                                            <div className="text-base sm:text-lg font-serif leading-relaxed text-slate-100 break-words">{aiResult.meaningEn}</div>
+                                        </div>
+                                    )}
                                     {aiResult.meaningTa && (
                                         <div className="space-y-1">
-                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Meaning (TA)</p>
-                                            <p className="text-base text-slate-100 font-medium leading-relaxed">{aiResult.meaningTa}</p>
+                                            <div className="text-xs font-bold text-brand-400 uppercase tracking-widest">TAMIL MEANING (தமிழ்)</div>
+                                            <div className="text-lg sm:text-xl font-serif leading-relaxed text-slate-100 break-words">{aiResult.meaningTa}</div>
+                                        </div>
+                                    )}
+                                    {(aiResult.description || aiResult.insight) && (
+                                        <div className="pt-2 italic text-[11px] text-slate-400 font-light leading-relaxed break-words border-t border-white/5">
+                                            {aiResult.description || aiResult.insight}
                                         </div>
                                     )}
                                 </div>
 
-                                <div className="space-y-2 mt-2">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-400 flex items-center gap-2">
-                                        <Flame size={12} /> Deep Spiritual Insight
-                                    </p>
-                                    <p className="text-sm text-slate-300 leading-relaxed bg-white/5 p-5 rounded-2xl border border-white/10 italic font-medium">
-                                        "{aiResult.insight}"
-                                    </p>
+                                {/* 5. Mouth Pronunciation Guide */}
+                                <div className="pt-4 border-t border-white/10 relative z-10">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <div className="w-7 h-7 bg-accent-500/20 rounded-lg flex items-center justify-center">
+                                            <Mic size={14} className="text-accent-400" />
+                                        </div>
+                                        <span className="text-xs font-black text-accent-400 uppercase tracking-widest">PRONUNCIATION GUIDE</span>
+                                    </div>
+                                    <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-4 flex justify-center">
+                                        <MouthPronunciationAnimator
+                                            phonemeSequence={buildAudioMouthSequence(aiResult.breakdownEn || aiResult.pronunciation)}
+                                            wordText={aiResult.word}
+                                            phonetic={aiResult.breakdownEn || aiResult.pronunciation}
+                                            tamilPhonetic={aiResult.pronunciationTa}
+                                            lang="he"
+                                            theme="blue"
+                                            autoPlay={true}
+                                            showControls={true}
+                                            size={160}
+                                        />
+                                    </div>
                                 </div>
 
-                                <div className="pt-2 flex flex-wrap gap-2 justify-end">
+                                {/* 6. Styled Export Buttons */}
+                                <div className="pt-4 border-t border-white/10 flex gap-3 flex-wrap relative z-10">
                                     <button
                                         onClick={downloadInsightPdf}
                                         disabled={isExporting}
-                                        className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-2 disabled:opacity-50 transition-colors cursor-pointer"
+                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-accent-500 hover:bg-accent-400 text-brand-950 rounded-xl font-bold text-xs shadow-lg transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
                                     >
-                                        {isExporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-                                        PDF Guide
+                                        {isExporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                                        Download PDF
                                     </button>
                                     <button
                                         onClick={downloadInsightImage}
                                         disabled={isExporting}
-                                        className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-2 disabled:opacity-50 transition-colors cursor-pointer"
+                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold text-xs transition-all active:scale-95 disabled:opacity-50 cursor-pointer border border-white/10"
                                     >
-                                        {isExporting ? <Loader2 size={13} className="animate-spin" /> : <FileImage size={13} />}
+                                        {isExporting ? <Loader2 size={14} className="animate-spin" /> : <FileImage size={14} />}
                                         Save Image
                                     </button>
                                 </div>
@@ -2588,42 +3781,45 @@ const HebrewLettersAudioLab: React.FC = () => {
                 </div>
             )}
 
-            {/* ── LOWER GRID (Compact Hebrew Letters grid) ── */}
+            {/* ── LOWER GRID (Magnificent Royal Hebrew Letters Grid) ── */}
             <div className="grid gap-6 mt-6">
                 {/* ── COMPACT HEBREW LETTERS GRID ("Short Below") ── */}
-                <div className="bg-slate-950 rounded-[2.5rem] border border-white/10 p-5 sm:p-8 shadow-xl">
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-6 text-center">Tap a letter to add it — or drag it to the builder above</p>
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-                        {HEBREW_AUDIO_LETTERS.map((item, index) => (
+                <div className="bg-gradient-to-br from-[#0f172a] via-[#1e1b4b] to-[#020617] rounded-[2.5rem] border border-[#F59E0B]/30 p-5 sm:p-8 shadow-[0_25px_60px_rgba(0,0,0,0.85)] relative overflow-hidden backdrop-blur-xl">
+                    <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-[#FDE047] mb-6 text-center drop-shadow-md">
+                        ✨ Tap any letter to add it — or drag it to the builder above ✨
+                    </p>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-6 gap-3.5 relative z-10">
+                        {HEBREW_AUDIO_LETTERS.map((item) => (
                             <div
                                 key={item.letter}
                                 draggable
                                 onDragStart={(e) => handleSourceLetterDragStart(e, item)}
-                                className={`rounded-2xl bg-gradient-to-br ${RAINBOW_GRADIENTS[index % RAINBOW_GRADIENTS.length]} p-[1.5px] hover:scale-105 active:scale-95 transition-transform duration-200 shadow-sm cursor-grab active:cursor-grabbing select-none`}
+                                className="rounded-2xl bg-gradient-to-br from-[#F59E0B]/40 via-indigo-500/30 to-slate-800/80 p-[1.5px] hover:scale-105 active:scale-95 transition-all duration-300 shadow-lg cursor-grab active:cursor-grabbing select-none hover:shadow-[0_0_25px_rgba(245,158,11,0.3)]"
                                 title={`Drag or tap to add ${item.name}`}
                             >
-                                <div
-                                    className="bg-slate-900 rounded-2xl p-2.5 flex flex-col items-center justify-between text-center h-full min-h-[120px]"
-                                >
+                                <div className="bg-gradient-to-b from-[#1e293b]/95 to-[#0f172a]/98 rounded-2xl p-3 flex flex-col items-center justify-between text-center h-full min-h-[130px] border border-white/5">
                                     <div className="flex flex-col items-center gap-0.5 pointer-events-none">
-                                        <span className="text-3xl font-serif text-white font-bold leading-none">{item.letter}</span>
-                                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 leading-none">{item.name}</span>
-                                        <span className="text-[8px] font-bold text-slate-500 font-serif" dir="rtl">{item.hebrewName}</span>
+                                        <span className="text-3xl sm:text-4xl font-serif text-amber-300 font-bold leading-none drop-shadow-[0_0_10px_rgba(251,191,36,0.3)]">{item.letter}</span>
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-200 leading-none mt-1">{item.name}</span>
+                                        <span className="text-[9px] font-bold text-amber-400/80 font-serif" dir="rtl">{item.hebrewName}</span>
                                     </div>
-                                    <div className="flex items-center gap-1 mt-2 w-full justify-center">
+                                    <div className="flex items-center gap-1.5 mt-2.5 w-full justify-center">
                                         <button
                                             onClick={() => addLetter(item)}
-                                            className="flex-1 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider bg-brand-600 hover:bg-brand-700 text-white transition-colors shadow-sm cursor-pointer"
+                                            className="flex-1 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 transition-all shadow-md active:scale-95 cursor-pointer font-bold"
                                             title={`Add ${item.name}`}
                                         >
                                             + Add
                                         </button>
                                         <button
                                             onClick={() => playLetter(item.letter, item.hebrewName)}
-                                            className="w-6 h-6 rounded-full bg-white/5 text-brand-400 hover:bg-brand-900 transition-colors flex items-center justify-center shrink-0 cursor-pointer"
+                                            className="w-7 h-7 rounded-xl bg-white/10 text-amber-300 hover:bg-amber-500 hover:text-slate-950 transition-all flex items-center justify-center shrink-0 cursor-pointer shadow-sm active:scale-95"
                                             title={`Play ${item.hebrewName}`}
                                         >
-                                            <Volume2 size={10} />
+                                            <Volume2 size={12} />
                                         </button>
                                     </div>
                                 </div>
@@ -2631,154 +3827,11 @@ const HebrewLettersAudioLab: React.FC = () => {
                         ))}
                     </div>
                 </div>
-
-                {/* ── AI ANALYSIS & ERRORS COLUMN ── */}
-                {(aiResult || aiError) && (
-                <div className="space-y-6">
-                    {/* ── AI ERROR ── */}
-                    {aiError && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 text-red-500 text-xs font-bold bg-red-50 p-4 rounded-2xl border border-red-100">
-                            <Info size={15} /> {aiError}
-                        </motion.div>
-                    )}
-
-                    {/* ── AI ANALYSIS RESULT ── */}
-                    <AnimatePresence>
-                        {aiResult && (
-                            <motion.div
-                                ref={aiResultRef}
-                                initial={{ opacity: 0, y: 12 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -12 }}
-                                transition={{ duration: 0.35 }}
-                                className="bg-slate-950 text-white rounded-[2rem] p-6 md:p-8 flex flex-col space-y-5 shadow-2xl relative overflow-hidden"
-                            >
-                                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-                                {/* Header row */}
-                                <div className="flex justify-between items-start gap-3">
-                                    <div className="space-y-1 min-w-0">
-                                        <div className="text-[10px] font-black text-brand-400 uppercase tracking-[0.2em]">AI Word Analysis</div>
-                                        <div className="text-2xl font-black flex items-center gap-2 text-white flex-wrap">
-                                            <span>{aiResult.pronunciation}</span>
-                                            <button onClick={playCombined} className="shrink-0 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-accent-400 cursor-pointer">
-                                                <Volume2 size={16} />
-                                            </button>
-                                        </div>
-                                        {aiResult.pronunciationTa && (
-                                            <div className="text-sm font-bold text-slate-400 flex items-center gap-2 mt-1">
-                                                <div className="w-4 h-[1px] bg-slate-700" />
-                                                {aiResult.pronunciationTa} (தமிழ்)
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="shrink-0 bg-brand-500/20 p-2.5 rounded-xl border border-white/5">
-                                        <Sparkles size={18} className="text-accent-400 animate-pulse" />
-                                    </div>
-                                </div>
-
-                                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                                    <div className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-300/80">
-                                        <Volume2 size={13} />
-                                        Mouth Pronunciation
-                                    </div>
-                                    <div className="flex justify-center">
-                                        <MouthPronunciationAnimator
-                                            phonemeSequence={buildAudioMouthSequence(aiResult.breakdownEn || aiResult.pronunciation)}
-                                            wordText={aiResult.word || combinedWord}
-                                            phonetic={aiResult.pronunciation}
-                                            tamilPhonetic={aiResult.pronunciationTa}
-                                            lang="he"
-                                            theme="blue"
-                                            autoPlay={false}
-                                            showControls={true}
-                                            size={170}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Root (Shoresh) */}
-                                {aiResult.root && (
-                                    <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center justify-between gap-3">
-                                        <div className="flex items-center gap-2 min-w-0">
-                                            <div className="shrink-0 w-7 h-7 bg-accent-500/20 rounded-lg flex items-center justify-center text-accent-400">
-                                                <Fingerprint size={14} />
-                                            </div>
-                                            <div className="space-y-0.5 min-w-0">
-                                                <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Shoresh (Hebrew Root)</div>
-                                                <div className="text-xs text-brand-400 font-bold">The spiritual foundation</div>
-                                            </div>
-                                        </div>
-                                        <div className="text-2xl font-serif text-accent-400 tracking-[0.2em] shrink-0" dir="rtl">{aiResult.root}</div>
-                                    </div>
-                                )}
-
-                                {/* Syllable breakdown */}
-                                <div className="grid grid-cols-2 gap-3 py-4 border-y border-white/10">
-                                    <div className="space-y-1.5">
-                                        <div className="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em]">Hebrew Syllables</div>
-                                        <div className="text-base font-serif tracking-widest text-white/90 break-words" dir="rtl">{aiResult.breakdownHe}</div>
-                                    </div>
-                                    <div className="space-y-1.5 border-l border-white/10 pl-3">
-                                        <div className="text-[10px] font-black text-brand-400 uppercase tracking-[0.2em]">English Splitting</div>
-                                        <div className="text-base font-mono font-bold text-accent-200 tracking-tight break-words">{aiResult.breakdownEn}</div>
-                                    </div>
-                                </div>
-
-                                {/* Meanings */}
-                                <div className="space-y-4">
-                                    <div className="space-y-1.5">
-                                        <div className="text-xs font-bold text-amber-500 uppercase tracking-widest">English Meaning</div>
-                                        <div className="text-lg font-serif leading-relaxed text-slate-100 break-words">{aiResult.meaningEn}</div>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <div className="text-xs font-bold text-brand-400 uppercase tracking-widest">Tamil Meaning (தமிழ்)</div>
-                                        <div className="text-xl font-serif leading-relaxed text-slate-100 break-words">{aiResult.meaningTa}</div>
-                                    </div>
-                                </div>
-
-                                {/* Description */}
-                                {aiResult.description && (
-                                    <div className="pt-4 border-t border-white/5 italic text-[11px] text-slate-500 font-light leading-relaxed break-words">
-                                        {aiResult.description}
-                                    </div>
-                                )}
-
-                                {/* Re-analyze / Export actions */}
-                                <div className="pt-2 flex flex-wrap gap-2">
-                                    <button
-                                        onClick={handleDeepAnalysis}
-                                        disabled={isAnalyzing}
-                                        className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-2 disabled:opacity-50 transition-colors cursor-pointer"
-                                    >
-                                        {isAnalyzing ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
-                                        Re-analyze
-                                    </button>
-                                    <button
-                                        onClick={() => handleExportInsight('pdf')}
-                                        disabled={isExporting}
-                                        className="px-4 py-2 rounded-full bg-accent-500 text-brand-950 hover:bg-accent-400 font-bold text-xs flex items-center gap-2 disabled:opacity-50 transition-colors cursor-pointer"
-                                    >
-                                        {isExporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-                                        Download PDF
-                                    </button>
-                                    <button
-                                        onClick={() => handleExportInsight('jpeg')}
-                                        disabled={isExporting}
-                                        className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-2 disabled:opacity-50 transition-colors cursor-pointer"
-                                    >
-                                        {isExporting ? <Loader2 size={13} className="animate-spin" /> : <FileImage size={13} />}
-                                        Save Image
-                                    </button>
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
-                )}
             </div>
         </div>
     );
 };
+
 
 interface HebrewResourcesProps {
     initialTab?: 'numbers' | 'calendar' | 'clock' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio' | 'grammar' | 'israel';
@@ -2875,13 +3928,13 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
     return (
         <div className="min-h-screen pt-24 md:pt-32 pb-32 md:pb-20 w-full px-3 md:px-6 font-sans bg-[#fffdf6]">
             <div className={`mx-auto flex flex-col items-center ${tab === 'calendar' ? 'max-w-5xl' : 'max-w-7xl'}`}>
-                
+
                 {/* Desktop Horizontal navigation menu: Hide on scroll down, show on scroll up */}
-                <motion.div 
+                <motion.div
                     initial={{ y: 0, opacity: 1 }}
                     animate={{ y: tabNavVisible ? 0 : -140, opacity: tabNavVisible ? 1 : 0 }}
                     transition={{ duration: 0.28, ease: "easeInOut" }}
-                    className={`hidden md:block sticky top-[76px] z-30 w-full bg-[#fffdf6]/95 backdrop-blur-md py-5 mb-10 border-b border-amber-500/5 shadow-[0_4px_20px_-10px_rgba(217,119,6,0.05)] ${tabNavVisible ? 'pointer-events-auto' : 'pointer-events-none'}`}
+                    className={`hidden md:block sticky top-[76px] z-30 w-full bg-transparent py-4 mb-6 border-none shadow-none ${tabNavVisible ? 'pointer-events-auto' : 'pointer-events-none'}`}
                 >
                     <div className="flex flex-wrap items-center justify-center gap-3">
                         {availableTabs.map((t) => {
@@ -2892,11 +3945,10 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
                                     onClick={() => { setTab(t.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
-                                    className={`relative flex items-center justify-center gap-2 px-6 py-3.5 rounded-full font-black text-[11px] uppercase tracking-widest transition-all duration-500 shadow-sm border ${
-                                        isActive
+                                    className={`relative flex items-center justify-center gap-2 px-6 py-3.5 rounded-full font-black text-[11px] uppercase tracking-widest transition-all duration-500 shadow-sm border ${isActive
                                             ? 'bg-gradient-to-r from-amber-500 to-amber-600 border-amber-600 text-white shadow-lg shadow-amber-500/25'
                                             : 'bg-white text-slate-400 hover:text-amber-600 hover:border-amber-200 border-slate-200 hover:bg-amber-50/10'
-                                    }`}
+                                        }`}
                                 >
                                     {t.icon}
                                     <span>{t.label}</span>
@@ -2915,11 +3967,10 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
                                 <button
                                     key={t.id}
                                     onClick={() => { setTab(t.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                                    className={`flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-full font-black text-[9px] uppercase tracking-widest transition-all duration-500 shadow-sm border ${
-                                        isActive
+                                    className={`flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-full font-black text-[9px] uppercase tracking-widest transition-all duration-500 shadow-sm border ${isActive
                                             ? 'bg-gradient-to-r from-amber-500 to-amber-600 border-amber-600 text-white shadow-lg shadow-amber-500/25'
                                             : 'bg-white text-slate-400 hover:text-amber-600 hover:border-amber-200 border-slate-200'
-                                    }`}
+                                        }`}
                                 >
                                     {t.icon}
                                     <span>{t.label}</span>

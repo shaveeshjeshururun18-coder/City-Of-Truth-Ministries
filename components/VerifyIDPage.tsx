@@ -32,6 +32,8 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
     const [showMyQr, setShowMyQr] = useState(false);
     const [hideScanBorder, setHideScanBorder] = useState(false);
     const [scannerFail, setScannerFail] = useState(false);
+    const [currentZoomLevel, setCurrentZoomLevel] = useState(1.0);
+    const [isAutoZooming, setIsAutoZooming] = useState(false);
     const scannerRef = useRef<any>(null);
     const scannerTimeoutsRef = useRef<number[]>([]);
 
@@ -322,50 +324,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                     setupAmbientSensor();
                 }
 
-                // Gradual zoom and scanner failure timeout
-                const gradualZoomTimeout = window.setTimeout(async () => {
-                    if (userInteractedWithZoomRef.current) return;
-                    setHideScanBorder(true);
-                    await applyTorchToActiveTrack(true);
-                    const track = getActiveVideoTrack();
-                    if (track) {
-                        try {
-                            const capabilities = track.getCapabilities?.() as any;
-                            const settings = track.getSettings?.() as any;
-                            if (capabilities?.zoom && settings?.zoom !== undefined) {
-                                const minZoom = capabilities.zoom.min || 1;
-                                const maxZoom = capabilities.zoom.max || 2;
-                                const step = capabilities.zoom.step || 0.1;
-                                let currentZoom = settings.zoom;
-
-                                const zoomInterval = window.setInterval(async () => {
-                                    if (userInteractedWithZoomRef.current) {
-                                        window.clearInterval(zoomInterval);
-                                        return;
-                                    }
-
-                                    if (currentZoom < maxZoom) {
-                                        currentZoom = Math.min(currentZoom + step, maxZoom);
-                                        try {
-                                            await track.applyConstraints({ advanced: [{ zoom: currentZoom } as any] });
-                                        } catch (e) {
-                                            console.warn('Failed to apply gradual zoom constraint:', e);
-                                            window.clearInterval(zoomInterval);
-                                        }
-                                    } else {
-                                        window.clearInterval(zoomInterval);
-                                    }
-                                }, 500); // Increment every 500ms
-
-                                scannerTimeoutsRef.current.push(zoomInterval);
-                            }
-                        } catch (e) {
-                            console.warn('Failed to initialize gradual zoom:', e);
-                        }
-                    }
-                }, 30000);
-                scannerTimeoutsRef.current.push(gradualZoomTimeout);
-
+                // Removed auto-zoom per user request
                 const failTimeout = window.setTimeout(async () => {
                     await stopScanner();
                     setScannerFail(true);
@@ -814,7 +773,6 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                             <span className="absolute top-0 right-0 w-[22%] h-[22%] border-t-[5px] border-r-[5px] border-[#ffb020] rounded-tr-2xl" />
                             <span className="absolute bottom-0 left-0 w-[22%] h-[22%] border-b-[5px] border-l-[5px] border-[#4f8cff] rounded-bl-2xl" />
                             <span className="absolute bottom-0 right-0 w-[22%] h-[22%] border-b-[5px] border-r-[5px] border-[#27c46b] rounded-br-2xl" />
-                            <div className="absolute inset-0 border border-white/10 rounded-2xl" />
                         </div>
                     )}
 

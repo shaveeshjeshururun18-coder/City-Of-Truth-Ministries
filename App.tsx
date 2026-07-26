@@ -84,9 +84,11 @@ import { PastorPage } from './components/PastorPage';
 import { CommunityProfileForm } from './components/CommunityProfileForm';
 
 import VerifyIDPage from './components/VerifyIDPage';
+import { VisitingCard3D } from './components/VisitingCard3D';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { BottomNav } from './components/BottomNav';
 import GreetingCard from './components/GreetingCard';
+import { GlobalAnimatedCharacter } from './components/GlobalAnimatedCharacter';
 import { GuidedTour, useTour } from './components/GuidedTour';
 import { getHebrewDateInfo } from './components/CalendarLogic';
 import { dynamicTours } from './components/dynamicTours';
@@ -95,6 +97,7 @@ import { api } from './services/api';
 import { getToken } from 'firebase/messaging';
 import { sendFCMNotification } from './services/fcmService';
 import { sendSMS } from './services/smsService';
+import { startVisitorSession, updateSessionUser } from './services/analyticsService';
 
 const youtubeLink = "https://youtube.com/@cotministries?si=A6179oNRuuJ9snjM";
 const MAX_STORED_CONTACT_MESSAGES = 200;
@@ -745,6 +748,19 @@ const App: React.FC = () => {
     trackVisit();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount
+
+  // Live Analytics: Start visitor session on mount
+  useEffect(() => {
+    startVisitorSession(currentUser ? { id: currentUser.id, name: currentUser.name, role: currentUser.role } : null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Live Analytics: Update session when user logs in/out
+  useEffect(() => {
+    if (currentUser) {
+      updateSessionUser({ id: currentUser.id, name: currentUser.name, role: currentUser.role });
+    }
+  }, [currentUser?.id]);
 
   useEffect(() => {
     localStorage.setItem('cot_contact_messages', JSON.stringify(contactMessages));
@@ -3539,7 +3555,10 @@ const App: React.FC = () => {
                   <ArrowRight size={16} />
                 </button>
               </div>
-              <p className="text-[10px] text-brand-100/40">We respect your privacy.</p>
+              {/* 3D Visiting Card Section in Footer Column */}
+              <div className="mt-10">
+                <VisitingCard3D compact={true} />
+              </div>
             </div>
           </div>
 
@@ -3547,10 +3566,184 @@ const App: React.FC = () => {
             <div className="text-center md:text-left space-y-4">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-100/30">&copy; 2026 City of Truth Ministries • Valparai Sanctuary</p>
 
-              <div className="inline-flex items-center gap-3 bg-white/[0.03] hover:bg-white/[0.08] px-5 py-2.5 rounded-full border border-white/5 transition-colors cursor-default group backdrop-blur-sm">
-                <Sparkles size={14} className="text-amber-300/60 group-hover:text-amber-400 group-hover:rotate-12 transition-all" />
-                <span className="text-[10px] text-brand-100/40 uppercase tracking-widest font-medium">Designed by</span>
-                <span className="text-sm font-serif font-bold bg-gradient-to-r from-amber-200 via-yellow-200 to-amber-200 bg-clip-text text-transparent tracking-wide group-hover:from-amber-100 group-hover:via-white group-hover:to-amber-100 transition-all">S.Shaveesh Jeshurun</span>
+              {/* Developer Credit Button */}
+              <div className="flex justify-center md:justify-start">
+                <div className="developer-btn-container">
+                  <div className="developer-btn-drawer developer-transition-top">Crafted with...</div>
+                  <div className="developer-btn-drawer developer-transition-bottom">...Excellence</div>
+                  <button className="developer-btn">
+                    <span className="developer-btn-text">S.Shaveesh Jeshurun</span>
+                  </button>
+                  <svg className="developer-btn-corner" xmlns="http://www.w3.org/2000/svg" viewBox="-1 1 32 32">
+                    <path d="M32,32C14.355,32,0,17.645,0,0h.985c0,17.102,13.913,31.015,31.015,31.015v.985Z"></path>
+                  </svg>
+                  <svg className="developer-btn-corner" xmlns="http://www.w3.org/2000/svg" viewBox="-1 1 32 32">
+                    <path d="M32,32C14.355,32,0,17.645,0,0h.985c0,17.102,13.913,31.015,31.015,31.015v.985Z"></path>
+                  </svg>
+                  <svg className="developer-btn-corner" xmlns="http://www.w3.org/2000/svg" viewBox="-1 1 32 32">
+                    <path d="M32,32C14.355,32,0,17.645,0,0h.985c0,17.102,13.913,31.015,31.015,31.015v.985Z"></path>
+                  </svg>
+                  <svg className="developer-btn-corner" xmlns="http://www.w3.org/2000/svg" viewBox="-1 1 32 32">
+                    <path d="M32,32C14.355,32,0,17.645,0,0h.985c0,17.102,13.913,31.015,31.015,31.015v.985Z"></path>
+                  </svg>
+                </div>
+                <style>{`
+                  .developer-btn-container {
+                    --btn-color: #7cb8ff;
+                    --corner-color: #0002;
+                    --corner-dist: 24px;
+                    --corner-multiplier: 1.5;
+                    --timing-function: cubic-bezier(0, 0, 0, 2.5);
+                    --duration: 250ms;
+                    position: relative;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                  }
+                  .developer-btn {
+                    position: relative;
+                    min-width: 240px;
+                    min-height: calc(var(--corner-dist) * 2);
+                    border-radius: 16px;
+                    border: none;
+                    padding: 0.75em 1.5em;
+                    background: linear-gradient(#fff2, #0001), var(--btn-color);
+                    box-shadow: 1px 1px 2px -1px #fff inset, 0 2px 1px #00000010, 0 4px 2px #00000010, 0 8px 4px #00000010, 0 16px 8px #00000010, 0 32px 16px #00000010;
+                    transition: transform var(--duration) var(--timing-function), filter var(--duration) var(--timing-function);
+                    cursor: pointer;
+                  }
+                  .developer-btn-drawer {
+                    position: absolute;
+                    display: flex;
+                    justify-content: center;
+                    min-height: 32px;
+                    border-radius: 16px;
+                    border: none;
+                    padding: 0.25em 1em;
+                    font-size: 0.8em;
+                    font-weight: 600;
+                    font-family: "Inter", sans-serif;
+                    color: #003a70;
+                    background: linear-gradient(#fff2, #0001), var(--btn-color);
+                    background-color: #4d9fff;
+                    opacity: 0;
+                    transition: transform calc(0.5 * var(--duration)) ease, filter var(--duration) var(--timing-function), opacity calc(0.5 * var(--duration)) ease;
+                    filter: blur(2px);
+                  }
+                  .developer-transition-top {
+                    top: 0;
+                    left: 0;
+                    border-radius: 12px 12px 0 0;
+                    align-items: start;
+                  }
+                  .developer-transition-bottom {
+                    bottom: 0;
+                    right: 0;
+                    border-radius: 0 0 12px 12px;
+                    align-items: end;
+                  }
+                  .developer-btn-text {
+                    display: inline-block;
+                    font-size: 1em;
+                    font-family: "Inter", sans-serif;
+                    font-weight: 700;
+                    color: #5550;
+                    background-image: linear-gradient(#444, #000a);
+                    background-clip: text;
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    filter: drop-shadow(0 1px 0 #fff6) drop-shadow(0 -1px 0 #0006);
+                    transition: transform var(--duration) var(--timing-function), filter var(--duration) var(--timing-function), color var(--duration) var(--timing-function);
+                  }
+                  .developer-btn-corner {
+                    position: absolute;
+                    width: 32px;
+                    fill: none;
+                    stroke: var(--corner-color);
+                    transition: transform var(--duration) var(--timing-function), filter var(--duration) var(--timing-function);
+                  }
+                  .developer-btn-corner:nth-of-type(1) {
+                    top: 0;
+                    left: 0;
+                    transform: translate(calc(-1 * var(--corner-dist)), calc(-1 * var(--corner-dist))) rotate(90deg);
+                  }
+                  .developer-btn-corner:nth-of-type(2) {
+                    top: 0;
+                    right: 0;
+                    transform: translate(var(--corner-dist), calc(-1 * var(--corner-dist))) rotate(180deg);
+                  }
+                  .developer-btn-corner:nth-of-type(3) {
+                    bottom: 0;
+                    right: 0;
+                    transform: translate(var(--corner-dist), var(--corner-dist)) rotate(-90deg);
+                  }
+                  .developer-btn-corner:nth-of-type(4) {
+                    bottom: 0;
+                    left: 0;
+                    transform: translate(calc(-1 * var(--corner-dist)), var(--corner-dist)) rotate(0deg);
+                  }
+                  .developer-btn-container:hover .developer-btn {
+                    transform: scale(1.05);
+                    filter: drop-shadow(0 16px 16px #0002);
+                  }
+                  .developer-btn-container:hover .developer-transition-top {
+                    transform: translateY(-24px) rotateZ(4deg);
+                    filter: blur(0px);
+                    animation: hue-anim-dev 3s infinite linear;
+                    opacity: 1;
+                  }
+                  .developer-btn-container:hover .developer-transition-bottom {
+                    transform: translateY(24px) rotateZ(4deg);
+                    filter: blur(0px);
+                    animation: hue-anim-dev 3s infinite linear;
+                    opacity: 1;
+                  }
+                  .developer-btn-container:hover .developer-btn-text {
+                    filter: drop-shadow(0 1px 0 #fff6) drop-shadow(0 -1px 0 #0006) drop-shadow(0px 6px 2px #0003);
+                    transform: scale(1.05);
+                    color: #0008;
+                  }
+                  .developer-btn-container:hover {
+                    --corner-color: #0004;
+                  }
+                  .developer-btn-container:hover .developer-btn-corner:nth-of-type(1) {
+                    transform: translate(calc(-1 * var(--corner-multiplier) * var(--corner-dist)), calc(-1 * var(--corner-multiplier) * var(--corner-dist))) rotate(90deg);
+                    filter: drop-shadow(-10px 10px 1px var(--corner-color)) drop-shadow(-20px 20px 2px var(--corner-color));
+                  }
+                  .developer-btn-container:hover .developer-btn-corner:nth-of-type(2) {
+                    transform: translate(calc(var(--corner-multiplier) * var(--corner-dist)), calc(-1 * var(--corner-multiplier) * var(--corner-dist))) rotate(180deg);
+                    filter: drop-shadow(-10px 10px 1px var(--corner-color)) drop-shadow(-20px 20px 2px var(--corner-color));
+                  }
+                  .developer-btn-container:hover .developer-btn-corner:nth-of-type(3) {
+                    transform: translate(calc(var(--corner-multiplier) * var(--corner-dist)), calc(var(--corner-multiplier) * var(--corner-dist))) rotate(-90deg);
+                    filter: drop-shadow(-10px 10px 1px var(--corner-color)) drop-shadow(-20px 20px 2px var(--corner-color));
+                  }
+                  .developer-btn-container:hover .developer-btn-corner:nth-of-type(4) {
+                    transform: translate(calc(-1 * var(--corner-multiplier) * var(--corner-dist)), calc(var(--corner-multiplier) * var(--corner-dist))) rotate(0deg);
+                    filter: drop-shadow(-10px 10px 1px var(--corner-color)) drop-shadow(-20px 20px 2px var(--corner-color));
+                  }
+                  .developer-btn-container:active .developer-btn {
+                    transform: scale(0.95);
+                    filter: drop-shadow(0 10px 4px #0002);
+                  }
+                  .developer-btn-container:active .developer-transition-top,
+                  .developer-btn-container:active .developer-transition-bottom {
+                    transform: translateY(0px) scale(0.5);
+                  }
+                  .developer-btn-container:active .developer-btn-text {
+                    filter: drop-shadow(0 1px 0 #fff6) drop-shadow(0 -1px 0 #0006) drop-shadow(0px 6px 2px #0003);
+                    transform: scale(1);
+                    color: #000a;
+                  }
+                  @keyframes hue-anim-dev {
+                    0%, 100% {
+                      filter: hue-rotate(0deg) blur(0px);
+                    }
+                    50% {
+                      filter: hue-rotate(-70deg) blur(0px);
+                    }
+                  }
+                `}</style>
               </div>
             </div>
 
@@ -3860,7 +4053,7 @@ const App: React.FC = () => {
       {currentView !== ViewState.HOME && (
         <button
           onClick={() => liveWebsiteTour.start()}
-          className="fixed bottom-24 left-6 z-[100] w-12 h-12 bg-white rounded-full shadow-lg border border-slate-200 flex items-center justify-center text-brand-600 hover:bg-brand-50 hover:scale-110 transition-all hover:shadow-brand-500/30 group"
+          className="fixed bottom-24 left-6 z-30 w-12 h-12 bg-white rounded-full shadow-lg border border-slate-200 hidden md:flex items-center justify-center text-brand-600 hover:bg-brand-50 hover:scale-110 transition-all hover:shadow-brand-500/30 group"
           aria-label="Start Page Tour"
           title="How to use this page"
         >

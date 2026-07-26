@@ -3,6 +3,7 @@ import { Scroll, Volume2, Sparkles, ArrowLeft, X, Download } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { audioService } from '../services/audioService';
 import { MouthPronunciationAnimator, HEBREW_LETTER_PHONEMES } from './MouthPronunciationAnimator';
+import { AnimatedTeacherCharacter } from './AnimatedTeacherCharacter';
 import { generateHebrewAlphabetPDF } from './HebrewAlphabetPDF';
 
 const PALEO_IMAGE_MAP: Record<string, string> = {
@@ -122,6 +123,8 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
         }
     }, [selectedIndex]);
 
+    const [isTeacherSpeaking, setIsTeacherSpeaking] = useState(false);
+
     const triggerMouth = (mode: 'hebrew' | 'tamil', slow = false) => {
         setMouthMode(mode);
         setMouthSlow(slow);
@@ -130,25 +133,33 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
 
     const handleHebrewPlay = async (index: number, hebrewText: string, rate: number = 0.8, slow = false) => {
         setActiveIndex(index);
+        setIsTeacherSpeaking(true);
         triggerMouth('hebrew', slow);
         try {
             await audioService.playHebrew(hebrewText, rate);
         } catch (error) {
             console.warn('Hebrew pronunciation playback failed:', error);
         } finally {
-            setTimeout(() => setActiveIndex(null), 2000);
+            setTimeout(() => {
+                setActiveIndex(null);
+                setIsTeacherSpeaking(false);
+            }, 2500);
         }
     };
 
     const handleTamilTeachingPlay = async (index: number, tamilText: string) => {
         setActiveIndex(index);
+        setIsTeacherSpeaking(true);
         triggerMouth('tamil', false);
         try {
             await audioService.playTamil(tamilText, 0.78);
         } catch (error) {
             console.warn('Tamil teaching playback failed:', error);
         } finally {
-            setTimeout(() => setActiveIndex(null), 2000);
+            setTimeout(() => {
+                setActiveIndex(null);
+                setIsTeacherSpeaking(false);
+            }, 3000);
         }
     };
 
@@ -512,6 +523,21 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                                         externalMode={mouthMode}
                                                     />
                                                 </div>
+                                            </div>
+
+                                            {/* Live Animated Teacher Character Section */}
+                                            <div className="mt-6 pt-5 border-t border-[#F59E0B]/20">
+                                                <AnimatedTeacherCharacter
+                                                    letterName={selectedLetter.name}
+                                                    hebrewLetter={selectedLetter.letter}
+                                                    tamilText={selectedLetter.tamilGuide}
+                                                    englishText={`${selectedLetter.name} — ${selectedLetter.symbolic}`}
+                                                    tamilSyllables={TAMIL_PRONUNCIATION_PARTS[selectedLetter.letter]}
+                                                    isPlaying={isTeacherSpeaking || activeIndex === selectedIndex}
+                                                    onPlayTamil={() => handleTamilTeachingPlay(selectedIndex!, selectedLetter.tamilGuide)}
+                                                    onPlayHebrew={() => handleHebrewPlay(selectedIndex!, selectedLetter.hebrewName)}
+                                                    inline={true}
+                                                />
                                             </div>
                                         </div>
                                     </motion.div>

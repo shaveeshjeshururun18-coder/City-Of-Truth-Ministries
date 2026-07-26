@@ -16,6 +16,7 @@ import { getOpenRouterKeyDetails, getOpenRouterModelDetails, setSelectedOpenRout
 import { firebaseConfig, storage } from '../services/firebase';
 import { getDownloadURL, listAll, ref as storageRef, uploadBytes } from 'firebase/storage';
 import { toPng } from 'html-to-image';
+import SiteAnalyticsPage from './SiteAnalyticsPage';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import JSZip from 'jszip';
@@ -133,7 +134,7 @@ const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any
 
 
 
-type AdminTabId = 'users' | 'edit-page' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin' | 'admin-tabs' | 'member-forms' | 'permalinks' | 'widgets' | 'notifications' | 'ai-analytics' | 'baruch-hashem';
+type AdminTabId = 'users' | 'edit-page' | 'testimonials' | 'ministries' | 'id-cards' | 'cot-id-manager' | 'reports' | 'home-layout' | 'menu-editor' | 'messages' | 'firebase' | 'recycle-bin' | 'admin-tabs' | 'member-forms' | 'permalinks' | 'widgets' | 'notifications' | 'ai-analytics' | 'baruch-hashem' | 'site-analytics';
 type AdminTabConfig = { id: AdminTabId; label: string; icon: string; order: number; hidden: boolean };
 
 type WidgetSettingsConfig = {
@@ -143,6 +144,7 @@ type WidgetSettingsConfig = {
     aiSize: number;
     aiLabelText: string;
     aiAnimation: boolean;
+    aiPosition?: 'left' | 'right';
 };
 
 const TAB_ITEMS: { id: AdminTabId; label: string; icon: React.ElementType }[] = [
@@ -162,11 +164,12 @@ const TAB_ITEMS: { id: AdminTabId; label: string; icon: React.ElementType }[] = 
     { id: 'widgets', label: 'Widgets', icon: GripVertical },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'ai-analytics', label: 'AI Analytics', icon: Sparkles },
+    { id: 'site-analytics', label: 'Site Analytics', icon: Activity },
     { id: 'admin-tabs', label: 'Admin Pages', icon: Settings }
 ];
 
 const LUCIDE_ICONS: Record<string, React.ElementType> = {
-    Users, Edit2, RotateCcw, Database, MessageSquare, Globe, QrCode, Dice6, FileText, GripVertical, Filter, Settings, ExternalLink, Sparkles, Bell
+    Users, Edit2, RotateCcw, Database, MessageSquare, Globe, QrCode, Dice6, FileText, GripVertical, Filter, Settings, ExternalLink, Sparkles, Bell, Activity
 };
 
 const DEFAULT_ADMIN_TABS: AdminTabConfig[] = [
@@ -186,7 +189,8 @@ const DEFAULT_ADMIN_TABS: AdminTabConfig[] = [
     { id: 'widgets', label: 'Widgets', icon: 'GripVertical', order: 13, hidden: false },
     { id: 'notifications', label: 'Notifications', icon: 'Bell', order: 14, hidden: false },
     { id: 'ai-analytics', label: 'AI Analytics', icon: 'Sparkles', order: 15, hidden: false },
-    { id: 'admin-tabs', label: 'Admin Pages', icon: 'Settings', order: 16, hidden: false }
+    { id: 'site-analytics', label: 'Site Analytics', icon: 'Activity', order: 16, hidden: false },
+    { id: 'admin-tabs', label: 'Admin Pages', icon: 'Settings', order: 17, hidden: false }
 ];
 
 const normalizeAdminTabs = (tabs: any[]): AdminTabConfig[] => {
@@ -1187,9 +1191,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [menuMode, setMenuMode] = useState<'horizontal' | 'vertical'>(() => {
         try {
             const stored = localStorage.getItem('adminMenuMode');
-            return stored === 'vertical' ? 'vertical' : 'horizontal';
+            if (stored === 'horizontal' || stored === 'vertical') return stored;
+            return 'vertical'; // Default to vertical (dark Vercel-style sidebar)
         } catch {
-            return 'horizontal';
+            return 'vertical';
         }
     });
 
@@ -1303,10 +1308,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [widgetSettings, setWidgetSettings] = useState<WidgetSettingsConfig>(() => {
         try {
             const saved = localStorage.getItem('cot_widget_settings');
-            const defaults = { shareVisible: true, shareSize: 1, aiVisible: true, aiSize: 1, aiLabelText: 'Ask Divine AI', aiAnimation: true };
+            const defaults = { shareVisible: true, shareSize: 1, aiVisible: true, aiSize: 1, aiLabelText: 'Ask Divine AI', aiAnimation: true, aiPosition: 'right' as const };
             return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
         } catch {
-            return { shareVisible: true, shareSize: 1, aiVisible: true, aiSize: 1, aiLabelText: 'Ask Divine AI', aiAnimation: true };
+            return { shareVisible: true, shareSize: 1, aiVisible: true, aiSize: 1, aiLabelText: 'Ask Divine AI', aiAnimation: true, aiPosition: 'right' as const };
         }
     });
 
@@ -3593,7 +3598,51 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     };
     const hasPendingProfileUpdate = (user: User) => !!user.pendingProfileUpdate && Object.keys(user.pendingProfileUpdate).length > 0;
     const approveUserOrPendingEdit = async (user: User) => {
-        await runUserAction(() => activateUserWithCotId(user), 'Failed to approve user');
+        await runUserAction(async () => {
+            const pending = user.pendingProfileUpdate || {};
+            const hasPendingObj = Object.keys(pending).length > 0;
+            if (hasPendingObj) {
+                // Build a history entry of what changed
+                const changes: Record<string, { old: any; new: any }> = {};
+                for (const [key, newVal] of Object.entries(pending)) {
+                    const oldVal = (user as any)[key];
+                    if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+                        changes[key] = { old: oldVal, new: newVal };
+                    }
+                }
+                const historyEntry = {
+                    id: Date.now().toString(),
+                    timestamp: new Date().toISOString(),
+                    changes,
+                    action: 'Profile Update' as const,
+                    approvedBy: 'Admin'
+                };
+                const updatedUser: User = {
+                    ...user,
+                    ...pending,
+                    status: user.status === 'Pending Verification' ? 'Active' : user.status,
+                    pendingProfileUpdate: {},
+                    profileHistory: [...(user.profileHistory || []), historyEntry]
+                };
+                if (pending.linkedProfiles && Array.isArray(pending.linkedProfiles)) {
+                    updatedUser.linkedProfiles = pending.linkedProfiles;
+                }
+                await onUpdateUser(updatedUser);
+            } else {
+                // No pending edits — activating a new user
+                const historyEntry = {
+                    id: Date.now().toString(),
+                    timestamp: new Date().toISOString(),
+                    changes: { status: { old: user.status, new: 'Active' }, id: { old: user.id, new: 'COT-ID' } },
+                    action: 'COT ID Generated' as const,
+                    approvedBy: 'Admin'
+                };
+                await activateUserWithCotId({
+                    ...user,
+                    profileHistory: [...(user.profileHistory || []), historyEntry]
+                });
+            }
+        }, 'Failed to approve user');
     };
     const createDisapprovedUserPayload = (user: User, nextId?: string): User => ({
         ...user,
@@ -4571,8 +4620,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </AnimatePresence>
                             </div>
 
-                            {/* Desktop Vertical Menu */}
-                            <VStack gap={1} className="hidden lg:flex bg-white rounded-3xl border border-slate-100 shadow-sm p-3 lg:max-h-[calc(100vh-14rem)] overflow-y-auto admin-menu-scrollbar">
+                            {/* Desktop Vertical Menu — dark Vercel-style */}
+                            <VStack gap={0.5} className="hidden lg:flex bg-[#0c0c0f] rounded-3xl border border-white/8 shadow-2xl p-3 lg:max-h-[calc(100vh-14rem)] overflow-y-auto admin-menu-scrollbar">
                                 {visibleTabs.map(tab => {
                                     const customLabel = tab.label;
                                     const isRenaming = renamingTabId === tab.id;
@@ -4582,14 +4631,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             key={tab.id}
                                             id={`admin-tab-${tab.id}`}
                                             onClick={() => setActiveTab(tab.id)}
-                                            className={`flex items-center justify-between gap-2 px-4 py-3 rounded-xl transition-colors group cursor-pointer whitespace-nowrap ${
+                                            className={`flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl transition-all group cursor-pointer whitespace-nowrap ${
                                                 isActive
-                                                    ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20'
-                                                    : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-100 lg:border-none'
+                                                    ? 'bg-white/10 text-white border border-white/10'
+                                                    : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-100 border border-transparent'
                                             }`}
                                         >
                                             <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                <tab.icon size={18} className="shrink-0" />
+                                                <tab.icon size={16} className="shrink-0" />
                                                 {isRenaming ? (
                                                     <input
                                                         type="text"
@@ -4606,11 +4655,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                             }
                                                         }}
                                                         autoFocus
-                                                        className="w-full bg-slate-50 text-slate-900 font-bold px-2 py-0.5 rounded text-xs border border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                                                        className="w-full bg-white/10 text-white font-bold px-2 py-0.5 rounded text-xs border border-white/20 focus:outline-none"
                                                         onClick={(e) => e.stopPropagation()}
                                                     />
                                                 ) : (
-                                                    <span className="font-bold text-sm truncate">{customLabel}</span>
+                                                    <span className={`text-sm truncate ${isActive ? 'font-semibold text-white' : 'font-medium'}`}>{customLabel}</span>
                                                 )}
                                             </div>
                                             {!isRenaming && (
@@ -4620,12 +4669,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                         setRenamingTabId(tab.id);
                                                         setRenameValue(customLabel);
                                                     }}
-                                                    className={`p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-black/10 transition-opacity shrink-0 ${
-                                                        isActive ? 'text-white/60 hover:text-white' : 'text-slate-400 hover:text-slate-600'
-                                                    }`}
+                                                    className={`p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-white/10 transition-opacity shrink-0 text-zinc-500 hover:text-zinc-200`}
                                                     title="Rename tab"
                                                 >
-                                                    <Edit2 size={12} />
+                                                    <Edit2 size={11} />
                                                 </button>
                                             )}
                                         </div>
@@ -9057,6 +9104,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     }
                   })()}
 
+                {activeTab === 'site-analytics' && (
+                    <SiteAnalyticsPage users={filteredUsers} />
+                )}
+
                 {activeTab === 'admin-tabs' && (
                     <div className="max-w-4xl mx-auto">
                         <motion.div 
@@ -9298,6 +9349,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <input type="checkbox" className="sr-only peer" checked={widgetSettings.aiAnimation !== false} onChange={(e) => updateWidgetSettings({ aiAnimation: e.target.checked })} />
                                             <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-violet-500"></div>
                                         </label>
+                                    </div>
+                                    {/* Position Control */}
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-bold text-slate-700">Widget Position</span>
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => updateWidgetSettings({ aiPosition: 'left' })}
+                                                className={`px-3 py-1 rounded-lg text-xs font-bold border transition-all ${
+                                                    widgetSettings.aiPosition === 'left' ? 'bg-violet-500 text-white border-violet-500' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                                                }`}
+                                            >
+                                                Left
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => updateWidgetSettings({ aiPosition: 'right' })}
+                                                className={`px-3 py-1 rounded-lg text-xs font-bold border transition-all ${
+                                                    (!widgetSettings.aiPosition || widgetSettings.aiPosition === 'right') ? 'bg-violet-500 text-white border-violet-500' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                                                }`}
+                                            >
+                                                Right
+                                            </button>
+                                        </div>
                                     </div>
                                     <div className="mt-2 pt-2 border-t border-slate-200">
                                         <button
@@ -10888,6 +10963,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     Open Member Form on Separate Page
                                 </button>
                             </div>
+
+                            {/* Profile History Timeline */}
+                            {viewingDetailsUser.profileHistory && viewingDetailsUser.profileHistory.length > 0 && (
+                                <div className="mt-8 pt-6 border-t border-slate-200">
+                                    <h4 className="text-sm font-bold text-brand-950 mb-4 uppercase tracking-wider">COT ID Generation & Profile History</h4>
+                                    <div className="space-y-4">
+                                        {viewingDetailsUser.profileHistory.map((entry: any, index: number) => (
+                                            <div key={entry.id || index} className="flex gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                                                <div className="shrink-0 mt-1">
+                                                    <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center">
+                                                        <Activity size={14} />
+                                                    </div>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <h5 className="font-bold text-slate-800 text-sm">{entry.action || 'Profile Update'}</h5>
+                                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{new Date(entry.timestamp).toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="text-xs text-slate-600 space-y-1">
+                                                        {Object.entries(entry.changes).map(([field, vals]: [string, any]) => (
+                                                            <div key={field} className="flex items-start gap-2">
+                                                                <span className="font-bold text-slate-700 capitalize w-16 shrink-0">{field}:</span>
+                                                                <span className="bg-red-50 text-red-600 px-1 rounded line-through decoration-red-300">{JSON.stringify(vals.old)}</span>
+                                                                <span className="text-slate-400">→</span>
+                                                                <span className="bg-emerald-50 text-emerald-600 px-1 rounded font-medium">{JSON.stringify(vals.new)}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    {entry.approvedBy && (
+                                                        <div className="mt-2 text-[10px] text-slate-500 font-medium">Approved by: {entry.approvedBy}</div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* QR Code Section in Details */}
                             <div className="mt-8 pt-6 border-t border-slate-200">

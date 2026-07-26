@@ -1,6 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { User as UserIcon, Calendar, MapPin, Phone, ShieldCheck } from 'lucide-react';
+import { User as UserIcon, Calendar, MapPin, Phone, ShieldCheck, Download } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 // Utility function to format date to DD-MM-YYYY
 const formatDateToDDMMYYYY = (dateStr?: string): string => {
@@ -40,9 +42,131 @@ interface AdminIDCardProps {
     sizeVariation?: 'standard' | 'large' | 'extralarge' | 'compact';
 }
 
+// Animated Download Button Component - Exact design from Uiverse
+const DownloadButton: React.FC<{ onClick: () => void; disabled?: boolean }> = ({ onClick, disabled }) => {
+    return (
+        <button
+            onClick={onClick}
+            disabled={disabled}
+            className="Btn-Container"
+        >
+            <span className="text">Let's go!</span>
+            <span className="icon-Container">
+                <svg width="16" height="19" viewBox="0 0 16 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="1.61321" cy="1.61321" r="1.5" fill="black"></circle>
+                    <circle cx="5.73583" cy="1.61321" r="1.5" fill="black"></circle>
+                    <circle cx="5.73583" cy="5.5566" r="1.5" fill="black"></circle>
+                    <circle cx="9.85851" cy="5.5566" r="1.5" fill="black"></circle>
+                    <circle cx="9.85851" cy="9.5" r="1.5" fill="black"></circle>
+                    <circle cx="13.9811" cy="9.5" r="1.5" fill="black"></circle>
+                    <circle cx="5.73583" cy="13.4434" r="1.5" fill="black"></circle>
+                    <circle cx="9.85851" cy="13.4434" r="1.5" fill="black"></circle>
+                    <circle cx="1.61321" cy="17.3868" r="1.5" fill="black"></circle>
+                    <circle cx="5.73583" cy="17.3868" r="1.5" fill="black"></circle>
+                </svg>
+            </span>
+            <style>{`
+                .Btn-Container {
+                    display: flex;
+                    width: 170px;
+                    height: fit-content;
+                    background-color: #1d2129;
+                    border-radius: 40px;
+                    box-shadow: 0px 5px 10px #bebebe;
+                    justify-content: space-between;
+                    align-items: center;
+                    border: none;
+                    cursor: pointer;
+                }
+                .Btn-Container:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
+                .icon-Container {
+                    width: 45px;
+                    height: 45px;
+                    background-color: #f59aff;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 50%;
+                    border: 3px solid #1d2129;
+                }
+                .text {
+                    width: calc(170px - 45px);
+                    height: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-size: 1.1em;
+                    letter-spacing: 1.2px;
+                }
+                .icon-Container svg {
+                    transition-duration: 1.5s;
+                }
+                .Btn-Container:hover .icon-Container svg {
+                    transition-duration: 1.5s;
+                    animation: arrow 1s linear infinite;
+                }
+                @keyframes arrow {
+                    0% {
+                        opacity: 0;
+                        margin-left: 0px;
+                    }
+                    100% {
+                        opacity: 1;
+                        margin-left: 10px;
+                    }
+                }
+            `}</style>
+        </button>
+    );
+};
+
 export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user, onPhotoClick, onCotIdClick, onLocationClick, onMemberSinceClick, sizeVariation = 'standard' }) => {
+    const [isDownloading, setIsDownloading] = React.useState(false);
+    const cardRef = React.useRef<HTMLDivElement>(null);
+    
     const qrData = `CITY OF TRUTH MINISTRIES\nID: ${user.id}\nName: ${user.name}\nRole: ${user.role}`;
     const tone = user.cardThemeTone || 'blue';
+    
+    // Download card as PDF
+    const handleDownloadCard = async () => {
+        if (!cardRef.current || isDownloading) return;
+        
+        setIsDownloading(true);
+        try {
+            // Capture the card as image first
+            const canvas = await html2canvas(cardRef.current, {
+                backgroundColor: null,
+                scale: 3, // Higher quality for PDF
+                logging: false,
+                useCORS: true
+            });
+            
+            // Convert to image data
+            const imgData = canvas.toDataURL('image/png');
+            
+            // Create PDF with card dimensions (standard credit card size: 85.6mm x 53.98mm)
+            const pdf = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: [85.6, 53.98]
+            });
+            
+            // Add image to PDF (fit to page)
+            pdf.addImage(imgData, 'PNG', 0, 0, 85.6, 53.98);
+            
+            // Save the PDF
+            pdf.save(`COT-ID-${user.name.replace(/\s+/g, '-')}-${Date.now()}.pdf`);
+        } catch (error) {
+            console.error('Error downloading card:', error);
+            alert('Failed to download ID card. Please try again.');
+        } finally {
+            setIsDownloading(false);
+        }
+    };
     const qrColor = {
         blue: 'color=1d4ed8&bgcolor=dbeafe',
         lightblue: 'color=1d4ed8&bgcolor=dbeafe',
@@ -183,10 +307,12 @@ export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user, onPhotoClick, on
     }[tone];
 
     return (
-        <motion.div
-            whileHover={{ y: -6, scale: 1.02 }}
-            className={`group relative w-full bg-gradient-to-br ${themeClasses.body} rounded-3xl shadow-xl border ${themeClasses.border} overflow-hidden`}
-        >
+        <div className="space-y-4">
+            <motion.div
+                ref={cardRef}
+                whileHover={{ y: -6, scale: 1.02 }}
+                className={`group relative w-full bg-gradient-to-br ${themeClasses.body} rounded-3xl shadow-xl border ${themeClasses.border} overflow-hidden`}
+            >
             <div className={`absolute inset-0 bg-gradient-to-br ${themeClasses.foil} opacity-80 pointer-events-none`} />
             <div className="absolute inset-[1px] rounded-[1.35rem] border border-white/10 pointer-events-none" />
             <div className="absolute left-5 right-5 top-[3.55rem] h-px bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
@@ -321,5 +447,11 @@ export const AdminIDCard: React.FC<AdminIDCardProps> = ({ user, onPhotoClick, on
             <div className={`absolute -top-6 -right-6 w-24 h-24 ${themeClasses.decor1} rounded-full pointer-events-none`} />
             <div className={`absolute -bottom-4 -left-4 w-16 h-16 ${themeClasses.decor2} rounded-full pointer-events-none`} />
         </motion.div>
+        
+        {/* Download Button */}
+        <div className="flex justify-center">
+            <DownloadButton onClick={handleDownloadCard} disabled={isDownloading} />
+        </div>
+    </div>
     );
 };

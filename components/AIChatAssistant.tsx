@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, Maximize2, Minimize2, Loader, Trash2, BookOpen, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
-import { generateSpatulaAIResponse } from '../services/openRouterService';
+import { generateSpatulaAIResponse, streamSpatulaAIResponse } from '../services/openRouterService';
 import LordIconWrapper from './LordIconWrapper';
 
 interface Message {
@@ -19,7 +19,9 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
     const [labelVisible, setLabelVisible] = useState(true);
     const labelCycleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const labelControls = useAnimation();
+    // For admin, always start at origin — never use a saved drag offset that might be off-screen
     const [position, setPosition] = useState(() => {
+        if (isAdmin) return { x: 0, y: 0 };
         try {
             const saved = localStorage.getItem('cot_chat_widget_position');
             return saved ? JSON.parse(saved) : { x: 0, y: 0 };
@@ -43,17 +45,34 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
             const saved = localStorage.getItem('cot_widget_settings');
             const defaults = {
                 cotChatVisible: true,
+                aiVisible: true,
                 cotChatSize: 1,
+                aiSize: 1,
                 cotChatLabelVisible: true,
                 cotChatLabelText: 'Ask Divine AI Assistant',
+                aiLabelText: 'Ask Divine AI Assistant',
+                aiPosition: 'right',
             };
-            return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
+            if (!saved) return defaults;
+            const parsed = JSON.parse(saved);
+            return {
+                ...defaults,
+                ...parsed,
+                cotChatVisible: parsed.aiVisible !== false && parsed.cotChatVisible !== false,
+                cotChatSize: parsed.aiSize || parsed.cotChatSize || 1,
+                cotChatLabelText: parsed.aiLabelText || parsed.cotChatLabelText || 'Ask Divine AI Assistant',
+                aiPosition: parsed.aiPosition || 'right',
+            };
         } catch {
             return {
                 cotChatVisible: true,
+                aiVisible: true,
                 cotChatSize: 1,
+                aiSize: 1,
                 cotChatLabelVisible: true,
                 cotChatLabelText: 'Ask Divine AI Assistant',
+                aiLabelText: 'Ask Divine AI Assistant',
+                aiPosition: 'right',
             };
         }
     });
@@ -63,13 +82,25 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
             try {
                 const saved = localStorage.getItem('cot_widget_settings');
                 if (saved) {
+                    const parsed = JSON.parse(saved);
                     const defaults = {
                         cotChatVisible: true,
+                        aiVisible: true,
                         cotChatSize: 1,
+                        aiSize: 1,
                         cotChatLabelVisible: true,
                         cotChatLabelText: 'Ask Divine AI Assistant',
+                        aiLabelText: 'Ask Divine AI Assistant',
+                        aiPosition: 'right',
                     };
-                    setWidgetSettings({ ...defaults, ...JSON.parse(saved) });
+                    setWidgetSettings({
+                        ...defaults,
+                        ...parsed,
+                        cotChatVisible: parsed.aiVisible !== false && parsed.cotChatVisible !== false,
+                        cotChatSize: parsed.aiSize || parsed.cotChatSize || 1,
+                        cotChatLabelText: parsed.aiLabelText || parsed.cotChatLabelText || 'Ask Divine AI Assistant',
+                        aiPosition: parsed.aiPosition || 'right',
+                    });
                 }
             } catch (e) {}
         };
@@ -85,23 +116,25 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
         let cancelled = false;
         const cycle = async () => {
             while (!cancelled) {
-                // Slide IN from right
+                // Slide IN
                 await labelControls.start({ opacity: 1, x: 0, transition: { duration: 0.5, ease: [0.34, 1.56, 0.64, 1] } });
                 // Stay visible
                 await new Promise(r => setTimeout(r, 3500));
                 if (cancelled) break;
-                // Slide OUT back to the right (goes inside/disappears)
-                await labelControls.start({ opacity: 0, x: 28, transition: { duration: 0.45, ease: [0.4, 0, 1, 1] } });
+                // Slide OUT (goes inside/disappears)
+                const outX = widgetSettings.aiPosition === 'left' ? -28 : 28;
+                await labelControls.start({ opacity: 0, x: outX, transition: { duration: 0.45, ease: [0.4, 0, 1, 1] } });
                 // Hidden pause
                 await new Promise(r => setTimeout(r, 2000));
                 if (cancelled) break;
             }
         };
         // Start hidden
-        labelControls.set({ opacity: 0, x: 28 });
+        const outX = widgetSettings.aiPosition === 'left' ? -28 : 28;
+        labelControls.set({ opacity: 0, x: outX });
         setTimeout(cycle, 800); // small initial delay
         return () => { cancelled = true; };
-    }, [isOpen, widgetSettings.cotChatLabelVisible, widgetSettings.cotChatLabelText, labelControls]);
+    }, [isOpen, widgetSettings.cotChatLabelVisible, widgetSettings.cotChatLabelText, widgetSettings.aiPosition, labelControls]);
 
     const [messages, setMessages] = useState<Message[]>(() => {
         try {
@@ -315,10 +348,10 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
     };
 
     return (
-        <div ref={containerRef} className="fixed inset-0 pointer-events-none z-[99999]">
+        <div ref={containerRef} className={`fixed inset-0 pointer-events-none ${isAdmin ? 'z-[999999999]' : 'z-[99999]'}`}>
             <AnimatePresence>
                 {/* Floating Chat Button */}
-                {!isOpen && widgetSettings.cotChatVisible !== false && (
+                {!isOpen && (isAdmin || widgetSettings.cotChatVisible !== false) && (
                     <motion.button
                         key="launcher"
                         id="ai-chat-launcher-btn"
@@ -331,7 +364,9 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
                             scale: 1 * (widgetSettings?.cotChatSize || 1),
                             rotate: 0,
                             x: position.x,
-                            y: [position.y, position.y - 7, position.y, position.y - 4, position.y],
+                            y: isAdmin
+                                ? [0, -7, 0, -4, 0]
+                                : [position.y, position.y - 7, position.y, position.y - 4, position.y],
                         }}
                         transition={{
                             scale: { duration: 0.5, ease: 'backOut' },
@@ -342,7 +377,7 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
                         whileHover={{ scale: 1.12 * (widgetSettings?.cotChatSize || 1), cursor: 'grab' }}
                         whileTap={{ scale: 0.88 * (widgetSettings?.cotChatSize || 1) }}
                         onClick={() => setIsOpen(true)}
-                        className="pointer-events-auto fixed bottom-6 right-6 z-[99999] w-14 h-14 md:w-16 md:h-16 rounded-full shadow-2xl flex items-center justify-center border-2 border-amber-400/60 group"
+                        className={`pointer-events-auto fixed bottom-6 ${widgetSettings.aiPosition === 'left' ? 'left-6' : 'right-6'} z-[999999999] w-14 h-14 md:w-16 md:h-16 rounded-full shadow-2xl flex items-center justify-center border-2 border-amber-400/60 group`}
                         style={{
                             touchAction: 'none',
                             background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #1e40af 100%)',
@@ -355,15 +390,15 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
                             {(widgetSettings.cotChatLabelVisible ?? true) && (
                                 <motion.div
                                     animate={labelControls}
-                                    initial={{ opacity: 0, x: 28 }}
-                                    style={{ transformOrigin: 'right center' }}
-                                    className="absolute right-[calc(100%+14px)] top-1/2 -translate-y-1/2 whitespace-nowrap rounded-2xl border border-amber-300/60 bg-[#0f172a]/95 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-amber-300 shadow-[0_8px_32px_rgba(15,23,42,0.9)] backdrop-blur-md sm:px-4 sm:py-2.5 sm:text-xs z-0 pointer-events-none overflow-hidden"
+                                    initial={{ opacity: 0, x: widgetSettings.aiPosition === 'left' ? -28 : 28 }}
+                                    style={{ transformOrigin: widgetSettings.aiPosition === 'left' ? 'left center' : 'right center' }}
+                                    className={`absolute ${widgetSettings.aiPosition === 'left' ? 'left-[calc(100%+14px)]' : 'right-[calc(100%+14px)]'} top-1/2 -translate-y-1/2 whitespace-nowrap rounded-2xl border border-amber-300/60 bg-[#0f172a]/95 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-amber-300 shadow-[0_8px_32px_rgba(15,23,42,0.9)] backdrop-blur-md sm:px-4 sm:py-2.5 sm:text-xs z-0 pointer-events-none overflow-hidden`}
                                 >
-                                    <span className="flex items-center gap-2">
+                                    <span className={`flex items-center gap-2 ${widgetSettings.aiPosition === 'left' ? 'flex-row-reverse' : ''}`}>
                                         <span className="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)] animate-pulse" />
                                         {widgetSettings.cotChatLabelText || 'Ask Divine AI Assistant'}
                                     </span>
-                                    <div className="absolute top-1/2 -translate-y-1/2 -right-1.5 h-3 w-3 rotate-45 border-r border-t border-amber-300/60 bg-[#0f172a]/95" />
+                                    <div className={`absolute top-1/2 -translate-y-1/2 ${widgetSettings.aiPosition === 'left' ? '-left-1.5' : '-right-1.5'} h-3 w-3 rotate-45 border-r border-t border-amber-300/60 bg-[#0f172a]/95`} />
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -404,7 +439,8 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
                             y: 0,
                             width: isExpanded ? 'calc(100vw - 32px)' : 'min(400px, calc(100vw - 32px))',
                             height: isExpanded ? 'calc(100vh - 32px)' : 'min(580px, calc(100vh - 110px))',
-                            right: isExpanded ? 16 : 16,
+                            right: isExpanded ? 16 : (widgetSettings.aiPosition === 'left' ? 'auto' : 16),
+                            left: isExpanded ? 16 : (widgetSettings.aiPosition === 'left' ? 16 : 'auto'),
                             bottom: isExpanded ? 16 : 20
                         }}
                         exit={{ opacity: 0, scale: 0.9, y: 20 }}

@@ -158,12 +158,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
     window.location.href = `https://translate.google.com/translate?sl=auto&tl=ta&u=${encodeURIComponent(currentUrl)}`;
   };
 
-  const isTransparentNavbar = (
-    (currentView === ViewState.HOME ||
-     currentView === ViewState.ABOUT ||
-     String(currentView).startsWith('HEBREW')) &&
-    !isScrolled
-  );
+  const isTransparentNavbar = false;
 
   return (
     <>
@@ -174,13 +169,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
         .montserrat { font-family: 'Montserrat', sans-serif; }
       `}} />
 
-      {/* Hero-transparent or solid-white navbar */}
+      {/* Solid white navbar */}
       <nav
-        className={`fixed top-0 left-0 right-0 z-[60] flex justify-between items-center transition-all duration-500 px-4 md:px-8 montserrat ${
-        isTransparentNavbar
-          ? 'py-4 lg:bg-transparent bg-white/98 backdrop-blur-md border-b lg:border-white/10 border-gray-100'
-          : 'py-2.5 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100'
-      } ${!isNavVisible ? '-translate-y-full' : 'translate-y-0'}`}
+        className={`fixed top-0 left-0 right-0 z-[60] flex justify-between items-center transition-all duration-300 px-4 md:px-8 montserrat py-2.5 bg-white shadow-md border-b border-slate-200/90 ${!isNavVisible ? '-translate-y-full' : 'translate-y-0'}`}
         role="navigation"
         aria-label="Main navigation"
       >
@@ -194,14 +185,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             <img src="/logo.png" alt="COT Logo" className="w-full h-full object-contain" />
           </div>
           <div className="flex flex-col justify-center">
-              <span className={`font-black text-[1.15rem] leading-[1.1] tracking-tight transition-colors duration-300 ${isTransparentNavbar ? 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]' : 'text-[#1e3a8a] drop-shadow-sm'}`}>City of Truth</span>
-              <span className={`text-[0.65rem] font-bold tracking-[1px] uppercase transition-colors duration-300 ${isTransparentNavbar ? 'text-blue-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]' : 'text-blue-600'}`}>MINISTRIES</span>
+              <span className="font-black text-[1.15rem] leading-[1.1] tracking-tight text-[#1e3a8a] drop-shadow-sm">City of Truth</span>
+              <span className="text-[0.65rem] font-extrabold tracking-[1px] uppercase text-blue-700">MINISTRIES</span>
           </div>
         </div>
 
 
-        {/* MENU LINKS STYLING (Restored for Desktop) */}
-        <ul className="hidden xl:flex items-center gap-[3px] 2xl:gap-[8px] list-none">
+        {/* MENU LINKS STYLING (Desktop Only) */}
+        <ul className="hidden xl:flex items-center gap-[2px] xl:gap-[6px] 2xl:gap-[8px] list-none">
           {navItems.map((item, originalIndex) => {
             if (item.hidden && !isEditMode) return null;
             const isActive = item.href
@@ -232,14 +223,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                   id={item.view === 'HEBREW' || item.label === 'Hebrew' ? 'nav-hebrew-btn' : undefined}
                   data-nav-view={item.view}
                   onClick={() => openNavItem(item)}
-                  className={`text-[0.58rem] 2xl:text-[0.65rem] font-extrabold uppercase tracking-[0.2px] 2xl:tracking-[0.5px] px-[8px] 2xl:px-[12px] py-1.5 2xl:py-2 rounded-[20px] transition-all duration-300 no-underline whitespace-nowrap flex items-center gap-0.5 2xl:gap-1 ${
+                  className={`text-[0.65rem] xl:text-[0.7rem] 2xl:text-[0.74rem] uppercase tracking-[0.3px] 2xl:tracking-[0.6px] px-[8px] xl:px-[12px] 2xl:px-[14px] py-1.5 2xl:py-2 rounded-[20px] transition-all duration-200 no-underline whitespace-nowrap flex items-center gap-0.5 2xl:gap-1 cursor-pointer ${
                     isActive
-                      ? (isTransparentNavbar
-                          ? 'bg-white/10 text-white border border-white/20 shadow-inner'
-                          : 'bg-brand-50 text-brand-600 shadow-sm border border-brand-100')
-                      : (isTransparentNavbar
-                          ? 'text-slate-200 hover:text-white hover:bg-white/5'
-                          : 'text-slate-600 hover:text-brand-600 hover:bg-slate-50')
+                      ? 'bg-brand-50 text-brand-700 shadow-sm border border-brand-200/80 font-black'
+                      : 'text-slate-700 hover:text-brand-600 hover:bg-slate-100/80 font-bold'
                   }`}
                 >
                   <EditableText id={'nav-' + item.label} defaultText={translateLabel(item.label)} />
@@ -295,7 +282,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
               <button
                 id={currentUser ? undefined : 'nav-register-btn'}
                 onClick={() => currentUser ? setView(ViewState.USER_DASHBOARD) : setView(ViewState.ID_CARD)}
-                className={`relative z-10 ${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-11 h-11 rounded-2xl shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 border border-blue-300/50 px-3.5 h-10 rounded-2xl shadow-[0_14px_24px_-12px_rgba(37,99,235,0.7)] hover:shadow-[0_18px_28px_-12px_rgba(37,99,235,0.8)] hover:from-blue-700 hover:via-blue-600 hover:to-blue-800'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group overflow-hidden`}
+                className={`relative z-10 ${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-11 h-11 rounded-2xl shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-slate-900/90 hover:bg-slate-950 backdrop-blur-md border border-cyan-400/40 px-4 h-10 rounded-2xl shadow-[0_10px_20px_-10px_rgba(56,189,248,0.5)]'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group overflow-hidden`}
                 title={currentUser ? "My Account" : "Register"}
                 aria-label={currentUser ? "Open my account dashboard" : "Register account"}
               >
@@ -307,8 +294,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                   </span>
                 ) : (
                   <>
-                    <CircleUser size={16} className="text-white shrink-0" />
-                    <span className="text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wide">Register</span>
+                    <CircleUser size={16} className="text-cyan-400 shrink-0 group-hover:scale-110 transition-transform" />
+                    <span className="text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wider">Register</span>
                   </>
                 )}
               </button>

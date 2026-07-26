@@ -34,12 +34,21 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
                 const canvas = canvasRef.current;
                 const scaleX = canvas.width / img.width;
                 const scaleY = canvas.height / img.height;
-                const newScale = Math.max(scaleX, scaleY);
-                setScale(newScale);
+                // Fit whole image inside 300x300 box without aggressive zoom
+                const fitScale = Math.min(scaleX, scaleY);
+                setScale(fitScale);
 
-                setImagePosition({
-                    x: (canvas.width - img.width * newScale) / 2,
-                    y: (canvas.height - img.height * newScale) / 2
+                const imgW = img.width * fitScale;
+                const imgH = img.height * fitScale;
+                const posX = (canvas.width - imgW) / 2;
+                const posY = (canvas.height - imgH) / 2;
+
+                setImagePosition({ x: posX, y: posY });
+                setCropArea({
+                    x: Math.max(0, posX),
+                    y: Math.max(0, posY),
+                    width: Math.min(300, imgW),
+                    height: Math.min(300, imgH)
                 });
             }
             draw();

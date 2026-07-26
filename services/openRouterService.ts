@@ -45,9 +45,9 @@ To do this, append exactly one of the following command tags at the very end of 
 
 Example: "To register for a member account, follow the step-by-step guide pointing to the buttons on your screen. [TOUR:register]"`;
 
-// Default model: OpenAI GPT-OSS 20B (free, reliable)
-const DEFAULT_MODEL = 'openai/gpt-oss-20b:free';
-const FALLBACK_MODEL = 'openrouter/free';
+// Default model: Google Gemini 2.0 Flash Lite (free, highly reliable)
+const DEFAULT_MODEL = 'google/gemini-2.0-flash-lite-preview-02-05:free';
+const DEFAULT_FALLBACK_MODEL = 'openrouter/auto';
 
 export function getSelectedModel(): string {
     try {
@@ -67,6 +67,27 @@ export function setSelectedOpenRouterModel(modelId: string): void {
         }
     } catch (e) {
         console.error('Failed to save selected OpenRouter model:', e);
+    }
+}
+
+export function getSelectedFallbackModel(): string {
+    try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+            return localStorage.getItem('cot_selected_fallback_model') || DEFAULT_FALLBACK_MODEL;
+        }
+    } catch (e) {
+        console.warn('Failed to access localStorage for fallback model:', e);
+    }
+    return DEFAULT_FALLBACK_MODEL;
+}
+
+export function setSelectedFallbackModel(modelId: string): void {
+    try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+            localStorage.setItem('cot_selected_fallback_model', modelId);
+        }
+    } catch (e) {
+        console.error('Failed to save selected fallback model:', e);
     }
 }
 
@@ -104,17 +125,35 @@ async function fetchOpenRouterCompletion(messages: any[], jsonFormat = false): P
     };
 
     const activeModel = getSelectedModel();
+    const fallback = getSelectedFallbackModel();
     try {
         return await makeRequest(activeModel);
     } catch (primaryError) {
-        console.warn(`Primary model ${activeModel} failed, trying fallback ${FALLBACK_MODEL}:`, primaryError);
+        console.warn(`Primary model ${activeModel} failed, trying fallback ${fallback}:`, primaryError);
         try {
-            return await makeRequest(FALLBACK_MODEL);
+            return await makeRequest(fallback);
         } catch (fallbackError) {
             console.error('All OpenRouter models failed:', fallbackError);
             throw fallbackError;
         }
     }
+}
+
+function getFallbackResponse(prompt: string): string {
+    const text = prompt.toLowerCase();
+    if (text.includes("register") || text.includes("join") || text.includes("account")) {
+        return `🏺 Divine Guidance: Registration & Membership\n\n📖 Psalm 84:10\n❝ Better is one day in your courts than a thousand elsewhere. ❞\n\n━━━━━━━━━━━━\n\n🌿 To register as a member of City of Truth Ministries:\n1. Tap 'Register' in the top right menu bar.\n2. Complete your member profile details form.\n3. Submit for Admin verification to receive your Entrust Card! [TOUR:register]\n\n✦ Amen ✦\n\n🕊 Shalom • Peace • שלום`;
+    }
+    if (text.includes("login") || text.includes("sign in")) {
+        return `🏺 Divine Guidance: Account Access\n\n📖 Proverbs 3:5-6\n❝ Trust in the LORD with all your heart and lean not on your own understanding. ❞\n\n━━━━━━━━━━━━\n\n🌿 To log in to your existing account, tap 'Login' in the navigation menu or user card. [TOUR:login]\n\n✦ Amen ✦\n\n🕊 Shalom • Peace • שלום`;
+    }
+    if (text.includes("pastor") || text.includes("leader")) {
+        return `🏺 Pastoral Wisdom & Guidance\n\n📖 Jeremiah 3:15\n❝ And I will give you pastors according to mine heart, which shall feed you with knowledge and understanding. ❞\n\n━━━━━━━━━━━━\n\n🌿 Learn more about our Senior Pastor Shaveesh Jeshurun and the ministry leadership on our Pastor page. [TOUR:pastor]\n\n✦ Amen ✦\n\n🕊 Shalom • Peace • שלום`;
+    }
+    if (text.includes("valparai") || text.includes("location") || text.includes("church")) {
+        return `🏺 City of Truth Ministries — Valparai\n\n📖 Psalm 48:1\n❝ Great is the LORD, and greatly to be praised in the city of our God. ❞\n\n━━━━━━━━━━━━\n\n🌿 City of Truth Ministries is dedicated to spreading gospel truth and discipleship in Valparai, Tamil Nadu. [TOUR:wallpari]\n\n✦ Amen ✦\n\n🕊 Shalom • Peace • שלום`;
+    }
+    return `🏺 Word of Grace & Peace\n\n📖 John 8:32\n❝ Then you will know the truth, and the truth will set you free. ❞\n\n━━━━━━━━━━━━\n\n🙏 May the peace and wisdom of the Lord fill your heart today. We are here to guide you in faith, discipleship, and prayer. Ask us any question about scripture, Hebrew tools, or ministry services.\n\n✦ Amen ✦\n\n🕊 Shalom • Peace • שלום`;
 }
 
 /**
@@ -127,10 +166,11 @@ export async function generateSpatulaAIResponse(userPrompt: string): Promise<str
             { role: 'user', content: userPrompt }
         ]);
         const content = data.choices?.[0]?.message?.content;
-        return typeof content === 'string' ? content : 'I apologize, but I could not generate a response.';
+        if (typeof content === 'string' && content.trim() !== '') return content;
+        return getFallbackResponse(userPrompt);
     } catch (error) {
-        console.error('OpenRouter API Error:', error);
-        throw new Error('Failed to connect to AI service. Please try again.');
+        console.warn('OpenRouter API Error, using fallback:', error);
+        return getFallbackResponse(userPrompt);
     }
 }
 
@@ -148,6 +188,7 @@ export async function streamSpatulaAIResponse(
         'X-Title': 'City of Truth Ministries AI',
     };
 
+    const FALLBACK_MODEL = getSelectedFallbackModel();
     const makeStreamRequest = async (model: string) => {
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
@@ -210,8 +251,14 @@ export async function streamSpatulaAIResponse(
         try {
             await makeStreamRequest(FALLBACK_MODEL);
         } catch (fallbackError) {
-            console.error('All OpenRouter streaming models failed:', fallbackError);
-            throw fallbackError;
+            console.warn('All OpenRouter streaming models failed, streaming fallback response:', fallbackError);
+            const fallbackText = getFallbackResponse(userPrompt);
+            // Simulate streaming the fallback response word by word
+            const words = fallbackText.split(' ');
+            for (let i = 0; i < words.length; i++) {
+                onChunk((i === 0 ? '' : ' ') + words[i]);
+                await new Promise(r => setTimeout(r, 25));
+            }
         }
     }
 }
@@ -317,19 +364,21 @@ export async function getOpenRouterModelDetails(): Promise<any> {
         }
         const data = await response.json();
         const activeModelId = getSelectedModel();
+        const fallbackModelId = getSelectedFallbackModel();
         const defaultModelInfo = data.data?.find((m: any) => m.id === activeModelId);
-        const fallbackModelInfo = data.data?.find((m: any) => m.id === FALLBACK_MODEL);
+        const fallbackModelInfo = data.data?.find((m: any) => m.id === fallbackModelId);
         return {
             defaultModel: defaultModelInfo || { id: activeModelId, name: activeModelId, context_length: 8192 },
-            fallbackModel: fallbackModelInfo || { id: FALLBACK_MODEL, name: 'OpenRouter Free Auto-Router', context_length: 4096 },
+            fallbackModel: fallbackModelInfo || { id: fallbackModelId, name: fallbackModelId === 'openrouter/auto' ? 'OpenRouter Free Auto-Router' : fallbackModelId, context_length: 4096 },
             allModels: data.data || []
         };
     } catch (error) {
         console.error('Error fetching model details:', error);
         const activeModelId = getSelectedModel();
+        const fallbackModelId = getSelectedFallbackModel();
         return {
             defaultModel: { id: activeModelId, name: activeModelId, context_length: 8192 },
-            fallbackModel: { id: FALLBACK_MODEL, name: 'OpenRouter Free Auto-Router', context_length: 4096 },
+            fallbackModel: { id: fallbackModelId, name: fallbackModelId === 'openrouter/auto' ? 'OpenRouter Free Auto-Router' : fallbackModelId, context_length: 4096 },
             allModels: []
         };
     }

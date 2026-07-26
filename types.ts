@@ -57,6 +57,13 @@ export interface PendingProfileUpdate {
   linkedProfiles?: SubProfile[];
   bloodGroup?: string;
 }
+export interface ProfileHistoryEntry {
+  id: string;
+  timestamp: string;
+  changes: Record<string, { old: any; new: any }>;
+  approvedBy?: string;
+  action?: 'Profile Update' | 'COT ID Generated';
+}
 
 export interface User {
   id: string; // COT-xxxx
@@ -77,6 +84,7 @@ export interface User {
   bloodGroup?: string;
   verificationDoc?: { name: string; uploadedAt: string };
   pendingProfileUpdate?: PendingProfileUpdate;
+  profileHistory?: ProfileHistoryEntry[];
   communityProfile?: {
     denomination?: string;
     churchName?: string;
@@ -375,4 +383,21 @@ export interface MemberNotification {
   imageUrl?: string;
   deletedAt?: string;
   autoDeleteAt?: string;
+}
+
+export interface WidgetSettingsConfig {
+  shareVisible: boolean;
+  shareSize: number;
+  shareLabelVisible?: boolean;
+  shareLabelText?: string;
+  shareAnimation?: boolean;
+  aiVisible: boolean;
+  aiSize: number;
+  aiLabelVisible?: boolean;
+  aiLabelText?: string;
+  aiAnimation?: boolean;
+  cotChatVisible?: boolean;
+  cotChatSize?: number;
+  cotChatLabelVisible?: boolean;
+  cotChatLabelText?: string;
 }
