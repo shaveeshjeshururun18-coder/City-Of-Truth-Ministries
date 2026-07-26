@@ -3958,26 +3958,9 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
                     </div>
                 </motion.div>
 
-                {/* Mobile Bottom navigation menu: Shows on scroll up, hides on scroll down */}
-                <div className={`md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-amber-500/10 shadow-[0_-4px_20px_-10px_rgba(217,119,6,0.1)] transition-all duration-300 ${tabNavVisible ? 'translate-y-0' : 'translate-y-full'}`}>
-                    <div className="flex overflow-x-auto items-center gap-2 px-3 py-3" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                        {availableTabs.map((t) => {
-                            const isActive = tab === t.id;
-                            return (
-                                <button
-                                    key={t.id}
-                                    onClick={() => { setTab(t.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                                    className={`flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-full font-black text-[9px] uppercase tracking-widest transition-all duration-500 shadow-sm border ${isActive
-                                            ? 'bg-gradient-to-r from-amber-500 to-amber-600 border-amber-600 text-white shadow-lg shadow-amber-500/25'
-                                            : 'bg-white text-slate-400 hover:text-amber-600 hover:border-amber-200 border-slate-200'
-                                        }`}
-                                >
-                                    {t.icon}
-                                    <span>{t.label}</span>
-                                </button>
-                            );
-                        })}
-                    </div>
+                {/* Mobile Bottom navigation menu has been removed in favor of global BottomNav */}
+                {/* Ensure we still render the hidden version if framer-motion is trying to mount/unmount something in hydration */}
+                <div className="hidden md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-amber-500/10 shadow-[0_-4px_20px_-10px_rgba(217,119,6,0.1)] transition-all duration-300">
                 </div>
 
                 <div className="w-full relative min-h-[500px]">
