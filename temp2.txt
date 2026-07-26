@@ -1,0 +1,112 @@
+const HebrewGematriaCalc: React.FC = () => {
+    const [word, setWord] = useState('');
+    const [isExportingGematria, setIsExportingGematria] = useState(false);
+    const gematriaExportRef = useRef<HTMLDivElement>(null);
+
+    const total = useMemo(() => word.split('').reduce((sum, c) => sum + (GEMATRIA_VALUES[c] || 0), 0), [word]);
+
+    const letterBreakdown = useMemo(() => {
+        return word.split('').filter(c => c.trim()).map(c => ({ char: c, value: GEMATRIA_VALUES[c] || 0 }));
+    }, [word]);
+
+    const handleGematriaExport = async (format: 'pdf' | 'png') => {
+        if (!gematriaExportRef.current || !word.trim()) return;
+        setIsExportingGematria(true);
+        try {
+            const dataUrl = await captureNodeToJpeg(gematriaExportRef.current, { backgroundColor: '#020617', width: 900 });
+            const safeWord = word.trim().replace(/[^a-zA-Z0-9\u0590-\u05FF]/g, '') || 'Hebrew-Word';
+            const fileBase = `COT-Hebrew-Gematria-${safeWord}-${Date.now()}`;
+            if (format === 'png') {
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = `${fileBase}.jpg`;
+                link.click();
+            } else {
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                const pdfW = pdf.internal.pageSize.getWidth();
+                const pageH = pdf.internal.pageSize.getHeight();
+                const img = new Image();
+                img.src = dataUrl;
+                await new Promise<void>((resolve, reject) => {
+                    img.onload = () => resolve();
+                    img.onerror = () => reject(new Error('Failed to load Gematria image for PDF export.'));
+                });
+
+                // Reserve space for copyright/footer area
+                const footerH = 20;
+                const maxImgH = pageH - footerH;
+                const rawPdfH = (img.height * pdfW) / img.width;
+                const pdfH = Math.min(rawPdfH, maxImgH);
+
+                // Fill background (avoid white gap)
+                pdf.setFillColor(2, 6, 23);
+                pdf.rect(0, 0, pdfW, pageH, 'F');
+
+                // Center the study card in available area
+                const imgY = (maxImgH - pdfH) / 2;
+                pdf.addImage(dataUrl, 'JPEG', 0, imgY, pdfW, pdfH);
+
+                // Footer background + divider
+                const footerY = pageH - footerH;
+                pdf.setFillColor(15, 23, 42);
+                pdf.rect(0, footerY, pdfW, footerH, 'F');
+                pdf.setDrawColor(217, 119, 6);
+                pdf.setLineWidth(0.4);
+                pdf.line(10, footerY + 0.6, pdfW - 10, footerY + 0.6);
+
+                // Footer text
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(8);
+                pdf.setTextColor(251, 191, 36);
+                pdf.text('CITY OF TRUTH MINISTRIES', pdfW / 2, footerY + 6.4, { align: 'center' });
+
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(6.4);
+                pdf.setTextColor(148, 163, 184);
+                pdf.text(`© ${new Date().getFullYear()} City of Truth Ministries. All rights reserved.`, pdfW / 2, footerY + 11.6, { align: 'center' });
+
+                pdf.setFontSize(5.6);
+                pdf.setTextColor(100, 116, 139);
+                pdf.text('https://city-of-truth-ministries.vercel.app/', pdfW / 2, footerY + 16.2, { align: 'center', maxWidth: pdfW - 20 } as any);
+                pdf.text('YouTube: City of Truth Ministries • வால்பாறை (Valparai)', pdfW / 2, footerY + 19.0, { align: 'center', maxWidth: pdfW - 20 } as any);
+                pdf.save(`${fileBase}.pdf`);
+            }
+        } catch (error) {
+            console.error('Gematria export failed:', error);
+            alert('Could not export Gematria result. Please try again.');
+        } finally {
+            setIsExportingGematria(false);
+        }
+    };
+
+    return (
+        <div className="space-y-10 bg-slate-950 text-white rounded-[2.5rem] p-6 md:p-10 border border-white/10 shadow-2xl relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
+
+            <div className="text-center relative z-10 space-y-2">
+                <h2 className="text-3xl md:text-5xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 drop-shadow-md">Gematria Calculator</h2>
+                <p className="text-slate-400 text-xs sm:text-sm">Type any Hebrew word to calculate its sacred numerical value</p>
+            </div>
+
+            {/* Sticky Gematria Total — always visible while scrolling */}
+            {word.trim() && (
+                <div className="sticky top-[80px] md:top-[100px] z-30 flex justify-center pointer-events-none">
+                    <div className="bg-slate-900/95 backdrop-blur-md border border-amber-500/30 rounded-full px-8 py-3 shadow-2xl shadow-amber-500/10 flex items-center gap-4 pointer-events-auto">
+                        <span className="text-[10px] font-black text-amber-400/70 uppercase tracking-widest">Gematria</span>
+                        <span className="text-3xl font-black text-amber-400 font-mono">{total}</span>
+                        <div className="text-xl font-serif text-white/60 font-bold" dir="rtl">{word}</div>
+                    </div>
+                </div>
+            )}
+
+--
+                            {tab === 'gematria' && <HebrewGematriaCalc />}
+                            {tab === 'reference' && <ReferenceView />}
+                            {tab === 'grammar' && <HebrewGrammar3D />}
+                        </motion.div>
+                    </AnimatePresence>
+                </div>
+            </div>
+        </div>
+    );
+};

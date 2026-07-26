@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Calculator, Type, Volume2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Search, Calculator, Type, Volume2 } BookOpen, Sparkles from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { audioService } from '../services/audioService';
 
 // Gematria letter values
@@ -207,36 +207,128 @@ export const HebrewConverter: React.FC = () => {
             </div>
 
             {/* Simple Gematria Calc Section */}
-            <div className="bg-brand-950 rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden text-white">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none"></div>
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-bl-[100%] scale-150"></div>
-
-                <div className="flex flex-col md:flex-row items-center gap-12 relative z-10">
-                    <div className="flex-1 w-full space-y-6">
-                        <label className="text-xs font-bold text-brand-400 uppercase tracking-widest flex items-center gap-2">
-                            <Search size={14} className="text-amber-500" /> Quick Gematria Sum
-                        </label>
-                        <input
-                            type="text"
-                            placeholder="Type any word..."
-                            className="w-full text-4xl md:text-6xl font-serif bg-transparent border-b-2 border-white/10 py-4 outline-none focus:border-amber-500 transition-colors text-white placeholder:text-white/10 text-right"
-                            value={gematriaWordInput}
-                            onChange={(e) => setGematriaWordInput(e.target.value)}
-                            dir="rtl"
-                        />
-                    </div>
-
-                    <div className="hidden md:block w-px h-32 bg-white/10"></div>
-
-                    <div className="flex-1 w-full text-center md:text-left space-y-2">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block">
-                            Calculated Sum
-                        </label>
-                        <div className="text-7xl md:text-9xl font-mono text-amber-500 font-black">
-                            {calculatedGematriaValue || '0'}
-                        </div>
-                    </div>
+            <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl border border-slate-100 flex flex-col space-y-8">
+                <div className="space-y-6">
+                    <label className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <Type size={16} className="text-accent-500" /> Enter Hebrew Word
+                    </label>
+                    <input
+                        type="text"
+                        placeholder="e.g. שלום"
+                        className="w-full text-4xl md:text-6xl font-serif bg-transparent border-b-2 border-slate-100 py-4 outline-none focus:border-accent-500 transition-colors text-brand-950 placeholder:text-slate-200 text-right"
+                        value={gematriaWordInput}
+                        onChange={(e) => setGematriaWordInput(e.target.value)}
+                        dir="rtl"
+                    />
                 </div>
+
+                <AnimatePresence>
+                    {gematriaWordInput && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="space-y-8"
+                        >
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-8">
+                                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Numerical Breakdown</div>
+                                <button
+                                    onClick={() => audioService.playHebrew(gematriaWordInput)}
+                                    className="px-4 py-2 bg-brand-50 text-brand-900 rounded-full flex items-center gap-2 text-sm font-bold hover:bg-brand-100 transition-all active:scale-95"
+                                >
+                                    <Volume2 size={16} /> Listen
+                                </button>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2 sm:gap-3 items-center justify-start overflow-x-auto no-scrollbar py-2">
+                                {gematriaWordInput.split('').filter(ch => gematriaValues[ch]).map((ch, i, arr) => (
+                                    <React.Fragment key={i}>
+                                        <div className="flex flex-col items-center bg-brand-50 border border-brand-100 rounded-2xl p-3 sm:p-4 min-w-[64px] sm:min-w-[72px] shadow-sm">
+                                            <span className="text-3xl sm:text-4xl font-serif text-brand-950 leading-none">{ch}</span>
+                                            <span className="text-sm font-bold text-accent-600 mt-2">{gematriaValues[ch]}</span>
+                                        </div>
+                                        {i < arr.length - 1 && (
+                                            <span className="text-slate-200 text-2xl font-light">＋</span>
+                                        )}
+                                    </React.Fragment>
+                                ))}
+                                {gematriaWordInput.split('').filter(ch => gematriaValues[ch]).length > 0 && (
+                                    <span className="text-slate-200 text-2xl font-light mx-2">＝</span>
+                                )}
+                                {gematriaWordInput.split('').filter(ch => gematriaValues[ch]).length > 0 && (
+                                    <div className="flex flex-col items-center bg-amber-500 rounded-2xl p-3 sm:p-4 min-w-[72px] sm:min-w-[84px] shadow-lg">
+                                        <span className="text-[10px] font-bold text-brand-950 uppercase tracking-widest mb-1">Total</span>
+                                        <span className="text-3xl sm:text-4xl font-black text-brand-950">{calculatedGematriaValue}</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* ── Gematria Significance Panel ── */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.15 }}
+                                className="bg-gradient-to-br from-brand-950 to-slate-900 rounded-3xl p-6 space-y-4 shadow-xl border border-white/5 relative overflow-hidden mt-6"
+                            >
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-accent-400/10 rounded-full blur-3xl pointer-events-none" />
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="w-8 h-8 rounded-xl bg-accent-500/20 flex items-center justify-center">
+                                        <Sparkles size={16} className="text-accent-400" />
+                                    </div>
+                                    <span className="text-xs font-black text-accent-400 uppercase tracking-widest">Gematria Significance</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Letter Count</div>
+                                        <div className="text-3xl font-black text-white">{gematriaWordInput.split('').filter(ch => gematriaValues[ch]).length}</div>
+                                        <div className="text-[10px] text-slate-500 mt-1">Hebrew letters</div>
+                                    </div>
+                                    <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Value</div>
+                                        <div className="text-3xl font-black text-accent-400">{calculatedGematriaValue}</div>
+                                        <div className="text-[10px] text-slate-500 mt-1">{calculatedGematriaValue % 7 === 0 ? '✡ Multiple of 7' : calculatedGematriaValue % 3 === 0 ? '△ Multiple of 3' : calculatedGematriaValue % 10 === 0 ? '✕ Round number' : 'Standard value'}</div>
+                                    </div>
+                                </div>
+                                {/* Letter meanings row */}
+                                {gematriaWordInput.split('').filter(ch => gematriaValues[ch]).length > 0 && (
+                                    <div className="border-t border-white/5 pt-4 mt-2">
+                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Letter Values</div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {gematriaWordInput.split('').filter(ch => gematriaValues[ch]).map((ch, i) => (
+                                                <div key={i} className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-1.5 border border-white/5">
+                                                    <span className="text-base font-serif text-accent-300" dir="rtl">{ch}</span>
+                                                    <span className="text-xs font-bold text-slate-400">=</span>
+                                                    <span className="text-xs font-black text-white">{gematriaValues[ch]}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </motion.div>
+
+                            {/* ── Scripture / Tip card ── */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.25 }}
+                                className="bg-gradient-to-r from-sky-50 to-blue-50 border border-sky-100 rounded-3xl p-6"
+                            >
+                                <div className="flex items-start gap-4">
+                                    <div className="shrink-0 w-10 h-10 rounded-2xl bg-sky-100 flex items-center justify-center text-sky-600">
+                                        <BookOpen size={20} />
+                                    </div>
+                                    <div>
+                                        <div className="text-xs font-black text-sky-600 uppercase tracking-widest mb-2">Did You Know?</div>
+                                        <p className="text-sm text-slate-600 leading-relaxed">
+                                            In Hebrew, every letter has a numerical value — the ancient practice of <strong>Gematria</strong> reveals hidden connections between words that share the same total. The sages taught that words with equal Gematria values share a spiritual bond.
+                                        </p>
+                                        <p className="text-xs text-sky-600 font-bold mt-3 italic">"The seal of the Holy One, blessed be He, is truth (אמת)." — Talmud, Shabbat 55a</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
             </div>
 
             {/* Hebrew Alphabet Letter-Value Reference Table */}
