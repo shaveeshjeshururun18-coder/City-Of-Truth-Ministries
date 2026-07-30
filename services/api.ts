@@ -221,14 +221,15 @@ export const api = {
                 });
                 
                 // Seed Firestore in the background
-                for (const v of initialVideos) {
+                const seedPromises = initialVideos.map(async (v) => {
                     try {
                         const videoRef = doc(db, BARUCH_VIDEOS_COLLECTION, v.id);
                         await setDoc(videoRef, v);
                     } catch (e) {
                         console.error('Failed to seed firestore video:', e);
                     }
-                }
+                });
+                await Promise.all(seedPromises);
                 return initialVideos;
             }
             
@@ -245,7 +246,7 @@ export const api = {
             
             if (needsUpdate) {
                 // Seed Firestore in the background with the missing default IDs
-                for (const v of updatedVideos) {
+                const updatePromises = updatedVideos.map(async (v) => {
                     const defaultId = DEFAULT_BARUCH_VIDEOS[v.part];
                     const original = videos.find(o => o.part === v.part);
                     if (defaultId && (!original || !original.youtubeId)) {
@@ -256,7 +257,8 @@ export const api = {
                             console.error('Failed to update firestore video with default:', e);
                         }
                     }
-                }
+                });
+                await Promise.all(updatePromises);
                 return updatedVideos;
             }
             
