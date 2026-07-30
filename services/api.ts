@@ -811,15 +811,24 @@ export const api = {
             // If database is new/empty (contains less than 5 items), seed all 47 items to Firestore!
             if (items.length <= 3) {
                 const seeds = getSeedMinistries();
-                for (const seed of seeds) {
+                const promises = seeds.map(async (seed) => {
                     const exists = items.some((item: any) => item.image === seed.image);
                     if (!exists) {
                         try {
                             const docRef = await addDoc(ministriesCollection, seed);
-                            items.push({ ...seed, id: docRef.id });
+                            return { ...seed, id: docRef.id };
                         } catch (e) {
                             console.error('Failed to write seed:', e);
+                            return null;
                         }
+                    }
+                    return null;
+                });
+
+                const results = await Promise.all(promises);
+                for (const res of results) {
+                    if (res) {
+                        items.push(res);
                     }
                 }
             }
