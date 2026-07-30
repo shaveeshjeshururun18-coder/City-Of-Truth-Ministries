@@ -20,6 +20,7 @@ import SiteAnalyticsPage from './SiteAnalyticsPage';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import JSZip from 'jszip';
+import { drawFieldBox } from './pdfCardUtils';
 import { ImageCropper } from './ImageCropper';
 import { EntrustCard3D } from './WorshipperIDCard';
 import { AdminIDCard } from './AdminIDCard';
@@ -4145,25 +4146,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             };
 
             const fieldBox = (x: number, y: number, width: number, height: number, value = '', placeholder = '', isMultiline = false) => {
-                const cleanValue = valueOrBlank(value);
-                pdf.setFillColor('#D8D0C0');
-                pdf.roundedRect(x + 1, y + 1.5, width, height, 4, 4, 'F');
-                pdf.setFillColor(255, 255, 255);
-                pdf.setDrawColor(navy);
-                pdf.setLineWidth(1.2);
-                pdf.roundedRect(x, y, width, height, 4, 4, 'FD');
-                if (cleanValue) {
-                    pdf.setTextColor(navyDark);
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.setFontSize(isMultiline ? 9.2 : 9.5);
-                    const lines = pdf.splitTextToSize(cleanValue, width - 10);
-                    pdf.text(lines.slice(0, isMultiline ? 4 : 1), x + 5, y + (isMultiline ? 8 : height / 2 + 3.1));
-                } else if (placeholder) {
-                    pdf.setTextColor('#AAAAAA');
-                    pdf.setFont('helvetica', 'italic');
-                    pdf.setFontSize(9);
-                    pdf.text(placeholder, x + 5, y + (isMultiline ? 8 : height / 2 + 3.1));
-                }
+                drawFieldBox(pdf, x, y, width, height, value, placeholder, isMultiline, navy, navyDark);
             };
 
             const dropdownBox = (x: number, y: number, width: number, height: number, value = '', placeholder = '') => {

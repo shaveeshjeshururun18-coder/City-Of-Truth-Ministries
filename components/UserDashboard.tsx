@@ -14,7 +14,7 @@ import { PrintableHebrewCalendar } from './PrintableHebrewCalendar';
 import { PrintableReferenceGuide } from './PrintableReferenceGuide';
 import { getCalendarData5786 } from './CalendarLogic';
 import { CalendarCustomizationModal, CalendarOptions } from './CalendarCustomizationModal';
-import { addCenteredCardPage, waitForNodeImages } from './pdfCardUtils';
+import { addCenteredCardPage, waitForNodeImages, drawFieldBox } from './pdfCardUtils';
 import { CommunityProfileForm } from './CommunityProfileForm';
 import { GuidedTour, WelcomeTourModal, useTour } from './GuidedTour';
 
@@ -1281,25 +1281,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             };
 
             const fieldBox = (x: number, y: number, width: number, height: number, value = '', placeholder = '', isMultiline = false) => {
-                const cleanValue = valueOrBlank(value);
-                pdf.setFillColor('#D8D0C0');
-                pdf.roundedRect(x + 1, y + 1.5, width, height, 4, 4, 'F');
-                pdf.setFillColor(255, 255, 255);
-                pdf.setDrawColor(navy);
-                pdf.setLineWidth(1.2);
-                pdf.roundedRect(x, y, width, height, 4, 4, 'FD');
-                if (cleanValue) {
-                    pdf.setTextColor(navyDark);
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.setFontSize(isMultiline ? 9.2 : 9.5);
-                    const lines = pdf.splitTextToSize(cleanValue, width - 10);
-                    pdf.text(lines.slice(0, isMultiline ? 4 : 1), x + 5, y + (isMultiline ? 8 : height / 2 + 3.1));
-                } else if (placeholder) {
-                    pdf.setTextColor('#AAAAAA');
-                    pdf.setFont('helvetica', 'italic');
-                    pdf.setFontSize(9);
-                    pdf.text(placeholder, x + 5, y + (isMultiline ? 8 : height / 2 + 3.1));
-                }
+                drawFieldBox(pdf, x, y, width, height, value, placeholder, isMultiline, navy, navyDark);
             };
 
             const dropdownBox = (x: number, y: number, width: number, height: number, value = '', placeholder = '') => {
