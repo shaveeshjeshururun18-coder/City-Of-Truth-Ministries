@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { Star, ArrowRight, BookOpen, MapPin, Globe, Sparkles, MessageSquare, QrCode, Heart, Users, Mountain, Leaf, CloudRain, Video, Sun, Music, FileText, Eye } from 'lucide-react';
 import { ViewState, User } from '../types';
 import { MessageFromLeader } from './MessageFromLeader';
-import { HEBREW_PAGES } from '../hebrewRegistry';
 import { LordIconWrapper } from './LordIconWrapper';
 import { DeuteronomyCircleGraphic } from './DeuteronomyCircleGraphic';
 import { PSALM_119_VERSES } from './psalm119';
