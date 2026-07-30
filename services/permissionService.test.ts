@@ -309,3 +309,12 @@ export const runPermissionServiceTests = async () => {
 
 // Export for use in components or scripts
 export default runPermissionServiceTests;
+
+import { describe, it } from 'vitest';
+
+describe('Permission Service Manual Tests Placeholder', () => {
+  it('prevents vitest from throwing "No test suite found" error', () => {
+    // This is a placeholder test to prevent vitest from throwing an error
+    // when running tests on this file.
+  });
+});
