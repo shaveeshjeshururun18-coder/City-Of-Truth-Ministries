@@ -52,3 +52,41 @@ export const addCenteredCardPage = (
     // Use 'MEDIUM' compression for balanced quality and speed
     pdfDoc.addImage(dataUrl, format, x, y, renderWidth, renderHeight, undefined, 'MEDIUM');
 };
+
+/**
+ * Draws a standardized styled text field box inside a jsPDF document.
+ * Includes a subtle offset shadow, styled border, and handles multi-line/italic placeholder styles.
+ * Used across admin and user dashboards for rendering member form PDFs.
+ */
+export const drawFieldBox = (
+    pdf: jsPDF,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    value = '',
+    placeholder = '',
+    isMultiline = false,
+    navy = '#1B2A5E',
+    navyDark = '#0F1A3E'
+) => {
+    const cleanValue = `${value || ''}`.trim();
+    pdf.setFillColor('#D8D0C0');
+    pdf.roundedRect(x + 1, y + 1.5, width, height, 4, 4, 'F');
+    pdf.setFillColor(255, 255, 255);
+    pdf.setDrawColor(navy);
+    pdf.setLineWidth(1.2);
+    pdf.roundedRect(x, y, width, height, 4, 4, 'FD');
+    if (cleanValue) {
+        pdf.setTextColor(navyDark);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(isMultiline ? 9.2 : 9.5);
+        const lines = pdf.splitTextToSize(cleanValue, width - 10);
+        pdf.text(lines.slice(0, isMultiline ? 4 : 1), x + 5, y + (isMultiline ? 8 : height / 2 + 3.1));
+    } else if (placeholder) {
+        pdf.setTextColor('#AAAAAA');
+        pdf.setFont('helvetica', 'italic');
+        pdf.setFontSize(9);
+        pdf.text(placeholder, x + 5, y + (isMultiline ? 8 : height / 2 + 3.1));
+    }
+};
