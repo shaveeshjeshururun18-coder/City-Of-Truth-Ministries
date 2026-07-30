@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { MulticastMessage } from 'firebase-admin/messaging';
 import { initFirebaseAdmin } from './_firebaseAdmin';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -27,7 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { messaging } = initFirebaseAdmin();
 
-    const message: MulticastMessage = {
+    const message = {
       tokens: tokens,
       notification: {
         title: title,
@@ -35,7 +34,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ...(imageUrl ? { imageUrl: imageUrl } : {})
       },
       android: {
-        priority: 'high',
+        priority: 'high' as const,
         notification: {
           sound: 'default'
         }
