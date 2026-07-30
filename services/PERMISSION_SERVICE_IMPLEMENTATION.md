@@ -150,7 +150,7 @@ interface CommunicationPermission {
 
 ## Testing
 
-A comprehensive test suite has been created in `permissionService.test.ts` with 8 test scenarios:
+A comprehensive test suite has been created in `permissionService.test-manual.ts` with 8 test scenarios:
 
 1. ✅ Get permissions for new user (returns null)
 2. ✅ Create new permission document
@@ -203,7 +203,7 @@ All functions include:
 ## Files Created
 
 1. `services/permissionService.ts` - Main implementation (231 lines)
-2. `services/permissionService.test.ts` - Test suite (419 lines)
+2. `services/permissionService.test-manual.ts` - Test suite (419 lines)
 3. `services/PERMISSION_SERVICE_IMPLEMENTATION.md` - This documentation
 
 ## Compilation Status
