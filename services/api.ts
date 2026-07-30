@@ -1296,14 +1296,15 @@ export const api = {
                 const deleteAllFiles = async (folder: ReturnType<typeof storageRef>) => {
                     const result = await listAll(folder);
                     
-                    for (const item of result.items) {
+                    const deletePromises = result.items.map(async (item) => {
                         try {
                             await deleteObject(item);
                             details.storageFiles++;
                         } catch (error) {
                             details.errors.push(`Failed to delete storage file ${item.fullPath}: ${error}`);
                         }
-                    }
+                    });
+                    await Promise.all(deletePromises);
                     
                     for (const prefix of result.prefixes) {
                         await deleteAllFiles(prefix);
