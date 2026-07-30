@@ -6,6 +6,7 @@ import { ViewState, User } from '../types';
 import { MessageFromLeader } from './MessageFromLeader';
 import { HEBREW_PAGES } from '../hebrewRegistry';
 import { LordIconWrapper } from './LordIconWrapper';
+import { getInitials } from './utils';
 
 const useSectionInfo = (sectionId: string, defaultName: string, defaultDesc: string) => {
     return React.useMemo(() => {
@@ -682,18 +683,6 @@ export const MemberInitialsSection: React.FC<{ users: User[] }> = ({ users }) =>
     const fallbackUsers = ['Shaveesh Jeshurun', 'Sri Priya', 'Prasad Raj', 'Grace Mary'];
     const namesToRender = visibleUsers.length > 0 ? visibleUsers.map((u) => u.name) : fallbackUsers;
 
-    const getInitials = (name: string) => {
-        if (!name.trim()) return DEFAULT_INITIALS;
-        const initials = name
-            .trim()
-            .split(/\s+/)
-            .filter(Boolean)
-            .slice(0, 2)
-            .map((part) => part[0]?.toUpperCase() || '')
-            .join('');
-        return initials.padEnd(2, DEFAULT_INITIALS[0]).slice(0, 2);
-    };
-
     return (
         <section className="py-20 bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 relative overflow-hidden">
             <div className="absolute inset-0 pointer-events-none">
@@ -723,7 +712,7 @@ export const MemberInitialsSection: React.FC<{ users: User[] }> = ({ users }) =>
                             className="group bg-white/90 border border-orange-200 rounded-3xl p-5 shadow-lg shadow-orange-200/40 hover:shadow-xl hover:-translate-y-1 transition-all"
                         >
                             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 text-white font-black text-lg tracking-wider flex items-center justify-center shadow-md shadow-orange-300/40 mb-4 group-hover:scale-105 transition-transform">
-                                {getInitials(name)}
+                                    {getInitials(name, { fallback: DEFAULT_INITIALS })}
                             </div>
                             <p className="text-orange-950 font-bold leading-tight">{name}</p>
                         </motion.div>
@@ -907,16 +896,6 @@ export const DonationsHighlight: React.FC<SectionProps & { onDonate?: () => void
     );
 };
 
-function getInitials(name: string): string {
-    const trimmed = name.trim();
-    if (!trimmed) return '??';
-    const parts = trimmed.split(/\s+/);
-    if (parts.length >= 2 && parts[0] && parts[parts.length - 1]) {
-        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    }
-    return trimmed.slice(0, 2).toUpperCase();
-}
-
 const AVATAR_GRADIENTS = [
     'from-orange-400 to-amber-500',
     'from-orange-500 to-red-400',
@@ -999,7 +978,7 @@ export const CommunityMembersSection: React.FC<SectionProps & { users: User[] }>
                                 className={`w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br ${AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length]} flex items-center justify-center shadow-lg shadow-orange-300/40 group-hover:scale-110 group-hover:shadow-orange-400/50 transition-all duration-300 ring-2 ring-orange-100`}
                             >
                                 <span className="text-white text-base sm:text-xl font-black tracking-wide select-none">
-                                    {getInitials(user.name)}
+                                    {getInitials(user.name, { fallback: '??', useFirstAndLast: true })}
                                 </span>
                             </div>
                             <span className="text-[11px] sm:text-xs font-bold text-orange-800 text-center leading-tight w-full tracking-wide break-words">

@@ -16,6 +16,7 @@ import { getCalendarData5786 } from './CalendarLogic';
 import { CalendarCustomizationModal, CalendarOptions } from './CalendarCustomizationModal';
 import { addCenteredCardPage, waitForNodeImages } from './pdfCardUtils';
 import { CommunityProfileForm } from './CommunityProfileForm';
+import { getInitials } from './utils';
 import { GuidedTour, WelcomeTourModal, useTour } from './GuidedTour';
 
 const MEMBER_FORM_LOGO_URL = '/assets/member-form-logo.png';
@@ -132,14 +133,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         }
         return user;
     };
-    const getAvatarInitials = (name?: string) => {
-        const clean = (name || '').replace(/[^a-zA-Z0-9\s]/g, ' ').trim();
-        const parts = clean.split(/\s+/).filter(Boolean);
-        if (parts.length >= 3) return `${parts[0][0]}${parts[1][0]}${parts[2][0]}`.toUpperCase();
-        if (parts.length === 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-        if (parts.length === 1) return parts[0].slice(0, 3).toUpperCase();
-        return 'COT';
-    };
     const renderAvatarContent = (
         photo: string | undefined,
         name: string,
@@ -174,7 +167,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-cyan-300/25 to-transparent pointer-events-none rounded-t-full" />
                 <div className="absolute inset-[1.5px] rounded-full border border-cyan-300/30 pointer-events-none" />
                 <span className={`${initialClass} font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-100 to-cyan-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] transform -skew-x-6 z-10 leading-none`}>
-                    {getAvatarInitials(name)}
+                    {getInitials(name, { fallback: 'COT', maxChars: 3 })}
                 </span>
             </div>
         );
@@ -804,11 +797,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 const normalized = `${value || ''}`.trim();
                 return normalized || fallback;
             };
-            const getInitials = (name?: string) => {
-                const parts = formatValue(name, 'City of Truth').split(/\s+/).filter(Boolean);
-                return (parts[0]?.[0] || 'C') + (parts[1]?.[0] || parts[0]?.[1] || 'T');
-            };
-
             let y = 0;
             let pageNumber = 1;
 
@@ -934,7 +922,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 pdf.setTextColor(accent[0], accent[1], accent[2]);
                 pdf.setFont('helvetica', 'bold');
                 pdf.setFontSize(10);
-                pdf.text(getInitials(profile.name).toUpperCase(), margin + 8.2, y + 9.5);
+                pdf.text(getInitials(profile.name, { fallback: 'CT', useFirstAndLast: true }).toUpperCase(), margin + 8.2, y + 9.5);
                 pdf.setTextColor(255, 255, 255);
                 pdf.setFontSize(11);
                 pdf.text(title, margin + 20, y + 7);
