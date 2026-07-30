@@ -7,6 +7,7 @@ import { Button } from './Button';
 import { User as UserType } from '../types';
 import { useLanguage, NAV_LABEL_TO_KEY } from './LanguageContext';
 import { EditableText } from './EditableText';
+import { getInitials } from './utils';
 
 interface NavbarProps {
   currentView: ViewState;
@@ -45,16 +46,6 @@ const getIcon = (view: ViewState) => {
 };
 
 const DEFAULT_INITIALS = 'CT';
-
-const getInitials = (name?: string) => {
-  const safeName = (name || '').trim();
-  if (!safeName) return DEFAULT_INITIALS;
-  const parts = safeName.split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
-  }
-  return safeName.slice(0, 2).toUpperCase();
-};
 
 export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginClick, onLogoutClick, currentUser, navItems, isEditMode, onUpdateNavItems }) => {
     const navigate = useNavigate();
@@ -381,7 +372,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                                         <img src={currentUser.photo} alt="Profile" className="w-full h-full object-cover" />
                                     ) : (
                                         <span className="text-[12px] font-black tracking-wide text-white">
-                                          {getInitials(currentUser?.name || DEFAULT_INITIALS)}
+                                          {getInitials(currentUser?.name, { fallback: DEFAULT_INITIALS })}
                                         </span>
                                     )}
                                 </div>
@@ -519,7 +510,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                               />
                             ) : (
                               <span className="w-full h-full flex items-center justify-center text-[9px] font-black tracking-wide text-white bg-gradient-to-br from-blue-600 via-blue-500 to-blue-700">
-                                {getInitials(pf.name)}
+                                {getInitials(pf.name, { fallback: DEFAULT_INITIALS })}
                               </span>
                             )}
                           </div>
