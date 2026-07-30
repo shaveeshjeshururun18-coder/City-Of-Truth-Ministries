@@ -97,10 +97,7 @@ service cloud.firestore {
     
     // Fallback rule for other collections (preserving existing permissive rules)
     match /{document=**} {
-      // WARNING: This rule allows anyone with your database ID to read and write
-      // to your database. This is intended for development purposes only.
-      // We've extended the access until Feb 2027.
-      allow read, write: if request.time < timestamp.date(2027, 2, 21);
+      allow read, write: if false;
     }
   }
 }
