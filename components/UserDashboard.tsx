@@ -14,7 +14,7 @@ import { PrintableHebrewCalendar } from './PrintableHebrewCalendar';
 import { PrintableReferenceGuide } from './PrintableReferenceGuide';
 import { getCalendarData5786 } from './CalendarLogic';
 import { CalendarCustomizationModal, CalendarOptions } from './CalendarCustomizationModal';
-import { addCenteredCardPage, waitForNodeImages } from './pdfCardUtils';
+import { addCenteredCardPage, waitForNodeImages, drawSectionLabel } from './pdfCardUtils';
 import { CommunityProfileForm } from './CommunityProfileForm';
 import { GuidedTour, WelcomeTourModal, useTour } from './GuidedTour';
 
@@ -1272,12 +1272,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             };
 
             const sectionLabel = (label: string, x: number, y: number) => {
-                pdf.setFillColor(gold);
-                pdf.rect(x, y - 1, 3, 8.5, 'F');
-                pdf.setTextColor(navyDark);
-                pdf.setFont('helvetica', 'bold');
-                pdf.setFontSize(7.6);
-                pdf.text(label.toUpperCase(), x + 6, y + 1);
+                drawSectionLabel(pdf, label, x, y, gold, navyDark, {
+                    rectOffset: { x: 0, y: -1, w: 3, h: 8.5 },
+                    textOffset: { x: 6, y: 1, size: 7.6 }
+                });
             };
 
             const fieldBox = (x: number, y: number, width: number, height: number, value = '', placeholder = '', isMultiline = false) => {

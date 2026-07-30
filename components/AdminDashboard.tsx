@@ -32,6 +32,7 @@ import { BaruchVideosManager } from './BaruchVideosManager';
 import { GuidedTour, WelcomeTourModal, useTour, TourStep } from './GuidedTour';
 import GreetingCard from './GreetingCard';
 import AIChatAssistant from './AIChatAssistant';
+import { drawSectionLabel } from './pdfCardUtils';
 import { DivineAssistantSettings } from './DivineAssistantSettings';
 import { NavigationGuide, useNavigationGuide } from './NavigationGuide';
 import { 
@@ -4136,12 +4137,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             };
 
             const sectionLabel = (label: string, x: number, y: number) => {
-                pdf.setFillColor(gold);
-                pdf.rect(x, y + 1, 2, 3.8, 'F');
-                pdf.setTextColor(navyDark);
-                pdf.setFont('helvetica', 'bold');
-                pdf.setFontSize(7.6);
-                pdf.text(label.toUpperCase(), x + 5, y + 4.0);
+                drawSectionLabel(pdf, label, x, y, gold, navyDark);
             };
 
             const fieldBox = (x: number, y: number, width: number, height: number, value = '', placeholder = '', isMultiline = false) => {
