@@ -1,5 +1,18 @@
 import React from 'react';
 
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'lord-icon': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+        src?: string;
+        trigger?: string;
+        colors?: string;
+        style?: React.CSSProperties;
+      };
+    }
+  }
+}
+
 interface LC {
   icon: string;
   trigger?: 'hover' | 'click' | 'loop' | 'morph';
@@ -59,17 +72,85 @@ export const LordIconWrapper: React.FC<LC> = ({
     }
   }, []);
 
-  const getFallbackSvg = (iconName: string, svgSize: number, color: string) => {
+  const getFallbackSvg = (iconName: string, svgSize: number, color: string): React.ReactNode => {
     if (iconName === 'bible' || iconName === 'book') {
-      return `<svg xmlns="http://www.w3.org/2000/svg" width="${svgSize}" height="${svgSize}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-book-open" style="opacity: 0.95; display: block; margin: auto;"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`;
+      return (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width={svgSize}
+          height={svgSize}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="lucide lucide-book-open"
+          style={{ opacity: 0.95, display: 'block', margin: 'auto' }}
+        >
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+        </svg>
+      );
     }
     if (iconName === 'prayer' || iconName === 'spiritual' || iconName === 'cross') {
-      return `<svg xmlns="http://www.w3.org/2000/svg" width="${svgSize}" height="${svgSize}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-cross" style="opacity: 0.95; display: block; margin: auto;"><path d="M11 2h2v20h-2z"/><path d="M5 9h14v2H5z"/></svg>`;
+      return (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width={svgSize}
+          height={svgSize}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="lucide lucide-cross"
+          style={{ opacity: 0.95, display: 'block', margin: 'auto' }}
+        >
+          <path d="M11 2h2v20h-2z" />
+          <path d="M5 9h14v2H5z" />
+        </svg>
+      );
     }
     if (iconName === 'heart') {
-      return `<svg xmlns="http://www.w3.org/2000/svg" width="${svgSize}" height="${svgSize}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-heart" style="opacity: 0.95; display: block; margin: auto;"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`;
+      return (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width={svgSize}
+          height={svgSize}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="lucide lucide-heart"
+          style={{ opacity: 0.95, display: 'block', margin: 'auto' }}
+        >
+          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+        </svg>
+      );
     }
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${svgSize}" height="${svgSize}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sparkles" style="opacity: 0.95; display: block; margin: auto;"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z"/><path d="m5 3 1 2.5L8.5 6 6 7 5 9.5 4 7 1.5 6 4 5Z"/><path d="m19 17 1 2.5 2.5.5-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1Z"/></svg>`;
+    return (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={svgSize}
+        height={svgSize}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="lucide lucide-sparkles"
+        style={{ opacity: 0.95, display: 'block', margin: 'auto' }}
+      >
+        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z" />
+        <path d="m5 3 1 2.5L8.5 6 6 7 5 9.5 4 7 1.5 6 4 5Z" />
+        <path d="m19 17 1 2.5 2.5.5-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1Z" />
+      </svg>
+    );
   };
 
   return (
@@ -82,19 +163,22 @@ export const LordIconWrapper: React.FC<LC> = ({
         justifyContent: 'center',
       }}
       className={className}
-      dangerouslySetInnerHTML={{
-        __html: `
-          <lord-icon
-            src="${lordIconSvg(icon)}"
-            trigger="${trigger}"
-            colors="primary:${colors.primary},secondary:${colors.secondary}"
-            style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-center:center;"
-          >
-            ${getFallbackSvg(icon, Math.round(size * 0.65), colors.primary || '#fbbf24')}
-          </lord-icon>
-        `
-      }}
-    />
+    >
+      <lord-icon
+        src={lordIconSvg(icon)}
+        trigger={trigger}
+        colors={`primary:${colors.primary || '#fbbf24'},secondary:${colors.secondary || '#f59e0b'}`}
+        style={{
+          width: `${size}px`,
+          height: `${size}px`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {getFallbackSvg(icon, Math.round(size * 0.65), colors.primary || '#fbbf24')}
+      </lord-icon>
+    </div>
   );
 };
 
