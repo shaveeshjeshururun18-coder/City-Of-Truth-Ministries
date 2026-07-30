@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 // ==========================================
 // PHONEME TARGETS — Mouth anatomy presets
 // ==========================================
-const PHONEME_TARGETS: Record<string, {
+export const PHONEME_TARGETS: Record<string, {
   open: number; width: number; tongueY: number; tongueX: number;
   teethGap: number; lowerLipBite: number; label: string; labelTa: string;
 }> = {
@@ -30,7 +30,7 @@ const PHONEME_TARGETS: Record<string, {
 
 const GOOGLE_VISEME_BASE = "https://ssl.gstatic.com/dictionary/static/pronunciation/20180801/desktop/";
 
-const PHONEME_VISEME_FILES: Record<string, string> = {
+export const PHONEME_VISEME_FILES: Record<string, string> = {
   REST: "sil.svg",
   AH: "e.svg",
   EE: "e.svg",

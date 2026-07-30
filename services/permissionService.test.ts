@@ -1,15 +1,4 @@
-/**
- * Manual Test Suite for Permission Service
- * 
- * This file contains test scenarios for the permission service.
- * Once a testing framework (like Vitest or Jest) is installed, these can be converted to automated tests.
- * 
- * To run manually:
- * 1. Import this file in a component or script
- * 2. Call runPermissionServiceTests()
- * 3. Check console output for results
- */
-
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
     getCommunicationPermissions,
     updateCommunicationPermissions,
@@ -17,44 +6,72 @@ import {
     getAllPermissions,
     hasAnyCommunicationPermission,
     grantPermission,
-    revokePermission,
-    CommunicationPermission
+    revokePermission
 } from './permissionService';
 
-/**
- * Test helper: Create a test user ID
- */
-const generateTestUserId = () => `TEST-USER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+// Mock Firebase
+vi.mock('./firebase', () => ({
+    db: {}
+}));
 
-/**
- * Test 1: getCommunicationPermissions returns null for user with no permissions
- */
-export const testGetPermissionsForNewUser = async () => {
-    console.log('Test 1: getCommunicationPermissions returns null for new user');
-    try {
-        const testUserId = generateTestUserId();
-        const result = await getCommunicationPermissions(testUserId);
-        
-        if (result === null) {
-            console.log('✅ PASSED: Returns null for user with no permissions');
-            return true;
-        } else {
-            console.error('❌ FAILED: Expected null, got:', result);
-            return false;
+const mockDb: Record<string, any> = {};
+
+vi.mock('firebase/firestore', () => ({
+    collection: vi.fn(),
+    doc: vi.fn((_db, _col, id) => ({ id })),
+    getDoc: vi.fn(async (docRef) => {
+        const id = docRef.id;
+        if (mockDb[id]) {
+            return {
+                id,
+                exists: () => true,
+                data: () => mockDb[id]
+            };
         }
-    } catch (error) {
-        console.error('❌ FAILED: Error in test:', error);
-        return false;
-    }
-};
+        return {
+            id,
+            exists: () => false,
+            data: () => null
+        };
+    }),
+    getDocs: vi.fn(async () => {
+        return {
+            docs: Object.entries(mockDb).map(([id, data]) => ({
+                id,
+                data: () => data
+            }))
+        };
+    }),
+    setDoc: vi.fn(async (docRef, data) => {
+        mockDb[docRef.id] = data;
+    }),
+    updateDoc: vi.fn(async (docRef, data) => {
+        if (mockDb[docRef.id]) {
+            mockDb[docRef.id] = {
+                ...mockDb[docRef.id],
+                ...data
+            };
+        }
+    }),
+    serverTimestamp: vi.fn(() => new Date().toISOString())
+}));
 
-/**
- * Test 2: updateCommunicationPermissions creates new permission document
- */
-export const testCreatePermissions = async () => {
-    console.log('\nTest 2: updateCommunicationPermissions creates new permissions');
-    try {
-        const testUserId = generateTestUserId();
+describe('Permission Service Tests', () => {
+    beforeEach(() => {
+        // Clear mock database before each test
+        for (const key in mockDb) {
+            delete mockDb[key];
+        }
+    });
+
+    it('getCommunicationPermissions returns null for user with no permissions', async () => {
+        const testUserId = 'user-new';
+        const result = await getCommunicationPermissions(testUserId);
+        expect(result).toBeNull();
+    });
+
+    it('updateCommunicationPermissions creates new permission document', async () => {
+        const testUserId = 'user-create';
         const grantedBy = 'ADMIN-001';
         
         const result = await updateCommunicationPermissions(
@@ -67,32 +84,15 @@ export const testCreatePermissions = async () => {
             grantedBy
         );
         
-        if (
-            result.userId === testUserId &&
-            result.permissions.createAnnouncements === true &&
-            result.permissions.sendAnnouncements === false &&
-            result.permissions.manageContactLists === true &&
-            result.grantedBy === grantedBy
-        ) {
-            console.log('✅ PASSED: Created permission document correctly');
-            return true;
-        } else {
-            console.error('❌ FAILED: Permission document has incorrect data:', result);
-            return false;
-        }
-    } catch (error) {
-        console.error('❌ FAILED: Error in test:', error);
-        return false;
-    }
-};
+        expect(result.userId).toBe(testUserId);
+        expect(result.permissions.createAnnouncements).toBe(true);
+        expect(result.permissions.sendAnnouncements).toBe(false);
+        expect(result.permissions.manageContactLists).toBe(true);
+        expect(result.grantedBy).toBe(grantedBy);
+    });
 
-/**
- * Test 3: updateCommunicationPermissions updates existing permissions
- */
-export const testUpdatePermissions = async () => {
-    console.log('\nTest 3: updateCommunicationPermissions updates existing permissions');
-    try {
-        const testUserId = generateTestUserId();
+    it('updateCommunicationPermissions updates existing permissions', async () => {
+        const testUserId = 'user-update';
         const grantedBy = 'ADMIN-001';
         
         // Create initial permissions
@@ -109,32 +109,14 @@ export const testUpdatePermissions = async () => {
             grantedBy
         );
         
-        if (
-            result.permissions.createAnnouncements === true &&
-            result.permissions.sendAnnouncements === true
-        ) {
-            console.log('✅ PASSED: Updated permissions correctly');
-            return true;
-        } else {
-            console.error('❌ FAILED: Permissions not updated correctly:', result);
-            return false;
-        }
-    } catch (error) {
-        console.error('❌ FAILED: Error in test:', error);
-        return false;
-    }
-};
+        expect(result.permissions.createAnnouncements).toBe(true);
+        expect(result.permissions.sendAnnouncements).toBe(true);
+    });
 
-/**
- * Test 4: checkPermission returns correct boolean values
- */
-export const testCheckPermission = async () => {
-    console.log('\nTest 4: checkPermission returns correct values');
-    try {
-        const testUserId = generateTestUserId();
+    it('checkPermission returns correct boolean values', async () => {
+        const testUserId = 'user-check';
         const grantedBy = 'ADMIN-001';
         
-        // Create permissions with only createAnnouncements
         await updateCommunicationPermissions(
             testUserId,
             { createAnnouncements: true },
@@ -144,52 +126,21 @@ export const testCheckPermission = async () => {
         const hasCreate = await checkPermission(testUserId, 'createAnnouncements');
         const hasSend = await checkPermission(testUserId, 'sendAnnouncements');
         
-        if (hasCreate === true && hasSend === false) {
-            console.log('✅ PASSED: checkPermission returns correct values');
-            return true;
-        } else {
-            console.error('❌ FAILED: checkPermission returned incorrect values:', { hasCreate, hasSend });
-            return false;
-        }
-    } catch (error) {
-        console.error('❌ FAILED: Error in test:', error);
-        return false;
-    }
-};
+        expect(hasCreate).toBe(true);
+        expect(hasSend).toBe(false);
+    });
 
-/**
- * Test 5: checkPermission returns false for non-existent user
- */
-export const testCheckPermissionForNonExistentUser = async () => {
-    console.log('\nTest 5: checkPermission returns false for non-existent user');
-    try {
-        const testUserId = generateTestUserId();
+    it('checkPermission returns false for non-existent user', async () => {
+        const testUserId = 'user-none';
         const result = await checkPermission(testUserId, 'createAnnouncements');
-        
-        if (result === false) {
-            console.log('✅ PASSED: Returns false for user with no permissions');
-            return true;
-        } else {
-            console.error('❌ FAILED: Expected false, got:', result);
-            return false;
-        }
-    } catch (error) {
-        console.error('❌ FAILED: Error in test:', error);
-        return false;
-    }
-};
+        expect(result).toBe(false);
+    });
 
-/**
- * Test 6: hasAnyCommunicationPermission detects permissions correctly
- */
-export const testHasAnyPermission = async () => {
-    console.log('\nTest 6: hasAnyCommunicationPermission works correctly');
-    try {
-        const testUserId1 = generateTestUserId();
-        const testUserId2 = generateTestUserId();
+    it('hasAnyCommunicationPermission detects permissions correctly', async () => {
+        const testUserId1 = 'user-any-1';
+        const testUserId2 = 'user-any-2';
         const grantedBy = 'ADMIN-001';
         
-        // User with permissions
         await updateCommunicationPermissions(
             testUserId1,
             { createAnnouncements: true },
@@ -199,113 +150,38 @@ export const testHasAnyPermission = async () => {
         const hasPermissions = await hasAnyCommunicationPermission(testUserId1);
         const noPermissions = await hasAnyCommunicationPermission(testUserId2);
         
-        if (hasPermissions === true && noPermissions === false) {
-            console.log('✅ PASSED: hasAnyCommunicationPermission detects permissions correctly');
-            return true;
-        } else {
-            console.error('❌ FAILED: Incorrect results:', { hasPermissions, noPermissions });
-            return false;
-        }
-    } catch (error) {
-        console.error('❌ FAILED: Error in test:', error);
-        return false;
-    }
-};
+        expect(hasPermissions).toBe(true);
+        expect(noPermissions).toBe(false);
+    });
 
-/**
- * Test 7: grantPermission and revokePermission work correctly
- */
-export const testGrantAndRevokePermission = async () => {
-    console.log('\nTest 7: grantPermission and revokePermission work correctly');
-    try {
-        const testUserId = generateTestUserId();
+    it('grantPermission and revokePermission work correctly', async () => {
+        const testUserId = 'user-grant-revoke';
         const grantedBy = 'ADMIN-001';
         
-        // Grant permission
         await grantPermission(testUserId, 'createAnnouncements', grantedBy);
         const hasPermissionAfterGrant = await checkPermission(testUserId, 'createAnnouncements');
+        expect(hasPermissionAfterGrant).toBe(true);
         
-        // Revoke permission
         await revokePermission(testUserId, 'createAnnouncements', grantedBy);
         const hasPermissionAfterRevoke = await checkPermission(testUserId, 'createAnnouncements');
-        
-        if (hasPermissionAfterGrant === true && hasPermissionAfterRevoke === false) {
-            console.log('✅ PASSED: grantPermission and revokePermission work correctly');
-            return true;
-        } else {
-            console.error('❌ FAILED: Incorrect results:', {
-                hasPermissionAfterGrant,
-                hasPermissionAfterRevoke
-            });
-            return false;
-        }
-    } catch (error) {
-        console.error('❌ FAILED: Error in test:', error);
-        return false;
-    }
-};
+        expect(hasPermissionAfterRevoke).toBe(false);
+    });
 
-/**
- * Test 8: getAllPermissions returns all permission documents
- */
-export const testGetAllPermissions = async () => {
-    console.log('\nTest 8: getAllPermissions returns all permissions');
-    try {
-        const testUserId1 = generateTestUserId();
-        const testUserId2 = generateTestUserId();
+    it('getAllPermissions returns all permission documents', async () => {
+        const testUserId1 = 'user-all-1';
+        const testUserId2 = 'user-all-2';
         const grantedBy = 'ADMIN-001';
         
-        // Create permissions for multiple users
         await updateCommunicationPermissions(testUserId1, { createAnnouncements: true }, grantedBy);
         await updateCommunicationPermissions(testUserId2, { sendAnnouncements: true }, grantedBy);
         
         const allPermissions = await getAllPermissions();
         
-        // Should contain at least the 2 we just created
         const hasTestUser1 = allPermissions.some(p => p.userId === testUserId1);
         const hasTestUser2 = allPermissions.some(p => p.userId === testUserId2);
         
-        if (hasTestUser1 && hasTestUser2 && allPermissions.length >= 2) {
-            console.log('✅ PASSED: getAllPermissions returns all permissions');
-            return true;
-        } else {
-            console.error('❌ FAILED: Missing expected permissions in result');
-            return false;
-        }
-    } catch (error) {
-        console.error('❌ FAILED: Error in test:', error);
-        return false;
-    }
-};
-
-/**
- * Run all tests
- */
-export const runPermissionServiceTests = async () => {
-    console.log('='.repeat(60));
-    console.log('Running Permission Service Tests');
-    console.log('='.repeat(60));
-    
-    const results: boolean[] = [];
-    
-    results.push(await testGetPermissionsForNewUser());
-    results.push(await testCreatePermissions());
-    results.push(await testUpdatePermissions());
-    results.push(await testCheckPermission());
-    results.push(await testCheckPermissionForNonExistentUser());
-    results.push(await testHasAnyPermission());
-    results.push(await testGrantAndRevokePermission());
-    results.push(await testGetAllPermissions());
-    
-    const passed = results.filter(r => r === true).length;
-    const failed = results.filter(r => r === false).length;
-    
-    console.log('\n' + '='.repeat(60));
-    console.log(`Test Results: ${passed} passed, ${failed} failed`);
-    console.log('='.repeat(60));
-    
-    return { passed, failed, total: results.length };
-};
-
-// Export for use in components or scripts
-export default runPermissionServiceTests;
+        expect(hasTestUser1).toBe(true);
+        expect(hasTestUser2).toBe(true);
+        expect(allPermissions.length).toBeGreaterThanOrEqual(2);
+    });
+});
