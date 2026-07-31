@@ -203,92 +203,25 @@ const CinematicText: React.FC<{
   isTyping: boolean;
 }> = ({ text, type, className, visibleCount, isTyping }) => {
   const isHebrew = /[\u0590-\u05FF]/.test(text || '');
-
-  // Custom grouping to avoid multi-word english being reversed in RTL containers
-  const groups: string[] = [];
-  let currentGroup = '';
-  let currentIsEng = false;
-
-  const words = (text || '').split(' ');
-  words.forEach((word, i) => {
-      const isEng = /[a-zA-Z]/.test(word);
-      if (i === 0) {
-          currentGroup = word;
-          currentIsEng = isEng;
-      } else {
-          if (currentIsEng === isEng) {
-              currentGroup += ' ' + word;
-          } else {
-              groups.push(currentGroup);
-              currentGroup = word;
-              currentIsEng = isEng;
-          }
-      }
-      if (i === words.length - 1) {
-          groups.push(currentGroup);
-      }
-  });
-
-  let globalIndex = 0;
+  const safeText = text || '';
+  const shownText = safeText.slice(0, Math.min(Math.max(visibleCount, 0), safeText.length));
+  const styleClass = type === 'gold-hp'
+    ? 'text-transparent bg-clip-text drop-shadow-[0_6px_18px_rgba(212,175,55,0.45)]'
+    : type === 'icy-blue'
+      ? 'text-transparent bg-clip-text drop-shadow-[0_0_18px_rgba(56,189,248,0.36)]'
+      : 'text-slate-100 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]';
+  const backgroundImage = type === 'gold-hp'
+    ? 'linear-gradient(180deg, #FFFFFF 0%, #FDE047 35%, #D4AF37 62%, #FEF08A 100%)'
+    : type === 'icy-blue'
+      ? 'linear-gradient(180deg, #FFFFFF 0%, #7DD3FC 38%, #38BDF8 70%, #E0F2FE 100%)'
+      : undefined;
 
   return (
-    <div className={`flex flex-wrap justify-center max-w-full overflow-visible ${className}`} dir={isHebrew ? "rtl" : "ltr"}>
-      {groups.map((group, gIdx) => {
-        const isLastGroup = gIdx === groups.length - 1;
-        const groupWithSpace = isLastGroup ? group : group + ' ';
-        const isEnglishGroup = /[a-zA-Z]/.test(group);
-
-        return (
-          <span key={gIdx} className="inline-block whitespace-normal break-words max-w-full" dir={isEnglishGroup ? "ltr" : "rtl"}>
-            {groupWithSpace.split('').map((char, cIdx) => {
-              const currentIndex = globalIndex++;
-              const isVisible = currentIndex < visibleCount;
-              const isCurrent = isTyping && currentIndex === (visibleCount - 1);
-              
-              const inkClass = `relative inline-block transition-all duration-100 ${isVisible ? 'opacity-100 animate-text-draw' : 'opacity-0'}`;
-              const space = char === ' ' ? '\u00A0' : char;
-
-              let content = null;
-
-              if (type === 'gold-hp') {
-                content = (
-                  <span className={inkClass}>
-                    <span className="opacity-0">{space}</span>
-                    <span className="absolute top-[4px] left-0 text-[#000000] drop-shadow-[0_12px_12px_rgba(0,0,0,0.9)] select-none">{char}</span>
-                    <span className="absolute top-[2.5px] left-0 text-[#290f01] select-none">{char}</span>
-                    <span className="absolute top-[2px] left-0 text-[#451a03] select-none">{char}</span>
-                    <span className="absolute top-[1.5px] left-0 text-[#78350f] select-none">{char}</span>
-                    <span className="absolute top-[1px] left-0 text-[#b45309] select-none">{char}</span>
-                    <span className="absolute top-0 left-0 z-10 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(212,175,55,0.4)]" style={{ backgroundImage: 'linear-gradient(180deg, #FFFFFF 0%, #FDE047 25%, #451A03 50%, #D4AF37 55%, #FEF08A 100%)' }}>{char}</span>
-                  </span>
-                );
-              } else if (type === 'icy-blue') {
-                content = (
-                  <span className={inkClass}>
-                    <span className="opacity-0">{space}</span>
-                    <span className="absolute top-[3px] left-0 text-[#000000] drop-shadow-[0_10px_10px_rgba(0,0,0,0.85)] select-none">{char}</span>
-                    <span className="absolute top-[1.5px] left-0 text-[#0f172a] select-none">{char}</span>
-                    <span className="absolute top-0 left-0 z-10 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(56,189,248,0.35)]" style={{ backgroundImage: 'linear-gradient(180deg, #FFFFFF 0%, #7DD3FC 30%, #082F49 50%, #38BDF8 55%, #E0F2FE 100%)' }}>{char}</span>
-                  </span>
-                );
-              } else {
-                content = (
-                  <span className={inkClass}>
-                    <span className="drop-shadow text-[#f8fafc]">{space}</span>
-                  </span>
-                );
-              }
-
-              return (
-                <span key={cIdx} className="relative inline-block">
-                  {content}
-                  {isCurrent && <MagicPen />}
-                </span>
-              );
-            })}
-          </span>
-        );
-      })}
+    <div className={`relative max-w-full whitespace-normal break-words text-center ${className}`} dir={isHebrew ? "rtl" : "ltr"}>
+      <span className={`inline ${styleClass}`} style={backgroundImage ? { backgroundImage } : undefined}>
+        {shownText}
+      </span>
+      {isTyping && shownText.length > 0 && <MagicPen />}
     </div>
   );
 };
@@ -420,13 +353,18 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
 
   const playVoiceFallback = (text: string) => {
     try {
+      // Play chime audio first
+      const chime = new Audio('/greeting_sound.mp3');
+      chime.volume = 0.5;
+      chime.play().catch(() => {});
+
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         window.speechSynthesis.cancel();
         const cleanText = (text || '').replace(/[\(\)]/g, '').trim();
         if (cleanText) {
           const utterance = new SpeechSynthesisUtterance(cleanText);
-          utterance.rate = 0.95;
-          utterance.pitch = 1.0;
+          utterance.rate = 0.9;
+          utterance.pitch = 1.05;
           utterance.volume = 1.0;
           window.speechSynthesis.speak(utterance);
         }
@@ -446,23 +384,8 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
       if (audioCtx && audioCtx.state === 'suspended') {
         audioCtx.resume().catch(() => {});
       }
-      if (audioRef.current) {
-        audioRef.current.volume = 0.7;
-        audioRef.current.play().catch(e => {
-          console.log("Autoplay blocked or audio load failed", e);
-          playVoiceFallback(currentData.greeting);
-        });
-      }
-
-      const voiceAudio = document.getElementById("voiceGreetingAudio") as HTMLAudioElement;
-      if (voiceAudio) {
-        voiceAudio.volume = 0.9;
-        voiceAudio.play().catch(e => {
-          console.log("Voice autoplay blocked", e);
-          playVoiceFallback(currentData.greeting);
-        });
-      }
-
+      
+      playVoiceFallback(currentData.greeting);
       setHasInteracted(true);
     }
   }, [hasInteracted, currentData]);

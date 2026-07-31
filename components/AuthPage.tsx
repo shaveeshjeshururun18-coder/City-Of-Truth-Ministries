@@ -1,9 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X, UserCheck, UserPlus, Flashlight, FlashlightOff, Maximize2, Minimize2, Share2, Download } from 'lucide-react';
+import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X, UserCheck, UserPlus, Flashlight, FlashlightOff, Maximize2, Minimize2, Share2, Download, ScanQrCode, FileUp, ScanFace, Fingerprint, BellRing, LayoutDashboard } from 'lucide-react';
 import { Button } from './Button';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import { CameraStage } from './FaceMesh/CameraStage';
+import { CapturedPhoto, FaceLandmark3D, GeometryAnalysis } from './FaceMesh/types';
+import { calculateFacialGeometry } from './FaceMesh/utils/facialGeometry';
+import { analyzeStaticImage, initFaceMesh } from './FaceMesh/utils/faceMeshLoader';
 
 GlobalWorkerOptions.workerSrc = pdfWorker;
 
@@ -41,6 +45,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     const [showScanner, setShowScanner] = useState(false);
     const [showMyQr, setShowMyQr] = useState(false);
     const [scanningFile, setScanningFile] = useState(false);
+    
+    // Biometric States
+    const [showFaceScanner, setShowFaceScanner] = useState(false);
+    const [verifyingBiometrics, setVerifyingBiometrics] = useState(false);
+    const [verifyingFace, setVerifyingFace] = useState(false);
+    
     const [showLoginIntro, setShowLoginIntro] = useState(false);
     const [loginTourStepIndex, setLoginTourStepIndex] = useState<number | null>(null);
     const [loginTourRect, setLoginTourRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
@@ -59,6 +69,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         scannerTimeoutsRef.current = [];
     };
     const uploadInputRef = useRef<HTMLInputElement | null>(null);
+    const faceLoginUploadRef = useRef<HTMLInputElement | null>(null);
     const userAdjustedSizeRef = useRef(false);
     const userAdjustedTorchRef = useRef(false);
     const ambientSensorRef = useRef<{ stop: () => void } | null>(null);
@@ -617,6 +628,141 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         }
     };
 
+    const handleFingerprintLogin = async () => {
+        try {
+            setVerifyingBiometrics(true);
+            const challenge = new Uint8Array(32);
+            window.crypto.getRandomValues(challenge);
+            
+            const credential = await navigator.credentials.get({
+                publicKey: {
+                    challenge,
+                    timeout: 60000,
+                    userVerification: "required"
+                }
+            }) as PublicKeyCredential;
+            
+            if (credential) {
+                // In a real app we'd verify the signature with the server.
+                // For demonstration, we'll try to find a user with this credentialId.
+                const userWithBiometrics = users?.find(u => u.biometrics?.credentialId === credential.id);
+                if (userWithBiometrics) {
+                    onLogin(userWithBiometrics.id);
+                } else {
+                    alert("Fingerprint verified, but no matching account found on this device.");
+                }
+            }
+        } catch (err) {
+            console.error("Biometric login failed:", err);
+            alert("Fingerprint login failed or was cancelled.");
+        } finally {
+            setVerifyingBiometrics(false);
+        }
+    };
+
+    const getFaceDistance = (a?: Partial<GeometryAnalysis> | null, b?: Partial<GeometryAnalysis> | null) => {
+        if (!a || !b) return Number.POSITIVE_INFINITY;
+        const fields: Array<keyof GeometryAnalysis> = [
+            'eyeSpacingRatio',
+            'faceLengthToWidthRatio',
+            'jawToCheekboneRatio',
+            'noseToMouthWidthRatio',
+        ];
+        let total = 0;
+        let count = 0;
+        fields.forEach((field) => {
+            const av = Number(a[field]);
+            const bv = Number(b[field]);
+            if (Number.isFinite(av) && Number.isFinite(bv)) {
+                total += Math.abs(av - bv);
+                count += 1;
+            }
+        });
+        if (!count) return Number.POSITIVE_INFINITY;
+        const symmetryDelta = Math.abs(Number(a.symmetryScore || 0) - Number(b.symmetryScore || 0)) / 100;
+        return total / count + symmetryDelta * 0.25;
+    };
+
+    const findFaceLoginMatch = (analysis: GeometryAnalysis) => {
+        const candidates = (users || []).filter((u: any) => u.faceSignature);
+        if (candidates.length === 0) return { match: null, hasCandidates: false, distance: Number.POSITIVE_INFINITY };
+
+        const ranked = candidates
+            .map((u: any) => ({ user: u, distance: getFaceDistance(analysis, u.faceSignature as GeometryAnalysis) }))
+            .sort((a, b) => a.distance - b.distance);
+
+        const best = ranked[0];
+        return {
+            match: best && best.distance <= 0.16 ? best.user : null,
+            hasCandidates: true,
+            distance: best?.distance ?? Number.POSITIVE_INFINITY,
+        };
+    };
+
+    const authenticateWithFaceAnalysis = (analysis: GeometryAnalysis | null) => {
+        if (!analysis) {
+            alert('No face was detected. Please use a clear front-facing photo or try live scan again.');
+            return;
+        }
+
+        const { match, hasCandidates } = findFaceLoginMatch(analysis);
+        if (match) {
+            setShowFaceScanner(false);
+            onLogin(match.id);
+            return;
+        }
+
+        if (!hasCandidates) {
+            alert('No registered face profile is available yet. Please login with member ID/phone first, then register your face from the Entrust Card registration flow.');
+            return;
+        }
+
+        alert('Face did not match a registered member. Try brighter lighting, face the camera directly, or upload a clearer photo.');
+    };
+
+    const handleFaceCapture = (captured: CapturedPhoto, landmarks?: FaceLandmark3D[] | null) => {
+        const analysis = captured?.analysis || (landmarks?.length ? calculateFacialGeometry(landmarks) : null);
+        authenticateWithFaceAnalysis(analysis);
+    };
+
+    const handleFaceLoginUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            alert('Please upload a face image file such as JPG, PNG, or WebP.');
+            return;
+        }
+
+        setVerifyingFace(true);
+        try {
+            await initFaceMesh();
+            const dataUrl = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(String(reader.result || ''));
+                reader.onerror = () => reject(new Error('Could not read this image.'));
+                reader.readAsDataURL(file);
+            });
+            const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+                const image = new Image();
+                image.onload = () => resolve(image);
+                image.onerror = () => reject(new Error('Could not load this image.'));
+                image.src = dataUrl;
+            });
+            const landmarks = await analyzeStaticImage(img);
+            if (!landmarks?.length) {
+                alert('No face was detected in this image. Upload a clear front-facing photo.');
+                return;
+            }
+            authenticateWithFaceAnalysis(calculateFacialGeometry(landmarks));
+        } catch (err: any) {
+            console.error('Face image login failed:', err);
+            alert(err?.message || 'Face image login failed. Please try another clear photo.');
+        } finally {
+            setVerifyingFace(false);
+        }
+    };
+
     const handleSearch = useCallback((searchVal?: any) => {
         const queryTerm = typeof searchVal === 'string' ? searchVal : identifier;
         if (!queryTerm.trim()) return;
@@ -812,49 +958,151 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                     <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20">Phone: 9876543210</span>
                                     <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20">Name: John</span>
                                     <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20">Email: john@mail.com</span>
-                                </div>
+                                    
+                                    <div className="mt-6 md:mt-8 rounded-[32px] border-2 border-amber-400/40 bg-gradient-to-br from-slate-900/95 via-indigo-950/90 to-blue-950/95 p-5 sm:p-7 text-left shadow-[0_20px_60px_-15px_rgba(245,158,11,0.35)] backdrop-blur-2xl relative overflow-hidden group">
+                                     {/* Glowing top line & background light */}
+                                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 shadow-[0_0_12px_#f59e0b]" />
+                                     <div className="absolute -top-16 -right-16 w-52 h-52 bg-amber-400/15 rounded-full blur-3xl pointer-events-none" />
 
-                                <div className="hidden md:block mt-6 md:mt-8 bg-white/10 border border-white/15 rounded-2xl p-4 text-left">
-                                    <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.18em] text-white/80 mb-2">New Member Advantages</p>
-                                    <ul className="space-y-1.5 text-xs md:text-sm text-white/85 font-semibold">
-                                        <li>• Get your official Entrust card and unique member ID</li>
-                                        <li>• Access your user dashboard and account updates</li>
-                                        <li>• Receive approval/denial and ministry status notifications</li>
-                                    </ul>
-                                    <button
-                                        type="button"
-                                        onClick={onNavigateToRegister}
-                                        className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-brand-900 font-black text-[11px] uppercase tracking-wider hover:bg-brand-50 transition-colors"
-                                    >
-                                        Register Now <ArrowRight size={14} />
-                                    </button>
+                                     <div className="flex flex-col lg:flex-row items-center justify-between gap-6 relative z-10">
+                                         <div className="flex-1 w-full">
+                                             <div className="flex items-center gap-2 mb-4">
+                                                 <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shadow-[0_0_8px_#f59e0b]" />
+                                                 <p className="text-xs sm:text-sm font-black uppercase tracking-[0.25em] bg-gradient-to-r from-amber-200 via-yellow-300 to-amber-400 bg-clip-text text-transparent drop-shadow-sm">
+                                                     New Member Advantages
+                                                 </p>
+                                             </div>
+                                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                                                 {[
+                                                     { icon: IdCard, title: 'Official Entrust Card', text: 'Unique digital member ID & verified access' },
+                                                     { icon: LayoutDashboard, title: 'Personal Dashboard', text: 'Account, family profiles & live updates' },
+                                                     { icon: BellRing, title: 'Ministry Notifications', text: 'Instant approval status & announcements' },
+                                                 ].map(({ icon: Icon, title, text }) => (
+                                                     <div key={title} className="rounded-2xl border border-white/20 bg-white/12 hover:bg-white/20 p-4 transition-all duration-300 transform hover:-translate-y-1 hover:border-amber-300/60 shadow-md group/card">
+                                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 via-yellow-400 to-amber-500 text-slate-950 flex items-center justify-center font-black shadow-md shadow-amber-500/25 mb-3 group-hover/card:scale-110 transition-transform">
+                                                             <Icon size={20} />
+                                                         </div>
+                                                         <h5 className="text-white font-extrabold text-xs sm:text-[13px] leading-snug mb-1 drop-shadow-sm">{title}</h5>
+                                                         <p className="text-amber-100/90 font-semibold text-[11px] leading-relaxed">{text}</p>
+                                                     </div>
+                                                 ))}
+                                             </div>
+                                         </div>
+                                         <button
+                                             type="button"
+                                             onClick={onNavigateToRegister}
+                                             className="w-full lg:w-auto shrink-0 inline-flex items-center justify-center gap-2.5 px-7 py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider hover:brightness-110 hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_30px_rgba(245,158,11,0.5)] hover:shadow-[0_0_40px_rgba(245,158,11,0.8)] border border-amber-200/50 cursor-pointer"
+                                         >
+                                             Register Now <ArrowRight size={16} strokeWidth={3} />
+                                         </button>
+                                     </div>
+                                 </div>
                                 </div>
 
                                 {/* Smart Auth Grid */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mt-6 md:mt-12 relative z-10">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mt-6 md:mt-10 relative z-10">
                                     <button
                                         id="auth-login-qr-btn"
                                         type="button"
                                         onClick={() => setShowScanner(!showScanner)}
-                                        className={`group flex flex-col items-center justify-center p-5 md:p-8 border-2 rounded-[1.5rem] md:rounded-[2.5rem] transition-all duration-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-300/40 ${showScanner ? 'bg-red-50 border-red-200 text-red-600 shadow-xl scale-[1.02]' : 'bg-white border-brand-50 hover:border-brand-200 hover:shadow-2xl shadow-sm'}`}
+                                        className={`group relative min-h-[260px] overflow-hidden flex flex-col items-center justify-center p-5 md:p-7 border rounded-[28px] transition-all duration-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-300/40 ${showScanner ? 'bg-rose-50 border-rose-200 text-rose-700 shadow-xl scale-[1.02]' : 'bg-white border-white/80 hover:border-amber-200 hover:-translate-y-1 hover:shadow-[0_26px_60px_-34px_rgba(15,23,42,0.8)] shadow-sm'}`}
                                     >
-                                        <div className={`w-14 h-14 md:w-20 md:h-20 mb-4 md:mb-6 rounded-2xl md:rounded-3xl flex items-center justify-center transition-all duration-500 ${showScanner ? 'bg-red-100 text-red-600 rotate-90' : 'bg-brand-50 text-brand-400 group-hover:bg-brand-600 group-hover:text-white group-hover:rotate-6'}`}>
-                                            {showScanner ? <X size={28} className="md:w-9 md:h-9" /> : <QrCode size={28} className="md:w-9 md:h-9" />}
+                                        <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/70 to-transparent" />
+                                        <div className={`w-16 h-16 md:w-[74px] md:h-[74px] mb-5 rounded-[24px] flex items-center justify-center transition-all duration-500 shadow-inner ${showScanner ? 'bg-rose-100 text-rose-600 rotate-90' : 'bg-gradient-to-br from-cyan-50 to-blue-100 text-blue-600 group-hover:from-blue-600 group-hover:to-cyan-500 group-hover:text-white group-hover:rotate-6'}`}>
+                                            {showScanner ? <X size={30} /> : <ScanQrCode size={31} />}
                                         </div>
-                                        <h4 className="font-black text-lg md:text-xl mb-1 md:mb-2 tracking-tight">{showScanner ? 'Close Scanner' : 'Use QR Scanner'}</h4>
-                                        <p className="text-[10px] text-brand-300 font-black uppercase tracking-widest">Verify via Digital ID</p>
+                                        <h4 className="font-black text-xl mb-2 tracking-tight text-brand-950 text-center">{showScanner ? 'Close Scanner' : 'Use QR Scanner'}</h4>
+                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] text-center leading-relaxed">Verify via secure digital ID</p>
                                     </button>
 
-                                    <label id="auth-login-upload-btn" className="group flex flex-col items-center justify-center p-5 md:p-8 bg-white border-2 border-brand-50 hover:border-brand-200 rounded-[1.5rem] md:rounded-[2.5rem] shadow-sm hover:shadow-2xl transition-all duration-500 cursor-pointer focus-within:ring-4 focus-within:ring-brand-300/40">
-                                        <div className="w-14 h-14 md:w-20 md:h-20 mb-4 md:mb-6 rounded-2xl md:rounded-3xl bg-brand-50 text-brand-400 group-hover:bg-brand-600 group-hover:text-white group-hover:-translate-y-1 transition-all duration-500 flex items-center justify-center">
-                                            {scanningFile ? <div className="w-8 h-8 md:w-10 md:h-10 border-4 border-brand-400 border-t-transparent rounded-full animate-spin" /> : <UploadCloud size={28} className="md:w-9 md:h-9" />}
+                                    <label id="auth-login-upload-btn" className="group relative min-h-[260px] overflow-hidden flex flex-col items-center justify-center p-5 md:p-7 bg-white border border-white/80 hover:border-amber-200 rounded-[28px] shadow-sm hover:shadow-[0_26px_60px_-34px_rgba(15,23,42,0.8)] transition-all duration-500 cursor-pointer focus-within:ring-4 focus-within:ring-amber-300/40 hover:-translate-y-1">
+                                        <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/70 to-transparent" />
+                                        <div className="w-16 h-16 md:w-[74px] md:h-[74px] mb-5 rounded-[24px] bg-gradient-to-br from-violet-50 to-indigo-100 text-indigo-600 group-hover:from-indigo-600 group-hover:to-violet-500 group-hover:text-white group-hover:-translate-y-1 transition-all duration-500 flex items-center justify-center shadow-inner">
+                                            {scanningFile ? <div className="w-8 h-8 border-4 border-indigo-400 border-t-transparent rounded-full animate-spin" /> : <FileUp size={31} />}
                                         </div>
-                                        <h4 className="font-black text-lg md:text-xl mb-1 md:mb-2 tracking-tight">Upload Entrust Card</h4>
-                                        <p className="text-[10px] text-brand-300 font-black uppercase tracking-widest">Any image/PDF, multiple files supported</p>
+                                        <h4 className="font-black text-xl mb-2 tracking-tight text-brand-950 text-center">Upload Entrust Card</h4>
+                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] text-center leading-relaxed">Image/PDF files supported</p>
                                         <input ref={uploadInputRef} type="file" className="sr-only" onChange={handleFileQRScan} disabled={scanningFile} multiple accept="image/*,.pdf" />
                                     </label>
+                                    
+                                    <button
+                                        id="auth-login-face-btn"
+                                        type="button"
+                                        onClick={() => setShowFaceScanner(true)}
+                                        className="group relative min-h-[260px] overflow-hidden flex flex-col items-center justify-center p-5 md:p-7 bg-white border border-white/80 hover:border-amber-200 rounded-[28px] shadow-sm hover:shadow-[0_26px_60px_-34px_rgba(15,23,42,0.8)] transition-all duration-500 cursor-pointer focus-within:ring-4 focus-within:ring-amber-300/40 hover:-translate-y-1"
+                                    >
+                                        <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/70 to-transparent" />
+                                        <div className="w-16 h-16 md:w-[74px] md:h-[74px] mb-5 rounded-[24px] bg-gradient-to-br from-emerald-50 to-teal-100 text-emerald-600 group-hover:from-emerald-600 group-hover:to-teal-500 group-hover:text-white group-hover:-translate-y-1 transition-all duration-500 flex items-center justify-center shadow-inner">
+                                            <ScanFace size={31} />
+                                        </div>
+                                        <h4 className="font-black text-xl mb-2 tracking-tight text-brand-950 text-center">Live Face Login</h4>
+                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] text-center leading-relaxed">Scan your face to login</p>
+                                    </button>
+                                    
+                                    <button
+                                        id="auth-login-fingerprint-btn"
+                                        type="button"
+                                        onClick={handleFingerprintLogin}
+                                        disabled={verifyingBiometrics}
+                                        className="group relative min-h-[260px] overflow-hidden flex flex-col items-center justify-center p-5 md:p-7 bg-white border border-white/80 hover:border-amber-200 rounded-[28px] shadow-sm hover:shadow-[0_26px_60px_-34px_rgba(15,23,42,0.8)] transition-all duration-500 cursor-pointer focus-within:ring-4 focus-within:ring-amber-300/40 hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0"
+                                    >
+                                        <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/70 to-transparent" />
+                                        <div className="w-16 h-16 md:w-[74px] md:h-[74px] mb-5 rounded-[24px] bg-gradient-to-br from-amber-50 to-yellow-100 text-amber-600 group-hover:from-amber-500 group-hover:to-yellow-400 group-hover:text-white group-hover:-translate-y-1 transition-all duration-500 flex items-center justify-center shadow-inner">
+                                            {verifyingBiometrics ? <div className="w-8 h-8 border-4 border-amber-400 border-t-transparent rounded-full animate-spin" /> : <Fingerprint size={31} />}
+                                        </div>
+                                        <h4 className="font-black text-xl mb-2 tracking-tight text-brand-950 text-center">Fingerprint Login</h4>
+                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] text-center leading-relaxed">Use device fingerprint</p>
+                                    </button>
                                 </div>
                             </div>
+                            
+                            {showFaceScanner && (
+                                <div className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4">
+                                    <div className="relative bg-white rounded-3xl p-4 w-full max-w-2xl shadow-2xl border border-amber-100">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                                            <div>
+                                                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-600">Secure Face Login</p>
+                                                <h3 className="font-black text-xl text-brand-950">Live Scan or Upload Photo</h3>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <label className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-black uppercase tracking-wider cursor-pointer transition-all ${verifyingFace ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-wait' : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'}`}>
+                                                    {verifyingFace ? (
+                                                        <span className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                                                    ) : (
+                                                        <FileUp size={15} />
+                                                    )}
+                                                    Upload Face Image
+                                                    <input
+                                                        ref={faceLoginUploadRef}
+                                                        type="file"
+                                                        accept="image/*"
+                                                        className="hidden"
+                                                        disabled={verifyingFace}
+                                                        onChange={handleFaceLoginUpload}
+                                                    />
+                                                </label>
+                                                <button onClick={() => setShowFaceScanner(false)} className="text-red-500 p-2 hover:bg-red-50 rounded-full">
+                                                    <X size={24} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="mb-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
+                                            For best results, face the camera directly in bright light. Your photo is used only for this login check.
+                                        </div>
+                                        <div className="relative rounded-2xl overflow-hidden border-2 border-brand-500">
+                                            <CameraStage onPhotoCaptured={handleFaceCapture} cardName="Face Login" onClose={() => setShowFaceScanner(false)} />
+                                        </div>
+                                        {verifyingFace && (
+                                            <div className="absolute inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center rounded-3xl">
+                                                <div className="flex items-center gap-3 rounded-2xl bg-white px-5 py-4 shadow-xl border border-amber-100">
+                                                    <span className="w-5 h-5 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                                                    <span className="text-sm font-black text-brand-950">Checking face match...</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* My QR — member COT ID or ministry website */}
                             <AnimatePresence>

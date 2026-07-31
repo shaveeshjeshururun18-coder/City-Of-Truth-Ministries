@@ -376,6 +376,98 @@ export const HebrewWordHub: React.FC = () => {
             <div className="bg-white rounded-2xl sm:rounded-[2.5rem] p-4 sm:p-6 md:p-10 shadow-[0_20px_60px_rgba(0,0,0,0.05)] border border-slate-100 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-48 h-48 bg-brand-50 rounded-bl-full -mr-24 -mt-24 opacity-50 z-0"></div>
 
+                {/* Handwriting / Drawing Translation Canvas Tool */}
+                <div className="mb-10 p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-brand-950 to-slate-900 text-white border border-amber-500/30 shadow-2xl relative z-10 space-y-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+                        <div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-400">HANDWRITING & WRITING TRANSLATION</span>
+                            <h3 className="text-xl font-bold font-serif text-white">Translate by Handwriting or Writing</h3>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-300">Mode:</span>
+                            <select
+                                value={wordInput ? 'active' : 'en-he'}
+                                onChange={(e) => {
+                                    if (e.target.value === 'en-he') setWordInput('Shalom');
+                                    else if (e.target.value === 'ta-he') setWordInput('சமாதானம்');
+                                    else setWordInput('שלום');
+                                }}
+                                className="px-3 py-1.5 rounded-xl bg-white/10 border border-white/20 text-white text-xs font-bold outline-none cursor-pointer"
+                            >
+                                <option value="en-he" className="text-slate-900">English → Hebrew</option>
+                                <option value="ta-he" className="text-slate-900">Tamil → Hebrew</option>
+                                <option value="he-ta" className="text-slate-900">Hebrew → Tamil / English</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                        <div>
+                            <p className="text-xs text-slate-300 mb-2 font-medium">Draw or write letters/words below:</p>
+                            <div className="relative w-full h-40 bg-slate-950 rounded-2xl border border-white/20 overflow-hidden cursor-crosshair group">
+                                <canvas
+                                    id="handwriting-canvas"
+                                    className="w-full h-full"
+                                    onMouseDown={(e) => {
+                                        const canvas = e.currentTarget;
+                                        const ctx = canvas.getContext('2d');
+                                        if (!ctx) return;
+                                        const rect = canvas.getBoundingClientRect();
+                                        ctx.strokeStyle = '#FBBF24';
+                                        ctx.lineWidth = 4;
+                                        ctx.lineCap = 'round';
+                                        ctx.beginPath();
+                                        ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+                                        const onMove = (me: MouseEvent) => {
+                                            ctx.lineTo(me.clientX - rect.left, me.clientY - rect.top);
+                                            ctx.stroke();
+                                        };
+                                        const onUp = () => {
+                                            window.removeEventListener('mousemove', onMove);
+                                            window.removeEventListener('mouseup', onUp);
+                                        };
+                                        window.addEventListener('mousemove', onMove);
+                                        window.addEventListener('mouseup', onUp);
+                                    }}
+                                />
+                                <div className="absolute top-2 right-2 flex gap-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const canvas = document.getElementById('handwriting-canvas') as HTMLCanvasElement;
+                                            if (canvas) {
+                                                const ctx = canvas.getContext('2d');
+                                                if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                            }
+                                        }}
+                                        className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[10px] font-bold text-slate-300 border border-white/10"
+                                    >
+                                        Clear Drawing
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3 bg-white/5 p-4 rounded-2xl border border-white/10">
+                            <label className="text-xs font-bold text-amber-400 uppercase tracking-widest block">Recognized Word & Translation</label>
+                            <input
+                                type="text"
+                                value={wordInput}
+                                onChange={(e) => setWordInput(e.target.value)}
+                                placeholder="Type or write word..."
+                                className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-white/20 text-white font-serif text-lg outline-none focus:border-amber-400"
+                            />
+                            {wordDetails && (
+                                <div className="space-y-1.5 pt-2 border-t border-white/10">
+                                    <div className="text-2xl font-serif text-amber-400 font-bold">{wordDetails.word} ({wordDetails.pronunciation})</div>
+                                    <div className="text-sm font-bold text-white">English: {wordDetails.meaningEn}</div>
+                                    <div className="text-sm font-bold text-amber-300">தமிழ்: {wordDetails.meaningTa}</div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
                 <div className="relative z-10 flex flex-col lg:flex-row gap-6 md:gap-10">
                     {/* Left Section */}
                     <div className="flex-[1.5] min-w-0 space-y-6">

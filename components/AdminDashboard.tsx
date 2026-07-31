@@ -1492,6 +1492,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [notificationFilterUser, setNotificationFilterUser] = useState('');
 
     const [dailyGreetingSettings, setDailyGreetingSettings] = useState({ enabled: true, imageUrl: '' });
+    const [disapprovingUserModal, setDisapprovingUserModal] = useState<User | null>(null);
+    const [selectedDisapprovePresets, setSelectedDisapprovePresets] = useState<string[]>([]);
+    const [customDisapproveText, setCustomDisapproveText] = useState<string>('');
     useEffect(() => {
         const fetchSettings = async () => {
             const settings = await api.getDailyGreetingSettings();
@@ -3669,14 +3672,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
         return candidate;
     };
-    const disapproveUser = async (user: User) => {
+    const disapproveUser = async (user: User, customReason?: string) => {
         await runUserAction(async () => {
             if (isCotId(user.id) && onReassignUserId) {
                 const temporaryId = generateTemporaryUserId(takenUserIds);
                 await onReassignUserId(user.id, temporaryId, createDisapprovedUserPayload(user, temporaryId));
-                return;
+            } else {
+                await onUpdateUser(createDisapprovedUserPayload(user));
             }
-            await onUpdateUser(createDisapprovedUserPayload(user));
+            if (onSendMessageToUsers) {
+                const msg = customReason || "Your account was disapproved by admin. Please review details and resubmit.";
+                onSendMessageToUsers([user.id], msg, undefined, 'disapproved');
+            }
         }, 'Failed to disapprove user');
     };
     const rejectPendingEdit = async (user: User) => {
@@ -5018,7 +5025,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         placeholder="Search name, email, phone, ID..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors text-sm"
+                                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors text-sm text-slate-800"
                                     />
                                 </div>
 
@@ -5026,7 +5033,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <select
                                     value={filterStatus}
                                     onChange={(e) => setFilterStatus(e.target.value as UserStatus | 'All')}
-                                    className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors text-sm"
+                                    className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors text-sm text-slate-800"
                                 >
                                     <option value="All">All Status</option>
                                     <option value="Active">Active</option>
@@ -5038,7 +5045,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <select
                                     value={filterRole}
                                     onChange={(e) => setFilterRole(e.target.value as UserRole | 'All')}
-                                    className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors text-sm"
+                                    className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors text-sm text-slate-800"
                                 >
                                     <option value="All">All Roles</option>
                                     <option value="Member">Member</option>
@@ -5050,7 +5057,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <select
                                     value={filterLocation}
                                     onChange={(e) => setFilterLocation(e.target.value)}
-                                    className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors text-sm"
+                                    className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors text-sm text-slate-800"
                                 >
                                     <option value="All">All Locations</option>
                                     {userLocationOptions.map(location => (
@@ -5060,7 +5067,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <select
                                     value={userSortMode}
                                     onChange={(e) => setUserSortMode(e.target.value as 'status' | 'cot-id' | 'joined-date')}
-                                    className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors text-sm"
+                                    className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 transition-colors text-sm text-slate-800"
                                 >
                                     <option value="status">Sort: Status</option>
                                     <option value="cot-id">Sort: COT ID</option>
@@ -5128,8 +5135,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">User</th>
                                         <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Contact</th>
                                         <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Role</th>
-                                        <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Location</th>
-                                        <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                                          <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Location</th>
+                                          <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Type</th>
+                                          <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Member Form</th>
+                                          <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
                                         <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Joined Date</th>
                                         <th className="text-right px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
                                     </tr>
@@ -5162,11 +5171,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold shrink-0">
-                                                        {user.name.charAt(0)}
-                                                    </div>
+                                                    {user.photo ? (
+                                                         <img src={user.photo} alt={user.name} className="w-10 h-10 rounded-full object-cover shrink-0 border border-slate-200" />
+                                                     ) : (
+                                                         <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold shrink-0">
+                                                             {user.name.charAt(0)}
+                                                         </div>
+                                                     )}
                                                     <div>
-                                                        <div className="font-bold text-brand-950">{user.name}</div>
+                                                        <div className="font-bold text-slate-950">{user.name}</div>
                                                         <div className="text-xs text-slate-500 font-mono">{user.id}</div>
                                                     </div>
                                                 </div>
@@ -5227,11 +5240,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                                 <CheckCircle size={16} />
                                                             </button>
                                                             <button
-                                                                onClick={async () => {
-                                                                    if (window.confirm(`Reject ${user.name}?`)) {
-                                                                        await disapproveUser(user);
-                                                                    }
-                                                                }}
+                                                                onClick={() => setDisapprovingUserModal(user)}
                                                                 className="p-2 hover:bg-amber-50 text-amber-600 rounded-lg transition-colors"
                                                                 title="Reject User"
                                                             >
@@ -5387,11 +5396,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     className="w-full flex items-start justify-between mb-3 text-left"
                                 >
                                     <div className="flex items-center gap-3 min-w-0">
-                                        <div className="w-12 h-12 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold">
-                                            {user.name.charAt(0)}
-                                        </div>
+                                         {user.photo ? (
+                                             <img src={user.photo} alt={user.name} className="w-12 h-12 rounded-full object-cover shrink-0 border border-slate-200" />
+                                         ) : (
+                                             <div className="w-12 h-12 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold">
+                                                 {user.name.charAt(0)}
+                                             </div>
+                                         )}
                                         <div className="min-w-0">
-                                            <div className="font-bold text-brand-950 truncate">{user.name}</div>
+                                            <div className="font-bold text-slate-950 truncate">{user.name}</div>
                                             <div className="text-xs text-slate-500 font-mono">{user.id}</div>
                                         </div>
                                     </div>
@@ -5411,25 +5424,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 )}
 
                                 <div className="space-y-2 mb-4">
-                                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                                        <Mail size={14} className="text-slate-400" />
+                                    <div className="flex items-center gap-2 text-sm text-slate-900 font-semibold">
+                                        <Mail size={14} className="text-slate-700" />
                                         {user.email}
                                     </div>
-                                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                                        <Phone size={14} className="text-slate-400" />
+                                    <div className="flex items-center gap-2 text-sm text-slate-900 font-semibold">
+                                        <Phone size={14} className="text-slate-700" />
                                         {user.phone}
                                     </div>
-                                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                                        <Award size={14} className="text-slate-400" />
-                                        {user.role}
+                                    <div className="flex items-center gap-2 text-sm text-slate-900 font-bold">
+                                        <Award size={14} className="text-slate-700" />
+                                        Role: {user.role}
                                     </div>
-                                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                                        <MapPin size={14} className="text-slate-400" />
-                                        {user.location || 'Unknown location'}
+                                    <div className="flex items-center gap-2 text-sm text-slate-900 font-semibold">
+                                        <MapPin size={14} className="text-slate-700" />
+                                        Location: {user.location || 'Unknown location'}
                                     </div>
-                                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                                        <Calendar size={14} className="text-slate-400" />
-                                        Joined {formatDateValue(user.joinedDate || user.memberSince)}
+                                    <div className="flex items-center gap-2 text-sm text-slate-900 font-semibold">
+                                        <Calendar size={14} className="text-slate-700" />
+                                        Joined: {formatDateValue(user.joinedDate || user.memberSince)}
                                     </div>
                                 </div>
 
@@ -5524,16 +5537,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         View
                                     </button>
                                     <button
-                                        onClick={(e) => { e.stopPropagation(); handleOpenQrPreview(user); }}
-                                        className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-medium text-sm hover:bg-indigo-100 transition-colors"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (user.status !== 'Active') {
+                                                alert(`Cannot generate QR Code for ${user.status} user. Approve the user first.`);
+                                                return;
+                                            }
+                                            handleOpenQrPreview(user);
+                                        }}
+                                        disabled={user.status !== 'Active'}
+                                        className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl font-medium text-sm hover:bg-indigo-100 transition-colors"
                                     >
                                         <QrCode size={16} />
                                         QR
                                     </button>
                                     <button
-                                        onClick={(e) => { e.stopPropagation(); handleDownloadUserCard(user); }}
-                                        className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-purple-50 text-purple-600 rounded-xl font-medium text-sm hover:bg-purple-100 transition-colors"
-                                        disabled={downloadingCardUserId === user.id}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (user.status !== 'Active') {
+                                                alert(`Cannot generate ID Card for ${user.status} user. Approve the user first.`);
+                                                return;
+                                            }
+                                            handleDownloadUserCard(user);
+                                        }}
+                                        className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-purple-50 text-purple-600 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl font-medium text-sm hover:bg-purple-100 transition-colors"
+                                        disabled={user.status !== 'Active' || downloadingCardUserId === user.id}
                                     >
                                         {downloadingCardUserId === user.id ? (
                                             <div className="animate-spin">⏳</div>
@@ -5542,9 +5570,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         )}
                                     </button>
                                     <button
-                                        onClick={(e) => { e.stopPropagation(); handleDownloadUserDetailsPdf(user); }}
-                                        className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-teal-50 text-teal-600 rounded-xl font-medium text-sm hover:bg-teal-100 transition-colors"
-                                        disabled={downloadingProfilePdfUserId === user.id}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (user.status !== 'Active') {
+                                                alert(`Cannot generate PDF for ${user.status} user. Approve the user first.`);
+                                                return;
+                                            }
+                                            handleDownloadUserDetailsPdf(user);
+                                        }}
+                                        className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-teal-50 text-teal-600 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl font-medium text-sm hover:bg-teal-100 transition-colors"
+                                        disabled={user.status !== 'Active' || downloadingProfilePdfUserId === user.id}
                                     >
                                         {downloadingProfilePdfUserId === user.id ? (
                                             <div className="animate-spin">⏳</div>
@@ -5553,9 +5588,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         )}
                                     </button>
                                     <button
-                                        onClick={(e) => { e.stopPropagation(); handleDownloadMemberFormPdf(user); }}
-                                        className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-amber-50 text-amber-700 rounded-xl font-medium text-sm hover:bg-amber-100 transition-colors"
-                                        disabled={downloadingMemberFormPdfUserId === user.id}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (user.status !== 'Active') {
+                                                alert(`Cannot generate Member Form PDF for ${user.status} user. Approve the user first.`);
+                                                return;
+                                            }
+                                            handleDownloadMemberFormPdf(user);
+                                        }}
+                                        className="w-full min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-amber-50 text-amber-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl font-medium text-sm hover:bg-amber-100 transition-colors"
+                                        disabled={user.status !== 'Active' || downloadingMemberFormPdfUserId === user.id}
                                     >
                                         {downloadingMemberFormPdfUserId === user.id ? (
                                             <div className="animate-spin">⏳</div>
@@ -7611,7 +7653,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <div className="bg-brand-50 rounded-2xl p-4 flex items-center justify-between">
                                     <div>
                                         <p className="text-[10px] font-black uppercase tracking-widest text-brand-700 mb-1">WhatsApp Joins</p>
-                                        <p className="text-2xl font-black text-brand-950">{mockRegistrations.length * 3 + 12}</p>
+                                        <p className="text-2xl font-black text-brand-950">{(users || []).length * 3 + 12}</p>
                                     </div>
                                     <MessageSquare size={24} className="text-brand-300" />
                                 </div>
@@ -7632,7 +7674,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <div className="bg-rose-50 rounded-2xl p-4 flex items-center justify-between">
                                     <div>
                                         <p className="text-[10px] font-black uppercase tracking-widest text-rose-700 mb-1">Total Approvals</p>
-                                        <p className="text-2xl font-black text-rose-950">{users.filter(u => u.status === 'approved').length}</p>
+                                        <p className="text-2xl font-black text-rose-950">{users.filter(u => u.status === 'Active').length}</p>
                                     </div>
                                     <UserCheck size={24} className="text-rose-300" />
                                 </div>
@@ -10362,6 +10404,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 )}
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2 col-span-1 md:col-span-2">
+                                        <label className="text-xs font-bold text-slate-500 uppercase">COT ID / User ID</label>
+                                        <input
+                                            type="text"
+                                            value={editingUser.id}
+                                            disabled={editingUser.status !== 'Active'}
+                                            onChange={(e) => setEditingUser({ ...editingUser, id: e.target.value })}
+                                            className={`w-full px-4 py-3 border rounded-xl outline-none font-mono font-bold ${editingUser.status !== 'Active' ? 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200' : 'bg-slate-50 text-brand-950 border-slate-200 focus:border-brand-500'}`}
+                                        />
+                                        {editingUser.status !== 'Active' && (
+                                            <p className="text-[10px] text-amber-700 font-bold">⚠️ Hot ID editing is restricted for unapproved/pending users. Approve user status first.</p>
+                                        )}
+                                    </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-slate-500 uppercase">Name</label>
                                         <input
@@ -12024,6 +12079,129 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     });
                 }}
             />
+
+            {/* Admin Disapproval Reason Modal */}
+            <AnimatePresence>
+                {disapprovingUserModal && (
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/65 backdrop-blur-sm p-4 overflow-y-auto">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="bg-white rounded-3xl shadow-2xl border border-red-200 max-w-lg w-full overflow-hidden"
+                        >
+                            {/* Header */}
+                            <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 p-6 text-white flex items-center justify-between shadow-md">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+                                        <XCircle size={22} className="text-white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-black text-lg">Disapprove Member</h3>
+                                        <p className="text-xs text-red-100/90 font-medium">
+                                            {disapprovingUserModal.name} · <span className="font-mono text-amber-200">{disapprovingUserModal.id}</span>
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setDisapprovingUserModal(null)}
+                                    className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white font-bold transition-all"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
+                                <div>
+                                    <label className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-2">
+                                        Select Ready-Made Reason(s) for Disapproval
+                                    </label>
+                                    <div className="space-y-2">
+                                        {[
+                                            "📋 Incomplete or invalid profile information",
+                                            "📷 Entrust/verification document is unclear or unreadable",
+                                            "🆔 Duplicate account or conflicting member details",
+                                            "📞 Incorrect phone number or contact details",
+                                            "🖼️ Profile photo does not meet quality guidelines",
+                                            "🔒 Manual ministry review required before approval"
+                                        ].map(reason => {
+                                            const isChecked = selectedDisapprovePresets.includes(reason);
+                                            return (
+                                                <div
+                                                    key={reason}
+                                                    onClick={() => {
+                                                        setSelectedDisapprovePresets(prev =>
+                                                            isChecked ? prev.filter(r => r !== reason) : [...prev, reason]
+                                                        );
+                                                    }}
+                                                    className={`flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition-all ${
+                                                        isChecked
+                                                            ? 'bg-red-50 border-red-300 ring-2 ring-red-400/30 text-red-950 font-semibold'
+                                                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                                                    }`}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isChecked}
+                                                        onChange={() => {}}
+                                                        className="mt-0.5 rounded border-red-300 text-red-600 focus:ring-red-500"
+                                                    />
+                                                    <span className="text-xs">{reason}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-2">
+                                        Additional Custom Reason / Instructions (Optional)
+                                    </label>
+                                    <textarea
+                                        rows={3}
+                                        value={customDisapproveText}
+                                        onChange={(e) => setCustomDisapproveText(e.target.value)}
+                                        placeholder="Type custom instructions or feedback for member..."
+                                        className="w-full p-3 rounded-2xl border border-slate-200 text-xs text-slate-800 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200 transition-all resize-none"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="bg-slate-50 p-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setDisapprovingUserModal(null)}
+                                    className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider hover:bg-slate-100 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        const reasonsText = selectedDisapprovePresets.length > 0
+                                            ? selectedDisapprovePresets.join('\n')
+                                            : '';
+                                        const fullReason = [
+                                            "⚠️ Account Disapproved by Admin.",
+                                            reasonsText ? `Reasons:\n${reasonsText}` : '',
+                                            customDisapproveText.trim() ? `Note: ${customDisapproveText.trim()}` : '',
+                                            "Please review your details and submit an update."
+                                        ].filter(Boolean).join('\n\n');
+
+                                        const targetUser = disapprovingUserModal;
+                                        setDisapprovingUserModal(null);
+                                        await disapproveUser(targetUser, fullReason);
+                                    }}
+                                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-red-500/30 hover:shadow-red-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                >
+                                    Disapprove & Send Reason
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
         </>
     );

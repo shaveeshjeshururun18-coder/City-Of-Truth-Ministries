@@ -50,7 +50,7 @@ const DownloadButton: React.FC<{ onClick: () => void; disabled?: boolean }> = ({
             disabled={disabled}
             className="Btn-Container"
         >
-            <span className="text">Let's go!</span>
+            <span className="text">Download Card</span>
             <span className="icon-Container">
                 <svg width="16" height="19" viewBox="0 0 16 19" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="1.61321" cy="1.61321" r="1.5" fill="black"></circle>

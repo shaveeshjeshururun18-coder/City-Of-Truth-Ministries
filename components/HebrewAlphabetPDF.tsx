@@ -148,31 +148,31 @@ export const generateHebrewAlphabetPDF = async () => {
         body: tableData,
         theme: 'grid',
         headStyles: {
-          fillColor: primaryGold as any,
-          textColor: darkBg as any,
+          fillColor: [139, 69, 19] as any,
+          textColor: [255, 255, 255] as any,
           fontStyle: 'bold',
           fontSize: 10,
           halign: 'center' as any,
           valign: 'middle' as any,
-          lineColor: primaryGold as any,
+          lineColor: [139, 69, 19] as any,
           lineWidth: 0.5
         },
         bodyStyles: {
-          textColor: lightGray as any,
-          fontSize: 9,
-          lineColor: [100, 100, 100] as any,
+          textColor: [30, 41, 59] as any,
+          fontSize: 9.5,
+          lineColor: [226, 232, 240] as any,
           lineWidth: 0.3,
-          fillColor: [20, 25, 50] as any
+          fillColor: [255, 255, 255] as any
         },
         alternateRowStyles: {
-          fillColor: [15, 20, 40] as any
+          fillColor: [248, 250, 252] as any
         },
         columnStyles: {
-          0: { halign: 'center' as any, cellWidth: 8 },
-          1: { halign: 'center' as any, fontSize: 14, textColor: primaryGold as any, cellWidth: 12 },
-          2: { halign: 'left' as any, cellWidth: 20 },
-          3: { halign: 'center' as any, fontSize: 12, textColor: primaryGold as any, cellWidth: 15 },
-          4: { halign: 'center' as any, cellWidth: 12 },
+          0: { halign: 'center' as any, cellWidth: 10 },
+          1: { halign: 'center' as any, fontSize: 14, textColor: [139, 69, 19] as any, cellWidth: 16 },
+          2: { halign: 'left' as any, cellWidth: 28, fontStyle: 'bold' },
+          3: { halign: 'center' as any, fontSize: 13, textColor: [180, 83, 9] as any, cellWidth: 20 },
+          4: { halign: 'center' as any, cellWidth: 16, fontStyle: 'bold' },
           5: { halign: 'left' as any }
         },
         didDrawPage: (data: any) => {
