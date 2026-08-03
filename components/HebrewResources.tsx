@@ -133,26 +133,338 @@ const toHebrew = (num: number): string => {
 
 // --- Calendar Constants & Data ---
 
-const BIBLICAL_FESTIVALS = [
-    { name: 'Pesach', date: '26 Mar - 25 Apr', desc: 'Passover (first of seven/eight days).', tamil: 'பஸ்கா (பெஸாக்) - விடுதலையின் பண்டிகை', icon: <Flame className="text-red-600" /> },
-    { name: 'Yom HaShoah', date: '8 Apr - 7 May', desc: 'Holocaust Remembrance Day.', tamil: 'யோம் ஹஷோவா - ஹோலோகாஸ்ட் நினைவு தினம்', icon: <Hash className="text-slate-600" /> },
-    { name: "Yom Ha'atzmaut", date: '15 Apr - 15 May', desc: 'Israel Independence Day.', tamil: 'இஸ்ரேல் சுதந்திர தினம்', icon: <Hash className="text-blue-500" /> },
-    { name: "Lag B'Omer", date: '28 Apr - 28 May', desc: 'Celebrating Jewish unity and the light of Torah.', tamil: 'லாக் பஓமர் - தோரா ஒளி பண்டிகை', icon: <Flame className="text-orange-400" /> },
-    { name: 'Yom Yerushalayim', date: '8 May - 7 Jun', desc: 'Jerusalem Day, celebrating the reunification of Jerusalem.', tamil: 'யெருசலேம் தினம் - நகர ஒருங்கிணைப்பு', icon: <Hash className="text-amber-500" /> },
-    { name: 'Shavuot', date: '15 May - 14 Jun', desc: 'Feast of Weeks, commemorating the giving of the Torah.', tamil: 'ஷாவுவோத் - வாரங்களின் பண்டிகை (தோரா வழங்கல்)', icon: <BookOpen className="text-blue-600" /> },
-    { name: 'Tzom Tammuz', date: '25 Jun - 25 Jul', desc: "Fast of Tammuz, marking the breach of Jerusalem's walls.", tamil: 'யெருசலேம் மதில் உடைப்பு நினைவு நோன்பு', icon: <Clock className="text-slate-500" /> },
-    { name: "Tisha B'Av", date: '16 Jul - 15 Aug', desc: 'Fast of the Ninth of Av, mourning the destruction of the Temples.', tamil: 'திஷா பஆவ் - ஆலயம் அழிந்த நோன்பு நாள்', icon: <Clock className="text-slate-800" /> },
-    { name: "Tu B'Av", date: '22 Jul - 21 Aug', desc: 'Jewish day of love.', tamil: 'துவ் பஆவ் - அன்பின் நாள்', icon: <Heart className="text-red-500" /> },
-    { name: 'Rosh Hashanah', date: '5 Sep - 5 Oct', desc: 'The Jewish New Year, a time of reflection and repentance.', tamil: 'ரோஷ் ஹஷானா - யூத புத்தாண்டு', icon: <Flame className="text-red-500" /> },
-    { name: 'Yom Kippur', date: '14 Sep - 14 Oct', desc: 'Day of Atonement, the holiest day of the year.', tamil: 'யோம் கிப்பூர் - பரிகார நாள் (மிக புனிதமான நாள்)', icon: <Clock className="text-slate-500" /> },
-    { name: 'Sukkot', date: '19 Sep - 19 Oct', desc: 'Feast of Tabernacles (first of seven days).', tamil: 'சுக்கோத் - கூடாரப் பண்டிகை (7 நாட்கள்)', icon: <CalendarIcon className="text-green-600" /> },
-    { name: 'Shemini Atzeret', date: '26 Sep - 26 Oct', desc: 'The Eighth Day of Assembly.', tamil: 'ஷெமினி அஸெரெத் - எட்டாம் நாள் ஆராதனை', icon: <Hash className="text-amber-600" /> },
-    { name: 'Simchat Torah', date: '27 Sep - 27 Oct', desc: 'Rejoicing in the Torah.', tamil: 'சிம்சாத் தோரா - தோரா மகிழ்ச்சி நாள்', icon: <BookOpen className="text-blue-600" /> },
-    { name: 'Hanukkah', date: '28 Nov - 27 Dec', desc: 'Festival of Lights (first of eight days).', tamil: 'ஹனுக்கா - விளக்குகளின் பண்டிகை (8 நாட்கள்)', icon: <Flame className="text-orange-500" /> },
-    { name: 'Tu Bishvat', date: '15 Jan - 13 Feb', desc: 'New Year for Trees.', tamil: 'து பிஷ்வாத் - மரங்களின் புத்தாண்டு', icon: <Sparkles className="text-green-500" /> },
-    { name: 'Purim', date: '24 Feb - 26 Mar', desc: 'Commemorating the salvation of the Jewish people in ancient Persia.', tamil: 'புரிம் - யூத மக்களின் விடுதலை கொண்டாட்டம்', icon: <Sparkles className="text-purple-500" /> },
-    { name: 'Shushan Purim', date: '25 Feb - 27 Mar', desc: 'Celebrated in walled cities like Jerusalem.', tamil: 'ஷுஷான் புரிம் - மதில் நகர புரிம்', icon: <Sparkles className="text-purple-600" /> }
+type FestivalCategory = 'Biblical Feasts' | 'National Days' | 'Modern Israel' | 'Fast Days';
+
+interface FestivalRecord {
+    id: string;
+    iconKey: 'menorah' | 'shofar' | 'torah' | 'pomegranate' | 'olive' | 'star' | 'wheat';
+    hebrewName: string;
+    englishName: string;
+    hebrewDate: string;
+    gregorianDate: string;
+    scriptureReference: string;
+    theme: string;
+    category: FestivalCategory;
+    summary: string;
+    meaning: string;
+    historicalBackground: string;
+    biblicalSignificance: string;
+    newTestamentConnection?: string;
+    gallery: string[];
+    aliases: string[];
+}
+
+const FESTIVAL_CATEGORIES: Array<FestivalCategory | 'All Festivals'> = [
+    'All Festivals',
+    'Biblical Feasts',
+    'National Days',
+    'Modern Israel',
+    'Fast Days',
 ];
+
+const FESTIVALS_DATA: FestivalRecord[] = [
+    {
+        id: 'passover',
+        iconKey: 'menorah',
+        hebrewName: 'פֶּסַח',
+        englishName: 'Passover',
+        hebrewDate: '14 Nisan',
+        gregorianDate: 'April 2, 2026',
+        scriptureReference: 'Exodus 12:1-14 · Leviticus 23:5',
+        theme: 'Freedom',
+        category: 'Biblical Feasts',
+        summary: 'Commemorates deliverance from Egypt and covenant redemption.',
+        meaning: 'God passed over homes marked by the lamb’s blood.',
+        historicalBackground: 'Israel was delivered from slavery through mighty acts and covenant signs.',
+        biblicalSignificance: 'Begins the annual cycle of appointed times in Leviticus 23.',
+        newTestamentConnection: 'Messiah is presented as our Passover Lamb (1 Corinthians 5:7).',
+        gallery: ['Passover table setting', 'Unleavened bread', 'Family remembrance meal'],
+        aliases: ['pesach', 'passover'],
+    },
+    {
+        id: 'unleavened-bread',
+        iconKey: 'wheat',
+        hebrewName: 'חַג הַמַּצּוֹת',
+        englishName: 'Unleavened Bread',
+        hebrewDate: '15–21 Nisan',
+        gregorianDate: 'April 3–9, 2026',
+        scriptureReference: 'Exodus 12:15-20 · Leviticus 23:6-8',
+        theme: 'Sanctification',
+        category: 'Biblical Feasts',
+        summary: 'Seven days of removing leaven as a sign of purity and obedience.',
+        meaning: 'A call to leave the old life behind and walk in holiness.',
+        historicalBackground: 'Israel departed quickly from Egypt without time for leavened dough.',
+        biblicalSignificance: 'Represents consecration and wholehearted devotion to God.',
+        newTestamentConnection: 'Believers are called to sincerity and truth, without the leaven of sin.',
+        gallery: ['Matzah preparation', 'Festival meal', 'Family worship evening'],
+        aliases: ['unleavened bread', 'matzot'],
+    },
+    {
+        id: 'firstfruits',
+        iconKey: 'wheat',
+        hebrewName: 'רֵאשִׁית קְצִירְכֶם',
+        englishName: 'Firstfruits',
+        hebrewDate: '16 Nisan',
+        gregorianDate: 'April 4, 2026',
+        scriptureReference: 'Leviticus 23:9-14',
+        theme: 'Hope',
+        category: 'Biblical Feasts',
+        summary: 'Offering of first harvest as gratitude and trust in God’s provision.',
+        meaning: 'Giving God the first and best before enjoying the rest.',
+        historicalBackground: 'Priests waved the sheaf before the Lord as covenant thanksgiving.',
+        biblicalSignificance: 'Declares dependence on God for present and future harvest.',
+        newTestamentConnection: 'Resurrection is described as firstfruits of those who sleep (1 Corinthians 15:20).',
+        gallery: ['First grain sheaf', 'Temple illustration', 'Harvest thanksgiving'],
+        aliases: ['firstfruits', 'bikkurim'],
+    },
+    {
+        id: 'shavuot',
+        iconKey: 'torah',
+        hebrewName: 'שָׁבוּעוֹת',
+        englishName: 'Shavuot',
+        hebrewDate: '6 Sivan',
+        gregorianDate: 'May 22, 2026',
+        scriptureReference: 'Leviticus 23:15-21 · Exodus 19',
+        theme: 'Revelation',
+        category: 'Biblical Feasts',
+        summary: 'Feast of Weeks celebrating Torah and covenant revelation.',
+        meaning: 'A festival of gratitude for Word, covenant, and harvest.',
+        historicalBackground: 'Linked to Sinai and the giving of the Torah to Israel.',
+        biblicalSignificance: 'Unites worship, gratitude, and covenant responsibility.',
+        newTestamentConnection: 'Associated with Pentecost and outpouring of the Spirit (Acts 2).',
+        gallery: ['Torah reading', 'Firstfruits basket', 'Congregational worship'],
+        aliases: ['shavuot', 'pentecost'],
+    },
+    {
+        id: 'trumpets',
+        iconKey: 'shofar',
+        hebrewName: 'יוֹם תְּרוּעָה',
+        englishName: 'Feast of Trumpets',
+        hebrewDate: '1 Tishrei',
+        gregorianDate: 'September 12, 2026',
+        scriptureReference: 'Leviticus 23:23-25',
+        theme: 'Awakening',
+        category: 'Biblical Feasts',
+        summary: 'Sacred trumpet blasts calling hearts to repentance and renewal.',
+        meaning: 'Wake up, return, and prepare before the Lord.',
+        historicalBackground: 'Marked by shofar calls and solemn assembly in Israel.',
+        biblicalSignificance: 'Begins a sacred season of reflection in the seventh month.',
+        newTestamentConnection: 'Trumpet imagery is tied to resurrection and gathering (1 Thessalonians 4:16).',
+        gallery: ['Shofar at dawn', 'Prayer gathering', 'Festival banner'],
+        aliases: ['trumpets', 'rosh hashanah', 'yom teruah'],
+    },
+    {
+        id: 'atonement',
+        iconKey: 'olive',
+        hebrewName: 'יוֹם הַכִּפּוּרִים',
+        englishName: 'Day of Atonement',
+        hebrewDate: '10 Tishrei',
+        gregorianDate: 'September 21, 2026',
+        scriptureReference: 'Leviticus 16 · Leviticus 23:26-32',
+        theme: 'Repentance',
+        category: 'Biblical Feasts',
+        summary: 'Most solemn day of fasting, repentance, and cleansing before God.',
+        meaning: 'A day of humility, confession, and restored covenant alignment.',
+        historicalBackground: 'High priest entered the Holy of Holies on behalf of the people.',
+        biblicalSignificance: 'Displays divine mercy, justice, and covenant restoration.',
+        newTestamentConnection: 'Points to perfect atonement through Messiah’s priestly work (Hebrews 9).',
+        gallery: ['Prayer and fasting', 'White garments', 'Solemn assembly'],
+        aliases: ['yom kippur', 'atonement'],
+    },
+    {
+        id: 'tabernacles',
+        iconKey: 'pomegranate',
+        hebrewName: 'סֻכּוֹת',
+        englishName: 'Tabernacles',
+        hebrewDate: '15–21 Tishrei',
+        gregorianDate: 'September 26 – October 2, 2026',
+        scriptureReference: 'Leviticus 23:33-43',
+        theme: 'Joy',
+        category: 'Biblical Feasts',
+        summary: 'Festival of booths celebrating provision, presence, and harvest joy.',
+        meaning: 'Remembering wilderness care while rejoicing in abundance.',
+        historicalBackground: 'Families dwelt in temporary shelters to remember journeying years.',
+        biblicalSignificance: 'Combines remembrance, gratitude, and celebratory worship.',
+        newTestamentConnection: 'Themes of God dwelling with His people echo strongly (John 1:14).',
+        gallery: ['Decorated sukkah', 'Harvest offering', 'Night worship'],
+        aliases: ['sukkot', 'tabernacles', 'booths'],
+    },
+    {
+        id: 'shemini-atzeret',
+        iconKey: 'star',
+        hebrewName: 'שְׁמִינִי עֲצֶרֶת',
+        englishName: 'Shemini Atzeret',
+        hebrewDate: '22 Tishrei',
+        gregorianDate: 'October 3, 2026',
+        scriptureReference: 'Leviticus 23:36',
+        theme: 'Dwelling',
+        category: 'Biblical Feasts',
+        summary: 'A sacred closing assembly after Tabernacles.',
+        meaning: 'Remain in God’s presence beyond celebration.',
+        historicalBackground: 'Observed as an intimate concluding holy convocation.',
+        biblicalSignificance: 'Invites lingering fellowship and covenant closeness.',
+        gallery: ['Closing assembly', 'Prayer service', 'Festival lights'],
+        aliases: ['shemini atzeret'],
+    },
+    {
+        id: 'simchat-torah',
+        iconKey: 'torah',
+        hebrewName: 'שִׂמְחַת תּוֹרָה',
+        englishName: 'Simchat Torah',
+        hebrewDate: '23 Tishrei',
+        gregorianDate: 'October 4, 2026',
+        scriptureReference: 'Deuteronomy 31:10-13',
+        theme: 'Joy',
+        category: 'Biblical Feasts',
+        summary: 'Rejoicing in Torah as the reading cycle concludes and restarts.',
+        meaning: 'Delight in God’s Word as life and covenant instruction.',
+        historicalBackground: 'Communities celebrate with dancing and thanksgiving around Torah scrolls.',
+        biblicalSignificance: 'Centers communal joy on revelation and obedience.',
+        gallery: ['Torah procession', 'Congregational dancing', 'Scripture celebration'],
+        aliases: ['simchat torah'],
+    },
+    {
+        id: 'hanukkah',
+        iconKey: 'menorah',
+        hebrewName: 'חֲנֻכָּה',
+        englishName: 'Hanukkah',
+        hebrewDate: '25 Kislev – 2/3 Tevet',
+        gregorianDate: 'December 5–12, 2026',
+        scriptureReference: 'John 10:22-23',
+        theme: 'Dedication',
+        category: 'National Days',
+        summary: 'Festival of Lights remembering temple rededication.',
+        meaning: 'Renewed worship, covenant loyalty, and witness of light.',
+        historicalBackground: 'Commemorates Maccabean victory and rededication of the Temple.',
+        biblicalSignificance: 'Celebrates faithfulness under pressure and restored worship.',
+        newTestamentConnection: 'Mentioned as Feast of Dedication in the New Testament.',
+        gallery: ['Hanukkiah lights', 'Family prayers', 'Temple remembrance'],
+        aliases: ['hanukkah', 'chanukah'],
+    },
+    {
+        id: 'purim',
+        iconKey: 'star',
+        hebrewName: 'פּוּרִים',
+        englishName: 'Purim',
+        hebrewDate: '14 Adar',
+        gregorianDate: 'March 3, 2027',
+        scriptureReference: 'Esther 9:20-28',
+        theme: 'Deliverance',
+        category: 'National Days',
+        summary: 'Celebrates salvation of the Jewish people in Persia.',
+        meaning: 'God’s providence preserves His covenant people.',
+        historicalBackground: 'Instituted after the events recorded in the Book of Esther.',
+        biblicalSignificance: 'Affirms hidden providence and covenant protection.',
+        gallery: ['Esther scroll', 'Community celebration', 'Gifts to the poor'],
+        aliases: ['purim'],
+    },
+    {
+        id: 'yom-hashoah',
+        iconKey: 'star',
+        hebrewName: 'יוֹם הַשּׁוֹאָה',
+        englishName: 'Yom HaShoah',
+        hebrewDate: '27 Nisan',
+        gregorianDate: 'April 15, 2026',
+        scriptureReference: 'Psalm 9:9-10',
+        theme: 'Remembrance',
+        category: 'Modern Israel',
+        summary: 'Holocaust Remembrance Day honoring survivors and victims.',
+        meaning: 'Remember, lament, and preserve testimony for generations.',
+        historicalBackground: 'Established by Israel to remember the Shoah and resistance.',
+        biblicalSignificance: 'Calls communities to justice, remembrance, and moral vigilance.',
+        gallery: ['Memorial flame', 'Name reading', 'Community prayer'],
+        aliases: ['yom hashoah', 'holocaust remembrance'],
+    },
+    {
+        id: 'yom-haatzmaut',
+        iconKey: 'star',
+        hebrewName: 'יוֹם הָעַצְמָאוּת',
+        englishName: "Yom Ha'atzmaut",
+        hebrewDate: '5 Iyar',
+        gregorianDate: 'April 23, 2026',
+        scriptureReference: 'Isaiah 66:8',
+        theme: 'Restoration',
+        category: 'Modern Israel',
+        summary: 'Israel Independence Day celebrating national restoration.',
+        meaning: 'Thanksgiving for preservation and national renewal.',
+        historicalBackground: 'Marks declaration of the modern State of Israel.',
+        biblicalSignificance: 'Seen by many as part of ongoing covenant history.',
+        gallery: ['Jerusalem skyline', 'Flag procession', 'Public thanksgiving'],
+        aliases: ['yom haatzmaut', 'israel independence'],
+    },
+    {
+        id: 'tisha-bav',
+        iconKey: 'olive',
+        hebrewName: 'תִּשְׁעָה בְּאָב',
+        englishName: "Tisha B'Av",
+        hebrewDate: '9 Av',
+        gregorianDate: 'July 24, 2026',
+        scriptureReference: 'Lamentations 1:1-4',
+        theme: 'Lament',
+        category: 'Fast Days',
+        summary: 'Major fast mourning national tragedies and temple destruction.',
+        meaning: 'A day of grief that invites repentance and renewed hope.',
+        historicalBackground: 'Associated with multiple historical calamities in Jewish memory.',
+        biblicalSignificance: 'Keeps covenant history, warning, and hope before the people.',
+        gallery: ['Lament prayer', 'Fasting assembly', 'Candles at night'],
+        aliases: ['tisha bav', 'fast of av'],
+    },
+    {
+        id: 'tu-bishvat',
+        iconKey: 'olive',
+        hebrewName: 'ט״ו בִּשְׁבָט',
+        englishName: 'Tu Bishvat',
+        hebrewDate: '15 Shevat',
+        gregorianDate: 'February 1, 2027',
+        scriptureReference: 'Deuteronomy 20:19',
+        theme: 'Harvest',
+        category: 'National Days',
+        summary: 'New Year for Trees focused on creation, stewardship, and gratitude.',
+        meaning: 'Celebrate life, growth, and the fruitfulness of the land.',
+        historicalBackground: 'Traditional day for agricultural tithes and land reflection.',
+        biblicalSignificance: 'Highlights care for creation as covenant responsibility.',
+        gallery: ['Tree planting', 'Fruit table', 'Children learning'],
+        aliases: ['tu bishvat', 'new year for trees'],
+    },
+];
+
+const FESTIVAL_THEME_COLORS: Record<string, string> = {
+    Freedom: 'bg-emerald-100 text-emerald-800',
+    Sanctification: 'bg-sky-100 text-sky-800',
+    Hope: 'bg-cyan-100 text-cyan-800',
+    Revelation: 'bg-indigo-100 text-indigo-800',
+    Awakening: 'bg-amber-100 text-amber-800',
+    Repentance: 'bg-rose-100 text-rose-800',
+    Joy: 'bg-yellow-100 text-yellow-800',
+    Dwelling: 'bg-purple-100 text-purple-800',
+    Dedication: 'bg-orange-100 text-orange-800',
+    Deliverance: 'bg-fuchsia-100 text-fuchsia-800',
+    Remembrance: 'bg-slate-100 text-slate-800',
+    Restoration: 'bg-blue-100 text-blue-800',
+    Lament: 'bg-zinc-200 text-zinc-800',
+    Harvest: 'bg-lime-100 text-lime-800',
+};
+
+const getFestivalIcon = (iconKey: FestivalRecord['iconKey'], className = 'w-5 h-5') => {
+    switch (iconKey) {
+        case 'menorah':
+            return <Flame className={className} />;
+        case 'shofar':
+            return <Mic className={className} />;
+        case 'torah':
+            return <BookOpen className={className} />;
+        case 'pomegranate':
+            return <Heart className={className} />;
+        case 'olive':
+            return <Sparkles className={className} />;
+        case 'star':
+            return <Star className={className} />;
+        case 'wheat':
+            return <Sun className={className} />;
+        default:
+            return <Hash className={className} />;
+    }
+};
 
 const HEBREW_DAYS = [
     { name: 'Yom Rishon', english: 'Sunday', hebrew: 'יוֹם רִאשׁוֹן', tamil: 'யோம் ரிஷோன் (ஞாயிறு)', psalm: 'Ps. 24' },
@@ -1747,6 +2059,72 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
 const FestivalsView: React.FC = () => {
     const exportRef = useRef<HTMLDivElement>(null);
     const [isExporting, setIsExporting] = useState(false);
+    const [searchText, setSearchText] = useState('');
+    const [activeCategory, setActiveCategory] = useState<FestivalCategory | 'All Festivals'>('All Festivals');
+    const [selectedFestivalId, setSelectedFestivalId] = useState<string | null>(FESTIVALS_DATA[0]?.id ?? null);
+    const [completedFestivalIds, setCompletedFestivalIds] = useState<string[]>([]);
+    const [isDarkTheme, setIsDarkTheme] = useState(false);
+
+    const selectedFestival = useMemo(
+        () => FESTIVALS_DATA.find(f => f.id === selectedFestivalId) ?? FESTIVALS_DATA[0],
+        [selectedFestivalId]
+    );
+
+    const completedCount = completedFestivalIds.length;
+    const allCompleted = completedCount === FESTIVALS_DATA.length;
+    const progressPercentage = Math.round((completedCount / FESTIVALS_DATA.length) * 100);
+
+    const filteredFestivals = useMemo(() => {
+        const q = searchText.trim().toLowerCase();
+        return FESTIVALS_DATA.filter(festival => {
+            const categoryMatch = activeCategory === 'All Festivals' || festival.category === activeCategory;
+            const searchMatch = !q || [
+                festival.englishName,
+                festival.hebrewName,
+                festival.theme,
+                festival.hebrewDate,
+                ...festival.aliases,
+            ].some(term => term.toLowerCase().includes(q));
+            return categoryMatch && searchMatch;
+        });
+    }, [activeCategory, searchText]);
+
+    const festivalLookup = useMemo(() => {
+        const lookup: Record<string, FestivalRecord> = {};
+        FESTIVALS_DATA.forEach(f => {
+            lookup[f.englishName.toLowerCase()] = f;
+            f.aliases.forEach(alias => {
+                lookup[alias.toLowerCase()] = f;
+            });
+        });
+        return lookup;
+    }, []);
+
+    const annualCalendarHighlights = useMemo(() => {
+        const calendar = getCalendarData5786(5786);
+        return calendar.map(month => {
+            const events: Array<{ day: number; festival: FestivalRecord; gregorianDate: string }> = [];
+            month.weeks.forEach((week: any[]) => {
+                week.forEach((day: any) => {
+                    if (!day?.day || !day?.festivals?.length) return;
+                    day.festivals.forEach((festivalName: string) => {
+                        const match = festivalLookup[festivalName.toLowerCase()];
+                        if (match) {
+                            events.push({
+                                day: day.day,
+                                festival: match,
+                                gregorianDate: day.gregorianDate || 'Varies by year',
+                            });
+                        }
+                    });
+                });
+            });
+            const uniqueEvents = events.filter((event, idx, arr) =>
+                arr.findIndex(candidate => candidate.day === event.day && candidate.festival.id === event.festival.id) === idx
+            );
+            return { monthName: month.name, events: uniqueEvents };
+        }).filter((month: { monthName: string; events: Array<{ day: number; festival: FestivalRecord; gregorianDate: string }> }) => month.events.length > 0);
+    }, [festivalLookup]);
 
     const handleDownloadPDF = async () => {
         if (!exportRef.current) return;
@@ -1769,111 +2147,307 @@ const FestivalsView: React.FC = () => {
         }
     };
 
+    const markFestivalAsCompleted = (festivalId: string) => {
+        setCompletedFestivalIds(prev => prev.includes(festivalId) ? prev : [...prev, festivalId]);
+    };
+
+    const isSelectedFestivalCompleted = !!selectedFestival && completedFestivalIds.includes(selectedFestival.id);
+
     return (
-        <div className="space-y-16">
+        <div className={`space-y-14 transition-colors duration-300 ${isDarkTheme ? 'bg-[#0b0b0b] text-white p-5 rounded-[2rem]' : ''}`}>
             {/* Hidden export card */}
             <div style={{ position: 'fixed', left: '-9999px', top: 0, zIndex: -1, pointerEvents: 'none' }}>
                 <div ref={exportRef} style={{ width: '900px', background: 'linear-gradient(135deg, #0f0c29 0%, #1a1450 50%, #0f0c29 100%)', padding: '48px', fontFamily: 'Georgia, serif', color: '#fff', borderRadius: '24px' }}>
-                    {/* Header */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', paddingBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                            <div>
-                                <div style={{ fontSize: '18px', fontWeight: 900, color: '#f0c040', textTransform: 'uppercase', letterSpacing: '0.06em' }}>City of Truth Ministries</div>
-                                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Valparai · India</div>
-                            </div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: '22px', fontWeight: 900, color: '#f0c040' }}>Divine Festivals</div>
-                            <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)' }}>தெய்வீக பண்டிகைகள்</div>
-                        </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '18px', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
+                        <div style={{ fontSize: '20px', fontWeight: 900, color: '#f0c040' }}>Hebrew Festivals</div>
+                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)' }}>Leviticus 23 Overview</div>
                     </div>
-                    {/* Grid of festivals */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-                        {BIBLICAL_FESTIVALS.map((f, i) => (
-                            <div key={i} style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '14px', padding: '14px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                <div style={{ fontSize: '13px', fontWeight: 900, color: '#f0c040', marginBottom: '4px' }}>{f.name}</div>
-                                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginBottom: '6px', letterSpacing: '0.1em' }}>{f.date}</div>
-                                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.5, marginBottom: '6px' }}>{f.desc}</div>
-                                <div style={{ fontSize: '11px', color: '#93c5fd', fontStyle: 'italic' }}>{f.tamil}</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        {FESTIVALS_DATA.map((f) => (
+                            <div key={f.id} style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '12px', padding: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                <div style={{ fontSize: '12px', fontWeight: 900, color: '#f0c040' }}>{f.englishName}</div>
+                                <div style={{ fontSize: '10px', color: '#dbeafe', margin: '4px 0' }}>{f.hebrewDate} · {f.gregorianDate}</div>
+                                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.75)' }}>{f.scriptureReference}</div>
                             </div>
                         ))}
                     </div>
-                    {/* Footer */}
-                    <div style={{ marginTop: '28px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'rgba(255,255,255,0.3)' }}>
-                        <span>© {new Date().getFullYear()} City of Truth Ministries · All rights reserved</span>
-                        <span>+91 8056125478 · city-of-truth-ministries.vercel.app</span>
+                </div>
+            </div>
+
+            {/* Hero */}
+            <div className={`relative overflow-hidden rounded-[2.5rem] border ${isDarkTheme ? 'border-amber-500/30 bg-gradient-to-br from-black via-zinc-900 to-black' : 'border-amber-100 bg-white'} p-8 md:p-10 shadow-[0_20px_60px_rgba(245,158,11,0.15)]`}>
+                <div className="absolute inset-0 pointer-events-none">
+                    {[...Array(22)].map((_, idx) => (
+                        <span
+                            key={idx}
+                            className="absolute w-1.5 h-1.5 bg-amber-300 rounded-full opacity-70 animate-pulse"
+                            style={{
+                                left: `${(idx * 17) % 100}%`,
+                                top: `${(idx * 13) % 100}%`,
+                                animationDelay: `${(idx * 0.2).toFixed(2)}s`,
+                            }}
+                        />
+                    ))}
+                </div>
+                <div className="relative z-10 grid lg:grid-cols-[1.2fr_1fr] gap-8 items-center">
+                    <div>
+                        <h3 className={`text-4xl md:text-5xl font-black tracking-tight ${isDarkTheme ? 'text-white' : 'text-brand-950'}`}>Hebrew Festivals</h3>
+                        <p className="mt-3 text-xl text-amber-500 font-bold">Discover God's Appointed Times (Leviticus 23)</p>
+                        <p className={`mt-4 text-sm leading-relaxed max-w-2xl ${isDarkTheme ? 'text-zinc-300' : 'text-slate-600'}`}>
+                            “These are My appointed festivals, the appointed festivals of the Lord, which you are to proclaim as sacred assemblies.” — Leviticus 23:2
+                        </p>
+                        <div className="mt-6 flex flex-wrap gap-3">
+                            <button
+                                onClick={handleDownloadPDF}
+                                disabled={isExporting}
+                                className="px-5 py-2.5 rounded-xl text-xs font-black tracking-widest uppercase bg-gradient-to-r from-amber-500 to-yellow-300 text-zinc-900 hover:brightness-110 transition-all shadow-lg animate-pulse"
+                            >
+                                {isExporting ? 'Exporting...' : 'Download Guide'}
+                            </button>
+                            <button
+                                onClick={() => setIsDarkTheme(prev => !prev)}
+                                className={`px-5 py-2.5 rounded-xl text-xs font-black tracking-widest uppercase border transition-all ${isDarkTheme ? 'border-amber-400 text-amber-300 hover:bg-amber-500/10' : 'border-zinc-900/10 text-zinc-700 hover:bg-zinc-100'}`}
+                            >
+                                {isDarkTheme ? 'Light Mode' : 'Dark Mode'}
+                            </button>
+                        </div>
+                    </div>
+                    <div className="relative h-[320px] flex items-center justify-center">
+                        <div className="absolute inset-0 rounded-full bg-amber-300/30 blur-[80px] animate-pulse" />
+                        <div className="relative w-full h-full max-w-sm flex items-center justify-center animate-[float_6s_ease-in-out_infinite]">
+                            <InteractiveMenorah />
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div className="relative h-[450px] flex items-center justify-center p-8 bg-white rounded-[3rem] overflow-hidden group border border-amber-100 shadow-[0_20px_50px_rgba(245,158,11,0.12)]">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-200/60 via-transparent to-transparent"></div>
-                <div className="relative z-10 w-full max-w-md h-full flex flex-col items-center justify-center">
-                    <div className="w-full h-full scale-90 origin-center">
-                        <InteractiveMenorah />
+            {/* Search + filters + progress */}
+            <div className={`rounded-[2rem] border p-5 md:p-6 ${isDarkTheme ? 'border-zinc-800 bg-zinc-900/70' : 'border-slate-100 bg-white'}`}>
+                <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
+                    <div className="relative flex-1 max-w-xl">
+                        <Search size={16} className={`absolute left-4 top-1/2 -translate-y-1/2 ${isDarkTheme ? 'text-zinc-500' : 'text-slate-400'}`} />
+                        <input
+                            value={searchText}
+                            onChange={(e) => setSearchText(e.target.value)}
+                            placeholder="Search festivals (Passover, Shavuot, Hanukkah, Purim...)"
+                            className={`w-full pl-11 pr-4 py-3 rounded-xl border text-sm font-semibold outline-none transition-colors ${isDarkTheme ? 'bg-black/40 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-amber-400' : 'bg-white border-slate-200 text-slate-700 placeholder:text-slate-400 focus:border-amber-400'}`}
+                        />
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className={`text-xs font-black uppercase tracking-widest ${isDarkTheme ? 'text-zinc-400' : 'text-slate-400'}`}>Completed</div>
+                        <div className={`text-sm font-bold ${isDarkTheme ? 'text-white' : 'text-brand-950'}`}>{completedCount} / {FESTIVALS_DATA.length} Festivals</div>
                     </div>
                 </div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-amber-300/30 rounded-full blur-[80px] animate-pulse pointer-events-none" />
-            </div>
-
-            <div className="flex items-center justify-between -mt-8 mb-12 relative z-20">
-                <div className="text-center flex-1">
-                    <h3 className="text-4xl font-serif italic text-brand-950 font-bold tracking-widest drop-shadow-sm">Divine Festivals</h3>
-                    <p className="text-amber-600 font-bold text-lg mt-1">தெய்வீக பண்டிகைகள்</p>
-                    <div className="h-1 w-24 bg-amber-500 mx-auto mt-4 rounded-full" />
+                <div className={`mt-4 h-2 rounded-full overflow-hidden ${isDarkTheme ? 'bg-zinc-800' : 'bg-slate-100'}`}>
+                    <div className="h-full bg-gradient-to-r from-amber-500 to-yellow-300 transition-all duration-500" style={{ width: `${progressPercentage}%` }} />
                 </div>
-                <button
-                    onClick={handleDownloadPDF}
-                    disabled={isExporting}
-                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-brand-900 to-brand-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:from-brand-800 hover:to-brand-600 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50"
-                >
-                    {isExporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                    Download PDF
-                </button>
+                <div className="mt-4 flex flex-wrap gap-2">
+                    {FESTIVAL_CATEGORIES.map(category => (
+                        <button
+                            key={category}
+                            onClick={() => setActiveCategory(category)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${activeCategory === category
+                                ? 'bg-amber-500 text-zinc-900 border-amber-500'
+                                : isDarkTheme
+                                    ? 'border-zinc-700 text-zinc-300 hover:border-amber-400'
+                                    : 'border-slate-200 text-slate-600 hover:border-amber-300'
+                                }`}
+                        >
+                            {category}
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {BIBLICAL_FESTIVALS.map((f, i) => (
-                    <motion.div
-                        key={i}
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.05 }}
-                        className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-[0_20px_50px_-10px_rgba(79,70,229,0.15)] hover:border-brand-200 hover:-translate-y-1 transition-all duration-300 group overflow-hidden relative cursor-pointer"
-                    >
-                        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-brand-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-brand-50 rounded-bl-full -mr-12 -mt-12 transition-transform duration-500 group-hover:scale-150 group-hover:bg-brand-100/50" />
-
-                        <div className="relative z-10">
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-transparent group-hover:text-brand-600 transition-colors duration-300 shadow-inner group-hover:shadow-lg group-hover:scale-110 transform">
-                                    {f.icon}
+            {/* Timeline + cards */}
+            <div className={`rounded-[2rem] border p-5 md:p-8 ${isDarkTheme ? 'border-zinc-800 bg-zinc-900/50' : 'border-slate-100 bg-white'}`}>
+                <div className="relative ml-5 md:ml-8 border-l-2 border-amber-300/80 pl-8 space-y-6">
+                    {filteredFestivals.map((festival, index) => (
+                        <motion.div
+                            key={festival.id}
+                            initial={{ opacity: 0, y: 18 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.35, delay: index * 0.04 }}
+                            viewport={{ once: true }}
+                            className={`relative rounded-3xl border p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(245,158,11,0.18)] ${selectedFestivalId === festival.id
+                                ? 'border-amber-400 bg-gradient-to-br from-amber-50 to-white'
+                                : isDarkTheme
+                                    ? 'border-zinc-700 bg-black/40'
+                                    : 'border-slate-100 bg-white'
+                                }`}
+                        >
+                            <span className="absolute -left-[2.2rem] top-8 w-5 h-5 rounded-full bg-amber-400 border-4 border-white shadow-lg" />
+                            <div className="flex flex-wrap items-start justify-between gap-4">
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-11 h-11 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center">
+                                            {getFestivalIcon(festival.iconKey)}
+                                        </div>
+                                        <div>
+                                            <div className={`text-lg font-black ${isDarkTheme ? 'text-white' : 'text-brand-950'}`}>{festival.englishName}</div>
+                                            <div className="text-sm text-amber-600 font-bold">{festival.hebrewName}</div>
+                                        </div>
+                                    </div>
+                                    <p className={`text-sm ${isDarkTheme ? 'text-zinc-300' : 'text-slate-600'}`}>{festival.summary}</p>
                                 </div>
-                                <span className="text-[10px] font-bold text-slate-400 group-hover:text-brand-500 uppercase tracking-widest transition-colors">{f.date}</span>
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${FESTIVAL_THEME_COLORS[festival.theme] || 'bg-slate-100 text-slate-700'}`}>
+                                    {festival.theme}
+                                </span>
                             </div>
-                            <h4 className="text-xl font-bold text-brand-950 mb-1 group-hover:text-brand-700 transition-colors">{f.name}</h4>
-                            <p className="text-sm font-bold text-blue-600 mb-3">{f.tamil}</p>
-                            <p className="text-sm text-slate-500 leading-relaxed font-light group-hover:text-slate-600">{f.desc}</p>
-                            <div className="mt-3 flex items-center gap-3">
+                            <div className={`grid md:grid-cols-3 gap-3 mt-4 text-xs ${isDarkTheme ? 'text-zinc-300' : 'text-slate-600'}`}>
+                                <div><span className="font-black text-amber-500">Hebrew Date:</span> {festival.hebrewDate}</div>
+                                <div><span className="font-black text-amber-500">Gregorian:</span> {festival.gregorianDate}</div>
+                                <div><span className="font-black text-amber-500">Scripture:</span> {festival.scriptureReference}</div>
+                            </div>
+                            <div className="mt-4 flex items-center justify-between">
+                                <span className={`text-[11px] uppercase tracking-widest font-black ${isDarkTheme ? 'text-zinc-500' : 'text-slate-400'}`}>{festival.category}</span>
                                 <button
-                                    onClick={(e) => { e.stopPropagation(); audioService.playHebrew(f.name); }}
-                                    className="flex items-center gap-1 text-[10px] text-brand-600 hover:text-brand-800 font-bold transition-colors"
-                                    title="Listen in Hebrew"
+                                    onClick={() => {
+                                        setSelectedFestivalId(festival.id);
+                                        markFestivalAsCompleted(festival.id);
+                                    }}
+                                    className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest bg-gradient-to-r from-amber-500 to-yellow-300 text-zinc-900 hover:brightness-110 transition-all"
                                 >
-                                    <Volume2 size={12} /> Listen (Hebrew)
+                                    Learn More →
                                 </button>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); audioService.playTamil(f.tamil); }}
-                                    className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 font-bold transition-colors"
-                                    title="Listen in Tamil"
-                                >
-                                    <Volume2 size={12} /> கேள் (தமிழ்)
-                                </button>
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Detail panel */}
+            {selectedFestival && (
+                <div className={`rounded-[2rem] border overflow-hidden ${isDarkTheme ? 'border-zinc-800 bg-zinc-950' : 'border-slate-100 bg-white'}`}>
+                    <div className="p-6 md:p-8 bg-gradient-to-r from-amber-500/25 via-yellow-200/20 to-transparent">
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <div>
+                                <div className={`text-[11px] uppercase tracking-widest font-black ${isDarkTheme ? 'text-zinc-400' : 'text-slate-500'}`}>Festival Detail</div>
+                                <h4 className={`text-3xl font-black mt-1 ${isDarkTheme ? 'text-white' : 'text-brand-950'}`}>{selectedFestival.englishName}</h4>
+                                <p className="text-amber-600 font-bold">{selectedFestival.hebrewName}</p>
+                            </div>
+                            <button
+                                onClick={() => markFestivalAsCompleted(selectedFestival.id)}
+                                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border transition-colors ${isSelectedFestivalCompleted ? 'bg-emerald-500 text-white border-emerald-500' : isDarkTheme ? 'border-amber-400 text-amber-300 hover:bg-amber-500/10' : 'border-amber-300 text-amber-700 hover:bg-amber-50'}`}
+                            >
+                                {isSelectedFestivalCompleted ? '✓ Completed' : 'Mark Completed'}
+                            </button>
+                        </div>
+                    </div>
+                    <div className="p-6 md:p-8 grid lg:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                            <div>
+                                <h5 className="text-sm font-black uppercase tracking-widest text-amber-500">Meaning</h5>
+                                <p className={`mt-1 text-sm leading-relaxed ${isDarkTheme ? 'text-zinc-300' : 'text-slate-700'}`}>{selectedFestival.meaning}</p>
+                            </div>
+                            <div>
+                                <h5 className="text-sm font-black uppercase tracking-widest text-amber-500">Historical Background</h5>
+                                <p className={`mt-1 text-sm leading-relaxed ${isDarkTheme ? 'text-zinc-300' : 'text-slate-700'}`}>{selectedFestival.historicalBackground}</p>
+                            </div>
+                            <div>
+                                <h5 className="text-sm font-black uppercase tracking-widest text-amber-500">Biblical Significance</h5>
+                                <p className={`mt-1 text-sm leading-relaxed ${isDarkTheme ? 'text-zinc-300' : 'text-slate-700'}`}>{selectedFestival.biblicalSignificance}</p>
+                            </div>
+                            {selectedFestival.newTestamentConnection && (
+                                <div>
+                                    <h5 className="text-sm font-black uppercase tracking-widest text-amber-500">New Testament Connection</h5>
+                                    <p className={`mt-1 text-sm leading-relaxed ${isDarkTheme ? 'text-zinc-300' : 'text-slate-700'}`}>{selectedFestival.newTestamentConnection}</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="space-y-4">
+                            <div className={`rounded-2xl border p-4 ${isDarkTheme ? 'border-zinc-800 bg-black/40' : 'border-slate-100 bg-slate-50'}`}>
+                                <h5 className="text-sm font-black uppercase tracking-widest text-amber-500">Scripture References</h5>
+                                <p className={`mt-1 text-sm font-semibold ${isDarkTheme ? 'text-zinc-300' : 'text-slate-700'}`}>{selectedFestival.scriptureReference}</p>
+                            </div>
+                            <div className={`rounded-2xl border p-4 ${isDarkTheme ? 'border-zinc-800 bg-black/40' : 'border-slate-100 bg-slate-50'}`}>
+                                <h5 className="text-sm font-black uppercase tracking-widest text-amber-500">Timeline Position</h5>
+                                <p className={`mt-1 text-sm font-semibold ${isDarkTheme ? 'text-zinc-300' : 'text-slate-700'}`}>#{FESTIVALS_DATA.findIndex(f => f.id === selectedFestival.id) + 1} in annual sequence</p>
+                            </div>
+                            <div>
+                                <h5 className="text-sm font-black uppercase tracking-widest text-amber-500 mb-2">Gallery</h5>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    {selectedFestival.gallery.map((item, idx) => (
+                                        <div key={idx} className={`rounded-xl p-3 border text-xs font-semibold ${isDarkTheme ? 'border-zinc-800 bg-zinc-900 text-zinc-300' : 'border-slate-100 bg-white text-slate-600'}`}>
+                                            <div className="h-16 rounded-lg bg-gradient-to-br from-amber-400/40 to-transparent mb-2" />
+                                            {item}
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
-                    </motion.div>
+                    </div>
+                </div>
+            )}
+
+            {/* Annual Hebrew calendar mapping */}
+            <div className={`rounded-[2rem] border p-5 md:p-7 ${isDarkTheme ? 'border-zinc-800 bg-zinc-900/50' : 'border-slate-100 bg-white'}`}>
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+                    <h4 className={`text-2xl font-black ${isDarkTheme ? 'text-white' : 'text-brand-950'}`}>Interactive Hebrew Calendar (Year 5786)</h4>
+                    <p className={`text-xs font-bold ${isDarkTheme ? 'text-zinc-400' : 'text-slate-500'}`}>Gregorian dates shift each year based on the Hebrew lunisolar cycle.</p>
+                </div>
+                <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {annualCalendarHighlights.map(month => (
+                        <div key={month.monthName} className={`rounded-2xl border p-4 ${isDarkTheme ? 'border-zinc-800 bg-black/30' : 'border-slate-100 bg-slate-50/40'}`}>
+                            <div className="text-sm font-black text-amber-500 mb-3">{month.monthName}</div>
+                            <div className="space-y-2 max-h-44 overflow-auto pr-1">
+                                {month.events.map((event, idx) => (
+                                    <button
+                                        key={`${event.festival.id}-${idx}`}
+                                        onClick={() => {
+                                            setSelectedFestivalId(event.festival.id);
+                                            markFestivalAsCompleted(event.festival.id);
+                                        }}
+                                        className={`w-full text-left text-xs rounded-lg border px-2 py-1.5 transition-colors ${isDarkTheme ? 'border-zinc-700 text-zinc-300 hover:border-amber-400' : 'border-slate-200 text-slate-700 hover:border-amber-300'}`}
+                                    >
+                                        <span className="font-black">{event.day} {month.monthName}</span> · {event.festival.englishName}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Bottom statistics */}
+            <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                {[
+                    { label: 'Festivals', value: `${FESTIVALS_DATA.length}` },
+                    { label: 'Hebrew Months', value: '12' },
+                    { label: 'Bible References', value: `${FESTIVALS_DATA.reduce((acc, festival) => acc + festival.scriptureReference.split('·').length, 0)}+` },
+                    { label: 'Reading', value: '20 min' },
+                ].map(stat => (
+                    <div key={stat.label} className={`rounded-2xl border p-5 ${isDarkTheme ? 'border-zinc-800 bg-zinc-900' : 'border-slate-100 bg-white'} hover:shadow-lg transition-shadow`}>
+                        <div className={`text-xs uppercase tracking-widest font-black ${isDarkTheme ? 'text-zinc-500' : 'text-slate-400'}`}>{stat.label}</div>
+                        <div className={`text-3xl font-black mt-1 ${isDarkTheme ? 'text-amber-300' : 'text-brand-950'}`}>{stat.value}</div>
+                    </div>
                 ))}
             </div>
+
+            {allCompleted && (
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="relative overflow-hidden rounded-2xl border border-emerald-300 bg-emerald-50 p-5 text-emerald-800"
+                >
+                    <div className="text-sm font-black uppercase tracking-widest">✔ Completed</div>
+                    <div className="text-xl font-black mt-1">{completedCount} / {FESTIVALS_DATA.length} Festivals</div>
+                    <p className="text-sm mt-1">Great work! You finished the full festival reading path.</p>
+                    <div className="absolute inset-0 pointer-events-none">
+                        {[...Array(18)].map((_, idx) => (
+                            <span
+                                key={idx}
+                                className="absolute w-2 h-2 rounded-full bg-emerald-400 animate-ping"
+                                style={{
+                                    left: `${(idx * 11) % 100}%`,
+                                    top: `${(idx * 23) % 100}%`,
+                                    animationDelay: `${idx * 0.08}s`,
+                                }}
+                            />
+                        ))}
+                    </div>
+                </motion.div>
+            )}
         </div>
     );
 };
