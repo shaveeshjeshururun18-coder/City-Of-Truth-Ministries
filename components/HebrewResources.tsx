@@ -259,14 +259,7 @@ const TORAH_PORTIONS: Record<number, string> = {
     51: 'Nitzavim', 52: 'Vayelech', 53: 'Haazinu', 54: "V'Zot HaBerachah"
 };
 
-const DAILY_PSALMS: Record<number, string> = {
-    1: 'Psalm 1', 2: 'Psalm 2', 3: 'Psalm 23', 4: 'Psalm 46', 5: 'Psalm 90',
-    6: 'Psalm 91', 7: 'Psalm 100', 8: 'Psalm 121', 9: 'Psalm 130', 10: 'Psalm 145',
-    11: 'Psalm 150', 12: 'Psalm 51', 13: 'Psalm 8', 14: 'Psalm 19', 15: 'Psalm 24',
-    16: 'Psalm 27', 17: 'Psalm 34', 18: 'Psalm 37', 19: 'Psalm 42', 20: 'Psalm 63',
-    21: 'Psalm 103', 22: 'Psalm 119', 23: 'Psalm 133', 24: 'Psalm 136', 25: 'Psalm 139',
-    26: 'Psalm 147', 27: 'Psalm 148', 28: 'Psalm 149', 29: 'Psalm 117', 30: 'Psalm 113'
-};
+const getShviiShelYom = (dayOfWeek: number) => HEBREW_DAYS[((dayOfWeek % 7) + 7) % 7] || HEBREW_DAYS[0];
 
 const HISTORICAL_NOTES: Record<string, string> = {
     "Tisha B'Av": 'Destruction of both Temples, Expulsion from Spain (1492), many national tragedies.',
@@ -1123,9 +1116,11 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                                     <p className="text-xs text-slate-400">Days to Shabbat: {daysToShabbat} days</p>
                                 </div>
                                 <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-1">
-                                    <div className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Daily Psalm Reading</div>
-                                    <div className="text-xl font-bold text-white">{DAILY_PSALMS[(selectedDay || 1) % 30 || 30]}</div>
-                                    <p className="text-xs text-slate-400">Spiritual Meditation</p>
+                                    <div className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Shvi&apos;i Shel Yom Psalm</div>
+                                    <div className="text-xl font-bold text-white">
+                                        {getShviiShelYom(currentMonthData.weeks.flat().findIndex(d => d.day === (selectedDay || 1)) % 7).psalm}
+                                    </div>
+                                    <p className="text-xs text-slate-400">Daily Psalm by weekday</p>
                                 </div>
                             </div>
                         </div>
@@ -1352,7 +1347,8 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                     const isShabbatDay = dayType === 'shabbat';
                     const torahPortionKey = selectedDay % 54 === 0 ? 54 : selectedDay % 54;
                     const torahPortion = isShabbatDay ? (TORAH_PORTIONS[torahPortionKey] || 'Bereishit') : null;
-                    const psalm = DAILY_PSALMS[selectedDay % 30 === 0 ? 30 : selectedDay % 30] || 'Psalm 23';
+                    const shviiShelYom = getShviiShelYom(dIdx);
+                    const psalm = shviiShelYom.psalm;
                     const historicalNote = dayObj?.festivals.map(f =>
                         Object.entries(HISTORICAL_NOTES).find(([k]) => f.includes(k))?.[1]
                     ).filter(Boolean)[0] || null;
@@ -1435,6 +1431,7 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                                             <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex-1 min-w-[120px]">
                                                 <p className="text-white/40 text-[9px] font-black uppercase tracking-widest mb-1">📿 Day Type</p>
                                                 <p className="text-white font-bold text-xs capitalize">{dayType === 'normal' ? 'Regular Day' : dayType.charAt(0).toUpperCase() + dayType.slice(1)}</p>
+                                                <p className="text-white/60 text-[10px] font-bold mt-1">{shviiShelYom.name} ({shviiShelYom.english})</p>
                                             </div>
                                             <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex-1 min-w-[120px]">
                                                 <p className="text-white/40 text-[9px] font-black uppercase tracking-widest mb-1">📘 Psalm of the Day</p>
