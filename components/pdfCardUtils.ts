@@ -52,3 +52,42 @@ export const addCenteredCardPage = (
     // Use 'MEDIUM' compression for balanced quality and speed
     pdfDoc.addImage(dataUrl, format, x, y, renderWidth, renderHeight, undefined, 'MEDIUM');
 };
+
+/**
+ * Draws a section label with a rectangular colored bar next to the text.
+ * @param pdf jsPDF instance
+ * @param label The text label to display
+ * @param x X coordinate
+ * @param y Y coordinate
+ * @param gold Color code/hex for the rectangular accent block
+ * @param navyDark Color code/hex for the text
+ * @param options Additional layout options to handle differences between Admin and User dashboards
+ */
+export const drawSectionLabel = (
+    pdf: jsPDF,
+    label: string,
+    x: number,
+    y: number,
+    gold: string = '#C9963A',
+    navyDark: string = '#0F1A3E',
+    options?: {
+        rectOffset?: { x: number; y: number; w: number; h: number };
+        textOffset?: { x: number; y: number; size: number };
+    }
+) => {
+    const rx = x + (options?.rectOffset?.x ?? 0);
+    const ry = y + (options?.rectOffset?.y ?? 1);
+    const rw = options?.rectOffset?.w ?? 2;
+    const rh = options?.rectOffset?.h ?? 3.8;
+
+    const tx = x + (options?.textOffset?.x ?? 5);
+    const ty = y + (options?.textOffset?.y ?? 4.0);
+    const tsize = options?.textOffset?.size ?? 7.6;
+
+    pdf.setFillColor(gold);
+    pdf.rect(rx, ry, rw, rh, 'F');
+    pdf.setTextColor(navyDark);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(tsize);
+    pdf.text(label.toUpperCase(), tx, ty);
+};
