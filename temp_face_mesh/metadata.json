@@ -1,0 +1,10 @@
+{
+  "name": "Live Selfie Capture & Face Mesh Analysis",
+  "description": "Selfie capture flow with real-time auto-alignment, card cropping, facial symmetry geometry analysis, and interactive 3D face mesh visualization.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

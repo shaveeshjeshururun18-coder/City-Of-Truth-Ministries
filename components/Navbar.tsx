@@ -116,6 +116,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
     item.href === location.pathname ||
     item.submenu?.filter(s => !s.hidden).some(s => s.href === location.pathname)
   );
+  
 
   const translateLabel = (label: string) => {
     const key = NAV_LABEL_TO_KEY[label];
@@ -158,7 +159,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
     window.location.href = `https://translate.google.com/translate?sl=auto&tl=ta&u=${encodeURIComponent(currentUrl)}`;
   };
 
-  const isTransparentNavbar = false;
+  const isTransparent = false;
 
   return (
     <>
@@ -167,32 +168,40 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
         __html: `
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
         .montserrat { font-family: 'Montserrat', sans-serif; }
+        @keyframes logo-shine {
+          0%, 58% { transform: translateX(0) rotate(12deg); opacity: 0; }
+          68% { opacity: 0.85; }
+          82%, 100% { transform: translateX(84px) rotate(12deg); opacity: 0; }
+        }
       `}} />
 
-      {/* Solid white navbar */}
+      {/* Navigation bar */}
       <nav
-        className={`fixed top-0 left-0 right-0 z-[60] flex justify-between items-center transition-all duration-300 px-4 md:px-8 montserrat py-2.5 bg-white shadow-md border-b border-slate-200/90 ${!isNavVisible ? '-translate-y-full' : 'translate-y-0'}`}
+        className={`fixed top-3 inset-x-3 md:inset-x-6 z-[60] flex items-center gap-4 transition-all duration-300 montserrat rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-[0_18px_50px_-30px_rgba(15,23,42,0.7)] ${isScrolled ? 'px-3 md:px-5 py-1.5' : 'px-4 md:px-6 py-2.5'} ${!isNavVisible ? '-translate-y-[140%]' : 'translate-y-0'}`}
         role="navigation"
         aria-label="Main navigation"
       >
         {/* LOGO STYLING */}
         <div
           id="nav-logo"
-          className="flex items-center gap-[10px] cursor-pointer"
+          className="group flex shrink-0 items-center gap-[10px] cursor-pointer"
           onClick={() => setView(ViewState.HOME)}
         >
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center">
-            <img src="/logo.png" alt="COT Logo" className="w-full h-full object-contain" />
+          <div className={`${isScrolled ? 'w-9 h-9' : 'w-10 h-10'} relative rounded-2xl flex items-center justify-center overflow-hidden transition-all duration-300`}>
+            <img src="/logo.png" alt="COT Logo" className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" />
+            <span className="absolute inset-y-0 -left-8 w-6 rotate-12 bg-white/70 blur-[2px] animate-[logo-shine_3.8s_ease-in-out_infinite]" />
           </div>
-          <div className="flex flex-col justify-center">
-              <span className="font-black text-[1.15rem] leading-[1.1] tracking-tight text-[#1e3a8a] drop-shadow-sm">City of Truth</span>
-              <span className="text-[0.65rem] font-extrabold tracking-[1px] uppercase text-blue-700">MINISTRIES</span>
+          <div className={`flex flex-col justify-center transition-all duration-300 ${isScrolled ? 'hidden sm:flex' : 'flex'}`}>
+              <span className={`font-black text-[1.05rem] sm:text-[1.15rem] leading-[1.1] tracking-tight drop-shadow-sm ${isTransparent ? 'text-yellow-50' : 'text-[#1e3a8a]'}`}>City of Truth</span>
+              <span className={`text-[0.62rem] sm:text-[0.65rem] font-extrabold tracking-[1px] uppercase ${isTransparent ? 'text-yellow-200/85' : 'text-blue-700'}`}>MINISTRIES</span>
           </div>
         </div>
 
 
         {/* MENU LINKS STYLING (Desktop Only) */}
-        <ul className="hidden xl:flex items-center gap-[2px] xl:gap-[6px] 2xl:gap-[8px] list-none">
+        <div className="hidden xl:flex flex-1 min-w-0 mx-2 overflow-x-auto hide-scrollbar relative" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <style dangerouslySetInnerHTML={{ __html: '.hide-scrollbar::-webkit-scrollbar { display: none; }' }} />
+            <ul className="flex items-center justify-start 2xl:justify-center gap-1 list-none w-max min-w-full px-2 py-1">
           {navItems.map((item, originalIndex) => {
             if (item.hidden && !isEditMode) return null;
             const isActive = item.href
@@ -223,7 +232,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                   id={item.view === 'HEBREW' || item.label === 'Hebrew' ? 'nav-hebrew-btn' : undefined}
                   data-nav-view={item.view}
                   onClick={() => openNavItem(item)}
-                  className={`text-[0.65rem] xl:text-[0.7rem] 2xl:text-[0.74rem] uppercase tracking-[0.3px] 2xl:tracking-[0.6px] px-[8px] xl:px-[12px] 2xl:px-[14px] py-1.5 2xl:py-2 rounded-[20px] transition-all duration-200 no-underline whitespace-nowrap flex items-center gap-0.5 2xl:gap-1 cursor-pointer ${
+                  className={`text-[0.62rem] 2xl:text-[0.68rem] uppercase tracking-[0.2px] px-2 2xl:px-3 py-1.5 rounded-[20px] transition-all duration-200 no-underline whitespace-nowrap flex items-center gap-0.5 cursor-pointer ${
                     isActive
                       ? 'bg-brand-50 text-brand-700 shadow-sm border border-brand-200/80 font-black'
                       : 'text-slate-700 hover:text-brand-600 hover:bg-slate-100/80 font-bold'
@@ -238,24 +247,27 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                   <AnimatePresence>
                     {desktopHoverMenu === item.label && (
                       <motion.div
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={{ opacity: 0, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        className="absolute top-full left-0 mt-2 w-48 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-100 py-3 z-50 overflow-hidden"
+                        exit={{ opacity: 0, y: 6 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute top-full left-1/2 -translate-x-1/2 pt-2 min-w-[200px] z-[70]"
                       >
-                        {item.submenu?.filter(s => !s.hidden).map((sub) => (
-                          <button
-                            key={sub.label}
-                            onClick={() => {
-                              openNavItem(sub);
-                              setDesktopHoverMenu(null);
-                            }}
-                            className="w-full text-left px-5 py-2.5 text-[9px] font-black text-slate-500 hover:bg-brand-50 hover:text-brand-600 transition-all uppercase tracking-widest flex items-center gap-2 group"
-                          >
-                            <div className="w-1 h-1 rounded-full bg-slate-200 group-hover:bg-brand-400" />
-                            {translateLabel(sub.label)}
-                          </button>
-                        ))}
+                        <div className="bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 py-2.5 overflow-hidden">
+                          {item.submenu?.filter(s => !s.hidden).map((sub) => (
+                            <button
+                              key={sub.label}
+                              onClick={() => {
+                                openNavItem(sub);
+                                setDesktopHoverMenu(null);
+                              }}
+                              className="w-full text-left px-4 py-2 text-[10px] font-bold text-slate-600 hover:bg-brand-50 hover:text-brand-600 transition-all uppercase tracking-wider flex items-center gap-2 group cursor-pointer"
+                            >
+                              <div className="w-1.5 h-1.5 rounded-full bg-slate-300 group-hover:bg-brand-500 transition-colors" />
+                              {translateLabel(sub.label)}
+                            </button>
+                          ))}
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -264,13 +276,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             );
           })}
         </ul>
+        </div>
 
         {/* RIGHT SIDE ACTIONS */}
 
-        <div className="flex items-center gap-1.5 sm:gap-2 ml-1 sm:ml-2 relative z-50">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 ml-auto relative z-50">
 
 
-          <div className={`flex items-center gap-3 sm:gap-3.5 p-1 sm:p-1.5 rounded-2xl backdrop-blur-md border transition-all duration-300 ${isTransparentNavbar ? 'bg-white/10 border-white/20' : 'bg-white/95 border-brand-200/80'}`}>
+          <div className="flex items-center gap-2 p-1 sm:p-1.5 rounded-2xl border border-brand-100 bg-white transition-all duration-300">
             {/* Profile Avatar / Register Button */}
             <div className="relative group p-[2px] rounded-2xl select-none shrink-0">
               {currentUser && (
@@ -308,11 +321,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             <button
               id="nav-hamburger-btn"
               onClick={() => setMobileMenuOpen(true)}
-              className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl cursor-pointer flex items-center justify-center transition-all duration-300 border border-blue-300/50 bg-gradient-to-r from-blue-700 via-blue-600 to-blue-800 text-white hover:from-blue-800 hover:via-blue-700 hover:to-blue-900 shadow-[0_12px_22px_-12px_rgba(37,99,235,0.75)] hover:shadow-[0_16px_26px_-12px_rgba(37,99,235,0.85)] relative z-[70] block"
+              className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl cursor-pointer flex items-center justify-center transition-all duration-300 border relative z-[70] block ${isTransparent ? 'border-yellow-200/25 bg-black/20 text-yellow-100 hover:bg-yellow-400/10' : 'border-slate-200 bg-white/80 text-slate-700 hover:text-brand-700 hover:border-brand-200 hover:bg-brand-50'} shadow-[0_12px_22px_-16px_rgba(15,23,42,0.75)]`}
               title="Open menu"
               aria-label="Open navigation menu"
             >
-              <Menu size={18} strokeWidth={2.5} className="text-white drop-shadow-lg" />
+              <Menu size={18} strokeWidth={2.5} className="drop-shadow-sm" />
             </button>
           </div>
         </div>

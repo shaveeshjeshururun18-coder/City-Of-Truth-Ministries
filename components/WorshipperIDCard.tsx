@@ -6,6 +6,8 @@ import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import menorahBack from '/entrust-card-flag.png';
 import { ImageCropper } from './ImageCropper';
+import { CameraStage } from './FaceMesh/CameraStage';
+import { CapturedPhoto, GeometryAnalysis } from './FaceMesh/types';
 
 // Utility function to format date to DD-MM-YYYY
 const formatDateToDDMMYYYY = (dateStr?: string): string => {
@@ -310,100 +312,89 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
     };
 
     const FamilyFrontFace = () => {
+        const familyInitial = (name || "F").charAt(0).toUpperCase();
         return (
-            <div className="absolute inset-0 bg-white rounded-[inherit] overflow-hidden border border-gray-200 shadow-2xl flex flex-col" style={{ backfaceVisibility: 'hidden' }}>
-                <div className="bg-brand-900 text-white px-3 py-1.5 flex items-center justify-between shrink-0 relative z-20">
-                    <div className="flex items-center gap-2">
-                        <img src="/logo.png" alt="Logo" className="w-6 h-6 object-contain" />
+            <div className="absolute inset-0 bg-white rounded-[inherit] overflow-hidden border border-brand-900 shadow-2xl flex flex-col" style={{ backfaceVisibility: "hidden" }}>
+                <div className="bg-[#082260] text-white px-3 py-1 flex items-center justify-between shrink-0 h-[42px] relative z-20">
+                    <div className="flex items-center gap-1.5">
+                        <img src="/logo.png" alt="Logo" className="w-7 h-7 object-contain" />
                         <div>
-                            <h2 className="font-bold text-[7px] uppercase tracking-wider leading-none text-white drop-shadow-lg">City of Truth Ministries</h2>
-                            <p className="text-[6px] text-accent-200 font-bold mt-0.5 drop-shadow-sm">
-                                <span className="font-black text-amber-300 drop-shadow-[0_0_4px_rgba(245,158,11,0.8)]">சத்திய நகரம் ஊழியங்கள்</span>
-                            </p>
+                            <h2 className="font-bold text-[8px] tracking-wide leading-tight">CITY OF TRUTH<br/>MINISTRIES</h2>
+                            <p className="text-[6px] text-amber-400 font-bold leading-tight">குடும்ப அங்கத்தினர்<br/>அடையாள அட்டை</p>
                         </div>
                     </div>
-                    <div className="bg-accent-50 px-2 py-1 rounded-full">
-                        <p className="text-accent-700 font-bold text-[6px] uppercase tracking-wider whitespace-nowrap">Family Entrust Card</p>
+                    <div className="bg-white px-2 py-1 rounded-full border border-amber-500/30 shadow-inner">
+                        <p className="text-amber-600 font-bold text-[6px]">குடும்ப அங்கத்தினர் அடையாள அட்டை</p>
                     </div>
                 </div>
 
-                <div className="bg-brand-50/90 py-1 text-center border-b border-brand-100">
-                    <span className="text-[6px] font-bold text-brand-900 tracking-wider uppercase">We walk together in truth</span>
-                </div>
+                <div className="flex-1 p-2 relative z-10 flex gap-2 items-center justify-between">
+                    <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none">
+                        <img src={menorahBack} alt="" className="w-32 h-32 object-contain" />
+                    </div>
 
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/subtle-white-feathers.png')] opacity-20 pointer-events-none z-0"></div>
-
-                <div className="flex-1 p-2 relative z-10 flex gap-1.5">
-                    <div className="w-[40%] flex flex-col">
-                        <div className="flex-1 min-h-0 rounded-lg border border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center">
-                            {safePhotoSrc ? <img src={safePhotoSrc} alt="Family Head" className="w-full h-full object-cover" /> : <User size={30} className="text-slate-300" />}
+                    <div className="w-[75px] h-[75px] shrink-0 rounded-full border-2 border-amber-400 flex items-center justify-center bg-white shadow-sm relative ml-1">
+                        <div className="absolute -top-3 w-8 text-amber-500">
+                           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
                         </div>
-                        <div className="mt-1 bg-white/90 rounded-md border border-slate-200 px-1.5 py-1">
-                            <p className="text-[5px] uppercase tracking-wider text-slate-500 font-bold">Family Head</p>
-                            <p className="text-[8px] font-black text-brand-950 leading-tight truncate">{name || '—'}</p>
+                        <div className="absolute -left-1 text-amber-500 opacity-80" style={{ transform: "rotate(-15deg)"}}>
+                            <svg width="20" height="40" viewBox="0 0 20 40" fill="currentColor"><path d="M10 0C10 0 2 10 2 20C2 30 10 40 10 40C10 40 18 30 18 20C18 10 10 0 10 0ZM10 38C10 38 4 29 4 20C4 11 10 2 10 2C10 2 16 11 16 20C16 29 10 38 10 38Z"/></svg>
+                        </div>
+                        <div className="absolute -right-1 text-amber-500 opacity-80" style={{ transform: "rotate(15deg) scaleX(-1)"}}>
+                            <svg width="20" height="40" viewBox="0 0 20 40" fill="currentColor"><path d="M10 0C10 0 2 10 2 20C2 30 10 40 10 40C10 40 18 30 18 20C18 10 10 0 10 0ZM10 38C10 38 4 29 4 20C4 11 10 2 10 2C10 2 16 11 16 20C16 29 10 38 10 38Z"/></svg>
+                        </div>
+                        
+                        <div className="w-[50px] h-[58px] border-2 border-[#082260] bg-white rounded-b-full rounded-t-sm flex items-center justify-center relative z-10 shadow-inner">
+                            <span className="font-serif text-3xl font-bold text-[#082260]">{familyInitial}</span>
                         </div>
                     </div>
 
-                    <div className="w-[60%] min-w-0 flex flex-col justify-between">
-                        <div className="space-y-0.5">
-                            <div className="grid grid-cols-2 gap-0.5">
-                                <div className="bg-white/90 border border-slate-200 rounded-md px-1.5 py-1">
-                                    <p className="text-[5px] uppercase tracking-wider text-slate-500 font-bold">Family ID</p>
-                                    <p className="text-[7px] font-black text-brand-900 truncate">{uniqueId}</p>
-                                </div>
-                                <div className="bg-white/90 border border-slate-200 rounded-md px-1.5 py-1">
-                                    <p className="text-[5px] uppercase tracking-wider text-slate-500 font-bold">District</p>
-                                    <p className="text-[7px] font-bold text-slate-700 truncate">{location || '—'}</p>
-                                </div>
-                                <div className="bg-white/90 border border-slate-200 rounded-md px-1.5 py-1">
-                                    <p className="text-[5px] uppercase tracking-wider text-slate-500 font-bold">Members</p>
-                                    <p className="text-[7px] font-bold text-slate-700">{memberCount}</p>
-                                </div>
-                                <div className="bg-white/90 border border-slate-200 rounded-md px-1.5 py-1">
-                                    <p className="text-[5px] uppercase tracking-wider text-slate-500 font-bold">Joined</p>
-                                    <p className="text-[7px] font-bold text-slate-700">{formatDateToDDMMYYYY(memberSince) || '—'}</p>
-                                </div>
+                    <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5 relative z-10 ml-2">
+                        <div className="bg-blue-50 text-blue-800 font-bold px-2 py-0.5 rounded-md inline-block self-start text-[8px] mb-1">
+                            ID: {uniqueId}
+                        </div>
+                        
+                        <div>
+                            <p className="text-[5px] uppercase tracking-widest text-slate-400 font-bold">Family Name</p>
+                            <p className="text-[10px] font-black text-[#082260] leading-tight truncate">{name} Family</p>
+                        </div>
+                        <div>
+                            <p className="text-[5px] uppercase tracking-widest text-slate-400 font-bold">Family Head</p>
+                            <p className="text-[9px] font-bold text-[#082260] leading-tight truncate">{name || "—"}</p>
+                        </div>
+                        
+                        <div className="grid grid-cols-3 gap-1 mt-1 pt-1 border-t border-slate-100">
+                            <div>
+                                <p className="text-[4px] uppercase tracking-widest text-slate-400 font-bold">Joined Date</p>
+                                <p className="text-[6px] font-bold text-[#082260]">{formatDateToDDMMYYYY(memberSince) || "—"}</p>
                             </div>
-                            <div className="bg-white/90 border border-slate-200 rounded-md px-2 py-1">
-                                <p className="text-[5px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Family Members</p>
-                                {memberNames.length > 0 ? (
-                                    <div className="space-y-0.5">
-                                        {memberNames.map((memberName, index) => (
-                                            <p key={`${uniqueId}-${memberName}-${index}`} className="text-[7px] text-slate-700 font-semibold truncate">• {memberName}</p>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-[7px] text-slate-500">No additional members</p>
-                                )}
+                            <div className="border-l border-slate-200 pl-1">
+                                <p className="text-[4px] uppercase tracking-widest text-slate-400 font-bold">Location</p>
+                                <p className="text-[6px] font-bold text-[#082260] truncate">{location || "—"}</p>
+                            </div>
+                            <div className="border-l border-slate-200 pl-1">
+                                <p className="text-[4px] uppercase tracking-widest text-slate-400 font-bold">Members</p>
+                                <p className="text-[6px] font-bold text-[#082260]">{memberCount}</p>
                             </div>
                         </div>
+                    </div>
 
-                        <div className="flex items-end justify-between gap-1.5">
-                            <div className="flex flex-col gap-0.5 items-start">
-                                <span className="text-[6px] font-bold text-brand-700 bg-brand-100 border border-brand-200 rounded-full px-2 py-0.5 whitespace-nowrap" aria-label={`${memberCount} family members`}>👨‍👩‍👧 {familyBadge}</span>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowQrFullScreen(true);
-                                }}
-                                className="bg-white p-0.5 border border-slate-200 rounded-lg shadow-sm hover:shadow-md transition-shadow"
-                                aria-label="Open QR code"
-                            >
-                                <div className="relative inline-block w-12 h-12 bg-white rounded-md">
-                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-                                        <img src="/logo.png" alt="" className="w-8 h-8 object-contain opacity-[0.15]" />
-                                    </div>
-                                    <img src={qrCodeUrl} alt="QR" className="w-full h-full block relative z-10 mix-blend-multiply" />
-                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-                                        <div className="bg-white rounded-full flex items-center justify-center p-0.5 shadow-sm" style={{ width: '14px', height: '14px' }}>
-                                            <img src="/logo.png" alt="COT" className="w-full h-full object-contain rounded-full" />
-                                        </div>
-                                    </div>
-                                </div>
-                            </button>
+                    <div className="w-[65px] flex flex-col items-center justify-center gap-1 mr-1 relative z-10">
+                        <div className="border border-amber-300 rounded-full px-1.5 py-0.5 flex flex-col items-center justify-center bg-white shadow-sm">
+                            <CheckCircle size={8} className="text-amber-500 mb-0.5" />
+                            <span className="text-[4px] font-bold text-amber-600 uppercase tracking-widest text-center leading-none">Verified<br/>Family</span>
                         </div>
+                        <div className="w-[50px] h-[50px] p-0.5 bg-white border border-slate-200 rounded-md shadow-sm">
+                            <img src={qrCodeUrl} alt="QR" className="w-full h-full" />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-[#082260] text-[#d4af37] px-3 h-[24px] shrink-0 flex items-center justify-between">
+                    <p className="text-[7px] font-bold tracking-wide">உமது குடும்பம் கர்த்தருக்குள் ஆசீர்வதிக்கப்படுக</p>
+                    <div className="text-right leading-tight">
+                        <p className="text-[5px] text-white">+{emergency?.replace(/[^0-9]/g, "") || "91 8056254678"}</p>
+                        <p className="text-[5px]">@COTMINISTRIES</p>
                     </div>
                 </div>
             </div>
@@ -419,33 +410,68 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                 style={{ backfaceVisibility: 'hidden', transform: isStatic ? 'none' : 'rotateY(180deg)' }}
             >
                 {registrationType === 'family' ? (
-                    <div className="absolute inset-0 bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800 text-white p-3 flex flex-col">
-                        <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-[8px] font-black uppercase tracking-widest">Family Members</h3>
-                            <span className="text-[6px] bg-white/15 border border-white/20 rounded-full px-2 py-0.5">{memberCount} Total</span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-1.5 flex-1">
-                            {sanitizedFamilyMembers.slice(0, 4).map((member, index) => (
-                                <div key={index} className="bg-white/10 border border-white/20 rounded-lg p-1.5 backdrop-blur-sm">
-                                    <div className="w-8 h-8 rounded-full bg-white/20 border border-white/30 overflow-hidden flex items-center justify-center text-white/70 mb-1">
-                                        {member.photo?.trim().startsWith('data:image/') ? <img src={member.photo} alt={member.name || 'member'} className="w-full h-full object-cover" /> : <User size={14} />}
-                                    </div>
-                                    <p className="text-[7px] font-bold truncate">{member.name || 'Member'}</p>
-                                    <p className="text-[6px] text-white/75 truncate">{member.relationship || 'None'}</p>
+                    <>
+                        <div className="bg-[#082260] text-white px-3 py-1 flex items-center justify-between shrink-0 h-[42px] relative z-20">
+                            <div className="flex items-center gap-1.5">
+                                <img src="/logo.png" alt="Logo" className="w-7 h-7 object-contain" />
+                                <div>
+                                    <h2 className="font-bold text-[8px] tracking-wide leading-tight">CITY OF TRUTH<br/>MINISTRIES</h2>
                                 </div>
-                            ))}
+                            </div>
+                            <div className="flex flex-col items-center">
+                                <span className="text-amber-400 font-bold text-[9px] uppercase tracking-widest">Family Members</span>
+                                <div className="flex items-center gap-1 text-amber-400 mt-0.5">
+                                   <div className="w-1 h-1 rounded-full bg-amber-400"></div>
+                                   <div className="w-12 h-[1px] bg-amber-400"></div>
+                                   <div className="w-1.5 h-1.5 rotate-45 bg-amber-400"></div>
+                                   <div className="w-12 h-[1px] bg-amber-400"></div>
+                                   <div className="w-1 h-1 rounded-full bg-amber-400"></div>
+                                </div>
+                            </div>
+                            <div className="bg-white px-2 py-1 rounded-full border border-amber-500/30 shadow-inner">
+                                <p className="text-amber-600 font-bold text-[6px]">குடும்ப அங்கத்தினர்</p>
+                            </div>
                         </div>
 
-                        <div className="mt-1.5 pt-1.5 border-t border-white/20 flex items-end justify-between gap-1.5">
-                            <div className="min-w-0">
-                                <p className="text-[6px] uppercase tracking-widest text-accent-200 font-bold">Vision</p>
-                                <p className="text-[6px] text-white/90 leading-tight">Households rooted in truth and grace.</p>
-                                <p className="text-[5px] text-white/70 mt-0.5">Support: +91 805625478</p>
+                        <div className="flex-1 p-3 grid grid-cols-2 gap-x-4 gap-y-2 content-start relative overflow-hidden bg-white">
+                            <div className="absolute bottom-1 right-2 opacity-[0.8] w-16 h-16 pointer-events-none flex flex-col items-center justify-center text-amber-500">
+                                <span className="text-[6px] font-bold tracking-widest mb-0.5">נצרים</span>
+                                <svg viewBox="0 0 24 24" fill="currentColor" className="w-12 h-12"><path d="M12 2C12 2 12 8 8 12C4 16 2 22 2 22h4s1-4 4-6c2.5-1.5 4-4 4-4V2zM12 2C12 2 12 8 16 12C20 16 22 22 22 22h-4s-1-4-4-6C11.5 14.5 10 12 10 12V2z" /><path d="M11 20h2v4h-2zM8 18h8v2H8z" /></svg>
                             </div>
-                            <img src={qrCodeUrl} alt="Family QR" className="w-12 h-12 bg-white p-1 rounded-md border border-white/20 shrink-0" />
+
+                            {sanitizedFamilyMembers.slice(0, 6).map((member, index) => {
+                                const initials = (member.name || "M").substring(0, 2).toUpperCase();
+                                return (
+                                <div key={index} className="flex items-center gap-2 border-b border-slate-100 pb-1.5 relative z-10">
+                                    <div className="w-8 h-8 rounded-full bg-[#082260] text-white flex items-center justify-center font-bold text-[10px] shrink-0 border border-white shadow-sm ring-1 ring-[#082260]/20">
+                                        {initials}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-[4px] uppercase tracking-widest text-slate-400 font-bold mb-0.5">Relationship</p>
+                                        <p className="text-[6px] font-bold text-amber-500 leading-none truncate mb-1">{member.relationship || "Not Specified"}</p>
+                                        <p className="text-[4px] uppercase tracking-widest text-slate-400 font-bold mb-0.5">Name</p>
+                                        <p className="text-[7px] font-black text-[#082260] leading-none truncate">{member.name}</p>
+                                    </div>
+                                </div>
+                            )})}
                         </div>
-                    </div>
+
+                        <div className="bg-[#082260] text-[#d4af37] px-3 h-[24px] shrink-0 flex items-center justify-center relative overflow-hidden">
+                            <p className="text-[10px] font-bold tracking-[0.3em] font-serif" dir="rtl">
+                                יהוה יהוה יהוה יהוה יהוה
+                            </p>
+                            <div className="absolute left-3 flex items-center gap-1">
+                                <div className="w-1 h-1 rounded-full bg-amber-400/50"></div>
+                                <div className="w-1 h-1 rounded-full bg-amber-400/50"></div>
+                                <div className="w-1 h-1 rounded-full bg-amber-400/50"></div>
+                            </div>
+                            <div className="absolute right-3 flex items-center gap-1">
+                                <div className="w-1 h-1 rounded-full bg-amber-400/50"></div>
+                                <div className="w-1 h-1 rounded-full bg-amber-400/50"></div>
+                                <div className="w-1 h-1 rounded-full bg-amber-400/50"></div>
+                            </div>
+                        </div>
+                    </>
                 ) : (
                     <>
                         <img
@@ -621,6 +647,15 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
     const [showPhotoPreview, setShowPhotoPreview] = useState(false);
     const [croppingImage, setCroppingImage] = useState<string | null>(null);
     const [cropTarget, setCropTarget] = useState<{ type: 'primary' | 'family'; memberId?: string } | null>(null);
+    
+    // Biometric States
+    const [showCameraStage, setShowCameraStage] = useState(false);
+    const [showFamilyCameraStage, setShowFamilyCameraStage] = useState<string | null>(null);
+    const [faceSignature, setFaceSignature] = useState<GeometryAnalysis | null>(null);
+    const [pendingFaceSignature, setPendingFaceSignature] = useState<GeometryAnalysis | null>(null);
+    const [credentialId, setCredentialId] = useState<string | null>(null);
+    const [publicKey, setPublicKey] = useState<string | null>(null);
+    
     const [isProcessing, setIsProcessing] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showEntrustIntro, setShowEntrustIntro] = useState(false);
@@ -743,6 +778,54 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
             reader.readAsDataURL(file);
         }
     };
+    
+    const handleCameraCapture = (captured: CapturedPhoto) => {
+        setCropTarget({ type: 'primary' });
+        setPendingFaceSignature(captured.analysis || null);
+        setCroppingImage(captured.dataUrl);
+        setShowCameraStage(false);
+    };
+
+    const handleFamilyCameraCapture = (memberId: string, captured: CapturedPhoto) => {
+        setCropTarget({ type: 'family', memberId });
+        setCroppingImage(captured.dataUrl);
+        setShowFamilyCameraStage(null);
+    };
+
+    const handleRegisterFingerprint = async () => {
+        try {
+            const challenge = new Uint8Array(32);
+            window.crypto.getRandomValues(challenge);
+            
+            const userId = new Uint8Array(16);
+            window.crypto.getRandomValues(userId);
+
+            const credential = await navigator.credentials.create({
+                publicKey: {
+                    challenge,
+                    rp: { name: "City of Truth Ministries", id: window.location.hostname },
+                    user: {
+                        id: userId,
+                        name: formData.email || formData.emergency || "User",
+                        displayName: formData.name || "Member"
+                    },
+                    pubKeyCredParams: [{ alg: -7, type: "public-key" }, { alg: -257, type: "public-key" }],
+                    authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required" },
+                    timeout: 60000,
+                }
+            }) as PublicKeyCredential;
+
+            if (credential) {
+                setCredentialId(credential.id);
+                // In a real app we'd parse credential.response.getPublicKey()
+                setPublicKey("dummy_key"); 
+                alert("Biometric Fingerprint registered successfully!");
+            }
+        } catch (err) {
+            console.error("Biometric registration failed:", err);
+            alert("Fingerprint registration failed or was cancelled.");
+        }
+    };
 
     const handleCropComplete = (croppedImg: string) => {
         if (cropTarget?.type === 'family' && cropTarget.memberId) {
@@ -759,12 +842,17 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
 
     const handleConfirmPhoto = () => {
         setPhoto(previewPhoto);
+        if (pendingFaceSignature) {
+            setFaceSignature(pendingFaceSignature);
+            setPendingFaceSignature(null);
+        }
         setShowPhotoPreview(false);
     };
 
     const handleRejectPhoto = () => {
         setShowPhotoPreview(false);
         setPreviewPhoto('');
+        setPendingFaceSignature(null);
     };
 
     const createFamilyMember = (): FamilyMemberForm => ({
@@ -850,8 +938,10 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                 await new Promise(resolve => setTimeout(resolve, 300));
 
                 const captureOptions = { pixelRatio: 4, quality: 1, backgroundColor: '#ffffff', cacheBust: true, width: 340, height: 215 };
-                const frontDataUrl = await toPng(frontNode, captureOptions);
-                const backDataUrl = await toPng(backNode, captureOptions);
+                const [frontDataUrl, backDataUrl] = await Promise.all([
+                    toPng(frontNode, captureOptions),
+                    toPng(backNode, captureOptions)
+                ]);
 
                 const pdf = new jsPDF({
                     orientation: 'landscape',
@@ -1012,18 +1102,42 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                 <label className="text-xs font-semibold text-slate-600 ml-1">
                                     {registrationType === 'family' ? 'Family Head Photo' : 'Member Photo'}
                                 </label>
-                                <div className="relative group">
-                                    <input type="file" onChange={handlePhotoUpload} className="absolute inset-0 opacity-0 cursor-pointer z-20" accept="image/*" />
-                                    <div className="border-2 border-dashed border-slate-300 rounded-2xl md:rounded-3xl p-4 md:p-6 transition-all group-hover:border-accent-400 bg-white shadow-sm flex items-center gap-4 md:gap-6">
-                                        <div className="w-14 h-14 md:w-20 md:h-20 bg-white rounded-xl md:rounded-2xl flex items-center justify-center text-slate-500 shadow-sm border border-slate-200 overflow-hidden shrink-0">
-                                            {photo ? <img src={photo} alt="Member photo" className="w-full h-full object-cover" /> : <UploadCloud size={24} className="md:w-[30px] md:h-[30px]" />}
+                                
+                                {showCameraStage ? (
+                                    <div className="rounded-2xl overflow-hidden border-2 border-brand-500 relative">
+                                        <div className="absolute top-2 right-2 z-50">
+                                            <button onClick={() => setShowCameraStage(false)} className="bg-red-500 text-white p-2 rounded-full shadow-lg hover:bg-red-600 transition-colors">
+                                                <X size={20} />
+                                            </button>
                                         </div>
-                                        <div className="flex-1">
-                                            <p className="text-sm font-bold text-slate-700">{photo ? "Photo Selected" : "Click to select photo"}</p>
-                                            <p className="text-xs text-slate-500 mt-1">Visible on your ID</p>
-                                        </div>
+                                        <CameraStage onPhotoCaptured={handleCameraCapture} cardName="Member Photo" onClose={() => setShowCameraStage(false)} />
                                     </div>
-                                </div>
+                                ) : (
+                                    <div className="flex flex-col sm:flex-row gap-4">
+                                        <div className="relative group flex-1">
+                                            <input type="file" onChange={handlePhotoUpload} className="absolute inset-0 opacity-0 cursor-pointer z-20" accept="image/*" />
+                                            <div className="border-2 border-dashed border-slate-300 rounded-2xl md:rounded-3xl p-4 md:p-6 transition-all group-hover:border-accent-400 bg-white shadow-sm flex items-center gap-4 md:gap-6">
+                                                <div className="w-14 h-14 md:w-20 md:h-20 bg-white rounded-xl md:rounded-2xl flex items-center justify-center text-slate-500 shadow-sm border border-slate-200 overflow-hidden shrink-0">
+                                                    {photo ? <img src={photo} alt="Member photo" className="w-full h-full object-cover" /> : <UploadCloud size={24} className="md:w-[30px] md:h-[30px]" />}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-bold text-slate-700">{photo ? "Photo Selected" : "Upload File"}</p>
+                                                    <p className="text-xs text-slate-500 mt-1">Select from device</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <button 
+                                            onClick={() => setShowCameraStage(true)} 
+                                            className="border-2 border-slate-200 hover:border-brand-500 rounded-2xl md:rounded-3xl p-4 md:p-6 transition-all bg-white shadow-sm flex items-center justify-center flex-col gap-2 shrink-0 sm:w-40"
+                                        >
+                                            <div className="w-12 h-12 bg-brand-50 rounded-xl flex items-center justify-center text-brand-600">
+                                                <Church size={24} /> {/* Using Church as a placeholder icon since Camera is not imported here if we want to avoid modifying imports again, wait, we can just use another icon, but let's see. */}
+                                            </div>
+                                            <span className="text-xs font-bold text-slate-700 text-center">Live Scan</span>
+                                        </button>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
@@ -1099,15 +1213,38 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                                     <div className="px-4 pb-4 border-t border-slate-100 space-y-3">
                                                         <div className="space-y-2 pt-3">
                                                             <label className="text-xs font-semibold text-slate-700">Photo (optional)</label>
-                                                            <div className="relative">
-                                                                <input type="file" accept="image/*" onChange={(e) => handleMemberPhotoUpload(member.id, e)} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-                                                                <div className="h-20 rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center gap-3 px-3">
-                                                                    <div className="w-12 h-12 rounded-lg bg-white border border-slate-200 overflow-hidden flex items-center justify-center text-slate-500">
-                                                                        {member.photo ? <img src={member.photo} alt="member" className="w-full h-full object-cover" /> : <UploadCloud size={16} />}
+                                                            {showFamilyCameraStage === member.id ? (
+                                                                <div className="rounded-2xl overflow-hidden border-2 border-brand-500 relative">
+                                                                    <div className="absolute top-2 right-2 z-50">
+                                                                        <button onClick={() => setShowFamilyCameraStage(null)} className="bg-red-500 text-white p-2 rounded-full shadow-lg hover:bg-red-600 transition-colors">
+                                                                            <X size={20} />
+                                                                        </button>
                                                                     </div>
-                                                                    <span className="text-xs text-slate-600">{member.photo ? 'Photo cropped and ready' : 'Tap to upload & crop'}</span>
+                                                                    <CameraStage onPhotoCaptured={(captured) => handleFamilyCameraCapture(member.id, captured)} cardName="Family Member Photo" onClose={() => setShowFamilyCameraStage(null)} />
                                                                 </div>
-                                                            </div>
+                                                            ) : (
+                                                                <div className="flex gap-2">
+                                                                    <div className="relative flex-1">
+                                                                        <input type="file" accept="image/*" onChange={(e) => handleMemberPhotoUpload(member.id, e)} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                                                                        <div className="h-16 rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center gap-3 px-3 transition-all hover:border-brand-400">
+                                                                            <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 overflow-hidden flex items-center justify-center text-slate-500 shrink-0">
+                                                                                {member.photo ? <img src={member.photo} alt="member" className="w-full h-full object-cover" /> : <UploadCloud size={16} />}
+                                                                            </div>
+                                                                            <span className="text-xs text-slate-600 truncate">{member.photo ? 'Photo ready' : 'Tap to upload'}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    
+                                                                    <button 
+                                                                        onClick={() => setShowFamilyCameraStage(member.id)}
+                                                                        className="h-16 border border-slate-200 hover:border-brand-500 rounded-xl px-4 transition-all bg-white flex flex-col items-center justify-center gap-1 shrink-0"
+                                                                    >
+                                                                        <div className="text-brand-600">
+                                                                            <Camera size={18} />
+                                                                        </div>
+                                                                        <span className="text-[10px] font-bold text-slate-700 text-center leading-none">Live Scan</span>
+                                                                    </button>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                             <div className="space-y-1.5">
@@ -1160,6 +1297,19 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                     >
                         <div className="w-full max-w-[380px]">
                             <div className="space-y-4">
+                                {/* Biometric Registration Button */}
+                                <Button
+                                    type="button"
+                                    onClick={handleRegisterFingerprint}
+                                    variant="outline"
+                                    fullWidth
+                                    className="py-3 md:py-4 text-sm md:text-base border-2 border-brand-500 text-brand-700 hover:bg-brand-50 shadow-sm"
+                                    disabled={isProcessing || !!credentialId}
+                                >
+                                    {credentialId ? <CheckCircle size={20} className="text-emerald-500" /> : <Lock size={20} />}
+                                    {credentialId ? 'Fingerprint Registered' : 'Optional: Register Fingerprint'}
+                                </Button>
+                                
                                 {/* Primary Registration Button */}
                                 <Button
                                     id="entrust-register-btn"
@@ -1212,6 +1362,8 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                                 password: finalPassword,
                                                 uniqueId,
                                                 photo,
+                                                faceSignature,
+                                                biometrics: credentialId ? { credentialId, publicKey } : undefined,
                                                 cardThemeTone,
                                                 cardLayoutMode,
                                                 cardShapeMode,

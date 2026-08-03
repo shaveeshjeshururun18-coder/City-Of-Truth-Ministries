@@ -7,6 +7,7 @@ import { db, messaging } from './services/firebase';
 import {
   Church,
   MapPin,
+  Calendar,
   Clock,
   ArrowRight,
   Youtube,
@@ -105,6 +106,13 @@ const MESSAGE_RECYCLE_RETENTION_DAYS = 30;
 const MESSAGE_RECYCLE_RETENTION_MS = MESSAGE_RECYCLE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 const REJECTED_ACCESS_MESSAGE = 'Your account was rejected. Dashboard access is blocked. Please contact admin.';
 const PAGE_PERMALINK_OVERRIDES_KEY = 'cot_page_permalink_overrides';
+const HERO_VERSES = [
+  { text: 'Then you will know the truth, and the truth will set you free.', ref: 'John 8:32' },
+  { text: 'The Lord is my shepherd; I shall not want.', ref: 'Psalm 23:1' },
+  { text: 'Fear not, for I am with you; be not dismayed, for I am your God.', ref: 'Isaiah 41:10' },
+  { text: 'For I know the plans I have for you, declares the Lord.', ref: 'Jeremiah 29:11' },
+];
+const REGISTRATION_CLOSES_AT = new Date('2026-08-12T23:59:59+05:30').getTime();
 
 const getPagePermalinkOverrides = (): Partial<Record<ViewState, string>> => {
   if (typeof window === 'undefined') return {};
@@ -551,6 +559,8 @@ const App: React.FC = () => {
   const [tourStepIndex, setTourStepIndex] = useState<number | null>(null);
   const [tourRect, setTourRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
   const [heroEmail, setHeroEmail] = useState('');
+  const [heroVerseIndex, setHeroVerseIndex] = useState(0);
+  const [heroNow, setHeroNow] = useState(Date.now());
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>(() => {
     try {
       const saved = localStorage.getItem('cot_contact_messages');
@@ -601,6 +611,26 @@ const App: React.FC = () => {
     { label: 'ENTRUST CARD', view: ViewState.ID_CARD },
     { label: 'CONTACT', view: ViewState.CONTACT },
   ]));
+
+  useEffect(() => {
+    const verseTimer = window.setInterval(() => {
+      setHeroVerseIndex(prev => (prev + 1) % HERO_VERSES.length);
+    }, 6000);
+    const countdownTimer = window.setInterval(() => setHeroNow(Date.now()), 1000);
+    return () => {
+      window.clearInterval(verseTimer);
+      window.clearInterval(countdownTimer);
+    };
+  }, []);
+
+  const heroVerse = HERO_VERSES[heroVerseIndex % HERO_VERSES.length];
+  const registrationRemainingMs = Math.max(0, REGISTRATION_CLOSES_AT - heroNow);
+  const countdown = {
+    days: Math.floor(registrationRemainingMs / 86400000),
+    hours: Math.floor((registrationRemainingMs % 86400000) / 3600000),
+    minutes: Math.floor((registrationRemainingMs % 3600000) / 60000),
+  };
+
   const [memberNotifications, setMemberNotifications] = useState<MemberNotification[]>(() => {
     try {
       const saved = localStorage.getItem('cot_member_notifications');
@@ -853,7 +883,7 @@ const App: React.FC = () => {
     });
   };
 
-  const handleAdminSendMessageToUsers = (targetUserIds: string[], message: string, imageUrl?: string) => {
+  const handleAdminSendMessageToUsers = (targetUserIds: string[], message: string, imageUrl?: string, kind: MemberNotification['kind'] = 'message') => {
     const trimmed = message.trim();
     if (!trimmed || targetUserIds.length === 0) return;
 
@@ -864,7 +894,7 @@ const App: React.FC = () => {
       from: 'admin',
       message: trimmed,
       createdAt,
-      kind: 'message',
+      kind,
       ctaView: ViewState.USER_DASHBOARD,
       read: false,
       ...(imageUrl ? { imageUrl } : {})
@@ -2014,6 +2044,8 @@ const App: React.FC = () => {
       memberSince: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }),
       joinedDate: new Date().toISOString().split('T')[0],
       photo: data.photo || '',
+      registrationType: data.registrationType || 'individual',
+      familyMembers: data.familyMembers || [],
       cardThemeTone: data.cardThemeTone || 'blue',
       cardLayoutMode: data.cardLayoutMode || 'classic',
       cardShapeMode: data.cardShapeMode || 'rounded',
@@ -2534,18 +2566,32 @@ const App: React.FC = () => {
                   case 'hero':
                     return (
                       <section key="hero" className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden py-8 md:py-12">
-                {/* Background with slow zoom animation */}
+                {/* Cinematic image background with subtle golden motion */}
                 <div className="absolute inset-0 z-0 overflow-hidden">
                   <motion.img
-                    src="https://images.unsplash.com/photo-1438232992991-995b7058bbb3?q=80&w=2673&auto=format&fit=crop"
-                    alt="Worship Background"
-                    className="w-full h-full object-cover"
-                    initial={{ scale: 1 }}
-                    animate={{ scale: 1.08 }}
-                    transition={{ duration: 18, ease: "linear", repeat: Infinity, repeatType: "reverse" }}
+                    className="absolute inset-0 w-full h-full object-cover scale-[1.03]"
+                    src="/assets/landing-background.png"
+                    alt="City of Truth Ministries worship background"
+                    initial={{ scale: 1.02 }}
+                    animate={{ scale: 1.07 }}
+                    transition={{ duration: 18, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }}
                   />
-                  <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(10,8,20,0.72) 0%, rgba(20,14,5,0.55) 50%, rgba(10,8,20,0.92) 100%)' }} />
+                  <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(5,4,12,0.76) 0%, rgba(20,14,5,0.7) 48%, rgba(5,4,12,0.94) 100%)' }} />
                   <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 70% 45% at 50% 42%, rgba(212,160,0,0.18) 0%, transparent 70%)' }} />
+                  <motion.div
+                    className="absolute -left-1/4 top-0 h-full w-1/2 bg-gradient-to-r from-transparent via-amber-300/10 to-transparent blur-2xl"
+                    animate={{ x: ['0%', '180%'], opacity: [0.08, 0.2, 0.08] }}
+                    transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut' }}
+                  />
+                  {[0, 1, 2, 3, 4, 5].map(i => (
+                    <motion.span
+                      key={i}
+                      className="absolute h-1.5 w-1.5 rounded-full bg-amber-200/70 shadow-[0_0_14px_rgba(251,191,36,0.85)]"
+                      style={{ left: `${14 + i * 14}%`, bottom: `${8 + (i % 3) * 16}%` }}
+                      animate={{ y: [-8, -46, -8], opacity: [0.15, 0.75, 0.15], scale: [0.8, 1.25, 0.8] }}
+                      transition={{ duration: 5 + i, repeat: Infinity, delay: i * 0.7 }}
+                    />
+                  ))}
                 </div>
 
                 <div className="relative z-10 text-center px-4 md:px-6 max-w-4xl mx-auto w-full pt-10 md:pt-16">
@@ -2554,11 +2600,15 @@ const App: React.FC = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.7 }}
-                    className="inline-flex items-center gap-2 mb-8 px-5 py-2 rounded-full border border-yellow-400/40 bg-yellow-500/10 backdrop-blur-xl"
+                    className="inline-flex flex-wrap items-center justify-center gap-2 mb-6 px-5 py-2 rounded-full border border-yellow-400/40 bg-yellow-500/10 backdrop-blur-xl"
                     style={{ boxShadow: '0 0 24px rgba(251,191,36,0.28)' }}
                   >
                     <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" style={{ boxShadow: '0 0 8px rgba(251,191,36,0.9)' }} />
                     <span className="text-yellow-200 font-semibold tracking-widest uppercase text-[11px]">✦ Registration Open ✦</span>
+                    <span className="hidden sm:inline-block h-3 w-px bg-yellow-200/30" />
+                    <span className="text-yellow-100/90 font-black tracking-widest uppercase text-[10px]">
+                      Closes in {countdown.days}d {countdown.hours}h {countdown.minutes}m
+                    </span>
                   </motion.div>
 
                   {/* Desktop Layout (md and larger) */}
@@ -2604,48 +2654,96 @@ const App: React.FC = () => {
                       transition={{ duration: 1.0 }}
                       className="flex flex-col items-center justify-center w-full"
                     >
-                      <h1 className="font-serif font-black tracking-wider flex flex-col items-center justify-center leading-normal">
-                        <span className="pure-gold-text inline-block text-4xl xs:text-5xl pt-2 pb-3 px-4 mb-1">சத்திய நகரம்</span>
-                        <span className="pure-gold-text inline-block text-5xl xs:text-6xl pt-2 pb-4 px-4 mb-2">ஊழியங்கள்</span>
+                      <h1 className="font-serif font-black tracking-wider flex flex-col items-center justify-center leading-normal w-full">
+                        <span className="pure-gold-text inline-block text-[clamp(2.15rem,13vw,3.35rem)] pt-2 pb-3 px-2 mb-1 max-w-full leading-tight">சத்திய நகரம்</span>
+                        <span className="pure-gold-text inline-block text-[clamp(2.4rem,14vw,3.65rem)] pt-2 pb-4 px-2 mb-2 max-w-full leading-tight">ஊழியங்கள்</span>
                       </h1>
                       <h2 className="text-xs font-bold tracking-[0.25em] uppercase mt-2" style={{ color: "rgba(253,230,138,0.85)" }}>City of Truth Ministries • வால்பாறை</h2>
                     </motion.div>
                   </div>
 
-                  {/* Quote */}
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 1, delay: 0.55 }}
-                    className="text-sm md:text-base max-w-md mx-auto mb-12 leading-relaxed font-light italic px-4" style={{ color: "rgba(253,230,138,0.5)" }}
-                  >
-                    "Then you will know the truth, and the truth will set you free."<br />
-                    <span className="not-italic tracking-wider text-xs" style={{ color: "rgba(251,191,36,0.4)" }}>— John 8:32</span>
-                  </motion.p>
+                  {/* Animated verse carousel */}
+                  <div className="h-24 md:h-20 mb-8 flex items-center justify-center px-4">
+                    <AnimatePresence mode="wait">
+                      <motion.p
+                        key={heroVerse.ref}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.55 }}
+                        className="text-sm md:text-base max-w-xl mx-auto leading-relaxed font-light italic"
+                        style={{ color: "rgba(253,230,138,0.68)" }}
+                      >
+                        "{heroVerse.text}"<br />
+                        <span className="not-italic tracking-wider text-xs" style={{ color: "rgba(251,191,36,0.5)" }}>— {heroVerse.ref}</span>
+                      </motion.p>
+                    </AnimatePresence>
+                  </div>
 
                    {/* Buttons */}
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.6, delay: 0.7 }}
-                    className="flex items-center justify-center gap-4 w-full max-w-xs sm:max-w-none mx-auto px-2 sm:px-0"
+                    className="flex flex-col items-center justify-center w-full px-2 sm:px-0"
                   >
-                    <Button
-                      id="tour-register-btn"
-                      onClick={() => setCurrentView(ViewState.ID_CARD)}
-                      className="flex-1 sm:flex-none sm:w-52 px-6 py-3 sm:py-4 text-[11px] sm:text-xs uppercase tracking-[0.18em] font-black border-none hover:scale-105 active:scale-95 whitespace-nowrap"
-                      style={{ background: "linear-gradient(135deg, #f59e0b 0%, #fbbf24 40%, #fde68a 65%, #d97706 100%)", color: "#3b1f00", borderRadius: "9999px", boxShadow: "0 0 0 2px rgba(251,191,36,0.4), 0 8px 28px rgba(212,160,0,0.55)", letterSpacing: "0.18em" }}
-                    >
-                      Register Now
-                    </Button>
-                    <Button
-                      id="tour-login-btn"
-                      onClick={() => navigate('/auth?view=login')}
-                      className="flex-1 sm:flex-none sm:w-52 px-6 py-3 sm:py-4 text-[11px] sm:text-xs uppercase tracking-[0.18em] font-black border-none hover:scale-105 active:scale-95 whitespace-nowrap"
-                      style={{ background: "rgba(251,191,36,0.08)", backdropFilter: "blur(10px)", border: "1px solid rgba(251,191,36,0.3)", color: "rgba(253,230,138,0.9)", borderRadius: "9999px", letterSpacing: "0.18em" }}
-                    >
-                      Login
-                    </Button>
+                    <div className="flex items-center justify-center gap-3 sm:gap-5 w-full max-w-[31rem]">
+                      <button
+                        id="tour-register-btn"
+                        type="button"
+                        onClick={() => setCurrentView(ViewState.ID_CARD)}
+                        className="group relative h-10 sm:h-11 w-36 sm:w-44 overflow-hidden border border-amber-600/70 bg-gradient-to-r from-[#8b5a0f] via-[#f6c04d] to-[#7a4707] text-[#2a1500] text-[10px] sm:text-[11px] font-black uppercase tracking-[0.14em] shadow-[0_0_18px_rgba(245,158,11,0.45),inset_0_0_16px_rgba(255,255,255,0.28)] transition-all hover:brightness-110 active:scale-95"
+                        style={{ clipPath: 'polygon(9px 0, calc(100% - 9px) 0, 100% 9px, 100% calc(100% - 9px), calc(100% - 9px) 100%, 9px 100%, 0 calc(100% - 9px), 0 9px)' }}
+                      >
+                        <span className="absolute inset-x-3 top-1 h-px bg-yellow-100/55" />
+                        <span className="relative z-10">Register Now</span>
+                        <span className="absolute inset-y-0 -left-10 w-8 rotate-12 bg-white/50 blur-sm transition-transform duration-700 group-hover:translate-x-56" />
+                      </button>
+                      <button
+                        id="tour-login-btn"
+                        type="button"
+                        onClick={() => navigate('/auth?view=login')}
+                        className="relative h-10 sm:h-11 w-36 sm:w-44 overflow-hidden border border-amber-500/55 bg-black/35 text-amber-200 text-[10px] sm:text-[11px] font-black uppercase tracking-[0.16em] shadow-[inset_0_0_18px_rgba(245,158,11,0.12)] backdrop-blur-sm transition-all hover:bg-amber-500/10 hover:border-amber-300/75 active:scale-95"
+                        style={{ clipPath: 'polygon(9px 0, calc(100% - 9px) 0, 100% 9px, 100% calc(100% - 9px), calc(100% - 9px) 100%, 9px 100%, 0 calc(100% - 9px), 0 9px)' }}
+                      >
+                        <span className="absolute inset-x-3 top-1 h-px bg-yellow-100/20" />
+                        <span className="relative z-10">Login</span>
+                      </button>
+                    </div>
+                    <div className="mt-3 flex w-full max-w-[31rem] items-center justify-center gap-2 text-amber-500/55">
+                      <span className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/45 to-amber-500/10" />
+                      <span className="relative h-4 w-20">
+                        <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rotate-45 border border-amber-400/70 bg-amber-300/20" />
+                        <span className="absolute left-[20%] top-1/2 h-px w-4 -translate-y-1/2 bg-amber-500/55" />
+                        <span className="absolute right-[20%] top-1/2 h-px w-4 -translate-y-1/2 bg-amber-500/55" />
+                      </span>
+                      <span className="h-px flex-1 bg-gradient-to-l from-transparent via-amber-500/45 to-amber-500/10" />
+                    </div>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.65, delay: 0.82 }}
+                    className="mt-7 grid grid-cols-3 gap-2 sm:gap-3 w-full max-w-xl mx-auto px-2"
+                  >
+                    {[
+                      { icon: BookOpen, label: 'Alphabet', action: () => navigate('/hebrew-alphabet') },
+                      { icon: Globe, label: 'Baruch Hashem', action: () => setCurrentView(ViewState.BARUCH_HASHEM) },
+                      { icon: UserIcon, label: 'Pastor', action: () => setCurrentView(ViewState.PASTOR) },
+                    ].map(({ icon: Icon, label, action }) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={action}
+                        className="group rounded-2xl border border-yellow-300/20 bg-black/24 px-2 py-3 backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-yellow-300/45 hover:bg-yellow-400/10 active:scale-[0.98]"
+                      >
+                        <span className="mx-auto mb-1.5 flex h-8 w-8 items-center justify-center rounded-xl bg-yellow-300/12 text-yellow-200 group-hover:bg-yellow-300/20">
+                          <Icon size={15} />
+                        </span>
+                        <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-yellow-100/85">{label}</span>
+                      </button>
+                    ))}
                   </motion.div>
 
                   {/* Quick Message Widget */}
@@ -2715,6 +2813,17 @@ const App: React.FC = () => {
                     );
                   })()}
                 </div>
+                <motion.button
+                  type="button"
+                  onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}
+                  className="absolute bottom-5 left-1/2 z-20 -translate-x-1/2 hidden sm:flex flex-col items-center gap-1 text-yellow-100/55 hover:text-yellow-100 transition-colors"
+                  animate={{ y: [0, 7, 0] }}
+                  transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+                  aria-label="Scroll to explore"
+                >
+                  <span className="text-[9px] font-black uppercase tracking-[0.25em]">Scroll to Explore</span>
+                  <ChevronRight size={18} className="rotate-90" />
+                </motion.button>
               </section>
             );
                   case 'about':
@@ -2998,9 +3107,11 @@ const App: React.FC = () => {
                   setCurrentUser(prev => prev && prev.id === user.id ? user : prev);
                   if (prevUser && prevUser.status !== user.status) {
                     if (user.status === 'Active') {
+                      setShowCelebration(true);
+                      setCelebrationMode('approval');
                       pushAdminNotification(
                         user.id,
-                        "Approved! Welcome to City of Truth Ministries. Please fill your Member Form now to complete your profile.",
+                        "🎉 Congratulations! Your account has been officially Approved! Welcome to City of Truth Ministries! 🥳✨ Please fill your Member Form now to complete your profile.",
                         'approved'
                       );
                       pushAdminNotification(

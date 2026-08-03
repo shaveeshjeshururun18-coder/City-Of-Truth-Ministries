@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { User, SubProfile, UserRole } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
 import { generateHebrewAlphabetPDF } from './HebrewAlphabetPDF';
-import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag, Copy, ExternalLink, Moon, Sun, Award } from 'lucide-react';
+import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag, Copy, ExternalLink, Moon, Sun, Award, Star, Fingerprint } from 'lucide-react';
 import { Button } from './Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TestimonialModal } from './TestimonialModal';
@@ -10,11 +10,13 @@ import { toPng, toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import JSZip from 'jszip';
 import { ImageCropper } from './ImageCropper';
+import { CameraStage } from './FaceMesh/CameraStage';
+import { CapturedPhoto } from './FaceMesh/types';
 import { PrintableHebrewCalendar } from './PrintableHebrewCalendar';
 import { PrintableReferenceGuide } from './PrintableReferenceGuide';
 import { getCalendarData5786 } from './CalendarLogic';
 import { CalendarCustomizationModal, CalendarOptions } from './CalendarCustomizationModal';
-import { addCenteredCardPage, waitForNodeImages } from './pdfCardUtils';
+import { addCenteredCardPage, waitForNodeImages, drawSectionLabel } from './pdfCardUtils';
 import { CommunityProfileForm } from './CommunityProfileForm';
 import { GuidedTour, WelcomeTourModal, useTour } from './GuidedTour';
 
@@ -53,6 +55,19 @@ const TAMIL_NADU_LOCATIONS = [
     'Pudukkottai', 'Perambalur', 'Tenkasi', 'Ranipet', 'Tirupattur', 'Mayiladuthurai', 'Valparai'
 ];
 
+const DEFAULT_DASHBOARD_BADGES = [
+    { id: 'verified-member', icon: '✓', name: 'Verified Member', color: 'from-emerald-400 via-teal-500 to-cyan-700' },
+    { id: 'prayer-warrior', icon: '🙏', name: 'Prayer Warrior', color: 'from-indigo-500 via-violet-600 to-fuchsia-700' },
+    { id: 'scripture-reader', icon: '📖', name: 'Scripture Reader', color: 'from-sky-400 via-blue-600 to-indigo-800' },
+    { id: 'volunteer-heart', icon: '♥', name: 'Volunteer Heart', color: 'from-rose-400 via-red-500 to-pink-700' },
+    { id: 'feast-participant', icon: '✦', name: 'Feast Participant', color: 'from-amber-300 via-yellow-500 to-orange-700' },
+    { id: 'worship-flame', icon: '🔥', name: 'Worship Flame', color: 'from-orange-400 via-red-500 to-rose-800' },
+    { id: 'truth-seeker', icon: '⌕', name: 'Truth Seeker', color: 'from-cyan-300 via-blue-500 to-slate-900' },
+    { id: 'faith-builder', icon: '✚', name: 'Faith Builder', color: 'from-lime-300 via-emerald-500 to-green-800' },
+    { id: 'light-bearer', icon: '☀', name: 'Light Bearer', color: 'from-yellow-200 via-amber-400 to-stone-800' },
+    { id: 'ministry-pillar', icon: '♛', name: 'Ministry Pillar', color: 'from-slate-500 via-zinc-800 to-amber-600' },
+];
+
 export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, onOpenScanner, initialProfileId, onGoToLogin, notifications = [], onSendReply, onMarkNotificationsRead, onDeleteNotification, focusSection = null, onDeleteAccount, allUsers = [] }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [showTestimonialModal, setShowTestimonialModal] = useState(false);
@@ -74,6 +89,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [qrImageUnavailable, setQrImageUnavailable] = useState(false);
     const [cardFlipped, setCardFlipped] = useState(false);
     const [showCommunityProfileForm, setShowCommunityProfileForm] = useState(false);
+    const [showProfileCameraStage, setShowProfileCameraStage] = useState(false);
     const [cropTarget, setCropTarget] = useState<{ type: 'primary' | 'linked-profile' | 'new-family-member'; profileId?: string; isNewUpload?: boolean } | null>(null);
     const [adminReply, setAdminReply] = useState('');
     const [dismissedTopNotificationId, setDismissedTopNotificationId] = useState<string | null>(null);
@@ -81,6 +97,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [showFormSubmittedBanner, setShowFormSubmittedBanner] = useState(false);
     const [isStaggeringMedal, setIsStaggeringMedal] = useState(false);
     const [showWhatsAppInviteModal, setShowWhatsAppInviteModal] = useState(false);
+    const [isRegisteringFingerprint, setIsRegisteringFingerprint] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(() => {
         try { return localStorage.getItem('cot_user_dashboard_theme') === 'dark'; } catch { return false; }
     });
@@ -197,6 +214,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         (displayProfile.communityProfile.role || '').trim() ||
         (displayProfile.communityProfile.bio || '').trim()
     ));
+    const dashboardBadges = React.useMemo(() => {
+        const userBadges = user.customBadges || [];
+        const byId = new Map([...DEFAULT_DASHBOARD_BADGES, ...userBadges].map(badge => [badge.id, badge]));
+        return Array.from(byId.values());
+    }, [user.customBadges]);
+    const visibleBadge = dashboardBadges.find(badge => badge.id === user.visibleBadgeId) || dashboardBadges[0];
+    const visibleBadgeId = user.visibleBadgeId || visibleBadge?.id;
 
     useEffect(() => {
         if (canAccessEntrustFeatures) {
@@ -389,6 +413,16 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         }
     };
 
+    const handleDashboardCameraCapture = (captured: CapturedPhoto) => {
+        setWasEditingBeforeCrop(true);
+        setCropTarget(activeProfileId === user.id
+            ? { type: 'primary', isNewUpload: true }
+            : { type: 'linked-profile', profileId: activeProfileId, isNewUpload: true });
+        setCroppingImage(captured.dataUrl);
+        setShowProfileCameraStage(false);
+        setIsEditing(false);
+    };
+
     const handleDownloadProfilePhoto = () => {
         const photoToDownload = displayProfile.photo || user.photo;
         if (!photoToDownload) {
@@ -449,8 +483,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 if (frontNode && backNode) {
                     await Promise.all([waitForNodeImages(frontNode, 1000), waitForNodeImages(backNode, 1000)]);
                     const opts = { pixelRatio: 2, quality: 0.9, backgroundColor: '#ffffff', width: 340, height: 215 };
-                    const frontDataUrl = await toPng(frontNode, opts);
-                    const backDataUrl = await toPng(backNode, opts);
+                    const [frontDataUrl, backDataUrl] = await Promise.all([
+                        toPng(frontNode, opts),
+                        toPng(backNode, opts)
+                    ]);
 
                     zip.file(`3_User_Entrust_Card_Front_${displayProfile.id}.png`, frontDataUrl.split(',')[1], { base64: true });
                     zip.file(`3_User_Entrust_Card_Back_${displayProfile.id}.png`, backDataUrl.split(',')[1], { base64: true });
@@ -544,8 +580,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         transformOrigin: 'top left'
                     }
                 };
-                const frontDataUrl = await toPng(frontNode, opts);
-                const backDataUrl = await toPng(backNode, opts);
+                const [frontDataUrl, backDataUrl] = await Promise.all([
+                    toPng(frontNode, opts),
+                    toPng(backNode, opts)
+                ]);
                 const pdf = new jsPDF({
                     orientation: 'landscape',
                     unit: 'mm',
@@ -1272,12 +1310,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             };
 
             const sectionLabel = (label: string, x: number, y: number) => {
-                pdf.setFillColor(gold);
-                pdf.rect(x, y - 1, 3, 8.5, 'F');
-                pdf.setTextColor(navyDark);
-                pdf.setFont('helvetica', 'bold');
-                pdf.setFontSize(7.6);
-                pdf.text(label.toUpperCase(), x + 6, y + 1);
+                drawSectionLabel(pdf, label, x, y, gold, navyDark, {
+                    rectOffset: { x: 0, y: -1, w: 3, h: 8.5 },
+                    textOffset: { x: 6, y: 1, size: 7.6 }
+                });
             };
 
             const fieldBox = (x: number, y: number, width: number, height: number, value = '', placeholder = '', isMultiline = false) => {
@@ -1483,6 +1519,51 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         }
     };
 
+    const handleSelectVisibleBadge = (badgeId: string) => {
+        onUpdate({ ...user, visibleBadgeId: badgeId } as User);
+        showToast('Visible dashboard badge updated.', 'success');
+    };
+
+    const handleRegisterDashboardFingerprint = async () => {
+        try {
+            setIsRegisteringFingerprint(true);
+            const challenge = new Uint8Array(32);
+            window.crypto.getRandomValues(challenge);
+            const biometricUserId = new Uint8Array(16);
+            window.crypto.getRandomValues(biometricUserId);
+
+            const credential = await navigator.credentials.create({
+                publicKey: {
+                    challenge,
+                    rp: { name: 'City of Truth Ministries', id: window.location.hostname },
+                    user: {
+                        id: biometricUserId,
+                        name: user.email || user.phone || user.id,
+                        displayName: user.name || 'COT Member',
+                    },
+                    pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
+                    authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
+                    timeout: 60000,
+                },
+            }) as PublicKeyCredential | null;
+
+            if (!credential) return;
+            onUpdate({
+                ...user,
+                biometrics: {
+                    credentialId: credential.id,
+                    publicKey: 'platform_public_key',
+                },
+            } as User);
+            showToast('Fingerprint login added to your dashboard.', 'success');
+        } catch (err) {
+            console.error('Dashboard fingerprint registration failed:', err);
+            alert('Fingerprint registration failed or was cancelled.');
+        } finally {
+            setIsRegisteringFingerprint(false);
+        }
+    };
+
     /* ─────────────────────────────────────────────── */
     return (
         <div className={`min-h-screen pt-28 pb-20 ${isDarkMode ? 'bg-slate-900 text-slate-100' : 'bg-[#f0f2f5] text-slate-900'} relative flex flex-col items-center overflow-x-hidden px-3 sm:px-5 user-dashboard-root`}>
@@ -1500,32 +1581,92 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.06] pointer-events-none z-0" />
             {topNotification && dismissedTopNotificationId !== topNotification.id && (
                 <div className="sticky top-20 z-50 w-full max-w-md lg:max-w-7xl xl:max-w-[88rem] 2xl:max-w-[95rem] mb-3">
-                    <button
-                        type="button"
-                        onClick={() => notificationsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-                        className={`w-full text-left rounded-2xl border bg-gradient-to-r ${topToneClass} shadow-lg px-4 py-3 flex items-start gap-3`}
-                    >
-                        <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                            <MessageSquare size={16} />
+                    {topNotification.kind === 'approved' ? (
+                        <div className="rounded-3xl border-2 border-amber-300/80 bg-gradient-to-r from-amber-950 via-emerald-950 to-brand-950 text-white shadow-[0_0_35px_rgba(251,191,36,0.35)] px-5 py-4 flex items-center justify-between gap-4 relative overflow-hidden">
+                            <div className="flex items-center gap-3.5 z-10">
+                                <div className="w-12 h-12 rounded-2xl bg-amber-400/20 border border-amber-300/40 text-amber-300 flex items-center justify-center text-2xl shrink-0 animate-bounce">
+                                    🎉
+                                </div>
+                                <div>
+                                    <p className="text-xs font-black uppercase tracking-widest text-amber-300 flex items-center gap-2">
+                                        <span>✨ APPROVED MEMBER NOTICE ✨</span>
+                                        <span className="text-sm">🎆 🥳 👏 ✨</span>
+                                    </p>
+                                    <p className="text-sm md:text-base font-bold text-amber-50 mt-0.5 whitespace-pre-wrap">{topNotification.message}</p>
+                                </div>
+                            </div>
+                            <span
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDismissedTopNotificationId(topNotification.id);
+                                }}
+                                className="inline-flex p-2 rounded-xl text-amber-200 hover:bg-white/10 border border-amber-300/30 cursor-pointer z-10 shrink-0"
+                                title="Dismiss notification"
+                            >
+                                <X size={16} />
+                            </span>
                         </div>
-                        <div className="min-w-0 flex-1">
-                            <p className="text-[10px] font-black uppercase tracking-wider text-slate-700">
-                                {topNotification.kind === 'approved' ? 'Approved Notification' : topNotification.kind === 'disapproved' ? 'Disapproved Notification' : topNotification.kind === 'recycle' ? 'Recycle Bin Notice' : 'New Admin Notification'}
-                            </p>
-                            <p className="text-sm font-semibold text-slate-700 whitespace-pre-wrap break-words">{topNotification.message}</p>
-                            <p className="text-[10px] text-slate-400 mt-1">Auto closes in 1 minute</p>
+                    ) : topNotification.kind === 'disapproved' ? (
+                        <div className="rounded-3xl border-2 border-red-500/80 bg-gradient-to-r from-red-950 via-rose-950 to-red-900 text-white shadow-[0_0_40px_rgba(239,68,68,0.45)] p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative overflow-hidden">
+                            <div className="flex items-start gap-4 z-10">
+                                <div className="w-12 h-12 rounded-2xl bg-red-500/20 border border-red-400/40 text-red-400 flex items-center justify-center shrink-0">
+                                    <AlertCircle size={26} />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-black uppercase tracking-widest text-red-300 flex items-center gap-2">
+                                        <span>🚨 ACCOUNT / EDIT DISAPPROVED BY ADMIN</span>
+                                    </p>
+                                    <p className="text-sm md:text-base font-medium text-red-100 mt-1 whitespace-pre-wrap leading-relaxed">{topNotification.message}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0 z-10">
+                                <button
+                                    type="button"
+                                    onClick={() => startEditing()}
+                                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-red-600/40 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                                >
+                                    ✏️ Review & Update Details
+                                </button>
+                                <span
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDismissedTopNotificationId(topNotification.id);
+                                    }}
+                                    className="p-2 rounded-xl text-red-200 hover:bg-white/10 border border-red-400/30 cursor-pointer"
+                                    title="Dismiss notification"
+                                >
+                                    <X size={16} />
+                                </span>
+                            </div>
                         </div>
-                        <span
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setDismissedTopNotificationId(topNotification.id);
-                            }}
-                            className="inline-flex p-1.5 rounded-lg text-slate-500 hover:bg-white border border-slate-200 cursor-pointer"
-                            title="Dismiss notification"
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={() => notificationsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                            className={`w-full text-left rounded-2xl border bg-gradient-to-r ${topToneClass} shadow-lg px-4 py-3 flex items-start gap-3`}
                         >
-                            <X size={14} />
-                        </span>
-                    </button>
+                            <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                                <MessageSquare size={16} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                                    {topNotification.kind === 'recycle' ? 'Recycle Bin Notice' : 'New Admin Notification'}
+                                </p>
+                                <p className="text-sm font-semibold text-slate-700 whitespace-pre-wrap break-words">{topNotification.message}</p>
+                                <p className="text-[10px] text-slate-400 mt-1">Auto closes in 1 minute</p>
+                            </div>
+                            <span
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDismissedTopNotificationId(topNotification.id);
+                                }}
+                                className="inline-flex p-1.5 rounded-lg text-slate-500 hover:bg-white border border-slate-200 cursor-pointer"
+                                title="Dismiss notification"
+                            >
+                                <X size={14} />
+                            </span>
+                        </button>
+                    )}
                 </div>
             )}
 
@@ -1564,6 +1705,27 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
             {/* Off-screen capture nodes */}
             {croppingImage && <div className="z-[100] relative"><ImageCropper imageSrc={croppingImage} onCropComplete={handleCropComplete} onCancel={() => { setCroppingImage(null); setCropTarget(null); if (wasEditingBeforeCrop) { setIsEditing(true); setWasEditingBeforeCrop(false); } }} /></div>}
+            {showProfileCameraStage && (
+                <div className="fixed inset-0 z-[95] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl p-4 w-full max-w-2xl shadow-2xl border border-brand-100">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-brand-600">Profile Photo</p>
+                                <h3 className="font-black text-xl text-brand-950">Live Scan Photo</h3>
+                            </div>
+                            <button onClick={() => setShowProfileCameraStage(false)} className="p-2 rounded-full text-red-500 hover:bg-red-50">
+                                <X size={22} />
+                            </button>
+                        </div>
+                        <div className="rounded-2xl overflow-hidden border-2 border-brand-500">
+                            <CameraStage onPhotoCaptured={handleDashboardCameraCapture} cardName="Profile Photo" onClose={() => setShowProfileCameraStage(false)} />
+                        </div>
+                        <p className="mt-3 text-xs text-slate-500 font-semibold text-center">
+                            After capture, you can crop and align the image before saving.
+                        </p>
+                    </div>
+                </div>
+            )}
             <TestimonialModal isOpen={showTestimonialModal} onClose={() => setShowTestimonialModal(false)} user={user} />
             <CommunityProfileForm
                 isOpen={showCommunityProfileForm}
@@ -1587,10 +1749,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
             <div className="fixed left-[-9999px] top-0 pointer-events-none z-0">
                 <div id="capture-front" className="bg-white inline-block w-[340px] h-[215px] overflow-hidden rounded-xl">
-                    <EntrustCard3D name={displayProfile.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={displayProfile.id} memberSince={user.joinedDate || user.memberSince} photo={displayProfile.photo} status={user.status} isStatic={true} isBackSide={false} cardThemeTone="blue" cardLayoutMode={user.cardLayoutMode} cardShapeMode={user.cardShapeMode} cardSizeMode={user.cardSizeMode} />
+                    <EntrustCard3D name={displayProfile.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={displayProfile.id} memberSince={user.joinedDate || user.memberSince} photo={displayProfile.photo} status={user.status} registrationType={user.registrationType} familyMembers={user.familyMembers || []} isStatic={true} isBackSide={false} cardThemeTone="blue" cardLayoutMode={user.cardLayoutMode} cardShapeMode={user.cardShapeMode} cardSizeMode={user.cardSizeMode} />
                 </div>
                 <div id="capture-back" className="bg-white inline-block w-[340px] h-[215px] overflow-hidden rounded-xl">
-                    <EntrustCard3D name={displayProfile.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={displayProfile.id} memberSince={user.joinedDate || user.memberSince} photo={displayProfile.photo} status={user.status} isStatic={true} isBackSide={true} cardThemeTone="blue" cardLayoutMode={user.cardLayoutMode} cardShapeMode={user.cardShapeMode} cardSizeMode={user.cardSizeMode} />
+                    <EntrustCard3D name={displayProfile.name} email={user.email} location={user.location} emergency={user.emergency} uniqueId={displayProfile.id} memberSince={user.joinedDate || user.memberSince} photo={displayProfile.photo} status={user.status} registrationType={user.registrationType} familyMembers={user.familyMembers || []} isStatic={true} isBackSide={true} cardThemeTone="blue" cardLayoutMode={user.cardLayoutMode} cardShapeMode={user.cardShapeMode} cardSizeMode={user.cardSizeMode} />
                 </div>
             </div>
             <div className="fixed left-[-10000px] top-0 pointer-events-none opacity-100 z-0">
@@ -1753,6 +1915,16 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         {displayProfile.id}
                                     </span>
                                 </div>
+                                {visibleBadge && (
+                                    <div className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full border border-white/60 bg-slate-950 px-2.5 py-1 shadow-[0_10px_22px_-14px_rgba(15,23,42,0.8)]">
+                                        <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br ${visibleBadge.color} text-[11px] font-black text-white shadow-sm`}>
+                                            {visibleBadge.icon}
+                                        </span>
+                                        <span className="truncate text-[10px] font-black uppercase tracking-wider text-amber-100">
+                                            {visibleBadge.name}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -1767,6 +1939,22 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 {isDarkMode ? <Sun size={15} className="text-yellow-400" /> : <Moon size={15} />}
                                 <span className="text-[11px]">{isDarkMode ? 'Light' : 'Dark'}</span>
                             </button>
+
+                            {!user.biometrics?.credentialId && activeProfileId === user.id && (
+                                <button
+                                    onClick={handleRegisterDashboardFingerprint}
+                                    disabled={isRegisteringFingerprint}
+                                    title="Add fingerprint login"
+                                    className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-amber-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 transition-all text-xs font-bold disabled:opacity-60"
+                                >
+                                    {isRegisteringFingerprint ? (
+                                        <span className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                        <Fingerprint size={15} />
+                                    )}
+                                    <span className="text-[11px]">Fingerprint</span>
+                                </button>
+                            )}
 
                             {/* Download Photo */}
                             <button
@@ -1852,6 +2040,52 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 ))}
                             </div>
                         )}
+                    </div>
+
+                    {/* ── VISIBLE MEMBER BADGE PICKER ── */}
+                    <div className="bg-white rounded-[24px] p-4 shadow-md border border-slate-100 relative overflow-hidden">
+                        <div className="absolute right-0 top-0 h-24 w-24 bg-gradient-to-br from-amber-200/30 to-transparent rounded-bl-[48px] pointer-events-none" />
+                        <div className="relative flex items-start justify-between gap-3 mb-3">
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-600">Custom Badge</p>
+                                <h3 className="text-sm font-black text-slate-900 mt-0.5">Choose 1 Visible Badge</h3>
+                                <p className="text-[11px] text-slate-500 mt-1">This badge appears beside your dashboard identity.</p>
+                            </div>
+                            {visibleBadge && (
+                                <div className={`shrink-0 h-12 w-12 rounded-2xl bg-gradient-to-br ${visibleBadge.color} text-white flex items-center justify-center text-xl font-black shadow-lg shadow-amber-500/20`}>
+                                    {visibleBadge.icon}
+                                </div>
+                            )}
+                        </div>
+                        <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {dashboardBadges.map((badge) => {
+                                const isSelected = visibleBadgeId === badge.id;
+                                return (
+                                    <button
+                                        key={badge.id}
+                                        type="button"
+                                        onClick={() => handleSelectVisibleBadge(badge.id)}
+                                        className={`group flex items-center gap-2.5 rounded-2xl border px-3 py-2.5 text-left transition-all active:scale-[0.98] ${
+                                            isSelected
+                                                ? 'border-amber-300 bg-amber-50 shadow-[0_12px_28px_-20px_rgba(217,119,6,0.8)]'
+                                                : 'border-slate-200 bg-slate-50 hover:border-brand-200 hover:bg-white'
+                                        }`}
+                                        aria-pressed={isSelected}
+                                    >
+                                        <span className={`h-9 w-9 rounded-xl bg-gradient-to-br ${badge.color} text-white flex items-center justify-center text-base font-black shadow-sm transition-transform group-hover:rotate-3`}>
+                                            {badge.icon}
+                                        </span>
+                                        <span className="min-w-0 flex-1">
+                                            <span className={`block truncate text-xs font-black ${isSelected ? 'text-amber-900' : 'text-slate-800'}`}>{badge.name}</span>
+                                            <span className={`block text-[9px] font-black uppercase tracking-wider ${isSelected ? 'text-amber-600' : 'text-slate-400'}`}>
+                                                {isSelected ? 'Visible Now' : 'Tap to Show'}
+                                            </span>
+                                        </span>
+                                        {isSelected && <CheckCircle size={16} className="text-amber-600 shrink-0" />}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
 
 
@@ -2861,7 +3095,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                                 <span className="text-[9px] font-black text-amber-600 uppercase tracking-wider">Proposed</span>
                                             </div>
                                         </div>
-                                        <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                                        <div className="w-full grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
                                             <button
                                                 type="button"
                                                 onClick={() => {
@@ -2893,6 +3127,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                                     }}
                                                 />
                                             </label>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowProfileCameraStage(true)}
+                                                className="flex items-center justify-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2.5 text-xs font-bold text-brand-800 hover:bg-brand-100"
+                                            >
+                                                <ScanLine size={14} /> Live Scan
+                                            </button>
                                         </div>
                                         <p className="text-slate-400 text-[10px] text-center">Your photo update will take effect after admin approval.</p>
                                     </div>
@@ -2916,7 +3157,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             )}
                                         </div>
                                     </div>
-                                    <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="w-full grid grid-cols-1 sm:grid-cols-3 gap-3">
                                         <button
                                             type="button"
                                             onClick={() => {
@@ -2948,6 +3189,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                                 }}
                                             />
                                         </label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowProfileCameraStage(true)}
+                                            className="flex items-center justify-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-xs font-bold text-brand-800 hover:bg-brand-100"
+                                        >
+                                            <ScanLine size={14} /> Live Scan
+                                        </button>
                                     </div>
                                     <p className="text-slate-400 text-xs text-center">All photo and profile changes are sent to admin for approval.</p>
                                 </div>

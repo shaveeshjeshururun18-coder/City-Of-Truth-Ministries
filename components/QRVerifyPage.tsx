@@ -71,8 +71,10 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack, onPr
                 return;
             }
             const opts = { pixelRatio: 3, quality: 1, backgroundColor: '#ffffff', cacheBust: true };
-            const frontDataUrl = await toPng(frontNode, opts);
-            const backDataUrl = await toPng(backNode, opts);
+            const [frontDataUrl, backDataUrl] = await Promise.all([
+                toPng(frontNode, opts),
+                toPng(backNode, opts)
+            ]);
             const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
             addCenteredCardPage(pdf, frontDataUrl, 'PNG', true);
             addCenteredCardPage(pdf, backDataUrl, 'PNG', false);

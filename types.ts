@@ -102,6 +102,15 @@ export interface User {
     sendAnnouncements?: boolean;
     manageContactLists?: boolean;
   };
+  faceSignature?: Record<string, any>;
+  biometrics?: {
+    credentialId: string;
+    publicKey: string;
+  };
+  registrationType?: 'individual' | 'family';
+  familyMembers?: { id: string; name: string; relationship: string; photo?: string; isExpanded?: boolean }[];
+  customBadges?: { id: string; icon: string; name: string; color: string }[];
+  visibleBadgeId?: string;
 }
 
 export interface DeletedUser extends User {

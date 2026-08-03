@@ -1,187 +1,300 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
-    getCommunicationPermissions,
-    updateCommunicationPermissions,
-    checkPermission,
-    getAllPermissions,
-    hasAnyCommunicationPermission,
-    grantPermission,
-    revokePermission
+  getCommunicationPermissions,
+  updateCommunicationPermissions,
+  checkPermission,
+  getAllPermissions,
+  hasAnyCommunicationPermission,
+  grantPermission,
+  revokePermission
 } from './permissionService';
+import { doc, getDoc, setDoc, updateDoc, collection, getDocs } from 'firebase/firestore';
 
-// Mock Firebase
+// Mock Firebase db
 vi.mock('./firebase', () => ({
-    db: {}
+  db: {}
 }));
 
-const mockDb: Record<string, any> = {};
-
+// Mock firebase/firestore
 vi.mock('firebase/firestore', () => ({
-    collection: vi.fn(),
-    doc: vi.fn((_db, _col, id) => ({ id })),
-    getDoc: vi.fn(async (docRef) => {
-        const id = docRef.id;
-        if (mockDb[id]) {
-            return {
-                id,
-                exists: () => true,
-                data: () => mockDb[id]
-            };
-        }
-        return {
-            id,
-            exists: () => false,
-            data: () => null
-        };
-    }),
-    getDocs: vi.fn(async () => {
-        return {
-            docs: Object.entries(mockDb).map(([id, data]) => ({
-                id,
-                data: () => data
-            }))
-        };
-    }),
-    setDoc: vi.fn(async (docRef, data) => {
-        mockDb[docRef.id] = data;
-    }),
-    updateDoc: vi.fn(async (docRef, data) => {
-        if (mockDb[docRef.id]) {
-            mockDb[docRef.id] = {
-                ...mockDb[docRef.id],
-                ...data
-            };
-        }
-    }),
-    serverTimestamp: vi.fn(() => new Date().toISOString())
+  collection: vi.fn(),
+  doc: vi.fn(),
+  getDoc: vi.fn(),
+  getDocs: vi.fn(),
+  setDoc: vi.fn(),
+  updateDoc: vi.fn(),
+  serverTimestamp: vi.fn()
 }));
 
 describe('Permission Service Tests', () => {
-    beforeEach(() => {
-        // Clear mock database before each test
-        for (const key in mockDb) {
-            delete mockDb[key];
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  describe('getCommunicationPermissions', () => {
+    it('should return null when the permission document does not exist', async () => {
+      vi.mocked(getDoc).mockResolvedValueOnce({
+        exists: () => false
+      } as any);
+
+      const result = await getCommunicationPermissions('user-1');
+      expect(result).toBeNull();
+      expect(getDoc).toHaveBeenCalled();
+    });
+
+    it('should return permission details when the permission document exists', async () => {
+      const mockData = {
+        userId: 'user-1',
+        permissions: {
+          createAnnouncements: true,
+          sendAnnouncements: false,
+          manageContactLists: true
+        },
+        grantedBy: 'admin-1',
+        grantedAt: '2023-01-01T00:00:00.000Z',
+        updatedAt: '2023-01-01T00:00:00.000Z'
+      };
+
+      vi.mocked(getDoc).mockResolvedValueOnce({
+        exists: () => true,
+        id: 'user-1',
+        data: () => mockData
+      } as any);
+
+      const result = await getCommunicationPermissions('user-1');
+      expect(result).toEqual({
+        id: 'user-1',
+        ...mockData
+      });
+    });
+  });
+
+  describe('updateCommunicationPermissions', () => {
+    it('should create a new permission document if it does not already exist', async () => {
+      // getDoc returns non-existent
+      vi.mocked(getDoc).mockResolvedValueOnce({
+        exists: () => false
+      } as any);
+
+      const result = await updateCommunicationPermissions(
+        'user-123',
+        { createAnnouncements: true },
+        'admin-001'
+      );
+
+      expect(setDoc).toHaveBeenCalled();
+      expect(result.userId).toBe('user-123');
+      expect(result.permissions).toEqual({
+        createAnnouncements: true,
+        sendAnnouncements: false,
+        manageContactLists: false
+      });
+      expect(result.grantedBy).toBe('admin-001');
+    });
+
+    it('should update existing permissions if document already exists', async () => {
+      const existingData = {
+        userId: 'user-123',
+        permissions: {
+          createAnnouncements: true,
+          sendAnnouncements: false,
+          manageContactLists: false
+        },
+        grantedBy: 'admin-001',
+        grantedAt: '2023-01-01T00:00:00.000Z',
+        updatedAt: '2023-01-01T00:00:00.000Z'
+      };
+
+      // getDoc returns existent document
+      vi.mocked(getDoc).mockResolvedValueOnce({
+        exists: () => true,
+        id: 'user-123',
+        data: () => existingData
+      } as any);
+
+      const result = await updateCommunicationPermissions(
+        'user-123',
+        { sendAnnouncements: true },
+        'admin-002'
+      );
+
+      expect(updateDoc).toHaveBeenCalled();
+      expect(result.permissions).toEqual({
+        createAnnouncements: true,
+        sendAnnouncements: true,
+        manageContactLists: false
+      });
+    });
+  });
+
+  describe('checkPermission', () => {
+    it('should return false if user has no permission document', async () => {
+      vi.mocked(getDoc).mockResolvedValueOnce({
+        exists: () => false
+      } as any);
+
+      const result = await checkPermission('user-1', 'createAnnouncements');
+      expect(result).toBe(false);
+    });
+
+    it('should return correct permission status if document exists', async () => {
+      vi.mocked(getDoc).mockResolvedValueOnce({
+        exists: () => true,
+        id: 'user-1',
+        data: () => ({
+          userId: 'user-1',
+          permissions: {
+            createAnnouncements: true,
+            sendAnnouncements: false,
+            manageContactLists: false
+          }
+        })
+      } as any);
+
+      const hasCreate = await checkPermission('user-1', 'createAnnouncements');
+      expect(hasCreate).toBe(true);
+
+      // Reset mock for the next call inside checkPermission if needed, or getCommunicationPermissions is called again
+      vi.mocked(getDoc).mockResolvedValueOnce({
+        exists: () => true,
+        id: 'user-1',
+        data: () => ({
+          userId: 'user-1',
+          permissions: {
+            createAnnouncements: true,
+            sendAnnouncements: false,
+            manageContactLists: false
+          }
+        })
+      } as any);
+
+      const hasSend = await checkPermission('user-1', 'sendAnnouncements');
+      expect(hasSend).toBe(false);
+    });
+  });
+
+  describe('getAllPermissions', () => {
+    it('should return all permission documents in the collection', async () => {
+      const mockDocs = [
+        {
+          id: 'user-1',
+          data: () => ({ userId: 'user-1', permissions: { createAnnouncements: true } })
+        },
+        {
+          id: 'user-2',
+          data: () => ({ userId: 'user-2', permissions: { sendAnnouncements: true } })
         }
+      ];
+
+      vi.mocked(getDocs).mockResolvedValueOnce({
+        docs: mockDocs
+      } as any);
+
+      const result = await getAllPermissions();
+      expect(result).toHaveLength(2);
+      expect(result[0].id).toBe('user-1');
+      expect(result[1].id).toBe('user-2');
+    });
+  });
+
+  describe('hasAnyCommunicationPermission', () => {
+    it('should return false if user has no permissions at all', async () => {
+      vi.mocked(getDoc).mockResolvedValueOnce({
+        exists: () => false
+      } as any);
+
+      const result = await hasAnyCommunicationPermission('user-1');
+      expect(result).toBe(false);
     });
 
-    it('getCommunicationPermissions returns null for user with no permissions', async () => {
-        const testUserId = 'user-new';
-        const result = await getCommunicationPermissions(testUserId);
-        expect(result).toBeNull();
+    it('should return true if user has at least one true permission', async () => {
+      vi.mocked(getDoc).mockResolvedValueOnce({
+        exists: () => true,
+        id: 'user-1',
+        data: () => ({
+          userId: 'user-1',
+          permissions: {
+            createAnnouncements: false,
+            sendAnnouncements: false,
+            manageContactLists: true
+          }
+        })
+      } as any);
+
+      const result = await hasAnyCommunicationPermission('user-1');
+      expect(result).toBe(true);
     });
 
-    it('updateCommunicationPermissions creates new permission document', async () => {
-        const testUserId = 'user-create';
-        const grantedBy = 'ADMIN-001';
-        
-        const result = await updateCommunicationPermissions(
-            testUserId,
-            {
-                createAnnouncements: true,
-                sendAnnouncements: false,
-                manageContactLists: true
-            },
-            grantedBy
-        );
-        
-        expect(result.userId).toBe(testUserId);
-        expect(result.permissions.createAnnouncements).toBe(true);
-        expect(result.permissions.sendAnnouncements).toBe(false);
-        expect(result.permissions.manageContactLists).toBe(true);
-        expect(result.grantedBy).toBe(grantedBy);
-    });
+    it('should return false if all permissions are false', async () => {
+      vi.mocked(getDoc).mockResolvedValueOnce({
+        exists: () => true,
+        id: 'user-1',
+        data: () => ({
+          userId: 'user-1',
+          permissions: {
+            createAnnouncements: false,
+            sendAnnouncements: false,
+            manageContactLists: false
+          }
+        })
+      } as any);
 
-    it('updateCommunicationPermissions updates existing permissions', async () => {
-        const testUserId = 'user-update';
-        const grantedBy = 'ADMIN-001';
-        
-        // Create initial permissions
-        await updateCommunicationPermissions(
-            testUserId,
-            { createAnnouncements: true },
-            grantedBy
-        );
-        
-        // Update permissions
-        const result = await updateCommunicationPermissions(
-            testUserId,
-            { sendAnnouncements: true },
-            grantedBy
-        );
-        
-        expect(result.permissions.createAnnouncements).toBe(true);
-        expect(result.permissions.sendAnnouncements).toBe(true);
+      const result = await hasAnyCommunicationPermission('user-1');
+      expect(result).toBe(false);
     });
+  });
 
-    it('checkPermission returns correct boolean values', async () => {
-        const testUserId = 'user-check';
-        const grantedBy = 'ADMIN-001';
-        
-        await updateCommunicationPermissions(
-            testUserId,
-            { createAnnouncements: true },
-            grantedBy
-        );
-        
-        const hasCreate = await checkPermission(testUserId, 'createAnnouncements');
-        const hasSend = await checkPermission(testUserId, 'sendAnnouncements');
-        
-        expect(hasCreate).toBe(true);
-        expect(hasSend).toBe(false);
-    });
+  describe('grantPermission', () => {
+    it('should set the specified permission to true', async () => {
+      vi.mocked(getDoc).mockResolvedValueOnce({
+        exists: () => true,
+        id: 'user-1',
+        data: () => ({
+          userId: 'user-1',
+          permissions: {
+            createAnnouncements: false,
+            sendAnnouncements: false,
+            manageContactLists: false
+          }
+        })
+      } as any);
 
-    it('checkPermission returns false for non-existent user', async () => {
-        const testUserId = 'user-none';
-        const result = await checkPermission(testUserId, 'createAnnouncements');
-        expect(result).toBe(false);
+      await grantPermission('user-1', 'createAnnouncements', 'admin-001');
+      expect(updateDoc).toHaveBeenCalledWith(undefined, {
+        permissions: {
+          createAnnouncements: true,
+          sendAnnouncements: false,
+          manageContactLists: false
+        },
+        updatedAt: expect.any(String)
+      });
     });
+  });
 
-    it('hasAnyCommunicationPermission detects permissions correctly', async () => {
-        const testUserId1 = 'user-any-1';
-        const testUserId2 = 'user-any-2';
-        const grantedBy = 'ADMIN-001';
-        
-        await updateCommunicationPermissions(
-            testUserId1,
-            { createAnnouncements: true },
-            grantedBy
-        );
-        
-        const hasPermissions = await hasAnyCommunicationPermission(testUserId1);
-        const noPermissions = await hasAnyCommunicationPermission(testUserId2);
-        
-        expect(hasPermissions).toBe(true);
-        expect(noPermissions).toBe(false);
-    });
+  describe('revokePermission', () => {
+    it('should set the specified permission to false', async () => {
+      vi.mocked(getDoc).mockResolvedValueOnce({
+        exists: () => true,
+        id: 'user-1',
+        data: () => ({
+          userId: 'user-1',
+          permissions: {
+            createAnnouncements: true,
+            sendAnnouncements: true,
+            manageContactLists: true
+          }
+        })
+      } as any);
 
-    it('grantPermission and revokePermission work correctly', async () => {
-        const testUserId = 'user-grant-revoke';
-        const grantedBy = 'ADMIN-001';
-        
-        await grantPermission(testUserId, 'createAnnouncements', grantedBy);
-        const hasPermissionAfterGrant = await checkPermission(testUserId, 'createAnnouncements');
-        expect(hasPermissionAfterGrant).toBe(true);
-        
-        await revokePermission(testUserId, 'createAnnouncements', grantedBy);
-        const hasPermissionAfterRevoke = await checkPermission(testUserId, 'createAnnouncements');
-        expect(hasPermissionAfterRevoke).toBe(false);
+      await revokePermission('user-1', 'manageContactLists', 'admin-001');
+      expect(updateDoc).toHaveBeenCalledWith(undefined, {
+        permissions: {
+          createAnnouncements: true,
+          sendAnnouncements: true,
+          manageContactLists: false
+        },
+        updatedAt: expect.any(String)
+      });
     });
-
-    it('getAllPermissions returns all permission documents', async () => {
-        const testUserId1 = 'user-all-1';
-        const testUserId2 = 'user-all-2';
-        const grantedBy = 'ADMIN-001';
-        
-        await updateCommunicationPermissions(testUserId1, { createAnnouncements: true }, grantedBy);
-        await updateCommunicationPermissions(testUserId2, { sendAnnouncements: true }, grantedBy);
-        
-        const allPermissions = await getAllPermissions();
-        
-        const hasTestUser1 = allPermissions.some(p => p.userId === testUserId1);
-        const hasTestUser2 = allPermissions.some(p => p.userId === testUserId2);
-        
-        expect(hasTestUser1).toBe(true);
-        expect(hasTestUser2).toBe(true);
-        expect(allPermissions.length).toBeGreaterThanOrEqual(2);
-    });
+  });
 });

@@ -27,6 +27,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
 
     const imgRef = useRef<HTMLImageElement>(new Image());
     const [minAllowedScale, setMinAllowedScale] = useState(0.1);
+    const viewportSize = 300;
 
     // Load image
     useEffect(() => {
@@ -40,21 +41,22 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
                 // Fit whole image inside 300x300 box without aggressive zoom
                 const fitScale = Math.min(scaleX, scaleY);
 
-                const calculatedMinScale = Math.max(0.1, 150 / Math.max(img.width, img.height));
-                setMinAllowedScale(calculatedMinScale);
-                setScale(Math.max(calculatedMinScale, fitScale));
+                const initialScale = Math.max(0.05, fitScale);
+                setMinAllowedScale(initialScale);
+                setScale(initialScale);
 
-                const imgW = img.width * fitScale;
-                const imgH = img.height * fitScale;
+                const imgW = img.width * initialScale;
+                const imgH = img.height * initialScale;
                 const posX = (canvas.width - imgW) / 2;
                 const posY = (canvas.height - imgH) / 2;
+                const cropSize = Math.min(240, Math.max(160, Math.min(imgW, imgH, viewportSize - 40)));
 
                 setImagePosition({ x: posX, y: posY });
                 setCropArea({
-                    x: Math.max(0, posX),
-                    y: Math.max(0, posY),
-                    width: Math.min(300, imgW),
-                    height: Math.min(300, imgH)
+                    x: (viewportSize - cropSize) / 2,
+                    y: (viewportSize - cropSize) / 2,
+                    width: cropSize,
+                    height: cropSize
                 });
             }
             draw();
@@ -122,10 +124,10 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
                     const imgW = img.width * scale;
                     const imgH = img.height * scale;
 
-                    const minX = -imgW + 50;
-                    const maxX = 300 - 50;
-                    const minY = -imgH + 50;
-                    const maxY = 300 - 50;
+                    const minX = Math.min(0, cropArea.x + cropArea.width - imgW);
+                    const maxX = Math.max(0, cropArea.x);
+                    const minY = Math.min(0, cropArea.y + cropArea.height - imgH);
+                    const maxY = Math.max(0, cropArea.y);
 
                     newX = Math.max(minX, Math.min(maxX, newX));
                     newY = Math.max(minY, Math.min(maxY, newY));
@@ -139,8 +141,8 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
 
                 setCropArea(prev => ({
                     ...prev,
-                    x: Math.max(0, Math.min(300 - prev.width, prev.x + dx)),
-                    y: Math.max(0, Math.min(300 - prev.height, prev.y + dy))
+                    x: Math.max(0, Math.min(viewportSize - prev.width, prev.x + dx)),
+                    y: Math.max(0, Math.min(viewportSize - prev.height, prev.y + dy))
                 }));
                 setCropDragStart({ x: clientX, y: clientY });
             }
@@ -238,10 +240,10 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
             }
 
             // Constraints
-            newArea.width = Math.max(100, Math.min(300 - newArea.x, newArea.width));
-            newArea.height = Math.max(100, Math.min(300 - newArea.y, newArea.height));
-            newArea.x = Math.max(0, Math.min(300 - newArea.width, newArea.x));
-            newArea.y = Math.max(0, Math.min(300 - newArea.height, newArea.y));
+            newArea.width = Math.max(100, Math.min(viewportSize - newArea.x, newArea.width));
+            newArea.height = Math.max(100, Math.min(viewportSize - newArea.y, newArea.height));
+            newArea.x = Math.max(0, Math.min(viewportSize - newArea.width, newArea.x));
+            newArea.y = Math.max(0, Math.min(viewportSize - newArea.height, newArea.y));
 
             return newArea;
         });
@@ -255,10 +257,10 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
             const scaleX = 1 / scale;
             const scaleY = 1 / scale;
 
-            const sourceX = (cropArea.x - imagePosition.x) * scaleX;
-            const sourceY = (cropArea.y - imagePosition.y) * scaleY;
-            const sourceWidth = cropArea.width * scaleX;
-            const sourceHeight = cropArea.height * scaleY;
+            const sourceX = Math.max(0, (cropArea.x - imagePosition.x) * scaleX);
+            const sourceY = Math.max(0, (cropArea.y - imagePosition.y) * scaleY);
+            const sourceWidth = Math.min(img.naturalWidth - sourceX, cropArea.width * scaleX);
+            const sourceHeight = Math.min(img.naturalHeight - sourceY, cropArea.height * scaleY);
 
             let targetWidth = sourceWidth;
             let targetHeight = sourceHeight;
@@ -401,7 +403,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
                             <input
                                 type="range"
                                 min={minAllowedScale}
-                                max="3"
+                                max={Math.max(3, minAllowedScale * 5)}
                                 step="0.01"
                                 value={scale}
                                 onChange={(e) => setScale(parseFloat(e.target.value))}

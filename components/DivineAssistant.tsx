@@ -371,6 +371,10 @@ export const DivineAssistant: React.FC = () => {
                 ));
             });
 
+            if (!fullText || !fullText.trim()) {
+                fullText = "🏺 Word of Shalom\n\n📖 Psalm 119:105\n\n❝ Your word is a lamp for my feet, a light on my path. ❞\n\n━━━━━━━━━━━━\n\n🙏 May God bless you and grant you wisdom and truth on your journey in City of Truth Ministries.\n\n✦ Amen ✦\n\n🕊 Shalom • Peace • שלום";
+            }
+
             // Finalize message with action options
             setMessages(prev => prev.map(m =>
                 m.id === botMsgId ? { ...m, text: fullText, options: ["More details", "New topic", "Need navigation help?"] } : m

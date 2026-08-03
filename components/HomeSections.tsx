@@ -6,6 +6,7 @@ import { ViewState, User } from '../types';
 import { MessageFromLeader } from './MessageFromLeader';
 import { HEBREW_PAGES } from '../hebrewRegistry';
 import { LordIconWrapper } from './LordIconWrapper';
+import { DeuteronomyCircleGraphic } from './DeuteronomyCircleGraphic';
 
 const useSectionInfo = (sectionId: string, defaultName: string, defaultDesc: string) => {
     return React.useMemo(() => {
@@ -84,6 +85,34 @@ export const MinistryHighlights: React.FC<SectionProps> = ({ setView }) => {
                             </div>
                         </motion.div>
                     ))}
+                </div>
+            </div>
+
+            {/* Deuteronomy 4:35 Circular Sacred Graphic Section */}
+            <div className="mt-16 container mx-auto px-6">
+                <div className="bg-gradient-to-br from-amber-500/10 via-yellow-50/50 to-orange-50/30 rounded-[3rem] p-8 md:p-12 border-2 border-amber-300/60 shadow-xl flex flex-col lg:flex-row items-center justify-between gap-10">
+                    <div className="max-w-xl space-y-4 text-center lg:text-left">
+                        <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-900 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border border-amber-300">
+                            📜 Sacred Truth Scripture
+                        </div>
+                        <h3 className="text-3xl md:text-5xl font-serif font-black text-slate-900 leading-tight">
+                            EIN OD MIL'VADO <br />
+                            <span className="text-amber-700">אין עוד מלבדו</span>
+                        </h3>
+                        <p className="text-slate-600 text-sm md:text-base leading-relaxed font-medium">
+                            "You have been shown these things to know that Yahweh He is God; there is nothing besides Him." — Deuteronomy 4:35. Discover the foundational truth of our faith and study the sacred Hebrew Scriptures.
+                        </p>
+                        <button
+                            onClick={() => setView(ViewState.HEBREW)}
+                            className="inline-flex items-center gap-2 px-6 py-3.5 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-amber-600/30 cursor-pointer active:scale-95"
+                        >
+                            Explore Hebrew Language & Study →
+                        </button>
+                    </div>
+
+                    <div className="shrink-0">
+                        <DeuteronomyCircleGraphic size={300} />
+                    </div>
                 </div>
             </div>
         </section>
