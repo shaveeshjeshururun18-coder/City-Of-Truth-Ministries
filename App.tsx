@@ -69,7 +69,7 @@ import { GoldenMenorahPage } from './components/GoldenMenorahPage';
 import { AIPage } from './components/AIPage';
 import { DivineAssistant } from './components/DivineAssistant';
 import AIChatAssistant from './components/AIChatAssistant';
-import { MinistryHighlights, HebrewSanctuaryIntro, HebrewPagesPreviewSection, PastorBaruchPreviewSection, ValparaiPresence, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, CommunityMembersSection } from './components/HomeSections';
+import { MinistryHighlights, HebrewSanctuaryIntro, HebrewPagesPreviewSection, PastorBaruchPreviewSection, ValparaiPresence, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, CommunityMembersSection, DailyPsalm119Section } from './components/HomeSections';
 import { MessageFromLeader } from './components/MessageFromLeader';
 import { HebrewAlphabetPage } from './components/HebrewAlphabetPage';
 import { MinistriesPage } from './components/MinistriesPage';
@@ -340,7 +340,7 @@ const ensureHebrewNavItems = (items: NavItem[]): NavItem[] => {
   return withMenus;
 };
 
-const DEFAULT_HOME_SECTIONS_ORDER = ['hero', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'hebrewPages', 'pastorBaruch', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'verify'];
+const DEFAULT_HOME_SECTIONS_ORDER = ['hero', 'dailyPsalm', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'hebrewPages', 'pastorBaruch', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'verify'];
 
 const normalizeHomeSectionsOrder = (sections: string[]): string[] => {
   // Preserve the INPUT order — only deduplicate and add genuinely missing sections
@@ -2563,6 +2563,8 @@ const App: React.FC = () => {
 
                 const renderSectionContent = () => {
                 switch (sectionId) {
+                  case 'dailyPsalm':
+                    return <DailyPsalm119Section key="dailyPsalm" />;
                   case 'hero':
                     return (
                       <section key="hero" className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden py-8 md:py-12">

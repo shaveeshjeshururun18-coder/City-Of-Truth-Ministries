@@ -7,6 +7,7 @@ import { MessageFromLeader } from './MessageFromLeader';
 import { HEBREW_PAGES } from '../hebrewRegistry';
 import { LordIconWrapper } from './LordIconWrapper';
 import { DeuteronomyCircleGraphic } from './DeuteronomyCircleGraphic';
+import { PSALM_119_VERSES } from './psalm119';
 
 const useSectionInfo = (sectionId: string, defaultName: string, defaultDesc: string) => {
     return React.useMemo(() => {
@@ -356,6 +357,50 @@ export const HebrewPagesPreviewSection: React.FC<SectionProps> = ({ setView }) =
                             </motion.div>
                         );
                     })}
+                </div>
+            </div>
+        </section>
+    );
+};
+
+export const DailyPsalm119Section: React.FC = () => {
+    // Calculate the current verse based on the number of days since epoch, modulo 176
+    const todayIndex = Math.floor(Date.now() / 86400000) % 176;
+    const currentVerse = PSALM_119_VERSES[todayIndex];
+
+    return (
+        <section className="py-20 bg-gradient-to-br from-brand-950 to-brand-900 relative overflow-hidden">
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none"></div>
+            <div className="container mx-auto px-6 relative z-10">
+                <div className="max-w-4xl mx-auto text-center">
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="inline-flex items-center gap-2 bg-amber-500/10 text-amber-400 px-4 py-1.5 rounded-full text-xs font-black tracking-widest uppercase mb-6 border border-amber-500/20"
+                    >
+                        <BookOpen size={14} /> Daily Psalm 119
+                    </motion.div>
+
+                    <motion.h2
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="text-3xl md:text-5xl font-serif font-black text-white leading-tight mb-8"
+                    >
+                        Verse {todayIndex + 1}
+                    </motion.h2>
+
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.2 }}
+                        className="bg-white/5 border border-amber-500/30 rounded-3xl p-8 md:p-12 shadow-2xl backdrop-blur-sm"
+                    >
+                        <p className="text-xl md:text-3xl text-amber-100 font-serif leading-relaxed italic">
+                            "{currentVerse}"
+                        </p>
+                    </motion.div>
                 </div>
             </div>
         </section>

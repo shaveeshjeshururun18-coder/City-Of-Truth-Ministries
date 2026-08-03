@@ -155,13 +155,13 @@ const BIBLICAL_FESTIVALS = [
 ];
 
 const HEBREW_DAYS = [
-    { name: 'Yom Rishon', english: 'Sunday', hebrew: 'יוֹם רִאשׁוֹன்', tamil: 'யோம் ரிஷோன் (ஞாயிறு)' },
-    { name: 'Yom Sheni', english: 'Monday', hebrew: 'יוֹם שֵׁנִי', tamil: 'யோம் ஷேனி (திங்கள்)' },
-    { name: 'Yom Shlishi', english: 'Tuesday', hebrew: 'יוֹם שְׁלִישִׁי', tamil: 'யோம் ஷ்லிஷி (செவ்வாய்)' },
-    { name: 'Yom Revi\'i', english: 'Wednesday', hebrew: 'יוֹם רְבִיעִי', tamil: 'யோம் ரெவிஈ (புதன்)' },
-    { name: 'Yom Chamishi', english: 'Thursday', hebrew: 'יוֹם חֲמִישִׁי', tamil: 'யோம் ஹாமிஷி (வியாழன்)' },
-    { name: 'Yom Shishi', english: 'Friday', hebrew: 'יוֹם שִׁשִׁי', tamil: 'யோம் ஷிஷி (வெள்ளி)' },
-    { name: 'Shabbat', english: 'Saturday', hebrew: 'שַׁבָּת', tamil: 'ஷப்பாத் (சனி)' }
+    { name: 'Yom Rishon', english: 'Sunday', hebrew: 'יוֹם רִאשׁוֹן', tamil: 'யோம் ரிஷோன் (ஞாயிறு)', psalm: 'Ps. 24' },
+    { name: 'Yom Sheni', english: 'Monday', hebrew: 'יוֹם שֵׁנִי', tamil: 'யோம் ஷேனி (திங்கள்)', psalm: 'Ps. 48' },
+    { name: 'Yom Shlishi', english: 'Tuesday', hebrew: 'יוֹם שְׁלִישִׁי', tamil: 'யோம் ஷ்லிஷி (செவ்வாய்)', psalm: 'Ps. 82' },
+    { name: 'Yom Revi\'i', english: 'Wednesday', hebrew: 'יוֹם רְבִיעִי', tamil: 'யோம் ரெவிஈ (புதன்)', psalm: 'Ps. 94' },
+    { name: 'Yom Chamishi', english: 'Thursday', hebrew: 'יוֹם חֲמִישִׁי', tamil: 'யோம் ஹாமிஷி (வியாழன்)', psalm: 'Ps. 81' },
+    { name: 'Yom Shishi', english: 'Friday', hebrew: 'יוֹם שִׁשִׁי', tamil: 'யோம் ஷிஷி (வெள்ளி)', psalm: 'Ps. 93' },
+    { name: 'Shabbat', english: 'Saturday', hebrew: 'שַׁבָּת', tamil: 'ஷப்பாத் (சனி)', psalm: 'Ps. 92' }
 ];
 
 
@@ -1948,6 +1948,7 @@ const ReferenceView: React.FC = () => {
                                     <div style={{ fontSize: '10px', fontWeight: 900, color: '#f0c040' }}>{d.name}</div>
                                     <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>{d.english}</div>
                                     <div style={{ fontSize: '10px', color: '#93c5fd', marginTop: '3px' }}>{d.tamil}</div>
+                                    <div style={{ fontSize: '10px', color: '#86efac', marginTop: '3px', fontWeight: 'bold' }}>{d.psalm}</div>
                                 </div>
                             ))}
                         </div>
@@ -2044,7 +2045,8 @@ const ReferenceView: React.FC = () => {
                             </div>
                             <h4 className="text-lg font-bold text-brand-950 mb-0.5">{day.name}</h4>
                             <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">{day.english}</p>
-                            <p className="text-sm font-bold text-blue-600 mb-3">{day.tamil}</p>
+                            <p className="text-sm font-bold text-blue-600 mb-1">{day.tamil}</p>
+                            <p className="text-sm font-bold text-emerald-600 mb-3">{day.psalm}</p>
                             <div className="text-3xl font-serif text-accent-600 border-t border-slate-50 pt-4 mt-4" dir="rtl">{day.hebrew}</div>
                             <div className="flex gap-3 mt-3">
                                 <button
