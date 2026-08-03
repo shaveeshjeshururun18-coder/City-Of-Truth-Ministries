@@ -3,10 +3,7 @@
 > vite
 
 
-  VITE v6.4.1  ready in 239 ms
+  VITE v6.4.3  ready in 270 ms
 
   ➜  Local:   http://localhost:8888/
   ➜  Network: http://192.168.0.2:8888/
-[BABEL] Note: The code generator has deoptimised the styling of /app/components/AdminDashboard.tsx as it exceeds the max of 500KB.
-4:12:28 PM [vite] (client) hmr update /App.tsx
-4:13:19 PM [vite] (client) hmr update /components/AIPage.tsx

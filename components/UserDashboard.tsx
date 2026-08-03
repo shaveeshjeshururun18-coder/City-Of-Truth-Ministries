@@ -483,8 +483,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 if (frontNode && backNode) {
                     await Promise.all([waitForNodeImages(frontNode, 1000), waitForNodeImages(backNode, 1000)]);
                     const opts = { pixelRatio: 2, quality: 0.9, backgroundColor: '#ffffff', width: 340, height: 215 };
-                    const frontDataUrl = await toPng(frontNode, opts);
-                    const backDataUrl = await toPng(backNode, opts);
+                    const [frontDataUrl, backDataUrl] = await Promise.all([
+                        toPng(frontNode, opts),
+                        toPng(backNode, opts)
+                    ]);
 
                     zip.file(`3_User_Entrust_Card_Front_${displayProfile.id}.png`, frontDataUrl.split(',')[1], { base64: true });
                     zip.file(`3_User_Entrust_Card_Back_${displayProfile.id}.png`, backDataUrl.split(',')[1], { base64: true });
@@ -578,8 +580,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         transformOrigin: 'top left'
                     }
                 };
-                const frontDataUrl = await toPng(frontNode, opts);
-                const backDataUrl = await toPng(backNode, opts);
+                const [frontDataUrl, backDataUrl] = await Promise.all([
+                    toPng(frontNode, opts),
+                    toPng(backNode, opts)
+                ]);
                 const pdf = new jsPDF({
                     orientation: 'landscape',
                     unit: 'mm',

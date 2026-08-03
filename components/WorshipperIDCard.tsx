@@ -938,8 +938,10 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                 await new Promise(resolve => setTimeout(resolve, 300));
 
                 const captureOptions = { pixelRatio: 4, quality: 1, backgroundColor: '#ffffff', cacheBust: true, width: 340, height: 215 };
-                const frontDataUrl = await toPng(frontNode, captureOptions);
-                const backDataUrl = await toPng(backNode, captureOptions);
+                const [frontDataUrl, backDataUrl] = await Promise.all([
+                    toPng(frontNode, captureOptions),
+                    toPng(backNode, captureOptions)
+                ]);
 
                 const pdf = new jsPDF({
                     orientation: 'landscape',

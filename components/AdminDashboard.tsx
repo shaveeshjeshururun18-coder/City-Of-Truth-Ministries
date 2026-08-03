@@ -3771,8 +3771,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                            const frontNode = document.getElementById(`admin-card-front-${user.id}`) || document.getElementById(`quick-card-${user.id}`);
                            const backNode = document.getElementById(`admin-card-back-${user.id}`) || document.getElementById(`quick-card-back-${user.id}`);
                            if (frontNode && backNode) {
-                               const frontDataUrl = await toPng(frontNode, { pixelRatio: 2, quality: 0.9, backgroundColor: '#ffffff' });
-                               const backDataUrl = await toPng(backNode, { pixelRatio: 2, quality: 0.9, backgroundColor: '#ffffff' });
+                               const [frontDataUrl, backDataUrl] = await Promise.all([
+                                   toPng(frontNode, { pixelRatio: 2, quality: 0.9, backgroundColor: '#ffffff' }),
+                                   toPng(backNode, { pixelRatio: 2, quality: 0.9, backgroundColor: '#ffffff' })
+                               ]);
 
                                if (yOffset + cardHeight > pdfHeight - 10) {
                                    pdf.addPage();
@@ -3880,8 +3882,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         if (frontNode && backNode) {
             try {
-                const frontDataUrl = await toPng(frontNode, { pixelRatio: 4, quality: 1, backgroundColor: '#ffffff' });
-                const backDataUrl = await toPng(backNode, { pixelRatio: 4, quality: 1, backgroundColor: '#ffffff' });
+                const [frontDataUrl, backDataUrl] = await Promise.all([
+                    toPng(frontNode, { pixelRatio: 4, quality: 1, backgroundColor: '#ffffff' }),
+                    toPng(backNode, { pixelRatio: 4, quality: 1, backgroundColor: '#ffffff' })
+                ]);
 
                 const pdf = new jsPDF({
                     orientation: 'landscape',
