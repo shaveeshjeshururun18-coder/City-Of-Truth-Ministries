@@ -170,17 +170,22 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
 
     const handleGeneratePDF = async () => {
         setPdfGenerating(true);
+        setPdfError(null);
         try {
-            const link = document.createElement('a');
-            link.href = '/downloads/ilovepdf_merged_organized.pdf';
-            link.download = 'ilovepdf_merged_organized.pdf';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            await generateHebrewAlphabetPDF();
         } catch (error) {
-            console.error('PDF download error:', error);
-            setPdfError('Failed to download PDF.');
-            setTimeout(() => setPdfError(null), 5000);
+            console.error('PDF generation error:', error);
+            try {
+                const link = document.createElement('a');
+                link.href = '/downloads/ilovepdf_merged_organized.pdf';
+                link.download = 'Hebrew_Alphabet_Guide.pdf';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (_err) {
+                setPdfError('Failed to generate PDF. Please try again.');
+                setTimeout(() => setPdfError(null), 5000);
+            }
         } finally {
             setTimeout(() => setPdfGenerating(false), 500);
         }
@@ -505,39 +510,42 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                                     </div>
                                                 </div>
 
-                                                {/* RIGHT: Mouth Pronunciation Animator */}
-                                                <div className="flex-shrink-0 w-full md:w-auto flex justify-center">
-                                                    <MouthPronunciationAnimator
-                                                        phonemeSequence={HEBREW_LETTER_PHONEMES[selectedLetter.letter] || []}
-                                                        wordText={selectedLetter.hebrewName}
-                                                        phonetic={selectedLetter.latinPronunciation}
-                                                        tamilPhonetic={selectedLetter.tamilPronunciation}
-                                                        tamilSyllables={TAMIL_PRONUNCIATION_PARTS[selectedLetter.letter]}
-                                                        lang="he"
-                                                        theme="blue"
-                                                        autoPlay={false}
-                                                        showControls={true}
-                                                        size={180}
-                                                        externalPlayKey={mouthPlayKey}
-                                                        externalSlow={mouthSlow}
-                                                        externalMode={mouthMode}
-                                                    />
-                                                </div>
-                                            </div>
+                                                {/* RIGHT: Animated Teacher & Mouth Pronunciation Animator */}
+                                                <div className="flex-shrink-0 w-full md:w-auto flex flex-col items-center gap-6">
+                                                    {/* Live Animated Teacher Character Section (Interactive Tamil Teacher) */}
+                                                    <div className="w-full">
+                                                        <AnimatedTeacherCharacter
+                                                            letterName={selectedLetter.name}
+                                                            hebrewLetter={selectedLetter.letter}
+                                                            tamilText={selectedLetter.tamilGuide}
+                                                            englishText={`${selectedLetter.name} — ${selectedLetter.symbolic}`}
+                                                            tamilSyllables={TAMIL_PRONUNCIATION_PARTS[selectedLetter.letter]}
+                                                            isPlaying={isTeacherSpeaking || activeIndex === selectedIndex}
+                                                            onPlayTamil={() => handleTamilTeachingPlay(selectedIndex!, selectedLetter.tamilGuide)}
+                                                            onPlayHebrew={() => handleHebrewPlay(selectedIndex!, selectedLetter.hebrewName)}
+                                                            inline={true}
+                                                        />
+                                                    </div>
 
-                                            {/* Live Animated Teacher Character Section */}
-                                            <div className="mt-6 pt-5 border-t border-[#F59E0B]/20">
-                                                <AnimatedTeacherCharacter
-                                                    letterName={selectedLetter.name}
-                                                    hebrewLetter={selectedLetter.letter}
-                                                    tamilText={selectedLetter.tamilGuide}
-                                                    englishText={`${selectedLetter.name} — ${selectedLetter.symbolic}`}
-                                                    tamilSyllables={TAMIL_PRONUNCIATION_PARTS[selectedLetter.letter]}
-                                                    isPlaying={isTeacherSpeaking || activeIndex === selectedIndex}
-                                                    onPlayTamil={() => handleTamilTeachingPlay(selectedIndex!, selectedLetter.tamilGuide)}
-                                                    onPlayHebrew={() => handleHebrewPlay(selectedIndex!, selectedLetter.hebrewName)}
-                                                    inline={true}
-                                                />
+                                                    {/* Mouth Pronunciation Animator */}
+                                                    <div className="w-full flex justify-center">
+                                                        <MouthPronunciationAnimator
+                                                            phonemeSequence={HEBREW_LETTER_PHONEMES[selectedLetter.letter] || []}
+                                                            wordText={selectedLetter.hebrewName}
+                                                            phonetic={selectedLetter.latinPronunciation}
+                                                            tamilPhonetic={selectedLetter.tamilPronunciation}
+                                                            tamilSyllables={TAMIL_PRONUNCIATION_PARTS[selectedLetter.letter]}
+                                                            lang="he"
+                                                            theme="blue"
+                                                            autoPlay={false}
+                                                            showControls={true}
+                                                            size={180}
+                                                            externalPlayKey={mouthPlayKey}
+                                                            externalSlow={mouthSlow}
+                                                            externalMode={mouthMode}
+                                                        />
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </motion.div>

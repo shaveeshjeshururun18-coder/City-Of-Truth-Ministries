@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, X } from 'lucide-react';
 import { User } from '../types';
+import { api } from '../services/api';
 
 interface GreetingCardProps {
   currentUser?: User | null;
@@ -12,14 +13,106 @@ interface GreetingCardProps {
 
 let audioCtx: any = null;
 
-// --- AUDIO SYNTHESIZER DISABLED AS PER USER REQUEST (MP3 EXCLUSIVE) ---
+// --- AUDIO SYNTHESIZER: ROYAL TRUMPET FANFARE (30 SECONDS) ---
+const playRoyalTrumpetSound = () => {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    if (!audioCtx || audioCtx.state === 'closed') {
+      audioCtx = new AudioContextClass();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
+
+    const now = audioCtx.currentTime;
+
+    // Royal Fanfare Notes (Hz): C4, G4, C5, E5, G5, C6 spanning 30 seconds
+    const notes = [
+      { f: 261.63, t: 0.0, d: 0.25 }, // C4
+      { f: 392.00, t: 0.28, d: 0.25 }, // G4
+      { f: 523.25, t: 0.56, d: 0.35 }, // C5
+      { f: 659.25, t: 0.95, d: 0.30 }, // E5
+      { f: 783.99, t: 1.28, d: 0.35 }, // G5
+      { f: 1046.50, t: 1.65, d: 0.85 }, // High C6 Flourish
+
+      // Repeat Fanfare Calls up to 30s
+      { f: 392.00, t: 3.0, d: 0.20 },
+      { f: 523.25, t: 3.25, d: 0.20 },
+      { f: 659.25, t: 3.50, d: 0.20 },
+      { f: 783.99, t: 3.75, d: 0.80 },
+
+      { f: 523.25, t: 6.0, d: 0.25 },
+      { f: 659.25, t: 6.3, d: 0.25 },
+      { f: 783.99, t: 6.6, d: 0.40 },
+      { f: 1046.50, t: 7.05, d: 1.2 },
+
+      { f: 261.63, t: 10.0, d: 0.3 },
+      { f: 392.00, t: 10.35, d: 0.3 },
+      { f: 523.25, t: 10.7, d: 0.9 },
+
+      { f: 523.25, t: 14.0, d: 0.25 },
+      { f: 659.25, t: 14.3, d: 0.25 },
+      { f: 783.99, t: 14.6, d: 0.5 },
+      { f: 1046.50, t: 15.15, d: 1.5 },
+
+      { f: 392.00, t: 19.0, d: 0.25 },
+      { f: 523.25, t: 19.3, d: 0.25 },
+      { f: 659.25, t: 19.6, d: 0.25 },
+      { f: 783.99, t: 19.9, d: 1.0 },
+
+      { f: 523.25, t: 24.0, d: 0.3 },
+      { f: 659.25, t: 24.35, d: 0.3 },
+      { f: 783.99, t: 24.7, d: 0.4 },
+      { f: 1046.50, t: 25.15, d: 2.2 },
+    ];
+
+    notes.forEach(note => {
+      const startTime = now + note.t;
+      const duration = note.d;
+
+      const osc = audioCtx.createOscillator();
+      const subOsc = audioCtx.createOscillator();
+      const filter = audioCtx.createBiquadFilter();
+      const gain = audioCtx.createGain();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(note.f, startTime);
+
+      subOsc.type = 'triangle';
+      subOsc.frequency.setValueAtTime(note.f * 2, startTime);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(note.f * 3.2, startTime);
+      filter.Q.setValueAtTime(2.5, startTime);
+
+      gain.gain.setValueAtTime(0.0001, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.18, startTime + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.12, startTime + duration * 0.7);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+      osc.connect(filter);
+      subOsc.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start(startTime);
+      subOsc.start(startTime);
+      osc.stop(startTime + duration + 0.05);
+      subOsc.stop(startTime + duration + 0.05);
+    });
+  } catch (e) {
+    console.warn("Royal trumpet synth notice:", e);
+  }
+};
+
 const playPreciousChime = () => {
-  // Silent to ensure Bowfur and First speech .mp3 alone is played
+  playRoyalTrumpetSound();
 };
 
 // --- STYLES & ANIMATIONS ---
 const customStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Playfair+Display:ital,wght=0,400;0,600;1,400&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap');
 
   .font-cinzel { font-family: 'Cinzel Decorative', serif; }
   .font-playfair { font-family: 'Playfair Display', serif; }
@@ -61,6 +154,17 @@ const customStyles = `
     100% { transform: rotate(0deg) translate(0px, 0px); }
   }
   .animate-pen { animation: penWrite 0.35s infinite cubic-bezier(0.4, 0, 0.2, 1); }
+
+  .writing-caret {
+    display: inline-block;
+    width: 0.5em;
+    height: 1.05em;
+    margin-left: 0.16em;
+    vertical-align: -0.12em;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #ffffff, #fde047 42%, #d4af37);
+    box-shadow: 0 0 10px rgba(253, 224, 71, 0.65), 0 0 18px rgba(56, 189, 248, 0.25);
+  }
 
   @keyframes cinematicReveal {
     0% { opacity: 0; filter: blur(6px); transform: translateY(3px) scale(1.05); }
@@ -136,62 +240,56 @@ const GoldDustSystem = React.memo<{ isErasing: boolean }>(({ isErasing }) => {
 });
 GoldDustSystem.displayName = 'GoldDustSystem';
 
-// --- ULTRA-ATTRACTIVE MAGIC PEN ---
-const MagicPen = () => (
-  <div className="absolute bottom-[-6px] left-[50%] z-[9999] pointer-events-none transform origin-bottom-left animate-pen w-24 h-24 md:w-32 md:h-32 overflow-visible">
-    {/* Blinding Radiant Ink Sparks */}
-    <div className="absolute bottom-0 left-0 w-[18px] h-[18px] bg-white rounded-full blur-[4px] shadow-[0_0_20px_6px_#38bdf8,0_0_50px_12px_#d4af37] mix-blend-screen animate-pulse"></div>
-    <div className="absolute bottom-[3px] left-[3px] w-[6px] h-[6px] bg-[#fde047] rounded-full blur-[1px]"></div>
-
-    {/* Majestic, Highly Detailed Pen Artifact */}
-    <svg className="absolute bottom-0 left-0 w-full h-full origin-bottom-left -translate-y-[3px] -translate-x-[3px] filter drop-shadow-[6px_12px_15px_rgba(0,0,0,0.8)] overflow-visible" viewBox="-10 -10 120 120" fill="none">
-      {/* Intricate Gold Nib */}
-      <path d="M0 100 L 15 75 L 25 85 Z" fill="url(#pureGold)" />
-      <path d="M5 95 L 15 75 L 20 80 Z" fill="rgba(0,0,0,0.4)" />
-      <line x1="0" y1="100" x2="16" y2="84" stroke="#290f01" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="16" cy="84" r="2" fill="#290f01" />
-      <path d="M8 90 C 12 85, 18 85, 20 90" stroke="#78350F" strokeWidth="1" fill="none" />
-      <path d="M10 85 C 14 80, 20 80, 22 85" stroke="#78350F" strokeWidth="1" fill="none" />
-
-      {/* Deep Obsidian Grip */}
-      <path d="M15 75 L 25 85 L 32 72 L 22 62 Z" fill="#030712" />
-      <line x1="17" y1="73" x2="24" y2="60" stroke="#374151" strokeWidth="1.2" />
-      <line x1="20" y1="76" x2="27" y2="63" stroke="#374151" strokeWidth="1.2" />
-      <line x1="23" y1="79" x2="30" y2="66" stroke="#374151" strokeWidth="1.2" />
-
-      {/* Royal Gold Multi-Bands */}
-      <path d="M22 62 L 32 72 L 34 68 L 24 58 Z" fill="url(#pureGold)" />
-      <path d="M25 56 L 35 66 L 38 60 L 28 50 Z" fill="url(#pureGold)" />
-      <path d="M24 58 L 34 68 L 35 66 L 25 56 Z" fill="#000000" />
-
-      {/* Glowing Sapphire Barrel with Sensual Curves */}
-      <path d="M28 50 L 38 60 C 60 40, 80 20, 85 10 C 80 5, 60 20, 28 50 Z" fill="url(#royalSapphire)" />
-      <path d="M32 50 C 50 35, 70 15, 80 8 C 75 8, 55 25, 34 52 Z" fill="rgba(255,255,255,0.4)" />
-
-      {/* Elaborate Gold Filigree Overlay */}
-      <path d="M32 45 Q 40 45, 45 35 T 55 25" stroke="url(#pureGold)" strokeWidth="1.5" fill="none" />
-      <path d="M42 55 Q 50 55, 55 45 T 65 35" stroke="url(#pureGold)" strokeWidth="1.5" fill="none" />
-      <path d="M52 38 Q 48 30, 60 25" stroke="url(#pureGold)" strokeWidth="1.5" fill="none" />
-
-      {/* Crown Cap & Giant Crystal Diamond */}
-      <path d="M85 10 L 80 5 L 85 0 L 92 8 Z" fill="url(#pureGold)" />
-      <path d="M85 0 L 92 8 L 97 3 L 89 -5 Z" fill="url(#diamond)" />
-      <circle cx="92" cy="2" r="7" fill="#38bdf8" filter="blur(4px)" opacity="0.9" />
-      <circle cx="92" cy="2" r="2.5" fill="#FFF" />
-
+// --- ACTIVE RED ROYAL PEN NIB AT WRITING TIP ---
+const RedWritingPen: React.FC<{ isWriting?: boolean }> = ({ isWriting }) => (
+  <span
+    className={`inline-block relative z-30 align-middle pointer-events-none transition-transform duration-75 ${
+      isWriting ? 'animate-pen scale-110' : 'opacity-90'
+    }`}
+    style={{
+      width: '32px',
+      height: '32px',
+      margin: '0 2px',
+      verticalAlign: '-4px',
+    }}
+  >
+    <svg
+      className="w-full h-full drop-shadow-[0_4px_12px_rgba(239,68,68,0.75)]"
+      viewBox="0 0 120 120"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path d="M20 95 L36 75 L46 84 L27 101 Z" fill="url(#redPenGoldNibTip)" />
+      <path d="M26 96 L37 80" stroke="#4a0f0f" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="37" cy="80" r="2.2" fill="#4a0f0f" />
+      <path d="M38 72 L49 83 L56 73 L45 62 Z" fill="#13080a" />
+      <path d="M47 60 L58 71 L88 35 C94 28 97 20 94 17 C91 14 83 17 76 24 L47 60 Z" fill="url(#redPenBarrelTip)" />
+      <path d="M53 60 C66 47 80 30 91 18" stroke="rgba(255,255,255,0.45)" strokeWidth="3" strokeLinecap="round" />
+      <path d="M58 71 L64 65" stroke="#facc15" strokeWidth="4" strokeLinecap="round" />
+      <path d="M74 25 L86 37" stroke="#facc15" strokeWidth="4" strokeLinecap="round" />
+      <path d="M91 18 L98 11 L106 19 L99 26 Z" fill="url(#redPenRubyTip)" />
+      <circle cx="101" cy="15" r="4" fill="#fee2e2" />
+      <path d="M17 101 C28 98 35 100 45 107" stroke="rgba(239,68,68,0.5)" strokeWidth="2" strokeLinecap="round" />
       <defs>
-         <linearGradient id="pureGold" x1="0" y1="1" x2="1" y2="0">
-            <stop offset="0%" stopColor="#451A03"/><stop offset="25%" stopColor="#D4AF37"/><stop offset="50%" stopColor="#FEF08A"/><stop offset="75%" stopColor="#D4AF37"/><stop offset="100%" stopColor="#92400E"/>
-         </linearGradient>
-         <linearGradient id="royalSapphire" x1="0" y1="1" x2="1" y2="0">
-            <stop offset="0%" stopColor="#020617"/><stop offset="35%" stopColor="#1E3A8A"/><stop offset="65%" stopColor="#0EA5E9"/><stop offset="100%" stopColor="#020617"/>
-         </linearGradient>
-         <linearGradient id="diamond" x1="0" y1="1" x2="1" y2="0">
-            <stop offset="0%" stopColor="#7DD3FC"/><stop offset="50%" stopColor="#FFFFFF"/><stop offset="100%" stopColor="#38BDF8"/>
-         </linearGradient>
+        <linearGradient id="redPenBarrelTip" x1="47" y1="71" x2="95" y2="17" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#450a0a" />
+          <stop offset="0.42" stopColor="#dc2626" />
+          <stop offset="0.72" stopColor="#f87171" />
+          <stop offset="1" stopColor="#7f1d1d" />
+        </linearGradient>
+        <linearGradient id="redPenGoldNibTip" x1="20" y1="101" x2="46" y2="75" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#713f12" />
+          <stop offset="0.45" stopColor="#fde047" />
+          <stop offset="1" stopColor="#b45309" />
+        </linearGradient>
+        <linearGradient id="redPenRubyTip" x1="91" y1="26" x2="106" y2="11" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#7f1d1d" />
+          <stop offset="0.55" stopColor="#ef4444" />
+          <stop offset="1" stopColor="#fecaca" />
+        </linearGradient>
       </defs>
     </svg>
-  </div>
+  </span>
 );
 
 // 3D Cinematic Text Reveal Engine
@@ -204,7 +302,9 @@ const CinematicText: React.FC<{
 }> = ({ text, type, className, visibleCount, isTyping }) => {
   const isHebrew = /[\u0590-\u05FF]/.test(text || '');
   const safeText = text || '';
-  const shownText = safeText.slice(0, Math.min(Math.max(visibleCount, 0), safeText.length));
+  const count = Math.min(Math.max(visibleCount, 0), safeText.length);
+  const shownText = safeText.slice(0, count);
+
   const styleClass = type === 'gold-hp'
     ? 'text-transparent bg-clip-text drop-shadow-[0_6px_18px_rgba(212,175,55,0.45)]'
     : type === 'icy-blue'
@@ -221,12 +321,12 @@ const CinematicText: React.FC<{
       <span className={`inline ${styleClass}`} style={backgroundImage ? { backgroundImage } : undefined}>
         {shownText}
       </span>
-      {isTyping && shownText.length > 0 && <MagicPen />}
+      {isTyping && count < safeText.length && (
+        <RedWritingPen isWriting={true} />
+      )}
     </div>
   );
 };
-
-import { api } from '../services/api';
 
 const DEFAULT_GREETING_DATA = [
   { key: 'morning', greeting: "בוקר טוב (BOKER TOV)",           audio: "boker_tov.mp3",       phrase: "May your day be filled with peace, wisdom, strength, and abundant blessings." },
@@ -241,17 +341,70 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
   const [phase, setPhase] = useState<'card-enter' | 'writing' | 'idle' | 'erase' | 'hidden'>('card-enter');
   const [activeSection, setActiveSection] = useState<'greeting' | 'phrase' | 'name' | 'footerL' | 'footerR' | null>(null);
   const [counts, setCounts] = useState({ greeting: 0, phrase: 0, name: 0, footerL: 0, footerR: 0 });
-  const [hasInteracted, setHasInteracted] = useState(false);
   const [greetingSettings, setGreetingSettings] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const sequenceStartedRef = useRef(false);
+  const sequenceFinishedRef = useRef(false);
+  // Stable ref for onClose so it doesn't trigger useEffect re-runs
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
   
   const audioRef = useRef<HTMLAudioElement>(null);
+  const chimeAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const stopAllSounds = () => {
+    try {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    } catch (_e) {}
+
+    if (audioRef.current) {
+      try {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      } catch (_e) {}
+    }
+
+    if (chimeAudioRef.current) {
+      try {
+        chimeAudioRef.current.pause();
+        chimeAudioRef.current.currentTime = 0;
+      } catch (_e) {}
+    }
+
+    try {
+      const voiceElem = document.getElementById("voiceGreetingAudio") as HTMLAudioElement;
+      if (voiceElem) {
+        voiceElem.pause();
+        voiceElem.currentTime = 0;
+      }
+    } catch (_e) {}
+
+    try {
+      const shalomElem = document.getElementById("voiceShalomAudio") as HTMLAudioElement;
+      if (shalomElem) {
+        shalomElem.pause();
+        shalomElem.currentTime = 0;
+      }
+    } catch (_e) {}
+  };
+
+  useEffect(() => {
+    return () => {
+      stopAllSounds();
+    };
+  }, []);
 
   useEffect(() => {
     const loadSettings = async () => {
       try {
         const settings = await api.getWebsiteGreetingSettings();
         setGreetingSettings(settings);
+
+        // Only close if settings explicitly disable the greeting AND the card hasn't already started showing
+        // This prevents hiding the card after text is already visible
+        if (sequenceStartedRef.current) return;
 
         const hour = new Date().getHours();
         let slotKey: 'morning' | 'noon' | 'evening' | 'night' = 'night';
@@ -261,15 +414,15 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
 
         const slot = settings.slots?.[slotKey];
 
-        // 1. Master enable/disable
-        if (!settings.enabled) {
-          onClose();
+        // 1. Master enable/disable — only close if explicitly set to false (not undefined/null)
+        if (settings.enabled === false) {
+          onCloseRef.current();
           return;
         }
 
-        // 2. Slot enable/disable
-        if (slot && !slot.enabled) {
-          onClose();
+        // 2. Slot enable/disable — only close if explicitly set to false
+        if (slot && slot.enabled === false) {
+          onCloseRef.current();
           return;
         }
 
@@ -277,30 +430,28 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
         const target = settings.targetGroup || 'all';
         if (target === 'active') {
           if (!currentUser || currentUser.status !== 'Active') {
-            onClose();
+            onCloseRef.current();
             return;
           }
         } else if (target === 'pending') {
           if (!currentUser || currentUser.status !== 'Pending Verification') {
-            onClose();
+            onCloseRef.current();
             return;
           }
         } else if (target === 'admin') {
           const isUserAdmin = isAdmin || currentUser?.role === 'Admin';
           if (!isUserAdmin) {
-            onClose();
+            onCloseRef.current();
             return;
           }
         }
-
-        setLoading(false);
       } catch (err) {
-        console.error("Failed to load greeting settings", err);
-        setLoading(false);
+        // On API error, silently continue showing the greeting with defaults
+        console.warn("Greeting settings API unavailable, using defaults", err);
       }
     };
     loadSettings();
-  }, [currentUser, isAdmin, onClose]);
+  }, [currentUser, isAdmin]);
 
   // Specific time-of-day greeting data select
   const currentData = useMemo(() => {
@@ -320,16 +471,19 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
     };
   }, [greetingSettings]);
 
+  const greetingStr = currentData.greeting;
+  const phraseStr = currentData.phrase;
+
   // Names and labels calculated dynamically
   const nameStr = useMemo(() => {
     if (isAdmin) return "Admin";
     if (currentUser) return currentUser.name || "שלום (SHALOM)";
-    return "שלום (SHALOM)"; // Guest replace shaveesh jeshurun with Shalom
+    return "שלום (SHALOM)";
   }, [currentUser, isAdmin]);
 
   const footerLStr = useMemo(() => {
     if (isAdmin || currentUser) return "שלום (SHALOM)";
-    return ""; // Guest: remove another Shalom
+    return "";
   }, [currentUser, isAdmin]);
 
   const dateStr = useMemo(() => {
@@ -353,10 +507,12 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
 
   const playVoiceFallback = (text: string) => {
     try {
-      // Play chime audio first
+      playRoyalTrumpetSound();
+
       const chime = new Audio('/greeting_sound.mp3');
-      chime.volume = 0.5;
+      chime.volume = 0.6;
       chime.play().catch(() => {});
+      chimeAudioRef.current = chime;
 
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         window.speechSynthesis.cancel();
@@ -374,86 +530,114 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
     }
   };
 
-  // Autoplay immediately on load
+  // Play audio on mount (non-blocking)
   useEffect(() => {
-    if (!hasInteracted) {
-      if (!audioCtx) {
-        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-        if (AudioContext) audioCtx = new AudioContext();
-      }
-      if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume().catch(() => {});
-      }
-      
-      playVoiceFallback(currentData.greeting);
-      setHasInteracted(true);
+    if (!loading) {
+      playVoiceFallback(greetingStr);
     }
-  }, [hasInteracted, currentData]);
+  }, [loading, greetingStr]);
 
-  // Animation Sequence
+  // Fail-safe: if animation timing is interrupted or delayed for over 1.5s,
+  // immediately show full text so visitors never see a blank card.
   useEffect(() => {
-    if (!hasInteracted) return;
-    let isActive = true;
+    if (loading) return;
+    // If sequence already finished and text changed (e.g. API settings loaded), sync counts immediately
+    if (sequenceFinishedRef.current) {
+      setCounts({
+        greeting: greetingStr.length,
+        phrase: phraseStr.length,
+        name: nameStr.length,
+        footerL: footerLStr.length,
+        footerR: footerRStr.length,
+      });
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      if (!sequenceFinishedRef.current) {
+        sequenceFinishedRef.current = true;
+        setCounts({
+          greeting: greetingStr.length,
+          phrase: phraseStr.length,
+          name: nameStr.length,
+          footerL: footerLStr.length,
+          footerR: footerRStr.length,
+        });
+        setActiveSection(null);
+        setPhase('idle');
+      }
+    }, 1500);
+    return () => window.clearTimeout(timer);
+  }, [loading, greetingStr, phraseStr, nameStr, footerLStr, footerRStr]);
+
+
+  // Fast typing sequence with Pen writing effect
+  useEffect(() => {
+    if (loading) return;
+    if (sequenceFinishedRef.current) return;
+    if (sequenceStartedRef.current) return;
+    sequenceStartedRef.current = true;
+
+    let isMounted = true;
 
     const runSequence = async () => {
-      setCounts({ greeting: 0, phrase: 0, name: 0, footerL: 0, footerR: 0 });
-      setActiveSection(null);
-      await sleep(1000);
-      if (!isActive) return;
-
       setPhase('writing');
-      
-      const typeSection = async (sectionName: 'greeting' | 'phrase' | 'name' | 'footerL' | 'footerR', text: string) => {
-        if (!text) return;
+      setActiveSection(null);
+      setCounts({
+        greeting: 0,
+        phrase: 0,
+        name: 0,
+        footerL: footerLStr.length,
+        footerR: footerRStr.length,
+      });
+      await sleep(30);
+      if (!isMounted) return;
+
+      const typeSection = async (
+        sectionName: 'greeting' | 'phrase' | 'name',
+        text: string,
+        delayMs: number,
+      ) => {
+        if (!text || !isMounted) return;
         setActiveSection(sectionName);
         for (let i = 1; i <= text.length; i++) {
-          if (!isActive) return;
+          if (!isMounted) return;
           setCounts(prev => ({ ...prev, [sectionName]: i }));
-          
-          if (text[i - 1] !== ' ') playPreciousChime(); 
-          
-          const delay = text[i - 1] === ' ' ? 20 : (40 + Math.random() * 50);
-          await sleep(delay);
+          await sleep(text[i - 1] === ' ' ? Math.max(6, delayMs - 4) : delayMs);
         }
-        await sleep(350); 
+        await sleep(60);
       };
 
-      await typeSection('greeting', currentData.greeting);
-      await typeSection('phrase', currentData.phrase);
+      await typeSection('greeting', greetingStr, 12);
+      await typeSection('phrase', phraseStr, 8);
 
       const shalomAudio = document.getElementById("voiceShalomAudio") as HTMLAudioElement;
       if (shalomAudio) {
         shalomAudio.volume = 0.9;
-        shalomAudio.play().catch(e => console.log("Shalom audio blocked", e));
+        shalomAudio.play().catch(() => {});
       }
 
-      await typeSection('name', nameStr);
-      if (footerLStr) await typeSection('footerL', footerLStr);
-      if (footerRStr) await typeSection('footerR', footerRStr);
+      await typeSection('name', nameStr, 14);
+
+      if (!isMounted) return;
 
       setActiveSection(null);
-      if (!isActive) return;
-
+      sequenceFinishedRef.current = true;
       setPhase('idle');
     };
 
     runSequence();
-    return () => { isActive = false; };
-  }, [hasInteracted, currentData, nameStr, footerLStr, footerRStr]);
+
+    return () => {
+      isMounted = false;
+      if (!sequenceFinishedRef.current) {
+        sequenceStartedRef.current = false;
+      }
+    };
+  }, [loading, greetingStr, phraseStr, nameStr, footerLStr, footerRStr]);
 
   const handleClose = async () => {
+    stopAllSounds();
     setPhase('erase');
-    if (audioRef.current) {
-      // Fade out audio gracefully
-      const interval = setInterval(() => {
-        if (audioRef.current && audioRef.current.volume > 0.05) {
-          audioRef.current.volume = Math.max(0, audioRef.current.volume - 0.08);
-        } else {
-          clearInterval(interval);
-          if (audioRef.current) audioRef.current.pause();
-        }
-      }, 80);
-    }
     await sleep(650);
     setPhase('hidden');
     await sleep(50);
@@ -461,20 +645,18 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
   };
 
   const handleTakeTour = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
+    stopAllSounds();
     setPhase('hidden');
     onClose();
     onStartTour();
   };
 
-  // Disappear after 3 seconds of typing completion (idle phase)
+  // Disappear after 30 seconds of typing completion (idle phase)
   useEffect(() => {
     if (phase === 'idle') {
       const timer = setTimeout(() => {
         handleClose();
-      }, 3000);
+      }, 30000);
       return () => clearTimeout(timer);
     }
   }, [phase]);
@@ -512,17 +694,11 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
 
         {/* Small horizontal card layout */}
         <div className={`postal-frame w-full max-w-[92vw] sm:max-w-[620px] px-3 sm:px-8 py-5 sm:py-8 flex flex-col justify-between min-h-[280px] shadow-[0_25px_60px_rgba(0,0,0,0.85)] border border-white/5 overflow-visible ${cardClass}`}>
-          
-          {/* Subtle background embers in card itself */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-lg z-0 opacity-40">
-            <RoyalEmbers />
-          </div>
-
           <div className="flex-1 flex flex-col justify-center items-center w-full z-10 overflow-visible">
             
             <div className="min-h-10 sm:min-h-12 flex items-center justify-center w-full mb-2 overflow-visible px-2">
               <CinematicText 
-                text={currentData.greeting} 
+                text={greetingStr} 
                 type="icy-blue" 
                 visibleCount={counts.greeting}
                 isTyping={activeSection === 'greeting'}
@@ -534,7 +710,7 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-[1px] bg-gradient-to-r from-transparent via-[#D4AF37]/45 to-transparent"></div>
               
               <CinematicText 
-                text={currentData.phrase} 
+                text={phraseStr} 
                 type="standard" 
                 visibleCount={counts.phrase}
                 isTyping={activeSection === 'phrase'}

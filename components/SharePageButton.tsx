@@ -154,24 +154,14 @@ export const SharePageButton: React.FC<SharePageButtonProps> = ({
             title={widgetSettings.shareLabelText || 'Share this page'}
             aria-label={widgetSettings.shareLabelText || 'Share this page'}
           >
-            {/* Persistent Label */}
+            {/* Static Clean Label */}
             <AnimatePresence>
                 {(widgetSettings.shareLabelVisible ?? true) && (
                     <motion.div
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={widgetSettings.shareAnimation !== false ? {
-                            opacity: [0.4, 1, 0.4],
-                            x: [10, 0, 10]
-                        } : {
-                            opacity: 1, x: 0
-                        }}
-                        transition={widgetSettings.shareAnimation !== false ? {
-                            duration: 4,
-                            repeat: Infinity,
-                            ease: 'easeInOut'
-                        } : { duration: 0.5, ease: 'easeOut' }}
-                        style={{ transformOrigin: 'right center' }}
-                        className="absolute right-[calc(100%+12px)] top-1/2 -translate-y-1/2 rounded-2xl border border-brand-200/70 bg-white/95 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-brand-800 shadow-[0_18px_50px_-22px_rgba(37,99,235,0.75)] backdrop-blur-md sm:px-4 sm:py-2.5 sm:text-xs whitespace-nowrap z-0 pointer-events-none overflow-hidden"
+                        initial={{ opacity: 0, x: 0 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute right-[calc(100%+12px)] top-1/2 -translate-y-1/2 rounded-2xl border border-brand-200/70 bg-white/95 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-brand-800 shadow-[0_18px_50px_-22px_rgba(37,99,235,0.75)] backdrop-blur-md sm:px-4 sm:py-2.5 sm:text-xs whitespace-nowrap z-0 pointer-events-none"
                     >
                         <span className="flex items-center gap-2">
                             <span className="h-2 w-2 rounded-full bg-gradient-to-r from-brand-500 to-indigo-500 shadow-[0_0_14px_rgba(79,70,229,0.7)]" />

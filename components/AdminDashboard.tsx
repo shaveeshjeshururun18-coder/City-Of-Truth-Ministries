@@ -1193,11 +1193,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         try {
             const stored = localStorage.getItem('adminMenuMode');
             if (stored === 'horizontal' || stored === 'vertical') return stored;
-            return 'vertical'; // Default to vertical (dark Vercel-style sidebar)
+            return 'vertical'; // Default to vertical (light sidebar)
         } catch {
             return 'vertical';
         }
     });
+    const [adminMenuQuery, setAdminMenuQuery] = useState('');
 
     const toggleMenuMode = () => {
         const next = menuMode === 'horizontal' ? 'vertical' : 'horizontal';
@@ -1239,16 +1240,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const [aiModelDetails, setAiModelDetails] = useState<any>(null);
     const [isLoadingAiDetails, setIsLoadingAiDetails] = useState(true);
     const [modelSearchQuery, setModelSearchQuery] = useState('');
+    const [modelCategoryFilter, setModelCategoryFilter] = useState<'all' | 'free' | 'paid'>('all');
 
     const filteredModels = useMemo(() => {
         const list = aiModelDetails?.allModels || [];
-        if (!modelSearchQuery.trim()) return list;
+        let filtered = list;
+        if (modelCategoryFilter === 'free') {
+            filtered = filtered.filter((m: any) => m.id.includes(':free') || (m.pricing && Number(m.pricing.prompt) === 0 && Number(m.pricing.completion) === 0));
+        } else if (modelCategoryFilter === 'paid') {
+            filtered = filtered.filter((m: any) => !m.id.includes(':free') && !(m.pricing && Number(m.pricing.prompt) === 0 && Number(m.pricing.completion) === 0));
+        }
+        if (!modelSearchQuery.trim()) return filtered;
         const q = modelSearchQuery.toLowerCase();
-        return list.filter((m: any) => 
+        return filtered.filter((m: any) => 
             (m.name || '').toLowerCase().includes(q) || 
             (m.id || '').toLowerCase().includes(q)
         );
-    }, [aiModelDetails, modelSearchQuery]);
+    }, [aiModelDetails, modelSearchQuery, modelCategoryFilter]);
 
     const handleSelectModel = async (modelId: string) => {
         try {
@@ -1343,6 +1351,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             };
         });
     }, [dynamicTabs]);
+    const filteredVisibleTabs = useMemo(() => {
+        const q = adminMenuQuery.trim().toLowerCase();
+        if (!q) return visibleTabs;
+        return visibleTabs.filter(tab => tab.label.toLowerCase().includes(q) || tab.id.toLowerCase().includes(q));
+    }, [visibleTabs, adminMenuQuery]);
+    const adminSidebarPrimaryIds = ['users', 'member-forms', 'edit-page', 'recycle-bin', 'firebase', 'messages', 'ministries', 'id-cards', 'cot-id-manager', 'reports'];
+    const adminSidebarSecondaryIds = ['home-layout', 'menu-editor', 'permalinks', 'widgets', 'notifications', 'ai-analytics', 'site-analytics', 'admin-tabs'];
+    const adminSidebarPrimaryTabs = filteredVisibleTabs.filter(tab => adminSidebarPrimaryIds.includes(tab.id));
+    const adminSidebarSecondaryTabs = filteredVisibleTabs.filter(tab => adminSidebarSecondaryIds.includes(tab.id));
 
     // Bulk pre-edit queue states
     const [bulkQueue, setBulkQueue] = useState<Array<{
@@ -4637,64 +4654,160 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </AnimatePresence>
                             </div>
 
-                            {/* Desktop Vertical Menu — dark Vercel-style */}
-                            <VStack gap={0.5} className="hidden lg:flex bg-[#0c0c0f] rounded-3xl border border-white/8 shadow-2xl p-3 lg:max-h-[calc(100vh-14rem)] overflow-y-auto admin-menu-scrollbar">
-                                {visibleTabs.map(tab => {
-                                    const customLabel = tab.label;
-                                    const isRenaming = renamingTabId === tab.id;
-                                    const isActive = activeTab === tab.id;
-                                    return (
-                                        <div
-                                            key={tab.id}
-                                            id={`admin-tab-${tab.id}`}
-                                            onClick={() => setActiveTab(tab.id)}
-                                            className={`flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl transition-all group cursor-pointer whitespace-nowrap ${
-                                                isActive
-                                                    ? 'bg-white/10 text-white border border-white/10'
-                                                    : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-100 border border-transparent'
-                                            }`}
-                                        >
-                                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                <tab.icon size={16} className="shrink-0" />
-                                                {isRenaming ? (
-                                                    <input
-                                                        type="text"
-                                                        value={renameValue}
-                                                        onChange={(e) => setRenameValue(e.target.value)}
-                                                        onBlur={() => {
-                                                            handleRenameTab(tab.id, renameValue);
-                                                            setRenamingTabId(null);
-                                                        }}
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === 'Enter') {
+                            {/* Desktop Vertical Menu — Vercel-style */}
+                            <VStack gap={0.5} className="hidden lg:flex bg-[#0b0b0d] rounded-3xl border border-white/8 shadow-2xl p-3 lg:max-h-[calc(100vh-14rem)] overflow-y-auto admin-menu-scrollbar">
+                                <div className="px-1.5 pb-2">
+                                    <div className="flex items-center justify-between gap-3 rounded-2xl px-2 py-1.5">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-sky-400 to-indigo-500 flex items-center justify-center shadow-[0_0_0_1px_rgba(255,255,255,0.08)] shrink-0">
+                                                <Shield size={14} className="text-white" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-[13px] font-black text-white truncate leading-none">City of Truth</p>
+                                            </div>
+                                            <span className="px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 text-[10px] font-bold leading-none">Admin</span>
+                                        </div>
+                                        <div className="flex flex-col items-center justify-center text-zinc-500 shrink-0">
+                                            <ChevronUp size={10} />
+                                            <ChevronDown size={10} className="-mt-0.5" />
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-3 relative">
+                                        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                                        <input
+                                            type="text"
+                                            value={adminMenuQuery}
+                                            onChange={(e) => setAdminMenuQuery(e.target.value)}
+                                            placeholder="Find"
+                                            className="w-full h-11 rounded-2xl bg-[#09090b] border border-white/10 pl-10 pr-10 text-sm font-medium text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-white/15 focus:border-white/20"
+                                        />
+                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 rounded-lg border border-white/10 bg-white/5 text-[10px] font-black text-zinc-300">F</span>
+                                    </div>
+                                </div>
+
+                                <div className="pt-1 pb-1">
+                                    {adminSidebarPrimaryTabs.map(tab => {
+                                        const customLabel = tab.label;
+                                        const isRenaming = renamingTabId === tab.id;
+                                        const isActive = activeTab === tab.id;
+                                        return (
+                                            <div
+                                                key={tab.id}
+                                                id={`admin-tab-${tab.id}`}
+                                                onClick={() => setActiveTab(tab.id)}
+                                                className={`group flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 cursor-pointer transition-all border ${
+                                                    isActive
+                                                        ? 'bg-white/8 text-white border-white/8'
+                                                        : 'bg-transparent text-zinc-400 border-transparent hover:bg-white/5 hover:text-zinc-100'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                    <tab.icon size={16} className={`shrink-0 ${isActive ? 'text-white' : 'text-zinc-500 group-hover:text-zinc-200'}`} />
+                                                    {isRenaming ? (
+                                                        <input
+                                                            type="text"
+                                                            value={renameValue}
+                                                            onChange={(e) => setRenameValue(e.target.value)}
+                                                            onBlur={() => {
                                                                 handleRenameTab(tab.id, renameValue);
                                                                 setRenamingTabId(null);
-                                                            }
+                                                            }}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    handleRenameTab(tab.id, renameValue);
+                                                                    setRenamingTabId(null);
+                                                                }
+                                                            }}
+                                                            autoFocus
+                                                            className="w-full bg-[#121214] text-white font-bold px-2 py-0.5 rounded-lg text-xs border border-white/10 focus:outline-none focus:ring-1 focus:ring-white/15"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        />
+                                                    ) : (
+                                                        <span className={`text-[15px] truncate ${isActive ? 'font-semibold text-white' : 'font-medium'}`}>{customLabel}</span>
+                                                    )}
+                                                </div>
+                                                {!isRenaming && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setRenamingTabId(tab.id);
+                                                            setRenameValue(customLabel);
                                                         }}
-                                                        autoFocus
-                                                        className="w-full bg-white/10 text-white font-bold px-2 py-0.5 rounded text-xs border border-white/20 focus:outline-none"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                    />
-                                                ) : (
-                                                    <span className={`text-sm truncate ${isActive ? 'font-semibold text-white' : 'font-medium'}`}>{customLabel}</span>
+                                                        className="p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-white/8 transition-opacity shrink-0 text-zinc-500 hover:text-zinc-100"
+                                                        title="Rename tab"
+                                                    >
+                                                        <Edit2 size={11} />
+                                                    </button>
                                                 )}
                                             </div>
-                                            {!isRenaming && (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setRenamingTabId(tab.id);
-                                                        setRenameValue(customLabel);
-                                                    }}
-                                                    className={`p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-white/10 transition-opacity shrink-0 text-zinc-500 hover:text-zinc-200`}
-                                                    title="Rename tab"
-                                                >
-                                                    <Edit2 size={11} />
-                                                </button>
-                                            )}
+                                        );
+                                    })}
+                                </div>
+
+                                {adminSidebarSecondaryTabs.length > 0 && (
+                                    <>
+                                        <div className="my-2 h-px bg-white/8" />
+                                        <div className="pt-1 pb-1">
+                                            {adminSidebarSecondaryTabs.map(tab => {
+                                                const customLabel = tab.label;
+                                                const isRenaming = renamingTabId === tab.id;
+                                                const isActive = activeTab === tab.id;
+                                                return (
+                                                    <div
+                                                        key={tab.id}
+                                                        id={`admin-tab-${tab.id}`}
+                                                        onClick={() => setActiveTab(tab.id)}
+                                                        className={`group flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 cursor-pointer transition-all border ${
+                                                            isActive
+                                                                ? 'bg-white/8 text-white border-white/8'
+                                                                : 'bg-transparent text-zinc-400 border-transparent hover:bg-white/5 hover:text-zinc-100'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                            <tab.icon size={16} className={`shrink-0 ${isActive ? 'text-white' : 'text-zinc-500 group-hover:text-zinc-200'}`} />
+                                                            {isRenaming ? (
+                                                                <input
+                                                                    type="text"
+                                                                    value={renameValue}
+                                                                    onChange={(e) => setRenameValue(e.target.value)}
+                                                                    onBlur={() => {
+                                                                        handleRenameTab(tab.id, renameValue);
+                                                                        setRenamingTabId(null);
+                                                                    }}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter') {
+                                                                            handleRenameTab(tab.id, renameValue);
+                                                                            setRenamingTabId(null);
+                                                                        }
+                                                                    }}
+                                                                    autoFocus
+                                                                    className="w-full bg-[#121214] text-white font-bold px-2 py-0.5 rounded-lg text-xs border border-white/10 focus:outline-none focus:ring-1 focus:ring-white/15"
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                />
+                                                            ) : (
+                                                                <span className={`text-[15px] truncate ${isActive ? 'font-semibold text-white' : 'font-medium'}`}>{customLabel}</span>
+                                                            )}
+                                                        </div>
+                                                        {!isRenaming && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setRenamingTabId(tab.id);
+                                                                    setRenameValue(customLabel);
+                                                                }}
+                                                                className="p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-white/8 transition-opacity shrink-0 text-zinc-500 hover:text-zinc-100"
+                                                                title="Rename tab"
+                                                            >
+                                                                <Edit2 size={11} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
-                                    );
-                                })}
+                                    </>
+                                )}
                             </VStack>
                         </aside>
                     )}
@@ -4867,138 +4980,115 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 {activeTab === 'edit-page' && (
                     <div className="space-y-5 mb-8">
-                        <div className="bg-white p-5 md:p-6 rounded-3xl border border-slate-100 shadow-sm">
-                            <h3 className="text-lg md:text-xl font-black text-brand-950">Edit Page</h3>
-                            <p className="text-sm text-slate-500 mt-1">
-                                Review user edit requests with original vs edited values and user profile details.
-                            </p>
-                            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">
-                                <Clock size={13} />
-                                Pending Edit Requests: {pendingEditUsers.length}
+                        <div className="bg-gradient-to-br from-brand-950 via-slate-950 to-indigo-950 text-white p-6 md:p-8 rounded-3xl border border-brand-800 shadow-2xl relative overflow-hidden">
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.28),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(245,158,11,0.18),transparent_30%)] pointer-events-none" />
+                            <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+                                <div className="max-w-2xl">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-200">Website Content Editor</p>
+                                    <h3 className="text-2xl md:text-3xl font-black mt-2">Edit the live website page content</h3>
+                                    <p className="text-sm md:text-base text-brand-100/80 mt-3 leading-relaxed">
+                                        This tab now opens the real website builder so you can edit headings, footer text, navigation labels, and other editable text directly on the live site.
+                                    </p>
+                                </div>
+                                <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => { window.location.href = '/websitebuilder'; }}
+                                        className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white text-brand-950 font-black text-xs uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-transform"
+                                    >
+                                        <Edit2 size={14} />
+                                        Open Website Builder
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => { window.location.href = '/'; }}
+                                        className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white/10 text-white border border-white/15 font-black text-xs uppercase tracking-widest hover:bg-white/15 transition-colors"
+                                    >
+                                        <Globe size={14} />
+                                        View Live Site
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
-                        {pendingEditUsers.length === 0 ? (
-                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-10 text-center">
-                                <CheckCircle size={42} className="mx-auto text-emerald-500 mb-3" />
-                                <p className="font-bold text-slate-700">No pending edit requests right now.</p>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                            {[
+                                ['Text edits', 'Any component using EditableText can be changed in builder mode.'],
+                                ['Navigation', 'Update menu labels and order from the builder toolbar.'],
+                                ['Sections', 'Reorder and hide home sections in Pages & Sections.'],
+                            ].map(([title, desc]) => (
+                                <div key={title} className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5">
+                                    <p className="text-xs font-black uppercase tracking-widest text-brand-600">{title}</p>
+                                    <p className="text-sm text-slate-600 mt-2 leading-relaxed">{desc}</p>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5">
+                            <div className="flex items-center justify-between gap-3 mb-4">
+                                <div>
+                                    <h4 className="text-sm md:text-base font-black text-brand-950">Pending Profile Edit Requests</h4>
+                                    <p className="text-xs text-slate-500 mt-1">These are member profile changes waiting for review.</p>
+                                </div>
+                                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">
+                                    <Clock size={13} />
+                                    {pendingEditUsers.length}
+                                </span>
                             </div>
-                        ) : pendingEditUsers.map((user) => (
-                            <div key={`edit-page-${user.id}`} className="bg-white rounded-3xl border border-slate-100 shadow-sm p-4 md:p-6">
-                                <div className="flex flex-col lg:flex-row lg:items-start gap-5">
-                                    <div className="lg:w-72 shrink-0">
-                                        <div className="rounded-2xl border border-slate-200 p-4 bg-slate-50">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-14 h-14 rounded-2xl bg-brand-100 text-brand-700 flex items-center justify-center text-lg font-black">
-                                                    {user.name?.slice(0, 1)?.toUpperCase() || 'U'}
-                                                </div>
+
+                            {pendingEditUsers.length === 0 ? (
+                                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+                                    <CheckCircle size={40} className="mx-auto text-emerald-500 mb-3" />
+                                    <p className="font-bold text-slate-700">No pending edit requests right now.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {pendingEditUsers.slice(0, 5).map((user) => (
+                                        <div key={`edit-page-${user.id}`} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                                                 <div className="min-w-0">
-                                                    <p className="font-black text-brand-950 truncate">{user.name}</p>
+                                                    <p className="font-black text-slate-900 truncate">{user.name}</p>
                                                     <p className="text-xs text-slate-500 font-mono truncate">{user.id}</p>
                                                 </div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <button
+                                                        onClick={() => setViewingDetailsUser(user)}
+                                                        className="px-3 py-2 rounded-xl bg-white text-brand-700 border border-brand-200 text-[11px] font-bold hover:bg-brand-50"
+                                                    >
+                                                        View User
+                                                    </button>
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (window.confirm(`Approve pending profile edits for ${user.name}?`)) {
+                                                                await approveUserOrPendingEdit(user);
+                                                            }
+                                                        }}
+                                                        className="px-3 py-2 rounded-xl bg-emerald-600 text-white text-[11px] font-black hover:bg-emerald-700"
+                                                    >
+                                                        Approve
+                                                    </button>
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (window.confirm(`Reject pending profile edits for ${user.name}?`)) {
+                                                                await rejectPendingEdit(user);
+                                                            }
+                                                        }}
+                                                        className="px-3 py-2 rounded-xl bg-orange-50 text-orange-700 border border-orange-200 text-[11px] font-bold hover:bg-orange-100"
+                                                    >
+                                                        Reject
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <div className="mt-4 space-y-1.5 text-xs">
-                                                <p><span className="font-bold text-slate-600">Email:</span> <span className="text-slate-700 break-all">{user.email || '—'}</span></p>
-                                                <p><span className="font-bold text-slate-600">Phone:</span> <span className="text-slate-700">{user.phone || '—'}</span></p>
-                                                <p><span className="font-bold text-slate-600">Status:</span> <span className="text-slate-700">{user.status}</span></p>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setViewingDetailsUser(user)}
-                                                className="mt-4 w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-green-50 text-green-700 border border-green-200 text-xs font-black hover:bg-green-100 transition-colors"
-                                            >
-                                                <UserIcon size={14} />
-                                                View Full Profile
-                                            </button>
                                         </div>
-                                    </div>
-
-                                    <div className="flex-1 min-w-0">
-                                        <div className="overflow-x-auto rounded-2xl border border-slate-100">
-                                            <table className="w-full text-xs md:text-sm">
-                                                <thead className="bg-slate-50">
-                                                    <tr>
-                                                        <th className="px-3 py-2 text-left font-black text-slate-700">Field</th>
-                                                        <th className="px-3 py-2 text-left font-black text-slate-700">Original</th>
-                                                        <th className="px-3 py-2 text-left font-black text-slate-700">Edited</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {EDIT_PAGE_FIELDS
-                                                        .filter(({ key }) => Object.prototype.hasOwnProperty.call(user.pendingProfileUpdate || {}, key))
-                                                        .map(({ key, label }) => {
-                                                            const originalRaw = `${(user as any)[key] ?? ''}`.trim();
-                                                            const editedRaw = `${(user.pendingProfileUpdate as any)?.[key] ?? ''}`.trim();
-                                                            if (editedRaw === '' || originalRaw === editedRaw) return null;
-                                                            const isPhotoField = key === 'photo';
-                                                            const safeOriginalPhoto = isPhotoField ? getSafeImageSrc(originalRaw) : null;
-                                                            const safeEditedPhoto = isPhotoField ? getSafeImageSrc(editedRaw) : null;
-                                                            return (
-                                                                <tr key={`${user.id}-${String(key)}`} className="border-t border-slate-100 align-top">
-                                                                    <td className="px-3 py-2.5 font-bold text-slate-700">{label}</td>
-                                                                    <td className="px-3 py-2.5 text-slate-600">
-                                                                        {isPhotoField ? (
-                                                                            <div className="w-16 h-16 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center">
-                                                                                <img 
-                                                                                    src={safeOriginalPhoto || '/logo.png'} 
-                                                                                    alt="Original Photo" 
-                                                                                    className="w-full h-full object-cover" 
-                                                                                    onError={(e) => {
-                                                                                        (e.target as HTMLImageElement).src = '/logo.png';
-                                                                                    }}
-                                                                                />
-                                                                            </div>
-                                                                        ) : (originalRaw || '—')}
-                                                                    </td>
-                                                                    <td className="px-3 py-2.5 text-brand-700 font-semibold">
-                                                                        {isPhotoField ? (
-                                                                            <div className="w-16 h-16 rounded-xl overflow-hidden border border-brand-200 bg-brand-50 flex items-center justify-center">
-                                                                                <img 
-                                                                                    src={safeEditedPhoto || '/logo.png'} 
-                                                                                    alt="Edited Photo" 
-                                                                                    className="w-full h-full object-cover" 
-                                                                                    onError={(e) => {
-                                                                                        (e.target as HTMLImageElement).src = '/logo.png';
-                                                                                    }}
-                                                                                />
-                                                                            </div>
-                                                                        ) : (editedRaw || '—')}
-                                                                    </td>
-                                                                </tr>
-                                                            );
-                                                        })}
-                                                </tbody>
-                                            </table>
-                                        </div>
-
-                                        <div className="mt-4 flex flex-wrap gap-2">
-                                            <button
-                                                onClick={async () => {
-                                                    if (window.confirm(`Approve pending profile edits for ${user.name}?`)) {
-                                                        await approveUserOrPendingEdit(user);
-                                                    }
-                                                }}
-                                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black"
-                                            >
-                                                <CheckCircle size={14} />
-                                                Approve Edit
-                                            </button>
-                                            <button
-                                                onClick={async () => {
-                                                    if (window.confirm(`Reject pending profile edits for ${user.name}?`)) {
-                                                        await rejectPendingEdit(user);
-                                                    }
-                                                }}
-                                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-black"
-                                            >
-                                                <XCircle size={14} />
-                                                Reject Edit
-                                            </button>
-                                        </div>
-                                    </div>
+                                    ))}
+                                    {pendingEditUsers.length > 5 && (
+                                        <p className="text-xs text-slate-500 font-medium">
+                                            Showing first 5 requests. Use the users review flow for the full list.
+                                        </p>
+                                    )}
                                 </div>
-                            </div>
-                        ))}
+                            )}
+                        </div>
                     </div>
                 )}
 
@@ -9527,27 +9617,95 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         </div>
                                     </div>
 
-                                    {/* Active Model Stack */}
-                                    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-4">
+                                    {/* Active Model Stack - Brutalist Animated Buttons */}
+                                    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-5">
                                         <h3 className="text-lg font-serif font-black text-slate-800">Active Model Stack</h3>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2">
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-[10px] font-black text-brand-700 bg-brand-50 px-2 py-0.5 rounded-md uppercase tracking-wider">Primary Model</span>
-                                                    <span className="text-[10px] font-bold text-slate-400">{aiModelDetails?.defaultModel?.context_length ? `${aiModelDetails.defaultModel.context_length} ctx` : '8k ctx'}</span>
-                                                </div>
-                                                <h4 className="font-extrabold text-slate-800">{aiModelDetails?.defaultModel?.name || 'Gemma 4 26B Instruct'}</h4>
-                                                <p className="text-[10px] font-mono text-slate-400 truncate">{aiModelDetails?.defaultModel?.id || 'openai/gpt-oss-20b:free'}</p>
+                                        <style>{`
+                                          @keyframes _spinLogo { 0% { transform:translate(-50%,-50%) rotate(0deg); } 100% { transform:translate(-50%,-50%) rotate(360deg); } }
+                                          @keyframes _ripple { 0% { transform:translateX(-50%) scale(0); } 100% { transform:translateX(-50%) scale(1); } }
+                                          .bcard { display:flex; flex-direction:column; align-items:center; justify-content:center; border:3px solid #000; border-radius:14px; padding:0; color:#000; font-weight:bold; position:relative; box-shadow:4px 4px 0 #000; overflow:hidden; transition:all 0.4s cubic-bezier(0.175,0.885,0.32,1.275); height:145px; width:100%; cursor:pointer; }
+                                          .bcard::before { content:''; position:absolute; left:50%; bottom:-150%; width:300%; height:300%; border-radius:50%; transform:translateX(-50%) scale(0); transition:transform 0.6s cubic-bezier(0.19,1,0.22,1); z-index:1; }
+                                          .bcard:hover::before { transform:translateX(-50%) scale(1); }
+                                          .bcard:hover { transform:translate(-4px,-4px); box-shadow:8px 8px 0 #000; }
+                                          .bcard:active { transform:translate(2px,2px); box-shadow:2px 2px 0 #000; }
+                                          .bcard-primary { background-color:#3d1f00; }
+                                          .bcard-primary::before { background-color:#5c2e00; }
+                                          .bcard-fallback { background-color:#1e0a35; }
+                                          .bcard-fallback::before { background-color:#2d1052; }
+                                          .bcard-free { background-color:#0a2a1a; }
+                                          .bcard-free::before { background-color:#0e3d24; }
+                                          .blogo { display:flex; align-items:center; justify-content:center; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:2; width:88px; height:88px; border-radius:50%; transition:all 0.6s cubic-bezier(0.68,-0.55,0.265,1.55); box-shadow:0 2px 10px rgba(0,0,0,0.3); }
+                                          .bcard:hover .blogo { animation:_spinLogo 4s linear infinite; width:48px; height:48px; top:28%; }
+                                          .btext { display:flex; flex-direction:column; align-items:center; line-height:1.3; transition:all 0.6s cubic-bezier(0.68,-0.55,0.265,1.55); text-align:center; opacity:0; transform:translateY(18px); z-index:2; position:absolute; bottom:14px; left:0; right:0; pointer-events:none; }
+                                          .bcard:hover .btext { opacity:1; transform:translateY(0); }
+                                          .btext-sub { font-size:10px; font-weight:500; margin-bottom:2px; color:#ccc; }
+                                          .btext-name { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.8px; color:#fff; max-width:120px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+                                          .btag { position:absolute; top:10px; left:10px; font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:1px; padding:2px 7px; border-radius:999px; z-index:3; border:1.5px solid rgba(255,255,255,0.2); }
+                                        `}</style>
+                                        <div className="grid grid-cols-3 gap-4">
+                                          {/* PRIMARY MODEL CARD */}
+                                          <button className="bcard bcard-primary" title={aiModelDetails?.defaultModel?.id}>
+                                            <span className="btag" style={{background:'rgba(251,146,60,0.2)',color:'#fb923c',borderColor:'rgba(251,146,60,0.35)'}}>Primary</span>
+                                            <div className="blogo" style={{background:'#1a0900'}}>
+                                              {/* Anthropic / Claude icon */}
+                                              <svg width="46" height="46" viewBox="0 0 24 24" fill="none">
+                                                <path d="M13.827 3.52h3.603L24 20h-3.603l-6.57-16.48zm-3.654 0H6.57L0 20h3.603l1.357-3.415h6.985l1.357 3.415h3.603L10.173 3.52zm-3.874 9.985L8.432 7.91l2.133 5.596H6.299z" fill="#D97757"/>
+                                              </svg>
                                             </div>
+                                            <div className="btext">
+                                              <span className="btext-sub">Primary Model</span>
+                                              <span className="btext-name">{(aiModelDetails?.defaultModel?.name || 'Claude Opus 5').split(' ').slice(0,3).join(' ')}</span>
+                                            </div>
+                                          </button>
 
-                                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2">
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-[10px] font-black text-violet-700 bg-violet-50 px-2 py-0.5 rounded-md uppercase tracking-wider">Fallback Model</span>
-                                                    <span className="text-[10px] font-bold text-slate-400">{aiModelDetails?.fallbackModel?.context_length ? `${aiModelDetails.fallbackModel.context_length} ctx` : '4k ctx'}</span>
-                                                </div>
-                                                <h4 className="font-extrabold text-slate-800">{aiModelDetails?.fallbackModel?.name || 'OpenRouter Free Auto-Router'}</h4>
-                                                <p className="text-[10px] font-mono text-slate-400 truncate">{aiModelDetails?.fallbackModel?.id || 'openrouter/free'}</p>
+                                          {/* FALLBACK MODEL CARD */}
+                                          <button className="bcard bcard-fallback" title={aiModelDetails?.fallbackModel?.id}>
+                                            <span className="btag" style={{background:'rgba(167,139,250,0.2)',color:'#a78bfa',borderColor:'rgba(167,139,250,0.35)'}}>Fallback</span>
+                                            <div className="blogo" style={{background:'#100518'}}>
+                                              {/* OpenRouter icon */}
+                                              <svg width="46" height="46" viewBox="0 0 24 24" fill="none">
+                                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" fill="#a78bfa"/>
+                                              </svg>
                                             </div>
+                                            <div className="btext">
+                                              <span className="btext-sub">Fallback / Free</span>
+                                              <span className="btext-name">{(aiModelDetails?.fallbackModel?.name || 'Auto Router').split(' ').slice(0,3).join(' ')}</span>
+                                            </div>
+                                          </button>
+
+                                          {/* FREE TIER CARD */}
+                                          <button className="bcard bcard-free" title="OpenRouter Free Models">
+                                            <span className="btag" style={{background:'rgba(52,211,153,0.2)',color:'#34d399',borderColor:'rgba(52,211,153,0.35)'}}>Free</span>
+                                            <div className="blogo" style={{background:'#040f08'}}>
+                                              {/* Gemma / free icon */}
+                                              <svg width="46" height="46" viewBox="0 0 24 24" fill="none">
+                                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#34d399" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                              </svg>
+                                            </div>
+                                            <div className="btext">
+                                              <span className="btext-sub">Free Tier</span>
+                                              <span className="btext-name">OpenRouter Free</span>
+                                            </div>
+                                          </button>
+                                        </div>
+
+                                        {/* Context details row */}
+                                        <div className="grid grid-cols-3 gap-4 text-center">
+                                          <div className="bg-orange-950/10 rounded-2xl px-3 py-2 border border-orange-900/20">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-orange-400">Context</p>
+                                            <p className="text-sm font-extrabold text-orange-200 mt-0.5">{aiModelDetails?.defaultModel?.context_length ? `${(aiModelDetails.defaultModel.context_length/1000).toFixed(0)}K` : '8K'}</p>
+                                            <p className="text-[9px] font-mono text-orange-400/60 truncate">{(aiModelDetails?.defaultModel?.id || 'claude').split('/').pop()?.substring(0,18)}</p>
+                                          </div>
+                                          <div className="bg-violet-950/10 rounded-2xl px-3 py-2 border border-violet-900/20">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-violet-400">Context</p>
+                                            <p className="text-sm font-extrabold text-violet-200 mt-0.5">{aiModelDetails?.fallbackModel?.context_length ? `${(aiModelDetails.fallbackModel.context_length/1000).toFixed(0)}K` : '4K'}</p>
+                                            <p className="text-[9px] font-mono text-violet-400/60 truncate">{(aiModelDetails?.fallbackModel?.id || 'openrouter/auto').split('/').pop()?.substring(0,18)}</p>
+                                          </div>
+                                          <div className="bg-emerald-950/10 rounded-2xl px-3 py-2 border border-emerald-900/20">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400">Models</p>
+                                            <p className="text-sm font-extrabold text-emerald-200 mt-0.5">{(aiModelDetails?.allModels || []).filter((m: any) => m.id.includes(':free')).length || '—'}</p>
+                                            <p className="text-[9px] font-mono text-emerald-400/60 truncate">Free Available</p>
+                                          </div>
                                         </div>
                                     </div>
 
@@ -9561,6 +9719,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <div className="text-[10px] font-black bg-brand-50 text-brand-700 px-2.5 py-1 rounded-full uppercase tracking-wider self-start sm:self-center">
                                                 {aiModelDetails?.allModels?.length || 0} Models Available
                                             </div>
+                                        </div>
+
+                                        {/* Category filter chips */}
+                                        <div className="flex gap-2">
+                                            {(['all', 'free', 'paid'] as const).map(cat => (
+                                                <button
+                                                    key={cat}
+                                                    onClick={() => setModelCategoryFilter(cat)}
+                                                    className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border transition-all ${
+                                                        modelCategoryFilter === cat
+                                                            ? cat === 'free'
+                                                                ? 'bg-emerald-500 text-white border-emerald-600 shadow-md shadow-emerald-200'
+                                                                : cat === 'paid'
+                                                                    ? 'bg-violet-600 text-white border-violet-700 shadow-md shadow-violet-200'
+                                                                    : 'bg-slate-800 text-white border-slate-900 shadow-md shadow-slate-200'
+                                                            : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                                                    }`}
+                                                >
+                                                    {cat === 'free' ? '🆓 Free' : cat === 'paid' ? '💎 Paid' : '🌐 All'}
+                                                </button>
+                                            ))}
+                                            {modelCategoryFilter !== 'all' && (
+                                                <span className="text-[10px] font-bold text-slate-400 self-center ml-1">
+                                                    {filteredModels.length} results
+                                                </span>
+                                            )}
                                         </div>
 
                                         <div className="space-y-4">

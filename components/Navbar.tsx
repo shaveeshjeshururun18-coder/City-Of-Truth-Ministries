@@ -192,8 +192,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             <span className="absolute inset-y-0 -left-8 w-6 rotate-12 bg-white/70 blur-[2px] animate-[logo-shine_3.8s_ease-in-out_infinite]" />
           </div>
           <div className={`flex flex-col justify-center transition-all duration-300 ${isScrolled ? 'hidden sm:flex' : 'flex'}`}>
-              <span className={`font-black text-[1.05rem] sm:text-[1.15rem] leading-[1.1] tracking-tight drop-shadow-sm ${isTransparent ? 'text-yellow-50' : 'text-[#1e3a8a]'}`}>City of Truth</span>
-              <span className={`text-[0.62rem] sm:text-[0.65rem] font-extrabold tracking-[1px] uppercase ${isTransparent ? 'text-yellow-200/85' : 'text-blue-700'}`}>MINISTRIES</span>
+              <span className={`font-black text-[1.05rem] sm:text-[1.15rem] leading-[1.1] tracking-tight drop-shadow-sm ${(isTransparent && !isScrolled) ? 'text-yellow-50' : 'text-[#0f172a]'}`}>City of Truth</span>
+              <span className={`text-[0.62rem] sm:text-[0.65rem] font-extrabold tracking-[1px] uppercase ${(isTransparent && !isScrolled) ? 'text-yellow-200/85' : 'text-[#b45309]'}`}>MINISTRIES</span>
           </div>
         </div>
 

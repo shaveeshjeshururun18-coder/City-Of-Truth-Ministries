@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Church, RefreshCw, User, X, Phone, Mail, MapPin, UploadCloud, CheckCircle, ArrowRight, Download, Sparkles, Youtube, FileText, Lock, Eye, EyeOff, Users, Plus, Trash2, ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react';
+import { Church, RefreshCw, User, X, Phone, Mail, MapPin, UploadCloud, CheckCircle, ArrowRight, Download, Sparkles, Youtube, FileText, Lock, Eye, EyeOff, Users, Plus, Trash2, ChevronDown, ChevronUp, ShieldCheck, Camera } from 'lucide-react';
 import { Button } from './Button';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
@@ -794,6 +794,21 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
 
     const handleRegisterFingerprint = async () => {
         try {
+            if (!window.isSecureContext) {
+                alert("Fingerprint registration requires a secure HTTPS connection or localhost.");
+                return;
+            }
+            if (!window.PublicKeyCredential || !navigator.credentials?.create) {
+                alert("This browser does not support fingerprint registration.");
+                return;
+            }
+            if (window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
+                const hasPlatformAuthenticator = await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+                if (!hasPlatformAuthenticator) {
+                    alert("No supported fingerprint sensor was found on this device.");
+                    return;
+                }
+            }
             const challenge = new Uint8Array(32);
             window.crypto.getRandomValues(challenge);
             
@@ -823,17 +838,48 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
             }
         } catch (err) {
             console.error("Biometric registration failed:", err);
-            alert("Fingerprint registration failed or was cancelled.");
+            const errorName = (err as any)?.name;
+            if (errorName === "NotAllowedError") {
+                alert("Fingerprint registration was cancelled. Please approve the prompt and try again.");
+            } else if (errorName === "SecurityError") {
+                alert("Fingerprint registration requires HTTPS or localhost.");
+            } else if (errorName === "NotSupportedError") {
+                alert("This browser or device does not support fingerprint registration.");
+            } else {
+                alert("Fingerprint registration failed. Make sure your device has a real fingerprint sensor and try again.");
+            }
         }
     };
 
     const handleCropComplete = (croppedImg: string) => {
         if (cropTarget?.type === 'family' && cropTarget.memberId) {
+            if (photo && croppedImg === photo) {
+                alert("⚠️ Family member photo cannot be the same as the main card photo. Please upload or scan a unique photo for this member.");
+                setCroppingImage(null);
+                setCropTarget(null);
+                return;
+            }
+            const duplicateMember = familyMembers.find(m => m.id !== cropTarget.memberId && m.photo && m.photo === croppedImg);
+            if (duplicateMember) {
+                alert(`⚠️ This photo is already used for ${duplicateMember.name || 'another family member'}. Each family member must have a unique photo.`);
+                setCroppingImage(null);
+                setCropTarget(null);
+                return;
+            }
             updateFamilyMember(cropTarget.memberId, 'photo', croppedImg);
             setCroppingImage(null);
             setCropTarget(null);
             return;
         }
+
+        const duplicateFamily = familyMembers.find(m => m.photo && m.photo === croppedImg);
+        if (duplicateFamily) {
+            alert(`⚠️ Main card photo cannot be the same as ${duplicateFamily.name || 'a family member\'s'} photo. Please use a unique photo.`);
+            setCroppingImage(null);
+            setCropTarget(null);
+            return;
+        }
+
         setPreviewPhoto(croppedImg);
         setCroppingImage(null);
         setCropTarget(null);
@@ -1331,6 +1377,11 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                                 const invalidMember = familyMembers.find(member => !member.name.trim() || member.relationship === 'None');
                                                 if (invalidMember) {
                                                     alert("Please fill family member Name and Relationship.");
+                                                    return;
+                                                }
+                                                const allUploadedPhotos = [photo, ...familyMembers.map(m => m.photo)].filter(Boolean);
+                                                if (allUploadedPhotos.length > new Set(allUploadedPhotos).size) {
+                                                    alert("⚠️ Duplicate photos detected! Each family member must have a unique photo. Please upload or scan distinct photos for each person.");
                                                     return;
                                                 }
                                             }

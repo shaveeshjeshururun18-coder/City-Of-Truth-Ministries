@@ -185,13 +185,13 @@ export interface Permalink {
 export interface WidgetSettingsConfig {
   shareVisible: boolean;
   shareSize: number;
-  shareLabelVisible: boolean;
-  shareLabelText: string;
+  shareLabelVisible?: boolean;
+  shareLabelText?: string;
   shareAnimation?: boolean;
   aiVisible: boolean;
   aiSize: number;
-  aiLabelVisible: boolean;
-  aiLabelText: string;
+  aiLabelVisible?: boolean;
+  aiLabelText?: string;
   aiAnimation?: boolean;
 }
 

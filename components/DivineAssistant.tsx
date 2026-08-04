@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { X, Send, Maximize2, Minimize2, Loader, Sparkles, Trash2, Hand, Quote, Settings, Download, BookOpen, Clock, Zap, BarChart3, Volume2, Copy, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { X, Send, Maximize2, Minimize2, Loader, Sparkles, Trash2, Hand, Quote, Settings, Download, BookOpen, Clock, Zap, BarChart3, Volume2, Copy, ThumbsUp, ThumbsDown, Cpu } from 'lucide-react';
 import { motion, AnimatePresence, PanInfo, useAnimation } from 'framer-motion';
 import { streamSpatulaAIResponse } from '../services/openRouterService';
 import { jsPDF } from 'jspdf';
 import { LordIconWrapper } from './LordIconWrapper';
+import { AIModelSelectorModal } from './AIModelSelectorModal';
 import 'jspdf-autotable';
 
 declare global {
@@ -109,6 +110,18 @@ const DEFAULT_CONFIG: AssistantConfig = {
 export const DivineAssistant: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
+    const [showModelSelector, setShowModelSelector] = useState(false);
+    const [primaryModelId, setPrimaryModelId] = useState(() => localStorage.getItem('cot_primary_ai_model') || 'gpt-omni');
+    const [secondaryModelId, setSecondaryModelId] = useState(() => localStorage.getItem('cot_secondary_ai_model') || 'gemini-2-flash');
+
+    useEffect(() => {
+        const handleModelChange = () => {
+            setPrimaryModelId(localStorage.getItem('cot_primary_ai_model') || 'gpt-omni');
+            setSecondaryModelId(localStorage.getItem('cot_secondary_ai_model') || 'gemini-2-flash');
+        };
+        window.addEventListener('cot-ai-models-changed', handleModelChange);
+        return () => window.removeEventListener('cot-ai-models-changed', handleModelChange);
+    }, []);
     const [showSettings, setShowSettings] = useState(false);
     const [showAnalytics, setShowAnalytics] = useState(false);
     const [isVisible, setIsVisible] = useState(true); // Force visible initially
@@ -683,6 +696,14 @@ export const DivineAssistant: React.FC = () => {
                                     {isExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
                                 </button>
                                 <button 
+                                    onClick={() => setShowModelSelector(true)} 
+                                    className="p-1.5 px-2.5 rounded-lg bg-amber-400/20 hover:bg-amber-400/30 border border-amber-400/40 text-amber-300 text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all"
+                                    title="Select AI Model Engine (GPT-Omni, Claude 3.5, Gemini, Lashon HaKodesh)"
+                                >
+                                    <Cpu size={14} className="text-amber-400" />
+                                    <span className="hidden sm:inline">{primaryModelId}</span>
+                                </button>
+                                <button 
                                     onClick={() => setShowSettings(!showSettings)} 
                                     className="p-2 rounded-lg transition-all hover:bg-white/20"
                                     style={{color: '#D4AF37'}}
@@ -906,6 +927,23 @@ export const DivineAssistant: React.FC = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            <AIModelSelectorModal
+                isOpen={showModelSelector}
+                onClose={() => setShowModelSelector(false)}
+                primaryModelId={primaryModelId}
+                secondaryModelId={secondaryModelId}
+                onSelectPrimaryModel={(id) => {
+                    setPrimaryModelId(id);
+                    localStorage.setItem('cot_primary_ai_model', id);
+                    window.dispatchEvent(new CustomEvent('cot-ai-models-changed'));
+                }}
+                onSelectSecondaryModel={(id) => {
+                    setSecondaryModelId(id);
+                    localStorage.setItem('cot_secondary_ai_model', id);
+                    window.dispatchEvent(new CustomEvent('cot-ai-models-changed'));
+                }}
+            />
         </>
     );
 };

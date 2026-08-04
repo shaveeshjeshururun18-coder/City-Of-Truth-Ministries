@@ -124,6 +124,7 @@ const getPagePermalinkOverrides = (): Partial<Record<ViewState, string>> => {
   }
 };
 
+
 const RevealText: React.FC<{ text: string; className?: string; delay?: number }> = ({ text, className = "", delay = 0 }) => {
   return (
     <div className={`overflow-hidden ${className}`}>
@@ -280,13 +281,29 @@ const VIEW_ALIASES: Record<string, ViewState> = {
   GOLDENMENORAH: ViewState.GOLDEN_MENORAH,
   ENTRUST_CARD: ViewState.ID_CARD,
   ENTRUSTCARD: ViewState.ID_CARD,
+  WORSHIPPER_CARD: ViewState.ID_CARD,
+  WORSHIPPERCARD: ViewState.ID_CARD,
+  WORSHIPPER_ID: ViewState.ID_CARD,
   HEBREW_CONTENT: ViewState.ABOUT,
   HEBREW_RESOURCES: ViewState.ABOUT,
+  HEBREW_ALPHABET: ViewState.HEBREW,
+  HEBREWALPHABET: ViewState.HEBREW,
+  USER_DASHBOARD: ViewState.USER_DASHBOARD,
+  USERDASHBOARD: ViewState.USER_DASHBOARD,
+  ADMIN: ViewState.ADMIN_DASHBOARD,
+  ADMIN_DASHBOARD: ViewState.ADMIN_DASHBOARD,
+  FEAST_CALENDAR: ViewState.HEBREW_FESTIVALS,
+  FEASTCALENDAR: ViewState.HEBREW_FESTIVALS,
+  PRAYER_REQUESTS: ViewState.CONTACT,
+  PRAYERREQUESTS: ViewState.CONTACT,
+  GIVING: ViewState.CONTACT,
+  BIBLE: ViewState.BARUCH_HASHEM,
   MEMBER_FORM: ViewState.MEMBER_FORM,
   MEMBERFORM: ViewState.MEMBER_FORM,
   MEMBER_PROFILE: ViewState.MEMBER_FORM,
   COMMUNITY_PROFILE: ViewState.MEMBER_FORM,
 };
+
 
 const normalizeViewState = (value: unknown, fallback: ViewState = ViewState.HOME): ViewState => {
   if (typeof value !== 'string') return fallback;
@@ -3687,157 +3704,86 @@ const App: React.FC = () => {
                   <button className="developer-btn">
                     <span className="developer-btn-text">S.Shaveesh Jeshurun</span>
                   </button>
-                  <svg className="developer-btn-corner" xmlns="http://www.w3.org/2000/svg" viewBox="-1 1 32 32">
-                    <path d="M32,32C14.355,32,0,17.645,0,0h.985c0,17.102,13.913,31.015,31.015,31.015v.985Z"></path>
-                  </svg>
-                  <svg className="developer-btn-corner" xmlns="http://www.w3.org/2000/svg" viewBox="-1 1 32 32">
-                    <path d="M32,32C14.355,32,0,17.645,0,0h.985c0,17.102,13.913,31.015,31.015,31.015v.985Z"></path>
-                  </svg>
-                  <svg className="developer-btn-corner" xmlns="http://www.w3.org/2000/svg" viewBox="-1 1 32 32">
-                    <path d="M32,32C14.355,32,0,17.645,0,0h.985c0,17.102,13.913,31.015,31.015,31.015v.985Z"></path>
-                  </svg>
-                  <svg className="developer-btn-corner" xmlns="http://www.w3.org/2000/svg" viewBox="-1 1 32 32">
-                    <path d="M32,32C14.355,32,0,17.645,0,0h.985c0,17.102,13.913,31.015,31.015,31.015v.985Z"></path>
-                  </svg>
-                </div>
-                <style>{`
+                  <style>{`
                   .developer-btn-container {
-                    --btn-color: #7cb8ff;
-                    --corner-color: #0002;
-                    --corner-dist: 24px;
-                    --corner-multiplier: 1.5;
-                    --timing-function: cubic-bezier(0, 0, 0, 2.5);
+                    --timing-function: cubic-bezier(0.16, 1, 0.3, 1);
                     --duration: 250ms;
                     position: relative;
-                    display: flex;
+                    display: inline-flex;
                     align-items: center;
                     justify-content: center;
+                    margin-top: 28px;
+                    margin-bottom: 28px;
                   }
                   .developer-btn {
                     position: relative;
                     min-width: 240px;
-                    min-height: calc(var(--corner-dist) * 2);
+                    min-height: 48px;
                     border-radius: 16px;
-                    border: none;
+                    border: 2px solid rgba(255, 255, 255, 0.5);
                     padding: 0.75em 1.5em;
-                    background: linear-gradient(#fff2, #0001), var(--btn-color);
-                    box-shadow: 1px 1px 2px -1px #fff inset, 0 2px 1px #00000010, 0 4px 2px #00000010, 0 8px 4px #00000010, 0 16px 8px #00000010, 0 32px 16px #00000010;
-                    transition: transform var(--duration) var(--timing-function), filter var(--duration) var(--timing-function);
+                    background: linear-gradient(135deg, #7cb8ff 0%, #4d9fff 100%);
+                    box-shadow: 0 8px 20px rgba(77, 159, 255, 0.35);
+                    transition: all var(--duration) var(--timing-function);
                     cursor: pointer;
+                    z-index: 2;
                   }
                   .developer-btn-drawer {
                     position: absolute;
                     display: flex;
+                    align-items: center;
                     justify-content: center;
                     min-height: 32px;
-                    border-radius: 16px;
-                    border: none;
-                    padding: 0.25em 1em;
-                    font-size: 0.8em;
-                    font-weight: 600;
+                    border-radius: 14px;
+                    border: 1.5px solid rgba(255, 255, 255, 0.6);
+                    padding: 0.3em 1.2em;
+                    font-size: 0.82em;
+                    font-weight: 800;
                     font-family: "Inter", sans-serif;
-                    color: #003a70;
-                    background: linear-gradient(#fff2, #0001), var(--btn-color);
-                    background-color: #4d9fff;
+                    color: #044e36;
+                    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
                     opacity: 0;
-                    transition: transform calc(0.5 * var(--duration)) ease, filter var(--duration) var(--timing-function), opacity calc(0.5 * var(--duration)) ease;
-                    filter: blur(2px);
+                    transition: all var(--duration) var(--timing-function);
+                    z-index: 1;
+                    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+                    white-space: nowrap;
                   }
                   .developer-transition-top {
                     top: 0;
-                    left: 0;
-                    border-radius: 12px 12px 0 0;
-                    align-items: start;
+                    left: 50%;
+                    transform: translateX(-50%) translateY(0) scale(0.9);
                   }
                   .developer-transition-bottom {
                     bottom: 0;
-                    right: 0;
-                    border-radius: 0 0 12px 12px;
-                    align-items: end;
+                    left: 50%;
+                    transform: translateX(-50%) translateY(0) scale(0.9);
                   }
                   .developer-btn-text {
                     display: inline-block;
-                    font-size: 1em;
+                    font-size: 1.05em;
                     font-family: "Inter", sans-serif;
-                    font-weight: 700;
-                    color: #5550;
-                    background-image: linear-gradient(#444, #000a);
-                    background-clip: text;
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    filter: drop-shadow(0 1px 0 #fff6) drop-shadow(0 -1px 0 #0006);
-                    transition: transform var(--duration) var(--timing-function), filter var(--duration) var(--timing-function), color var(--duration) var(--timing-function);
+                    font-weight: 800;
+                    color: #0f172a;
+                    letter-spacing: 0.02em;
+                    transition: all var(--duration) var(--timing-function);
                   }
                   .developer-btn-corner {
-                    position: absolute;
-                    width: 32px;
-                    fill: none;
-                    stroke: var(--corner-color);
-                    transition: transform var(--duration) var(--timing-function), filter var(--duration) var(--timing-function);
-                  }
-                  .developer-btn-corner:nth-of-type(1) {
-                    top: 0;
-                    left: 0;
-                    transform: translate(calc(-1 * var(--corner-dist)), calc(-1 * var(--corner-dist))) rotate(90deg);
-                  }
-                  .developer-btn-corner:nth-of-type(2) {
-                    top: 0;
-                    right: 0;
-                    transform: translate(var(--corner-dist), calc(-1 * var(--corner-dist))) rotate(180deg);
-                  }
-                  .developer-btn-corner:nth-of-type(3) {
-                    bottom: 0;
-                    right: 0;
-                    transform: translate(var(--corner-dist), var(--corner-dist)) rotate(-90deg);
-                  }
-                  .developer-btn-corner:nth-of-type(4) {
-                    bottom: 0;
-                    left: 0;
-                    transform: translate(calc(-1 * var(--corner-dist)), var(--corner-dist)) rotate(0deg);
+                    display: none;
                   }
                   .developer-btn-container:hover .developer-btn {
-                    transform: scale(1.05);
-                    filter: drop-shadow(0 16px 16px #0002);
+                    transform: scale(1.03);
+                    box-shadow: 0 12px 28px rgba(77, 159, 255, 0.5);
                   }
                   .developer-btn-container:hover .developer-transition-top {
-                    transform: translateY(-24px) rotateZ(4deg);
-                    filter: blur(0px);
-                    animation: hue-anim-dev 3s infinite linear;
+                    transform: translateX(-50%) translateY(-30px) scale(1);
                     opacity: 1;
                   }
                   .developer-btn-container:hover .developer-transition-bottom {
-                    transform: translateY(24px) rotateZ(4deg);
-                    filter: blur(0px);
-                    animation: hue-anim-dev 3s infinite linear;
+                    transform: translateX(-50%) translateY(30px) scale(1);
                     opacity: 1;
                   }
                   .developer-btn-container:hover .developer-btn-text {
-                    filter: drop-shadow(0 1px 0 #fff6) drop-shadow(0 -1px 0 #0006) drop-shadow(0px 6px 2px #0003);
-                    transform: scale(1.05);
-                    color: #0008;
-                  }
-                  .developer-btn-container:hover {
-                    --corner-color: #0004;
-                  }
-                  .developer-btn-container:hover .developer-btn-corner:nth-of-type(1) {
-                    transform: translate(calc(-1 * var(--corner-multiplier) * var(--corner-dist)), calc(-1 * var(--corner-multiplier) * var(--corner-dist))) rotate(90deg);
-                    filter: drop-shadow(-10px 10px 1px var(--corner-color)) drop-shadow(-20px 20px 2px var(--corner-color));
-                  }
-                  .developer-btn-container:hover .developer-btn-corner:nth-of-type(2) {
-                    transform: translate(calc(var(--corner-multiplier) * var(--corner-dist)), calc(-1 * var(--corner-multiplier) * var(--corner-dist))) rotate(180deg);
-                    filter: drop-shadow(-10px 10px 1px var(--corner-color)) drop-shadow(-20px 20px 2px var(--corner-color));
-                  }
-                  .developer-btn-container:hover .developer-btn-corner:nth-of-type(3) {
-                    transform: translate(calc(var(--corner-multiplier) * var(--corner-dist)), calc(var(--corner-multiplier) * var(--corner-dist))) rotate(-90deg);
-                    filter: drop-shadow(-10px 10px 1px var(--corner-color)) drop-shadow(-20px 20px 2px var(--corner-color));
-                  }
-                  .developer-btn-container:hover .developer-btn-corner:nth-of-type(4) {
-                    transform: translate(calc(-1 * var(--corner-multiplier) * var(--corner-dist)), calc(var(--corner-multiplier) * var(--corner-dist))) rotate(0deg);
-                    filter: drop-shadow(-10px 10px 1px var(--corner-color)) drop-shadow(-20px 20px 2px var(--corner-color));
-                  }
-                  .developer-btn-container:active .developer-btn {
-                    transform: scale(0.95);
-                    filter: drop-shadow(0 10px 4px #0002);
+                    color: #032870;
                   }
                   .developer-btn-container:active .developer-transition-top,
                   .developer-btn-container:active .developer-transition-bottom {
@@ -3857,6 +3803,7 @@ const App: React.FC = () => {
                     }
                   }
                 `}</style>
+                </div>
               </div>
             </div>
 

@@ -56,16 +56,18 @@ const TAMIL_NADU_LOCATIONS = [
 ];
 
 const DEFAULT_DASHBOARD_BADGES = [
-    { id: 'verified-member', icon: '✓', name: 'Verified Member', color: 'from-emerald-400 via-teal-500 to-cyan-700' },
-    { id: 'prayer-warrior', icon: '🙏', name: 'Prayer Warrior', color: 'from-indigo-500 via-violet-600 to-fuchsia-700' },
-    { id: 'scripture-reader', icon: '📖', name: 'Scripture Reader', color: 'from-sky-400 via-blue-600 to-indigo-800' },
-    { id: 'volunteer-heart', icon: '♥', name: 'Volunteer Heart', color: 'from-rose-400 via-red-500 to-pink-700' },
-    { id: 'feast-participant', icon: '✦', name: 'Feast Participant', color: 'from-amber-300 via-yellow-500 to-orange-700' },
-    { id: 'worship-flame', icon: '🔥', name: 'Worship Flame', color: 'from-orange-400 via-red-500 to-rose-800' },
-    { id: 'truth-seeker', icon: '⌕', name: 'Truth Seeker', color: 'from-cyan-300 via-blue-500 to-slate-900' },
-    { id: 'faith-builder', icon: '✚', name: 'Faith Builder', color: 'from-lime-300 via-emerald-500 to-green-800' },
-    { id: 'light-bearer', icon: '☀', name: 'Light Bearer', color: 'from-yellow-200 via-amber-400 to-stone-800' },
-    { id: 'ministry-pillar', icon: '♛', name: 'Ministry Pillar', color: 'from-slate-500 via-zinc-800 to-amber-600' },
+    { id: 'verified-member', ribbonText: 'VERIFIED MEMBER', icon: '✓', image: '/assets/badges/verified-member.png', name: 'Verified Member', color: 'from-emerald-400 via-teal-500 to-cyan-700', desc: 'Officially Verified Member' },
+    { id: 'scripture-reader', ribbonText: 'SCRIPTURE READER', icon: '📖', image: '/assets/badges/scripture-reader.png', name: 'Scripture Reader', color: 'from-sky-400 via-blue-600 to-indigo-800', desc: 'Faithful Reader of God\'s Word' },
+    { id: 'prayer-warrior', ribbonText: 'PRAYER WARRIOR', icon: '🙏', image: '/assets/badges/prayer-warrior.png', name: 'Prayer Warrior', color: 'from-indigo-500 via-violet-600 to-fuchsia-700', desc: 'Devoted Intercessor in Prayer' },
+    { id: 'worship-leader', ribbonText: 'WORSHIP LEADER', icon: '🔥', image: '/assets/badges/worship-leader.png', name: 'Worship Leader', color: 'from-orange-400 via-red-500 to-rose-800', desc: 'Anointed Leader of Praise' },
+    { id: 'volunteer-heart', ribbonText: 'VOLUNTEER HEART', icon: '♥', image: '/assets/badges/volunteer-heart.png', name: 'Volunteer Heart', color: 'from-rose-400 via-red-500 to-pink-700', desc: 'Selfless Ministry Servant' },
+    { id: 'faith-builder', ribbonText: 'FAITH BUILDER', icon: '✚', image: '/assets/badges/faith-builder.png', name: 'Faith Builder', color: 'from-lime-300 via-emerald-500 to-green-800', desc: 'Building Strong Faith Foundations' },
+    { id: 'evangelist', ribbonText: 'EVANGELIST', icon: '🎺', image: '/assets/badges/evangelist.png', name: 'Evangelist', color: 'from-amber-400 via-orange-500 to-red-600', desc: 'Proclaimer of Good News' },
+    { id: 'kingdom-builder', ribbonText: 'KINGDOM BUILDER', icon: '👑', image: '/assets/badges/kingdom-builder.png', name: 'Kingdom Builder', color: 'from-yellow-400 via-amber-500 to-orange-600', desc: 'Advancing God\'s Kingdom' },
+    { id: 'light-bearer', ribbonText: 'LIGHT BEARER', icon: '☀', image: '/assets/badges/light-bearer.png', name: 'Light Bearer', color: 'from-yellow-200 via-amber-400 to-stone-800', desc: 'Shining Divine Light' },
+    { id: 'shepherd', ribbonText: 'SHEPHERD', icon: '🌿', image: '/assets/badges/shepherd.png', name: 'Shepherd', color: 'from-teal-400 via-emerald-600 to-slate-900', desc: 'Caring Ministry Shepherd' },
+    { id: 'disciple', ribbonText: 'DISCIPLE', icon: '📜', image: '/assets/badges/disciple.png', name: 'Disciple', color: 'from-blue-500 via-indigo-600 to-purple-800', desc: 'Follower of Truth' },
+    { id: 'overcomer', ribbonText: 'OVERCOMER', icon: '🏆', image: '/assets/badges/overcomer.png', name: 'Overcomer', color: 'from-amber-600 via-orange-600 to-yellow-700', desc: 'Victorious Overcomer' },
 ];
 
 export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, onOpenScanner, initialProfileId, onGoToLogin, notifications = [], onSendReply, onMarkNotificationsRead, onDeleteNotification, focusSection = null, onDeleteAccount, allUsers = [] }) => {
@@ -219,8 +221,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         const byId = new Map([...DEFAULT_DASHBOARD_BADGES, ...userBadges].map(badge => [badge.id, badge]));
         return Array.from(byId.values());
     }, [user.customBadges]);
-    const visibleBadge = dashboardBadges.find(badge => badge.id === user.visibleBadgeId) || dashboardBadges[0];
+    const visibleBadge: any = dashboardBadges.find(badge => badge.id === user.visibleBadgeId) || dashboardBadges[0];
     const visibleBadgeId = user.visibleBadgeId || visibleBadge?.id;
+    const [showBadgePickerDetails, setShowBadgePickerDetails] = useState(false);
 
     useEffect(() => {
         if (canAccessEntrustFeatures) {
@@ -1527,6 +1530,21 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const handleRegisterDashboardFingerprint = async () => {
         try {
             setIsRegisteringFingerprint(true);
+            if (!window.isSecureContext) {
+                alert('Fingerprint registration requires a secure HTTPS connection or localhost.');
+                return;
+            }
+            if (!window.PublicKeyCredential || !navigator.credentials?.create) {
+                alert('This browser does not support fingerprint registration.');
+                return;
+            }
+            if (window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
+                const hasPlatformAuthenticator = await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+                if (!hasPlatformAuthenticator) {
+                    alert('No supported fingerprint sensor was found on this device.');
+                    return;
+                }
+            }
             const challenge = new Uint8Array(32);
             window.crypto.getRandomValues(challenge);
             const biometricUserId = new Uint8Array(16);
@@ -1558,7 +1576,16 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             showToast('Fingerprint login added to your dashboard.', 'success');
         } catch (err) {
             console.error('Dashboard fingerprint registration failed:', err);
-            alert('Fingerprint registration failed or was cancelled.');
+            const errorName = (err as any)?.name;
+            if (errorName === 'NotAllowedError') {
+                alert('Fingerprint registration was cancelled. Please approve the prompt and try again.');
+            } else if (errorName === 'SecurityError') {
+                alert('Fingerprint registration requires HTTPS or localhost.');
+            } else if (errorName === 'NotSupportedError') {
+                alert('This browser or device does not support fingerprint registration.');
+            } else {
+                alert('Fingerprint registration failed. Make sure your device has a real fingerprint sensor and try again.');
+            }
         } finally {
             setIsRegisteringFingerprint(false);
         }
@@ -1916,10 +1943,19 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                     </span>
                                 </div>
                                 {visibleBadge && (
-                                    <div className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full border border-white/60 bg-slate-950 px-2.5 py-1 shadow-[0_10px_22px_-14px_rgba(15,23,42,0.8)]">
-                                        <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br ${visibleBadge.color} text-[11px] font-black text-white shadow-sm`}>
-                                            {visibleBadge.icon}
-                                        </span>
+                                    <div className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full border border-white/20 bg-slate-950/90 backdrop-blur-sm px-1.5 py-0.5 pr-3 shadow-[0_10px_22px_-14px_rgba(15,23,42,0.9)]">
+                                        {visibleBadge.image ? (
+                                            <img
+                                                src={visibleBadge.image}
+                                                alt={visibleBadge.name}
+                                                className="h-7 w-7 object-contain drop-shadow-sm"
+                                                onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }}
+                                            />
+                                        ) : (
+                                            <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br ${visibleBadge.color} text-[11px] font-black text-white shadow-sm`}>
+                                                {visibleBadge.icon}
+                                            </span>
+                                        )}
                                         <span className="truncate text-[10px] font-black uppercase tracking-wider text-amber-100">
                                             {visibleBadge.name}
                                         </span>
@@ -2044,48 +2080,95 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                     {/* ── VISIBLE MEMBER BADGE PICKER ── */}
                     <div className="bg-white rounded-[24px] p-4 shadow-md border border-slate-100 relative overflow-hidden">
-                        <div className="absolute right-0 top-0 h-24 w-24 bg-gradient-to-br from-amber-200/30 to-transparent rounded-bl-[48px] pointer-events-none" />
-                        <div className="relative flex items-start justify-between gap-3 mb-3">
-                            <div>
-                                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-600">Custom Badge</p>
-                                <h3 className="text-sm font-black text-slate-900 mt-0.5">Choose 1 Visible Badge</h3>
-                                <p className="text-[11px] text-slate-500 mt-1">This badge appears beside your dashboard identity.</p>
+                        <div className="absolute right-0 top-0 h-32 w-32 bg-gradient-to-bl from-amber-100/60 to-transparent rounded-bl-[64px] pointer-events-none" />
+                        <div className="absolute left-0 bottom-0 h-24 w-24 bg-gradient-to-tr from-blue-50/60 to-transparent rounded-tr-[48px] pointer-events-none" />
+                        <div className="relative flex items-start justify-between gap-3 mb-4">
+                            <div className="min-w-0">
+                                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-600">🏅 Ministry Badges</p>
+                                <h3 className="text-sm font-black text-slate-900 mt-0.5">Choose Your Badge</h3>
+                                <p className="text-[11px] text-slate-500 mt-1">Displayed on your dashboard identity card.</p>
                             </div>
                             {visibleBadge && (
-                                <div className={`shrink-0 h-12 w-12 rounded-2xl bg-gradient-to-br ${visibleBadge.color} text-white flex items-center justify-center text-xl font-black shadow-lg shadow-amber-500/20`}>
-                                    {visibleBadge.icon}
-                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowBadgePickerDetails(v => !v)}
+                                    className="shrink-0 flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1.5 shadow-sm hover:bg-white transition-colors"
+                                    aria-expanded={showBadgePickerDetails}
+                                    aria-label={showBadgePickerDetails ? 'Show less badge details' : 'Show more badge details'}
+                                >
+                                    {visibleBadge.image ? (
+                                        <img
+                                            src={visibleBadge.image}
+                                            alt={visibleBadge.name}
+                                            className="h-7 w-7 object-contain drop-shadow-sm"
+                                            style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.18))' }}
+                                        />
+                                    ) : (
+                                        <div className={`h-7 w-7 rounded-full bg-gradient-to-br ${visibleBadge.color} text-white flex items-center justify-center text-[10px] font-black shadow-sm`}>
+                                            {visibleBadge.icon}
+                                        </div>
+                                    )}
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 whitespace-nowrap">
+                                        {showBadgePickerDetails ? 'Show less' : 'Show more'}
+                                    </span>
+                                </button>
                             )}
                         </div>
-                        <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {dashboardBadges.map((badge) => {
-                                const isSelected = visibleBadgeId === badge.id;
-                                return (
-                                    <button
-                                        key={badge.id}
-                                        type="button"
-                                        onClick={() => handleSelectVisibleBadge(badge.id)}
-                                        className={`group flex items-center gap-2.5 rounded-2xl border px-3 py-2.5 text-left transition-all active:scale-[0.98] ${
-                                            isSelected
-                                                ? 'border-amber-300 bg-amber-50 shadow-[0_12px_28px_-20px_rgba(217,119,6,0.8)]'
-                                                : 'border-slate-200 bg-slate-50 hover:border-brand-200 hover:bg-white'
-                                        }`}
-                                        aria-pressed={isSelected}
-                                    >
-                                        <span className={`h-9 w-9 rounded-xl bg-gradient-to-br ${badge.color} text-white flex items-center justify-center text-base font-black shadow-sm transition-transform group-hover:rotate-3`}>
-                                            {badge.icon}
-                                        </span>
-                                        <span className="min-w-0 flex-1">
-                                            <span className={`block truncate text-xs font-black ${isSelected ? 'text-amber-900' : 'text-slate-800'}`}>{badge.name}</span>
-                                            <span className={`block text-[9px] font-black uppercase tracking-wider ${isSelected ? 'text-amber-600' : 'text-slate-400'}`}>
-                                                {isSelected ? 'Visible Now' : 'Tap to Show'}
+                        {showBadgePickerDetails && (
+                            <div className="relative grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                                {dashboardBadges.map((badge) => {
+                                    const isSelected = visibleBadgeId === badge.id;
+                                    return (
+                                        <button
+                                            key={badge.id}
+                                            type="button"
+                                            onClick={() => handleSelectVisibleBadge(badge.id)}
+                                            className={`group relative flex flex-col items-center gap-1.5 rounded-2xl border p-3 text-center transition-all duration-200 active:scale-[0.96] ${
+                                                isSelected
+                                                    ? 'border-amber-400 bg-gradient-to-b from-amber-50 to-orange-50 shadow-[0_8px_24px_-8px_rgba(245,158,11,0.5)]'
+                                                    : 'border-slate-200 bg-slate-50 hover:border-amber-200 hover:bg-white hover:shadow-md'
+                                            }`}
+                                            aria-pressed={isSelected}
+                                        >
+                                            {isSelected && (
+                                                <span className="absolute top-1.5 right-1.5 h-4 w-4 rounded-full bg-amber-500 flex items-center justify-center">
+                                                    <CheckCircle size={10} className="text-white" />
+                                                </span>
+                                            )}
+                                            {badge.image ? (
+                                                <img
+                                                    src={badge.image}
+                                                    alt={badge.name}
+                                                    className="h-14 w-14 object-contain transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5"
+                                                    style={{ filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.20))' }}
+                                                    onError={(e) => {
+                                                        const el = e.target as HTMLImageElement;
+                                                        el.style.display = 'none';
+                                                        const fallback = el.nextElementSibling as HTMLElement;
+                                                        if (fallback) fallback.style.display = 'flex';
+                                                    }}
+                                                />
+                                            ) : null}
+                                            <div
+                                                className={`h-12 w-12 rounded-xl bg-gradient-to-br ${badge.color} text-white items-center justify-center text-xl font-black shadow-sm`}
+                                                style={{ display: badge.image ? 'none' : 'flex' }}
+                                            >
+                                                {badge.icon}
+                                            </div>
+                                            <span className={`text-[9px] font-black uppercase tracking-wide leading-tight ${isSelected ? 'text-amber-800' : 'text-slate-600'} max-w-full`}>
+                                                {badge.name}
                                             </span>
-                                        </span>
-                                        {isSelected && <CheckCircle size={16} className="text-amber-600 shrink-0" />}
-                                    </button>
-                                );
-                            })}
-                        </div>
+                                            {!isSelected && (
+                                                <span className="text-[8px] font-bold text-slate-400">Tap to select</span>
+                                            )}
+                                            {isSelected && (
+                                                <span className="text-[8px] font-black text-amber-600 uppercase tracking-wider">✓ Active</span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
 
 
@@ -2537,8 +2620,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                                     />
                                                 </button>
                                             )}
-                                            <p className="mt-4 text-sm font-bold text-brand-950">{displayProfile.name}</p>
-                                            <p className="text-[11px] text-slate-500 font-mono mt-1">{displayProfile.id.toUpperCase()}</p>
+                                            <div className="mt-4 px-4 py-2.5 rounded-2xl bg-brand-50/50 border border-brand-100/80 transition-all hover:bg-brand-50 hover:border-brand-200">
+                                                <p className="text-sm font-bold text-brand-950 text-center">{displayProfile.name}</p>
+                                                <p className="text-[11px] text-brand-700 font-mono text-center mt-0.5">{displayProfile.id.toUpperCase()}</p>
+                                            </div>
                                             <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
                                                 Scan this code to open the official verification page for this Entrust profile.
                                             </p>
@@ -3230,23 +3315,34 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                         <form onSubmit={(e) => {
                             e.preventDefault();
-                            const requestedChanges = {
-                                name: (formData.name ?? user.name)?.trim(),
-                                phone: formData.phone ?? user.phone,
-                                email: (formData.email ?? user.email)?.trim(),
-                                location: (formData.location ?? user.location)?.trim(),
-                                emergency: formData.emergency ?? user.emergency,
-                                dob: (formData as any).dob || '',
-                                memberSince: (formData as any).memberSince || '',
-                                joinedDate: (formData as any).joinedDate || '',
-                            };
-                            onUpdate({
-                                ...user,
-                                pendingProfileUpdate: {
-                                    ...(user.pendingProfileUpdate || {}),
-                                    ...requestedChanges
-                                }
-                            } as User);
+                            if (activeProfileId === user.id) {
+                                const requestedChanges = {
+                                    name: (formData.name ?? user.name)?.trim(),
+                                    phone: formData.phone ?? user.phone,
+                                    email: (formData.email ?? user.email)?.trim(),
+                                    location: (formData.location ?? user.location)?.trim(),
+                                    emergency: formData.emergency ?? user.emergency,
+                                    dob: (formData as any).dob || '',
+                                    memberSince: (formData as any).memberSince || '',
+                                    joinedDate: (formData as any).joinedDate || '',
+                                };
+                                const updatedUser = {
+                                    ...user,
+                                    ...requestedChanges,
+                                    pendingProfileUpdate: {
+                                        ...(user.pendingProfileUpdate || {}),
+                                        ...requestedChanges
+                                    }
+                                };
+                                onUpdate(updatedUser as User);
+                                alert('✅ Profile details saved and updated successfully!');
+                            } else {
+                                const updatedLinkedProfiles = (user.linkedProfiles || []).map(p =>
+                                    p.id === activeProfileId ? { ...p, ...formData } : p
+                                );
+                                onUpdate({ ...user, linkedProfiles: updatedLinkedProfiles });
+                                alert('✅ Family member details updated successfully!');
+                            }
                             setIsEditing(false);
                         }} className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

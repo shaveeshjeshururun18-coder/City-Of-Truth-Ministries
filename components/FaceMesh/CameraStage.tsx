@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Camera, RefreshCw, Sparkles, AlertCircle, ShieldAlert, CheckCircle2, Sliders, Upload, Image as ImageIcon } from 'lucide-react';
+import { Camera, RefreshCw, Sparkles, AlertCircle, ShieldAlert, CheckCircle2, Sliders, Upload, Image as ImageIcon, X } from 'lucide-react';
 import { AlignmentStatus, FaceBoundingBox, ModelLoadingState, FaceLandmark3D } from './types';
 import { initFaceMesh, detectFaceLandmarksFromVideo, analyzeStaticImage, computeBoundingBoxFromLandmarks } from './utils/faceMeshLoader';
 import { evaluateFaceAlignment } from './utils/alignmentChecker';

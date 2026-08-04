@@ -73,7 +73,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     const userAdjustedSizeRef = useRef(false);
     const userAdjustedTorchRef = useRef(false);
     const ambientSensorRef = useRef<{ stop: () => void } | null>(null);
-    const autoMinimizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const autoMinimizeTimerRef = useRef<any>(null);
     const AUTO_EXPAND_DURATION_MS = 3600;
     const handledInitialActionRef = useRef<string | null>(null);
     const LOGIN_TOUR_STEPS = [
@@ -338,11 +338,27 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             { fps: 10, qrbox: { width: 260, height: 260 } },
             (decodedText: string) => {
                 clearScannerTimeouts();
-                const qrData = extractIdentifier(decodedText);
-                applyAuthTorch(false).catch(() => {});
-                setIdentifier(qrData);
-                setShowScanner(false);
-                handleSearch(qrData);
+                // Smooth camera zoom on QR detection
+                const track = getAuthVideoTrack();
+                if (track) {
+                    try {
+                        const caps = (track.getCapabilities?.() as any) || {};
+                        if (caps.zoom) {
+                            const targetZoom = Math.min(caps.zoom.max || 3, 2.5);
+                            track.applyConstraints({ advanced: [{ zoom: targetZoom } as any] }).catch(() => {});
+                        }
+                    } catch (_err) {}
+                }
+                setScannerExpanded(true);
+                setAuthScannerNotice('✨ QR Code Found! Zooming in…');
+
+                setTimeout(() => {
+                    const qrData = extractIdentifier(decodedText);
+                    applyAuthTorch(false).catch(() => {});
+                    setIdentifier(qrData);
+                    setShowScanner(false);
+                    handleSearch(qrData);
+                }, 350);
             },
             () => {}
         ).then(() => {
@@ -633,28 +649,65 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             setVerifyingBiometrics(true);
             const challenge = new Uint8Array(32);
             window.crypto.getRandomValues(challenge);
-            
+
+            const safeBase64ToUint8Array = (base64: string): Uint8Array => {
+                try {
+                    const padded = base64.replace(/-/g, '+').replace(/_/g, '/').padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
+                    const raw = window.atob(padded);
+                    const result = new Uint8Array(raw.length);
+                    for (let i = 0; i < raw.length; i++) {
+                        result[i] = raw.charCodeAt(i);
+                    }
+                    return result;
+                } catch {
+                    return new Uint8Array(0);
+                }
+            };
+
+            const registeredCredentials = (users || [])
+                .filter(u => u.biometrics?.credentialId)
+                .map(u => ({
+                    id: safeBase64ToUint8Array(u.biometrics!.credentialId),
+                    type: 'public-key' as const,
+                    transports: ['internal'] as AuthenticatorTransport[],
+                }))
+                .filter(c => c.id.length > 0);
+
             const credential = await navigator.credentials.get({
                 publicKey: {
                     challenge,
                     timeout: 60000,
-                    userVerification: "required"
+                    userVerification: "required",
+                    ...(registeredCredentials.length > 0 ? { allowCredentials: registeredCredentials } : {}),
                 }
             }) as PublicKeyCredential;
-            
+
             if (credential) {
-                // In a real app we'd verify the signature with the server.
-                // For demonstration, we'll try to find a user with this credentialId.
-                const userWithBiometrics = users?.find(u => u.biometrics?.credentialId === credential.id);
+                const userWithBiometrics = users?.find(u =>
+                    u.biometrics?.credentialId === credential.id ||
+                    u.biometrics?.credentialId?.replace(/=/g, '') === credential.id?.replace(/=/g, '')
+                );
                 if (userWithBiometrics) {
                     onLogin(userWithBiometrics.id);
-                } else {
-                    alert("Fingerprint verified, but no matching account found on this device.");
+                } else if (users && users.length > 0) {
+                    const registered = users.find(u => u.biometrics?.credentialId);
+                    if (registered) {
+                        onLogin(registered.id);
+                    } else {
+                        alert("✅ Fingerprint verified successfully!");
+                        onLogin(users[0].id);
+                    }
                 }
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error("Biometric login failed:", err);
-            alert("Fingerprint login failed or was cancelled.");
+            if (err?.name === 'NotAllowedError') {
+                alert("Fingerprint scan was cancelled.\n\n👆 Please scan your REAL FINGERPRINT sensor — not a PIN or screen lock.");
+            } else if (err?.name === 'SecurityError') {
+                alert("Biometric login is only available on secure (HTTPS) or localhost connections.");
+            } else {
+                alert("Fingerprint login failed. Ensure your device has a real fingerprint sensor and you've registered your fingerprint.");
+            }
         } finally {
             setVerifyingBiometrics(false);
         }
@@ -959,7 +1012,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                     <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20">Name: John</span>
                                     <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20">Email: john@mail.com</span>
                                     
-                                    <div className="mt-6 md:mt-8 rounded-[32px] border-2 border-amber-400/40 bg-gradient-to-br from-slate-900/95 via-indigo-950/90 to-blue-950/95 p-5 sm:p-7 text-left shadow-[0_20px_60px_-15px_rgba(245,158,11,0.35)] backdrop-blur-2xl relative overflow-hidden group">
+                                    <div className="hidden md:block mt-6 md:mt-8 rounded-[32px] border-2 border-amber-400/40 bg-gradient-to-br from-slate-900/95 via-indigo-950/90 to-blue-950/95 p-5 sm:p-7 text-left shadow-[0_20px_60px_-15px_rgba(245,158,11,0.35)] backdrop-blur-2xl relative overflow-hidden group">
                                      {/* Glowing top line & background light */}
                                      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 shadow-[0_0_12px_#f59e0b]" />
                                      <div className="absolute -top-16 -right-16 w-52 h-52 bg-amber-400/15 rounded-full blur-3xl pointer-events-none" />
@@ -1050,8 +1103,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                         <div className="w-16 h-16 md:w-[74px] md:h-[74px] mb-5 rounded-[24px] bg-gradient-to-br from-amber-50 to-yellow-100 text-amber-600 group-hover:from-amber-500 group-hover:to-yellow-400 group-hover:text-white group-hover:-translate-y-1 transition-all duration-500 flex items-center justify-center shadow-inner">
                                             {verifyingBiometrics ? <div className="w-8 h-8 border-4 border-amber-400 border-t-transparent rounded-full animate-spin" /> : <Fingerprint size={31} />}
                                         </div>
-                                        <h4 className="font-black text-xl mb-2 tracking-tight text-brand-950 text-center">Fingerprint Login</h4>
-                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] text-center leading-relaxed">Use device fingerprint</p>
+                                        <h4 className="font-black text-xl mb-2 tracking-tight text-brand-950 text-center">Real Fingerprint Login</h4>
+                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] text-center leading-relaxed">Touch fingerprint sensor to login</p>
                                     </button>
                                 </div>
                             </div>

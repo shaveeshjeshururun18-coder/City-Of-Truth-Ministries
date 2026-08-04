@@ -14,10 +14,10 @@ export const generateHebrewAlphabetPDF = async () => {
     const margin = 12;
 
     // Color scheme
-    const primaryGold = [139, 69, 19]; // Deeper brown/gold
-    const darkBg = [245, 245, 220]; // Beige/Parchment
-    const white = [30, 30, 30]; // Dark ink
-    const lightGray = [80, 80, 80];
+    const primaryGold: [number, number, number] = [139, 69, 19]; // Deeper brown/gold
+    const darkBg: [number, number, number] = [245, 245, 220]; // Beige/Parchment
+    const white: [number, number, number] = [30, 30, 30]; // Dark ink
+    const lightGray: [number, number, number] = [80, 80, 80];
 
     const HEBREW_LETTERS = [
       { letter: "א", paleo: "𐤀", name: "ALEPH", hebrew: "אלף", value: 1, meaning: "Ox, Strength, Leader" },
