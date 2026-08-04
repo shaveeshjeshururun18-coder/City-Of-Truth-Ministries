@@ -91,3 +91,38 @@ export const drawSectionLabel = (
     pdf.setFontSize(tsize);
     pdf.text(label.toUpperCase(), tx, ty);
 };
+
+/**
+ * Draws a rounded input/field box with value or placeholder text in a PDF.
+ */
+export const drawFieldBox = (
+    pdf: jsPDF,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    value = '',
+    placeholder = '',
+    isMultiline = false,
+    navy = '#1E293B',
+    navyDark = '#0F1A3E'
+) => {
+    pdf.setFillColor(252, 252, 253);
+    pdf.setDrawColor(218, 225, 233);
+    pdf.setLineWidth(0.3);
+    pdf.roundedRect(x, y, width, height, 1.8, 1.8, 'FD');
+
+    const display = (value && value.trim() ? value : placeholder).toUpperCase();
+    if (display) {
+        pdf.setTextColor(value && value.trim() ? navyDark : '#94A3B8');
+        pdf.setFont('helvetica', value && value.trim() ? 'bold' : 'normal');
+        pdf.setFontSize(7.2);
+        if (isMultiline) {
+            const lines = pdf.splitTextToSize(display, width - 6);
+            pdf.text(lines, x + 3.5, y + 4.5);
+        } else {
+            pdf.text(display, x + 3.5, y + Math.min(height - 2, 4.8));
+        }
+    }
+};
+
