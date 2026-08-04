@@ -89,12 +89,14 @@ import { VisitingCard3D } from './components/VisitingCard3D';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { BottomNav } from './components/BottomNav';
 import GreetingCard from './components/GreetingCard';
+
 import { GlobalAnimatedCharacter } from './components/GlobalAnimatedCharacter';
 import { GuidedTour, useTour } from './components/GuidedTour';
 import { getHebrewDateInfo } from './components/CalendarLogic';
 import { dynamicTours } from './components/dynamicTours';
 
 import { api } from './services/api';
+import { getAbsolutePagePermalink, getPagePath } from './services/routePaths';
 import { getToken } from 'firebase/messaging';
 import { sendFCMNotification } from './services/fcmService';
 import { sendSMS } from './services/smsService';
@@ -1676,7 +1678,7 @@ const App: React.FC = () => {
       '/ministries': ViewState.MINISTRIES,
       '/contact': ViewState.CONTACT,
       '/valparai': ViewState.ABOUT_VALPARAI,
-      '/hebrew': ViewState.ABOUT,
+      '/hebrew': ViewState.HEBREW,
       '/hebrew-tools': ViewState.HEBREW_TOOLS,
       '/hebrew-calendar': ViewState.HEBREW_CALENDAR,
       '/hebrew-clock': ViewState.HEBREW_CLOCK,
@@ -1691,6 +1693,7 @@ const App: React.FC = () => {
       '/pdf-downloads': ViewState.PDF_DOWNLOADS,
       '/menorah': ViewState.GOLDEN_MENORAH,
       '/golden-menorah': ViewState.GOLDEN_MENORAH,
+      '/menorah-flag': ViewState.MENORAH_FLAG,
       '/baruch-hashem': ViewState.BARUCH_HASHEM,
       '/ai': ViewState.AI,
       '/id-card': ViewState.ID_CARD,
@@ -1698,6 +1701,10 @@ const App: React.FC = () => {
       '/pastor': ViewState.PASTOR,
       '/member-form': ViewState.MEMBER_FORM,
       '/dashboard': ViewState.USER_DASHBOARD,
+      '/admin': ViewState.ADMIN_DASHBOARD,
+      '/verify-id': ViewState.VERIFY_ID,
+      '/developer': ViewState.DEVELOPER,
+      '/bugs-fixed': ViewState.BUGS_FIXED,
     };
 
     Object.entries(getPagePermalinkOverrides()).forEach(([view, path]) => {
@@ -1733,88 +1740,13 @@ const App: React.FC = () => {
 
   // Generate shareable URL for current view
   const getShareableURL = (view: ViewState): string => {
-    const viewToPathMap: Record<ViewState, string> = {
-      [ViewState.HOME]: '/',
-      [ViewState.AUTH]: '/auth',
-      [ViewState.ABOUT]: '/hebrew',
-      [ViewState.MINISTRIES]: '/ministries',
-      [ViewState.CONTACT]: '/contact',
-      [ViewState.ABOUT_VALPARAI]: '/valparai',
-      [ViewState.HEBREW_TOOLS]: '/hebrew-tools',
-      [ViewState.HEBREW_CALENDAR]: '/hebrew-calendar',
-      [ViewState.HEBREW_CLOCK]: '/hebrew-clock',
-      [ViewState.HEBREW_NUMBERS]: '/hebrew-numbers',
-      [ViewState.HEBREW_WORDS]: '/hebrew-words',
-      [ViewState.HEBREW_LETTERS_AUDIO]: '/hebrew-letters-audio',
-      [ViewState.HEBREW_GEMATRIA]: '/hebrew-gematria',
-      [ViewState.HEBREW_FESTIVALS]: '/hebrew-festivals',
-      [ViewState.HEBREW_GRAMMAR]: '/hebrew-grammar',
-      [ViewState.HEBREW_REFERENCE]: '/hebrew-reference',
-      [ViewState.HEBREW_ISRAEL]: '/hebrew-israel',
-      [ViewState.PDF_DOWNLOADS]: '/pdf-downloads',
-      [ViewState.GOLDEN_MENORAH]: '/golden-menorah',
-      [ViewState.BARUCH_HASHEM]: '/baruch-hashem',
-      [ViewState.AI]: '/ai',
-      [ViewState.ID_CARD]: '/entrust-card',
-      [ViewState.PASTOR]: '/pastor',
-      [ViewState.MEMBER_FORM]: '/member-form',
-      [ViewState.USER_DASHBOARD]: '/dashboard',
-      [ViewState.ADMIN_DASHBOARD]: '/admin',
-      [ViewState.VERIFY_ID]: '/verify-id',
-      [ViewState.DEVELOPER]: '/developer',
-      [ViewState.BUGS_FIXED]: '/bugs-fixed',
-      [ViewState.MENORAH]: '/menorah',
-      [ViewState.MENORAH_FLAG]: '/menorah',
-      [ViewState.HEBREW]: '/hebrew',
-    };
-    
-    const overridePath = getPagePermalinkOverrides()[view];
-    const path = overridePath || viewToPathMap[view] || `/?view=${view}`;
-    return `${window.location.origin}${path}`;
+    return getAbsolutePagePermalink(view);
   };
 
   // Update browser URL when view changes (without page reload)
   const handleViewChange = (view: ViewState) => {
     setCurrentView(view);
-    
-    // Update URL without reloading
-    const viewToPathMap: Record<ViewState, string> = {
-      [ViewState.HOME]: '/',
-      [ViewState.AUTH]: '/auth',
-      [ViewState.ABOUT]: '/hebrew',
-      [ViewState.MINISTRIES]: '/ministries',
-      [ViewState.CONTACT]: '/contact',
-      [ViewState.ABOUT_VALPARAI]: '/valparai',
-      [ViewState.HEBREW_TOOLS]: '/hebrew-tools',
-      [ViewState.HEBREW_CALENDAR]: '/hebrew-calendar',
-      [ViewState.HEBREW_CLOCK]: '/hebrew-clock',
-      [ViewState.HEBREW_NUMBERS]: '/hebrew-numbers',
-      [ViewState.HEBREW_WORDS]: '/hebrew-words',
-      [ViewState.HEBREW_LETTERS_AUDIO]: '/hebrew-letters-audio',
-      [ViewState.HEBREW_GEMATRIA]: '/hebrew-gematria',
-      [ViewState.HEBREW_FESTIVALS]: '/hebrew-festivals',
-      [ViewState.HEBREW_GRAMMAR]: '/hebrew-grammar',
-      [ViewState.HEBREW_REFERENCE]: '/hebrew-reference',
-      [ViewState.HEBREW_ISRAEL]: '/hebrew-israel',
-      [ViewState.PDF_DOWNLOADS]: '/pdf-downloads',
-      [ViewState.GOLDEN_MENORAH]: '/golden-menorah',
-      [ViewState.BARUCH_HASHEM]: '/baruch-hashem',
-      [ViewState.AI]: '/ai',
-      [ViewState.ID_CARD]: '/entrust-card',
-      [ViewState.PASTOR]: '/pastor',
-      [ViewState.MEMBER_FORM]: '/member-form',
-      [ViewState.USER_DASHBOARD]: '/dashboard',
-      [ViewState.ADMIN_DASHBOARD]: '/admin',
-      [ViewState.VERIFY_ID]: '/verify-id',
-      [ViewState.DEVELOPER]: '/developer',
-      [ViewState.BUGS_FIXED]: '/bugs-fixed',
-      [ViewState.MENORAH]: '/menorah',
-      [ViewState.MENORAH_FLAG]: '/menorah',
-      [ViewState.HEBREW]: '/hebrew',
-    };
-    
-    const overridePath = getPagePermalinkOverrides()[view];
-    const path = overridePath || viewToPathMap[view] || `/?view=${view}`;
+    const path = getPagePath(view);
     if (location.pathname !== path) {
       navigate(path, { replace: true });
     }
@@ -2587,10 +2519,20 @@ const App: React.FC = () => {
                       <section key="hero" className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden py-8 md:py-12">
                 {/* Cinematic image background with subtle golden motion */}
                 <div className="absolute inset-0 z-0 overflow-hidden">
+                  {/* Desktop Background */}
                   <motion.img
-                    className="absolute inset-0 w-full h-full object-cover scale-[1.03]"
+                    className="hidden md:block absolute inset-0 w-full h-full object-cover scale-[1.03]"
                     src="/assets/landing-background.png"
                     alt="City of Truth Ministries worship background"
+                    initial={{ scale: 1.02 }}
+                    animate={{ scale: 1.07 }}
+                    transition={{ duration: 18, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }}
+                  />
+                  {/* Mobile Background */}
+                  <motion.img
+                    className="block md:hidden absolute inset-0 w-full h-full object-cover scale-[1.03]"
+                    src="/assets/landing-background-mobile.png"
+                    alt="City of Truth Ministries worship background mobile"
                     initial={{ scale: 1.02 }}
                     animate={{ scale: 1.07 }}
                     transition={{ duration: 18, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }}
@@ -3064,7 +3006,7 @@ const App: React.FC = () => {
 
           {currentView === ViewState.ABOUT_VALPARAI && (
             <motion.div key="valparai" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <ValparaiPage />
+              <ValparaiPage setView={setCurrentView} />
             </motion.div>
           )}
 
@@ -3524,299 +3466,8 @@ const App: React.FC = () => {
       </main>
       {!isFrame && (
         <>
-          <footer className="bg-brand-950 text-white pt-32 pb-16 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10"></div>
-        <div className="absolute bottom-0 left-0 w-full h-[500px] bg-gradient-to-t from-black/80 to-transparent"></div>
-
-        <div className="container mx-auto px-6 relative z-10">
-          <div className="grid md:grid-cols-4 gap-12 mb-20">
-            <div className="col-span-1 md:col-span-1">
-              <div className="flex items-center gap-4 mb-8">
-                <img src="/logo.png" alt="COT Logo" className="w-16 h-16 object-contain" />
-                <div>
-                  <h3 className="text-2xl font-serif font-black text-white leading-none"><EditableText id="footer-logo" defaultText="City of Truth" /></h3>
-                  <p className="text-[11px] text-accent-400 font-black uppercase tracking-[0.3em] mt-1">Ministries</p>
-                </div>
-              </div>
-              <p className="text-brand-100/60 leading-relaxed text-sm mb-6">
-                Valparai Sanctuary
-                <br />Tamil Nadu, India
-              </p>
-              <div className="flex gap-3">
-                {[
-                  { Icon: Youtube, href: youtubeLink },
-                  { Icon: Facebook, href: "https://facebook.com/cityoftruthministries" },
-                  { Icon: Instagram, href: "https://instagram.com/cityoftruthministries" }
-                ].map(({ Icon, href }, i) => (
-                  <a key={i} href={href} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white hover:text-brand-950 transition-all border border-white/10">
-                    <Icon size={18} />
-                  </a>
-                ))}
-              </div>
-            </div>
-
-            <div className="col-span-1">
-              <h4 className="font-bold text-white mb-6">Site Map — Main Pages</h4>
-              <ul className="space-y-4 text-sm text-brand-100/60">
-                {footerMainPages.map(item => (
-                  <li key={item.label}>
-                    <button
-                      onClick={() => {
-                        if (item.href) { navigate(item.href); return; }
-                        if (item.view) { setCurrentView(item.view); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-                      }}
-                      className="hover:text-white transition-colors flex items-center gap-2 text-left"
-                    >
-                      <div className="w-1.5 h-1.5 rounded-full bg-accent-500/50"></div>
-                      <EditableText id={'footer-' + item.label} defaultText={item.label} />
-                    </button>
-                  </li>
-                ))}
-                {currentUser && (
-                  <li>
-                    <button
-                      onClick={() => {
-                        if (currentUser.status === 'Rejected') {
-                          alert(REJECTED_ACCESS_MESSAGE);
-                          return;
-                        }
-                        setCurrentView(ViewState.USER_DASHBOARD);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      className="hover:text-white transition-colors flex items-center gap-2 text-left"
-                    >
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/60"></div>
-                      User Dashboard
-                    </button>
-                  </li>
-                )}
-                <li><a href="/admin" className="hover:text-white transition-colors flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-red-500/50"></div>Admin Dashboard</a></li>
-              </ul>
-              <div className="mt-6">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-400 mb-3">Sub Part Pages</p>
-                <ul className="space-y-2 text-sm text-brand-100/60">
-                  {footerSubPartPages.map((item) => (
-                    <li key={item.label}>
-                      <button
-                        onClick={item.action}
-                        className="hover:text-white transition-colors flex items-center gap-2 text-left"
-                      >
-                        <div className={`w-1.5 h-1.5 rounded-full ${item.dotClass}`}></div>
-                        <EditableText id={'footer-' + item.label} defaultText={item.label} />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            <div className="col-span-1">
-              <h4 className="font-bold text-white mb-6">Hebrew Site Map</h4>
-              <div className="space-y-5">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-400 mb-2">Hebrew Content</p>
-                  <ul className="space-y-2 text-sm text-brand-100/60">
-                    {footerHebrewContentPages.map(item => (
-                      <li key={item.label}>
-                        <button
-                          onClick={() => {
-                            if (item.href) { navigate(item.href); return; }
-                            if (item.view) { setCurrentView(item.view); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-                          }}
-                          className="hover:text-white transition-colors flex items-center gap-2 text-left"
-                        >
-                          <div className="w-1.5 h-1.5 rounded-full bg-amber-400/70"></div>
-                          <EditableText id={'footer-' + item.label} defaultText={item.label} />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-400 mb-2">Hebrew Grammar</p>
-                  <ul className="space-y-2 text-sm text-brand-100/60">
-                    {footerHebrewGrammarPages.map(item => (
-                      <li key={item.label}>
-                        <button
-                          onClick={() => { setCurrentView(item.view); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                          className="hover:text-white transition-colors flex items-center gap-2 text-left"
-                        >
-                          <div className="w-1.5 h-1.5 rounded-full bg-sky-400/70"></div>
-                          <EditableText id={'footer-' + item.label} defaultText={item.label} />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-400 mb-2">Hebrew Tools</p>
-                  <ul className="space-y-2 text-sm text-brand-100/60">
-                    {footerHebrewToolPages.map(item => (
-                      <li key={item.label}>
-                        <button
-                          onClick={() => { setCurrentView(item.view); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                          className="hover:text-white transition-colors flex items-center gap-2 text-left"
-                        >
-                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/70"></div>
-                          <EditableText id={'footer-' + item.label} defaultText={item.label} />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <div className="col-span-1">
-              <h4 className="font-bold text-white mb-6">Stay Connected</h4>
-
-              <p className="text-sm text-brand-100/60 mb-4">Join our mailing list for weekly inspiration.</p>
-              <div className="flex gap-2 mb-2">
-                <input 
-                  type="email" 
-                  placeholder="Your Email" 
-                  className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm outline-none focus:bg-white/10 transition-colors w-full" 
-                  onFocus={() => setShowLeaderMessage(true)}
-                  onChange={(e) => {
-                    if (e.target.value.length > 0) setShowLeaderMessage(true);
-                  }}
-                />
-                <button className="bg-accent-600 hover:bg-accent-500 text-white rounded-lg px-3 py-2 transition-colors">
-                  <ArrowRight size={16} />
-                </button>
-              </div>
-              {/* 3D Visiting Card Section in Footer Column */}
-              <div className="mt-10">
-                <VisitingCard3D compact={true} />
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-white/10 pt-10 flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="text-center md:text-left space-y-4">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-100/30">&copy; 2026 City of Truth Ministries • Valparai Sanctuary</p>
-
-              {/* Developer Credit Button */}
-              <div className="flex justify-center md:justify-start">
-                <div className="developer-btn-container">
-                  <div className="developer-btn-drawer developer-transition-top">Crafted with...</div>
-                  <div className="developer-btn-drawer developer-transition-bottom">...Excellence</div>
-                  <button className="developer-btn">
-                    <span className="developer-btn-text">S.Shaveesh Jeshurun</span>
-                  </button>
-                  <style>{`
-                  .developer-btn-container {
-                    --timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-                    --duration: 250ms;
-                    position: relative;
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    margin-top: 28px;
-                    margin-bottom: 28px;
-                  }
-                  .developer-btn {
-                    position: relative;
-                    min-width: 240px;
-                    min-height: 48px;
-                    border-radius: 16px;
-                    border: 2px solid rgba(255, 255, 255, 0.5);
-                    padding: 0.75em 1.5em;
-                    background: linear-gradient(135deg, #7cb8ff 0%, #4d9fff 100%);
-                    box-shadow: 0 8px 20px rgba(77, 159, 255, 0.35);
-                    transition: all var(--duration) var(--timing-function);
-                    cursor: pointer;
-                    z-index: 2;
-                  }
-                  .developer-btn-drawer {
-                    position: absolute;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    min-height: 32px;
-                    border-radius: 14px;
-                    border: 1.5px solid rgba(255, 255, 255, 0.6);
-                    padding: 0.3em 1.2em;
-                    font-size: 0.82em;
-                    font-weight: 800;
-                    font-family: "Inter", sans-serif;
-                    color: #044e36;
-                    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
-                    opacity: 0;
-                    transition: all var(--duration) var(--timing-function);
-                    z-index: 1;
-                    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
-                    white-space: nowrap;
-                  }
-                  .developer-transition-top {
-                    top: 0;
-                    left: 50%;
-                    transform: translateX(-50%) translateY(0) scale(0.9);
-                  }
-                  .developer-transition-bottom {
-                    bottom: 0;
-                    left: 50%;
-                    transform: translateX(-50%) translateY(0) scale(0.9);
-                  }
-                  .developer-btn-text {
-                    display: inline-block;
-                    font-size: 1.05em;
-                    font-family: "Inter", sans-serif;
-                    font-weight: 800;
-                    color: #0f172a;
-                    letter-spacing: 0.02em;
-                    transition: all var(--duration) var(--timing-function);
-                  }
-                  .developer-btn-corner {
-                    display: none;
-                  }
-                  .developer-btn-container:hover .developer-btn {
-                    transform: scale(1.03);
-                    box-shadow: 0 12px 28px rgba(77, 159, 255, 0.5);
-                  }
-                  .developer-btn-container:hover .developer-transition-top {
-                    transform: translateX(-50%) translateY(-30px) scale(1);
-                    opacity: 1;
-                  }
-                  .developer-btn-container:hover .developer-transition-bottom {
-                    transform: translateX(-50%) translateY(30px) scale(1);
-                    opacity: 1;
-                  }
-                  .developer-btn-container:hover .developer-btn-text {
-                    color: #032870;
-                  }
-                  .developer-btn-container:active .developer-transition-top,
-                  .developer-btn-container:active .developer-transition-bottom {
-                    transform: translateY(0px) scale(0.5);
-                  }
-                  .developer-btn-container:active .developer-btn-text {
-                    filter: drop-shadow(0 1px 0 #fff6) drop-shadow(0 -1px 0 #0006) drop-shadow(0px 6px 2px #0003);
-                    transform: scale(1);
-                    color: #000a;
-                  }
-                  @keyframes hue-anim-dev {
-                    0%, 100% {
-                      filter: hue-rotate(0deg) blur(0px);
-                    }
-                    50% {
-                      filter: hue-rotate(-70deg) blur(0px);
-                    }
-                  }
-                `}</style>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-8 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-100/30">
-              <a href="#" className="hover:text-white transition-colors relative group">Privacy Policy<span className="absolute -bottom-2 left-0 w-0 h-px bg-accent-500 transition-all group-hover:w-full"></span></a>
-              <a href="#" className="hover:text-white transition-colors relative group">Terms of Service<span className="absolute -bottom-2 left-0 w-0 h-px bg-accent-500 transition-all group-hover:w-full"></span></a>
-            </div>
-          </div>
-        </div>
-      </footer>
-
-      {/* Bottom Navigation Bar (mobile) */}
-      <BottomNav currentView={currentView} setView={setCurrentView} />
+          {/* Bottom Navigation Bar (mobile) */}
+          <BottomNav currentView={currentView} setView={setCurrentView} />
 
       {/* Fixed Leader Message Popup */}
       <AnimatePresence>

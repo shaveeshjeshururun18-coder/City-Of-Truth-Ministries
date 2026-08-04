@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, User, Sparkles } from 'lucide-react';
 import { generateSpatulaAIResponse, streamSpatulaAIResponse } from '../services/openRouterService';
 
 interface Message {
@@ -11,7 +11,7 @@ export const SpatulaAIChat: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: 'Welcome to Spatula AI! How can I provide spiritual guidance today? 🙏',
+      content: 'Welcome to Spatula AI! How can I provide spiritual guidance today?',
     },
   ]);
   const [input, setInput] = useState('');
@@ -87,7 +87,7 @@ export const SpatulaAIChat: React.FC = () => {
         {messages.map((msg, idx) => (
           <div key={idx} className={`message ${msg.role}`}>
             <div className="message-avatar">
-              {msg.role === 'user' ? '👤' : '✨'}
+              {msg.role === 'user' ? <User size={18} /> : <Sparkles size={18} />}
             </div>
             <div className="message-content">
               <p>{msg.content}</p>
@@ -96,7 +96,7 @@ export const SpatulaAIChat: React.FC = () => {
         ))}
         {isLoading && !useStreaming && (
           <div className="message assistant">
-            <div className="message-avatar">✨</div>
+            <div className="message-avatar"><Sparkles size={18} /></div>
             <div className="message-content">
               <Loader2 className="animate-spin" size={20} />
             </div>

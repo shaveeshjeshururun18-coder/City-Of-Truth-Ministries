@@ -90,7 +90,7 @@ export const AI_MODELS_DATABASE: AIModelSpec[] = [
     name: 'Claude 3.5 Sonnet',
     provider: 'Anthropic',
     category: 'pro',
-    categoryLabel: '🔥 Pro & Reasoning',
+    categoryLabel: 'Pro & Reasoning',
     bgColor: '#6b3e1f',
     beforeColor: '#8b4e26',
     logoBg: '#2a1608',
@@ -109,7 +109,7 @@ export const AI_MODELS_DATABASE: AIModelSpec[] = [
     name: 'DeepSeek R1',
     provider: 'DeepSeek AI',
     category: 'pro',
-    categoryLabel: '🔥 Pro & Reasoning',
+    categoryLabel: 'Pro & Reasoning',
     bgColor: '#1e3a8a',
     beforeColor: '#1d4ed8',
     logoBg: '#0f172a',
@@ -131,7 +131,7 @@ export const AI_MODELS_DATABASE: AIModelSpec[] = [
     name: 'Lashon HaKodesh AI',
     provider: 'COT Ministries',
     category: 'scripture',
-    categoryLabel: '📖 Sacred Scripture',
+    categoryLabel: 'Sacred Scripture',
     bgColor: '#78350f',
     beforeColor: '#b45309',
     logoBg: '#1c0d02',
@@ -153,7 +153,7 @@ export const AI_MODELS_DATABASE: AIModelSpec[] = [
     name: 'Torah Scholar Pro',
     provider: 'COT Ministries',
     category: 'scripture',
-    categoryLabel: '📖 Sacred Scripture',
+    categoryLabel: 'Sacred Scripture',
     bgColor: '#064e3b',
     beforeColor: '#047857',
     logoBg: '#022c22',
@@ -390,9 +390,9 @@ export const AIModelSelectorModal: React.FC<AIModelSelectorModalProps> = ({
         <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-5 no-scrollbar border-b border-slate-800">
           {[
             { id: 'all', label: 'All AI Engines', icon: <Layers size={13} /> },
-            { id: 'free', label: '⚡ Fast & Free', icon: <Zap size={13} /> },
-            { id: 'pro', label: '🔥 Pro & Reasoning', icon: <Crown size={13} /> },
-            { id: 'scripture', label: '📖 Sacred Scripture', icon: <BookOpen size={13} /> },
+            { id: 'free', label: 'Fast & Free', icon: <Zap size={13} /> },
+            { id: 'pro', label: 'Pro & Reasoning', icon: <Crown size={13} /> },
+            { id: 'scripture', label: 'Sacred Scripture', icon: <BookOpen size={13} /> },
           ].map((cat) => (
             <button
               key={cat.id}

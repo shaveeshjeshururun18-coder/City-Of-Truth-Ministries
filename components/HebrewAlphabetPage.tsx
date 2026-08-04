@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Scroll, Volume2, Sparkles, ArrowLeft, X, Download } from 'lucide-react';
+import { Scroll, Volume2, Sparkles, ArrowLeft, X, Download, PenTool } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { audioService } from '../services/audioService';
 import { MouthPronunciationAnimator, HEBREW_LETTER_PHONEMES } from './MouthPronunciationAnimator';
 import { AnimatedTeacherCharacter } from './AnimatedTeacherCharacter';
 import { generateHebrewAlphabetPDF } from './HebrewAlphabetPDF';
+import { LetterTracingModal } from './LetterTracingModal';
 
 const PALEO_IMAGE_MAP: Record<string, string> = {
     ALEPH: "/paleo_letters/04_Aleph.png",
@@ -98,6 +99,8 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
     const [mouthPlayKey, setMouthPlayKey] = useState(0);
     const [pdfGenerating, setPdfGenerating] = useState(false);
     const [pdfError, setPdfError] = useState<string | null>(null);
+    const [tracingModalOpen, setTracingModalOpen] = useState(false);
+    const [tracingMode, setTracingMode] = useState<'modern' | 'paleo'>('modern');
     const panelRef = useRef<HTMLDivElement>(null);
 
     // Responsive column detection
@@ -354,9 +357,6 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                             <div className="text-center space-y-1">
                                                 <strong className="block text-[#F59E0B] text-sm md:text-base tracking-[0.2em] font-bold uppercase group-hover:text-white/90 transition-colors">{item.name}</strong>
                                                 <span className="block text-[#F59E0B]/70 text-xs md:text-sm tracking-wide group-hover:text-white/60 transition-colors">{item.tamilPronunciation}</span>
-                                                <div className="mt-3 inline-block bg-[#F59E0B]/10 group-hover:bg-white/10 px-3 py-1 rounded-full border border-[#F59E0B]/30 group-hover:border-white/25 transition-all">
-                                                    <span className="text-xs text-[#F59E0B]/80 group-hover:text-white/60 font-mono tracking-widest transition-colors">VALUE: {item.number}</span>
-                                                </div>
                                             </div>
                                         </motion.div>
                                     );
@@ -404,9 +404,12 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                                             <span className="absolute inset-0 flex items-center justify-center font-serif text-5xl md:text-6xl text-white drop-shadow-[0_0_15px_rgba(125,211,252,0.7)]">
                                                                 {selectedLetter.letter}
                                                             </span>
-                                                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-sky-500/80 border border-sky-400 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full whitespace-nowrap">
-                                                                Modern
-                                                            </div>
+                                                            <button
+                                                                onClick={() => { setTracingMode('modern'); setTracingModalOpen(true); }}
+                                                                className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-sky-500 hover:bg-sky-400 border border-sky-300 text-slate-950 text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full whitespace-nowrap flex items-center gap-1 shadow-md cursor-pointer transition-all hover:scale-105 z-10"
+                                                            >
+                                                                <PenTool size={9} /> Modern Trace
+                                                            </button>
                                                         </div>
 
                                                         {/* Paleo-Hebrew Pictograph Box */}
@@ -425,9 +428,12 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                                                     }}
                                                                 />
                                                             </div>
-                                                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-amber-500/80 border border-amber-400 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full whitespace-nowrap">
-                                                                Paleo-Hebrew
-                                                            </div>
+                                                            <button
+                                                                onClick={() => { setTracingMode('paleo'); setTracingModalOpen(true); }}
+                                                                className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-amber-500 hover:bg-amber-400 border border-amber-300 text-slate-950 text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full whitespace-nowrap flex items-center gap-1 shadow-md cursor-pointer transition-all hover:scale-105 z-10"
+                                                            >
+                                                                <PenTool size={9} /> Paleo Trace
+                                                            </button>
                                                         </div>
 
                                                         <div className="space-y-2 pb-1">
@@ -475,39 +481,6 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                                                             <p className="text-xs text-amber-200/90 font-medium leading-relaxed">{selectedLetter.symbolic}</p>
                                                         </div>
                                                     )}
-
-                                                    {/* Audio buttons */}
-                                                    <div className="flex flex-wrap gap-2">
-                                                        <button
-                                                            onClick={() => {
-                                                                if (selectedIndex === null) return;
-                                                                handleHebrewPlay(selectedIndex, selectedLetter.hebrewName);
-                                                            }}
-                                                            className="h-9 px-3.5 rounded-xl bg-[#F59E0B]/15 border border-[#F59E0B]/40 text-[#FBBF24] text-xs font-bold tracking-wide hover:bg-[#F59E0B]/25 transition-colors flex items-center gap-1.5"
-                                                        >
-                                                            <Volume2 size={12} /> Hebrew Audio
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                if (selectedIndex === null) return;
-                                                                // Strip vowels and space out letters to force spelling
-                                                                const consonants = selectedLetter.hebrewName.replace(/[\u0591-\u05C7]/g, '');
-                                                                handleHebrewPlay(selectedIndex, consonants.split('').join(' '), 0.55, true);
-                                                            }}
-                                                            className="h-9 px-3.5 rounded-xl bg-white/10 border border-white/20 text-white text-xs font-bold tracking-wide hover:bg-white/20 transition-colors flex items-center gap-1.5"
-                                                        >
-                                                            <Volume2 size={12} /> Slow Audio
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                if (selectedIndex === null || !selectedLetter) return;
-                                                                handleTamilTeachingPlay(selectedIndex, selectedLetter.tamilGuide);
-                                                            }}
-                                                            className="h-9 px-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-300 text-xs font-bold tracking-wide hover:bg-emerald-500/20 transition-colors flex items-center gap-1.5"
-                                                        >
-                                                            <Volume2 size={12} /> தமிழ் Teaching Audio
-                                                        </button>
-                                                    </div>
                                                 </div>
 
                                                 {/* RIGHT: Animated Teacher & Mouth Pronunciation Animator */}
@@ -557,7 +530,7 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
 
                 <div className="mt-24 p-8 md:p-12 bg-gradient-to-b from-white/5 to-transparent rounded-[3rem] border border-white/8 text-center space-y-6 relative overflow-hidden backdrop-blur-md">
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                    <Sparkles className="mx-auto text-white/30" size={36} />
+                    <Sparkles className="mx-auto text-[#F59E0B]/40" size={36} />
                     <p className="text-[10px] md:text-xs uppercase tracking-[0.28em] text-white/40 font-black">Quick Snapshot</p>
                     <div className="grid sm:grid-cols-2 gap-3 md:gap-4 max-w-3xl mx-auto">
                         <div className="rounded-2xl border border-[#F59E0B]/35 bg-[#F59E0B]/12 px-4 py-4">
@@ -569,9 +542,20 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                             <p className="text-[10px] md:text-xs font-black tracking-[0.14em] uppercase text-white/70 mt-2">Name Words</p>
                         </div>
                     </div>
-                    <p className="text-white/30 text-[11px] md:text-xs font-bold">Tap a letter card to learn pronunciation with mouth animation.</p>
+                    <p className="text-white/30 text-[11px] md:text-xs font-bold">Tap a letter card to learn pronunciation and practice stroke tracing.</p>
                 </div>
             </div>
+
+            {selectedLetter && (
+                <LetterTracingModal
+                    isOpen={tracingModalOpen}
+                    onClose={() => setTracingModalOpen(false)}
+                    letterName={selectedLetter.name}
+                    hebrewSymbol={selectedLetter.letter}
+                    paleoImgSrc={PALEO_IMAGE_MAP[selectedLetter.name]}
+                    mode={tracingMode}
+                />
+            )}
         </div>
     );
 };

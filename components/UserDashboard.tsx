@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { User, SubProfile, UserRole } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
 import { generateHebrewAlphabetPDF } from './HebrewAlphabetPDF';
-import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag, Copy, ExternalLink, Moon, Sun, Award, Star, Fingerprint } from 'lucide-react';
+import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag, Copy, ExternalLink, Moon, Sun, Award, Star, Fingerprint, User as UserIcon } from 'lucide-react';
+import { BadgeIcon } from './icons/modernIcons';
 import { Button } from './Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TestimonialModal } from './TestimonialModal';
@@ -57,18 +58,18 @@ const TAMIL_NADU_LOCATIONS = [
 ];
 
 const DEFAULT_DASHBOARD_BADGES = [
-    { id: 'verified-member', ribbonText: 'VERIFIED MEMBER', icon: '✓', image: '/assets/badges/verified-member.png', name: 'Verified Member', color: 'from-emerald-400 via-teal-500 to-cyan-700', desc: 'Officially Verified Member' },
-    { id: 'scripture-reader', ribbonText: 'SCRIPTURE READER', icon: '📖', image: '/assets/badges/scripture-reader.png', name: 'Scripture Reader', color: 'from-sky-400 via-blue-600 to-indigo-800', desc: 'Faithful Reader of God\'s Word' },
-    { id: 'prayer-warrior', ribbonText: 'PRAYER WARRIOR', icon: '🙏', image: '/assets/badges/prayer-warrior.png', name: 'Prayer Warrior', color: 'from-indigo-500 via-violet-600 to-fuchsia-700', desc: 'Devoted Intercessor in Prayer' },
-    { id: 'worship-leader', ribbonText: 'WORSHIP LEADER', icon: '🔥', image: '/assets/badges/worship-leader.png', name: 'Worship Leader', color: 'from-orange-400 via-red-500 to-rose-800', desc: 'Anointed Leader of Praise' },
-    { id: 'volunteer-heart', ribbonText: 'VOLUNTEER HEART', icon: '♥', image: '/assets/badges/volunteer-heart.png', name: 'Volunteer Heart', color: 'from-rose-400 via-red-500 to-pink-700', desc: 'Selfless Ministry Servant' },
-    { id: 'faith-builder', ribbonText: 'FAITH BUILDER', icon: '✚', image: '/assets/badges/faith-builder.png', name: 'Faith Builder', color: 'from-lime-300 via-emerald-500 to-green-800', desc: 'Building Strong Faith Foundations' },
-    { id: 'evangelist', ribbonText: 'EVANGELIST', icon: '🎺', image: '/assets/badges/evangelist.png', name: 'Evangelist', color: 'from-amber-400 via-orange-500 to-red-600', desc: 'Proclaimer of Good News' },
-    { id: 'kingdom-builder', ribbonText: 'KINGDOM BUILDER', icon: '👑', image: '/assets/badges/kingdom-builder.png', name: 'Kingdom Builder', color: 'from-yellow-400 via-amber-500 to-orange-600', desc: 'Advancing God\'s Kingdom' },
-    { id: 'light-bearer', ribbonText: 'LIGHT BEARER', icon: '☀', image: '/assets/badges/light-bearer.png', name: 'Light Bearer', color: 'from-yellow-200 via-amber-400 to-stone-800', desc: 'Shining Divine Light' },
-    { id: 'shepherd', ribbonText: 'SHEPHERD', icon: '🌿', image: '/assets/badges/shepherd.png', name: 'Shepherd', color: 'from-teal-400 via-emerald-600 to-slate-900', desc: 'Caring Ministry Shepherd' },
-    { id: 'disciple', ribbonText: 'DISCIPLE', icon: '📜', image: '/assets/badges/disciple.png', name: 'Disciple', color: 'from-blue-500 via-indigo-600 to-purple-800', desc: 'Follower of Truth' },
-    { id: 'overcomer', ribbonText: 'OVERCOMER', icon: '🏆', image: '/assets/badges/overcomer.png', name: 'Overcomer', color: 'from-amber-600 via-orange-600 to-yellow-700', desc: 'Victorious Overcomer' },
+    { id: 'verified-member', ribbonText: 'VERIFIED MEMBER', image: '/assets/badges/verified-member.png', name: 'Verified Member', color: 'from-emerald-400 via-teal-500 to-cyan-700', desc: 'Officially Verified Member' },
+    { id: 'scripture-reader', ribbonText: 'SCRIPTURE READER', image: '/assets/badges/scripture-reader.png', name: 'Scripture Reader', color: 'from-sky-400 via-blue-600 to-indigo-800', desc: 'Faithful Reader of God\'s Word' },
+    { id: 'prayer-warrior', ribbonText: 'PRAYER WARRIOR', image: '/assets/badges/prayer-warrior.png', name: 'Prayer Warrior', color: 'from-indigo-500 via-violet-600 to-fuchsia-700', desc: 'Devoted Intercessor in Prayer' },
+    { id: 'worship-leader', ribbonText: 'WORSHIP LEADER', image: '/assets/badges/worship-leader.png', name: 'Worship Leader', color: 'from-orange-400 via-red-500 to-rose-800', desc: 'Anointed Leader of Praise' },
+    { id: 'volunteer-heart', ribbonText: 'VOLUNTEER HEART', image: '/assets/badges/volunteer-heart.png', name: 'Volunteer Heart', color: 'from-rose-400 via-red-500 to-pink-700', desc: 'Selfless Ministry Servant' },
+    { id: 'faith-builder', ribbonText: 'FAITH BUILDER', image: '/assets/badges/faith-builder.png', name: 'Faith Builder', color: 'from-lime-300 via-emerald-500 to-green-800', desc: 'Building Strong Faith Foundations' },
+    { id: 'evangelist', ribbonText: 'EVANGELIST', image: '/assets/badges/evangelist.png', name: 'Evangelist', color: 'from-amber-400 via-orange-500 to-red-600', desc: 'Proclaimer of Good News' },
+    { id: 'kingdom-builder', ribbonText: 'KINGDOM BUILDER', image: '/assets/badges/kingdom-builder.png', name: 'Kingdom Builder', color: 'from-yellow-400 via-amber-500 to-orange-600', desc: 'Advancing God\'s Kingdom' },
+    { id: 'light-bearer', ribbonText: 'LIGHT BEARER', image: '/assets/badges/light-bearer.png', name: 'Light Bearer', color: 'from-yellow-200 via-amber-400 to-stone-800', desc: 'Shining Divine Light' },
+    { id: 'shepherd', ribbonText: 'SHEPHERD', image: '/assets/badges/shepherd.png', name: 'Shepherd', color: 'from-teal-400 via-emerald-600 to-slate-900', desc: 'Caring Ministry Shepherd' },
+    { id: 'disciple', ribbonText: 'DISCIPLE', image: '/assets/badges/disciple.png', name: 'Disciple', color: 'from-blue-500 via-indigo-600 to-purple-800', desc: 'Follower of Truth' },
+    { id: 'overcomer', ribbonText: 'OVERCOMER', image: '/assets/badges/overcomer.png', name: 'Overcomer', color: 'from-amber-600 via-orange-600 to-yellow-700', desc: 'Victorious Overcomer' },
 ];
 
 export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, onOpenScanner, initialProfileId, onGoToLogin, notifications = [], onSendReply, onMarkNotificationsRead, onDeleteNotification, focusSection = null, onDeleteAccount, allUsers = [] }) => {
@@ -253,7 +254,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         },
         {
             target: '#nav-my-dashboard-btn',
-            title: '👤 My Dashboard',
+            title: 'My Dashboard',
             description: 'Inside the menu, tap "My Dashboard" to come back here anytime. Your profile, card, and all actions live here.',
             position: 'bottom' as const,
         },
@@ -1940,8 +1941,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                                 onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }}
                                             />
                                         ) : (
-                                            <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br ${visibleBadge.color} text-[11px] font-black text-white shadow-sm`}>
-                                                {visibleBadge.icon}
+                                            <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br ${visibleBadge.color} text-white shadow-sm`}>
+                                                <BadgeIcon badgeId={visibleBadge.id} size={11} />
                                             </span>
                                         )}
                                         <span className="truncate text-[10px] font-black uppercase tracking-wider text-amber-100">
@@ -2092,8 +2093,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.18))' }}
                                         />
                                     ) : (
-                                        <div className={`h-7 w-7 rounded-full bg-gradient-to-br ${visibleBadge.color} text-white flex items-center justify-center text-[10px] font-black shadow-sm`}>
-                                            {visibleBadge.icon}
+                                        <div className={`h-7 w-7 rounded-full bg-gradient-to-br ${visibleBadge.color} text-white flex items-center justify-center shadow-sm`}>
+                                            <BadgeIcon badgeId={visibleBadge.id} size={12} />
                                         </div>
                                     )}
                                     <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 whitespace-nowrap">
@@ -2138,10 +2139,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                                 />
                                             ) : null}
                                             <div
-                                                className={`h-12 w-12 rounded-xl bg-gradient-to-br ${badge.color} text-white items-center justify-center text-xl font-black shadow-sm`}
+                                                className={`h-12 w-12 rounded-xl bg-gradient-to-br ${badge.color} text-white items-center justify-center shadow-sm`}
                                                 style={{ display: badge.image ? 'none' : 'flex' }}
                                             >
-                                                {badge.icon}
+                                                <BadgeIcon badgeId={badge.id} size={20} />
                                             </div>
                                             <span className={`text-[9px] font-black uppercase tracking-wide leading-tight ${isSelected ? 'text-amber-800' : 'text-slate-600'} max-w-full`}>
                                                 {badge.name}

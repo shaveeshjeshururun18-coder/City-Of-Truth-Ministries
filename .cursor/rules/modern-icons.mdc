@@ -1,0 +1,45 @@
+---
+description: Use only modern icon libraries (lucide-react, lordicon) — no emoji or legacy icon sets in UI
+globs: **/*.{tsx,jsx}
+alwaysApply: true
+---
+
+# Modern Icon Protocol
+
+Always use modern icon libraries throughout the website for a cohesive, state-of-the-art aesthetic.
+
+## Allowed
+
+- **`lucide-react`** — standard UI icons (buttons, navigation, status, badges, avatars)
+- **`@lordicon/react`** / `LordIconWrapper` — animated premium icons for hero/feature spots
+- **`MoonPhaseIcon`** from `components/icons/modernIcons.tsx` — lunar calendar phases only
+
+## Prohibited in UI
+
+- Emoji as icons (`🙏`, `📜`, `✨`, etc.)
+- FontAwesome, Glyphicons, Material Icons, or ad-hoc inline SVG duplicates
+- Unicode symbols where a Lucide equivalent exists (`✓`, `✡`, `◆`)
+
+## Implementation
+
+```tsx
+// ❌ BAD
+{ icon: '🙏' }
+<span>📜 Explore Scripture</span>
+
+// ✅ GOOD
+import { HandHeart, ScrollText } from 'lucide-react';
+{ Icon: HandHeart }
+<ScrollText size={16} className="text-[#D4AF37]" />
+```
+
+## Styling
+
+- Size with `size={n}` prop or Tailwind `w-* h-*`
+- Match brand colors via `className` (e.g. `text-[#D4AF37]`)
+- Use consistent sizing: 14px chips, 16px buttons, 20–24px section headers
+
+## Exceptions
+
+- AI response text content (markdown from LLM) may contain emojis
+- Console logs and admin-only string notices are exempt

@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "server": "npx json-server db.json --port 4000 --watch"
+    "server": "npx json-server db.json --port 4000 --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@astryxdesign/cli": "^0.1.2",

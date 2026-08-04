@@ -200,7 +200,7 @@ export default function SiteAnalyticsPage() {
                         {(['all', 'active', 'registered', 'unregistered'] as const).map(f => (
                             <button key={f} onClick={() => setFilter(f)}
                                 className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${filter === f ? 'bg-brand-600 text-white border-brand-600' : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-brand-300'}`}>
-                                {f === 'all' ? 'All' : f === 'active' ? '🟢 Live' : f === 'registered' ? '✓ Members' : '👤 Guests'}
+                                {f === 'all' ? 'All' : f === 'active' ? 'Live' : f === 'registered' ? 'Members' : 'Guests'}
                             </button>
                         ))}
                     </div>

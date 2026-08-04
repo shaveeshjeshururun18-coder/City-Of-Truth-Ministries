@@ -40,7 +40,7 @@ export const SharePageButton: React.FC<SharePageButtonProps> = ({
         aiVisible: true,
         aiSize: 1,
         aiLabelVisible: true,
-        aiLabelText: '✨ Ask Divine AI Assistant ✨',
+        aiLabelText: 'Ask Divine AI Assistant',
       };
       return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
     } catch {
@@ -52,7 +52,7 @@ export const SharePageButton: React.FC<SharePageButtonProps> = ({
         aiVisible: true,
         aiSize: 1,
         aiLabelVisible: true,
-        aiLabelText: '✨ Ask Divine AI Assistant ✨',
+        aiLabelText: 'Ask Divine AI Assistant',
       };
     }
   });

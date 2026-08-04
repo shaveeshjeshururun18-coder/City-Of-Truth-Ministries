@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Calculator, Type, Volume2 } BookOpen, Sparkles from 'lucide-react';
+import { Search, Calculator, Type, Volume2, BookOpen, Sparkles } from 'lucide-react';
+import { GematriaHint } from './icons/modernIcons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { audioService } from '../services/audioService';
 
@@ -285,7 +286,7 @@ export const HebrewConverter: React.FC = () => {
                                     <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
                                         <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Value</div>
                                         <div className="text-3xl font-black text-accent-400">{calculatedGematriaValue}</div>
-                                        <div className="text-[10px] text-slate-500 mt-1">{calculatedGematriaValue % 7 === 0 ? '✡ Multiple of 7' : calculatedGematriaValue % 3 === 0 ? '△ Multiple of 3' : calculatedGematriaValue % 10 === 0 ? '✕ Round number' : 'Standard value'}</div>
+                                        <div className="text-[10px] text-slate-500 mt-1"><GematriaHint value={calculatedGematriaValue} /></div>
                                     </div>
                                 </div>
                                 {/* Letter meanings row */}
@@ -328,7 +329,6 @@ export const HebrewConverter: React.FC = () => {
                         </motion.div>
                     )}
                 </AnimatePresence>
-            </div>
             </div>
 
             {/* Hebrew Alphabet Letter-Value Reference Table */}

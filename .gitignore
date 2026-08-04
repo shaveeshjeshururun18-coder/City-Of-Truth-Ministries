@@ -3,6 +3,7 @@ node_modules
 dist
 
 # Environment variables
+.env
 .env.local
 .env.production
 .env.*.local
@@ -24,3 +25,4 @@ tsc_errors.txt
 step_*.json
 temp_codepen/
 temp_paleo_svgs/
+.vercel

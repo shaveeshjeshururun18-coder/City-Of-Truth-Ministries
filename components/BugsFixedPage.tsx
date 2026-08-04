@@ -1,33 +1,34 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle, Zap, Code, Camera, Database, Sparkles, ChevronDown, ChevronUp, ArrowLeft, Download, Edit2, Plus, Save, Trash2, X } from 'lucide-react';
+import { BugFixIcon } from './icons/modernIcons';
 import { BugFixItem, User } from '../types';
 
 const BUG_FIXES_STORAGE_KEY = 'cot_bug_fixes_report';
 
 const fixes: BugFixItem[] = [
-  { id: 1, category: 'UI/UX', title: 'Hebrew Word Builder RTL Fix', description: 'Fixed Framer Motion coordinate mapping conflicts caused by dir="rtl" on Reorder.Group. The wrapper now uses dir="ltr" while the combined word display retains RTL reading order.', icon: '🔤', area: 'ui' },
-  { id: 2, category: 'UI/UX', title: 'Duplicate AI Widget Removed', description: 'Removed an extra <AIChatAssistant /> render at the bottom of App.tsx that caused double widget display and potential event conflicts.', icon: '🤖', area: 'ui' },
-  { id: 3, category: 'UI/UX', title: 'Bottom Navigation Centering', description: 'Mobile bottom navigation bar repositioned into a centered floating capsule using w-[90%] max-w-sm mx-auto for better mobile UX.', icon: '📱', area: 'ui' },
-  { id: 4, category: 'UI/UX', title: 'Permalink Bold Styling & Share', description: 'Permalink URLs now display in bold, attractive styling. A Share Link button invokes navigator.share or falls back to clipboard copy with user feedback.', icon: '🔗', area: 'ui' },
-  { id: 5, category: 'Logic', title: 'Hebrew Numerals – Billions Support', description: 'Rewrote toHebrew() as a fully recursive function supporting numbers up to billions. Each 3-digit group (thousands, millions, billions) is handled independently and joined with thousand/million separators.', icon: '🔢', area: 'logic' },
-  { id: 6, category: 'Logic', title: 'Gershayim Placement Fix', description: 'Corrected Hebrew numeral punctuation by inserting double-quote marks (״) before the final letter of each independent group rather than searching the cumulative string.', icon: '✍️', area: 'logic' },
-  { id: 7, category: 'Logic', title: 'Dynamic Hebrew Font Scaling', description: 'Hebrew numeral output font size dynamically scales down from text-8xl to text-xl based on character length to prevent cutoff on mobile screens.', icon: '📐', area: 'logic' },
-  { id: 8, category: 'Logic', title: 'Language-Aware Input Direction', description: 'Hebrew word input fields now auto-detect Unicode character range [\\u0590-\\u05FF] and apply dir="rtl" + text-right for Hebrew, and dir="ltr" + text-left for English/Tamil.', icon: '↔️', area: 'logic' },
-  { id: 9, category: 'Logic', title: 'Family Accordion Click Fix', description: 'Family registration accordion in WorshipperIDCard now correctly handles expand/collapse toggle clicks with proper pointer event propagation.', icon: '👨‍👩‍👧‍👦', area: 'logic' },
-  { id: 10, category: 'Camera', title: 'QR Scanner Auto Max-Zoom + Torch', description: 'If no QR code is detected after 5 seconds, the scanner automatically applies maximum camera zoom and activates the torch/flashlight to assist scanning in low-light or distant scenarios.', icon: '🔦', area: 'camera' },
-  { id: 11, category: 'Camera', title: 'QR Scanner Border Auto-Hide', description: 'The white scan border frame automatically hides after 5 seconds if no code is detected, reducing visual clutter during the zoom/torch enhancement phase.', icon: '⬜', area: 'camera' },
-  { id: 12, category: 'Camera', title: 'QR Scanner Zoom Reset at 7s', description: 'Camera zoom is automatically reset to minimum constraints at 7 seconds total (2 seconds after max zoom), allowing the scanner to recalibrate for the next scan attempt.', icon: '🔍', area: 'camera' },
-  { id: 13, category: 'Camera', title: 'QR Scanner Error Overlay at 10s', description: 'If no QR code is detected after 10 seconds, the camera stops and a beautiful red SVG warning overlay appears with failure instructions and a "Try Again" action button that fully resets the scanner state.', icon: '⚠️', area: 'camera' },
-  { id: 14, category: 'Feature', title: 'COT ID History Logging & Tab', description: 'Every COT ID reassignment is now logged to Firestore (cotIdHistory collection) and local JSON fallback. A new "Changed COT ID History" tab in Admin Dashboard shows all logs chronologically with User Name, Old ID, New ID, and Timestamp.', icon: '📋', area: 'feature' },
-  { id: 15, category: 'Feature', title: 'AI Widget Floating Label Editor', description: 'Admin Dashboard Widgets section now has an editable floating label for the AI Assistant widget. Admins can customize the label text, toggle widget visibility, and control label display independently.', icon: '✨', area: 'feature' },
-  { id: 16, category: 'Feature', title: 'Mobile Notifications Config Panel', description: 'A comprehensive Simulated Mobile Notifications panel in Admin Dashboard Widgets allows admins to view all notification types, toggle visibility, adjust timing, change theme colors, and set custom purposes.', icon: '🔔', area: 'feature' },
-  { id: 17, category: 'Feature', title: 'Home Section Preview Controls', description: 'In isFrame (preview) mode, home sections and navbar items now show interactive [👁 Hide] and [🗑 Delete] overlay buttons on hover, communicating back to the parent admin dashboard via postMessage.', icon: '👁', area: 'feature' },
-  { id: 18, category: 'Database', title: 'cotIdHistory Collection Added', description: 'Added cotIdHistory: [] to db.json for JSON-server fallback, and implemented Firestore collection writes with batch logging when COT IDs are reassigned. getCotIdHistory() retrieves logs sorted chronologically.', icon: '🗃️', area: 'db' },
-  { id: 19, category: 'Tamil Grammar', title: 'Grammar Sub-Descriptions', description: 'Added Tamil-language sub-descriptions under each English grammar section in HebrewGrammar3D.tsx for bilingual accessibility.', icon: '📚', area: 'grammar' },
-  { id: 20, category: 'Admin Dashboard', title: 'Navigation Search Filter', description: 'Added a real-time search input at the top of the Admin Dashboard sidebar to quickly filter navigation pages by keyword.', icon: '🔍', area: 'feature' },
-  { id: 21, category: 'Admin Dashboard', title: 'Dark Mode Toggle', description: 'Admin Dashboard now supports dark mode with a toggle button. Theme preference is persisted in localStorage as cot_dashboard_theme.', icon: '🌙', area: 'feature' },
-  { id: 22, category: 'User Dashboard', title: 'Dark Mode Toggle', description: 'User Dashboard now supports dark/light mode toggle with a local isDark state and scoped dark styling.', icon: '🌓', area: 'feature' },
+  { id: 1, category: 'UI/UX', title: 'Hebrew Word Builder RTL Fix', description: 'Fixed Framer Motion coordinate mapping conflicts caused by dir="rtl" on Reorder.Group. The wrapper now uses dir="ltr" while the combined word display retains RTL reading order.', icon: 'type', area: 'ui' },
+  { id: 2, category: 'UI/UX', title: 'Duplicate AI Widget Removed', description: 'Removed an extra <AIChatAssistant /> render at the bottom of App.tsx that caused double widget display and potential event conflicts.', icon: 'bot', area: 'ui' },
+  { id: 3, category: 'UI/UX', title: 'Bottom Navigation Centering', description: 'Mobile bottom navigation bar repositioned into a centered floating capsule using w-[90%] max-w-sm mx-auto for better mobile UX.', icon: 'mobile', area: 'ui' },
+  { id: 4, category: 'UI/UX', title: 'Permalink Bold Styling & Share', description: 'Permalink URLs now display in bold, attractive styling. A Share Link button invokes navigator.share or falls back to clipboard copy with user feedback.', icon: 'link', area: 'ui' },
+  { id: 5, category: 'Logic', title: 'Hebrew Numerals – Billions Support', description: 'Rewrote toHebrew() as a fully recursive function supporting numbers up to billions. Each 3-digit group (thousands, millions, billions) is handled independently and joined with thousand/million separators.', icon: 'hash', area: 'logic' },
+  { id: 6, category: 'Logic', title: 'Gershayim Placement Fix', description: 'Corrected Hebrew numeral punctuation by inserting double-quote marks (״) before the final letter of each independent group rather than searching the cumulative string.', icon: 'pen', area: 'logic' },
+  { id: 7, category: 'Logic', title: 'Dynamic Hebrew Font Scaling', description: 'Hebrew numeral output font size dynamically scales down from text-8xl to text-xl based on character length to prevent cutoff on mobile screens.', icon: 'ruler', area: 'logic' },
+  { id: 8, category: 'Logic', title: 'Language-Aware Input Direction', description: 'Hebrew word input fields now auto-detect Unicode character range [\\u0590-\\u05FF] and apply dir="rtl" + text-right for Hebrew, and dir="ltr" + text-left for English/Tamil.', icon: 'type', area: 'logic' },
+  { id: 9, category: 'Logic', title: 'Family Accordion Click Fix', description: 'Family registration accordion in WorshipperIDCard now correctly handles expand/collapse toggle clicks with proper pointer event propagation.', icon: 'users', area: 'logic' },
+  { id: 10, category: 'Camera', title: 'QR Scanner Auto Max-Zoom + Torch', description: 'If no QR code is detected after 5 seconds, the scanner automatically applies maximum camera zoom and activates the torch/flashlight to assist scanning in low-light or distant scenarios.', icon: 'camera', area: 'camera' },
+  { id: 11, category: 'Camera', title: 'QR Scanner Border Auto-Hide', description: 'The white scan border frame automatically hides after 5 seconds if no code is detected, reducing visual clutter during the zoom/torch enhancement phase.', icon: 'square', area: 'camera' },
+  { id: 12, category: 'Camera', title: 'QR Scanner Zoom Reset at 7s', description: 'Camera zoom is automatically reset to minimum constraints at 7 seconds total (2 seconds after max zoom), allowing the scanner to recalibrate for the next scan attempt.', icon: 'search', area: 'camera' },
+  { id: 13, category: 'Camera', title: 'QR Scanner Error Overlay at 10s', description: 'If no QR code is detected after 10 seconds, the camera stops and a beautiful red SVG warning overlay appears with failure instructions and a "Try Again" action button that fully resets the scanner state.', icon: 'alert', area: 'camera' },
+  { id: 14, category: 'Feature', title: 'COT ID History Logging & Tab', description: 'Every COT ID reassignment is now logged to Firestore (cotIdHistory collection) and local JSON fallback. A new "Changed COT ID History" tab in Admin Dashboard shows all logs chronologically with User Name, Old ID, New ID, and Timestamp.', icon: 'clipboard', area: 'feature' },
+  { id: 15, category: 'Feature', title: 'AI Widget Floating Label Editor', description: 'Admin Dashboard Widgets section now has an editable floating label for the AI Assistant widget. Admins can customize the label text, toggle widget visibility, and control label display independently.', icon: 'sparkles', area: 'feature' },
+  { id: 16, category: 'Feature', title: 'Mobile Notifications Config Panel', description: 'A comprehensive Simulated Mobile Notifications panel in Admin Dashboard Widgets allows admins to view all notification types, toggle visibility, adjust timing, change theme colors, and set custom purposes.', icon: 'bell', area: 'feature' },
+  { id: 17, category: 'Feature', title: 'Home Section Preview Controls', description: 'In isFrame (preview) mode, home sections and navbar items now show interactive Hide and Delete overlay buttons on hover, communicating back to the parent admin dashboard via postMessage.', icon: 'eye', area: 'feature' },
+  { id: 18, category: 'Database', title: 'cotIdHistory Collection Added', description: 'Added cotIdHistory: [] to db.json for JSON-server fallback, and implemented Firestore collection writes with batch logging when COT IDs are reassigned. getCotIdHistory() retrieves logs sorted chronologically.', icon: 'database', area: 'db' },
+  { id: 19, category: 'Tamil Grammar', title: 'Grammar Sub-Descriptions', description: 'Added Tamil-language sub-descriptions under each English grammar section in HebrewGrammar3D.tsx for bilingual accessibility.', icon: 'book', area: 'grammar' },
+  { id: 20, category: 'Admin Dashboard', title: 'Navigation Search Filter', description: 'Added a real-time search input at the top of the Admin Dashboard sidebar to quickly filter navigation pages by keyword.', icon: 'search', area: 'feature' },
+  { id: 21, category: 'Admin Dashboard', title: 'Dark Mode Toggle', description: 'Admin Dashboard now supports dark mode with a toggle button. Theme preference is persisted in localStorage as cot_dashboard_theme.', icon: 'moon', area: 'feature' },
+  { id: 22, category: 'User Dashboard', title: 'Dark Mode Toggle', description: 'User Dashboard now supports dark/light mode toggle with a local isDark state and scoped dark styling.', icon: 'moon', area: 'feature' },
 ];
 
 const categoryColors: Record<string, { bg: string; border: string; text: string; dot: string }> = {
@@ -113,7 +114,7 @@ export const BugsFixedPage: React.FC<{ onBack?: () => void; currentUser?: User |
       technicalDetails: '',
       filesChanged: '',
       verification: '',
-      icon: '✅',
+      icon: 'check',
       area: 'feature' as const,
     };
     setEditingId(next.id);
@@ -267,7 +268,7 @@ export const BugsFixedPage: React.FC<{ onBack?: () => void; currentUser?: User |
                       onClick={() => setExpandedId(isExpanded ? null : fix.id)}
                       className="w-full text-left px-5 py-4 flex items-center gap-4"
                     >
-                      <span className="text-2xl shrink-0">{fix.icon}</span>
+                      <BugFixIcon iconKey={fix.icon} size={24} className="shrink-0 text-slate-600" />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${colors.bg} ${colors.text} border ${colors.border}`}>

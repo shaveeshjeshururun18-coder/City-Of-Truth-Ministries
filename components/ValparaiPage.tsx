@@ -22,7 +22,7 @@ const DESTINATIONS: DestinationData[] = [
         desc: "A stunning, highly protected high-altitude shola grassland. Located at an elevation of 2,400m, it is a designated UNESCO World Heritage Site with unparalleled scenic beauty.",
         tamilDesc: "யுனெஸ்கோ உலக பாரம்பரிய சின்னமான இந்த புல்வெளி, கடல் மட்டத்திலிருந்து 2,400 மீட்டர் உயரத்தில் அமைந்துள்ள பாதுகாக்கப்பட்ட சோலை புல்வெளி காடாகும்.",
         tips: "Prior forest department permit is strictly required. Best visited between January and May.",
-        imgUrl: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=600&auto=format&fit=crop"
+        imgUrl: "/valparai/dest1.png"
     },
     {
         name: "Sholayar Dam",
@@ -31,7 +31,7 @@ const DESTINATIONS: DestinationData[] = [
         desc: "One of the deepest and most vital dams in Asia, surrounded by massive hills and tea estates. It is a key constituent of the Aliyar-Parambikulam Hydroelectric project.",
         tamilDesc: "ஆசியாவின் மிக ஆழமான அணைகளில் ஒன்றான இது, பிரமாண்ட மலைகள் மற்றும் தேயிலை தோட்டங்களால் சூழப்பட்ட நீர்மின் திட்டத்தின் முக்கிய அங்கமாகும்.",
         tips: "Fabulous photography spot. Best visited post-monsoon when gates are opened.",
-        imgUrl: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=600&auto=format&fit=crop"
+        imgUrl: "/valparai/dest2.png"
     },
     {
         name: "Chinnakallar Falls",
@@ -40,7 +40,7 @@ const DESTINATIONS: DestinationData[] = [
         desc: "Known historically as the 'Cherrapunji of South India' due to its extreme annual rainfall. A hanging bridge spans across the roaring waterfall, surrounded by dense jungle.",
         tamilDesc: "தென்னிந்தியாவின் 'சிராபுஞ்சி' என்று அழைக்கப்படும் இந்த இடம், நாட்டின் அதிக மழைப்பொழிவு பெறும் பகுதிகளில் ஒன்றாகும். இங்கு அடர்ந்த காடுகளுக்கு இடையே தொங்கு பாலம் அமைந்துள்ளது.",
         tips: "Careful during heavy monsoons. Keep an eye out for elephant migrations.",
-        imgUrl: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=600&auto=format&fit=crop"
+        imgUrl: "/valparai/dest3.png"
     },
     {
         name: "Loam's View Point & Hairpins",
@@ -50,15 +50,6 @@ const DESTINATIONS: DestinationData[] = [
         tamilDesc: "பொள்ளாச்சியிலிருந்து வால்பாறை செல்லும் 40 கொண்டைஊசி வளைவு பாதையின் 9வது வளைவில் அமைந்துள்ள ஆழியாறு அணையின் முழுமையான அழகை காட்டும் இடம்.",
         tips: "Ideal place to stop during the drive. Watch out for mischievous bonnet macaques.",
         imgUrl: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=600&auto=format&fit=crop"
-    },
-    {
-        name: "Balaji Temple",
-        tamilName: "பாலாஜி கோவில்",
-        distance: "10 km from town",
-        desc: "A highly serene, beautifully manicured temple dedicated to Lord Venkateswara. Situated inside a private tea estate, it offers immense peace and spiritual solitude.",
-        tamilDesc: "ஒரு தனியார் தேயிலைத் தோட்டத்திற்குள் அமைந்துள்ள இந்த வெங்கடேஸ்வரா கோவில், மிகவும் அமைதியான மற்றும் ஆன்மீக அதிர்வுகள் நிறைந்த வழிபாட்டுத் தலமாகும்.",
-        tips: "Strict dress codes apply. Vehicles must be parked outside; requires a 500m walk.",
-        imgUrl: "https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?q=80&w=600&auto=format&fit=crop"
     }
 ];
 
@@ -281,64 +272,78 @@ export const ValparaiPage: React.FC = () => {
                         </p>
                     </div>
 
-                    <div className="grid md:grid-cols-12 gap-8 items-stretch">
-                        {/* Left Side: Destination selector buttons */}
-                        <div className="md:col-span-5 flex flex-col gap-2.5">
+                    <div className="flex flex-col gap-8 items-stretch">
+                        {/* Top Side: Destination selector buttons */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             {DESTINATIONS.map((dest) => (
                                 <button
                                     key={dest.name}
                                     onClick={() => setSelectedDest(dest)}
-                                    className={`w-full p-4 rounded-2xl border text-left transition-all flex items-center justify-between group ${
-                                        selectedDest?.name === dest.name
+                                    className={`w-full p-4 rounded-2xl border text-left transition-all flex flex-col justify-center group ${selectedDest?.name === dest.name
                                             ? 'bg-gradient-to-r from-blue-600 to-blue-700 border-blue-700 text-white shadow-md'
                                             : 'bg-white hover:bg-slate-50 border-slate-150 text-slate-700 shadow-sm'
-                                    }`}
+                                        }`}
                                 >
-                                    <div>
-                                        <h4 className="font-bold text-sm">{dest.name}</h4>
-                                        <p className={`text-[10px] font-medium mt-0.5 ${selectedDest?.name === dest.name ? 'text-blue-100' : 'text-slate-450'}`}>
-                                            {dest.tamilName}
-                                        </p>
+                                    <div className="flex w-full items-center justify-between mb-1">
+                                        <h4 className="font-bold text-sm truncate pr-2">{dest.name}</h4>
+                                        <ArrowRight size={14} className={`shrink-0 transition-transform ${selectedDest?.name === dest.name ? 'translate-x-1' : 'group-hover:translate-x-1 text-slate-400'}`} />
                                     </div>
-                                    <ArrowRight size={14} className={`transition-transform ${selectedDest?.name === dest.name ? 'translate-x-1' : 'group-hover:translate-x-1 text-slate-400'}`} />
+                                    <p className={`text-[10px] font-medium ${selectedDest?.name === dest.name ? 'text-blue-100' : 'text-slate-450'}`}>
+                                        {dest.tamilName}
+                                    </p>
                                 </button>
                             ))}
                         </div>
 
-                        {/* Right Side: Destination detail preview panel */}
-                        <div className="md:col-span-7">
+                        {/* Bottom Side: Ancient Museum Photo & Detail Preview Panel */}
+                        <div className="w-full">
                             <AnimatePresence mode="wait">
                                 {selectedDest && (
                                     <motion.div
                                         key={selectedDest.name}
-                                        initial={{ opacity: 0, x: 20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: -20 }}
-                                        transition={{ duration: 0.2 }}
-                                        className="h-full flex flex-col justify-between p-6 bg-slate-50/80 backdrop-blur-md rounded-3xl border border-slate-150 relative overflow-hidden"
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.95 }}
+                                        transition={{ duration: 0.25 }}
+                                        className="h-full flex flex-col justify-between p-6 bg-gradient-to-b from-[#0c132c] via-[#050b1e] to-[#02050f] text-white rounded-3xl border-2 border-[#D4AF37]/40 shadow-2xl relative overflow-hidden group"
                                     >
-                                        <div className="space-y-4">
-                                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
-                                                <div>
-                                                    <h3 className="text-xl font-bold text-slate-900">{selectedDest.name}</h3>
-                                                    <p className="text-xs text-blue-600 font-bold tracking-wide">{selectedDest.tamilName}</p>
-                                                </div>
-                                                <span className="px-3 py-1 bg-white text-slate-500 border border-slate-200 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm">
-                                                    <MapPin size={11} className="text-blue-500" /> {selectedDest.distance}
-                                                </span>
-                                            </div>
+                                        {/* Ancient Museum Gold Corner Ornaments */}
+                                        <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-[#D4AF37]" />
+                                        <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-[#D4AF37]" />
+                                        <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-[#D4AF37]" />
+                                        <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-[#D4AF37]" />
 
-                                            <div className="space-y-3">
-                                                <p className="text-slate-600 text-xs md:text-sm leading-relaxed text-justify">{selectedDest.desc}</p>
-                                                <p className="text-slate-500 text-xs italic font-serif leading-relaxed text-justify bg-blue-500/5 px-3 py-2 rounded-lg border-l border-blue-400">{selectedDest.tamilDesc}</p>
+                                        {/* Stone Tablet Event Header Label */}
+                                        <div className="mb-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-xl bg-amber-950/60 border border-[#D4AF37]/50 text-[#D4AF37] text-xs font-serif font-black shadow-md">
+                                            <span>{selectedDest.name}</span>
+                                            <span className="text-amber-300 font-sans font-normal text-[10px]">({selectedDest.distance})</span>
+                                        </div>
+
+                                        {/* Ancient Museum Photo Frame (Full color modern photo with gold border & wax seal accent) */}
+                                        <div className="relative rounded-2xl overflow-hidden border-2 border-[#D4AF37]/60 shadow-xl mb-4 h-48 sm:h-56 group-hover:border-[#D4AF37] transition-all">
+                                            <img
+                                                src={selectedDest.imgUrl}
+                                                alt={selectedDest.name}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent pointer-events-none" />
+
+
+                                            <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white text-xs font-serif">
+                                                <span className="font-bold text-[#D4AF37] text-sm">{selectedDest.tamilName}</span>
+                                                <span className="px-2.5 py-0.5 rounded-full bg-black/60 border border-white/20 text-[10px] font-sans font-bold">Full Color Archive</span>
                                             </div>
                                         </div>
 
-                                        <div className="mt-6 pt-4 border-t border-slate-200">
-                                            <span className="text-[10px] font-black uppercase text-blue-600 tracking-wider block mb-1 flex items-center gap-1">
-                                                <Info size={11} /> Travel Tip & Safety
+                                        <div className="space-y-3">
+                                            <p className="text-slate-200 text-xs md:text-sm leading-relaxed text-justify">{selectedDest.desc}</p>
+                                            <p className="text-amber-200/90 text-xs italic font-serif leading-relaxed text-justify bg-amber-950/30 px-3 py-2 rounded-lg border-l-2 border-[#D4AF37]">{selectedDest.tamilDesc}</p>
+                                        </div>
+
+                                        <div className="mt-4 pt-3 border-t border-[#D4AF37]/20 flex items-center justify-between text-[11px] text-slate-400">
+                                            <span className="flex items-center gap-1 text-[#D4AF37] font-bold">
+                                                <Info size={12} /> {selectedDest.tips}
                                             </span>
-                                            <p className="text-slate-500 text-xs leading-relaxed italic">{selectedDest.tips}</p>
                                         </div>
                                     </motion.div>
                                 )}
@@ -379,7 +384,7 @@ export const ValparaiPage: React.FC = () => {
                             {DESTINATIONS.map((dest, idx) => (
                                 <div key={idx} className="mb-6">
                                     <h4 className="text-lg font-bold text-slate-900">{dest.name} <span className="text-sm font-normal text-blue-600">({dest.tamilName})</span></h4>
-                                    <p className="text-sm text-slate-500 mb-1 flex items-center gap-1"><MapPin size={12}/> {dest.distance}</p>
+                                    <p className="text-sm text-slate-500 mb-1 flex items-center gap-1"><MapPin size={12} /> {dest.distance}</p>
                                     <p className="text-sm text-slate-700 mb-2 leading-relaxed">{dest.desc}</p>
                                     <p className="text-xs text-slate-500 italic bg-slate-50 p-2 rounded border-l-2 border-slate-200">{dest.tips}</p>
                                 </div>
@@ -446,12 +451,11 @@ export const ValparaiPage: React.FC = () => {
                         ].map(tab => (
                             <button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id as any)}
-                                className={`flex items-center gap-2 px-6 py-4 text-xs font-black uppercase tracking-wider transition-all border-r border-slate-100 shrink-0 ${
-                                    activeTab === tab.id
+                                onClick={() => setActiveTab(tab.id as 'heritage' | 'biodiversity' | 'climate' | 'estate')}
+                                className={`flex items-center gap-2 px-6 py-4 text-xs font-black uppercase tracking-wider transition-all border-r border-slate-100 shrink-0 ${activeTab === tab.id
                                         ? 'bg-white text-slate-900 border-b-2 border-b-blue-600'
                                         : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100/50'
-                                }`}
+                                    }`}
                             >
                                 {tab.icon}
                                 {tab.label}
@@ -589,16 +593,16 @@ export const ValparaiPage: React.FC = () => {
                     className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-950 text-white rounded-[2.5rem] p-8 md:p-12 border border-blue-500/10 shadow-2xl text-left relative overflow-hidden"
                 >
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.08)_0%,transparent_60%)] pointer-events-none" />
-                    
+
                     <div className="max-w-2xl relative z-10 space-y-5">
                         <span className="px-3.5 py-1.5 rounded-full bg-blue-500/15 text-blue-400 text-[10px] font-black tracking-widest uppercase border border-blue-400/20 inline-block">
                             Spiritual Anchor
                         </span>
-                        
+
                         <h3 className="text-3xl md:text-4xl font-serif font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-indigo-100 to-blue-400">
                             Valparai Sanctuary
                         </h3>
-                        
+
                         <p className="text-slate-300 text-sm md:text-base leading-relaxed text-justify font-light">
                             Experience the peaceful serenity of worship at our physical sanctuary nestled among the misty hills. We are dedicated to sharing the divine truth, establishing community outreach, and holding sacred services for spiritual growth.
                         </p>

@@ -34,6 +34,7 @@
     "types.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "temp_face_mesh"
   ]
 }

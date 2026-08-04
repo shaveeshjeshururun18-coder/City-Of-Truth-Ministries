@@ -2,10 +2,10 @@ import { ViewState } from '../types';
 
 export const PAGE_PERMALINK_OVERRIDES_KEY = 'cot_page_permalink_overrides';
 
-export const VIEW_PATHS: Partial<Record<ViewState, string>> = {
+export const VIEW_PATHS: Record<ViewState, string> = {
   [ViewState.HOME]: '/',
   [ViewState.AUTH]: '/auth',
-  [ViewState.ABOUT]: '/hebrew',
+  [ViewState.ABOUT]: '/about',
   [ViewState.MINISTRIES]: '/ministries',
   [ViewState.CONTACT]: '/contact',
   [ViewState.ABOUT_VALPARAI]: '/valparai',
@@ -21,11 +21,12 @@ export const VIEW_PATHS: Partial<Record<ViewState, string>> = {
   [ViewState.HEBREW_GRAMMAR]: '/hebrew-grammar',
   [ViewState.HEBREW_REFERENCE]: '/hebrew-reference',
   [ViewState.HEBREW_ISRAEL]: '/hebrew-israel',
+  [ViewState.PDF_DOWNLOADS]: '/pdf-downloads',
   [ViewState.GOLDEN_MENORAH]: '/golden-menorah',
   [ViewState.MENORAH]: '/menorah',
-  [ViewState.MENORAH_FLAG]: '/menorah',
+  [ViewState.MENORAH_FLAG]: '/menorah-flag',
   [ViewState.BARUCH_HASHEM]: '/baruch-hashem',
-  [ViewState.DEVELOPER]: '/?view=DEVELOPER',
+  [ViewState.DEVELOPER]: '/developer',
   [ViewState.AI]: '/ai',
   [ViewState.ID_CARD]: '/entrust-card',
   [ViewState.USER_DASHBOARD]: '/dashboard',

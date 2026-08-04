@@ -6,48 +6,49 @@ import { audioService } from '../services/audioService';
 import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { MouthPronunciationAnimator, type PhonemeStep } from './MouthPronunciationAnimator';
+import { GematriaHint } from './icons/modernIcons';
 
 // Simple syllable-to-phoneme mapper for generating mouth animations from breakdownEn
 const SYLLABLE_PHONEME_MAP: Record<string, string> = {
-  'sha': 'SH', 'she': 'SH', 'shi': 'SH', 'sho': 'SH', 'shu': 'SH', 'shab': 'SH', 'sheen': 'SH',
-  'lom': 'L', 'la': 'L', 'le': 'L', 'li': 'L', 'lo': 'L', 'lu': 'L', 'lah': 'L', 'leh': 'L',
-  'ha': 'H', 'he': 'H', 'hi': 'H', 'ho': 'H', 'hu': 'H', 'hal': 'H',
-  'va': 'V', 've': 'V', 'vi': 'V', 'vo': 'V', 'vu': 'V', 'vah': 'V',
-  'ka': 'K', 'ke': 'K', 'ki': 'K', 'ko': 'K', 'ku': 'K', 'kah': 'K', 'khah': 'K',
-  'ma': 'P', 'me': 'P', 'mi': 'P', 'mo': 'P', 'mu': 'P', 'mah': 'P',
-  'na': 'N', 'ne': 'N', 'ni': 'N', 'no': 'N', 'nu': 'N', 'nah': 'N', 'nai': 'N',
-  'ra': 'R', 're': 'R', 'ri': 'R', 'ro': 'R', 'ru': 'R', 'rah': 'R',
-  'pa': 'P', 'pe': 'P', 'pi': 'P', 'po': 'P', 'pu': 'P', 'peh': 'P',
-  'ba': 'P', 'be': 'P', 'bi': 'P', 'bo': 'P', 'bu': 'P',
-  'ta': 'TH', 'te': 'TH', 'ti': 'TH', 'to': 'TH', 'tu': 'TH', 'tav': 'TH', 'tze': 'TS',
-  'da': 'TH', 'de': 'TH', 'di': 'TH', 'do': 'TH', 'du': 'TH', 'dosh': 'TH',
-  'a': 'AH', 'ah': 'AH', 'e': 'EE', 'ee': 'EE', 'i': 'EE', 'o': 'OO', 'oo': 'OO', 'u': 'OO',
-  'ya': 'EE', 'ye': 'EE', 'yi': 'EE', 'yo': 'EE', 'yu': 'EE', 'yah': 'EE', 'yim': 'EE',
-  'cha': 'K', 'che': 'K', 'chi': 'K', 'cho': 'K', 'chu': 'K', 'chah': 'K',
-  'sa': 'S', 'se': 'S', 'si': 'S', 'so': 'S', 'su': 'S', 'sed': 'S',
-  'fa': 'F', 'fe': 'F', 'fi': 'F', 'fo': 'F', 'fu': 'F',
-  'ga': 'K', 'ge': 'K', 'gi': 'K', 'go': 'K', 'gu': 'K',
-  'met': 'P', 'men': 'P', 'mel': 'P', 'mim': 'P',
-  'bat': 'P', 'bet': 'P', 'bit': 'P', 'bot': 'P', 'but': 'P',
-  'rit': 'R', 'vod': 'V', 'dash': 'TH', 'dot': 'TH',
-  'ach': 'K', 'ech': 'K', 'och': 'K', 'uch': 'K',
-  'el': 'EE', 'im': 'EE', 'in': 'EE', 'it': 'EE', 'at': 'AH',
-  'lon': 'L', 'lem': 'L', 'lim': 'L', 'lam': 'L',
+    'sha': 'SH', 'she': 'SH', 'shi': 'SH', 'sho': 'SH', 'shu': 'SH', 'shab': 'SH', 'sheen': 'SH',
+    'lom': 'L', 'la': 'L', 'le': 'L', 'li': 'L', 'lo': 'L', 'lu': 'L', 'lah': 'L', 'leh': 'L',
+    'ha': 'H', 'he': 'H', 'hi': 'H', 'ho': 'H', 'hu': 'H', 'hal': 'H',
+    'va': 'V', 've': 'V', 'vi': 'V', 'vo': 'V', 'vu': 'V', 'vah': 'V',
+    'ka': 'K', 'ke': 'K', 'ki': 'K', 'ko': 'K', 'ku': 'K', 'kah': 'K', 'khah': 'K',
+    'ma': 'P', 'me': 'P', 'mi': 'P', 'mo': 'P', 'mu': 'P', 'mah': 'P',
+    'na': 'N', 'ne': 'N', 'ni': 'N', 'no': 'N', 'nu': 'N', 'nah': 'N', 'nai': 'N',
+    'ra': 'R', 're': 'R', 'ri': 'R', 'ro': 'R', 'ru': 'R', 'rah': 'R',
+    'pa': 'P', 'pe': 'P', 'pi': 'P', 'po': 'P', 'pu': 'P', 'peh': 'P',
+    'ba': 'P', 'be': 'P', 'bi': 'P', 'bo': 'P', 'bu': 'P',
+    'ta': 'TH', 'te': 'TH', 'ti': 'TH', 'to': 'TH', 'tu': 'TH', 'tav': 'TH', 'tze': 'TS',
+    'da': 'TH', 'de': 'TH', 'di': 'TH', 'do': 'TH', 'du': 'TH', 'dosh': 'TH',
+    'a': 'AH', 'ah': 'AH', 'e': 'EE', 'ee': 'EE', 'i': 'EE', 'o': 'OO', 'oo': 'OO', 'u': 'OO',
+    'ya': 'EE', 'ye': 'EE', 'yi': 'EE', 'yo': 'EE', 'yu': 'EE', 'yah': 'EE', 'yim': 'EE',
+    'cha': 'K', 'che': 'K', 'chi': 'K', 'cho': 'K', 'chu': 'K', 'chah': 'K',
+    'sa': 'S', 'se': 'S', 'si': 'S', 'so': 'S', 'su': 'S', 'sed': 'S',
+    'fa': 'F', 'fe': 'F', 'fi': 'F', 'fo': 'F', 'fu': 'F',
+    'ga': 'K', 'ge': 'K', 'gi': 'K', 'go': 'K', 'gu': 'K',
+    'met': 'P', 'men': 'P', 'mel': 'P', 'mim': 'P',
+    'bat': 'P', 'bet': 'P', 'bit': 'P', 'bot': 'P', 'but': 'P',
+    'rit': 'R', 'vod': 'V', 'dash': 'TH', 'dot': 'TH',
+    'ach': 'K', 'ech': 'K', 'och': 'K', 'uch': 'K',
+    'el': 'EE', 'im': 'EE', 'in': 'EE', 'it': 'EE', 'at': 'AH',
+    'lon': 'L', 'lem': 'L', 'lim': 'L', 'lam': 'L',
 };
 
 function generatePhonemeSequence(breakdownEn: string): PhonemeStep[] {
-  const syllables = breakdownEn.toLowerCase().split(/[-·\s]+/).filter(Boolean);
-  const sequence: PhonemeStep[] = [];
-  for (const syl of syllables) {
-    const clean = syl.trim();
-    if (!clean) continue;
-    const phoneme = SYLLABLE_PHONEME_MAP[clean] || 
-      (clean.startsWith('sh') ? 'SH' : clean.startsWith('ch') ? 'K' : clean.startsWith('th') ? 'TH' : 
-       clean.startsWith('ts') ? 'TS' : clean.endsWith('ah') || clean.endsWith('a') ? 'AH' : 
-       clean.endsWith('ee') || clean.endsWith('i') ? 'EE' : clean.endsWith('oo') || clean.endsWith('u') ? 'OO' : 'AH');
-    sequence.push({ phoneme, duration: 350, syllable: clean });
-  }
-  return sequence.length > 0 ? sequence : [{ phoneme: 'AH', duration: 500, syllable: breakdownEn }];
+    const syllables = breakdownEn.toLowerCase().split(/[-·\s]+/).filter(Boolean);
+    const sequence: PhonemeStep[] = [];
+    for (const syl of syllables) {
+        const clean = syl.trim();
+        if (!clean) continue;
+        const phoneme = SYLLABLE_PHONEME_MAP[clean] ||
+            (clean.startsWith('sh') ? 'SH' : clean.startsWith('ch') ? 'K' : clean.startsWith('th') ? 'TH' :
+                clean.startsWith('ts') ? 'TS' : clean.endsWith('ah') || clean.endsWith('a') ? 'AH' :
+                    clean.endsWith('ee') || clean.endsWith('i') ? 'EE' : clean.endsWith('oo') || clean.endsWith('u') ? 'OO' : 'AH');
+        sequence.push({ phoneme, duration: 350, syllable: clean });
+    }
+    return sequence.length > 0 ? sequence : [{ phoneme: 'AH', duration: 500, syllable: breakdownEn }];
 }
 
 // Gematria letter values
@@ -276,8 +277,8 @@ export const HebrewWordHub: React.FC = () => {
             if (prev[0]?.word === entry.word) return prev;
             return [entry, ...prev].slice(0, MAX_HISTORY);
         });
-    // Use the full memoized wordDetails object as the dependency so that a change
-    // to any property of the same word is also captured correctly.
+        // Use the full memoized wordDetails object as the dependency so that a change
+        // to any property of the same word is also captured correctly.
     }, [wordDetails]);
 
     const clearHistory = () => {
@@ -403,7 +404,6 @@ export const HebrewWordHub: React.FC = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                         <div>
-                            <p className="text-xs text-slate-300 mb-2 font-medium">Draw or write letters/words below:</p>
                             <div className="relative w-full h-40 bg-slate-950 rounded-2xl border border-white/20 overflow-hidden cursor-crosshair group">
                                 <canvas
                                     id="handwriting-canvas"
@@ -563,7 +563,7 @@ export const HebrewWordHub: React.FC = () => {
                                             <div className="bg-white/5 rounded-xl p-3 border border-white/5">
                                                 <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Value</div>
                                                 <div className="text-2xl font-black text-accent-400">{currentGematria}</div>
-                                                <div className="text-[9px] text-slate-500 mt-0.5">{currentGematria % 7 === 0 ? '✡ Multiple of 7' : currentGematria % 3 === 0 ? '△ Multiple of 3' : currentGematria % 10 === 0 ? '✕ Round number' : 'Standard value'}</div>
+                                                <div className="text-[9px] text-slate-500 mt-0.5"><GematriaHint value={currentGematria} /></div>
                                             </div>
                                         </div>
                                         {/* Letter meanings row */}
@@ -664,8 +664,8 @@ export const HebrewWordHub: React.FC = () => {
                                                             <div className="w-4 h-[1px] bg-slate-700" />
                                                             {wordDetails.pronunciationTa} (தமிழ்)
                                                         </div>
-                                                        <button 
-                                                            onClick={() => audioService.playTamil(wordDetails.pronunciationTa!)} 
+                                                        <button
+                                                            onClick={() => audioService.playTamil(wordDetails.pronunciationTa!)}
                                                             className="p-1.5 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-accent-500"
                                                             title="Listen in Tamil"
                                                         >

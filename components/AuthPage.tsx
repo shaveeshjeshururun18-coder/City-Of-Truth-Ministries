@@ -1011,45 +1011,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                     <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20">Phone: 9876543210</span>
                                     <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20">Name: John</span>
                                     <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20">Email: john@mail.com</span>
-                                    
-                                    <div className="hidden md:block mt-6 md:mt-8 rounded-[32px] border-2 border-amber-400/40 bg-gradient-to-br from-slate-900/95 via-indigo-950/90 to-blue-950/95 p-5 sm:p-7 text-left shadow-[0_20px_60px_-15px_rgba(245,158,11,0.35)] backdrop-blur-2xl relative overflow-hidden group">
-                                     {/* Glowing top line & background light */}
-                                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 shadow-[0_0_12px_#f59e0b]" />
-                                     <div className="absolute -top-16 -right-16 w-52 h-52 bg-amber-400/15 rounded-full blur-3xl pointer-events-none" />
-
-                                     <div className="flex flex-col lg:flex-row items-center justify-between gap-6 relative z-10">
-                                         <div className="flex-1 w-full">
-                                             <div className="flex items-center gap-2 mb-4">
-                                                 <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shadow-[0_0_8px_#f59e0b]" />
-                                                 <p className="text-xs sm:text-sm font-black uppercase tracking-[0.25em] bg-gradient-to-r from-amber-200 via-yellow-300 to-amber-400 bg-clip-text text-transparent drop-shadow-sm">
-                                                     New Member Advantages
-                                                 </p>
-                                             </div>
-                                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                                                 {[
-                                                     { icon: IdCard, title: 'Official Entrust Card', text: 'Unique digital member ID & verified access' },
-                                                     { icon: LayoutDashboard, title: 'Personal Dashboard', text: 'Account, family profiles & live updates' },
-                                                     { icon: BellRing, title: 'Ministry Notifications', text: 'Instant approval status & announcements' },
-                                                 ].map(({ icon: Icon, title, text }) => (
-                                                     <div key={title} className="rounded-2xl border border-white/20 bg-white/12 hover:bg-white/20 p-4 transition-all duration-300 transform hover:-translate-y-1 hover:border-amber-300/60 shadow-md group/card">
-                                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 via-yellow-400 to-amber-500 text-slate-950 flex items-center justify-center font-black shadow-md shadow-amber-500/25 mb-3 group-hover/card:scale-110 transition-transform">
-                                                             <Icon size={20} />
-                                                         </div>
-                                                         <h5 className="text-white font-extrabold text-xs sm:text-[13px] leading-snug mb-1 drop-shadow-sm">{title}</h5>
-                                                         <p className="text-amber-100/90 font-semibold text-[11px] leading-relaxed">{text}</p>
-                                                     </div>
-                                                 ))}
-                                             </div>
-                                         </div>
-                                         <button
-                                             type="button"
-                                             onClick={onNavigateToRegister}
-                                             className="w-full lg:w-auto shrink-0 inline-flex items-center justify-center gap-2.5 px-7 py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider hover:brightness-110 hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_0_30px_rgba(245,158,11,0.5)] hover:shadow-[0_0_40px_rgba(245,158,11,0.8)] border border-amber-200/50 cursor-pointer"
-                                         >
-                                             Register Now <ArrowRight size={16} strokeWidth={3} />
-                                         </button>
-                                     </div>
-                                 </div>
                                 </div>
 
                                 {/* Smart Auth Grid */}

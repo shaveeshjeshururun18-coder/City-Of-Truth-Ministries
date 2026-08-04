@@ -256,25 +256,7 @@ export const AnimatedTeacherCharacter: React.FC<AnimatedTeacherCharacterProps> =
               )}
             </div>
 
-            {/* Action Play Buttons */}
-            <div className="flex items-center gap-2">
-              {onPlayTamil && (
-                <button
-                  onClick={onPlayTamil}
-                  className="flex-1 py-2 px-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-[0_4px_12px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-                >
-                  <Volume2 size={14} /> தமிழ் Audio Teaching
-                </button>
-              )}
-              {onPlayHebrew && (
-                <button
-                  onClick={onPlayHebrew}
-                  className="py-2 px-3 bg-white/10 hover:bg-white/20 text-white font-semibold text-xs rounded-xl border border-white/20 transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95"
-                >
-                  <Volume2 size={14} /> Hebrew Audio
-                </button>
-              )}
-            </div>
+
           </div>
         </div>
 

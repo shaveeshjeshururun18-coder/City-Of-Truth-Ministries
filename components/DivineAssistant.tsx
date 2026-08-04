@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { X, Send, Maximize2, Minimize2, Loader, Sparkles, Trash2, Hand, Quote, Settings, Download, BookOpen, Clock, Zap, BarChart3, Volume2, Copy, ThumbsUp, ThumbsDown, Cpu } from 'lucide-react';
+import { X, Send, Maximize2, Minimize2, Loader, Sparkles, Trash2, Hand, Quote, Settings, Download, BookOpen, Clock, Zap, BarChart3, Volume2, Copy, ThumbsUp, ThumbsDown, Cpu, User } from 'lucide-react';
 import { motion, AnimatePresence, PanInfo, useAnimation } from 'framer-motion';
 import { streamSpatulaAIResponse } from '../services/openRouterService';
 import { jsPDF } from 'jspdf';
@@ -793,7 +793,7 @@ export const DivineAssistant: React.FC = () => {
                                         >
                                             {msg.sender === 'bot' ? (
                                                 <LordIconWrapper icon="bible" size={20} trigger="hover" colors={{ primary: '#ffffff', secondary: '#1E3A8A' }} />
-                                            ) : '🙏'}
+                                            ) : <User size={18} />}
                                         </div>
 
                                         {/* Message Bubble */}

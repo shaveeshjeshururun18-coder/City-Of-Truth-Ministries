@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type, Volume2, Loader2, Info, Fingerprint, FileImage, Download, Printer, Globe, Star, Moon, Sun, MapPin, Share2, X, Mic } from 'lucide-react';
+import { Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type, Volume2, Loader2, Info, Fingerprint, FileImage, Download, Printer, Globe, Star, Moon, Sun, MapPin, Share2, X, Mic, CheckCircle } from 'lucide-react';
 import { analyzeHebrewWord } from '../services/openRouterService';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { HebrewYearDropdown } from './HebrewYearDropdown';
@@ -7,7 +7,8 @@ import { HebrewConverter } from './HebrewConverter';
 import { HebrewWordHub } from './HebrewWordHub';
 import { InteractiveMenorah } from './InteractiveMenorah';
 import { PrintableHebrewCalendar } from './PrintableHebrewCalendar';
-import { PrintableReferenceGuide, HEBREW_MONTHS_DATA, KEY_DETAILS } from './PrintableReferenceGuide';
+import { PrintableReferenceGuide } from './PrintableReferenceGuide';
+import { HebrewCalendarGuide } from './HebrewCalendarGuide';
 
 // Timezone constants - Define early to avoid hoisting issues
 const JERUSALEM_TIMEZONE = 'Asia/Jerusalem';
@@ -21,6 +22,8 @@ import { audioService } from '../services/audioService';
 import { HebrewGrammar3D } from './HebrewGrammar3D';
 import { IsraelPage } from './IsraelPage';
 import { MouthPronunciationAnimator, type PhonemeStep } from './MouthPronunciationAnimator';
+import { PSALM_119_VERSES } from './psalm119';
+import { GematriaHint } from './icons/modernIcons';
 
 export const captureNodeToJpeg = async (
     sourceNode: HTMLElement,
@@ -852,6 +855,8 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
     const [showSearch, setShowSearch] = useState(false);
     const [now, setNow] = useState(new Date());
     const [selectedMoonPhase, setSelectedMoonPhase] = useState<AllMoonPhaseDetail | null>(null);
+    const [toastMsg, setToastMsg] = useState<string | null>(null);
+    const touchStartX = useRef<number | null>(null);
 
     useEffect(() => {
         const timer = setInterval(() => setNow(new Date()), 1000);
@@ -1136,6 +1141,48 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                                 </p>
                                 <cite className="text-[#D4AF37]/80 text-[10px] font-bold tracking-widest not-italic mt-1 block">— Psalm 90:12</cite>
                             </motion.blockquote>
+
+                            {/* Today's Weekday Psalm of the Day */}
+                            {(() => {
+                                const dayOfWeekIdx = today.getDay();
+                                const weekdayPsalms = [
+                                    { psalm: 'Psalm 24', dayName: 'Yom Rishon (Sunday)' },
+                                    { psalm: 'Psalm 48', dayName: 'Yom Sheni (Monday)' },
+                                    { psalm: 'Psalm 82', dayName: 'Yom Shlishi (Tuesday)' },
+                                    { psalm: 'Psalm 94', dayName: "Yom Revi'i (Wednesday)" },
+                                    { psalm: 'Psalm 81', dayName: 'Yom Chamishi (Thursday)' },
+                                    { psalm: 'Psalm 93', dayName: 'Yom Shishi (Friday)' },
+                                    { psalm: 'Psalm 92', dayName: 'Shabbat (Saturday)' }
+                                ];
+                                const todayPsalmInfo = weekdayPsalms[dayOfWeekIdx];
+                                return (
+                                    <div className="mt-3 pt-3 border-t border-[#D4AF37]/20 border-dashed max-w-md mx-auto lg:mx-0 text-center lg:text-left flex flex-wrap items-center justify-center lg:justify-start gap-2">
+                                        <span className="px-3 py-1 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/40 text-[#D4AF37] text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
+                                            <BookOpen size={12} /> Psalm of the Day: {todayPsalmInfo.psalm}
+                                        </span>
+                                        <span className="text-white/70 text-xs font-bold font-serif">({todayPsalmInfo.dayName})</span>
+                                    </div>
+                                );
+                            })()}
+
+                            {/* Today's Psalm 119 Daily Reading Portion */}
+                            {(() => {
+                                const p119Idx = Math.floor(Date.now() / 86400000) % 176;
+                                const p119Text = PSALM_119_VERSES[p119Idx];
+                                const stanzaNames = ['Aleph', 'Bet', 'Gimel', 'Dalet', 'He', 'Vav', 'Zayin', 'Chet', 'Tet', 'Yod', 'Kaf', 'Lamed', 'Mem', 'Nun', 'Samekh', 'Ayin', 'Pe', 'Tsade', 'Qoph', 'Resh', 'Shin', 'Tav'];
+                                const sName = stanzaNames[Math.floor(p119Idx / 8)];
+                                return (
+                                    <div className="mt-3 pt-3 border-t border-[#D4AF37]/20 border-dashed max-w-md mx-auto lg:mx-0 text-center lg:text-left">
+                                        <div className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37] mb-1 flex items-center gap-1.5 justify-center lg:justify-start">
+                                            <BookOpen size={12} className="text-[#D4AF37]" /> Daily Psalm 119 Portion ({sName} · Verse {p119Idx + 1})
+                                        </div>
+                                        <p className="text-white/85 text-xs md:text-sm italic leading-relaxed">
+                                            "{p119Text}"
+                                        </p>
+                                        <cite className="text-[#D4AF37]/90 text-[10px] font-bold tracking-widest not-italic mt-1 block">— Psalm 119:{p119Idx + 1}</cite>
+                                    </div>
+                                );
+                            })()}
                         </div>
 
                         {/* Right: Stats Widgets */}
@@ -1467,9 +1514,46 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                         </div>
                     )}
 
-                    {/* SCOPE 3: MONTH VIEW (Standard Grid) */}
+                    {/* SCOPE 3: MONTH VIEW (Standard Grid with Swipe Support) */}
                     {calendarScope === 'month' && (
-                        <>
+                        <div
+                            onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+                            onTouchEnd={(e) => {
+                                if (touchStartX.current === null) return;
+                                const touchEndX = e.changedTouches[0].clientX;
+                                const diff = touchStartX.current - touchEndX;
+                                if (diff > 45) {
+                                    // Swiped Left -> Next Month
+                                    setCurrentMonthIdx(prev => Math.min(calendarData.length - 1, prev + 1));
+                                } else if (diff < -45) {
+                                    // Swiped Right -> Prev Month
+                                    setCurrentMonthIdx(prev => Math.max(0, prev - 1));
+                                }
+                                touchStartX.current = null;
+                            }}
+                            className="space-y-3"
+                        >
+                            {/* Swipe Navigation & Month Switcher Bar */}
+                            <div className="flex items-center justify-between text-xs font-bold text-slate-600 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-xl mb-2">
+                                <button
+                                    onClick={() => setCurrentMonthIdx(prev => Math.max(0, prev - 1))}
+                                    disabled={currentMonthIdx === 0}
+                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-[#1E3A8A] disabled:opacity-30 text-[#1E3A8A] font-extrabold transition-all shadow-sm"
+                                >
+                                    <ChevronLeft size={14} /> Prev Month
+                                </button>
+                                <span className="text-[10px] text-slate-500 font-mono tracking-wider uppercase flex items-center gap-1 font-extrabold">
+                                    👈 Swipe Left / Right 👉
+                                </span>
+                                <button
+                                    onClick={() => setCurrentMonthIdx(prev => Math.min(calendarData.length - 1, prev + 1))}
+                                    disabled={currentMonthIdx === calendarData.length - 1}
+                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-[#1E3A8A] disabled:opacity-30 text-[#1E3A8A] font-extrabold transition-all shadow-sm"
+                                >
+                                    Next Month <ChevronRight size={14} />
+                                </button>
+                            </div>
+
                             {/* Day Headers */}
                             <div className="grid grid-cols-7 gap-1 md:gap-2 mb-3 md:mb-4 text-center">
                                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Shabbat'].map((d, i) => {
@@ -1570,7 +1654,7 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                                     </React.Fragment>
                                 ))}
                             </div>
-                        </>
+                        </div>
                     )}
 
                     {/* SCOPE 4: YEAR VIEW (All 12-13 Months Grid) */}
@@ -1673,6 +1757,7 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
 
                     return (
                         <motion.div
+                            id="hebrew-selected-date-card"
                             key={`${selectedDay}-${name}`}
                             initial={{ opacity: 0, y: 24 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -1767,18 +1852,45 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                                             </div>
                                             <div className="flex flex-col gap-2">
                                                 <button
-                                                    onClick={handleDownloadCurrentMonth}
-                                                    className="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-white text-[10px] font-bold transition-all"
-                                                    title="Download month image"
+                                                    onClick={async () => {
+                                                        const cardNode = document.getElementById('hebrew-selected-date-card');
+                                                        if (cardNode) {
+                                                            try {
+                                                                const dataUrl = await toJpeg(cardNode, { backgroundColor: '#0c1445', quality: 0.95 });
+                                                                const link = document.createElement('a');
+                                                                link.download = `Hebrew_Date_${selectedDay}_${name}_${safeYear}.jpg`;
+                                                                link.href = dataUrl;
+                                                                link.click();
+                                                                setToastMsg('Saved particular date image!');
+                                                                setTimeout(() => setToastMsg(null), 3000);
+                                                            } catch (err) {
+                                                                console.error('Failed to save date card image:', err);
+                                                            }
+                                                        }
+                                                    }}
+                                                    className="flex items-center gap-1.5 px-3.5 py-2.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 rounded-xl text-emerald-300 text-xs font-bold transition-all cursor-pointer shadow-md active:scale-95"
+                                                    title="Save this particular date card image"
                                                 >
-                                                    <Download size={11} /> Save
+                                                    <Download size={13} /> Save Date
                                                 </button>
                                                 <button
-                                                    onClick={() => { if (navigator.share) navigator.share({ title: `${selectedDay} ${name} ${safeYear}`, text: `Hebrew Date: ${selectedDay} ${name} ${safeYear}\n${dayObj?.gregorianDate || ''}\nCity of Truth Ministries` }).catch(() => { }); }}
-                                                    className="flex items-center gap-1.5 px-3 py-2 bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30 border border-[#D4AF37]/40 rounded-xl text-[#D4AF37] text-[10px] font-bold transition-all"
-                                                    title="Share this date"
+                                                    onClick={async () => {
+                                                        const textToCopy = `📅 HEBREW DATE: ${selectedDay} ${name} ${safeYear}\n${dayObj?.gregorianDate ? `Gregorian: ${dayObj.gregorianDate}\n` : ''}📘 Psalm of the Day: ${psalm}\n📿 Day Type: ${dayType}\n🙏 Daily Prayer: ${isShabbatDay ? '"May this Shabbat restore your soul..."' : '"Guide my steps today, O Lord..."'}\n✨ City of Truth Ministries`;
+                                                        try {
+                                                            await navigator.clipboard.writeText(textToCopy);
+                                                            setToastMsg('Copied date details to clipboard!');
+                                                            setTimeout(() => setToastMsg(null), 3000);
+                                                        } catch (_e) {}
+                                                        if (navigator.share) {
+                                                            try {
+                                                                await navigator.share({ title: `${selectedDay} ${name} ${safeYear}`, text: textToCopy });
+                                                            } catch (_e) {}
+                                                        }
+                                                    }}
+                                                    className="flex items-center gap-1.5 px-3.5 py-2.5 bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30 border border-[#D4AF37]/40 rounded-xl text-[#D4AF37] text-xs font-bold transition-all cursor-pointer shadow-md active:scale-95"
+                                                    title="Copy date details & share"
                                                 >
-                                                    <Share2 size={11} /> Share
+                                                    <Share2 size={13} /> Copy & Share
                                                 </button>
                                             </div>
                                         </div>
@@ -2051,6 +2163,13 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                     )}
                 </AnimatePresence>
             </div>
+            {/* Floating Toast Notification */}
+            {toastMsg && (
+                <div className="fixed bottom-8 right-6 z-50 bg-slate-900 border border-emerald-400 text-white px-5 py-3 rounded-2xl shadow-2xl text-xs font-bold flex items-center gap-2 animate-bounce">
+                    <CheckCircle size={16} className="text-emerald-400" />
+                    <span>{toastMsg}</span>
+                </div>
+            )}
         </div>
     );
 };
@@ -2448,197 +2567,6 @@ const FestivalsView: React.FC = () => {
                     </div>
                 </motion.div>
             )}
-        </div>
-    );
-};
-
-const ReferenceView: React.FC = () => {
-    const leap = isLeapYear(5786);
-    const exportMonthsRef = useRef<HTMLDivElement>(null);
-    const [isExportingMonths, setIsExportingMonths] = useState(false);
-
-    const handleDownloadMonthsPDF = async () => {
-        if (!exportMonthsRef.current) return;
-        setIsExportingMonths(true);
-        try {
-            const dataUrl = await captureNodeToJpeg(exportMonthsRef.current, { backgroundColor: '#0f0c29', width: 900 });
-            const img = new Image();
-            img.src = dataUrl;
-            await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = () => reject(); });
-            const A4_W = 210;
-            const pdfH = (img.height * A4_W) / img.width;
-            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [A4_W, pdfH] });
-            pdf.addImage(dataUrl, 'JPEG', 0, 0, A4_W, pdfH);
-            pdf.save('COT-Hebrew-Months-Days.pdf');
-        } catch (e) {
-            console.error(e);
-            alert('Export failed, please try again.');
-        } finally {
-            setIsExportingMonths(false);
-        }
-    };
-
-    return (
-        <div className="space-y-16">
-            {/* Hidden export card for Months & Days */}
-            <div style={{ position: 'fixed', left: '-9999px', top: 0, zIndex: -1, pointerEvents: 'none' }}>
-                <div ref={exportMonthsRef} style={{ width: '900px', background: 'linear-gradient(135deg, #0f0c29 0%, #1a1450 50%, #0f0c29 100%)', padding: '48px', fontFamily: 'Georgia, serif', color: '#fff', borderRadius: '24px' }}>
-                    {/* Header */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', paddingBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
-                        <div>
-                            <div style={{ fontSize: '18px', fontWeight: 900, color: '#f0c040', textTransform: 'uppercase', letterSpacing: '0.06em' }}>City of Truth Ministries</div>
-                            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Valparai · India</div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: '20px', fontWeight: 900, color: '#f0c040' }}>Hebrew Months & Days</div>
-                            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>எபிரேய மாதங்கள் மற்றும் நாட்கள்</div>
-                        </div>
-                    </div>
-                    {/* Months grid */}
-                    <div style={{ marginBottom: '20px' }}>
-                        <div style={{ fontSize: '14px', fontWeight: 900, color: '#f0c040', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '12px' }}>Months · மாதங்கள்</div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px' }}>
-                            {HEBREW_MONTHS_DATA.map((m, i) => (
-                                <div key={i} style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '12px', padding: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                    <div style={{ fontSize: '12px', fontWeight: 900, color: '#f0c040' }}>{(i + 1).toString().padStart(2, '0')}. {m.name}</div>
-                                    <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.8)', direction: 'rtl', margin: '4px 0' }}>{m.hebrewScript}</div>
-                                    <div style={{ fontSize: '11px', color: '#93c5fd', marginBottom: '4px' }}>{m.tamil}</div>
-                                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>{m.gregorian}</div>
-                                    {m.holidays && <div style={{ fontSize: '9px', color: '#fde68a', marginTop: '4px' }}>{m.holidays}</div>}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                    {/* Days grid */}
-                    <div style={{ marginBottom: '24px' }}>
-                        <div style={{ fontSize: '14px', fontWeight: 900, color: '#f0c040', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '12px' }}>Days of the Week · வாரத்தின் நாட்கள்</div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr', gap: '8px' }}>
-                            {HEBREW_DAYS.map((d, i) => (
-                                <div key={i} style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '10px', padding: '10px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                    <div style={{ fontSize: '16px', color: '#a78bfa', direction: 'rtl', marginBottom: '4px' }}>{d.hebrew}</div>
-                                    <div style={{ fontSize: '10px', fontWeight: 900, color: '#f0c040' }}>{d.name}</div>
-                                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>{d.english}</div>
-                                    <div style={{ fontSize: '10px', color: '#93c5fd', marginTop: '3px' }}>{d.tamil}</div>
-                                    <div style={{ fontSize: '10px', color: '#86efac', marginTop: '3px', fontWeight: 'bold' }}>{d.psalm}</div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                    {/* Footer */}
-                    <div style={{ paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'rgba(255,255,255,0.3)' }}>
-                        <span>© {new Date().getFullYear()} City of Truth Ministries · All rights reserved</span>
-                        <span>+91 8056125478 · city-of-truth-ministries.vercel.app</span>
-                    </div>
-                </div>
-            </div>
-
-            {/* Hebrew Months Section */}
-            <div>
-                <div className="flex items-center justify-between mb-8">
-                    <h3 className="text-2xl font-serif font-bold text-brand-950 flex items-center gap-3">
-                        <BookOpen className="text-brand-600" /> Hebrew Months
-                        <span className="text-amber-600 font-normal text-lg">· எபிரேய மாதங்கள்</span>
-                    </h3>
-                    <button
-                        onClick={handleDownloadMonthsPDF}
-                        disabled={isExportingMonths}
-                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-brand-900 to-brand-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:from-brand-800 hover:to-brand-600 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50"
-                    >
-                        {isExportingMonths ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                        Download PDF
-                    </button>
-                </div>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {HEBREW_MONTHS_DATA.map((m, i) => (
-                        <div key={i} className="bg-white p-6 rounded-3xl border border-slate-100 flex items-start gap-5 group hover:border-brand-200 transition-all hover:shadow-lg">
-                            <div className="text-3xl font-serif text-slate-200 group-hover:text-brand-100 transition-colors shrink-0 w-10 text-center">{(i + 1).toString().padStart(2, '0')}</div>
-                            <div className="flex-1">
-                                <div className="flex justify-between items-start gap-2 flex-wrap">
-                                    <div>
-                                        <h4 className="text-lg font-bold text-brand-950">{m.name}</h4>
-                                        {m.hebrewScript && <p className="text-xl font-serif text-accent-700" dir="rtl">{m.hebrewScript}</p>}
-                                        <p className="text-sm font-bold text-blue-600">{m.tamil}</p>
-                                    </div>
-                                </div>
-                                <p className="text-xs text-accent-600 font-bold mb-1 uppercase tracking-widest mt-2">{m.gregorian}</p>
-                                {m.holidays && <p className="text-xs text-amber-700 font-bold">{m.holidays}</p>}
-                                <p className="text-[10px] text-slate-400 italic">{m.notes}</p>
-                                <div className="flex gap-3 mt-2">
-                                    <button
-                                        onClick={() => audioService.playHebrew(m.hebrewScript || m.name)}
-                                        className="flex items-center gap-1 text-[10px] text-brand-600 hover:text-brand-800 font-bold transition-colors"
-                                        title="Listen in Hebrew"
-                                    >
-                                        <Volume2 size={12} /> Listen (Hebrew)
-                                    </button>
-                                    <button
-                                        onClick={() => audioService.playTamil(m.tamil)}
-                                        className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 font-bold transition-colors"
-                                        title="Listen in Tamil"
-                                    >
-                                        <Volume2 size={12} /> கேள் (தமிழ்)
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Key Details Section */}
-            <div className="bg-slate-50 rounded-3xl p-8 border border-slate-200">
-                <h3 className="text-xl font-serif font-bold text-brand-950 mb-6 flex items-center gap-3">
-                    <Sparkles className="text-amber-500" /> Key Scriptural Details
-                </h3>
-                <div className="grid md:grid-cols-2 gap-8">
-                    {KEY_DETAILS.map((d, i) => (
-                        <div key={i} className="bg-white p-6 rounded-2xl border border-slate-100">
-                            <h4 className="font-bold text-amber-600 mb-2">{d.title}</h4>
-                            <p className="text-sm text-slate-600 leading-relaxed">{d.desc}</p>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Sacred Days Section */}
-            <div>
-                <h3 className="text-2xl font-serif font-bold text-brand-950 mb-8 flex items-center gap-3">
-                    <Clock className="text-brand-600" /> Sacred Days
-                    <span className="text-amber-600 font-normal text-lg">· வாரத்தின் நாட்கள்</span>
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {HEBREW_DAYS.map((day, i) => (
-                        <div key={i} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all group cursor-default">
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="w-10 h-10 bg-brand-50 rounded-2xl flex items-center justify-center text-brand-600 group-hover:bg-brand-600 group-hover:text-white transition-colors font-bold text-sm">
-                                    {i + 1}
-                                </div>
-                            </div>
-                            <h4 className="text-lg font-bold text-brand-950 mb-0.5">{day.name}</h4>
-                            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">{day.english}</p>
-                            <p className="text-sm font-bold text-blue-600 mb-1">{day.tamil}</p>
-                            <p className="text-sm font-bold text-emerald-600 mb-3">{day.psalm}</p>
-                            <div className="text-3xl font-serif text-accent-600 border-t border-slate-50 pt-4 mt-4" dir="rtl">{day.hebrew}</div>
-                            <div className="flex gap-3 mt-3">
-                                <button
-                                    onClick={() => audioService.playHebrew(day.hebrew)}
-                                    className="flex items-center gap-1 text-[10px] text-brand-600 hover:text-brand-800 font-bold transition-colors"
-                                    title="Listen in Hebrew"
-                                >
-                                    <Volume2 size={12} /> Listen (Hebrew)
-                                </button>
-                                <button
-                                    onClick={() => audioService.playTamil(day.tamil)}
-                                    className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 font-bold transition-colors"
-                                    title="Listen in Tamil"
-                                >
-                                    <Volume2 size={12} /> கேள் (தமிழ்)
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
         </div>
     );
 };
@@ -3338,7 +3266,29 @@ const HebrewConverterNumbers: React.FC = () => {
 
 
 
+    const foundationNumbers = useMemo(
+        () => Array.from({ length: 25 }, (_, i) => ({ num: i + 1, hebrew: toHebrew(i + 1) })),
+        []
+    );
+
     const hebrewResult = useMemo(() => input ? toHebrew(Number(input)) : '', [input]);
+
+    const selectedHebrewBreakdown = useMemo(() => {
+        if (!input) return [];
+        const numResult = toHebrew(Number(input));
+        if (!numResult) return [];
+        // Clean punctuation marks: ״ (gershayim) and ׳ (geresh)
+        const clean = numResult.replace(/[״׳]/g, '');
+        return clean.split('').map(char => {
+            const letterDetail = ALEPH_BET_TABLE.find(item => item.letter === char);
+            return {
+                char,
+                name: letterDetail ? letterDetail.name : 'Unknown',
+                hebrewName: letterDetail ? letterDetail.hebrewName : '',
+                value: letterDetail ? letterDetail.value : (GEMATRIA_VALUES[char] || 0)
+            };
+        });
+    }, [input]);
 
     const referenceNums = useMemo(() => {
         const arr = Array.from({ length: 400 }, (_, i) => ({ num: i + 1, hebrew: toHebrew(i + 1) }));
@@ -3460,6 +3410,110 @@ const HebrewConverterNumbers: React.FC = () => {
                 </div>
             </div>
 
+            {/* Sacred Foundation — Numbers 1 to 25 */}
+            <div className="relative z-10 space-y-6">
+                <div className="text-center space-y-2">
+                    <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-amber-400/80 bg-amber-500/10 px-4 py-1.5 rounded-full border border-amber-500/20">
+                        <Sparkles size={12} className="text-amber-400" />
+                        Foundation Numerals
+                    </span>
+                    <h3 className="text-2xl md:text-4xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 drop-shadow-md">
+                        Numbers 1 – 25
+                    </h3>
+                    <p className="text-slate-400 text-xs sm:text-sm max-w-lg mx-auto">
+                        Tap any card to explore its sacred Hebrew representation
+                    </p>
+                </div>
+
+                <div className="grid grid-cols-5 gap-2.5 sm:gap-3 md:gap-4">
+                    {foundationNumbers.map((item, idx) => {
+                        const isSelected = input === item.num;
+                        const tier =
+                            item.num <= 10 ? 'from-amber-500/20 via-yellow-500/10 to-orange-600/5' :
+                            item.num <= 20 ? 'from-sky-500/20 via-indigo-500/10 to-violet-600/5' :
+                            'from-emerald-500/20 via-teal-500/10 to-cyan-600/5';
+                        const borderGlow =
+                            item.num <= 10 ? 'hover:border-amber-400/60 hover:shadow-[0_0_30px_rgba(251,191,36,0.25)]' :
+                            item.num <= 20 ? 'hover:border-sky-400/50 hover:shadow-[0_0_30px_rgba(56,189,248,0.2)]' :
+                            'hover:border-emerald-400/50 hover:shadow-[0_0_30px_rgba(52,211,153,0.2)]';
+                        return (
+                            <motion.button
+                                key={item.num}
+                                type="button"
+                                initial={{ opacity: 0, y: 12 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: idx * 0.02 }}
+                                whileHover={{ scale: 1.06, y: -4 }}
+                                whileTap={{ scale: 0.96 }}
+                                onClick={() => {
+                                    setInput(item.num);
+                                    audioService.playHebrew(item.hebrew);
+                                }}
+                                className={`group relative overflow-hidden rounded-2xl sm:rounded-[1.25rem] p-3 sm:p-4 md:p-5 flex flex-col items-center justify-center gap-1.5 sm:gap-2 text-center cursor-pointer transition-all duration-300 bg-gradient-to-br ${tier} border ${isSelected ? 'border-amber-400 ring-2 ring-amber-400/40 shadow-[0_0_35px_rgba(251,191,36,0.35)] scale-[1.03]' : `border-white/10 bg-white/[0.04] ${borderGlow}`}`}
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                                <span className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest relative z-10">
+                                    {item.num}
+                                </span>
+                                <span
+                                    className={`text-2xl sm:text-3xl md:text-4xl font-serif font-black leading-none relative z-10 transition-colors ${isSelected ? 'text-amber-300 drop-shadow-[0_0_12px_rgba(251,191,36,0.8)]' : 'text-amber-400 group-hover:text-amber-300'}`}
+                                    dir="rtl"
+                                >
+                                    {item.hebrew}
+                                </span>
+                                <Volume2
+                                    size={12}
+                                    className={`relative z-10 transition-opacity ${isSelected ? 'text-amber-400 opacity-100' : 'text-slate-500 opacity-0 group-hover:opacity-70'}`}
+                                />
+                            </motion.button>
+                        );
+                </div>
+
+                {/* Gematria breakdown of selected number */}
+                <AnimatePresence>
+                    {input && selectedHebrewBreakdown.length > 0 && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 15 }}
+                            className="relative z-10 bg-white/5 border border-amber-500/20 rounded-[2rem] p-5 sm:p-6 md:p-8 space-y-5 mt-6"
+                        >
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                                    <Sparkles size={16} className="text-amber-400" />
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-black text-amber-400 uppercase tracking-widest">Gematria Breakdown</h4>
+                                    <p className="text-[10px] text-slate-400 mt-0.5">Understanding how the numeral is composed</p>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center justify-center gap-4 bg-black/35 rounded-2xl p-4 sm:p-6 border border-white/5">
+                                {selectedHebrewBreakdown.map((item, idx) => (
+                                    <React.Fragment key={idx}>
+                                        <div className="flex flex-col items-center bg-white/5 border border-white/10 rounded-xl p-3 min-w-[70px] sm:min-w-[80px] shadow-lg">
+                                            <span className="text-3xl font-serif text-white font-bold leading-none">{item.char}</span>
+                                            <span className="text-[10px] font-bold text-amber-400 mt-1 uppercase tracking-wider">{item.name}</span>
+                                            <span className="text-[9px] text-slate-500" dir="rtl">{item.hebrewName}</span>
+                                            <span className="text-sm font-black text-slate-300 mt-1.5 font-mono">{item.value}</span>
+                                        </div>
+                                        {idx < selectedHebrewBreakdown.length - 1 && (
+                                            <span className="text-slate-500 text-lg font-light">＋</span>
+                                        )}
+                                    </React.Fragment>
+                                ))}
+                                <span className="text-slate-500 text-lg font-light">＝</span>
+                                <div className="flex flex-col items-center bg-amber-500 text-slate-950 rounded-xl p-3 min-w-[70px] sm:min-w-[80px] shadow-lg">
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-950/70">Sum</span>
+                                    <span className="text-2xl font-black leading-none mt-1">{input}</span>
+                                    <span className="text-[9px] font-bold text-slate-900 mt-1" dir="rtl">{toHebrew(Number(input))}</span>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+
             {/* Export PDF */}
             {input && hebrewResult && (
                 <div className="relative z-10 -mt-2">
@@ -3576,16 +3630,38 @@ const GEMATRIA_VALUES: { [key: string]: number } = {
     'ך': 20, 'ם': 40, 'ן': 50, 'ף': 80, 'ץ': 90
 };
 
-const ALPHABET_REF = [
-    { letter: 'א', value: 1, name: 'Aleph' }, { letter: 'ב', value: 2, name: 'Bet' }, { letter: 'ג', value: 3, name: 'Gimel' },
-    { letter: 'ד', value: 4, name: 'Dalet' }, { letter: 'ה', value: 5, name: 'He' }, { letter: 'ו', value: 6, name: 'Vav' },
-    { letter: 'ז', value: 7, name: 'Zayin' }, { letter: 'ח', value: 8, name: 'Chet' }, { letter: 'ט', value: 9, name: 'Tet' },
-    { letter: 'י', value: 10, name: 'Yod' }, { letter: 'כ', value: 20, name: 'Kaf' }, { letter: 'ל', value: 30, name: 'Lamed' },
-    { letter: 'מ', value: 40, name: 'Mem' }, { letter: 'נ', value: 50, name: 'Nun' }, { letter: 'ס', value: 60, name: 'Samekh' },
-    { letter: 'ע', value: 70, name: 'Ayin' }, { letter: 'פ', value: 80, name: 'Pe' }, { letter: 'צ', value: 90, name: 'Tsadi' },
-    { letter: 'ק', value: 100, name: 'Qof' }, { letter: 'ר', value: 200, name: 'Resh' }, { letter: 'ש', value: 300, name: 'Shin' },
-    { letter: 'ת', value: 400, name: 'Tav' },
-].sort((a, b) => a.value - b.value);
+const QUICK_REF_LETTERS = [
+    { l: 'א', v: 1 }, { l: 'ב', v: 2 }, { l: 'ג', v: 3 }, { l: 'ד', v: 4 }, { l: 'ה', v: 5 },
+    { l: 'ו', v: 6 }, { l: 'ז', v: 7 }, { l: 'ח', v: 8 }, { l: 'ט', v: 9 }, { l: 'י', v: 10 },
+    { l: 'כ', v: 20 }, { l: 'ל', v: 30 }, { l: 'מ', v: 40 }, { l: 'נ', v: 50 }, { l: 'ס', v: 60 },
+    { l: 'ע', v: 70 }, { l: 'פ', v: 80 }, { l: 'צ', v: 90 }, { l: 'ק', v: 100 }, { l: 'ר', v: 200 },
+    { l: 'ש', v: 300 }, { l: 'ת', v: 400 },
+];
+
+const ALEPH_BET_TABLE = [
+    { num: 1,  letter: 'א', name: 'Aleph',  hebrewName: 'אָלֶף', value: 1   },
+    { num: 2,  letter: 'ב', name: 'Bet',    hebrewName: 'בֵּית',  value: 2   },
+    { num: 3,  letter: 'ג', name: 'Gimel',  hebrewName: 'גִּימֵל', value: 3   },
+    { num: 4,  letter: 'ד', name: 'Dalet',  hebrewName: 'דָּלֶת', value: 4   },
+    { num: 5,  letter: 'ה', name: 'He',     hebrewName: 'הֵא',   value: 5   },
+    { num: 6,  letter: 'ו', name: 'Vav',    hebrewName: 'וָו',   value: 6   },
+    { num: 7,  letter: 'ז', name: 'Zayin',  hebrewName: 'זַיִן',  value: 7   },
+    { num: 8,  letter: 'ח', name: 'Chet',   hebrewName: 'חֵית',  value: 8   },
+    { num: 9,  letter: 'ט', name: 'Tet',    hebrewName: 'טֵית',  value: 9   },
+    { num: 10, letter: 'י', name: 'Yod',    hebrewName: 'יוֹד',  value: 10  },
+    { num: 11, letter: 'כ', name: 'Kaf',    hebrewName: 'כַּף',   value: 20  },
+    { num: 12, letter: 'ל', name: 'Lamed',  hebrewName: 'לָמֶד', value: 30  },
+    { num: 13, letter: 'מ', name: 'Mem',    hebrewName: 'מֵם',   value: 40  },
+    { num: 14, letter: 'נ', name: 'Nun',    hebrewName: 'נוּן',  value: 50  },
+    { num: 15, letter: 'ס', name: 'Samech', hebrewName: 'סָמֶך', value: 60  },
+    { num: 16, letter: 'ע', name: 'Ayin',   hebrewName: 'עַיִן',  value: 70  },
+    { num: 17, letter: 'פ', name: 'Pe',     hebrewName: 'פֵּא',   value: 80  },
+    { num: 18, letter: 'צ', name: 'Tsadi',  hebrewName: 'צַדִּי', value: 90  },
+    { num: 19, letter: 'ק', name: 'Qof',    hebrewName: 'קוֹף',  value: 100 },
+    { num: 20, letter: 'ר', name: 'Resh',   hebrewName: 'רֵישׁ',  value: 200 },
+    { num: 21, letter: 'ש', name: 'Shin',   hebrewName: 'שִׁין',  value: 300 },
+    { num: 22, letter: 'ת', name: 'Tav',    hebrewName: 'תָּו',   value: 400 },
+];
 
 const HebrewGematriaCalc: React.FC = () => {
     const [word, setWord] = useState('');
@@ -3594,9 +3670,11 @@ const HebrewGematriaCalc: React.FC = () => {
 
     const total = useMemo(() => word.split('').reduce((sum, c) => sum + (GEMATRIA_VALUES[c] || 0), 0), [word]);
 
+    const hebrewLetters = useMemo(() => word.split('').filter(ch => GEMATRIA_VALUES[ch]), [word]);
+
     const letterBreakdown = useMemo(() => {
-        return word.split('').filter(c => c.trim()).map(c => ({ char: c, value: GEMATRIA_VALUES[c] || 0 }));
-    }, [word]);
+        return hebrewLetters.map(c => ({ char: c, value: GEMATRIA_VALUES[c] }));
+    }, [hebrewLetters]);
 
     const handleGematriaExport = async (format: 'pdf' | 'png') => {
         if (!gematriaExportRef.current || !word.trim()) return;
@@ -3669,184 +3747,233 @@ const HebrewGematriaCalc: React.FC = () => {
     };
 
     return (
-        <div className="space-y-10 bg-slate-950 text-white rounded-[2.5rem] p-6 md:p-10 border border-white/10 shadow-2xl relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
-
-            <div className="text-center relative z-10 space-y-2">
-                <h2 className="text-3xl md:text-5xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 drop-shadow-md">Gematria Calculator</h2>
-                <p className="text-slate-400 text-xs sm:text-sm">Type any Hebrew word to calculate its sacred numerical value</p>
+        <div className="space-y-10 py-4 md:py-8">
+            <div className="text-center space-y-3">
+                <h2 className="text-2xl sm:text-4xl md:text-5xl font-serif font-bold text-brand-950 px-2">
+                    Gematria <span className="text-accent-600">Calculator</span>
+                </h2>
+                <p className="text-xs sm:text-sm md:text-base text-slate-500 font-light max-w-2xl mx-auto px-4">
+                    Type any Hebrew word to calculate its sacred numerical value
+                </p>
             </div>
 
-            {/* Sticky Gematria Total — always visible while scrolling */}
-            {word.trim() && (
-                <div className="sticky top-[80px] md:top-[100px] z-30 flex justify-center pointer-events-none">
-                    <div className="bg-slate-900/95 backdrop-blur-md border border-amber-500/30 rounded-full px-8 py-3 shadow-2xl shadow-amber-500/10 flex items-center gap-4 pointer-events-auto">
-                        <span className="text-[10px] font-black text-amber-400/70 uppercase tracking-widest">Gematria</span>
-                        <span className="text-3xl font-black text-amber-400 font-mono">{total}</span>
-                        <div className="text-xl font-serif text-white/60 font-bold" dir="rtl">{word}</div>
-                    </div>
-                </div>
-            )}
 
-            {/* Calculator card */}
-            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 md:p-8 shadow-xl relative z-10 hover:border-amber-500/20 transition-all">
-                <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
-                    <div className="flex-[1.5] w-full space-y-4">
-                        <label className="text-xs font-bold text-[#C5A880] uppercase tracking-widest flex items-center gap-2">
-                            <Search size={14} className="text-[#C5A880]" /> Enter Hebrew Word
+            <div className="bg-white rounded-2xl sm:rounded-[2.5rem] p-4 sm:p-6 md:p-10 shadow-[0_20px_60px_rgba(0,0,0,0.05)] border border-slate-100 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-brand-50 rounded-bl-full -mr-24 -mt-24 opacity-50 z-0" />
+
+                <div className="relative z-10 space-y-6">
+
+                    <div className="space-y-3">
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                            <Type size={14} className="text-brand-500" /> Enter Hebrew Word
                         </label>
                         <input
                             type="text"
                             placeholder="e.g. שלום"
-                            dir="rtl"
-                            className="w-full text-4xl sm:text-5xl md:text-6xl font-serif bg-transparent border-b-2 border-white/10 py-4 outline-none focus:border-[#C5A880] transition-colors text-white placeholder:text-slate-700 text-right"
+                            dir={!word || /[\u0590-\u05FF]/.test(word) ? 'rtl' : 'ltr'}
+                            className={`w-full text-4xl sm:text-5xl md:text-6xl font-serif bg-transparent border-b-2 border-slate-100 py-4 outline-none focus:border-brand-500 transition-all text-brand-950 placeholder:text-slate-100 ${(!word || /[\u0590-\u05FF]/.test(word)) ? 'text-right' : 'text-left'}`}
                             value={word}
                             onChange={e => setWord(e.target.value)}
                         />
                     </div>
-                </div>
 
-                <AnimatePresence>
-                    {word.trim() && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="space-y-8 mt-8 pt-8 border-t border-white/10"
-                            ref={gematriaExportRef}
-                        >
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Numerical Breakdown</div>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => handleGematriaExport('pdf')}
-                                        disabled={isExportingGematria}
-                                        className="px-5 py-2.5 rounded-full bg-gradient-to-r from-emerald-400 via-sky-500 to-indigo-500 text-white font-bold text-sm shadow-lg disabled:opacity-50 flex items-center gap-2 cursor-pointer active:scale-95"
-                                    >
-                                        {isExportingGematria ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                                        PDF
-                                    </button>
-                                    <button
-                                        onClick={() => handleGematriaExport('png')}
-                                        disabled={isExportingGematria}
-                                        className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-sm disabled:opacity-50 flex items-center gap-2 cursor-pointer active:scale-95"
-                                    >
-                                        {isExportingGematria ? <Loader2 size={14} className="animate-spin" /> : <FileImage size={14} />}
-                                        Image
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="flex flex-wrap gap-2 sm:gap-3 items-center justify-start overflow-x-auto no-scrollbar py-2">
-                                {letterBreakdown.map((item, i, arr) => (
-                                    <React.Fragment key={i}>
-                                        <div className="flex flex-col items-center bg-white/5 border border-white/10 rounded-2xl p-3 sm:p-4 min-w-[64px] sm:min-w-[72px] shadow-sm">
-                                            <span className="text-3xl sm:text-4xl font-serif text-white leading-none">{item.char}</span>
-                                            <span className="text-sm font-bold text-amber-500 mt-2">{item.value}</span>
-                                        </div>
-                                        {i < arr.length - 1 && (
-                                            <span className="text-slate-500 text-2xl font-light">＋</span>
-                                        )}
-                                    </React.Fragment>
-                                ))}
-                                {letterBreakdown.length > 0 && (
-                                    <span className="text-slate-500 text-2xl font-light mx-2">＝</span>
-                                )}
-                                {letterBreakdown.length > 0 && (
-                                    <div className="flex flex-col items-center bg-amber-500 rounded-2xl p-3 sm:p-4 min-w-[72px] sm:min-w-[84px] shadow-lg">
-                                        <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest mb-1">Total</span>
-                                        <span className="text-3xl sm:text-4xl font-black text-slate-900">{total}</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* ── Gematria Significance Panel ── */}
+                    <AnimatePresence>
+                        {word && (
                             <motion.div
-                                initial={{ opacity: 0, y: 8 }}
+                                initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.15 }}
-                                className="bg-gradient-to-br from-slate-900 to-slate-950 rounded-3xl p-6 space-y-4 shadow-xl border border-white/5 relative overflow-hidden mt-6"
+                                className="space-y-4"
                             >
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center">
-                                        <Sparkles size={16} className="text-amber-400" />
+                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Numerical Breakdown</div>
+                                    <div className="flex gap-2 flex-wrap">
+                                        <button
+                                            onClick={() => audioService.playHebrew(word)}
+                                            className="px-3 py-2 bg-brand-50 text-brand-900 rounded-full flex items-center gap-2 text-xs font-bold hover:bg-brand-100 transition-all active:scale-95"
+                                        >
+                                            <Volume2 size={14} /> Listen
+                                        </button>
+                                        <button
+                                            onClick={() => handleGematriaExport('pdf')}
+                                            disabled={isExportingGematria}
+                                            className="px-3 py-2 bg-accent-500 text-brand-950 rounded-full flex items-center gap-2 text-xs font-bold hover:bg-accent-400 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+                                        >
+                                            {isExportingGematria ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                                            PDF
+                                        </button>
+                                        <button
+                                            onClick={() => handleGematriaExport('png')}
+                                            disabled={isExportingGematria}
+                                            className="px-3 py-2 bg-slate-100 text-slate-700 rounded-full flex items-center gap-2 text-xs font-bold hover:bg-slate-200 transition-all active:scale-95 disabled:opacity-50"
+                                        >
+                                            {isExportingGematria ? <Loader2 size={14} className="animate-spin" /> : <FileImage size={14} />}
+                                            Image
+                                        </button>
                                     </div>
-                                    <span className="text-xs font-black text-amber-400 uppercase tracking-widest">Gematria Significance</span>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
-                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Letter Count</div>
-                                        <div className="text-3xl font-black text-white">{letterBreakdown.length}</div>
-                                        <div className="text-[10px] text-slate-500 mt-1">Hebrew letters</div>
-                                    </div>
-                                    <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
-                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Value</div>
-                                        <div className="text-3xl font-black text-amber-400">{total}</div>
-                                        <div className="text-[10px] text-slate-500 mt-1">{total % 7 === 0 ? '✡ Multiple of 7' : total % 3 === 0 ? '△ Multiple of 3' : total % 10 === 0 ? '✕ Round number' : 'Standard value'}</div>
-                                    </div>
+
+                                <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center justify-start overflow-x-auto no-scrollbar py-1">
+                                    {hebrewLetters.map((ch, i) => (
+                                        <React.Fragment key={i}>
+                                            <div className="flex flex-col items-center bg-brand-50 border border-brand-100 rounded-xl sm:rounded-2xl p-2.5 sm:p-3 min-w-[52px] sm:min-w-[62px] shadow-sm">
+                                                <span className="text-2xl sm:text-3xl font-serif text-brand-950 leading-none">{ch}</span>
+                                                <span className="text-xs font-bold text-accent-600 mt-1">{GEMATRIA_VALUES[ch]}</span>
+                                            </div>
+                                            {i < hebrewLetters.length - 1 && (
+                                                <span className="text-slate-200 text-lg font-light">＋</span>
+                                            )}
+                                        </React.Fragment>
+                                    ))}
+                                    {hebrewLetters.length > 0 && (
+                                        <>
+                                            <span className="text-slate-200 text-lg font-light mx-1">＝</span>
+                                            <div className="flex flex-col items-center bg-accent-500 rounded-xl sm:rounded-2xl p-2.5 sm:p-3 min-w-[58px] sm:min-w-[70px] shadow-lg">
+                                                <span className="text-[9px] font-bold text-brand-950 uppercase tracking-widest mb-0.5">Total</span>
+                                                <span className="text-2xl sm:text-3xl font-black text-brand-950">{total}</span>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
-                                {/* Letter meanings row */}
-                                {letterBreakdown.length > 0 && (
-                                    <div className="border-t border-white/5 pt-4 mt-2">
-                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Letter Values</div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {letterBreakdown.map((item, i) => (
-                                                <div key={i} className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-1.5 border border-white/5">
-                                                    <span className="text-base font-serif text-amber-300" dir="rtl">{item.char}</span>
-                                                    <span className="text-xs font-bold text-slate-400">=</span>
-                                                    <span className="text-xs font-black text-white">{item.value}</span>
+
+                                {/* ── Gematria Significance Panel ── */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.15 }}
+                                    className="bg-gradient-to-br from-brand-950 to-slate-900 rounded-2xl p-4 space-y-3 shadow-xl border border-white/5 relative overflow-hidden"
+                                >
+                                    <div className="absolute top-0 right-0 w-24 h-24 bg-accent-400/10 rounded-full blur-2xl pointer-events-none" />
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <div className="w-6 h-6 rounded-lg bg-accent-500/20 flex items-center justify-center">
+                                            <Sparkles size={12} className="text-accent-400" />
+                                        </div>
+                                        <span className="text-[10px] font-black text-accent-400 uppercase tracking-widest">Gematria Significance</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+                                            <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Letter Count</div>
+                                            <div className="text-2xl font-black text-white">{hebrewLetters.length}</div>
+                                            <div className="text-[9px] text-slate-500 mt-0.5">Hebrew letters</div>
+                                        </div>
+                                        <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+                                            <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Value</div>
+                                            <div className="text-2xl font-black text-accent-400">{total}</div>
+                                            <div className="text-[9px] text-slate-500 mt-0.5"><GematriaHint value={total} /></div>
+                                        </div>
+                                    </div>
+                                    {hebrewLetters.length > 0 && (
+                                        <div className="border-t border-white/5 pt-3">
+                                            <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Letter Values</div>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {hebrewLetters.map((ch, i) => (
+                                                    <div key={i} className="flex items-center gap-1 bg-white/5 rounded-lg px-2 py-1 border border-white/5">
+                                                        <span className="text-sm font-serif text-accent-300" dir="rtl">{ch}</span>
+                                                        <span className="text-[10px] font-bold text-slate-400">=</span>
+                                                        <span className="text-[10px] font-black text-white">{GEMATRIA_VALUES[ch]}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </motion.div>
+
+                                {/* ── Scripture / Tip card ── */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.25 }}
+                                    className="bg-gradient-to-r from-sky-50 to-blue-50 border border-sky-100 rounded-2xl p-4"
+                                >
+                                    <div className="flex items-start gap-3">
+                                        <div className="shrink-0 w-8 h-8 rounded-xl bg-sky-100 flex items-center justify-center text-sky-600">
+                                            <BookOpen size={16} />
+                                        </div>
+                                        <div>
+                                            <div className="text-[10px] font-black text-sky-600 uppercase tracking-widest mb-1">Did You Know?</div>
+                                            <p className="text-xs text-slate-600 leading-relaxed">
+                                                In Hebrew, every letter has a numerical value — the ancient practice of <strong>Gematria</strong> reveals hidden connections between words that share the same total. The sages taught that words with equal Gematria values share a spiritual bond.
+                                            </p>
+                                            <p className="text-[10px] text-sky-500 font-bold mt-2 italic">&quot;The seal of the Holy One, blessed be He, is truth (אמת).&quot; — Talmud, Shabbat 55a</p>
+                                        </div>
+                                    </div>
+                                </motion.div>
+
+                                {/* ── Hebrew Alphabet Quick Reference ── */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.35 }}
+                                    className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm"
+                                >
+                                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Quick Reference — Letter Values</div>
+                                    <div className="grid grid-cols-5 gap-1.5 text-center">
+                                        {QUICK_REF_LETTERS.map(({ l, v }) => {
+                                            const isInWord = word.includes(l);
+                                            return (
+                                                <div key={l} className={`rounded-lg p-1.5 border transition-all ${isInWord ? 'bg-brand-950 border-brand-800 shadow-md' : 'bg-slate-50 border-slate-100'}`}>
+                                                    <div className={`text-base font-serif leading-none ${isInWord ? 'text-accent-400' : 'text-brand-950'}`} dir="rtl">{l}</div>
+                                                    <div className={`text-[9px] font-black mt-0.5 ${isInWord ? 'text-accent-300' : 'text-slate-400'}`}>{v}</div>
                                                 </div>
-                                            ))}
-                                        </div>
+                                            );
+                                        })}
                                     </div>
-                                )}
+                                </motion.div>
                             </motion.div>
-
-                            {/* ── Scripture / Tip card ── */}
-                            <motion.div
-                                initial={{ opacity: 0, y: 8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.25 }}
-                                className="bg-gradient-to-r from-sky-900/40 to-blue-900/40 border border-sky-500/20 rounded-3xl p-6"
-                            >
-                                <div className="flex items-start gap-4">
-                                    <div className="shrink-0 w-10 h-10 rounded-2xl bg-sky-500/20 flex items-center justify-center text-sky-400">
-                                        <BookOpen size={20} />
-                                    </div>
-                                    <div>
-                                        <div className="text-xs font-black text-sky-400 uppercase tracking-widest mb-2">Did You Know?</div>
-                                        <p className="text-sm text-slate-300 leading-relaxed">
-                                            In Hebrew, every letter has a numerical value — the ancient practice of <strong>Gematria</strong> reveals hidden connections between words that share the same total. The sages taught that words with equal Gematria values share a spiritual bond.
-                                        </p>
-                                        <p className="text-xs text-sky-400 font-bold mt-3 italic">"The seal of the Holy One, blessed be He, is truth (אמת)." — Talmud, Shabbat 55a</p>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
-
-
-            {/* Alphabet reference */}
-            <div className="space-y-6 relative z-10 pt-4">
-                <h3 className="text-lg font-serif font-bold text-[#C5A880] text-center">Alphabet Values Reference</h3>
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-11 gap-2.5 justify-center">
-                    {ALPHABET_REF.map(item => (
-                        <button
-                            key={item.letter}
-                            onClick={() => setWord(w => w + item.letter)}
-                            className="bg-white/5 p-4 rounded-2xl border border-white/10 shadow-sm flex flex-col items-center gap-1 text-center hover:bg-white/10 hover:scale-105 hover:border-[#C5A880]/30 transition-all cursor-pointer"
-                            title={`Add ${item.name}`}
-                        >
-                            <span className="text-3xl font-serif text-white">{item.letter}</span>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{item.name}</span>
-                            <span className="text-xs font-bold text-amber-400 font-mono mt-0.5">{item.value}</span>
-                        </button>
-                    ))}
+                        )}
+                    </AnimatePresence>
                 </div>
-                <p className="text-center text-xs text-slate-400">👆 Click a letter to build your Hebrew word</p>
             </div>
+
+            {/* ── 22 Hebrew Letters Reference Grid ── */}
+            <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="relative rounded-2xl sm:rounded-3xl overflow-hidden border border-brand-100 shadow-xl"
+            >
+                <div className="bg-gradient-to-r from-brand-950 via-slate-900 to-brand-950 px-5 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-accent-500/20 flex items-center justify-center">
+                            <Sparkles size={16} className="text-accent-400" />
+                        </div>
+                        <div>
+                            <div className="text-xs font-black text-accent-400 uppercase tracking-widest">The Holy Aleph-Bet</div>
+                            <div className="text-[10px] text-slate-500 mt-0.5">22 Sacred Hebrew Letters · Gematria Values</div>
+                        </div>
+                    </div>
+                    <div className="text-3xl font-serif text-accent-400/30 select-none">אבג</div>
+                </div>
+                <div className="bg-gradient-to-b from-slate-900 to-brand-950 p-3 sm:p-5">
+                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-11 gap-2">
+                        {ALEPH_BET_TABLE.map(({ num, letter, name, hebrewName, value }) => (
+                            <motion.div
+                                key={num}
+                                whileHover={{ scale: 1.06, y: -2 }}
+                                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                                className="group flex flex-col items-center bg-white/5 hover:bg-accent-500/10 border border-white/8 hover:border-accent-400/40 rounded-xl p-2.5 cursor-default transition-colors duration-200 relative"
+                            >
+                                <div className="absolute top-1.5 left-1.5 w-4 h-4 rounded-full bg-white/10 flex items-center justify-center">
+                                    <span className="text-[8px] font-black text-slate-400 leading-none">{num}</span>
+                                </div>
+                                <span className="text-3xl sm:text-4xl font-serif text-white group-hover:text-accent-300 transition-colors leading-none mt-2 mb-1" dir="rtl">{letter}</span>
+                                <span className="text-xs font-black text-accent-400 group-hover:text-accent-300">{value}</span>
+                                <span className="text-[9px] font-bold text-slate-400 group-hover:text-slate-300 mt-0.5 text-center leading-tight">{name}</span>
+                                <span className="text-[9px] text-slate-500 group-hover:text-slate-400 leading-tight" dir="rtl">{hebrewName}</span>
+                            </motion.div>
+                        ))}
+                    </div>
+                    <div className="mt-4 flex flex-wrap items-center justify-center gap-3 border-t border-white/8 pt-3">
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+                            <span className="w-2 h-2 rounded-full bg-accent-400 inline-block"></span>
+                            22 Letters · Aleph (1) to Tav (400)
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+                            <span className="w-2 h-2 rounded-full bg-sky-400 inline-block"></span>
+                            Values: 1–9 · 10–90 · 100–400
+                        </div>
+                    </div>
+                </div>
+            </motion.div>
 
             {/* Hidden/offscreen premium render card for capture */}
             {word.trim() && (
@@ -4624,7 +4751,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
                             {tab === 'lettersaudio' && <HebrewLettersAudioLab />}
                             {tab === 'numbers' && <HebrewConverterNumbers />}
                             {tab === 'gematria' && <HebrewGematriaCalc />}
-                            {tab === 'reference' && <ReferenceView />}
+                            {tab === 'reference' && <HebrewCalendarGuide />}
                             {tab === 'grammar' && <HebrewGrammar3D />}
                         </motion.div>
                     </AnimatePresence>

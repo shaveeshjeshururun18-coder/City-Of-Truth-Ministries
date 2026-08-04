@@ -182,17 +182,16 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             <img src="/logo.png" alt="COT Logo" className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" />
             <span className="absolute inset-y-0 -left-8 w-6 rotate-12 bg-white/70 blur-[2px] animate-[logo-shine_3.8s_ease-in-out_infinite]" />
           </div>
-          <div className={`flex flex-col justify-center transition-all duration-300 ${isScrolled ? 'hidden sm:flex' : 'flex'}`}>
-              <span className={`font-black text-[1.05rem] sm:text-[1.15rem] leading-[1.1] tracking-tight drop-shadow-sm ${(isTransparent && !isScrolled) ? 'text-yellow-50' : 'text-[#0f172a]'}`}>City of Truth</span>
-              <span className={`text-[0.62rem] sm:text-[0.65rem] font-extrabold tracking-[1px] uppercase ${(isTransparent && !isScrolled) ? 'text-yellow-200/85' : 'text-[#b45309]'}`}>MINISTRIES</span>
+          <div className="flex flex-col justify-center transition-all duration-300 min-w-0">
+              <span className={`font-black leading-[1.1] tracking-tight drop-shadow-sm truncate ${isScrolled ? 'text-xs sm:text-[1.15rem]' : 'text-[0.95rem] sm:text-[1.15rem]'} ${(isTransparent && !isScrolled) ? 'text-yellow-50' : 'text-[#0f172a]'}`}>City of Truth</span>
+              <span className={`font-extrabold tracking-[1px] uppercase truncate ${isScrolled ? 'text-[0.55rem] sm:text-[0.65rem]' : 'text-[0.6rem] sm:text-[0.65rem]'} ${(isTransparent && !isScrolled) ? 'text-yellow-200/85' : 'text-[#b45309]'}`}>MINISTRIES</span>
           </div>
         </div>
 
 
         {/* MENU LINKS STYLING (Desktop Only) */}
-        <div className="hidden xl:flex flex-1 min-w-0 mx-2 overflow-x-auto hide-scrollbar relative" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            <style dangerouslySetInnerHTML={{ __html: '.hide-scrollbar::-webkit-scrollbar { display: none; }' }} />
-            <ul className="flex items-center justify-start 2xl:justify-center gap-1 list-none w-max min-w-full px-2 py-1">
+        <div className="hidden xl:flex flex-1 min-w-0 mx-2 relative overflow-visible">
+            <ul className="flex items-center justify-start 2xl:justify-center gap-1 list-none w-full px-2 py-1">
           {navItems.map((item, originalIndex) => {
             if (item.hidden && !isEditMode) return null;
             const isActive = item.href
@@ -222,7 +221,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                 <button
                   id={item.view === 'HEBREW' || item.label === 'Hebrew' ? 'nav-hebrew-btn' : undefined}
                   data-nav-view={item.view}
-                  onClick={() => openNavItem(item)}
+                  onClick={() => {
+                    if (hasSubmenu) {
+                      setDesktopHoverMenu(prev => (prev === item.label ? null : item.label));
+                    }
+                    openNavItem(item);
+                  }}
                   className={`text-[0.62rem] 2xl:text-[0.68rem] uppercase tracking-[0.2px] px-2 2xl:px-3 py-1.5 rounded-[20px] transition-all duration-200 no-underline whitespace-nowrap flex items-center gap-0.5 cursor-pointer ${
                     isActive
                       ? 'bg-brand-50 text-brand-700 shadow-sm border border-brand-200/80 font-black'

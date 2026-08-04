@@ -505,28 +505,14 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
     return base + dateStr;
   }, [currentUser, isAdmin, dateStr]);
 
-  const playVoiceFallback = (text: string) => {
+  const playVoiceFallback = (_text: string) => {
     try {
-      playRoyalTrumpetSound();
-
-      const chime = new Audio('/greeting_sound.mp3');
-      chime.volume = 0.6;
-      chime.play().catch(() => {});
-      chimeAudioRef.current = chime;
-
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const cleanText = (text || '').replace(/[\(\)]/g, '').trim();
-        if (cleanText) {
-          const utterance = new SpeechSynthesisUtterance(cleanText);
-          utterance.rate = 0.9;
-          utterance.pitch = 1.05;
-          utterance.volume = 1.0;
-          window.speechSynthesis.speak(utterance);
-        }
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(() => {});
       }
     } catch (e) {
-      console.warn("Speech synthesis fallback error:", e);
+      console.warn("Greeting sound audio error:", e);
     }
   };
 
@@ -609,12 +595,6 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
 
       await typeSection('greeting', greetingStr, 12);
       await typeSection('phrase', phraseStr, 8);
-
-      const shalomAudio = document.getElementById("voiceShalomAudio") as HTMLAudioElement;
-      if (shalomAudio) {
-        shalomAudio.volume = 0.9;
-        shalomAudio.play().catch(() => {});
-      }
 
       await typeSection('name', nameStr, 14);
 
