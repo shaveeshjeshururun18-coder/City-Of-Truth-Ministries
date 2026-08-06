@@ -3467,6 +3467,7 @@ const HebrewConverterNumbers: React.FC = () => {
                                 />
                             </motion.button>
                         );
+                    })}
                 </div>
 
                 {/* Gematria breakdown of selected number */}
