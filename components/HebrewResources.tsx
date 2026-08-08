@@ -3765,17 +3765,43 @@ const HebrewGematriaCalc: React.FC = () => {
                 <div className="relative z-10 space-y-6">
 
                     <div className="space-y-3">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                            <Type size={14} className="text-brand-500" /> Enter Hebrew Word
-                        </label>
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <Type size={14} className="text-brand-500" /> Enter Hebrew Word
+                            </label>
+                            {word && (
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setWord(prev => prev.slice(0, -1))}
+                                        className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-all flex items-center gap-1 active:scale-95 cursor-pointer shadow-sm"
+                                        title="Delete last letter"
+                                    >
+                                        ⌫ Backspace
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setWord('')}
+                                        className="px-2.5 py-1 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-all flex items-center gap-1 active:scale-95 cursor-pointer border border-red-200/50 shadow-sm"
+                                        title="Clear input"
+                                    >
+                                        <X size={12} /> Clear
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                         <input
                             type="text"
-                            placeholder="e.g. שלום"
+                            placeholder="e.g. שלום (Tap letters below to insert)"
                             dir={!word || /[\u0590-\u05FF]/.test(word) ? 'rtl' : 'ltr'}
-                            className={`w-full text-4xl sm:text-5xl md:text-6xl font-serif bg-transparent border-b-2 border-slate-100 py-4 outline-none focus:border-brand-500 transition-all text-brand-950 placeholder:text-slate-100 ${(!word || /[\u0590-\u05FF]/.test(word)) ? 'text-right' : 'text-left'}`}
+                            className={`w-full text-4xl sm:text-5xl md:text-6xl font-serif bg-transparent border-b-2 border-slate-100 py-4 outline-none focus:border-brand-500 transition-all text-brand-950 placeholder:text-slate-300 ${(!word || /[\u0590-\u05FF]/.test(word)) ? 'text-right' : 'text-left'}`}
                             value={word}
                             onChange={e => setWord(e.target.value)}
                         />
+                        <p className="text-[11px] text-amber-700 font-semibold flex items-center gap-1 mt-1.5">
+                            <Sparkles size={13} className="text-amber-500 shrink-0" />
+                            Tip: Tap any letter in &quot;The Holy Aleph-Bet&quot; grid below to insert it directly!
+                        </p>
                     </div>
 
                     <AnimatePresence>
@@ -3906,15 +3932,27 @@ const HebrewGematriaCalc: React.FC = () => {
                                     transition={{ delay: 0.35 }}
                                     className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm"
                                 >
-                                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Quick Reference — Letter Values</div>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quick Reference — Letter Values</div>
+                                        <span className="text-[10px] font-bold text-amber-600">Tap letter to insert</span>
+                                    </div>
                                     <div className="grid grid-cols-5 gap-1.5 text-center">
                                         {QUICK_REF_LETTERS.map(({ l, v }) => {
                                             const isInWord = word.includes(l);
                                             return (
-                                                <div key={l} className={`rounded-lg p-1.5 border transition-all ${isInWord ? 'bg-brand-950 border-brand-800 shadow-md' : 'bg-slate-50 border-slate-100'}`}>
+                                                <button
+                                                    key={l}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setWord(prev => prev + l);
+                                                        audioService.playHebrew(l);
+                                                    }}
+                                                    className={`rounded-lg p-1.5 border transition-all cursor-pointer hover:scale-105 active:scale-95 ${isInWord ? 'bg-brand-950 border-brand-800 shadow-md ring-1 ring-amber-400' : 'bg-slate-50 border-slate-100 hover:bg-amber-50'}`}
+                                                    title={`Click to insert ${l}`}
+                                                >
                                                     <div className={`text-base font-serif leading-none ${isInWord ? 'text-accent-400' : 'text-brand-950'}`} dir="rtl">{l}</div>
                                                     <div className={`text-[9px] font-black mt-0.5 ${isInWord ? 'text-accent-300' : 'text-slate-400'}`}>{v}</div>
-                                                </div>
+                                                </button>
                                             );
                                         })}
                                     </div>
@@ -3939,28 +3977,40 @@ const HebrewGematriaCalc: React.FC = () => {
                         </div>
                         <div>
                             <div className="text-xs font-black text-accent-400 uppercase tracking-widest">The Holy Aleph-Bet</div>
-                            <div className="text-[10px] text-slate-500 mt-0.5">22 Sacred Hebrew Letters · Gematria Values</div>
+                            <div className="text-[10px] text-slate-400 mt-0.5">22 Sacred Hebrew Letters · Tap any letter to insert into calculator!</div>
                         </div>
                     </div>
-                    <div className="text-3xl font-serif text-accent-400/30 select-none">אבג</div>
+                    <div className="flex items-center gap-2">
+                        <span className="hidden sm:inline-block px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-400/30 text-[10px] font-bold text-amber-300 uppercase tracking-wider">
+                            Interactive Keyboard
+                        </span>
+                        <div className="text-3xl font-serif text-accent-400/30 select-none">אבג</div>
+                    </div>
                 </div>
                 <div className="bg-gradient-to-b from-slate-900 to-brand-950 p-3 sm:p-5">
                     <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-11 gap-2">
                         {ALEPH_BET_TABLE.map(({ num, letter, name, hebrewName, value }) => (
-                            <motion.div
+                            <motion.button
                                 key={num}
-                                whileHover={{ scale: 1.06, y: -2 }}
+                                type="button"
+                                whileHover={{ scale: 1.08, y: -3 }}
+                                whileTap={{ scale: 0.95 }}
                                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                                className="group flex flex-col items-center bg-white/5 hover:bg-accent-500/10 border border-white/8 hover:border-accent-400/40 rounded-xl p-2.5 cursor-default transition-colors duration-200 relative"
+                                onClick={() => {
+                                    setWord(prev => prev + letter);
+                                    audioService.playHebrew(letter);
+                                }}
+                                className="group flex flex-col items-center bg-white/5 hover:bg-accent-500/20 border border-white/10 hover:border-accent-400/60 rounded-xl p-2.5 cursor-pointer transition-all duration-200 relative shadow-sm hover:shadow-[0_0_20px_rgba(251,191,36,0.3)] text-left"
+                                title={`Click to insert ${letter} (${name})`}
                             >
                                 <div className="absolute top-1.5 left-1.5 w-4 h-4 rounded-full bg-white/10 flex items-center justify-center">
                                     <span className="text-[8px] font-black text-slate-400 leading-none">{num}</span>
                                 </div>
                                 <span className="text-3xl sm:text-4xl font-serif text-white group-hover:text-accent-300 transition-colors leading-none mt-2 mb-1" dir="rtl">{letter}</span>
                                 <span className="text-xs font-black text-accent-400 group-hover:text-accent-300">{value}</span>
-                                <span className="text-[9px] font-bold text-slate-400 group-hover:text-slate-300 mt-0.5 text-center leading-tight">{name}</span>
-                                <span className="text-[9px] text-slate-500 group-hover:text-slate-400 leading-tight" dir="rtl">{hebrewName}</span>
-                            </motion.div>
+                                <span className="text-[9px] font-bold text-slate-300 group-hover:text-white mt-0.5 text-center leading-tight">{name}</span>
+                                <span className="text-[9px] text-slate-400 group-hover:text-amber-200 leading-tight" dir="rtl">{hebrewName}</span>
+                            </motion.button>
                         ))}
                     </div>
                     <div className="mt-4 flex flex-wrap items-center justify-center gap-3 border-t border-white/8 pt-3">
