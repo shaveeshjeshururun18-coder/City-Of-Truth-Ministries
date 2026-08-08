@@ -12,6 +12,30 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js" crossorigin="anonymous"></script>
     
+    <!-- ThumbmarkJS Device Fingerprinting -->
+    <script type="module">
+      import('https://cdn.jsdelivr.net/npm/@thumbmarkjs/thumbmarkjs/dist/thumbmark.umd.js')
+        .then(() => {
+          if (window.ThumbmarkJS && window.ThumbmarkJS.Thumbmark) {
+            const tm = new window.ThumbmarkJS.Thumbmark({ api_key: '5fba97741a00b8ee87056ddeda3987fb' });
+            tm.get().then((result) => {
+              console.log('ThumbmarkJS Result:', result);
+              window.thumbmarkResult = result;
+              if (result) {
+                try {
+                  localStorage.setItem('cot_thumbmark_fingerprint', JSON.stringify(result));
+                } catch (e) {}
+              }
+            }).catch((err) => {
+              console.warn('ThumbmarkJS get error:', err);
+            });
+          }
+        })
+        .catch((err) => {
+          console.warn('Failed to load ThumbmarkJS:', err);
+        });
+    </script>
+    
     <script>
       tailwind.config = {
         theme: {

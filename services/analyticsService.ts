@@ -21,6 +21,7 @@ export interface VisitorSession {
     device: string;
     userAgent: string;
     isActive: boolean;
+    thumbmarkId?: string;
 }
 
 const SESSIONS_COLLECTION = 'site_visitor_sessions';
@@ -45,6 +46,18 @@ function getDevice(): string {
 function getCurrentPage(): string {
     const path = window.location.pathname + window.location.hash;
     return path || '/';
+}
+
+function getThumbmarkId(): string | undefined {
+    if ((window as any).thumbmarkResult?.hash) return (window as any).thumbmarkResult.hash;
+    try {
+        const stored = localStorage.getItem('cot_thumbmark_fingerprint');
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            return parsed.hash || parsed.value || parsed.thumbmark;
+        }
+    } catch (e) {}
+    return undefined;
 }
 
 /**
@@ -72,6 +85,7 @@ export async function startVisitorSession(user?: { id: string; name: string; rol
             device: getDevice(),
             userAgent: navigator.userAgent.slice(0, 200),
             isActive: true,
+            thumbmarkId: getThumbmarkId(),
         };
 
         await setDoc(doc(db, SESSIONS_COLLECTION, sessionId), sessionData);
