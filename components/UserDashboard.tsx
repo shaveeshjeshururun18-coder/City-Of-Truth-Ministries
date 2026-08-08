@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, SubProfile, UserRole } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
+import { registerBiometricPasskey } from '../services/webauthnService';
 import { generateHebrewAlphabetPDF } from './HebrewAlphabetPDF';
 import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag, Copy, ExternalLink, Moon, Sun, Award, Star, Fingerprint, User as UserIcon } from 'lucide-react';
 import { BadgeIcon } from './icons/modernIcons';
@@ -218,6 +219,21 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const visibleBadge: any = dashboardBadges.find(badge => badge.id === user.visibleBadgeId) || dashboardBadges[0];
     const visibleBadgeId = user.visibleBadgeId || visibleBadge?.id;
     const [showBadgePickerDetails, setShowBadgePickerDetails] = useState(false);
+    const [isRegisteringPasskey, setIsRegisteringPasskey] = useState(false);
+
+    const handleSetupBiometricPasskey = async () => {
+        setIsRegisteringPasskey(true);
+        try {
+            const res = await registerBiometricPasskey(user.id);
+            showToast(res.message || 'Biometric Passkey registered successfully!', 'success');
+            setTimeout(() => window.location.reload(), 1500);
+        } catch (err: any) {
+            console.error('Biometric passkey error:', err);
+            showToast(err?.message || 'Could not set up biometric passkey.', 'error');
+        } finally {
+            setIsRegisteringPasskey(false);
+        }
+    };
 
     useEffect(() => {
         if (canAccessEntrustFeatures) {
@@ -2014,6 +2030,21 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             >
                                 <UserPlus size={15} />
                                 <span className="text-[11px]">Add</span>
+                            </button>
+
+                            {/* Biometric Passkey Button */}
+                            <button
+                                onClick={handleSetupBiometricPasskey}
+                                disabled={isRegisteringPasskey}
+                                title="Set up Fingerprint / Passkey Login"
+                                className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all text-xs font-bold border active:scale-95 cursor-pointer disabled:opacity-50 ${user.biometrics?.credentialId ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-300' : 'text-amber-700 bg-amber-50 hover:bg-amber-100 border-amber-300'}`}
+                            >
+                                {isRegisteringPasskey ? (
+                                    <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <Fingerprint size={15} className={user.biometrics?.credentialId ? 'text-emerald-600' : 'text-amber-600'} />
+                                )}
+                                <span className="text-[11px]">{user.biometrics?.credentialId ? 'Passkey Ready ✓' : 'Passkey Login'}</span>
                             </button>
 
                             {/* Edit Details — pushed to the end */}

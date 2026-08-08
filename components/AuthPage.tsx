@@ -9,6 +9,8 @@ import { CapturedPhoto, FaceLandmark3D, GeometryAnalysis } from './FaceMesh/type
 import { calculateFacialGeometry } from './FaceMesh/utils/facialGeometry';
 import { analyzeStaticImage, initFaceMesh } from './FaceMesh/utils/faceMeshLoader';
 
+import { loginWithBiometricPasskey } from '../services/webauthnService';
+
 GlobalWorkerOptions.workerSrc = pdfWorker;
 
 interface AuthPageProps {
@@ -645,69 +647,26 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     };
 
     const handleFingerprintLogin = async () => {
+        let queryTerm = identifier.trim() || previewUser?.id;
+        if (!queryTerm) {
+            queryTerm = prompt('Enter your Member ID (COT-xxxx) or WhatsApp number for biometric login:') || '';
+        }
+        if (!queryTerm.trim()) return;
+
+        const found = findUserByQuery(queryTerm);
+        const userIdToAuthenticate = found?.user?.id || queryTerm.trim();
+
+        setVerifyingBiometrics(true);
         try {
-            setVerifyingBiometrics(true);
-            const challenge = new Uint8Array(32);
-            window.crypto.getRandomValues(challenge);
-
-            const safeBase64ToUint8Array = (base64: string): Uint8Array => {
-                try {
-                    const padded = base64.replace(/-/g, '+').replace(/_/g, '/').padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
-                    const raw = window.atob(padded);
-                    const result = new Uint8Array(raw.length);
-                    for (let i = 0; i < raw.length; i++) {
-                        result[i] = raw.charCodeAt(i);
-                    }
-                    return result;
-                } catch {
-                    return new Uint8Array(0);
-                }
-            };
-
-            const registeredCredentials = (users || [])
-                .filter(u => u.biometrics?.credentialId)
-                .map(u => ({
-                    id: safeBase64ToUint8Array(u.biometrics!.credentialId),
-                    type: 'public-key' as const,
-                    transports: ['internal'] as AuthenticatorTransport[],
-                }))
-                .filter(c => c.id.length > 0);
-
-            const credential = await navigator.credentials.get({
-                publicKey: {
-                    challenge,
-                    timeout: 60000,
-                    userVerification: "required",
-                    ...(registeredCredentials.length > 0 ? { allowCredentials: registeredCredentials } : {}),
-                }
-            }) as PublicKeyCredential;
-
-            if (credential) {
-                const userWithBiometrics = users?.find(u =>
-                    u.biometrics?.credentialId === credential.id ||
-                    u.biometrics?.credentialId?.replace(/=/g, '') === credential.id?.replace(/=/g, '')
-                );
-                if (userWithBiometrics) {
-                    onLogin(userWithBiometrics.id);
-                } else if (users && users.length > 0) {
-                    const registered = users.find(u => u.biometrics?.credentialId);
-                    if (registered) {
-                        onLogin(registered.id);
-                    } else {
-                        alert("✅ Fingerprint verified successfully!");
-                        onLogin(users[0].id);
-                    }
-                }
+            const authenticatedUser = await loginWithBiometricPasskey(userIdToAuthenticate);
+            if (authenticatedUser && authenticatedUser.id) {
+                onLogin(authenticatedUser.id);
+            } else {
+                throw new Error('Biometric verification succeeded, but user profile could not be loaded.');
             }
         } catch (err: any) {
-            console.error("Biometric login failed:", err);
-            if (err?.name === 'NotAllowedError') {
-                alert("Fingerprint scan was cancelled.\n\n👆 Please scan your REAL FINGERPRINT sensor — not a PIN or screen lock.");
-            } else if (err?.name === 'SecurityError') {
-                alert("Biometric login is only available on secure (HTTPS) or localhost connections.");
-            } else {
-                alert("Fingerprint login failed. Ensure your device has a real fingerprint sensor and you've registered your fingerprint.");
-            }
+            console.error('Biometric login error:', err);
+            alert(err?.message || 'Biometric login failed. Please ensure you have set up a Passkey in your member dashboard first.');
         } finally {
             setVerifyingBiometrics(false);
         }
