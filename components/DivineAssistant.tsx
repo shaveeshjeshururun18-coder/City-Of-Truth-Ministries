@@ -13,12 +13,12 @@ declare global {
   }
   namespace JSX {
     interface IntrinsicElements {
-      'lord-icon': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
-        src?: string;
-        trigger?: string;
-        colors?: string;
-        style?: React.CSSProperties;
-      };
+      'lord-icon': any;
+    }
+  }
+  namespace React.JSX {
+    interface IntrinsicElements {
+      'lord-icon': any;
     }
   }
 }

@@ -27,7 +27,7 @@ export const Button: React.FC<ButtonProps> = ({
   return (
     <motion.button
       className={`${baseStyles} ${variants[variant]} ${fullWidth ? 'w-full' : ''} ${className}`}
-      {...props}
+      {...(props as any)}
     >
       <span className="relative z-10 flex items-center gap-2">
         {children}

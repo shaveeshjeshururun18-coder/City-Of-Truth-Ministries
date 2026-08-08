@@ -2124,9 +2124,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                                     <CheckCircle size={10} className="text-white" />
                                                 </span>
                                             )}
-                                            {badge.image ? (
+                                            {(badge as any).image ? (
                                                 <img
-                                                    src={badge.image}
+                                                    src={(badge as any).image}
                                                     alt={badge.name}
                                                     className="h-14 w-14 object-contain transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5"
                                                     style={{ filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.20))' }}
@@ -2140,7 +2140,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             ) : null}
                                             <div
                                                 className={`h-12 w-12 rounded-xl bg-gradient-to-br ${badge.color} text-white items-center justify-center shadow-sm`}
-                                                style={{ display: badge.image ? 'none' : 'flex' }}
+                                                style={{ display: (badge as any).image ? 'none' : 'flex' }}
                                             >
                                                 <BadgeIcon badgeId={badge.id} size={20} />
                                             </div>

@@ -98,7 +98,7 @@ const letterChild = {
     }
 };
 
-export const ValparaiPage: React.FC = () => {
+export const ValparaiPage: React.FC<{ setView?: any }> = () => {
     const [selectedDest, setSelectedDest] = useState<DestinationData | null>(DESTINATIONS[0]);
     const [activeTab, setActiveTab] = useState<'heritage' | 'biodiversity' | 'climate' | 'estate'>('heritage');
     const [isExporting, setIsExporting] = useState(false);

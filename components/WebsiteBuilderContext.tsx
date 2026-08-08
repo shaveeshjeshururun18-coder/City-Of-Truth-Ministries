@@ -28,15 +28,15 @@ interface WebsiteBuilderContextType {
   publishAllChanges?: () => Promise<void>;
   
   // Advanced Features
-  advancedConfig: AdvancedBuilderConfig;
-  updateTheme: (theme: 'light' | 'dark' | 'custom') => void;
-  updateLayout: (layout: 'default' | 'minimal' | 'full-width' | 'sidebar') => void;
-  reorderSections: (newOrder: string[]) => void;
-  toggleSectionVisibility: (sectionId: string) => void;
-  updateCustomCSS: (css: string) => void;
-  exportConfig: () => string;
-  importConfig: (config: string) => void;
-  getActionHistory: () => Action[];
+  advancedConfig?: AdvancedBuilderConfig;
+  updateTheme?: (theme: 'light' | 'dark' | 'custom') => void;
+  updateLayout?: (layout: 'default' | 'minimal' | 'full-width' | 'sidebar') => void;
+  reorderSections?: (newOrder: string[]) => void;
+  toggleSectionVisibility?: (sectionId: string) => void;
+  updateCustomCSS?: (css: string) => void;
+  exportConfig?: () => string;
+  importConfig?: (config: string) => void;
+  getActionHistory?: () => Action[];
 }
 
 export const WebsiteBuilderContext = createContext<WebsiteBuilderContextType>({

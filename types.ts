@@ -141,6 +141,10 @@ export interface MemberData {
   location: string;
   memberSince: string;
   emergency: string;
+  dob?: string;
+  role?: string;
+  bloodGroup?: string;
+  gender?: string;
 }
 
 export interface Testimonial {

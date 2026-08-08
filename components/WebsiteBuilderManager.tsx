@@ -4,6 +4,7 @@ import { Save, Undo, Redo, X, Settings, Eye, EyeOff, Palette, Layout, Copy, Tras
 import { useWebsiteBuilder } from './WebsiteBuilderContext';
 
 interface WebsiteBuilderManagerProps {
+  isEditMode?: boolean;
   onExit: () => void;
 }
 

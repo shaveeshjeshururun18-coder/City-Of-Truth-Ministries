@@ -79,6 +79,7 @@ interface ContactMessage {
     id: string;
     name: string;
     email: string;
+    phone?: string;
     subject: string;
     message: string;
     createdAt: string;
@@ -98,7 +99,7 @@ interface AdminDashboardProps {
     deletedContactMessages?: ContactMessage[];
     memberNotifications?: MemberNotification[];
     deletedMemberNotifications?: MemberNotification[];
-    onSendMessageToUsers?: (targetUserIds: string[], message: string, imageUrl?: string) => void;
+    onSendMessageToUsers?: (targetUserIds: string[], message: string, imageUrl?: string, kind?: any) => void;
     onDeleteContactMessage?: (messageId: string) => void;
     onRestoreContactMessage?: (messageId: string) => void;
     onDeleteMemberNotification?: (notificationId: string) => void;
@@ -112,7 +113,9 @@ interface AdminDashboardProps {
     onReassignUserId?: (oldUserId: string, newUserId: string, updatedUser: User) => Promise<void>;
     onBack: () => void;
     homeSectionsOrder: string[];
+    homeSectionsHidden?: Record<string, boolean>;
     onUpdateHomeSectionsOrder: (newOrder: string[]) => Promise<void>;
+    onUpdateHomeSectionsHidden?: (hidden: Record<string, boolean>) => Promise<void>;
     navItems?: any[];
     onUpdateNavItems?: (newItems: any[]) => Promise<void>;
 }

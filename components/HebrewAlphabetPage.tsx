@@ -32,7 +32,7 @@ const PALEO_IMAGE_MAP: Record<string, string> = {
     TAV: "/paleo_letters/21_Taw.png"
 };
 
-const HEBREW_LETTERS = [
+export const HEBREW_LETTERS = [
     { letter: "א", name: "ALEPH", hebrewName: "אלף", number: 1, latinPronunciation: "Ah-lef", tamilPronunciation: "ஆலெஃப்", tamilGuide: "ஆலெஃப் உச்சரிப்பு: முதலில் வாயை திறந்து ஆ என்று சொல்லுங்கள். அடுத்தது நாக்கை மேலே தொட்டு லெ என்று சொல்லி, கடைசியில் கீழ் உதட்டை பற்களுக்கு அருகில் வைத்து ஃப் என்று மெதுவாக முடிக்கவும்.", symbolic: "Ox, Strength, Leader", pictographNumber: "No.1 (Headship)" },
     { letter: "ב", name: "BET", hebrewName: "בית", number: 2, latinPronunciation: "Bet", tamilPronunciation: "பெத்", tamilGuide: "பெத். பே என்று தொடங்கி, முடிவில் த் ஒலியை மெதுவாக சேர்க்கவும்.", symbolic: "House, Family, Inside", pictographNumber: "No.2 (House)" },
     { letter: "ג", name: "GIMEL", hebrewName: "גימל", number: 3, latinPronunciation: "Gee-mel", tamilPronunciation: "கீமெல்", tamilGuide: "கீமெல். கீ என்று நீட்டி, பிறகு மெல் என்று மெதுவாக சொல்லுங்கள்.", symbolic: "Camel, Pride, To Lift Up", pictographNumber: "No.3 (Foot)" },
@@ -56,6 +56,8 @@ const HEBREW_LETTERS = [
     { letter: "ש", name: "SHIN", hebrewName: "שין", number: 300, latinPronunciation: "Sheen", tamilPronunciation: "ஷீன்", tamilGuide: "ஷீன். ஷீ என்று நீட்டி, ந் ஒலியில் முடிக்கவும்.", symbolic: "Teeth, To Consume, Destroy", pictographNumber: "No.300 (Two front teeth)" },
     { letter: "ת", name: "TAV", hebrewName: "תו", number: 400, latinPronunciation: "Tav", tamilPronunciation: "தாவ்", tamilGuide: "தாவ். தா என்று கூறி, வ் ஒலி மெதுவாக முடிக்கவும்.", symbolic: "Mark, Sign, Covenant", pictographNumber: "No.400 (Crossed Sticks)" },
 ];
+
+export const HEBREW_LETTERS_DATA = HEBREW_LETTERS;
 
 const TAMIL_PRONUNCIATION_PARTS: Record<string, string[]> = {
     "א": ["ஆ", "லெஃப்"],

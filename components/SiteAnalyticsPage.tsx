@@ -43,7 +43,7 @@ function LiveDot({ active }: { active: boolean }) {
     );
 }
 
-export default function SiteAnalyticsPage() {
+export default function SiteAnalyticsPage({ users }: { users?: any[] } = {}) {
     const [sessions, setSessions] = useState<VisitorSession[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'active' | 'registered' | 'unregistered'>('all');

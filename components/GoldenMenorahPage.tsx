@@ -4,7 +4,7 @@ import { Sparkles, Download } from 'lucide-react';
 import { InteractiveMenorah } from './InteractiveMenorah';
 
 interface GoldenMenorahPageProps {
-    onBack: () => void;
+    onBack?: () => void;
 }
 
 export const GoldenMenorahPage: React.FC<GoldenMenorahPageProps> = () => {

@@ -38,7 +38,7 @@ const generateAssets = () => {
     return assets.sort(() => Math.random() - 0.5);
 };
 
-export const MinistriesPage: React.FC = () => {
+export const MinistriesPage: React.FC<{ currentUser?: any; setView?: any }> = () => {
     const [dynamicMinistries, setDynamicMinistries] = useState<Ministry[]>([]);
     const [mediaTypeFilter, setMediaTypeFilter] = useState<'all' | 'image' | 'video'>('all');
     const [mediaDateFilter, setMediaDateFilter] = useState<'all' | string>('all');

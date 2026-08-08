@@ -204,6 +204,7 @@ interface ContactMessage {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   subject: string;
   message: string;
   createdAt: string;
@@ -3012,7 +3013,7 @@ const App: React.FC = () => {
 
           {currentView === ViewState.GOLDEN_MENORAH && (
             <motion.div key="menorah-page" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <GoldenMenorahPage />
+              <GoldenMenorahPage onBack={() => setCurrentView(ViewState.HOME)} />
             </motion.div>
           )}
 

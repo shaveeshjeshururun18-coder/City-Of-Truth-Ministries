@@ -92,7 +92,7 @@ export const HebrewNewYearBanner: React.FC = () => {
                     </HStack>
 
                     {/* Simulation Info & Dismiss Button */}
-                    <HStack gap={2.5} align="center" shrink={0}>
+                    <HStack gap={2.5 as any} align="center">
                         {simulatedDate && (
                             <span className="hidden md:inline-flex px-2 py-0.5 bg-amber-700/50 border border-amber-300/20 rounded text-[10px] font-bold tracking-wider uppercase text-yellow-100">
                                 Simulated Date Active

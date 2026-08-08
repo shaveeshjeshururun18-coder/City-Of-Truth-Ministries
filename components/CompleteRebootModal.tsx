@@ -207,7 +207,7 @@ export const CompleteRebootModal: React.FC<CompleteRebootModalProps> = ({ isOpen
                             <div className="flex gap-3 pt-2">
                                 <Button
                                     type="button"
-                                    variant="default"
+                                    variant="secondary"
                                     onClick={onClose}
                                     disabled={isExecuting}
                                     className="flex-1"
@@ -244,7 +244,7 @@ export const CompleteRebootModal: React.FC<CompleteRebootModalProps> = ({ isOpen
                     {/* Close button after result */}
                     {result && (
                         <Button
-                            variant="default"
+                            variant="secondary"
                             onClick={onClose}
                             fullWidth
                             className="mt-4"
