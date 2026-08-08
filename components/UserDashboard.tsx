@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, SubProfile, UserRole } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
+import GreetingCard from './GreetingCard';
 import { registerBiometricPasskey } from '../services/webauthnService';
 import { getVerificationShareUrl, regenerateShareToken } from '../services/verificationTokenService';
 import { generateHebrewAlphabetPDF } from './HebrewAlphabetPDF';
@@ -221,6 +222,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const visibleBadgeId = user.visibleBadgeId || visibleBadge?.id;
     const [showBadgePickerDetails, setShowBadgePickerDetails] = useState(false);
     const [isRegisteringPasskey, setIsRegisteringPasskey] = useState(false);
+    const [showGreetingCardModal, setShowGreetingCardModal] = useState(false);
 
     const handleSetupBiometricPasskey = async () => {
         setIsRegisteringPasskey(true);
@@ -2063,6 +2065,16 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 <span className="text-[11px]">Regen Link</span>
                             </button>
 
+                            {/* Create Royal Greeting Card */}
+                            <button
+                                onClick={() => setShowGreetingCardModal(true)}
+                                title="Design & Share Royal Greeting Card Studio"
+                                className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-amber-900 bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 hover:from-amber-300 hover:to-yellow-200 border border-amber-400 transition-all text-xs font-bold shadow-md shadow-amber-500/20 active:scale-95 cursor-pointer"
+                            >
+                                <Sparkles size={15} className="text-amber-700 animate-pulse" />
+                                <span className="text-[11px] font-cinzel">Greeting Studio</span>
+                            </button>
+
                             {/* Biometric Fingerprint Button */}
                             <button
                                 onClick={handleSetupBiometricPasskey}
@@ -3618,6 +3630,17 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     </div>
                 )}
             </AnimatePresence>
+
+            {/* Greeting Card Creator Studio Modal */}
+            {showGreetingCardModal && (
+                <GreetingCard
+                    currentUser={user}
+                    isAdmin={isAdmin}
+                    onClose={() => setShowGreetingCardModal(false)}
+                    onStartTour={() => {}}
+                    initialMode="creator"
+                />
+            )}
 
         </div>
     );
