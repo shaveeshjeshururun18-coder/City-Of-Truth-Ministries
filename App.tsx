@@ -89,6 +89,7 @@ import { VisitingCard3D } from './components/VisitingCard3D';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { BottomNav } from './components/BottomNav';
 import GreetingCard from './components/GreetingCard';
+import SplashScreen from './components/SplashScreen';
 
 import { GlobalAnimatedCharacter } from './components/GlobalAnimatedCharacter';
 import { GuidedTour, useTour } from './components/GuidedTour';
@@ -529,6 +530,12 @@ const App: React.FC = () => {
   const [showWelcomeIntro, setShowWelcomeIntro] = useState(false);
   const [sessionGreeting, setSessionGreeting] = useState<string | null>(null);
   const [showGreetingCard, setShowGreetingCard] = useState(false);
+
+  // Splash screen — first-visit detection via localStorage
+  const isFirstVisit = (() => {
+    try { return !localStorage.getItem('cot_has_visited'); } catch { return true; }
+  })();
+  const [showSplash, setShowSplash] = useState(true);
   const liveWebsiteTour = useTour('live_website');
 
   // Dynamic guided tour state
@@ -3750,6 +3757,17 @@ const App: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* App-style Splash Screen — shown once per session */}
+      {showSplash && (
+        <SplashScreen
+          isFirstVisit={isFirstVisit}
+          onComplete={() => {
+            setShowSplash(false);
+            try { localStorage.setItem('cot_has_visited', '1'); } catch {}
+          }}
+        />
+      )}
 
       {/* Session Greeting Overlay */}
       {showGreetingCard && (
