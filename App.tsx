@@ -2609,18 +2609,24 @@ const App: React.FC = () => {
                   </div>
 
                   {/* Mobile Layout (less than md - Stacked title alignment) */}
-                  <div className="block md:hidden mb-10">
+                  <div className="block md:hidden mb-10 w-full overflow-hidden px-1">
                     <motion.div
                       initial={{ opacity: 0, y: 30 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 1.0 }}
-                      className="flex flex-col items-center justify-center w-full"
+                      className="flex flex-col items-center justify-center w-full text-center"
                     >
-                      <h1 className="font-serif font-black tracking-wider flex flex-col items-center justify-center leading-normal w-full">
-                        <span className="pure-gold-text inline-block text-[clamp(2.15rem,13vw,3.35rem)] pt-2 pb-3 px-2 mb-1 max-w-full leading-tight">சத்திய நகரம்</span>
-                        <span className="pure-gold-text inline-block text-[clamp(2.4rem,14vw,3.65rem)] pt-2 pb-4 px-2 mb-2 max-w-full leading-tight">ஊழியங்கள்</span>
+                      <h1 className="font-serif font-black tracking-wide flex flex-col items-center justify-center leading-tight w-full">
+                        <span className="pure-gold-text inline-block text-[clamp(1.75rem,8.5vw,2.85rem)] pt-2 pb-1 px-1 mb-1 max-w-full leading-tight whitespace-nowrap">
+                          சத்திய நகரம்
+                        </span>
+                        <span className="pure-gold-text inline-block text-[clamp(1.65rem,8vw,2.65rem)] pt-1 pb-3 px-1 mb-1 max-w-full leading-tight whitespace-nowrap">
+                          ஊழியங்கள்
+                        </span>
                       </h1>
-                      <h2 className="text-xs font-bold tracking-[0.25em] uppercase mt-2" style={{ color: "rgba(253,230,138,0.85)" }}>City of Truth Ministries • வால்பாறை</h2>
+                      <h2 className="text-[clamp(0.6rem,3.2vw,0.8rem)] font-extrabold tracking-[0.16em] uppercase mt-1 px-2 whitespace-nowrap text-center" style={{ color: "rgba(253,230,138,0.88)" }}>
+                        City of Truth Ministries • வால்பாறை
+                      </h2>
                     </motion.div>
                   </div>
 
