@@ -1588,8 +1588,8 @@ const App: React.FC = () => {
 
   // Check if on admin route
   const isAdminRoute = location.pathname === '/admin';
-  // Check if on verify route
-  const verifyMatch = location.pathname.match(/^\/verify\/(.+)$/);
+  // Check if on verify route (supports /verify/s/shareToken and /verify/memberId)
+  const verifyMatch = location.pathname.match(/^\/verify\/(?:s\/)?(.+)$/);
   const isVerifyRoute = !!verifyMatch;
   const verifyUserId = verifyMatch ? verifyMatch[1] : null;
   const isAuthRoute = location.pathname === '/auth';

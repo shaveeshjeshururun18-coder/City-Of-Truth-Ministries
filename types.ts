@@ -117,6 +117,10 @@ export interface User {
   familyMembers?: { id: string; name: string; relationship: string; photo?: string; isExpanded?: boolean }[];
   customBadges?: { id: string; icon: string; name: string; color: string }[];
   visibleBadgeId?: string;
+  verification?: {
+    shareToken: string;
+    enabled?: boolean;
+  };
 }
 
 export interface DeletedUser extends User {

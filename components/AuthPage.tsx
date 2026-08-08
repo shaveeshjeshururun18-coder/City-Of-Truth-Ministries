@@ -10,6 +10,7 @@ import { calculateFacialGeometry } from './FaceMesh/utils/facialGeometry';
 import { analyzeStaticImage, initFaceMesh } from './FaceMesh/utils/faceMeshLoader';
 
 import { loginWithBiometricPasskey } from '../services/webauthnService';
+import { validateUploadedFile } from '../services/fileValidationService';
 
 GlobalWorkerOptions.workerSrc = pdfWorker;
 
@@ -741,8 +742,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         const file = e.target.files?.[0];
         e.target.value = '';
         if (!file) return;
-        if (!file.type.startsWith('image/')) {
-            alert('Please upload a face image file such as JPG, PNG, or WebP.');
+
+        const validation = await validateUploadedFile(file);
+        if (!validation.valid || validation.fileType === 'pdf') {
+            alert(validation.error || 'Please upload a valid face image file (JPG, PNG, or WebP under 5MB).');
             return;
         }
 
@@ -1060,7 +1063,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                             </div>
                                         </div>
                                         <div className="mb-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
-                                            For best results, face the camera directly in bright light. Your photo is used only for this login check.
+                                            🔒 <strong>Face Geometry Match Mode:</strong> For best results, face the camera directly in bright light. For primary account security, use your registered Fingerprint sensor.
                                         </div>
                                         <div className="relative rounded-2xl overflow-hidden border-2 border-brand-500">
                                             <CameraStage onPhotoCaptured={handleFaceCapture} cardName="Face Login" onClose={() => setShowFaceScanner(false)} />

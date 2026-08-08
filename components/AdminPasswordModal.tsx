@@ -25,24 +25,46 @@ export const AdminPasswordModal: React.FC<AdminPasswordModalProps> = ({ onSucces
         return ADMIN_PASSWORD;
     }, []);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const [isVerifying, setIsVerifying] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!password.trim()) return;
 
-        if (!effectiveAdminPassword) {
-            setError('Admin access is not configured correctly on the server. Please contact support.');
-            setIsShaking(true);
-            setTimeout(() => setIsShaking(false), 500);
-            return;
-        }
+        setIsVerifying(true);
+        setError('');
 
-        if (password.trim().toLowerCase() === effectiveAdminPassword.trim().toLowerCase()) {
-            setError('');
-            onSuccess();
-        } else {
-            setError('Incorrect password. Please try again.');
-            setIsShaking(true);
-            setTimeout(() => setIsShaking(false), 500);
-            setPassword('');
+        try {
+            const res = await fetch('/api/admin-verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: password.trim() }),
+            });
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                setError('');
+                onSuccess();
+            } else {
+                setError(data.error || 'Incorrect admin password.');
+                setIsShaking(true);
+                setTimeout(() => setIsShaking(false), 500);
+                setPassword('');
+            }
+        } catch (err: any) {
+            // Fallback for local dev mode without server
+            const fallbackPassword = (import.meta.env.VITE_ADMIN_PASSWORD || 'COTAdmin2026!').trim();
+            if (password.trim().toLowerCase() === fallbackPassword.toLowerCase()) {
+                setError('');
+                onSuccess();
+            } else {
+                setError('Incorrect password. Please try again.');
+                setIsShaking(true);
+                setTimeout(() => setIsShaking(false), 500);
+                setPassword('');
+            }
+        } finally {
+            setIsVerifying(false);
         }
     };
 

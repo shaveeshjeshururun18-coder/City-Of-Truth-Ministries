@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { User, SubProfile, UserRole } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
 import { registerBiometricPasskey } from '../services/webauthnService';
+import { getVerificationShareUrl, regenerateShareToken } from '../services/verificationTokenService';
 import { generateHebrewAlphabetPDF } from './HebrewAlphabetPDF';
 import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag, Copy, ExternalLink, Moon, Sun, Award, Star, Fingerprint, User as UserIcon } from 'lucide-react';
 import { BadgeIcon } from './icons/modernIcons';
@@ -823,16 +824,26 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     };
 
     const handleShare = () => {
-        const url = `${window.location.origin}/verify/${encodeURIComponent(displayProfile.id)}`;
+        const shareUrl = getVerificationShareUrl(displayProfile as User);
         if (navigator.share) {
             navigator.share({
                 title: `${displayProfile.name} — City of Truth Ministries`,
-                text: `Open this verified member link: ${displayProfile.id}`,
-                url
+                text: `Verified Entrust Member Link`,
+                url: shareUrl,
             });
         } else {
-            navigator.clipboard.writeText(url);
-            alert('Profile login link copied!');
+            navigator.clipboard.writeText(shareUrl);
+            showToast('Public verification link copied to clipboard!', 'success');
+        }
+    };
+
+    const handleRegenerateShareLink = async () => {
+        try {
+            const { newToken, updatedUser } = await regenerateShareToken(user);
+            onUpdate(updatedUser);
+            showToast('New random share link generated! Previous link is now invalid.', 'success');
+        } catch (err: any) {
+            showToast('Could not regenerate share link. Please try again.', 'error');
         }
     };
 
@@ -2030,6 +2041,26 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             >
                                 <UserPlus size={15} />
                                 <span className="text-[11px]">Add</span>
+                            </button>
+
+                            {/* Share Verification Link */}
+                            <button
+                                onClick={handleShare}
+                                title="Share Secure Random Verification Link"
+                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-600 hover:text-brand-600 bg-slate-50 hover:bg-white border border-slate-200/80 transition-all text-xs font-bold"
+                            >
+                                <Share2 size={15} />
+                                <span className="text-[11px]">Share Link</span>
+                            </button>
+
+                            {/* Regenerate Verification Link */}
+                            <button
+                                onClick={handleRegenerateShareLink}
+                                title="Regenerate Random Verification Link (Invalidates Old Link)"
+                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-600 hover:text-amber-600 bg-slate-50 hover:bg-white border border-slate-200/80 transition-all text-xs font-bold"
+                            >
+                                <Copy size={15} />
+                                <span className="text-[11px]">Regen Link</span>
                             </button>
 
                             {/* Biometric Fingerprint Button */}

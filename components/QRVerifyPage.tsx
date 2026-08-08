@@ -29,9 +29,9 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack, onPr
                 const users = await api.getUsers();
                 let found: User | null = null;
                 for (const u of users) {
-                    if (u.id === userId) { found = u; break; }
+                    if (u.verification?.shareToken === userId || u.id === userId) { found = u; break; }
                     if (u.linkedProfiles) {
-                        const sub = u.linkedProfiles.find(sp => sp.id === userId);
+                        const sub = u.linkedProfiles.find(sp => (sp as any).verification?.shareToken === userId || sp.id === userId);
                         if (sub) {
                             found = { ...u, id: sub.id, name: sub.name, photo: sub.photo || u.photo } as User;
                             break;
@@ -41,7 +41,7 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack, onPr
                 if (found) {
                     setUser(found);
                 } else {
-                    setError('This member ID was not found in our records.');
+                    setError('This verification link is invalid or has expired.');
                 }
             } catch (e) {
                 setError('Failed to load member data. Please try again.');
