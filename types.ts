@@ -29,7 +29,8 @@ export enum ViewState {
   VERIFY_ID = 'VERIFY_ID',
   PASTOR = 'PASTOR',
   MEMBER_FORM = 'MEMBER_FORM',
-  BUGS_FIXED = 'BUGS_FIXED'
+  BUGS_FIXED = 'BUGS_FIXED',
+  ID_CARD = 'ID_CARD'
 }
 
 export interface NavItem {

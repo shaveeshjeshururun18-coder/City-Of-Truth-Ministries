@@ -5,7 +5,7 @@ import GreetingCard from './GreetingCard';
 import { registerBiometricPasskey } from '../services/webauthnService';
 import { getVerificationShareUrl, regenerateShareToken } from '../services/verificationTokenService';
 import { generateHebrewAlphabetPDF } from './HebrewAlphabetPDF';
-import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag, Copy, ExternalLink, Moon, Sun, Award, Star, Fingerprint, User as UserIcon } from 'lucide-react';
+import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag, Copy, ExternalLink, Moon, Sun, Award, Star, Sparkles, Fingerprint, User as UserIcon } from 'lucide-react';
 import { BadgeIcon } from './icons/modernIcons';
 import { Button } from './Button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -3635,7 +3635,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             {showGreetingCardModal && (
                 <GreetingCard
                     currentUser={user}
-                    isAdmin={isAdmin}
+                    isAdmin={user.role === 'Admin'}
                     onClose={() => setShowGreetingCardModal(false)}
                     onStartTour={() => {}}
                     initialMode="creator"
