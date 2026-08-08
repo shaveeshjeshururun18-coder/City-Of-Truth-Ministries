@@ -1116,6 +1116,59 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                         animate={{ opacity: 1, scale: 1 }}
                         className="bg-white p-4 sm:p-5 md:p-10 rounded-[1.5rem] md:rounded-[3rem] shadow-2xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden"
                     >
+                        {/* Registration Progress Indicator Bar */}
+                        {(() => {
+                            const calcProgress = () => {
+                                let score = 0;
+                                if (photo) score += 25;
+                                if (formData.name.trim().length > 0) score += 25;
+                                const cleanPhone = formData.emergency.replace(/\D/g, '');
+                                if (cleanPhone.length === 10) score += 25;
+                                if (formData.location.trim().length > 0) score += 25;
+                                return score;
+                            };
+                            const progress = calcProgress();
+                            return (
+                                <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-emerald-500/10 border border-amber-400/30">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-xs font-extrabold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+                                            <Sparkles size={14} className="text-amber-500 animate-pulse" />
+                                            Registration Progress
+                                        </span>
+                                        <span className="text-xs font-black text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300">
+                                            {progress}% Completed
+                                        </span>
+                                    </div>
+                                    <div className="w-full bg-slate-200/80 rounded-full h-2.5 overflow-hidden p-0.5">
+                                        <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${progress}%` }}
+                                            transition={{ duration: 0.5, ease: 'easeOut' }}
+                                            className={`h-full rounded-full transition-all duration-500 ${
+                                                progress === 100
+                                                    ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_12px_rgba(16,185,129,0.8)]'
+                                                    : 'bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 shadow-[0_0_10px_rgba(245,158,11,0.6)]'
+                                            }`}
+                                        />
+                                    </div>
+                                    <div className="flex items-center justify-between gap-1 mt-2.5 text-[10px] font-bold">
+                                        <span className={photo ? 'text-emerald-700 font-extrabold' : 'text-slate-400'}>
+                                            {photo ? '✓ Photo' : '○ Photo'}
+                                        </span>
+                                        <span className={formData.name.trim().length > 0 ? 'text-emerald-700 font-extrabold' : 'text-slate-400'}>
+                                            {formData.name.trim().length > 0 ? '✓ Name' : '○ Name'}
+                                        </span>
+                                        <span className={formData.emergency.replace(/\D/g, '').length === 10 ? 'text-emerald-700 font-extrabold' : 'text-slate-400'}>
+                                            {formData.emergency.replace(/\D/g, '').length === 10 ? '✓ WhatsApp' : '○ WhatsApp'}
+                                        </span>
+                                        <span className={formData.location.trim().length > 0 ? 'text-emerald-700 font-extrabold' : 'text-slate-400'}>
+                                            {formData.location.trim().length > 0 ? '✓ District' : '○ District'}
+                                        </span>
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
                         <div className="mb-6">
                             <p className="text-[11px] font-semibold text-slate-600 mb-3">Registration Type</p>
                             <div className="grid grid-cols-2 bg-slate-100 p-1 rounded-2xl">
@@ -1162,25 +1215,27 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                     <div className="flex flex-col sm:flex-row gap-4">
                                         <div className="relative group flex-1">
                                             <input type="file" onChange={handlePhotoUpload} className="absolute inset-0 opacity-0 cursor-pointer z-20" accept="image/*" />
-                                            <div className="border-2 border-dashed border-slate-300 rounded-2xl md:rounded-3xl p-4 md:p-6 transition-all group-hover:border-accent-400 bg-white shadow-sm flex items-center gap-4 md:gap-6">
-                                                <div className="w-14 h-14 md:w-20 md:h-20 bg-white rounded-xl md:rounded-2xl flex items-center justify-center text-slate-500 shadow-sm border border-slate-200 overflow-hidden shrink-0">
+                                            <div className="border-2 border-dashed border-slate-300 rounded-2xl md:rounded-3xl p-4 md:p-6 transition-all group-hover:border-amber-500 bg-white shadow-sm flex items-center gap-4 md:gap-6">
+                                                <div className="w-14 h-14 md:w-20 md:h-20 bg-amber-50 rounded-xl md:rounded-2xl flex items-center justify-center text-amber-600 shadow-sm border border-amber-200/80 overflow-hidden shrink-0">
                                                     {photo ? <img src={photo} alt="Member photo" className="w-full h-full object-cover" /> : <UploadCloud size={24} className="md:w-[30px] md:h-[30px]" />}
                                                 </div>
                                                 <div className="flex-1">
-                                                    <p className="text-sm font-bold text-slate-700">{photo ? "Photo Selected" : "Upload File"}</p>
-                                                    <p className="text-xs text-slate-500 mt-1">Select from device</p>
+                                                    <p className="text-sm font-black text-slate-800">{photo ? "Photo Selected ✓" : "Upload File"}</p>
+                                                    <p className="text-xs text-slate-500 mt-0.5">Select photo from device</p>
                                                 </div>
                                             </div>
                                         </div>
                                         
                                         <button 
+                                            type="button"
                                             onClick={() => setShowCameraStage(true)} 
-                                            className="border-2 border-slate-200 hover:border-brand-500 rounded-2xl md:rounded-3xl p-4 md:p-6 transition-all bg-white shadow-sm flex items-center justify-center flex-col gap-2 shrink-0 sm:w-40"
+                                            className="border-2 border-slate-200 hover:border-brand-500 rounded-2xl md:rounded-3xl p-4 md:p-6 transition-all bg-white shadow-sm flex items-center justify-center flex-col gap-2 shrink-0 sm:w-44 cursor-pointer hover:bg-brand-50/40"
                                         >
-                                            <div className="w-12 h-12 bg-brand-50 rounded-xl flex items-center justify-center text-brand-600">
-                                                <Church size={24} /> {/* Using Church as a placeholder icon since Camera is not imported here if we want to avoid modifying imports again, wait, we can just use another icon, but let's see. */}
+                                            <div className="w-12 h-12 bg-brand-50 rounded-xl flex items-center justify-center text-brand-600 border border-brand-200/80 shadow-sm">
+                                                <Camera size={24} />
                                             </div>
-                                            <span className="text-xs font-bold text-slate-700 text-center">Live Scan</span>
+                                            <span className="text-xs font-black text-slate-800 text-center">Take Photo</span>
+                                            <span className="text-[10px] text-slate-500 font-semibold">Live Camera</span>
                                         </button>
                                     </div>
                                 )}
@@ -1287,7 +1342,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                                                                         <div className="text-brand-600">
                                                                             <Camera size={18} />
                                                                         </div>
-                                                                        <span className="text-[10px] font-bold text-slate-700 text-center leading-none">Live Scan</span>
+                                                                        <span className="text-[10px] font-bold text-slate-700 text-center leading-none">Take Photo</span>
                                                                     </button>
                                                                 </div>
                                                             )}
