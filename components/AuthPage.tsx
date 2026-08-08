@@ -649,7 +649,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     const handleFingerprintLogin = async () => {
         let queryTerm = identifier.trim() || previewUser?.id;
         if (!queryTerm) {
-            queryTerm = prompt('Enter your Member ID (COT-xxxx) or WhatsApp number for biometric login:') || '';
+            queryTerm = prompt('Enter your Member ID (COT-xxxx) or WhatsApp number to scan your Fingerprint:') || '';
         }
         if (!queryTerm.trim()) return;
 
@@ -662,11 +662,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             if (authenticatedUser && authenticatedUser.id) {
                 onLogin(authenticatedUser.id);
             } else {
-                throw new Error('Biometric verification succeeded, but user profile could not be loaded.');
+                throw new Error('Fingerprint verification succeeded, but user profile could not be loaded.');
             }
         } catch (err: any) {
-            console.error('Biometric login error:', err);
-            alert(err?.message || 'Biometric login failed. Please ensure you have set up a Passkey in your member dashboard first.');
+            console.error('Fingerprint login error:', err);
+            alert(err?.message || 'Fingerprint login failed. Please ensure you have registered your Fingerprint in your member dashboard first.');
         } finally {
             setVerifyingBiometrics(false);
         }

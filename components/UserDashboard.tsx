@@ -2032,11 +2032,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 <span className="text-[11px]">Add</span>
                             </button>
 
-                            {/* Biometric Passkey Button */}
+                            {/* Biometric Fingerprint Button */}
                             <button
                                 onClick={handleSetupBiometricPasskey}
                                 disabled={isRegisteringPasskey}
-                                title="Set up Fingerprint / Passkey Login"
+                                title="Set up Fingerprint Sensor Login"
                                 className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all text-xs font-bold border active:scale-95 cursor-pointer disabled:opacity-50 ${user.biometrics?.credentialId ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-300' : 'text-amber-700 bg-amber-50 hover:bg-amber-100 border-amber-300'}`}
                             >
                                 {isRegisteringPasskey ? (
@@ -2044,7 +2044,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 ) : (
                                     <Fingerprint size={15} className={user.biometrics?.credentialId ? 'text-emerald-600' : 'text-amber-600'} />
                                 )}
-                                <span className="text-[11px]">{user.biometrics?.credentialId ? 'Passkey Ready ✓' : 'Passkey Login'}</span>
+                                <span className="text-[11px]">{user.biometrics?.credentialId ? 'Fingerprint Ready ✓' : 'Fingerprint Login'}</span>
                             </button>
 
                             {/* Edit Details — pushed to the end */}
