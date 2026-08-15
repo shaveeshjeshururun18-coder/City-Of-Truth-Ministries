@@ -661,6 +661,52 @@ export const api = {
         }
     },
 
+    // Find user by verification token (or ID)
+    getUserByVerificationToken: async (token: string): Promise<User | null> => {
+        try {
+            // 1. Fast path: Check if token is exactly the document ID
+            const exactUser = await api.getUserById(token);
+            if (exactUser) return exactUser;
+
+            // 2. Fast path: Query by shareToken
+            const usersCollection = collection(db, USERS_COLLECTION);
+            const q = query(usersCollection, where('verification.shareToken', '==', token));
+            const snapshot = await getDocs(q);
+
+            if (!snapshot.empty) {
+                const docSnap = snapshot.docs[0];
+                return {
+                    ...docSnap.data(),
+                    id: docSnap.id
+                } as User;
+            }
+
+            // 3. Slow path: Fallback for legacy sec_v1_ tokens or linkedProfiles
+            console.warn("Token not found in fast paths. Falling back to full scan for linked profiles or legacy tokens.");
+            const allUsers = await api.getUsers();
+            
+            for (const u of allUsers) {
+                if (u.linkedProfiles) {
+                    const sub = u.linkedProfiles.find(sp => (sp as any).verification?.shareToken === token || sp.id === token);
+                    if (sub) {
+                        return { ...u, id: sub.id, name: sub.name, photo: sub.photo || u.photo } as User;
+                    }
+                }
+            }
+
+            if (token.startsWith('sec_v1_')) {
+                const legacyFound = allUsers.find(u => token.includes(u.id.toLowerCase().replace(/[^a-z0-9]/g, '')));
+                if (legacyFound) return legacyFound;
+            }
+
+            return null;
+        } catch (error: any) {
+            console.error('Error finding user by verification token:', error);
+            // getUsers() fallback inside the try block handles local DB if permission-denied.
+            return null;
+        }
+    },
+
     // --- Testimonials ---
 
     // Fetch all testimonials

@@ -5168,7 +5168,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             disabled={isLoading}
                                             className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-xl font-bold text-xs hover:bg-green-700 transition-colors disabled:opacity-60"
                                         >
-                                            <CheckCircle size={13} />
+                                            <img src="/assets/doodles/doodle-color-340-folder-check-hover-pinch.gif" alt="Approve" className="w-5 h-5 object-contain" />
                                             Approve ({selectedUsers.size})
                                         </button>
                                         <button
@@ -5176,13 +5176,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             disabled={isLoading}
                                             className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white rounded-xl font-bold text-xs hover:bg-amber-700 transition-colors disabled:opacity-60"
                                         >
-                                            <XCircle size={13} />
+                                            <img src="/assets/doodles/doodle-color-341-folder-cross-hover-pinch.gif" alt="Reject" className="w-5 h-5 object-contain" />
                                             Reject ({selectedUsers.size})
                                         </button>
                                         <button
                                             onClick={() => setShowBulkDeleteConfirm(true)}
-                                            className="flex items-center gap-2 px-3 py-1.5 bg-red-600 text-white rounded-xl font-bold text-xs hover:bg-red-700 transition-colors"
+                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-xl font-bold text-xs hover:bg-red-700 transition-colors"
                                         >
+                                            <img src="/assets/doodles/doodle-color-185-trash-bin-hover-pinch.gif" alt="Delete" className="w-5 h-5 object-contain" />
                                             <Trash2 size={14} />
                                             Delete ({selectedUsers.size})
                                         </button>
@@ -5443,7 +5444,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                         {filteredUsers.length === 0 && (
                             <div className="text-center py-12">
-                                <Users size={48} className="mx-auto text-slate-300 mb-4" />
+                                <img src="/assets/doodles/doodle-color-1738-no-entry-hover-pinch.gif" alt="No entry" className="w-14 h-14 mx-auto mb-3 object-contain" />
                                 <p className="text-slate-500 font-medium">No users found</p>
                             </div>
                         )}

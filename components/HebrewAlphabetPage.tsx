@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Scroll, Volume2, Sparkles, ArrowLeft, X, Download, PenTool } from 'lucide-react';
+import { Scroll, Volume2, Sparkles, ArrowLeft, X, Download, PenTool, Calendar, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { audioService } from '../services/audioService';
 import { MouthPronunciationAnimator, HEBREW_LETTER_PHONEMES } from './MouthPronunciationAnimator';
 import { AnimatedTeacherCharacter } from './AnimatedTeacherCharacter';
 import { generateHebrewAlphabetPDF } from './HebrewAlphabetPDF';
 import { LetterTracingModal } from './LetterTracingModal';
+import { HebrewCalendarGuide } from './HebrewCalendarGuide';
 
 const PALEO_IMAGE_MAP: Record<string, string> = {
     ALEPH: "/paleo_letters/04_Aleph.png",
@@ -91,7 +92,9 @@ export interface HebrewAlphabetPageProps {
     onBack?: () => void;
 }
 
+
 export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }) => {
+    const [sectionTab, setSectionTab] = useState<'alephbet' | 'calendar'>('alephbet');
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
     const [cols, setCols] = useState(COLS_MAP.default);
@@ -226,7 +229,7 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
             )}
 
             <div className="w-full mx-auto px-4 sm:px-6 max-w-6xl relative z-10 pt-24 md:pt-28">
-                <header className="text-center mb-16 space-y-4">
+                <header className="text-center mb-10 space-y-4">
                     <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="w-20 h-20 md:w-24 md:h-24 mx-auto bg-gradient-to-br from-white/10 to-white/5 rounded-full flex items-center justify-center border border-white/15 shadow-[0_0_40px_rgba(255,255,255,0.08)] mb-6">
                         <Scroll size={36} strokeWidth={1.5} className="text-white/80" />
                     </motion.div>
@@ -243,6 +246,60 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                     </div>
                 </header>
 
+                {/* === MAIN SECTION TAB TOGGLE === */}
+                <div className="flex justify-center mb-10">
+                    <div className="inline-flex p-1 rounded-2xl bg-white/[0.05] border border-white/10 backdrop-blur-md gap-1">
+                        <button
+                            onClick={() => setSectionTab('alephbet')}
+                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 cursor-pointer ${
+                                sectionTab === 'alephbet'
+                                    ? 'bg-gradient-to-r from-[#F59E0B] to-[#D97706] text-white shadow-lg shadow-[#F59E0B]/30'
+                                    : 'text-white/60 hover:text-white/90 hover:bg-white/5'
+                            }`}
+                        >
+                            <BookOpen size={13} />
+                            Aleph-Bet Guide
+                        </button>
+                        <button
+                            onClick={() => setSectionTab('calendar')}
+                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 cursor-pointer ${
+                                sectionTab === 'calendar'
+                                    ? 'bg-gradient-to-r from-[#1E3A8A] to-[#1e40af] text-white shadow-lg shadow-[#1E3A8A]/40'
+                                    : 'text-white/60 hover:text-white/90 hover:bg-white/5'
+                            }`}
+                        >
+                            <Calendar size={13} />
+                            Hebrew Calendar
+                        </button>
+                    </div>
+                </div>
+
+                {/* === CALENDAR TAB CONTENT === */}
+                <AnimatePresence mode="wait">
+                    {sectionTab === 'calendar' && (
+                        <motion.div
+                            key="calendar-tab"
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.25 }}
+                            className="bg-white rounded-3xl p-4 md:p-6 shadow-2xl"
+                        >
+                            <HebrewCalendarGuide />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* === ALEPH-BET TAB CONTENT === */}
+                <AnimatePresence mode="wait">
+                {sectionTab === 'alephbet' && (
+                <motion.div
+                    key="alephbet-tab"
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.25 }}
+                >
                 {/* Download PDF Button */}
                 <div className="flex justify-center mb-12 flex-col items-center gap-3">
                     <motion.button
@@ -530,6 +587,7 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                     ))}
                 </div>
 
+
                 <div className="mt-24 p-8 md:p-12 bg-gradient-to-b from-white/5 to-transparent rounded-[3rem] border border-white/8 text-center space-y-6 relative overflow-hidden backdrop-blur-md">
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                     <Sparkles className="mx-auto text-[#F59E0B]/40" size={36} />
@@ -546,6 +604,9 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                     </div>
                     <p className="text-white/30 text-[11px] md:text-xs font-bold">Tap a letter card to learn pronunciation and practice stroke tracing.</p>
                 </div>
+                </motion.div>
+                )}
+                </AnimatePresence>
             </div>
 
             {selectedLetter && (

@@ -77,8 +77,9 @@ export const TestimonialModal: React.FC<TestimonialModalProps> = ({ isOpen, onCl
                     <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-accent-500/30 rounded-full blur-2xl"></div>
 
                     <div className="z-10 text-center flex flex-col items-center">
-                        <h2 className="text-2xl font-serif text-white font-bold tracking-tight flex items-center gap-2">
-                            <MessageSquare size={24} /> Share Testimony
+                        <img src="/assets/images/chatgpt-image-1.png" alt="Testimony Doodle" className="w-12 h-12 object-contain drop-shadow-md mb-1" />
+                        <h2 className="text-xl font-serif text-white font-bold tracking-tight flex items-center gap-2">
+                            <MessageSquare size={20} /> Share Ministry Testimony
                         </h2>
                     </div>
 
@@ -110,10 +111,11 @@ export const TestimonialModal: React.FC<TestimonialModalProps> = ({ isOpen, onCl
                                 Has God done something amazing in your life? Share your testimony to encourage others!
                             </p>
 
-                            {/* Rating Stars */}
+                            {/* Rating Stars & Green 5-Star Image */}
                             <div className="flex flex-col items-center gap-2 py-2">
+                                <img src="/assets/images/chatgpt-image-2.png" alt="5-Star Rating" className="h-9 object-contain drop-shadow-sm" />
                                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                    Rate Your Experience
+                                    Rate Your Ministry Experience
                                 </label>
                                 <div className="flex gap-2">
                                     {[1, 2, 3, 4, 5].map((star) => (
@@ -125,18 +127,18 @@ export const TestimonialModal: React.FC<TestimonialModalProps> = ({ isOpen, onCl
                                             onMouseLeave={() => setHoveredRating(0)}
                                             className="transition-transform hover:scale-110"
                                         >
-                                            <Star
-                                                size={32}
-                                                className={`transition-colors ${star <= (hoveredRating || rating)
-                                                        ? 'fill-amber-400 text-amber-400'
-                                                        : 'fill-slate-200 text-slate-300'
-                                                    }`}
-                                            />
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-8 h-8 transition-colors"
+                                                fill={star <= (hoveredRating || rating) ? '#3aaa5a' : '#e2e8f0'}
+                                                stroke={star <= (hoveredRating || rating) ? '#2e9048' : '#cbd5e1'}
+                                                strokeWidth="0.5"
+                                            >
+                                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                                            </svg>
                                         </button>
                                     ))}
                                 </div>
-                                <p className="text-xs text-slate-500">
-                                    {rating === 5 ? 'Excellent!' : rating === 4 ? 'Great!' : rating === 3 ? 'Good' : rating === 2 ? 'Fair' : 'Poor'}
+                                <p className="text-xs font-bold text-green-700">
+                                    {rating === 5 ? '⭐ Excellent!' : rating === 4 ? 'Great!' : rating === 3 ? 'Good' : rating === 2 ? 'Fair' : 'Poor'}
                                 </p>
                             </div>
 
@@ -157,9 +159,7 @@ export const TestimonialModal: React.FC<TestimonialModalProps> = ({ isOpen, onCl
                         </>
                     ) : (
                         <div className="text-center py-8">
-                            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 text-green-600">
-                                <Send size={32} />
-                            </div>
+                            <img src="/assets/images/chatgpt-image-1.png" alt="Testimony Sent" className="w-20 h-20 object-contain mx-auto mb-3 animate-bounce" />
                             <h3 className="text-xl font-bold text-brand-950">Thank You!</h3>
                             <p className="text-slate-600 mt-2">Your testimony has been submitted for review.</p>
                         </div>

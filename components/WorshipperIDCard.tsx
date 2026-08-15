@@ -9,6 +9,8 @@ import { ImageCropper } from './ImageCropper';
 import { CameraStage } from './FaceMesh/CameraStage';
 import { CapturedPhoto, GeometryAnalysis } from './FaceMesh/types';
 
+import { getVerificationShareUrl } from '../services/verificationTokenService';
+
 // Utility function to format date to DD-MM-YYYY
 const formatDateToDDMMYYYY = (dateStr?: string): string => {
     if (!dateStr) return '';
@@ -193,7 +195,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
     })();
     const fullDetails = `CITY OF TRUTH MINISTRIES\nID: ${uniqueId}\nName: ${name}\nLocation: ${location}\nPhone: ${formattedEmergency}\nJoined Date: ${formatDateToDDMMYYYY(memberSince)}`.trim();
     const appOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://city-of-truth-ministries.vercel.app';
-    const verifyUrl = `${appOrigin}/verify/${uniqueId}`;
+    const verifyUrl = getVerificationShareUrl({ id: uniqueId } as any);
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(verifyUrl)}&bgcolor=ffffff&color=2c298c&margin=0&format=png&cb=${encodeURIComponent(uniqueId || 'COT-SAMPLE')}`;
     const sanitizedFamilyMembers = familyMembers.filter(member => member.name.trim());
     const memberCount = sanitizedFamilyMembers.length + 1;
@@ -204,7 +206,10 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
 
     const IndividualFrontFace = () => {
         return (
-            <div className="absolute inset-0 bg-white rounded-[inherit] overflow-hidden border border-gray-200 shadow-2xl flex flex-col" style={{ backfaceVisibility: 'hidden' }}>
+            <div className="absolute inset-0 bg-white rounded-[inherit] overflow-hidden border border-gray-200 shadow-2xl flex flex-col group/card cursor-pointer transition-all duration-500 hover:shadow-cyan-500/20 hover:border-cyan-300" style={{ backfaceVisibility: 'hidden' }}>
+                {/* Holographic Glass Reflection Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-cyan-300/20 opacity-0 group-hover/card:opacity-100 transition-opacity duration-700 pointer-events-none z-30" />
+
                 {/* Header */}
                 <div className="bg-brand-900 text-white px-3 py-2 flex items-center justify-between shrink-0 relative z-20">
                     <div className="flex items-center gap-2">
@@ -217,8 +222,9 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                             </p>
                         </div>
                     </div>
-                    <div className="bg-accent-50 px-4 py-1 rounded-full whitespace-nowrap min-w-0">
-                        <p className="text-accent-700 font-bold text-[7px] uppercase tracking-wider">வழிப்பாட்டாளர் அடையாள அட்டை</p>
+                    <div className="bg-accent-50 px-3 py-1 rounded-full whitespace-nowrap min-w-0 flex items-center gap-1 shadow-xs border border-accent-200/50">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand-800 shrink-0"><path d="M6 8a6 6 0 0 1 12 0"/><path d="M8.5 11.5a3.5 3.5 0 0 1 7 0"/><circle cx="12" cy="12" r="10"/></svg>
+                        <p className="text-accent-700 font-bold text-[7px] uppercase tracking-wider">NFC ENTRUST</p>
                     </div>
                 </div>
 
@@ -284,7 +290,8 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
 
                     {/* Verified Member Badge */}
                     {status === 'Active' && (
-                        <div className="absolute right-2 top-0 transform translate-y-1">
+                        <div className="absolute right-2 top-0 transform translate-y-1 flex items-center gap-1">
+                            <img src="/assets/doodles/doodle-color-268-avatar-man-in-reveal.gif" alt="Verified Identity Reveal" className="w-7 h-7 object-contain drop-shadow-md" />
                             <div className="relative">
                                 <div className="absolute inset-0 bg-accent-500 blur-md opacity-20 rounded-full animate-pulse"></div>
                                 <div className="bg-gradient-to-br from-accent-400 to-accent-600 p-1.5 rounded-full shadow-lg border-2 border-white/50 relative">

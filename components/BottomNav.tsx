@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flame, Calendar, Clock3, Type, Volume2, Hash, Calculator, BookOpen, Languages, Globe, LucideIcon } from 'lucide-react';
+import { Flame, Calendar, Clock3, Type, Volume2, Hash, Calculator, BookOpen, Languages, Globe, LucideIcon, CreditCard, Download, Bell, User as UserIcon } from 'lucide-react';
 import { ViewState } from '../types';
 import { motion } from 'framer-motion';
 import { HEBREW_PAGES } from '../hebrewRegistry';
@@ -81,7 +81,44 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentView, setView }) =>
         return () => window.removeEventListener('scroll', handleScroll);
     }, [currentView]);
 
-    if (!HEBREW_VIEWS.has(currentView)) return null;
+    if (!HEBREW_VIEWS.has(currentView)) {
+        const MAIN_NAV_ITEMS = [
+            { id: ViewState.HOME, label: 'Home', icon: Globe },
+            { id: ViewState.ID_CARD, label: 'My Card', icon: CreditCard },
+            { id: ViewState.USER_DASHBOARD, label: 'Downloads', icon: Download },
+            { id: ViewState.BARUCH_HASHEM, label: 'Updates', icon: Bell },
+            { id: ViewState.USER_DASHBOARD, label: 'Profile', icon: UserIcon },
+        ];
+
+        return (
+            <div className={`fixed bottom-4 left-0 right-0 z-30 md:hidden flex justify-center transition-transform duration-300 ${!isVisible ? 'translate-y-[150%]' : 'translate-y-0'}`}>
+                <div className="w-[92%] max-w-md relative">
+                    <div className="bg-slate-950/95 backdrop-blur-2xl rounded-[1.75rem] shadow-2xl border border-slate-800 px-2 py-2">
+                        <div className="grid grid-cols-5 gap-1 text-center">
+                            {MAIN_NAV_ITEMS.map((item, idx) => {
+                                const Icon = item.icon;
+                                const isActive = currentView === item.id && (idx !== 2 || currentView === ViewState.USER_DASHBOARD);
+                                return (
+                                    <button
+                                        key={idx}
+                                        onClick={() => { setView(item.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                        className={`flex flex-col items-center justify-center py-2 rounded-2xl transition-all cursor-pointer ${
+                                            isActive
+                                                ? 'bg-amber-400 text-slate-950 font-black shadow-md scale-105'
+                                                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                                        }`}
+                                    >
+                                        <Icon size={18} className={isActive ? 'text-slate-950' : 'text-slate-400'} />
+                                        <span className="text-[9px] font-bold tracking-wider mt-1">{item.label}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     const activePage = HEBREW_PAGES.find(p => p.view === currentView);
     const viewType = activePage

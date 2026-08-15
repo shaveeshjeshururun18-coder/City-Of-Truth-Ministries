@@ -43,8 +43,8 @@ export const CameraStage: React.FC<CameraStageProps> = ({ onPhotoCaptured, cardN
   const [autoCaptureEnabled, setAutoCaptureEnabled] = useState<boolean>(true);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [isCapturingFlash, setIsCapturingFlash] = useState<boolean>(false);
-  const [currentFaceBox, setCurrentFaceBox] = useState<FaceBoundingBox | null>(null);
-  const [latestLandmarks, setLatestLandmarks] = useState<FaceLandmark3D[] | null>(null);
+  const currentFaceBoxRef = useRef<FaceBoundingBox | null>(null);
+  const latestLandmarksRef = useRef<FaceLandmark3D[] | null>(null);
   const [showAlignedToast, setShowAlignedToast] = useState<boolean>(false);
 
   const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -149,10 +149,10 @@ export const CameraStage: React.FC<CameraStageProps> = ({ onPhotoCaptured, cardN
       setIsCapturingFlash(true);
       setTimeout(() => setIsCapturingFlash(false), 300);
 
-      const capturedPhoto = cropToCardFormat(videoRef.current, currentFaceBox, cardName);
-      onPhotoCaptured(capturedPhoto, landmarksToUse || latestLandmarks);
+      const capturedPhoto = cropToCardFormat(videoRef.current, currentFaceBoxRef.current, cardName);
+      onPhotoCaptured(capturedPhoto, landmarksToUse || latestLandmarksRef.current);
     },
-    [currentFaceBox, cardName, latestLandmarks, onPhotoCaptured]
+    [cardName, onPhotoCaptured]
   );
 
   // Process custom image file or sample photo
@@ -279,8 +279,8 @@ export const CameraStage: React.FC<CameraStageProps> = ({ onPhotoCaptured, cardN
           const res = await detectFaceLandmarksFromVideo(videoRef.current);
 
           if (res) {
-            setCurrentFaceBox(res.box);
-            setLatestLandmarks(res.landmarks);
+            currentFaceBoxRef.current = res.box;
+            latestLandmarksRef.current = res.landmarks;
 
             const status = evaluateFaceAlignment(
               res.box,
@@ -289,7 +289,16 @@ export const CameraStage: React.FC<CameraStageProps> = ({ onPhotoCaptured, cardN
               res.landmarks
             );
 
-            setAlignment(status);
+            setAlignment(prev => {
+              if (
+                prev.state === status.state &&
+                prev.message === status.message &&
+                Math.abs(prev.score - status.score) < 0.05
+              ) {
+                return prev; // bail out of re-render
+              }
+              return status;
+            });
 
             if (status.state === 'aligned') {
               isAlignedRef.current = true;
@@ -309,19 +318,22 @@ export const CameraStage: React.FC<CameraStageProps> = ({ onPhotoCaptured, cardN
               }
             }
           } else {
-            setCurrentFaceBox(null);
-            setLatestLandmarks(null);
-            setAlignment({
-              state: 'no_face',
-              message: 'Looking for a face…',
-              horizontalDirection: 'left',
-              verticalDirection: 'up',
-              distanceDirection: 'closer',
-              centerOffsetX: 0,
-              centerOffsetY: 0,
-              sizeRatio: 0,
-              targetSizeRatio: 0.42,
-              score: 0,
+            currentFaceBoxRef.current = null;
+            latestLandmarksRef.current = null;
+            setAlignment(prev => {
+              if (prev.state === 'no_face') return prev;
+              return {
+                state: 'no_face',
+                message: 'Looking for a face…',
+                horizontalDirection: 'left',
+                verticalDirection: 'up',
+                distanceDirection: 'closer',
+                centerOffsetX: 0,
+                centerOffsetY: 0,
+                sizeRatio: 0,
+                targetSizeRatio: 0.42,
+                score: 0,
+              };
             });
             isAlignedRef.current = false;
             if (autoCaptureEnabled) {

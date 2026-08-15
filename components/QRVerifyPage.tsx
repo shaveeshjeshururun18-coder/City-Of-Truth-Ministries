@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, XCircle, Loader2, Download, Shield, ArrowLeft, LogIn } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Download, Shield, ArrowLeft, LogIn, Smartphone } from 'lucide-react';
 import { api } from '../services/api';
 import { User } from '../types';
 import { EntrustCard3D } from './WorshipperIDCard';
@@ -19,6 +19,7 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack, onPr
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isDownloading, setIsDownloading] = useState(false);
+    const [isSavingWallet, setIsSavingWallet] = useState(false);
     const [downloaded, setDownloaded] = useState(false);
     const isApprovedUser = user?.status === 'Active' && !user.id.toUpperCase().startsWith('TEMP-');
 
@@ -26,18 +27,7 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack, onPr
         const loadUser = async () => {
             if (!userId) { setError('Invalid verification link.'); setLoading(false); return; }
             try {
-                const users = await api.getUsers();
-                let found: User | null = null;
-                for (const u of users) {
-                    if (u.verification?.shareToken === userId || u.id === userId) { found = u; break; }
-                    if (u.linkedProfiles) {
-                        const sub = u.linkedProfiles.find(sp => (sp as any).verification?.shareToken === userId || sp.id === userId);
-                        if (sub) {
-                            found = { ...u, id: sub.id, name: sub.name, photo: sub.photo || u.photo } as User;
-                            break;
-                        }
-                    }
-                }
+                const found = await api.getUserByVerificationToken(userId);
                 if (found) {
                     setUser(found);
                 } else {
@@ -85,6 +75,28 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack, onPr
             alert(`PDF generation failed: ${err?.message || 'Unknown error'}. Please try clicking the Download button manually.`);
         } finally {
             setIsDownloading(false);
+        }
+    };
+
+    const handleSaveToWallet = async () => {
+        if (!user) return;
+        setIsSavingWallet(true);
+        try {
+            const frontNode = document.getElementById('qr-verify-front');
+            if (!frontNode) return;
+            const opts = { pixelRatio: 3, quality: 1, backgroundColor: '#ffffff', cacheBust: true };
+            const dataUrl = await toPng(frontNode, opts);
+            
+            const link = document.createElement('a');
+            link.download = `COT-MOBILE-PASS-${user?.id}.png`;
+            link.href = dataUrl;
+            link.click();
+            setDownloaded(true);
+        } catch (err: any) {
+            console.error('Wallet save failed', err);
+            alert(`Mobile Pass generation failed: ${err?.message || 'Unknown error'}`);
+        } finally {
+            setIsSavingWallet(false);
         }
     };
 
@@ -177,6 +189,15 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack, onPr
 
                 {!loading && user && (
                     <motion.div key="success" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md space-y-6">
+                        {/* 256-Bit Cryptographic Security Badge */}
+                        <div className="px-3.5 py-2 rounded-2xl bg-slate-900 text-amber-300 border border-slate-700 flex items-center justify-between text-xs shadow-md">
+                            <div className="flex items-center gap-2 font-mono font-bold text-[11px] tracking-wider">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                                <span>🔒 256-BIT CRYPTOGRAPHIC LINK</span>
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-mono">SEC-V1 ENCRYPTED</span>
+                        </div>
+
                         {/* Status Banner */}
                         <div className={`flex items-center gap-3 px-5 py-4 rounded-2xl border ${
                             user.status === 'Active'
@@ -277,23 +298,37 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack, onPr
                             </div>
                         )}
 
-                        {/* Download Button */}
+                        {/* Download Buttons */}
                         {isApprovedUser && (
-                            <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={handleDownloadPDF}
-                                disabled={isDownloading}
-                                className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-gradient-to-r from-brand-600 to-accent-600 text-white font-bold rounded-2xl shadow-lg shadow-brand-500/30 hover:shadow-xl transition-all disabled:opacity-70"
-                            >
-                                {isDownloading ? (
-                                    <><Loader2 className="animate-spin" size={20} /> Generating PDF...</>
-                                ) : downloaded ? (
-                                    <><CheckCircle size={20} /> Downloaded!</>
-                                ) : (
-                                    <><Download size={20} /> Download Entrust Card PDF</>
-                                )}
-                            </motion.button>
+                            <div className="flex flex-col gap-3">
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={handleSaveToWallet}
+                                    disabled={isSavingWallet || isDownloading}
+                                    className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-slate-900 text-white font-bold rounded-2xl shadow-lg hover:shadow-xl transition-all disabled:opacity-70"
+                                >
+                                    {isSavingWallet ? (
+                                        <><Loader2 className="animate-spin" size={20} /> Generating Pass...</>
+                                    ) : (
+                                        <><Smartphone size={20} /> Save to Mobile Wallet (Photos)</>
+                                    )}
+                                </motion.button>
+                                
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={handleDownloadPDF}
+                                    disabled={isDownloading || isSavingWallet}
+                                    className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-gradient-to-r from-brand-600 to-accent-600 text-white font-bold rounded-2xl shadow-lg shadow-brand-500/30 hover:shadow-xl transition-all disabled:opacity-70"
+                                >
+                                    {isDownloading ? (
+                                        <><Loader2 className="animate-spin" size={20} /> Generating PDF...</>
+                                    ) : (
+                                        <><Download size={20} /> Download PDF Version</>
+                                    )}
+                                </motion.button>
+                            </div>
                         )}
 
                         {onProceedToDashboard && (

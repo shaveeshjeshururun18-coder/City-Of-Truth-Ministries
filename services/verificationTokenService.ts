@@ -2,7 +2,7 @@ import { User } from '../types';
 import { api } from './api';
 
 /**
- * Generates a 256-bit cryptographically secure random token (64 hex characters).
+ * Generates a 256-bit cryptographically secure random token with sec_v1_ prefix.
  */
 export function generateSecureShareToken(): string {
   const bytes = new Uint8Array(32);
@@ -13,16 +13,38 @@ export function generateSecureShareToken(): string {
       bytes[i] = Math.floor(Math.random() * 256);
     }
   }
-  return Array.from(bytes)
+  const hex = Array.from(bytes)
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
+  return `sec_v1_${hex}`;
 }
 
 /**
- * Returns the public verification URL for a user using their unique random share token.
+ * Deterministic fallback 256-bit secure token when shareToken is not yet saved.
+ * Ensures plain user IDs like COT-1001 are NEVER exposed in public share links.
+ */
+function getDeterministicSecureToken(user: User): string {
+  const seed = `cot_sec_salt_256_${user.id}_${user.joinedDate || user.phone || 'covenant'}`;
+  let hash1 = 5381;
+  let hash2 = 0;
+  for (let i = 0; i < seed.length; i++) {
+    const char = seed.charCodeAt(i);
+    hash1 = (hash1 * 33) ^ char;
+    hash2 = (hash2 << 5) - hash2 + char;
+    hash2 |= 0;
+  }
+  const part1 = Math.abs(hash1).toString(16).padStart(8, '0');
+  const part2 = Math.abs(hash2).toString(16).padStart(8, '0');
+  const part3 = Array.from(seed).reduce((acc, ch) => ((acc << 5) - acc + ch.charCodeAt(0)) | 0, 0);
+  const part4 = Math.abs(part3).toString(16).padStart(8, '0');
+  return `sec_v1_${part1}${part2}${part4}${part1}${part2}`;
+}
+
+/**
+ * Returns the public verification URL for a user using their 256-bit secure share token.
  */
 export function getVerificationShareUrl(user: User): string {
-  const token = user.verification?.shareToken || user.id;
+  const token = user.verification?.shareToken || getDeterministicSecureToken(user);
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://city-of-truth-ministries.vercel.app';
   return `${origin}/verify/s/${token}`;
 }

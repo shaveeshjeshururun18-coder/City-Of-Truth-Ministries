@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Check, ZoomIn, Move } from 'lucide-react';
+import { X, Check, ZoomIn, Move, Sparkles } from 'lucide-react';
 import { Button } from './Button';
+import { removeBackground } from '@imgly/background-removal';
 
 interface ImageCropperProps {
     imageSrc: string;
@@ -11,6 +12,8 @@ interface ImageCropperProps {
 const MAX_OUTPUT_DIM = 1024;
 
 export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComplete, onCancel }) => {
+    const [currentImageSrc, setCurrentImageSrc] = useState(imageSrc);
+    const [isRemovingBg, setIsRemovingBg] = useState(false);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [scale, setScale] = useState(1);
@@ -32,7 +35,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
     // Load image
     useEffect(() => {
         const img = imgRef.current;
-        img.src = imageSrc;
+        img.src = currentImageSrc;
         img.onload = () => {
             if (canvasRef.current) {
                 const canvas = canvasRef.current;
@@ -61,7 +64,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
             }
             draw();
         };
-    }, [imageSrc]);
+    }, [currentImageSrc]);
 
     const draw = () => {
         const canvas = canvasRef.current;
@@ -84,7 +87,25 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
 
     useEffect(() => {
         draw();
-    }, [scale, imagePosition, imageSrc]);
+    }, [scale, imagePosition, currentImageSrc]);
+
+    const handleRemoveBackground = async () => {
+        setIsRemovingBg(true);
+        try {
+            const blob = await removeBackground(currentImageSrc, {
+                progress: (key, current, total) => {
+                    console.log(`Downloading AI model: ${key} ${current}/${total}`);
+                }
+            });
+            const url = URL.createObjectURL(blob);
+            setCurrentImageSrc(url);
+        } catch (error) {
+            console.error('Failed to remove background:', error);
+            alert('Failed to remove background. Please try again.');
+        } finally {
+            setIsRemovingBg(false);
+        }
+    };
 
     // Image dragging
     const handleImageMouseDown = (e: React.MouseEvent) => {
@@ -418,6 +439,22 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
                         </div>
                         <p className="text-[10px] text-center text-gray-400 mt-2">Drag to move • Drag corners to resize • Zoom slider</p>
                     </div>
+                </div>
+
+                <div className="px-4 pb-2">
+                    <Button onClick={handleRemoveBackground} variant="secondary" className="w-full relative overflow-hidden" disabled={isRemovingBg}>
+                        {isRemovingBg ? (
+                            <span className="flex items-center justify-center animate-pulse">
+                                <Sparkles size={16} className="mr-2 text-brand-500" />
+                                Applying AI Magic...
+                            </span>
+                        ) : (
+                            <span className="flex items-center justify-center">
+                                <Sparkles size={16} className="mr-2 text-brand-500" />
+                                AI Remove Background
+                            </span>
+                        )}
+                    </Button>
                 </div>
 
                 <div className="p-4 bg-white border-t border-gray-100 flex gap-3">

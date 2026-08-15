@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles, X, Volume2, Download, Share2, Copy, Check, ArrowRight, ArrowLeft,
-  Maximize2, Minimize2, Heart, Calendar, Image as ImageIcon, MessageSquare, Edit3, Send, Shield
+  Maximize2, Minimize2, Heart, Calendar, Image as ImageIcon, MessageSquare, Edit3, Send, Shield, FileText,
+  Flame, HandHeart, Eye, Palette, Sun, Moon
 } from 'lucide-react';
 import { User } from '../types';
 import { api } from '../services/api';
@@ -16,79 +17,27 @@ interface GreetingCardProps {
   onClose: () => void;
   onStartTour: () => void;
   initialMode?: 'welcome' | 'creator';
+  allowStudio?: boolean;
 }
 
-let audioCtx: any = null;
+let welcomeAudio: HTMLAudioElement | null = null;
 
-// --- AUDIO SYNTHESIZER: ROYAL TRUMPET FANFARE ---
-const playRoyalTrumpetSound = () => {
+// --- HIGH-QUALITY MP3 WELCOME SOUND PLAYER ---
+export const playWelcomeSound = () => {
   try {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContextClass) return;
-    if (!audioCtx || audioCtx.state === 'closed') {
-      audioCtx = new AudioContextClass();
+    if (!welcomeAudio) {
+      welcomeAudio = new Audio('/Bowfur and First speech .mp3');
     }
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume().catch(() => {});
-    }
-
-    const now = audioCtx.currentTime;
-
-    const notes = [
-      { f: 261.63, t: 0.0, d: 0.25 }, // C4
-      { f: 392.00, t: 0.28, d: 0.25 }, // G4
-      { f: 523.25, t: 0.56, d: 0.35 }, // C5
-      { f: 659.25, t: 0.95, d: 0.30 }, // E5
-      { f: 783.99, t: 1.28, d: 0.35 }, // G5
-      { f: 1046.50, t: 1.65, d: 0.85 }, // High C6 Flourish
-
-      { f: 392.00, t: 3.0, d: 0.20 },
-      { f: 523.25, t: 3.25, d: 0.20 },
-      { f: 659.25, t: 3.50, d: 0.20 },
-      { f: 783.99, t: 3.75, d: 0.80 },
-
-      { f: 523.25, t: 6.0, d: 0.25 },
-      { f: 659.25, t: 6.3, d: 0.25 },
-      { f: 783.99, t: 6.6, d: 0.40 },
-      { f: 1046.50, t: 7.05, d: 1.2 },
-    ];
-
-    notes.forEach(note => {
-      const startTime = now + note.t;
-      const duration = note.d;
-
-      const osc = audioCtx.createOscillator();
-      const subOsc = audioCtx.createOscillator();
-      const filter = audioCtx.createBiquadFilter();
-      const gain = audioCtx.createGain();
-
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(note.f, startTime);
-
-      subOsc.type = 'triangle';
-      subOsc.frequency.setValueAtTime(note.f * 2, startTime);
-
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(note.f * 3.2, startTime);
-      filter.Q.setValueAtTime(2.5, startTime);
-
-      gain.gain.setValueAtTime(0.0001, startTime);
-      gain.gain.exponentialRampToValueAtTime(0.18, startTime + 0.04);
-      gain.gain.exponentialRampToValueAtTime(0.12, startTime + duration * 0.7);
-      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
-
-      osc.connect(filter);
-      subOsc.connect(filter);
-      filter.connect(gain);
-      gain.connect(audioCtx.destination);
-
-      osc.start(startTime);
-      subOsc.start(startTime);
-      osc.stop(startTime + duration + 0.05);
-      subOsc.stop(startTime + duration + 0.05);
-    });
+    welcomeAudio.currentTime = 0;
+    welcomeAudio.play().catch(e => console.warn("Audio autoplay blocked by browser:", e));
   } catch (e) {
-    console.warn("Royal trumpet synth notice:", e);
+    console.error("Audio playback error:", e);
+  }
+};
+
+export const stopWelcomeSound = () => {
+  if (welcomeAudio) {
+    welcomeAudio.pause();
   }
 };
 
@@ -193,7 +142,7 @@ const OCCASIONS = [
     id: 'shabbat',
     title: 'Shabbat Shalom',
     hebrewTitle: 'שַׁבָּת שָׁלוֹם',
-    icon: '🕯️',
+    iconKey: 'shabbat',
     desc: 'Sabbath Peace & Divine Blessing',
     defaultPhrase: 'May your home be filled with divine peace, joy, and rest this Shabbat.',
     scripture: 'The LORD bless you and keep you; the LORD make His face shine upon you and give you peace. — Numbers 6:24-26',
@@ -202,7 +151,7 @@ const OCCASIONS = [
     id: 'festival',
     title: 'Festival / Feast Day',
     hebrewTitle: 'חַג שָׂמֵחַ',
-    icon: '🍇',
+    iconKey: 'festival',
     desc: 'Rosh Hashanah, Pesach, Sukkot, Hanukkah',
     defaultPhrase: 'Shanah Tovah U’Metukah! Wishing you a sweet, fruitful, and blessed feast season in God’s presence.',
     scripture: 'You shall rejoice in your festival, you and your son and daughter, and the stranger among you. — Deuteronomy 16:14',
@@ -211,7 +160,7 @@ const OCCASIONS = [
     id: 'birthday',
     title: 'Birthday & Joy',
     hebrewTitle: 'יוֹם הוּלֶדֶת שָׂמֵחַ',
-    icon: '🎂',
+    iconKey: 'birthday',
     desc: 'Life Celebration & Longevity Blessing',
     defaultPhrase: 'Happy Birthday! Celebrating God’s gracious hand upon your life today and always.',
     scripture: 'With long life I will satisfy him and show him My salvation. — Psalm 91:16',
@@ -220,7 +169,7 @@ const OCCASIONS = [
     id: 'blessing',
     title: 'Divine Blessing',
     hebrewTitle: 'בִּרְכַּת שָׁלוֹם',
-    icon: '✨',
+    iconKey: 'blessing',
     desc: 'Encouragement, Strength & Peace',
     defaultPhrase: 'May the peace of God which surpasses all understanding guard your heart and mind in Yeshua.',
     scripture: 'The LORD is my shepherd; I shall not want. He leads me beside still waters. — Psalm 23:1-2',
@@ -229,12 +178,29 @@ const OCCASIONS = [
     id: 'gratitude',
     title: 'Fellowship & Gratitude',
     hebrewTitle: 'תּוֹדָה רַבָּה',
-    icon: '🙏',
+    iconKey: 'gratitude',
     desc: 'Ministry Thanksgiving & Friendship',
     defaultPhrase: 'Thanking God for your faithful heart, prayers, and dedicated fellowship in City of Truth Ministries.',
     scripture: 'I thank my God every time I remember you. In all my prayers for all of you, I always pray with joy. — Philippians 1:3-4',
   },
 ];
+
+const OccasionIcon = ({ iconKey }: { iconKey: string }) => {
+  switch (iconKey) {
+    case 'shabbat':
+      return <Flame className="w-6 h-6 text-amber-400" />;
+    case 'festival':
+      return <Sparkles className="w-6 h-6 text-amber-300" />;
+    case 'birthday':
+      return <Heart className="w-6 h-6 text-rose-400" />;
+    case 'blessing':
+      return <Shield className="w-6 h-6 text-cyan-400" />;
+    case 'gratitude':
+      return <HandHeart className="w-6 h-6 text-emerald-400" />;
+    default:
+      return <Sparkles className="w-6 h-6 text-amber-400" />;
+  }
+};
 
 // --- DESIGN THEMES DATA ---
 const DESIGN_THEMES = [
@@ -290,8 +256,88 @@ const DESIGN_THEMES = [
   },
 ];
 
-export default function GreetingCard({ currentUser, isAdmin = false, onClose, onStartTour, initialMode = 'welcome' }: GreetingCardProps) {
+// --- TIME-BASED GREETING ---
+const getTimeGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour >= 4 && hour < 12) return {
+    hebrew: 'בּוֹקֵר טוֹב',
+    transliteration: 'BOKER TOV',
+    english: 'Good Morning',
+    blessing: '"May your morning be filled with His mercies that are new every morning, great is His faithfulness."',
+    scripture: '— Lamentations 3:23',
+    emoji: '🌅',
+  };
+  if (hour >= 12 && hour < 17) return {
+    hebrew: 'צָהֳרַיִם טוֹבִים',
+    transliteration: 'TZOHARAIM TOVIM',
+    english: 'Good Afternoon',
+    blessing: '"The LORD bless you and keep you; the LORD make His face shine upon you and give you peace."',
+    scripture: '— Numbers 6:24-26',
+    emoji: '☀️',
+  };
+  if (hour >= 17 && hour < 21) return {
+    hebrew: 'עֶרֶב טוֹב',
+    transliteration: 'EREV TOV',
+    english: 'Good Evening',
+    blessing: '"Come to me, all you who are weary and burdened, and I will give you rest."',
+    scripture: '— Matthew 11:28',
+    emoji: '🌇',
+  };
+  return {
+    hebrew: 'לַיְלָה טוֹב',
+    transliteration: 'LAILA TOV',
+    english: 'Good Night',
+    blessing: '"He grants sleep to those He loves. May you rest in the shadow of the Almighty."',
+    scripture: '— Psalm 127:2 & 91:1',
+    emoji: '🌙',
+  };
+};
+
+// --- PEN WRITING ANIMATION COMPONENT ---
+const PenWritingText = ({ text, className }: { text: string, className?: string }) => {
+  return (
+    <div className={`relative inline-block ${className || ''}`}>
+      <motion.div
+        initial={{ clipPath: 'inset(0 100% 0 0)' }}
+        animate={{ clipPath: 'inset(0 0% 0 0)' }}
+        transition={{ duration: 3, ease: 'linear', delay: 0.5 }}
+        className="inline-block relative"
+      >
+        {text}
+        <motion.div
+          initial={{ left: '0%', opacity: 1 }}
+          animate={{ left: '100%', opacity: 0 }}
+          transition={{
+            left: { duration: 3, ease: 'linear', delay: 0.5 },
+            opacity: { delay: 3.5, duration: 0.2 }
+          }}
+          className="absolute top-0 -translate-y-1/2 -ml-1 text-amber-400"
+          style={{ fontSize: '1.2em' }}
+        >
+          <i className="bi bi-pen"></i>
+        </motion.div>
+      </motion.div>
+    </div>
+  );
+};
+
+export default function GreetingCard({ currentUser, isAdmin = false, onClose, onStartTour, initialMode = 'welcome', allowStudio = true }: GreetingCardProps) {
   const [viewMode, setViewMode] = useState<'welcome' | 'creator'>(initialMode);
+  const timeGreeting = getTimeGreeting();
+
+  // Play welcome greeting automatically on mount & auto-disappear
+  useEffect(() => {
+    if (viewMode === 'welcome') {
+      playWelcomeSound();
+      const autoCloseTimer = setTimeout(() => {
+        onClose();
+      }, 7500); // Auto-disappear after 7.5 seconds
+      return () => {
+        clearTimeout(autoCloseTimer);
+        stopWelcomeSound();
+      };
+    }
+  }, [viewMode, onClose]);
   
   // Wizard steps: 1: Occasion -> 2: Design -> 3: Message -> 4: Full Preview -> 5: Share
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4 | 5>(1);
@@ -326,7 +372,7 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
     if (!cardRef.current) return;
     setIsExporting(true);
     try {
-      const dataUrl = await toPng(cardRef.current, { pixelRatio: 3, quality: 1 });
+      const dataUrl = await toPng(cardRef.current, { pixelRatio: 4, quality: 1, cacheBust: true });
       const link = document.createElement('a');
       link.download = `COT-Greeting-Card-${selectedOccasion.id}-${Date.now()}.png`;
       link.href = dataUrl;
@@ -343,8 +389,8 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
     if (!cardRef.current) return;
     setIsExporting(true);
     try {
-      const dataUrl = await toPng(cardRef.current, { pixelRatio: 3, quality: 1 });
-      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const dataUrl = await toPng(cardRef.current, { pixelRatio: 4, quality: 1, cacheBust: true });
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: false, precision: 16 });
       addCenteredCardPage(pdf, dataUrl, 'PNG', true);
       pdf.save(`COT-Greeting-Card-${selectedOccasion.id}-${Date.now()}.pdf`);
     } catch (err) {
@@ -356,23 +402,37 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
   };
 
   const handleNativeShare = async () => {
-    const textToShare = `${customHebrewTitle}\n\nDear ${recipientName || 'Beloved'},\n${messageText}\n\n"${scriptureText}"\n\nBlessings,\n${senderName}\n\nCity of Truth Ministries`;
-    const shareUrl = window.location.origin;
+    if (!cardRef.current) return;
+    setIsExporting(true);
+    try {
+      const dataUrl = await toPng(cardRef.current, { pixelRatio: 3, quality: 1, cacheBust: true });
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      const file = new File([blob], `COT-Greeting-Card-${Date.now()}.png`, { type: 'image/png' });
 
-    if (navigator.share) {
-      try {
+      const textToShare = `${customHebrewTitle}\n\nDear ${recipientName || 'Beloved'},\n${messageText}\n\n"${scriptureText}"\n\nBlessings,\n${senderName}\n\nCity of Truth Ministries`;
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: `${selectedOccasion.title} — City of Truth Ministries`,
+          text: `Blessings from ${senderName}`,
+          files: [file],
+        });
+      } else if (navigator.share) {
         await navigator.share({
           title: `${selectedOccasion.title} — City of Truth Ministries`,
           text: textToShare,
-          url: shareUrl,
+          url: window.location.origin,
         });
-      } catch (e) {
-        console.warn('Share cancelled', e);
+      } else {
+        await navigator.clipboard.writeText(`${textToShare}\n${window.location.origin}`);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000);
       }
-    } else {
-      await navigator.clipboard.writeText(`${textToShare}\n${shareUrl}`);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 3000);
+    } catch (e) {
+      console.warn('Share cancelled or unavailable:', e);
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -387,47 +447,26 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
     <div className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-3 sm:p-6 overflow-y-auto font-playfair select-none pointer-events-auto">
       <style>{customStyles}</style>
 
+      {/* Fixed Top Right Close X Button */}
+      <button
+        onClick={onClose}
+        className="fixed top-4 right-4 sm:top-6 sm:right-8 z-[999999] p-2.5 rounded-full bg-red-600/90 hover:bg-red-600 text-white border-2 border-white/50 shadow-2xl hover:scale-110 active:scale-95 transition-all cursor-pointer flex items-center justify-center"
+        title="Close Studio"
+        aria-label="Close"
+      >
+        <X size={20} className="stroke-[3]" />
+      </button>
+
       {/* Top Header bar */}
-      <div className="w-full max-w-5xl flex items-center justify-between py-2 px-4 mb-2 z-50">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-400 font-bold">
-            🎁
-          </div>
-          <div>
-            <h2 className="text-lg sm:text-xl font-cinzel font-bold text-white leading-none">
-              Royal Greeting Cards
-            </h2>
-            <p className="text-[10px] text-slate-400 mt-0.5">
-              Personalized Scriptural Blessing & Celebration Cards
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {viewMode === 'welcome' ? (
-            <button
-              onClick={() => setViewMode('creator')}
-              className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 text-brand-950 font-black text-xs font-cinzel tracking-wider flex items-center gap-1.5 hover:scale-105 transition-all shadow-lg shadow-amber-500/20 cursor-pointer"
-            >
-              <Sparkles size={14} /> Create Card Studio
-            </button>
-          ) : (
-            <button
-              onClick={() => setViewMode('welcome')}
-              className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-            >
-              <ArrowLeft size={14} /> Back to Welcome
-            </button>
-          )}
-
+      <div className="w-full max-w-5xl flex items-center justify-end py-2 px-4 mb-2 z-50 pr-12 sm:pr-16">
+        {viewMode === 'creator' && (
           <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-red-500/20 text-slate-300 hover:text-red-400 flex items-center justify-center transition-colors cursor-pointer"
-            title="Close"
+            onClick={() => setViewMode('welcome')}
+            className="px-4 py-2 rounded-full bg-slate-800/90 hover:bg-slate-700 text-amber-300 border border-amber-400/40 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-lg"
           >
-            <X size={18} />
+            <ArrowLeft size={14} /> Back to Welcome
           </button>
-        </div>
+        )}
       </div>
 
       {/* ══════════════════════════════════════════════════════
@@ -440,15 +479,21 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
           {/* Postal Frame Card */}
           <div className="card-theme-golden postal-frame w-full max-w-[92vw] sm:max-w-[620px] px-4 sm:px-8 py-6 sm:py-10 flex flex-col justify-between min-h-[320px] rounded-3xl shadow-2xl relative overflow-hidden">
             <div className="text-center space-y-4 relative z-10">
-              <span className="text-xs font-black text-amber-400 tracking-[0.3em] uppercase block">
+              <span className="text-xs font-black text-amber-400 tracking-[0.3em] uppercase block flex items-center justify-center gap-2">
+                <span>{timeGreeting.emoji}</span>
                 City of Truth Ministries
+                <span>{timeGreeting.emoji}</span>
               </span>
               <h1 className="font-cinzel text-2xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-amber-200 to-amber-400 tracking-wider">
-                בּוֹקֵר טוֹב · BOKER TOV
+                {timeGreeting.hebrew} · {timeGreeting.transliteration}
               </h1>
-              <p className="italic text-slate-200 text-sm sm:text-base leading-relaxed max-w-lg mx-auto font-light">
-                &quot;May your day be filled with peace, wisdom, strength, and abundant heavenly blessings.&quot;
+              <p className="text-amber-300 font-bold text-sm tracking-widest uppercase">
+                {timeGreeting.english}
               </p>
+              <p className="italic text-slate-200 text-sm sm:text-base leading-relaxed max-w-lg mx-auto font-light">
+                <PenWritingText text={timeGreeting.blessing} />
+              </p>
+              <p className="text-amber-400/70 text-xs tracking-wider">{timeGreeting.scripture}</p>
               <div className="pt-2">
                 <span className="font-cinzel text-xl sm:text-3xl font-black text-amber-400 tracking-widest uppercase block">
                   {currentUser?.name || 'שלום (SHALOM)'}
@@ -462,19 +507,21 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
             {/* Quick Actions at bottom */}
             <div className="mt-8 pt-4 border-t border-amber-400/20 flex flex-wrap items-center justify-between gap-3 relative z-10">
               <button
-                onClick={playRoyalTrumpetSound}
+                onClick={playWelcomeSound}
                 className="px-3.5 py-2 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-300 hover:bg-amber-500/30 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
               >
-                <Volume2 size={15} /> Play Trumpet Fanfare
+                <Volume2 size={15} /> Play Welcome Message
               </button>
 
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setViewMode('creator')}
-                  className="px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-400 text-brand-950 font-black text-xs rounded-xl shadow-lg hover:scale-105 transition-all flex items-center gap-1.5 font-cinzel tracking-wider cursor-pointer"
-                >
-                  <Sparkles size={14} /> Design Your Card
-                </button>
+                {allowStudio && (
+                  <button
+                    onClick={() => setViewMode('creator')}
+                    className="px-3.5 py-2 bg-white text-brand-950 rounded-xl text-xs font-bold hover:bg-slate-100 transition-all flex items-center gap-1.5 cursor-pointer shadow-md"
+                  >
+                    <Edit3 size={14} /> Design Your Card
+                  </button>
+                )}
                 <button
                   onClick={onStartTour}
                   className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
@@ -497,14 +544,15 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
           <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 sm:p-4 backdrop-blur-xl shadow-xl">
             <div className="grid grid-cols-5 gap-1.5 sm:gap-3 text-center">
               {[
-                { step: 1, label: 'Occasion', icon: '🎁' },
-                { step: 2, label: 'Design', icon: '🎨' },
-                { step: 3, label: 'Message', icon: '✍️' },
-                { step: 4, label: 'Preview', icon: '👁️' },
-                { step: 5, label: 'Share', icon: '🚀' },
+                { step: 1, label: 'Occasion', IconComponent: Calendar },
+                { step: 2, label: 'Design', IconComponent: Palette },
+                { step: 3, label: 'Message', IconComponent: Edit3 },
+                { step: 4, label: 'Preview', IconComponent: Eye },
+                { step: 5, label: 'Share', IconComponent: Share2 },
               ].map(s => {
                 const isActive = wizardStep === s.step;
                 const isCompleted = wizardStep > s.step;
+                const Icon = s.IconComponent;
                 return (
                   <button
                     key={s.step}
@@ -517,7 +565,7 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
                         : 'bg-slate-950/60 text-slate-500 border-slate-850 opacity-70 hover:opacity-100'
                     }`}
                   >
-                    <span className="text-sm">{s.icon}</span>
+                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-brand-950' : isCompleted ? 'text-amber-300' : 'text-slate-400'}`} />
                     <span className="hidden sm:inline font-bold uppercase tracking-wider text-[10px]">
                       {s.step}. {s.label}
                     </span>
@@ -552,14 +600,16 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => handleOccasionSelect(occ)}
-                      className={`p-5 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between space-y-3 relative overflow-hidden ${
+                      className={`p-5 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between space-y-3 relative overflow-hidden group ${
                         isSelected
                           ? 'bg-gradient-to-br from-slate-900 via-brand-950 to-slate-900 border-amber-400 shadow-xl shadow-amber-500/20'
                           : 'bg-slate-900/80 border-slate-800 hover:border-amber-400/50 hover:bg-slate-850'
                       }`}
                     >
                       <div className="flex items-start justify-between">
-                        <span className="text-3xl">{occ.icon}</span>
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/20 via-brand-950 to-slate-950 border border-amber-400/40 flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
+                          <OccasionIcon iconKey={occ.iconKey} />
+                        </div>
                         <span className="text-xs font-serif text-amber-400 font-bold" dir="rtl">
                           {occ.hebrewTitle}
                         </span>
@@ -774,12 +824,6 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
                     {isFullScreenPreview ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
                     {isFullScreenPreview ? 'Exit Fullscreen' : 'Fullscreen'}
                   </button>
-                  <button
-                    onClick={playRoyalTrumpetSound}
-                    className="px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Volume2 size={14} /> Play Trumpet
-                  </button>
                 </div>
               </div>
 
@@ -805,9 +849,9 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
                       </div>
                     )}
 
-                    <p className={`italic text-xs sm:text-sm leading-relaxed max-w-lg mx-auto font-light ${selectedTheme.textColor}`}>
-                      &quot;{messageText}&quot;
-                    </p>
+                    <div className={`italic text-xs sm:text-sm leading-relaxed max-w-lg mx-auto font-light ${selectedTheme.textColor}`}>
+                      &quot;<PenWritingText text={messageText} />&quot;
+                    </div>
 
                     {scriptureText && (
                       <p className="text-[11px] text-amber-300/90 italic font-serif max-w-md mx-auto pt-1">
@@ -851,12 +895,15 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
                   animate={{ opacity: 1, y: 0 }}
                   className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-xl"
                 >
-                  <div className="text-center">
+                  <div className="text-center space-y-1">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-400/30 text-amber-300 text-[10px] font-mono uppercase tracking-widest mb-1">
+                      <span>✨ 4K Ultra High-Res Export Active</span>
+                    </div>
                     <h4 className="text-lg font-cinzel font-bold text-amber-300">
-                      Export & Share Your Blessing Card
+                      Export &amp; Share Blessing Card
                     </h4>
                     <p className="text-xs text-slate-400">
-                      Download high-resolution image/PDF or share directly via WhatsApp & social media
+                      Download 4K print-ready PNG/PDF or share the card directly to apps
                     </p>
                   </div>
 
@@ -864,35 +911,48 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
                     <button
                       onClick={handleDownloadPNG}
                       disabled={isExporting}
-                      className="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl flex flex-col items-center gap-1.5 border border-slate-700 text-xs font-bold transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                      className="p-3.5 bg-gradient-to-b from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-white rounded-2xl flex flex-col items-center gap-2 border border-amber-400/30 text-xs font-bold transition-all active:scale-95 cursor-pointer disabled:opacity-50 shadow-md group"
                     >
-                      <Download size={18} className="text-amber-400" />
-                      <span>Download Image (PNG)</span>
+                      <div className="w-9 h-9 rounded-xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Download size={18} className="text-amber-400" />
+                      </div>
+                      <span className="text-[11px]">Download 4K PNG</span>
                     </button>
 
                     <button
                       onClick={handleDownloadPDF}
                       disabled={isExporting}
-                      className="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl flex flex-col items-center gap-1.5 border border-slate-700 text-xs font-bold transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                      className="p-3.5 bg-gradient-to-b from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-white rounded-2xl flex flex-col items-center gap-2 border border-cyan-400/30 text-xs font-bold transition-all active:scale-95 cursor-pointer disabled:opacity-50 shadow-md group"
                     >
-                      <Download size={18} className="text-cyan-400" />
-                      <span>Download PDF Card</span>
+                      <div className="w-9 h-9 rounded-xl bg-cyan-400/10 border border-cyan-400/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <FileText size={18} className="text-cyan-400" />
+                      </div>
+                      <span className="text-[11px]">Download PDF Card</span>
                     </button>
 
                     <button
                       onClick={handleWhatsAppShare}
-                      className="p-3 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 rounded-2xl flex flex-col items-center gap-1.5 border border-emerald-800 text-xs font-bold transition-all active:scale-95 cursor-pointer"
+                      className="p-3.5 bg-gradient-to-b from-emerald-950 to-slate-900 hover:from-emerald-900 hover:to-slate-800 text-emerald-200 rounded-2xl flex flex-col items-center gap-2 border border-emerald-500/40 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-md group"
                     >
-                      <Send size={18} className="text-emerald-400" />
-                      <span>Share via WhatsApp</span>
+                      <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Send size={18} className="text-emerald-400" />
+                      </div>
+                      <span className="text-[11px]">WhatsApp Share</span>
                     </button>
 
                     <button
                       onClick={handleNativeShare}
-                      className="p-3 bg-amber-950/80 hover:bg-amber-900 text-amber-200 rounded-2xl flex flex-col items-center gap-1.5 border border-amber-800 text-xs font-bold transition-all active:scale-95 cursor-pointer"
+                      disabled={isExporting}
+                      className="p-3.5 bg-gradient-to-b from-amber-950 to-slate-900 hover:from-amber-900 hover:to-slate-800 text-amber-200 rounded-2xl flex flex-col items-center gap-2 border border-amber-500/40 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-md group"
                     >
-                      {copied ? <Check size={18} className="text-green-400" /> : <Share2 size={18} className="text-amber-400" />}
-                      <span>{copied ? 'Link Copied!' : 'Share / Copy Link'}</span>
+                      <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        {isExporting ? (
+                          <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <img src="/assets/doodles/doodle-color-259-share-square-arrow-hover-pointing.gif" alt="Share" className="w-6 h-6 object-contain" />
+                        )}
+                      </div>
+                      <span className="text-[11px]">{copied ? 'Link Copied!' : 'Share Image Card'}</span>
                     </button>
                   </div>
 

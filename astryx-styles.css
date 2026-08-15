@@ -32,7 +32,37 @@
   scrollbar-width: thin;
 }
 
+/* Hide scrollbar for navigation tabs */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
 
+/* Better responsive grid alignment */
+.grid-container {
+  display: grid;
+  width: 100%;
+  gap: 1rem;
+}
+
+.grid-cols-responsive {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+@media (min-width: 1024px) {
+  .grid-cols-responsive {
+    grid-template-columns: 1fr 2fr;
+  }
+}
+
+@media (min-width: 1280px) {
+  .grid-cols-responsive {
+    grid-template-columns: 1fr 3fr;
+  }
+}
 
 /* Smooth Transitions */
 * {

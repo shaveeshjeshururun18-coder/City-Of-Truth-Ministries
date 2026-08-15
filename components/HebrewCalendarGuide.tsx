@@ -359,10 +359,19 @@ export const HebrewCalendarGuide: React.FC = () => {
 
             {/* Sacred Days */}
             <section id="guide-sacred-days">
-                <h3 className="text-xl font-serif font-bold text-[#1E3A8A] mb-4 flex items-center gap-2">
-                    <Clock size={18} className="text-[#1E3A8A]" /> Sacred Days
-                    <span className="text-sm font-normal text-slate-400">· வாரத்தின் நாட்கள்</span>
-                </h3>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                    <h3 className="text-xl font-serif font-bold text-[#1E3A8A] flex items-center gap-2 mb-0">
+                        <Clock size={18} className="text-[#1E3A8A]" /> Sacred Days
+                        <span className="text-sm font-normal text-slate-400">· வாரத்தின் நாட்கள்</span>
+                    </h3>
+                    <a
+                        href="/downloads/Sher_Shel_Yom_Day1-7_v2.pdf"
+                        download
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B38D1B] hover:from-[#E5C048] hover:to-[#C49E2C] text-white font-bold text-[10px] uppercase tracking-wider shadow-md transition-all hover:scale-105"
+                    >
+                        <Download size={14} /> Shir Shel Yom PDF (Days 1–7)
+                    </a>
+                </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                     {HEBREW_DAYS.map((day, i) => (
                         <motion.div

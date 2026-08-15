@@ -3475,6 +3475,294 @@ const App: React.FC = () => {
             </motion.div>
           )}
 
+      {/* Universal Interactive Footer (Extracted from Commit 409fde8) */}
+      {!isFrame && currentView !== ViewState.ADMIN_DASHBOARD && (
+        <footer className="bg-brand-950 text-white pt-24 pb-16 relative overflow-hidden mt-16 border-t border-amber-400/20">
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 w-full h-[500px] bg-gradient-to-t from-black/80 to-transparent pointer-events-none"></div>
+
+          <div className="max-w-7xl mx-auto px-6 relative z-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+              {/* Col 1: Ministry Identity */}
+              <div className="col-span-1">
+                <div className="flex items-center gap-4 mb-6">
+                  <img src="/logo.png" alt="COT Logo" className="w-14 h-14 object-contain" />
+                  <div>
+                    <h3 className="text-xl font-serif font-black text-white leading-none">
+                      <EditableText id="footer-logo" defaultText="City of Truth" />
+                    </h3>
+                    <p className="text-[10px] text-amber-400 font-black uppercase tracking-[0.3em] mt-1">Ministries</p>
+                  </div>
+                </div>
+                <p className="text-brand-100/70 leading-relaxed text-xs mb-6">
+                  Valparai Sanctuary<br />
+                  Tamil Nadu, India
+                </p>
+                <div className="flex gap-3">
+                  {[
+                    { Icon: Youtube, href: youtubeLink },
+                    { Icon: Facebook, href: "https://facebook.com/cityoftruthministries" },
+                    { Icon: Instagram, href: "https://instagram.com/cityoftruthministries" }
+                  ].map(({ Icon, href }, i) => (
+                    <a key={i} href={href} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center hover:bg-white hover:text-brand-950 transition-all border border-white/10 cursor-pointer">
+                      <Icon size={16} />
+                    </a>
+                  ))}
+                </div>
+              </div>
+
+              {/* Col 2: Main Pages & Sub Part Pages */}
+              <div className="col-span-1">
+                <h4 className="font-bold text-white mb-5 text-sm uppercase tracking-wider text-amber-400">Site Map — Main Pages</h4>
+                <ul className="space-y-3 text-xs text-brand-100/70">
+                  {footerMainPages.map(item => (
+                    <li key={item.label}>
+                      <button
+                        onClick={() => {
+                          if (item.href) { navigate(item.href); return; }
+                          if (item.view) { setCurrentView(item.view); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+                        }}
+                        className="hover:text-amber-300 transition-colors flex items-center gap-2 text-left cursor-pointer"
+                      >
+                        <div className="w-1.5 h-1.5 rounded-full bg-amber-400/70"></div>
+                        <EditableText id={'footer-' + item.label} defaultText={item.label} />
+                      </button>
+                    </li>
+                  ))}
+                  {currentUser && (
+                    <li>
+                      <button
+                        onClick={() => {
+                          if (currentUser.status === 'Rejected') {
+                            alert(REJECTED_ACCESS_MESSAGE);
+                            return;
+                          }
+                          setCurrentView(ViewState.USER_DASHBOARD);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="hover:text-amber-300 transition-colors flex items-center gap-2 text-left cursor-pointer"
+                      >
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/80"></div>
+                        User Dashboard
+                      </button>
+                    </li>
+                  )}
+                  <li>
+                    <a href="/admin" className="hover:text-amber-300 transition-colors flex items-center gap-2 text-xs text-brand-100/70">
+                      <div className="w-1.5 h-1.5 rounded-full bg-red-500/80"></div>
+                      Admin Dashboard
+                    </a>
+                  </li>
+                </ul>
+                <div className="mt-6 pt-4 border-t border-white/10">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400 mb-3">Sub Part Pages</p>
+                  <ul className="space-y-2 text-xs text-brand-100/70">
+                    {footerSubPartPages.map((item) => (
+                      <li key={item.label}>
+                        <button
+                          onClick={item.action}
+                          className="hover:text-amber-300 transition-colors flex items-center gap-2 text-left cursor-pointer"
+                        >
+                          <div className={`w-1.5 h-1.5 rounded-full ${item.dotClass}`}></div>
+                          <EditableText id={'footer-' + item.label} defaultText={item.label} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Col 3: Hebrew Site Map */}
+              <div className="col-span-1">
+                <h4 className="font-bold text-white mb-5 text-sm uppercase tracking-wider text-amber-400">Hebrew Site Map</h4>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400/80 mb-2">Hebrew Content</p>
+                    <ul className="space-y-2 text-xs text-brand-100/70">
+                      {footerHebrewContentPages.map(item => (
+                        <li key={item.label}>
+                          <button
+                            onClick={() => {
+                              if (item.href) { navigate(item.href); return; }
+                              if (item.view) { setCurrentView(item.view); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+                            }}
+                            className="hover:text-amber-300 transition-colors flex items-center gap-2 text-left cursor-pointer"
+                          >
+                            <div className="w-1.5 h-1.5 rounded-full bg-amber-400/70"></div>
+                            <EditableText id={'footer-' + item.label} defaultText={item.label} />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400/80 mb-2">Hebrew Grammar</p>
+                    <ul className="space-y-2 text-xs text-brand-100/70">
+                      {footerHebrewGrammarPages.map(item => (
+                        <li key={item.label}>
+                          <button
+                            onClick={() => { setCurrentView(item.view); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                            className="hover:text-amber-300 transition-colors flex items-center gap-2 text-left cursor-pointer"
+                          >
+                            <div className="w-1.5 h-1.5 rounded-full bg-sky-400/70"></div>
+                            <EditableText id={'footer-' + item.label} defaultText={item.label} />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400/80 mb-2">Hebrew Tools</p>
+                    <ul className="space-y-2 text-xs text-brand-100/70">
+                      {footerHebrewToolPages.map(item => (
+                        <li key={item.label}>
+                          <button
+                            onClick={() => { setCurrentView(item.view); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                            className="hover:text-amber-300 transition-colors flex items-center gap-2 text-left cursor-pointer"
+                          >
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/70"></div>
+                            <EditableText id={'footer-' + item.label} defaultText={item.label} />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Col 4: Stay Connected & 3D Visiting Card */}
+              <div className="col-span-1">
+                <h4 className="font-bold text-white mb-5 text-sm uppercase tracking-wider text-amber-400">Stay Connected</h4>
+                <p className="text-xs text-brand-100/70 mb-3">Join our mailing list for weekly inspiration & updates.</p>
+                <div className="flex gap-2 mb-4">
+                  <input 
+                    type="email" 
+                    placeholder="Your Email" 
+                    className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs outline-none focus:bg-white/10 transition-colors w-full text-white placeholder-slate-400" 
+                    onFocus={() => setShowLeaderMessage(true)}
+                    onChange={(e) => {
+                      if (e.target.value.length > 0) setShowLeaderMessage(true);
+                    }}
+                  />
+                  <button className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl px-3 py-2 transition-colors cursor-pointer shrink-0">
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
+
+                {/* Embedded 3D Visiting Card */}
+                <div className="mt-6">
+                  <VisitingCard3D compact={true} />
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Bar & Interactive Developer Credit Button */}
+            <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
+              <div className="text-center md:text-left space-y-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-100/40">
+                  © 2026 City of Truth Ministries • Valparai Sanctuary, Tamil Nadu
+                </p>
+
+                {/* Developer Credit Button */}
+                <div className="flex justify-center md:justify-start">
+                  <div className="developer-btn-container">
+                    <div className="developer-btn-drawer developer-transition-top">Crafted with...</div>
+                    <div className="developer-btn-drawer developer-transition-bottom">...Excellence</div>
+                    <button className="developer-btn">
+                      <span className="developer-btn-text">S.Shaveesh Jeshurun</span>
+                    </button>
+                    <style>{`
+                    .developer-btn-container {
+                      --timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+                      --duration: 250ms;
+                      position: relative;
+                      display: inline-flex;
+                      align-items: center;
+                      justify-content: center;
+                      margin-top: 14px;
+                      margin-bottom: 14px;
+                    }
+                    .developer-btn {
+                      position: relative;
+                      min-width: 220px;
+                      min-height: 44px;
+                      border-radius: 14px;
+                      border: 1.5px solid rgba(255, 255, 255, 0.5);
+                      padding: 0.6em 1.3em;
+                      background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
+                      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+                      transition: all var(--duration) var(--timing-function);
+                      cursor: pointer;
+                      z-index: 2;
+                    }
+                    .developer-btn-drawer {
+                      position: absolute;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      min-height: 28px;
+                      border-radius: 12px;
+                      border: 1.5px solid rgba(255, 255, 255, 0.6);
+                      padding: 0.25em 1em;
+                      font-size: 0.78em;
+                      font-weight: 800;
+                      font-family: "Inter", sans-serif;
+                      color: #044e36;
+                      background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+                      opacity: 0;
+                      transition: all var(--duration) var(--timing-function);
+                      z-index: 1;
+                      box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+                      white-space: nowrap;
+                    }
+                    .developer-transition-top {
+                      top: 0;
+                      left: 50%;
+                      transform: translateX(-50%) translateY(0) scale(0.9);
+                    }
+                    .developer-transition-bottom {
+                      bottom: 0;
+                      left: 50%;
+                      transform: translateX(-50%) translateY(0) scale(0.9);
+                    }
+                    .developer-btn-text {
+                      display: inline-block;
+                      font-size: 0.95em;
+                      font-family: "Inter", sans-serif;
+                      font-weight: 800;
+                      color: #ffffff;
+                      letter-spacing: 0.02em;
+                      transition: all var(--duration) var(--timing-function);
+                    }
+                    .developer-btn-container:hover .developer-btn {
+                      transform: scale(1.03);
+                      box-shadow: 0 10px 24px rgba(56, 189, 248, 0.5);
+                    }
+                    .developer-btn-container:hover .developer-transition-top {
+                      transform: translateX(-50%) translateY(-28px) scale(1);
+                      opacity: 1;
+                    }
+                    .developer-btn-container:hover .developer-transition-bottom {
+                      transform: translateX(-50%) translateY(28px) scale(1);
+                      opacity: 1;
+                    }
+                    .developer-btn-container:hover .developer-btn-text {
+                      color: #ffffff;
+                    }
+                    `}</style>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-6 text-xs text-brand-100/50">
+                <button onClick={() => setCurrentView(ViewState.HOME)} className="hover:text-white transition-colors cursor-pointer">Privacy Policy</button>
+                <button onClick={() => setCurrentView(ViewState.HOME)} className="hover:text-white transition-colors cursor-pointer">Terms of Service</button>
+              </div>
+            </div>
+          </div>
+        </footer>
+      )}
+
           </AnimatePresence>
         )}
       </main>
@@ -3781,6 +4069,7 @@ const App: React.FC = () => {
           onStartTour={() => {
             liveWebsiteTour.start();
           }}
+          allowStudio={false}
         />
       )}
 

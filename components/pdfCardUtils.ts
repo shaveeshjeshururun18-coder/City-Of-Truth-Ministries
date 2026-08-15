@@ -49,8 +49,8 @@ export const addCenteredCardPage = (
     const x = (pageWidth - renderWidth) / 2;
     const y = (pageHeight - renderHeight) / 2;
     
-    // Use 'MEDIUM' compression for balanced quality and speed
-    pdfDoc.addImage(dataUrl, format, x, y, renderWidth, renderHeight, undefined, 'MEDIUM');
+    // Use 'NONE' compression for maximum lossless quality
+    pdfDoc.addImage(dataUrl, format, x, y, renderWidth, renderHeight, undefined, 'NONE');
 };
 
 /**

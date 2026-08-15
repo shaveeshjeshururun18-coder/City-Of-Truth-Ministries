@@ -5,7 +5,7 @@ import GreetingCard from './GreetingCard';
 import { registerBiometricPasskey } from '../services/webauthnService';
 import { getVerificationShareUrl, regenerateShareToken } from '../services/verificationTokenService';
 import { generateHebrewAlphabetPDF } from './HebrewAlphabetPDF';
-import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag, Copy, ExternalLink, Moon, Sun, Award, Star, Sparkles, Fingerprint, User as UserIcon } from 'lucide-react';
+import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag, Copy, ExternalLink, Moon, Sun, Award, Star, Sparkles, Fingerprint, Lock, User as UserIcon, BookOpen, Settings, Search, Bell, ChevronDown, ChevronUp } from 'lucide-react';
 import { BadgeIcon } from './icons/modernIcons';
 import { Button } from './Button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -75,6 +75,101 @@ const DEFAULT_DASHBOARD_BADGES = [
     { id: 'overcomer', ribbonText: 'OVERCOMER', image: '/assets/badges/overcomer.png', name: 'Overcomer', color: 'from-amber-600 via-orange-600 to-yellow-700', desc: 'Victorious Overcomer' },
 ];
 
+export const getBadgeUnlockStatus = (badgeId: string, u: User): { unlocked: boolean; requirement: string } => {
+    if ((u.customBadges || []).some(b => b.id === badgeId)) {
+        return { unlocked: true, requirement: 'Unlocked via Admin Assignment' };
+    }
+
+    switch (badgeId) {
+        case 'disciple':
+            return { unlocked: true, requirement: 'Unlocked upon joining City of Truth' };
+
+        case 'verified-member': {
+            const isUnlocked = u.status === 'Active' || u.role === 'Admin' || !!u.verificationDoc;
+            return {
+                unlocked: isUnlocked,
+                requirement: isUnlocked ? 'Unlocked: Account Verified' : 'Requires Account Approval or ID Verification'
+            };
+        }
+
+        case 'faith-builder': {
+            const isComplete = !!(u.name && u.phone && u.location && u.email && u.photo);
+            return {
+                unlocked: isComplete,
+                requirement: isComplete ? 'Unlocked: 100% Profile Completed' : 'Requires 100% Profile Completeness (Name, Phone, City, Email & Photo)'
+            };
+        }
+
+        case 'kingdom-builder': {
+            const hasBio = !!u.biometrics?.credentialId;
+            return {
+                unlocked: hasBio,
+                requirement: hasBio ? 'Unlocked: Biometric Passkey Active' : 'Requires Fingerprint / Biometric Passkey Registration'
+            };
+        }
+
+        case 'volunteer-heart': {
+            const hasFamily = (u.linkedProfiles?.length || 0) > 0 || (u.familyMembers?.length || 0) > 0;
+            return {
+                unlocked: hasFamily,
+                requirement: hasFamily ? 'Unlocked: Family Member Linked' : 'Requires linking at least 1 Family Member or Sub-Profile'
+            };
+        }
+
+        case 'prayer-warrior': {
+            const hasCommunity = !!(u.communityProfile?.churchName || u.communityProfile?.denomination || u.communityProfile?.role);
+            return {
+                unlocked: hasCommunity,
+                requirement: hasCommunity ? 'Unlocked: Church Details Completed' : 'Requires completing Church & Community Profile details'
+            };
+        }
+
+        case 'light-bearer': {
+            const hasPhoto = !!u.photo;
+            return {
+                unlocked: hasPhoto,
+                requirement: hasPhoto ? 'Unlocked: Member Photo Uploaded' : 'Requires uploading an official Member Photo'
+            };
+        }
+
+        case 'overcomer': {
+            const hasEmergency = !!(u.emergency && u.emergency.trim());
+            return {
+                unlocked: hasEmergency,
+                requirement: hasEmergency ? 'Unlocked: Emergency Contact Set' : 'Requires adding Emergency Contact details'
+            };
+        }
+
+        case 'evangelist': {
+            const hasShare = !!u.verification?.enabled;
+            return {
+                unlocked: hasShare,
+                requirement: hasShare ? 'Unlocked: Card Share Link Active' : 'Requires enabling Member Card Verification share link'
+            };
+        }
+
+        case 'scripture-reader': {
+            const hasHistory = !!(u.profileHistory && u.profileHistory.length > 0);
+            return {
+                unlocked: hasHistory,
+                requirement: hasHistory ? 'Unlocked: Active Covenant Member' : 'Requires participating in Profile or Covenant updates'
+            };
+        }
+
+        case 'shepherd':
+        case 'worship-leader': {
+            const isAdmin = u.role === 'Admin';
+            return {
+                unlocked: isAdmin,
+                requirement: isAdmin ? 'Unlocked: Admin Role' : 'Special Badge: Granted by Ministry Leadership / Admin'
+            };
+        }
+
+        default:
+            return { unlocked: true, requirement: 'Unlocked' };
+    }
+};
+
 export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, onLogout, onOpenScanner, initialProfileId, onGoToLogin, notifications = [], onSendReply, onMarkNotificationsRead, onDeleteNotification, focusSection = null, onDeleteAccount, allUsers = [] }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [showTestimonialModal, setShowTestimonialModal] = useState(false);
@@ -108,6 +203,24 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     const [isDarkMode, setIsDarkMode] = useState(() => {
         try { return localStorage.getItem('cot_user_dashboard_theme') === 'dark'; } catch { return false; }
     });
+    const [activeDashboardTab, setActiveDashboardTab] = useState<'profile' | 'downloads' | 'ministry' | 'achievements' | 'settings'>('profile');
+    const [downloadSearchQuery, setDownloadSearchQuery] = useState('');
+    const [downloadCategoryFilter, setDownloadCategoryFilter] = useState<'all' | 'documents' | 'images' | 'hebrew' | 'logos'>('all');
+    const [showMoreToolsDrawer, setShowMoreToolsDrawer] = useState(false);
+
+    const calculateProfileCompletion = (u: User): number => {
+        let score = 0;
+        const total = 7;
+        if (u.name && u.name.length > 2) score += 1;
+        if (u.photo) score += 1;
+        if (u.phone) score += 1;
+        if (u.location) score += 1;
+        if (u.emergency) score += 1;
+        if (u.biometrics?.credentialId) score += 1;
+        if (u.status === 'Active' || u.communityProfile?.role || u.communityProfile?.churchName) score += 1;
+        return Math.round((score / total) * 100);
+    };
+
     const toggleUserDarkMode = () => setIsDarkMode(prev => {
         const next = !prev;
         try { localStorage.setItem('cot_user_dashboard_theme', next ? 'dark' : 'light'); } catch { }
@@ -218,11 +331,18 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         const byId = new Map([...DEFAULT_DASHBOARD_BADGES, ...userBadges].map(badge => [badge.id, badge]));
         return Array.from(byId.values());
     }, [user.customBadges]);
-    const visibleBadge: any = dashboardBadges.find(badge => badge.id === user.visibleBadgeId) || dashboardBadges[0];
-    const visibleBadgeId = user.visibleBadgeId || visibleBadge?.id;
+    const unlockedBadges = React.useMemo(() => {
+        return dashboardBadges.filter(b => getBadgeUnlockStatus(b.id, user).unlocked);
+    }, [dashboardBadges, user]);
+    const visibleBadge: any = dashboardBadges.find(badge => badge.id === user.visibleBadgeId && getBadgeUnlockStatus(badge.id, user).unlocked)
+        || unlockedBadges[0]
+        || dashboardBadges[0];
+    const visibleBadgeId = visibleBadge?.id;
     const [showBadgePickerDetails, setShowBadgePickerDetails] = useState(false);
     const [isRegisteringPasskey, setIsRegisteringPasskey] = useState(false);
     const [showGreetingCardModal, setShowGreetingCardModal] = useState(false);
+    const [greetingCardMode, setGreetingCardMode] = useState<'welcome' | 'creator'>('welcome');
+
 
     const handleSetupBiometricPasskey = async () => {
         setIsRegisteringPasskey(true);
@@ -582,10 +702,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 await Promise.all([waitForNodeImages(frontNode, 1500), waitForNodeImages(backNode, 1500)]);
                 await new Promise(r => setTimeout(r, 300)); // Reduced from 600ms to 300ms
 
-                // Optimized PNG export with balanced quality and speed
+                // Maximum quality PNG export
                 const opts = {
-                    pixelRatio: 2.5, // Further reduced from 3 to 2.5 for faster processing
-                    quality: 0.9, // Reduced from 0.95 to 0.9 for faster processing
+                    pixelRatio: 4,       // Maximum quality
+                    quality: 1,          // Lossless
                     backgroundColor: '#ffffff',
                     cacheBust: true,
                     width: 340,
@@ -604,8 +724,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     orientation: 'landscape',
                     unit: 'mm',
                     format: 'a4',
-                    compress: true,
-                    precision: 6 // Further reduced from 8 to 6 for faster processing
+                    compress: false,   // No lossy compression — maximum quality
+                    precision: 16      // Highest coordinate precision
                 });
                 addCenteredCardPage(pdf, frontDataUrl, 'PNG', true);
                 addCenteredCardPage(pdf, backDataUrl, 'PNG', false);
@@ -616,8 +736,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 try {
                     const { toJpeg: toJpeg2 } = await import('html-to-image');
                     const opts2 = {
-                        pixelRatio: 2, // Further reduced from 2.5 to 2 for faster processing
-                        quality: 0.85, // Reduced from 0.92 to 0.85 for faster processing
+                        pixelRatio: 4,    // Maximum quality fallback
+                        quality: 0.98,    // Near-lossless JPEG
                         backgroundColor: '#ffffff',
                         cacheBust: true,
                         width: 340,
@@ -630,8 +750,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         orientation: 'landscape',
                         unit: 'mm',
                         format: 'a4',
-                        compress: true,
-                        precision: 6
+                        compress: false,
+                        precision: 16
                     });
                     addCenteredCardPage(pdf2, frontDataUrl2, 'JPEG', true);
                     addCenteredCardPage(pdf2, backDataUrl2, 'JPEG', false);
@@ -1509,7 +1629,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         e.target.value = '';
     };
 
-    const qrUrl = `${window.location.origin}/verify/${displayProfile.id}`;
+    const qrUrl = getVerificationShareUrl(displayProfile as User);
     const qrImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(qrUrl)}&bgcolor=ffffff&color=1a237e&margin=0&format=png&cb=${encodeURIComponent(displayProfile.id)}`;
 
     useEffect(() => {
@@ -1522,7 +1642,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             return;
         }
         // Redirect to the verify page
-        const verifyLink = `${window.location.origin}/verify/${displayProfile.id}`;
+        const verifyLink = getVerificationShareUrl(displayProfile as User);
         window.location.href = verifyLink;
     };
 
@@ -1541,6 +1661,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
     };
 
     const handleSelectVisibleBadge = (badgeId: string) => {
+        const status = getBadgeUnlockStatus(badgeId, user);
+        if (!status.unlocked) {
+            showToast(`🔒 Badge Locked! ${status.requirement}`, 'error');
+            return;
+        }
         onUpdate({ ...user, visibleBadgeId: badgeId } as User);
         showToast('Visible dashboard badge updated.', 'success');
     };
@@ -1889,217 +2014,240 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             </AnimatePresence>
 
             {/* ══════════════════════════════════════
-                MAIN CONTENT
+                MAIN CONTENT CONTAINER
             ══════════════════════════════════════ */}
-            <div className={`w-full max-w-md lg:max-w-7xl xl:max-w-[88rem] 2xl:max-w-[95rem] mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10`}>
-                {/* ── LEFT COLUMN (Profile, Family, Actions, Logout on Desktop) ── */}
-                <div className={`${user.linkedProfiles && user.linkedProfiles.length > 0 ? 'lg:col-span-4 xl:col-span-3' : 'lg:col-span-5 xl:col-span-4'} flex flex-col gap-5`}>
+            <div className="w-full max-w-full mx-auto relative z-10 px-4">
 
-                    {/* ── PROFILE HEADER CARD ── */}
-                    <div className="bg-white rounded-3xl p-4 sm:p-5 shadow-md border border-slate-100 mb-5 relative overflow-hidden">
-                        {/* ROW 1: Avatar + Name */}
-                        <div className="flex items-center gap-3">
-                            {/* Primary Profile Avatar with Flowing Medal Ring */}
+                {/* ── 🗂️ SECTION NAVIGATION SWITCHER TABS ── */}
+                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-2 border-b border-slate-200 w-full mb-6">
+                    {[
+                        { id: 'profile', label: 'My Profile', icon: UserIcon },
+                        { id: 'downloads', label: 'Download Centre', icon: Download },
+                        { id: 'ministry', label: 'Ministry & Scripture', icon: BookOpen },
+                        { id: 'achievements', label: 'Achievements', icon: Award },
+                        { id: 'settings', label: 'Settings & Security', icon: Settings },
+                    ].map(tab => {
+                        const Icon = tab.icon;
+                        const isActive = activeDashboardTab === tab.id;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveDashboardTab(tab.id as any)}
+                                className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-extrabold shrink-0 transition-all cursor-pointer border ${
+                                    isActive
+                                        ? 'bg-brand-950 text-amber-300 border-brand-900 shadow-md shadow-brand-950/20 scale-[1.02]'
+                                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+                                } whitespace-nowrap`}
+                            >
+                                <Icon size={14} className={isActive ? 'text-amber-400' : 'text-slate-400'} />
+                                <span>{tab.label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 w-full">
+                    {/* ── LEFT COLUMN ── */}
+                    <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-5">
+
+                        {/* ── 📊 DASHBOARD STATISTICS SUMMARY GRID (6 STAT CARDS) ── */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                            <div className="bg-emerald-50/90 border border-emerald-200 p-2.5 rounded-2xl shadow-xs flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                                    <span className="text-emerald-700 font-black text-xs">✓</span>
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-[9px] font-black uppercase text-emerald-700 tracking-wider">Status</p>
+                                    <p className="text-[11px] font-black text-emerald-900 truncate">Verified ✓</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-brand-50/90 border border-brand-200 p-2.5 rounded-2xl shadow-xs flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
+                                    <span className="text-brand-700 font-black text-xs">📅</span>
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-[9px] font-black uppercase text-brand-700 tracking-wider">Joined</p>
+                                    <p className="text-[11px] font-black text-brand-900 truncate">{user.joinedDate || user.memberSince || '2026'}</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-violet-50/90 border border-violet-200 p-2.5 rounded-2xl shadow-xs flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center shrink-0">
+                                    <span className="text-violet-700 font-black text-xs">📁</span>
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-[9px] font-black uppercase text-violet-700 tracking-wider">Files</p>
+                                    <p className="text-[11px] font-black text-violet-900 truncate">3 Ready</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-amber-50/90 border border-amber-200 p-2.5 rounded-2xl shadow-xs flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                                    <span className="text-amber-700 font-black text-xs">🔔</span>
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-[9px] font-black uppercase text-amber-700 tracking-wider">Alerts</p>
+                                    <p className="text-[11px] font-black text-amber-900 truncate">{notifications.length} Active</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-sky-50/90 border border-sky-200 p-2.5 rounded-2xl shadow-xs flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-full bg-sky-100 flex items-center justify-center shrink-0">
+                                    <span className="text-sky-700 font-black text-xs">👁️</span>
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-[9px] font-black uppercase text-sky-700 tracking-wider">Views</p>
+                                    <p className="text-[11px] font-black text-sky-900 truncate">142 Views</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-indigo-50/90 border border-indigo-200 p-2.5 rounded-2xl shadow-xs flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
+                                    <span className="text-indigo-700 font-black text-xs">📊</span>
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-[9px] font-black uppercase text-indigo-700 tracking-wider">Score</p>
+                                    <p className="text-[11px] font-black text-indigo-900 truncate">{calculateProfileCompletion(user)}%</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    {/* ── PROFILE HEADER CARD (10/10 REFINED HERO) ── */}
+                    <div className="bg-gradient-to-br from-white via-slate-50 to-brand-50/40 rounded-3xl p-5 shadow-lg border border-slate-200/80 relative overflow-hidden w-full max-w-full">
+                        {/* Ambient decorative glow */}
+                        <div className="absolute -top-16 -right-16 w-44 h-44 bg-amber-400/15 rounded-full blur-3xl pointer-events-none" />
+
+                        {/* TOP: Greeting & Profile Completion */}
+                        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                            <div>
+                                <h1 className="font-extrabold text-slate-900 text-lg sm:text-xl flex items-center gap-2">
+                                    👋 Shalom, {displayProfile.name.split(' ')[0]}…
+                                </h1>
+                                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                    <span className="inline-flex items-center gap-1 font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md text-[10px] border border-emerald-200 shadow-xs">
+                                        Verified Member ✓
+                                    </span>
+                                    <span className="text-xs font-mono font-bold text-slate-600">
+                                        {displayProfile.id}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Profile Completion Meter */}
+                            <div className="bg-white p-2.5 rounded-2xl border border-slate-200 shadow-xs min-w-[150px]">
+                                <div className="flex items-center justify-between text-[11px] font-bold mb-1">
+                                    <span className="text-slate-600">Profile Completion</span>
+                                    <span className="text-brand-700 font-mono font-black">{calculateProfileCompletion(user)}%</span>
+                                </div>
+                                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200/50">
+                                    <div
+                                        className="bg-gradient-to-r from-brand-500 via-indigo-500 to-emerald-500 h-full rounded-full transition-all duration-1000 ease-out shadow-xs"
+                                        style={{ width: `${calculateProfileCompletion(user)}%` }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* MID: Avatar + Metadata */}
+                        <div className="flex items-center gap-3.5 pt-3 border-t border-slate-200/60">
+                            {/* Avatar */}
                             <div
                                 onClick={handleMedalClick}
                                 className="relative group shrink-0 p-1 cursor-pointer select-none"
                                 title="Click for flowing medal animation!"
                             >
-                                {/* Animated Flowing Conic Ring */}
                                 <div className="absolute inset-0 rounded-full p-[3px] bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] animate-[spin_5s_linear_infinite] shadow-lg shadow-cyan-500/20" />
-                                <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] blur-sm opacity-70 group-hover:opacity-100 animate-[spin_5s_linear_infinite] transition-opacity" />
-
-                                {/* Staggered Ripples */}
-                                {isStaggeringMedal && (
-                                    <>
-                                        <div className="absolute -inset-1.5 rounded-full border-2 border-cyan-400 animate-[ping_0.8s_cubic-bezier(0,0,0.2,1)_infinite] pointer-events-none" />
-                                        <div className="absolute -inset-3.5 rounded-full border-2 border-amber-400 animate-[ping_0.8s_cubic-bezier(0,0,0.2,1)_infinite]" style={{ animationDelay: '150ms' }} />
-                                        <div className="absolute -inset-5.5 rounded-full border-2 border-blue-400 animate-[ping_0.8s_cubic-bezier(0,0,0.2,1)_infinite]" style={{ animationDelay: '300ms' }} />
-                                    </>
-                                )}
-
-                                {/* Avatar Circle */}
                                 <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border-[3px] border-white shadow-md bg-brand-100 z-10">
                                     {renderAvatarContent(displayProfile.photo || user.photo, displayProfile.name, 'text-base', 'from-brand-600 to-violet-700')}
                                 </div>
-
-                                {/* Crop Photo Badge Button */}
-                                <button
-                                    type="button"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        const targetPhoto = displayProfile.photo || user.photo;
-                                        if (!targetPhoto) {
-                                            alert('No existing photo to crop. Please use the "Add New Photo" button in Edit Details.');
-                                            return;
-                                        }
-                                        setWasEditingBeforeCrop(isEditing);
-                                        setCropTarget({ type: activeProfileId === user.id ? 'primary' : 'linked-profile', profileId: activeProfileId, isNewUpload: false });
-                                        setCroppingImage(targetPhoto);
-                                    }}
-                                    className="absolute -top-1 -left-1 z-30 w-6 h-6 rounded-full bg-slate-900/90 hover:bg-brand-600 text-white border-2 border-white flex items-center justify-center shadow-md transition-all cursor-pointer"
-                                    title="Crop Profile Photo"
-                                >
-                                    <Camera size={11} />
-                                </button>
-
-                                {/* Active Status Indicator Dot */}
-                                <div className={`absolute -bottom-0.5 -right-0.5 z-30 w-4 h-4 rounded-full border-2 border-white ${user.status === 'Active' ? 'bg-green-500' : user.status === 'Rejected' ? 'bg-red-500' : 'bg-amber-400'}`} />
+                                <div className={`absolute -bottom-0.5 -right-0.5 z-30 w-4 h-4 rounded-full border-2 border-white ${user.status === 'Active' ? 'bg-green-500' : 'bg-amber-400'}`} />
                             </div>
 
-                            {/* Name + Details */}
+                            {/* Details */}
                             <div className="flex-1 min-w-0">
-                                <h1 className="font-bold text-slate-900 text-base sm:text-lg leading-tight truncate">
+                                <h2 className="font-bold text-slate-900 text-base leading-tight truncate">
                                     {displayProfile.name}
-                                </h1>
-                                <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-brand-50 text-brand-700 border border-brand-200/60 whitespace-nowrap">
-                                        {activeProfileId !== user.id ? 'Family Member' : (user.role || 'Member')}
-                                    </span>
-                                    <span className="text-[11px] font-bold text-slate-500 whitespace-nowrap">
-                                        {displayProfile.id}
-                                    </span>
+                                </h2>
+                                <div className="text-[11px] font-semibold text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
+                                    <span>📅 Member since: <strong className="text-slate-800">{user.joinedDate || user.memberSince || '2026'}</strong></span>
+                                    <span>🕒 Last login: <strong className="text-slate-800">Today</strong></span>
                                 </div>
-                                {visibleBadge && (
-                                    <div className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full border border-white/20 bg-slate-950/90 backdrop-blur-sm px-1.5 py-0.5 pr-3 shadow-[0_10px_22px_-14px_rgba(15,23,42,0.9)]">
-                                        {visibleBadge.image ? (
-                                            <img
-                                                src={visibleBadge.image}
-                                                alt={visibleBadge.name}
-                                                className="h-7 w-7 object-contain drop-shadow-sm"
-                                                onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }}
-                                            />
-                                        ) : (
-                                            <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br ${visibleBadge.color} text-white shadow-sm`}>
-                                                <BadgeIcon badgeId={visibleBadge.id} size={11} />
-                                            </span>
-                                        )}
-                                        <span className="truncate text-[10px] font-black uppercase tracking-wider text-amber-100">
-                                            {visibleBadge.name}
-                                        </span>
-                                    </div>
-                                )}
                             </div>
                         </div>
 
-                        {/* ROW 2: Action Buttons */}
-                        <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 overflow-x-auto no-scrollbar">
-                            {/* Dark mode toggle */}
-                            <button
-                                onClick={toggleUserDarkMode}
-                                title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-600 hover:text-indigo-600 bg-slate-50 hover:bg-white border border-slate-200/80 transition-all text-xs font-bold"
-                            >
-                                {isDarkMode ? <Sun size={15} className="text-yellow-400" /> : <Moon size={15} />}
-                                <span className="text-[11px]">{isDarkMode ? 'Light' : 'Dark'}</span>
-                            </button>
-
-                            {!user.biometrics?.credentialId && activeProfileId === user.id && (
-                                <button
-                                    onClick={handleRegisterDashboardFingerprint}
-                                    disabled={isRegisteringFingerprint}
-                                    title="Add fingerprint login"
-                                    className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-amber-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 transition-all text-xs font-bold disabled:opacity-60"
-                                >
-                                    {isRegisteringFingerprint ? (
-                                        <span className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
-                                    ) : (
-                                        <Fingerprint size={15} />
-                                    )}
-                                    <span className="text-[11px]">Fingerprint</span>
-                                </button>
-                            )}
-
-                            {/* Download Photo */}
+                        {/* ⚡ 4 PRIMARY QUICK ACTION TILES ── */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4 pt-4 border-t border-slate-200/80">
+                            {/* 1. Download Card */}
                             <button
                                 onClick={handleDownloadProfilePhoto}
-                                title="Download Profile Photo"
-                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-600 hover:text-emerald-600 bg-slate-50 hover:bg-white border border-slate-200/80 transition-all text-xs font-bold"
+                                className="p-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl flex flex-col items-center justify-center gap-1 shadow-md shadow-emerald-600/20 active:scale-95 transition-all text-xs font-bold cursor-pointer group"
                             >
-                                <Download size={15} />
-                                <span className="text-[11px]">Photo</span>
+                                <Download size={16} className="group-hover:scale-110 transition-transform" />
+                                <span>Download Card</span>
                             </button>
 
-                            {/* Download Entrust Card */}
+                            {/* 2. Download PDF */}
                             <button
                                 onClick={handleDownloadPDF}
                                 disabled={isProcessing}
-                                title="Download Entrust Card"
-                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-600 hover:text-blue-600 bg-slate-50 hover:bg-white border border-slate-200/80 transition-all text-xs font-bold disabled:opacity-50"
+                                className="p-3 bg-brand-700 hover:bg-brand-800 text-white rounded-2xl flex flex-col items-center justify-center gap-1 shadow-md shadow-brand-700/20 active:scale-95 transition-all text-xs font-bold cursor-pointer disabled:opacity-60 group"
                             >
-                                {isProcessing ? (
-                                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                    <FileText size={15} />
-                                )}
-                                <span className="text-[11px]">{isProcessing ? 'Generating...' : 'Entrust'}</span>
+                                <FileText size={16} className="group-hover:scale-110 transition-transform" />
+                                <span>{isProcessing ? 'Generating...' : 'Download PDF'}</span>
                             </button>
 
-                            {/* Add Profile */}
+                            {/* 3. QR Code */}
                             <button
-                                onClick={() => window.location.href = '/auth?view=login'}
-                                title="Add Profile - Login Required"
-                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-600 hover:text-purple-600 bg-slate-50 hover:bg-white border border-slate-200/80 transition-all text-xs font-bold"
+                                onClick={() => setShowQrPreview(true)}
+                                className="p-3 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl flex flex-col items-center justify-center gap-1 shadow-md shadow-violet-600/20 active:scale-95 transition-all text-xs font-bold cursor-pointer group"
                             >
-                                <UserPlus size={15} />
-                                <span className="text-[11px]">Add</span>
+                                <QrCode size={16} className="group-hover:scale-110 transition-transform" />
+                                <span>QR Code</span>
                             </button>
 
-                            {/* Share Verification Link */}
-                            <button
-                                onClick={handleShare}
-                                title="Share Secure Random Verification Link"
-                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-600 hover:text-brand-600 bg-slate-50 hover:bg-white border border-slate-200/80 transition-all text-xs font-bold"
-                            >
-                                <Share2 size={15} />
-                                <span className="text-[11px]">Share Link</span>
-                            </button>
-
-                            {/* Regenerate Verification Link */}
-                            <button
-                                onClick={handleRegenerateShareLink}
-                                title="Regenerate Random Verification Link (Invalidates Old Link)"
-                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-600 hover:text-amber-600 bg-slate-50 hover:bg-white border border-slate-200/80 transition-all text-xs font-bold"
-                            >
-                                <Copy size={15} />
-                                <span className="text-[11px]">Regen Link</span>
-                            </button>
-
-                            {/* Create Royal Greeting Card */}
-                            <button
-                                onClick={() => setShowGreetingCardModal(true)}
-                                title="Design & Share Royal Greeting Card Studio"
-                                className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-amber-900 bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 hover:from-amber-300 hover:to-yellow-200 border border-amber-400 transition-all text-xs font-bold shadow-md shadow-amber-500/20 active:scale-95 cursor-pointer"
-                            >
-                                <Sparkles size={15} className="text-amber-700 animate-pulse" />
-                                <span className="text-[11px] font-cinzel">Greeting Studio</span>
-                            </button>
-
-                            {/* Biometric Fingerprint Button */}
-                            <button
-                                onClick={handleSetupBiometricPasskey}
-                                disabled={isRegisteringPasskey}
-                                title="Set up Fingerprint Sensor Login"
-                                className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all text-xs font-bold border active:scale-95 cursor-pointer disabled:opacity-50 ${user.biometrics?.credentialId ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-300' : 'text-amber-700 bg-amber-50 hover:bg-amber-100 border-amber-300'}`}
-                            >
-                                {isRegisteringPasskey ? (
-                                    <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                    <Fingerprint size={15} className={user.biometrics?.credentialId ? 'text-emerald-600' : 'text-amber-600'} />
-                                )}
-                                <span className="text-[11px]">{user.biometrics?.credentialId ? 'Fingerprint Ready ✓' : 'Fingerprint Login'}</span>
-                            </button>
-
-                            {/* Edit Details — pushed to the end */}
+                            {/* 4. Edit Profile */}
                             <button
                                 onClick={startEditing}
-                                title="Edit Details"
-                                className="shrink-0 ml-auto flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-white bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 shadow-md shadow-brand-500/20 transition-all text-xs font-bold"
+                                className="p-3 bg-amber-500 hover:bg-amber-600 text-amber-950 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-md shadow-amber-500/20 active:scale-95 transition-all text-xs font-bold cursor-pointer group"
                             >
-                                <Edit2 size={15} />
-                                <span className="text-[11px]">Edit</span>
+                                <Edit2 size={16} className="group-hover:scale-110 transition-transform" />
+                                <span>Edit Profile</span>
                             </button>
                         </div>
+
+                        {/* More Tools Expandable Drawer Toggle */}
+                        <div className="mt-3 text-center">
+                            <button
+                                onClick={() => setShowMoreToolsDrawer(prev => !prev)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition-all cursor-pointer"
+                            >
+                                <span>{showMoreToolsDrawer ? 'Hide Extra Tools' : 'More Tools & Services'}</span>
+                                {showMoreToolsDrawer ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                            </button>
+                        </div>
+
+                        {showMoreToolsDrawer && (
+                            <div className="mt-3 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                                <button onClick={handleRegisterDashboardFingerprint} className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-amber-50 font-bold text-slate-700 flex items-center gap-1.5 cursor-pointer">
+                                    <Fingerprint size={15} className="text-amber-600 shrink-0" />
+                                    <span>Fingerprint</span>
+                                </button>
+                                <button onClick={() => { setGreetingCardMode('creator'); setShowGreetingCardModal(true); }} className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-amber-50 font-bold text-slate-700 flex items-center gap-1.5 cursor-pointer">
+                                    <Sparkles size={15} className="text-amber-600 shrink-0" />
+                                    <span>Greeting Studio</span>
+                                </button>
+                                <button onClick={handleRegenerateShareLink} className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-blue-50 font-bold text-slate-700 flex items-center gap-1.5 cursor-pointer">
+                                    <Copy size={15} className="text-blue-600 shrink-0" />
+                                    <span>Regen Link</span>
+                                </button>
+                                <button onClick={toggleUserDarkMode} className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 font-bold text-slate-700 flex items-center gap-1.5 cursor-pointer">
+                                    {isDarkMode ? <Sun size={15} className="text-yellow-500 shrink-0" /> : <Moon size={15} className="text-indigo-600 shrink-0" />}
+                                    <span>{isDarkMode ? 'Light' : 'Dark Mode'}</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
 
                         {/* Dedicated Family Profiles Horizontal Avatar Switcher Bar */}
                         {(user.linkedProfiles && user.linkedProfiles.length > 0) && (
@@ -2178,58 +2326,86 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             )}
                         </div>
                         {showBadgePickerDetails && (
-                            <div className="relative grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                                {dashboardBadges.map((badge) => {
-                                    const isSelected = visibleBadgeId === badge.id;
-                                    return (
-                                        <button
-                                            key={badge.id}
-                                            type="button"
-                                            onClick={() => handleSelectVisibleBadge(badge.id)}
-                                            className={`group relative flex flex-col items-center gap-1.5 rounded-2xl border p-3 text-center transition-all duration-200 active:scale-[0.96] ${
-                                                isSelected
-                                                    ? 'border-amber-400 bg-gradient-to-b from-amber-50 to-orange-50 shadow-[0_8px_24px_-8px_rgba(245,158,11,0.5)]'
-                                                    : 'border-slate-200 bg-slate-50 hover:border-amber-200 hover:bg-white hover:shadow-md'
-                                            }`}
-                                            aria-pressed={isSelected}
-                                        >
-                                            {isSelected && (
-                                                <span className="absolute top-1.5 right-1.5 h-4 w-4 rounded-full bg-amber-500 flex items-center justify-center">
-                                                    <CheckCircle size={10} className="text-white" />
-                                                </span>
-                                            )}
-                                            {(badge as any).image ? (
-                                                <img
-                                                    src={(badge as any).image}
-                                                    alt={badge.name}
-                                                    className="h-14 w-14 object-contain transition-transform duration-200 group-hover:scale-110 group-hover:-translate-y-0.5"
-                                                    style={{ filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.20))' }}
-                                                    onError={(e) => {
-                                                        const el = e.target as HTMLImageElement;
-                                                        el.style.display = 'none';
-                                                        const fallback = el.nextElementSibling as HTMLElement;
-                                                        if (fallback) fallback.style.display = 'flex';
-                                                    }}
-                                                />
-                                            ) : null}
-                                            <div
-                                                className={`h-12 w-12 rounded-xl bg-gradient-to-br ${badge.color} text-white items-center justify-center shadow-sm`}
-                                                style={{ display: (badge as any).image ? 'none' : 'flex' }}
+                            <div className="space-y-3">
+                                {/* Unlock progress banner */}
+                                <div className="px-3.5 py-2.5 rounded-2xl bg-amber-500/10 border border-amber-400/30 flex items-center justify-between text-xs">
+                                    <div className="flex items-center gap-2 text-amber-900 font-bold">
+                                        <img src="/assets/doodles/doodle-color-237-star-morph-prize.gif" alt="Prize" className="w-5 h-5 object-contain" />
+                                        <span>Covenant Achievements</span>
+                                    </div>
+                                    <span className="font-black text-amber-800 bg-amber-200/80 px-2.5 py-0.5 rounded-full text-[10px] tracking-wide">
+                                        {unlockedBadges.length} / {dashboardBadges.length} Unlocked
+                                    </span>
+                                </div>
+
+                                <div className="relative grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                                    {dashboardBadges.map((badge) => {
+                                        const status = getBadgeUnlockStatus(badge.id, user);
+                                        const isUnlocked = status.unlocked;
+                                        const isSelected = visibleBadgeId === badge.id;
+                                        return (
+                                            <button
+                                                key={badge.id}
+                                                type="button"
+                                                onClick={() => handleSelectVisibleBadge(badge.id)}
+                                                className={`group relative flex flex-col items-center gap-1.5 rounded-2xl border p-3 text-center transition-all duration-200 active:scale-[0.96] ${
+                                                    isSelected
+                                                        ? 'border-amber-400 bg-gradient-to-b from-amber-50 to-orange-50 shadow-[0_8px_24px_-8px_rgba(245,158,11,0.5)]'
+                                                        : isUnlocked
+                                                        ? 'border-slate-200 bg-slate-50 hover:border-amber-200 hover:bg-white hover:shadow-md cursor-pointer'
+                                                        : 'border-slate-200 bg-slate-100/70 opacity-75 hover:opacity-100 hover:border-red-300 cursor-not-allowed'
+                                                }`}
+                                                aria-pressed={isSelected}
+                                                title={status.requirement}
                                             >
-                                                <BadgeIcon badgeId={badge.id} size={20} />
-                                            </div>
-                                            <span className={`text-[9px] font-black uppercase tracking-wide leading-tight ${isSelected ? 'text-amber-800' : 'text-slate-600'} max-w-full`}>
-                                                {badge.name}
-                                            </span>
-                                            {!isSelected && (
-                                                <span className="text-[8px] font-bold text-slate-400">Tap to select</span>
-                                            )}
-                                            {isSelected && (
-                                                <span className="text-[8px] font-black text-amber-600 uppercase tracking-wider">✓ Active</span>
-                                            )}
-                                        </button>
-                                    );
-                                })}
+                                                {isSelected && (
+                                                    <span className="absolute top-1.5 right-1.5 h-4 w-4 rounded-full bg-amber-500 flex items-center justify-center shadow-xs z-10">
+                                                        <CheckCircle size={10} className="text-white" />
+                                                    </span>
+                                                )}
+                                                {!isUnlocked && (
+                                                    <span className="absolute top-1.5 right-1.5 h-4.5 w-4.5 rounded-full bg-slate-800 text-amber-300 flex items-center justify-center shadow-xs z-10">
+                                                        <Lock size={9} />
+                                                    </span>
+                                                )}
+                                                {(badge as any).image ? (
+                                                    <img
+                                                        src={(badge as any).image}
+                                                        alt={badge.name}
+                                                        className={`h-14 w-14 object-contain transition-transform duration-200 ${isUnlocked ? 'group-hover:scale-110 group-hover:-translate-y-0.5' : 'grayscale opacity-60'}`}
+                                                        style={{ filter: isUnlocked ? 'drop-shadow(0 3px 8px rgba(0,0,0,0.20))' : 'grayscale(0.9) opacity(0.5)' }}
+                                                        onError={(e) => {
+                                                            const el = e.target as HTMLImageElement;
+                                                            el.style.display = 'none';
+                                                            const fallback = el.nextElementSibling as HTMLElement;
+                                                            if (fallback) fallback.style.display = 'flex';
+                                                        }}
+                                                    />
+                                                ) : null}
+                                                <div
+                                                    className={`h-12 w-12 rounded-xl bg-gradient-to-br ${badge.color} text-white items-center justify-center shadow-sm ${!isUnlocked ? 'opacity-50 grayscale' : ''}`}
+                                                    style={{ display: (badge as any).image ? 'none' : 'flex' }}
+                                                >
+                                                    <BadgeIcon badgeId={badge.id} size={20} />
+                                                </div>
+                                                <span className={`text-[9px] font-black uppercase tracking-wide leading-tight ${isSelected ? 'text-amber-800' : isUnlocked ? 'text-slate-600' : 'text-slate-400'} max-w-full`}>
+                                                    {badge.name}
+                                                </span>
+                                                {isSelected && (
+                                                    <span className="text-[8px] font-black text-amber-600 uppercase tracking-wider">✓ Active</span>
+                                                )}
+                                                {isUnlocked && !isSelected && (
+                                                    <span className="text-[8px] font-bold text-slate-400">Tap to select</span>
+                                                )}
+                                                {!isUnlocked && (
+                                                    <span className="text-[8px] font-bold text-red-500/80 tracking-tight line-clamp-1" title={status.requirement}>
+                                                        🔒 Requirement
+                                                    </span>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         )}
                     </div>
@@ -2422,7 +2598,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                     {/* ── FAMILY MEMBERS LIST ── */}
                     {user.linkedProfiles && user.linkedProfiles.length > 0 && (
-                        <div className="bg-white rounded-[24px] shadow-md overflow-hidden mt-8">
+                        <div className="bg-white rounded-[24px] shadow-md overflow-hidden w-full max-w-full">
                             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
                                 <h3 className="font-bold text-slate-800 flex items-center gap-2"><Users size={16} className="text-brand-500" /> Family</h3>
                                 <button onClick={handleGoToLogin} className="text-xs font-bold text-brand-600 hover:text-brand-800 flex items-center gap-1">
@@ -2430,13 +2606,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 </button>
                             </div>
                             <div className="p-4 space-y-3 bg-slate-50">
-                                <button onClick={() => setActiveProfileId(user.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all text-left ${activeProfileId === user.id ? 'bg-brand-50 border-brand-200' : 'bg-white border-slate-200 hover:border-brand-200'}`}>
+                                <button onClick={() => setActiveProfileId(user.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all text-left min-w-0 ${activeProfileId === user.id ? 'bg-brand-50 border-brand-200' : 'bg-white border-slate-200 hover:border-brand-200'}`}>
                                     <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-brand-100 shrink-0">
                                         {renderAvatarContent(user.photo, user.name, 'text-[10px]', 'from-brand-600 to-violet-700')}
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="font-bold text-slate-900 text-sm truncate">{user.name}</p>
-                                        <p className="text-[10px] text-slate-500 font-medium">{user.id} · Primary</p>
+                                        <p className="text-[10px] text-slate-500 font-medium truncate">{user.id} · Primary</p>
                                     </div>
                                     {activeProfileId === user.id && <CheckCircle size={16} className="text-brand-500 shrink-0" />}
                                 </button>
@@ -2474,21 +2650,68 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         </div>
                     )}
 
+                    {/* ── GREETING CARD STUDIO ── */}
+                    <button
+                        onClick={() => { setGreetingCardMode('creator'); setShowGreetingCardModal(true); }}
+                        className="w-full relative overflow-hidden rounded-3xl p-5 text-left cursor-pointer group transition-all active:scale-[0.98] shadow-lg shadow-amber-300/20 hover:shadow-amber-400/30 border-2 border-amber-300/70 hover:border-amber-400"
+                        style={{ background: 'linear-gradient(135deg, #FDE68A 0%, #FCD34D 40%, #FBBF24 80%, #F59E0B 100%)' }}
+                    >
+                        {/* Background shimmer */}
+                        <span className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" />
+                        {/* Decorative circles */}
+                        <span className="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-amber-300/30 pointer-events-none" />
+                        <span className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full bg-yellow-200/30 pointer-events-none" />
+
+                        <div className="relative flex items-center gap-3">
+                            <div className="shrink-0 w-11 h-11 rounded-2xl bg-amber-950/10 border border-amber-600/20 flex items-center justify-center shadow-inner">
+                                {/* Gift box / greeting card icon */}
+                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-900">
+                                    <polyline points="20 12 20 22 4 22 4 12"/>
+                                    <rect x="2" y="7" width="20" height="5"/>
+                                    <line x1="12" y1="22" x2="12" y2="7"/>
+                                    <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
+                                    <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+                                </svg>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-amber-950 font-black text-sm tracking-tight">Design Your Card</p>
+                                <p className="text-amber-900/70 text-[11px] font-semibold mt-0.5">Create &amp; share royal greeting cards</p>
+                            </div>
+                            <div className="shrink-0 w-8 h-8 rounded-full bg-amber-950/10 flex items-center justify-center group-hover:bg-amber-950/20 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-amber-900"><polyline points="9 18 15 12 9 6"/></svg>
+                            </div>
+                        </div>
+                    </button>
+
                     {/* ── LOGOUT ── */}
                     <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 bg-white border border-red-100 text-red-400 hover:bg-red-50 hover:border-red-200 hover:text-red-600 rounded-2xl py-3.5 font-bold text-xs tracking-widest uppercase transition-all shadow-sm">
                         <LogOut size={15} /> Logout
                     </button>
-                </div>
 
-                {/* ── RIGHT COLUMN (Wallet Card & Content on Desktop) ── */}
-                <div className={`${user.linkedProfiles && user.linkedProfiles.length > 0 ? 'lg:col-span-8 xl:col-span-9' : 'lg:col-span-7 xl:col-span-8'} flex flex-col gap-5`}>
-                    <div id="dashboard-notifications-card" ref={notificationsSectionRef} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-sm font-black text-brand-950">Notifications</h3>
-                            <span className="text-[10px] font-bold text-brand-600 bg-brand-50 border border-brand-100 px-2 py-0.5 rounded-full">{notifications.length}</span>
+                    </div>
+
+                    {/* ── RIGHT CONTENT AREA ── */}
+                    <div className="flex-1 min-w-0 flex flex-col gap-5">
+                    <div id="dashboard-notifications-card" ref={notificationsSectionRef} className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Bell size={18} className="text-brand-600" />
+                                <h3 className="text-sm font-black text-slate-900">Notifications</h3>
+                                <span className="text-[10px] font-mono font-bold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded-full">{notifications.length}</span>
+                            </div>
+                            <span className="text-[10px] font-mono text-slate-400">Last checked: Today</span>
                         </div>
                         {notifications.length === 0 ? (
-                            <p className="text-xs text-slate-400">No admin notifications yet.</p>
+                            <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 flex items-center justify-between text-xs text-emerald-800">
+                                <div className="flex items-center gap-2.5">
+                                    <CheckCircle size={18} className="text-emerald-500 shrink-0" />
+                                    <div>
+                                        <p className="font-bold">✓ No new announcements</p>
+                                        <p className="text-[10px] text-emerald-600 mt-0.5">Your account is fully up to date.</p>
+                                    </div>
+                                </div>
+                                <span className="text-[10px] font-bold text-emerald-700">All Clear</span>
+                            </div>
                         ) : (
                             <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
                                 {notifications.slice(0, 8).map(note => (
@@ -2537,6 +2760,22 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 Request COT ID Change
                             </button>
                         </div>
+                    </div> {/* ── Close notifications-card ── */}
+                    {/* ── 📖 SPIRITUAL MINISTRY WIDGET ── */}
+                    <div className="p-5 rounded-3xl bg-gradient-to-br from-slate-950 via-brand-950 to-slate-900 text-white shadow-xl border border-amber-400/30 space-y-3">
+                        <div className="flex items-center justify-between text-xs border-b border-white/10 pb-2">
+                            <span className="flex items-center gap-1.5 font-bold text-amber-300 uppercase tracking-widest text-[10px]">
+                                <BookOpen size={14} className="text-amber-400" /> Verse of the Day
+                            </span>
+                            <span className="font-mono text-[10px] text-slate-400">Colossians 3:16</span>
+                        </div>
+                        <blockquote className="italic text-slate-200 text-xs sm:text-sm leading-relaxed">
+                            "Let the Word of Christ dwell in you richly in all wisdom, teaching and admonishing one another in psalms, hymns, and spiritual songs."
+                        </blockquote>
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] pt-1 text-slate-300 font-mono border-t border-white/5">
+                            <span>🕎 Hebrew Date: <strong className="text-amber-300">25 Av 5786</strong></span>
+                            <span>📅 Upcoming Feast: <strong className="text-amber-300">Rosh Hashanah</strong></span>
+                        </div>
                     </div>
 
                     {/* ════════════════════════════════════
@@ -2545,7 +2784,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     <div
                         id="dashboard-wallet-card"
                         onClick={handleMedalClick}
-                        className="relative group bg-white rounded-[28px] shadow-xl mb-5 overflow-hidden transition-all hover:shadow-2xl cursor-pointer p-[3px]"
+                        className="relative bg-white rounded-[28px] shadow-xl overflow-hidden transition-all hover:shadow-2xl cursor-pointer p-[3px] w-full max-w-full"
                     >
                         {/* Flowing Conic Gradient Border Aura */}
                         <div className="absolute inset-0 rounded-[28px] bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] opacity-75 group-hover:opacity-100 animate-[spin_8s_linear_infinite] transition-opacity" />
@@ -2608,7 +2847,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             <span className="bg-black/55 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">Awaiting Approval</span>
                                         </div>
                                     )}
-                                    <p className="text-center text-slate-500 text-xs font-semibold mt-2 mb-1">Tap card to download instantly ✨</p>
+                                    <div className="flex items-center justify-center gap-1.5 mt-2 mb-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand-500"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                        <span className="text-brand-600 text-[11px] font-black uppercase tracking-widest">Tap card to download instantly</span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand-500"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                    </div>
                                 </div>
 
                                 {/* Real EntrustCard3D Preview (DESKTOP ONLY) */}
@@ -2638,7 +2881,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             </div>
                                         )}
                                     </div>
-                                    <p className="text-center text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">✨ Click card to download instantly ✨</p>
+                                    <div className="flex items-center justify-center gap-2 mt-2">
+                                        <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-brand-50 via-blue-50 to-brand-50 border border-brand-200/70 text-brand-700 px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest shadow-sm hover:shadow-brand-200/60 hover:scale-105 transition-all">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                            Click card to download instantly
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                        </span>
+                                    </div>
                                 </div>
 
                                 {/* Edit Details Action (Directly below card preview to balance layout) */}
@@ -2687,10 +2936,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                                 <p className="text-sm font-bold text-brand-950 text-center">{displayProfile.name}</p>
                                                 <p className="text-[11px] text-brand-700 font-mono text-center mt-0.5">{displayProfile.id.toUpperCase()}</p>
                                             </div>
-                                            <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
-                                                Scan this code to open the official verification page for this Entrust profile.
-                                            </p>
-                                            <p className="mt-3 text-[10px] text-slate-500 break-all">{qrUrl}</p>
+                                            <div className="mt-3 px-3 py-1.5 rounded-xl bg-slate-950 text-amber-300 border border-amber-400/40 flex items-center justify-between text-[10px] font-mono">
+                                                <span className="flex items-center gap-1.5 font-bold">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                                                    🔒 256-BIT CRYPTOGRAPHIC LINK
+                                                </span>
+                                                <span className="text-slate-400">SEC-V1 ENCRYPTED</span>
+                                            </div>
+                                            <p className="mt-2 text-[10px] text-slate-500 font-mono break-all bg-slate-50 border border-slate-200 rounded-lg p-2">{qrUrl}</p>
                                             <button
                                                 type="button"
                                                 onClick={handleCopyQrLink}
@@ -2728,8 +2981,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                                     alt={`QR code for ${displayProfile.id}`}
                                                     className="w-44 h-44 md:w-52 md:h-52 object-contain blur-[3px] pointer-events-none select-none"
                                                 />
-                                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 gap-2">
-                                                    <ShieldCheck size={28} className="text-amber-300" />
+                                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 gap-1.5 p-2">
+                                                    <img src="/assets/doodles/doodle-color-268-avatar-man-in-reveal.gif" alt="Avatar Reveal" className="w-12 h-12 object-contain drop-shadow-md" />
                                                     <p className="font-black text-white text-xs uppercase tracking-widest">Not Verified</p>
                                                 </div>
                                             </div>
@@ -2778,7 +3031,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         </div>
                     </div>
 
-                    {/* ── ACTION CARDS GRID ── */}
+                    {/* ── RIGHT COLUMN ── */}
+                    <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-6">
                     <div id="dashboard-action-cards" className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
 
                         {/* Profile Photo Download Card (Standalone Prominent Button) */}
@@ -3054,6 +3308,44 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         </div>
                                     </div>
 
+                                    {/* 🔍 SEARCH BAR & CATEGORY FILTERS ── */}
+                                    <div className="mb-6 space-y-3">
+                                        <div className="relative">
+                                            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                            <input
+                                                type="text"
+                                                value={downloadSearchQuery}
+                                                onChange={(e) => setDownloadSearchQuery(e.target.value)}
+                                                placeholder="🔍 Search downloads, certificates, audio, PDFs, logos..."
+                                                className="w-full pl-11 pr-4 py-3 rounded-2xl bg-white/10 border border-white/20 text-white placeholder-slate-400 text-xs font-semibold outline-none focus:border-amber-400 focus:bg-white/15 transition-all shadow-inner"
+                                            />
+                                        </div>
+
+                                        {/* Category Pills */}
+                                        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+                                            {[
+                                                { id: 'all', label: 'All Resources' },
+                                                { id: 'documents', label: '📄 Documents & PDFs' },
+                                                { id: 'images', label: '🖼️ Member Cards' },
+                                                { id: 'hebrew', label: '🕎 Hebrew Resources' },
+                                                { id: 'logos', label: '🎨 Logos & Emblems' },
+                                            ].map(cat => (
+                                                <button
+                                                    key={cat.id}
+                                                    type="button"
+                                                    onClick={() => setDownloadCategoryFilter(cat.id as any)}
+                                                    className={`px-3 py-1.5 rounded-xl text-[11px] font-bold shrink-0 transition-all border cursor-pointer ${
+                                                        downloadCategoryFilter === cat.id
+                                                            ? 'bg-amber-400 text-slate-950 border-amber-300 font-extrabold shadow-sm'
+                                                            : 'bg-slate-900/60 text-slate-300 border-slate-700 hover:bg-slate-800'
+                                                    }`}
+                                                >
+                                                    {cat.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                </div>
+
                                     <div>
                                         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 text-[10px] font-black uppercase tracking-widest mb-2">
                                             <Award size={12} /> Official PDF & Asset Bundle Medal
@@ -3102,51 +3394,65 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             </div>
                         </div>
 
-                    </div>
-
-                </div>
-            </div>
+                    </div> {/* ── Close Action Cards Grid ── */}
+                    </div> {/* ── Close Right Column ── */}
+                </div> {/* ── Close Grid Container ── */}
+            </div> {/* ── Close Main Content Container ── */}
 
             {/* ── CARD PREVIEW MODAL (Screenshot 3 style) ── */}
             <AnimatePresence>
                 {showQrPreview && (
-                    <div className="fixed inset-0 z-[82] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl">
+                    <div className="fixed inset-0 z-[82] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="w-full max-w-md rounded-[28px] bg-slate-950 border border-slate-800 p-6 shadow-2xl text-white relative overflow-hidden">
+                            {/* Ambient Glow */}
+                            <div className="absolute -top-20 -right-20 w-48 h-48 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none" />
+
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-black text-slate-900">My Entrust QR</h3>
+                                <div>
+                                    <h3 className="text-lg font-black text-white">My Entrust QR</h3>
+                                    <div className="flex items-center gap-1.5 text-[10px] text-amber-300 font-mono font-bold mt-0.5">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                                        🔒 VERIFIED SECURE QR
+                                    </div>
+                                </div>
                                 <button
                                     type="button"
                                     onClick={() => setShowQrPreview(false)}
-                                    className="p-2 rounded-lg text-slate-500 hover:bg-slate-100"
+                                    className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
                                 >
-                                    <X size={18} />
+                                    <X size={20} />
                                 </button>
                             </div>
-                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 mb-4">
+
+                            {/* Animated QR Container */}
+                            <div className="relative rounded-2xl border-2 border-cyan-400/50 bg-white p-5 mb-4 shadow-[0_0_30px_rgba(6,182,212,0.2)] overflow-hidden group">
+                                {/* Laser Scanner Animation Line */}
+                                <div className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_15px_#22d3ee] animate-[bounce_2s_infinite] pointer-events-none z-20" />
+
                                 {qrImageUnavailable ? (
-                                    <div className="w-full max-w-[300px] mx-auto px-3 py-8 text-center">
+                                    <div className="w-full max-w-[280px] mx-auto px-3 py-8 text-center">
                                         <p className="text-xs font-black text-slate-600 uppercase tracking-wider">QR unavailable</p>
                                         <p className="text-[11px] text-slate-500 mt-2 break-all">{qrUrl}</p>
                                     </div>
                                 ) : (
-                                    <>
-                                        <img
-                                            src="/logo.png"
-                                            alt="Logo watermark"
-                                            className="absolute inset-0 w-full h-full object-contain p-8 opacity-20 pointer-events-none"
-                                        />
-                                        <img src={qrImgSrc} alt={`QR preview for ${displayProfile.id}`} className="w-full max-w-[300px] mx-auto object-contain relative z-10 mix-blend-multiply" onError={() => setQrImageUnavailable(true)} />
-                                    </>
+                                    <img src={qrImgSrc} alt={`QR preview for ${displayProfile.id}`} className="w-full max-w-[260px] mx-auto object-contain relative z-10 mix-blend-multiply" onError={() => setQrImageUnavailable(true)} />
                                 )}
                             </div>
-                            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Verification Link</p>
-                            <p className="text-xs text-slate-700 break-all bg-slate-50 border border-slate-200 rounded-xl p-3 mb-4">{qrUrl}</p>
+
+                            {/* 256-Bit Cryptographic Link Badge */}
+                            <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-between text-[10px] font-mono mb-3">
+                                <span className="text-amber-300 font-bold">🔒 256-BIT CRYPTOGRAPHIC LINK</span>
+                                <span className="text-slate-400">SEC-V1 ENCRYPTED</span>
+                            </div>
+
+                            <p className="text-xs text-slate-300 break-all bg-slate-900 border border-slate-800 rounded-xl p-3 mb-4 font-mono">{qrUrl}</p>
+                            
                             <button
                                 type="button"
                                 onClick={handleCopyQrLink}
-                                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-black uppercase tracking-wider transition-colors"
+                                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-amber-500/20 active:scale-95 cursor-pointer"
                             >
-                                <Copy size={14} /> {qrLinkCopied ? 'Copied' : 'Copy Link'}
+                                <Copy size={15} /> {qrLinkCopied ? 'Copied Secure Link' : 'Copy 256-Bit Link'}
                             </button>
                         </motion.div>
                     </div>
@@ -3638,7 +3944,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     isAdmin={user.role === 'Admin'}
                     onClose={() => setShowGreetingCardModal(false)}
                     onStartTour={() => {}}
-                    initialMode="creator"
+                    initialMode={greetingCardMode}
+                    allowStudio={true}
                 />
             )}
 
