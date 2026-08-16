@@ -6,7 +6,7 @@ import { ViewState, User } from '../../types';
 import { MessageFromLeader } from '../MessageFromLeader';
 import { LordIconWrapper } from '../LordIconWrapper';
 import { DeuteronomyCircleGraphic } from '../DeuteronomyCircleGraphic';
-import { PSALM_119_VERSES } from '../psalm119';
+import { PSALM_119_VERSES, PSALM_119_STANZAS } from '../psalm119';
 
 const useSectionInfo = (sectionId: string, defaultName: string, defaultDesc: string) => {
     return React.useMemo(() => {
