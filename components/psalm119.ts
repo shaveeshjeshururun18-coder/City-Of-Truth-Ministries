@@ -176,3 +176,28 @@ export const PSALM_119_VERSES = [
   "Let my soul live, that I may praise you.\nLet your ordinances help me.",
   "I have gone astray like a lost sheep.\nSeek your servant, for I don\u2019t forget your commandments."
 ];
+
+export const PSALM_119_STANZAS = [
+    { letter: 'Aleph', symbol: 'א', start: 1, end: 8 },
+    { letter: 'Bet', symbol: 'ב', start: 9, end: 16 },
+    { letter: 'Gimel', symbol: 'ג', start: 17, end: 24 },
+    { letter: 'Dalet', symbol: 'ד', start: 25, end: 32 },
+    { letter: 'He', symbol: 'ה', start: 33, end: 40 },
+    { letter: 'Vav', symbol: 'ו', start: 41, end: 48 },
+    { letter: 'Zayin', symbol: 'ז', start: 49, end: 56 },
+    { letter: 'Chet', symbol: 'ח', start: 57, end: 64 },
+    { letter: 'Tet', symbol: 'ט', start: 65, end: 72 },
+    { letter: 'Yod', symbol: 'י', start: 73, end: 80 },
+    { letter: 'Kaf', symbol: 'כ', start: 81, end: 88 },
+    { letter: 'Lamed', symbol: 'ל', start: 89, end: 96 },
+    { letter: 'Mem', symbol: 'מ', start: 97, end: 104 },
+    { letter: 'Nun', symbol: 'נ', start: 105, end: 112 },
+    { letter: 'Samekh', symbol: 'ס', start: 113, end: 120 },
+    { letter: 'Ayin', symbol: 'ע', start: 121, end: 128 },
+    { letter: 'Pe', symbol: 'פ', start: 129, end: 136 },
+    { letter: 'Tsade', symbol: 'צ', start: 137, end: 144 },
+    { letter: 'Qoph', symbol: 'ק', start: 145, end: 152 },
+    { letter: 'Resh', symbol: 'ר', start: 153, end: 160 },
+    { letter: 'Shin', symbol: 'ש', start: 161, end: 168 },
+    { letter: 'Tav', symbol: 'ת', start: 169, end: 176 },
+];
