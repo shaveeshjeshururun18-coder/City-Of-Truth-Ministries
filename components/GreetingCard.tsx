@@ -20,25 +20,13 @@ interface GreetingCardProps {
   allowStudio?: boolean;
 }
 
-let welcomeAudio: HTMLAudioElement | null = null;
-
 // --- HIGH-QUALITY MP3 WELCOME SOUND PLAYER ---
 export const playWelcomeSound = () => {
-  try {
-    if (!welcomeAudio) {
-      welcomeAudio = new Audio('/Bowfur and First speech .mp3');
-    }
-    welcomeAudio.currentTime = 0;
-    welcomeAudio.play().catch(e => console.warn("Audio autoplay blocked by browser:", e));
-  } catch (e) {
-    console.error("Audio playback error:", e);
-  }
+  // Audio removed by user request
 };
 
 export const stopWelcomeSound = () => {
-  if (welcomeAudio) {
-    welcomeAudio.pause();
-  }
+  // Audio removed by user request
 };
 
 // --- STYLES & ANIMATIONS ---

@@ -223,8 +223,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                         </div>
                     </div>
                     <div className="bg-accent-50 px-3 py-1 rounded-full whitespace-nowrap min-w-0 flex items-center gap-1 shadow-xs border border-accent-200/50">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand-800 shrink-0"><path d="M6 8a6 6 0 0 1 12 0"/><path d="M8.5 11.5a3.5 3.5 0 0 1 7 0"/><circle cx="12" cy="12" r="10"/></svg>
-                        <p className="text-accent-700 font-bold text-[7px] uppercase tracking-wider">NFC ENTRUST</p>
+                        <p className="text-accent-700 font-bold text-[7px] tracking-wider">வழிப்பாட்டாளர் அடையாள அட்டை</p>
                     </div>
                 </div>
 
@@ -1406,17 +1405,19 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                         <div className="w-full max-w-[380px]">
                             <div className="space-y-4">
                                 {/* Biometric Registration Button */}
-                                <Button
-                                    type="button"
-                                    onClick={handleRegisterFingerprint}
-                                    variant="outline"
-                                    fullWidth
-                                    className="py-3 md:py-4 text-sm md:text-base border-2 border-brand-500 text-brand-700 hover:bg-brand-50 shadow-sm"
-                                    disabled={isProcessing || !!credentialId}
-                                >
-                                    {credentialId ? <CheckCircle size={20} className="text-emerald-500" /> : <Lock size={20} />}
-                                    {credentialId ? 'Fingerprint Registered' : 'Optional: Register Fingerprint'}
-                                </Button>
+                                <div>
+                                    <Button
+                                        onClick={handleRegisterFingerprint}
+                                        variant="outline"
+                                        fullWidth
+                                        className="py-3 md:py-4 text-sm md:text-base border-2 border-brand-500 text-brand-700 hover:bg-brand-50 shadow-sm"
+                                        disabled={isProcessing || !!credentialId}
+                                    >
+                                        {credentialId ? <CheckCircle size={20} className="text-emerald-500" /> : <Lock size={20} />}
+                                        {credentialId ? 'Fingerprint Registered' : 'Optional: Register Fingerprint'}
+                                    </Button>
+                                    <p className="text-[10px] text-center text-slate-500 mt-2">Note: Fingerprint should use one leader.</p>
+                                </div>
                                 
                                 {/* Primary Registration Button */}
                                 <Button
