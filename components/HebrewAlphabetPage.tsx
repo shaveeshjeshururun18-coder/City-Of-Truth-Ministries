@@ -6,7 +6,6 @@ import { MouthPronunciationAnimator, HEBREW_LETTER_PHONEMES } from './MouthPronu
 import { AnimatedTeacherCharacter } from './AnimatedTeacherCharacter';
 import { generateHebrewAlphabetPDF } from './HebrewAlphabetPDF';
 import { LetterTracingModal } from './LetterTracingModal';
-import { HebrewCalendarGuide } from './HebrewCalendarGuide';
 
 const PALEO_IMAGE_MAP: Record<string, string> = {
     ALEPH: "/paleo_letters/04_Aleph.png",
@@ -94,7 +93,6 @@ export interface HebrewAlphabetPageProps {
 
 
 export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }) => {
-    const [sectionTab, setSectionTab] = useState<'alephbet' | 'calendar'>('alephbet');
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
     const [cols, setCols] = useState(COLS_MAP.default);
@@ -247,52 +245,8 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                 </header>
 
                 {/* === MAIN SECTION TAB TOGGLE === */}
-                <div className="flex justify-center mb-10">
-                    <div className="inline-flex p-1 rounded-2xl bg-white/[0.05] border border-white/10 backdrop-blur-md gap-1">
-                        <button
-                            onClick={() => setSectionTab('alephbet')}
-                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 cursor-pointer ${
-                                sectionTab === 'alephbet'
-                                    ? 'bg-gradient-to-r from-[#F59E0B] to-[#D97706] text-white shadow-lg shadow-[#F59E0B]/30'
-                                    : 'text-white/60 hover:text-white/90 hover:bg-white/5'
-                            }`}
-                        >
-                            <BookOpen size={13} />
-                            Aleph-Bet Guide
-                        </button>
-                        <button
-                            onClick={() => setSectionTab('calendar')}
-                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 cursor-pointer ${
-                                sectionTab === 'calendar'
-                                    ? 'bg-gradient-to-r from-[#1E3A8A] to-[#1e40af] text-white shadow-lg shadow-[#1E3A8A]/40'
-                                    : 'text-white/60 hover:text-white/90 hover:bg-white/5'
-                            }`}
-                        >
-                            <Calendar size={13} />
-                            Hebrew Calendar
-                        </button>
-                    </div>
-                </div>
-
-                {/* === CALENDAR TAB CONTENT === */}
-                <AnimatePresence mode="wait">
-                    {sectionTab === 'calendar' && (
-                        <motion.div
-                            key="calendar-tab"
-                            initial={{ opacity: 0, y: 16 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -8 }}
-                            transition={{ duration: 0.25 }}
-                            className="bg-white rounded-3xl p-4 md:p-6 shadow-2xl"
-                        >
-                            <HebrewCalendarGuide />
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
                 {/* === ALEPH-BET TAB CONTENT === */}
                 <AnimatePresence mode="wait">
-                {sectionTab === 'alephbet' && (
                 <motion.div
                     key="alephbet-tab"
                     initial={{ opacity: 0, y: 16 }}
@@ -605,7 +559,6 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                     <p className="text-white/30 text-[11px] md:text-xs font-bold">Tap a letter card to learn pronunciation and practice stroke tracing.</p>
                 </div>
                 </motion.div>
-                )}
                 </AnimatePresence>
             </div>
 

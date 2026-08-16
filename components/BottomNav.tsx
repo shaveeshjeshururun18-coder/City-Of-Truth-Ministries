@@ -81,6 +81,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentView, setView }) =>
         return () => window.removeEventListener('scroll', handleScroll);
     }, [currentView]);
 
+    if (currentView === ViewState.HOME || currentView === ViewState.USER_DASHBOARD) {
+        return null;
+    }
+
     if (!HEBREW_VIEWS.has(currentView)) {
         const MAIN_NAV_ITEMS = [
             { id: ViewState.HOME, label: 'Home', icon: Globe },

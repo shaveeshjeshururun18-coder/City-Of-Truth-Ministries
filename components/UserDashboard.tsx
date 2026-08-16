@@ -221,6 +221,18 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         return Math.round((score / total) * 100);
     };
 
+    const getMissingProfileFields = (u: User): string[] => {
+        const missing: string[] = [];
+        if (!u.name || u.name.length <= 2) missing.push('Full Name');
+        if (!u.photo) missing.push('Profile Photo');
+        if (!u.phone) missing.push('Phone Number');
+        if (!u.location) missing.push('Location');
+        if (!u.emergency) missing.push('Emergency Contact');
+        if (!u.biometrics?.credentialId) missing.push('Fingerprint Registration');
+        if (u.status !== 'Active' && !u.communityProfile?.role && !u.communityProfile?.churchName) missing.push('Ministry Role / Approval');
+        return missing;
+    };
+
     const toggleUserDarkMode = () => setIsDarkMode(prev => {
         const next = !prev;
         try { localStorage.setItem('cot_user_dashboard_theme', next ? 'dark' : 'light'); } catch { }
@@ -2050,18 +2062,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     {/* ── LEFT COLUMN ── */}
                     <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-5">
 
-                        {/* ── 📊 DASHBOARD STATISTICS SUMMARY GRID (6 STAT CARDS) ── */}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                            <div className="bg-emerald-50/90 border border-emerald-200 p-2.5 rounded-2xl shadow-xs flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                                    <span className="text-emerald-700 font-black text-xs">✓</span>
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-[9px] font-black uppercase text-emerald-700 tracking-wider">Status</p>
-                                    <p className="text-[11px] font-black text-emerald-900 truncate">Verified ✓</p>
-                                </div>
-                            </div>
-
+                        {/* ── 📊 DASHBOARD STATISTICS SUMMARY GRID (2 STAT CARDS) ── */}
+                        <div className="grid grid-cols-2 gap-2.5">
                             <div className="bg-brand-50/90 border border-brand-200 p-2.5 rounded-2xl shadow-xs flex items-center gap-2">
                                 <div className="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
                                     <span className="text-brand-700 font-black text-xs">📅</span>
@@ -2069,36 +2071,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 <div className="min-w-0 flex-1">
                                     <p className="text-[9px] font-black uppercase text-brand-700 tracking-wider">Joined</p>
                                     <p className="text-[11px] font-black text-brand-900 truncate">{user.joinedDate || user.memberSince || '2026'}</p>
-                                </div>
-                            </div>
-
-                            <div className="bg-violet-50/90 border border-violet-200 p-2.5 rounded-2xl shadow-xs flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center shrink-0">
-                                    <span className="text-violet-700 font-black text-xs">📁</span>
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-[9px] font-black uppercase text-violet-700 tracking-wider">Files</p>
-                                    <p className="text-[11px] font-black text-violet-900 truncate">3 Ready</p>
-                                </div>
-                            </div>
-
-                            <div className="bg-amber-50/90 border border-amber-200 p-2.5 rounded-2xl shadow-xs flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                                    <span className="text-amber-700 font-black text-xs">🔔</span>
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-[9px] font-black uppercase text-amber-700 tracking-wider">Alerts</p>
-                                    <p className="text-[11px] font-black text-amber-900 truncate">{notifications.length} Active</p>
-                                </div>
-                            </div>
-
-                            <div className="bg-sky-50/90 border border-sky-200 p-2.5 rounded-2xl shadow-xs flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-full bg-sky-100 flex items-center justify-center shrink-0">
-                                    <span className="text-sky-700 font-black text-xs">👁️</span>
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-[9px] font-black uppercase text-sky-700 tracking-wider">Views</p>
-                                    <p className="text-[11px] font-black text-sky-900 truncate">142 Views</p>
                                 </div>
                             </div>
 
@@ -2135,17 +2107,29 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             </div>
 
                             {/* Profile Completion Meter */}
-                            <div className="bg-white p-2.5 rounded-2xl border border-slate-200 shadow-xs min-w-[150px]">
+                            <div className="bg-white p-2.5 rounded-2xl border border-slate-200 shadow-xs min-w-[150px] group relative">
                                 <div className="flex items-center justify-between text-[11px] font-bold mb-1">
-                                    <span className="text-slate-600">Profile Completion</span>
+                                    <span className="text-slate-600 cursor-help">Profile Completion</span>
                                     <span className="text-brand-700 font-mono font-black">{calculateProfileCompletion(user)}%</span>
                                 </div>
-                                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200/50">
+                                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200/50 mb-1 cursor-help">
                                     <div
                                         className="bg-gradient-to-r from-brand-500 via-indigo-500 to-emerald-500 h-full rounded-full transition-all duration-1000 ease-out shadow-xs"
                                         style={{ width: `${calculateProfileCompletion(user)}%` }}
                                     />
                                 </div>
+                                {getMissingProfileFields(user).length > 0 && (
+                                    <div className="hidden group-hover:block absolute top-full left-0 right-0 mt-2 p-3 bg-slate-900 border border-slate-800 rounded-xl shadow-xl z-50 text-white">
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400 mb-2">Pending Details</p>
+                                        <ul className="text-xs space-y-1.5">
+                                            {getMissingProfileFields(user).map((field, idx) => (
+                                                <li key={idx} className="flex items-center gap-1.5 text-slate-300">
+                                                    <span className="w-1 h-1 rounded-full bg-amber-500 shrink-0" /> {field}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -2229,9 +2213,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                         {showMoreToolsDrawer && (
                             <div className="mt-3 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                                <button onClick={handleRegisterDashboardFingerprint} className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-amber-50 font-bold text-slate-700 flex items-center gap-1.5 cursor-pointer">
-                                    <Fingerprint size={15} className="text-amber-600 shrink-0" />
-                                    <span>Fingerprint</span>
+                                <button onClick={handleRegisterDashboardFingerprint} className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-amber-50 font-bold text-slate-700 flex flex-col items-start gap-1 cursor-pointer">
+                                    <div className="flex items-center gap-1.5"><Fingerprint size={15} className="text-amber-600 shrink-0" /><span>Fingerprint</span></div>
+                                    <span className="text-[8px] text-slate-400 font-normal">Use one leader</span>
                                 </button>
                                 <button onClick={() => { setGreetingCardMode('creator'); setShowGreetingCardModal(true); }} className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-amber-50 font-bold text-slate-700 flex items-center gap-1.5 cursor-pointer">
                                     <Sparkles size={15} className="text-amber-600 shrink-0" />
@@ -2356,7 +2340,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                                         : 'border-slate-200 bg-slate-100/70 opacity-75 hover:opacity-100 hover:border-red-300 cursor-not-allowed'
                                                 }`}
                                                 aria-pressed={isSelected}
-                                                title={status.requirement}
                                             >
                                                 {isSelected && (
                                                     <span className="absolute top-1.5 right-1.5 h-4 w-4 rounded-full bg-amber-500 flex items-center justify-center shadow-xs z-10">
@@ -2398,8 +2381,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                                     <span className="text-[8px] font-bold text-slate-400">Tap to select</span>
                                                 )}
                                                 {!isUnlocked && (
-                                                    <span className="text-[8px] font-bold text-red-500/80 tracking-tight line-clamp-1" title={status.requirement}>
-                                                        🔒 Requirement
+                                                    <span className="text-[8px] font-bold text-red-500/80 tracking-tight">
+                                                        🔒 {status.requirement}
                                                     </span>
                                                 )}
                                             </button>
@@ -2936,10 +2919,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                                 <p className="text-sm font-bold text-brand-950 text-center">{displayProfile.name}</p>
                                                 <p className="text-[11px] text-brand-700 font-mono text-center mt-0.5">{displayProfile.id.toUpperCase()}</p>
                                             </div>
-                                            <div className="mt-3 px-3 py-1.5 rounded-xl bg-slate-950 text-amber-300 border border-amber-400/40 flex items-center justify-between text-[10px] font-mono">
+                                            <div className="mt-3 px-3 py-1.5 rounded-xl bg-slate-950 text-amber-300 border border-amber-400/40 flex items-center justify-between text-[10px] font-mono cursor-pointer hover:bg-slate-900 transition-colors" onClick={handleCopyQrLink}>
                                                 <span className="flex items-center gap-1.5 font-bold">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                                                    🔒 256-BIT CRYPTOGRAPHIC LINK
+                                                    {qrLinkCopied ? '🔒 COPIED LINK!' : '🔒 256-BIT CRYPTOGRAPHIC LINK'}
                                                 </span>
                                                 <span className="text-slate-400">SEC-V1 ENCRYPTED</span>
                                             </div>
@@ -3440,8 +3423,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             </div>
 
                             {/* 256-Bit Cryptographic Link Badge */}
-                            <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-between text-[10px] font-mono mb-3">
-                                <span className="text-amber-300 font-bold">🔒 256-BIT CRYPTOGRAPHIC LINK</span>
+                            <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-between text-[10px] font-mono mb-3 cursor-pointer hover:bg-slate-800 transition-colors" onClick={handleCopyQrLink}>
+                                <span className="text-amber-300 font-bold">{qrLinkCopied ? '🔒 COPIED LINK!' : '🔒 256-BIT CRYPTOGRAPHIC LINK'}</span>
                                 <span className="text-slate-400">SEC-V1 ENCRYPTED</span>
                             </div>
 
