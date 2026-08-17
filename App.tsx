@@ -87,7 +87,6 @@ import { CommunityProfileForm } from './components/CommunityProfileForm';
 import VerifyIDPage from './components/VerifyIDPage';
 import { VisitingCard3D } from './components/VisitingCard3D';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { BottomNav } from './components/BottomNav';
 import GreetingCard from './components/GreetingCard';
 import SplashScreen from './components/SplashScreen';
 
@@ -3768,9 +3767,6 @@ const App: React.FC = () => {
       </main>
       {!isFrame && (
         <>
-          {/* Bottom Navigation Bar (mobile) */}
-          <BottomNav currentView={currentView} setView={setCurrentView} />
-
       {/* Fixed Leader Message Popup */}
       <AnimatePresence>
         {showLeaderMessage && (
