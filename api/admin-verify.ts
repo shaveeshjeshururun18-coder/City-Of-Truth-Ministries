@@ -5,7 +5,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const password = String(req.body?.password || '').trim();
-    const expectedPassword = (process.env.ADMIN_PASSWORD || process.env.VITE_ADMIN_PASSWORD || 'COTAdmin2026!').trim();
+    const expectedPassword = (process.env.ADMIN_PASSWORD || process.env.VITE_ADMIN_PASSWORD || 'ssj18').trim();
 
     if (!password) {
       return res.status(400).json({ success: false, error: 'Password is required' });

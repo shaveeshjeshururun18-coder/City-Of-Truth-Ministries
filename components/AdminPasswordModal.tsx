@@ -53,7 +53,7 @@ export const AdminPasswordModal: React.FC<AdminPasswordModalProps> = ({ onSucces
             }
         } catch (err: any) {
             // Fallback for local dev mode without server
-            const fallbackPassword = (import.meta.env.VITE_ADMIN_PASSWORD || 'COTAdmin2026!').trim();
+            const fallbackPassword = (import.meta.env.VITE_ADMIN_PASSWORD || 'ssj18').trim();
             if (password.trim().toLowerCase() === fallbackPassword.toLowerCase()) {
                 setError('');
                 onSuccess();
