@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, Play, Info, ArrowRight, Share2, Phone, MessageCircle, Heart, Flame, Shield, Crown, Video, Clock } from 'lucide-react';
 import { Button } from './Button';
 import { api, BaruchVideo } from '../services/api';
+import { CircularCarousel } from '@/components/ui/circular-carousel';
+import { Footer } from '@/components/ui/footer-section';
 
 // Data from user request
 const praiseData = [
@@ -144,6 +146,12 @@ export const BaruchHashemPage: React.FC = () => {
     const [videos, setVideos] = useState<Record<number, string>>(DEFAULT_VIDEOS);
     const audioRef = useRef<HTMLAudioElement>(null);
     const chapterSectionRef = useRef<HTMLElement>(null);
+    const carouselItems = praiseData.map((item) => ({
+        id: String(item.part),
+        title: `${item.name} · Part ${item.part}`,
+        description: item.theme,
+        tag: item.letter
+    }));
 
     useEffect(() => {
         const fetchVideos = async () => {
@@ -284,6 +292,20 @@ export const BaruchHashemPage: React.FC = () => {
             </section>
 
             <GallerySection onImageClick={scrollToChapter} videos={videos} />
+
+            <section className="relative py-24 bg-[#070a16] text-white overflow-hidden border-y border-amber-500/15">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.18),transparent_55%)] pointer-events-none" />
+                <div className="container mx-auto px-6 max-w-6xl relative z-10">
+                    <div className="text-center mb-14">
+                        <span className="text-amber-400 font-bold uppercase tracking-[0.22em] text-xs">Magnificent Grandeur</span>
+                        <h2 className="text-4xl md:text-5xl font-serif font-bold mt-3 text-amber-50">Circle of Praise</h2>
+                        <p className="text-slate-300 mt-4 max-w-2xl mx-auto">
+                            Journey through the 22 pillars in a radiant flow and discover each divine attribute in worship.
+                        </p>
+                    </div>
+                    <CircularCarousel items={carouselItems} />
+                </div>
+            </section>
 
             {/* 4. The 22 Parts (All Pre-shown in Grid) */}
             <section ref={chapterSectionRef} className="py-24 bg-slate-50 border-t border-slate-200">
@@ -526,6 +548,10 @@ export const BaruchHashemPage: React.FC = () => {
 
                     </div>
                 </div>
+            </section>
+
+            <section className="bg-[#050810] px-4 pb-0 pt-16">
+                <Footer />
             </section>
         </div>
     );
