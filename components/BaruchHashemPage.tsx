@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, Play, Info, ArrowRight, Share2, Phone, MessageCircle, Heart, Flame, Shield, Crown, Video, Clock } from 'lucide-react';
 import { Button } from './Button';
 import { api, BaruchVideo } from '../services/api';
+import { CircularCarousel } from '@/components/ui/circular-carousel';
+import { Footer } from '@/components/ui/footer-section';
 
 // Data from user request
 const praiseData = [
@@ -144,6 +146,12 @@ export const BaruchHashemPage: React.FC = () => {
     const [videos, setVideos] = useState<Record<number, string>>(DEFAULT_VIDEOS);
     const audioRef = useRef<HTMLAudioElement>(null);
     const chapterSectionRef = useRef<HTMLElement>(null);
+    const carouselItems = praiseData.map((item) => ({
+        id: String(item.part),
+        title: `${item.name} · Part ${item.part}`,
+        description: item.theme,
+        tag: item.letter
+    }));
 
     useEffect(() => {
         const fetchVideos = async () => {
@@ -228,11 +236,30 @@ export const BaruchHashemPage: React.FC = () => {
         }
     };
 
+    const scrollToHighlights = () => {
+        chapterSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    const scrollToContact = () => {
+        document.getElementById('baruch-contact')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
     return (
         <div className="min-h-screen bg-slate-50 font-sans">
 
             {/* 1. Hero Section (Blessing Page) */}
             <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#0b1121] text-white pt-24 md:pt-20">
+                <motion.div
+                    className="absolute -top-28 -left-24 h-72 w-72 rounded-full bg-amber-400/20 blur-3xl pointer-events-none"
+                    animate={{ opacity: [0.35, 0.7, 0.35], scale: [1, 1.1, 1] }}
+                    transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+                />
+                <motion.div
+                    className="absolute -bottom-24 -right-16 h-72 w-72 rounded-full bg-indigo-500/25 blur-3xl pointer-events-none"
+                    animate={{ opacity: [0.25, 0.55, 0.25], scale: [1.05, 1, 1.05] }}
+                    transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+                />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(251,191,36,0.2),transparent_48%)] pointer-events-none" />
                 {/* Background Menorah Watermark */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
                     <Flame size={600} className="text-amber-500 animate-pulse-slow" />
@@ -276,6 +303,34 @@ export const BaruchHashemPage: React.FC = () => {
                                         </div>
                                         <audio ref={audioRef} className="hidden" src="/barch_hasem/sample_audio.mp3" onEnded={() => setIsPlaying(false)}></audio>
                                     </div>
+                                    <Button
+                                       variant="glass"
+                                       className="px-6 py-3 text-sm"
+                                       onClick={scrollToHighlights}
+                                    >
+                                       Explore 22 Parts <ArrowRight size={16} />
+                                    </Button>
+                                    <Button
+                                       variant="accent"
+                                       className="px-6 py-3 text-sm"
+                                       onClick={scrollToContact}
+                                    >
+                                       Contact Ministry
+                                    </Button>
+                                </div>
+
+                                <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
+                                   {[
+                                       { icon: Crown, title: '22 Hebrew Parts', subtitle: 'Aleph to Tav praise flow' },
+                                       { icon: Shield, title: '176 Praises', subtitle: 'Spiritual declarations' },
+                                       { icon: Heart, title: 'Tamil Meaning', subtitle: 'Worship with understanding' }
+                                   ].map((item) => (
+                                       <div key={item.title} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-md">
+                                           <item.icon size={18} className="text-amber-300 mb-2" />
+                                           <p className="text-sm font-semibold text-white">{item.title}</p>
+                                           <p className="text-xs text-slate-300">{item.subtitle}</p>
+                                       </div>
+                                   ))}
                                 </div>
                             </div>
                         </div>
@@ -285,8 +340,22 @@ export const BaruchHashemPage: React.FC = () => {
 
             <GallerySection onImageClick={scrollToChapter} videos={videos} />
 
+            <section className="relative py-24 bg-[#070a16] text-white overflow-hidden border-y border-amber-500/15">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.18),transparent_55%)] pointer-events-none" />
+                <div className="container mx-auto px-6 max-w-6xl relative z-10">
+                    <div className="text-center mb-14">
+                        <span className="text-amber-400 font-bold uppercase tracking-[0.22em] text-xs">Magnificent Grandeur</span>
+                        <h2 className="text-4xl md:text-5xl font-serif font-bold mt-3 text-amber-50">Circle of Praise</h2>
+                        <p className="text-slate-300 mt-4 max-w-2xl mx-auto">
+                            Journey through the 22 pillars in a radiant flow and discover each divine attribute in worship.
+                        </p>
+                    </div>
+                    <CircularCarousel items={carouselItems} />
+                </div>
+            </section>
+
             {/* 4. The 22 Parts (All Pre-shown in Grid) */}
-            <section ref={chapterSectionRef} className="py-24 bg-slate-50 border-t border-slate-200">
+            <section id="baruch-highlights" ref={chapterSectionRef} className="py-24 bg-slate-50 border-t border-slate-200">
                 <div className="container mx-auto px-6 max-w-[1400px]">
                     <div className="text-center mb-16">
                         <span className="text-amber-600 font-bold uppercase tracking-widest text-xs">Divine Attributes</span>
@@ -487,13 +556,14 @@ export const BaruchHashemPage: React.FC = () => {
             </section>
 
             {/* 5. Contact Section */}
-            <section className="py-16 bg-white border-t border-slate-100">
+            <section id="baruch-contact" className="py-20 bg-gradient-to-b from-white to-amber-50/30 border-t border-slate-100">
                 <div className="container mx-auto px-6 text-center">
-                    <h2 className="text-3xl font-serif font-bold text-slate-900 mb-8">Contact Us</h2>
+                    <h2 className="text-3xl md:text-4xl font-serif font-bold text-slate-900 mb-3">Connect With Us</h2>
+                    <p className="text-slate-600 max-w-2xl mx-auto mb-10">Join the worship movement, ask for prayer, and stay connected to the Baruch Hashem teachings.</p>
                     <div className="flex flex-col md:flex-row items-center justify-center gap-8">
 
                         {/* WhatsApp */}
-                        <div className="bg-brand-50 p-8 rounded-2xl border border-brand-100 flex flex-col items-center min-w-[280px]">
+                        <div className="bg-white p-8 rounded-3xl border border-amber-100/70 shadow-xl shadow-amber-100/40 flex flex-col items-center min-w-[280px] transition-transform duration-300 hover:-translate-y-1">
                             <div className="bg-green-100 p-4 rounded-full text-green-600 mb-4">
                                 <MessageCircle size={32} />
                             </div>
@@ -503,14 +573,14 @@ export const BaruchHashemPage: React.FC = () => {
                                 href="https://wa.me/918056152478"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="px-6 py-2 bg-green-600 text-white rounded-full font-bold hover:bg-green-700 transition-colors"
+                                className="px-6 py-2 bg-green-600 text-white rounded-full font-bold hover:bg-green-700 transition-colors shadow-md shadow-green-400/25"
                             >
                                 Chat Now
                             </a>
                         </div>
 
                         {/* Email */}
-                        <div className="bg-brand-50 p-8 rounded-2xl border border-brand-100 flex flex-col items-center min-w-[280px]">
+                        <div className="bg-white p-8 rounded-3xl border border-amber-100/70 shadow-xl shadow-amber-100/40 flex flex-col items-center min-w-[280px] transition-transform duration-300 hover:-translate-y-1">
                             <div className="bg-blue-100 p-4 rounded-full text-blue-600 mb-4">
                                 <Info size={32} />
                             </div>
@@ -526,6 +596,10 @@ export const BaruchHashemPage: React.FC = () => {
 
                     </div>
                 </div>
+            </section>
+
+            <section className="bg-[#050810] pb-0 pt-16">
+                <Footer />
             </section>
         </div>
     );
