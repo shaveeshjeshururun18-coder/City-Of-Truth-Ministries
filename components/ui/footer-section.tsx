@@ -30,7 +30,7 @@ const footerLinks: FooterSection[] = [
     label: 'Community',
     links: [
       { title: 'About Us', href: '/ministries' },
-      { title: 'Contact Us', href: '#contact' },
+      { title: 'Contact Us', href: '#baruch-contact' },
       { title: 'Donate', href: '/#donate' },
       { title: 'YouTube Channel', href: 'https://youtube.com/@cotministries' },
     ],
@@ -49,42 +49,47 @@ const footerLinks: FooterSection[] = [
 
 export function Footer() {
   return (
-    <footer className="md:rounded-t-6xl relative w-full max-w-6xl mx-auto flex flex-col items-center justify-center rounded-t-4xl border-t border-amber-400/20 bg-[radial-gradient(35%_128px_at_50%_0%,rgba(251,191,36,0.25),transparent)] px-6 py-12 lg:py-16">
+    <footer className="relative w-full border-t border-amber-400/20 bg-[radial-gradient(40%_180px_at_50%_0%,rgba(251,191,36,0.24),transparent)] px-6 py-12 lg:py-16">
       <div className="bg-amber-300/40 absolute top-0 right-1/2 left-1/2 h-px w-1/3 -translate-x-1/2 -translate-y-1/2 rounded-full blur" />
 
-      <div className="grid w-full gap-8 xl:grid-cols-4 xl:gap-8">
-        <AnimatedContainer className="space-y-4 xl:col-span-1">
-          <FlameIcon className="size-8 text-amber-300" />
-          <h3 className="text-white font-semibold tracking-wide">City of Truth Ministries</h3>
-          <p className="text-slate-300 mt-3 text-sm leading-relaxed">
-            Blessed be His holy name forever. Worship, wisdom, and witness for every generation.
-          </p>
-          <p className="text-slate-400 text-xs">© {new Date().getFullYear()} City of Truth Ministries. All rights reserved.</p>
-        </AnimatedContainer>
+      <div className="mx-auto w-full max-w-7xl">
+        <div className="grid w-full gap-8 xl:grid-cols-4 xl:gap-8">
+          <AnimatedContainer className="space-y-4 xl:col-span-1">
+            <FlameIcon className="size-8 text-amber-300" />
+            <h3 className="text-white font-semibold tracking-wide">City of Truth Ministries</h3>
+            <p className="text-slate-300 mt-3 text-sm leading-relaxed">
+              Blessed be His holy name forever. Worship, wisdom, and witness for every generation.
+            </p>
+            <p className="text-slate-400 text-xs">© {new Date().getFullYear()} City of Truth Ministries. All rights reserved.</p>
+          </AnimatedContainer>
 
-        <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-3 xl:col-span-3 xl:mt-0">
-          {footerLinks.map((section, index) => (
-            <AnimatedContainer key={section.label} delay={0.1 + index * 0.1}>
-              <div className="mb-6 md:mb-0">
-                <h3 className="text-xs text-amber-200 uppercase tracking-wider">{section.label}</h3>
-                <ul className="text-slate-300 mt-4 space-y-2 text-sm">
-                  {section.links.map((link) => (
-                    <li key={link.title}>
-                      <a
-                        href={link.href}
-                        target={link.href.startsWith('http') ? '_blank' : undefined}
-                        rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                        className="hover:text-amber-200 inline-flex items-center transition-all duration-300"
-                      >
-                        {link.icon && <link.icon className="me-2 size-4" />}
-                        {link.title}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </AnimatedContainer>
-          ))}
+          <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-3 xl:col-span-3 xl:mt-0">
+            {footerLinks.map((section, index) => (
+              <AnimatedContainer key={section.label} delay={0.1 + index * 0.1}>
+                <div className="mb-6 md:mb-0">
+                  <h3 className="text-xs text-amber-200 uppercase tracking-wider">{section.label}</h3>
+                  <ul className="text-slate-300 mt-4 space-y-2 text-sm">
+                    {section.links.map((link) => (
+                      <li key={link.title}>
+                        <a
+                          href={link.href}
+                          target={link.href.startsWith('http') ? '_blank' : undefined}
+                          rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                          className="hover:text-amber-200 inline-flex items-center transition-all duration-300"
+                        >
+                          {link.icon && <link.icon className="me-2 size-4" />}
+                          {link.title}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </AnimatedContainer>
+            ))}
+          </div>
+        </div>
+        <div className="mt-10 border-t border-white/10 pt-5 text-center text-xs text-slate-400">
+          Baruch Hashem • Praise in Hebrew and Tamil • City of Truth Ministries
         </div>
       </div>
     </footer>

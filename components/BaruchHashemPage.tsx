@@ -598,7 +598,7 @@ export const BaruchHashemPage: React.FC = () => {
                 </div>
             </section>
 
-            <section className="bg-[#050810] px-4 pb-0 pt-16">
+            <section className="bg-[#050810] pb-0 pt-16">
                 <Footer />
             </section>
         </div>
