@@ -2274,7 +2274,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     </div>
 
                     {/* ── VISIBLE MEMBER BADGE PICKER ── */}
-                    <div className="bg-white rounded-[24px] p-4 shadow-md border border-slate-100 relative overflow-hidden">
+                    <div className="w-full bg-white rounded-[24px] p-4 shadow-md border border-slate-100 relative overflow-hidden">
                         <div className="absolute right-0 top-0 h-32 w-32 bg-gradient-to-bl from-amber-100/60 to-transparent rounded-bl-[64px] pointer-events-none" />
                         <div className="absolute left-0 bottom-0 h-24 w-24 bg-gradient-to-tr from-blue-50/60 to-transparent rounded-tr-[48px] pointer-events-none" />
                         <div className="relative flex items-start justify-between gap-3 mb-4">
@@ -2673,8 +2673,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                     </div>
 
-                    {/* ── RIGHT CONTENT AREA ── */}
-                    <div className="flex-1 min-w-0 flex flex-col gap-5">
+                    {/* ── RIGHT COLUMN ── */}
+                    <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-6">
                     <div id="dashboard-notifications-card" ref={notificationsSectionRef} className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-3">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">

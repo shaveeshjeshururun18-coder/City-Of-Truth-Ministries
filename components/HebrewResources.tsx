@@ -21,6 +21,7 @@ import { getCalendarData5786 } from './CalendarLogic';
 import { audioService } from '../services/audioService';
 import { HebrewGrammar3D } from './HebrewGrammar3D';
 import { IsraelPage } from './IsraelPage';
+import { NavBar } from './ui/tubelight-navbar';
 import { MouthPronunciationAnimator, type PhonemeStep } from './MouthPronunciationAnimator';
 import { PSALM_119_VERSES } from './psalm119';
 import { GematriaHint } from './icons/modernIcons';
@@ -4750,33 +4751,32 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
         <div className="min-h-screen pt-24 md:pt-32 pb-32 md:pb-20 w-full px-3 md:px-6 font-sans bg-[#fffdf6]">
             <div className={`mx-auto flex flex-col items-center ${tab === 'calendar' ? 'max-w-5xl' : 'max-w-7xl'}`}>
 
-                {/* Desktop Horizontal navigation menu: Hide on scroll down, show on scroll up */}
+                {/* Desktop Tubelight Horizontal Navigation Menu: Hide on scroll down, show on scroll up */}
                 <motion.div
                     initial={{ y: 0, opacity: 1 }}
                     animate={{ y: tabNavVisible ? 0 : -140, opacity: tabNavVisible ? 1 : 0 }}
                     transition={{ duration: 0.28, ease: "easeInOut" }}
                     className={`hidden md:block sticky top-[76px] z-30 w-full bg-transparent py-4 mb-6 border-none shadow-none ${tabNavVisible ? 'pointer-events-auto' : 'pointer-events-none'}`}
                 >
-                    <div className="flex flex-wrap items-center justify-center gap-3">
-                        {availableTabs.map((t) => {
-                            const isActive = tab === t.id;
-                            return (
-                                <motion.button
-                                    key={t.id}
-                                    onClick={() => { setTab(t.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    className={`relative flex items-center justify-center gap-2 px-6 py-3.5 rounded-full font-black text-[11px] uppercase tracking-widest transition-all duration-500 shadow-sm border ${isActive
-                                            ? 'bg-gradient-to-r from-amber-500 to-amber-600 border-amber-600 text-white shadow-lg shadow-amber-500/25'
-                                            : 'bg-white text-slate-400 hover:text-amber-600 hover:border-amber-200 border-slate-200 hover:bg-amber-50/10'
-                                        }`}
-                                >
-                                    {t.icon}
-                                    <span>{t.label}</span>
-                                </motion.button>
-                            );
-                        })}
-                    </div>
+                    <NavBar
+                        items={availableTabs.map((t) => ({
+                            id: t.id,
+                            name: t.label,
+                            url: '#',
+                            icon: t.icon,
+                            onClick: () => {
+                                setTab(t.id);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }
+                        }))}
+                        activeTab={tab}
+                        onTabChange={(targetId) => {
+                            setTab(targetId as HebrewResourceTab);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        glowColor="amber"
+                        isFloating={false}
+                    />
                 </motion.div>
 
                 {/* Mobile Bottom navigation menu has been removed in favor of global BottomNav */}
@@ -4788,10 +4788,10 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={tab}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            transition={{ duration: 0.3 }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.25 }}
                             className="w-full"
                         >
                             {tab === 'israel' && <IsraelPage />}

@@ -144,85 +144,61 @@ export const VisitingCard3D: React.FC<{ compact?: boolean }> = ({ compact = fals
                 </div>
             </div>
 
-            {/* DOWNLOAD BUTTON */}
-            <div className="mt-8 z-10">
+            {/* CUSTOM DARK GOLD DOWNLOAD BUTTON */}
+            <div className="mt-6 z-10">
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
                         generatePdfCard();
                     }}
                     disabled={isExporting}
-                    className="Btn-Container-3D"
+                    className="Btn-Container-3D group"
                 >
-                    <span className="text-3D">{isExporting ? 'Building...' : "Download"}</span>
+                    <span className="text-3D font-serif font-black">{isExporting ? 'Building...' : "Download"}</span>
                     <span className="icon-Container-3D">
-                        <svg width="16" height="19" viewBox="0 0 16 19" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="1.61321" cy="1.61321" r="1.5" fill="black"></circle>
-                            <circle cx="5.73583" cy="1.61321" r="1.5" fill="black"></circle>
-                            <circle cx="5.73583" cy="5.5566" r="1.5" fill="black"></circle>
-                            <circle cx="9.85851" cy="5.5566" r="1.5" fill="black"></circle>
-                            <circle cx="9.85851" cy="9.5" r="1.5" fill="black"></circle>
-                            <circle cx="13.9811" cy="9.5" r="1.5" fill="black"></circle>
-                            <circle cx="5.73583" cy="13.4434" r="1.5" fill="black"></circle>
-                            <circle cx="9.85851" cy="13.4434" r="1.5" fill="black"></circle>
-                            <circle cx="1.61321" cy="17.3868" r="1.5" fill="black"></circle>
-                            <circle cx="5.73583" cy="17.3868" r="1.5" fill="black"></circle>
-                        </svg>
+                        <Download size={18} className="text-slate-950 transition-transform duration-300 group-hover:translate-y-0.5 group-hover:scale-110" />
                     </span>
                 </button>
                 <style>{`
                     .Btn-Container-3D {
                         display: flex;
-                        width: 170px;
-                        height: fit-content;
-                        background-color: #1d2129;
+                        width: 175px;
+                        height: 48px;
+                        background: linear-gradient(135deg, #1c160c 0%, #0a0805 100%);
                         border-radius: 40px;
-                        box-shadow: none;
+                        border: 1.5px solid rgba(245, 158, 11, 0.45);
+                        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), 0 0 15px rgba(245, 158, 11, 0.15);
                         justify-content: space-between;
                         align-items: center;
-                        border: none;
+                        padding: 3px 3px 3px 18px;
                         cursor: pointer;
+                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    }
+                    .Btn-Container-3D:hover {
+                        border-color: rgba(251, 191, 36, 0.8);
+                        box-shadow: 0 8px 30px rgba(245, 158, 11, 0.4), 0 0 20px rgba(251, 191, 36, 0.25);
+                        transform: translateY(-2px);
                     }
                     .Btn-Container-3D:disabled {
                         opacity: 0.5;
                         cursor: not-allowed;
                     }
                     .icon-Container-3D {
-                        width: 45px;
-                        height: 45px;
-                        background-color: #f59aff;
+                        width: 40px;
+                        height: 40px;
+                        background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 50%, #d97706 100%);
                         display: flex;
                         align-items: center;
                         justify-content: center;
                         border-radius: 50%;
-                        border: 3px solid #1d2129;
+                        box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
                     }
                     .text-3D {
-                        width: calc(170px - 45px);
-                        height: 100%;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        color: white;
-                        font-size: 1.1em;
-                        letter-spacing: 1.2px;
-                    }
-                    .icon-Container-3D svg {
-                        transition-duration: 1.5s;
-                    }
-                    .Btn-Container-3D:hover .icon-Container-3D svg {
-                        transition-duration: 1.5s;
-                        animation: arrow-3d 1s linear infinite;
-                    }
-                    @keyframes arrow-3d {
-                        0% {
-                            opacity: 0;
-                            margin-left: 0px;
-                        }
-                        100% {
-                            opacity: 1;
-                            margin-left: 10px;
-                        }
+                        color: #fef3c7;
+                        font-size: 0.8rem;
+                        letter-spacing: 0.15em;
+                        text-transform: uppercase;
+                        text-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
                     }
                 `}</style>
             </div>

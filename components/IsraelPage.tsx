@@ -4,6 +4,7 @@ import { Globe, MapPin, Sparkles, Scroll, Landmark, History, Compass, ArrowRight
 import { audioService } from '../services/audioService';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { PeelingStackCards, PeelingCardItem } from './ui/peeling-stack-cards';
 
 interface RegionData {
     id: string;
@@ -264,375 +265,486 @@ export const IsraelPage: React.FC = () => {
                     </div>
                 </section>
 
-                {/* Interactive Map & Regional Discovery Section */}
-                <section className="bg-white p-6 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                    <div className="text-center max-w-xl mx-auto mb-10">
-                        <span className="px-3.5 py-1.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-black tracking-widest uppercase border border-amber-200 inline-block mb-3">
-                            Interactive Regional Hub
-                        </span>
-                        <h2 className="text-3xl font-serif text-slate-900 font-bold">Discover Israel's Regions</h2>
-                        <p className="text-slate-500 text-sm font-medium mt-1">
-                            Click or tap areas on the map outline to explore biblical significance, geographic details, and archaeological marvels.
-                        </p>
-                    </div>
+                {/* 3D Peeling Stacking Cards - Discover Israel's Regions */}
+                {(() => {
+                    const regionCards: PeelingCardItem[] = REGIONS.map((region, index) => {
+                        const isJerusalem = region.id === 'jerusalem';
+                        const isGalilee = region.id === 'galilee';
+                        const isJudeaSamaria = region.id === 'judea-samaria';
+                        const isCoastal = region.id === 'coastal-plain';
+                        const isNegev = region.id === 'negev';
 
-                    <div className="grid lg:grid-cols-12 gap-8 items-stretch">
+                        let themeGradient = 'from-[#1c1917] via-[#27272a] to-[#713f12]';
+                        let borderColor = 'border-amber-500/30';
+                        let badgeLabel = `Region 0${index + 1} · Biblical Heartland`;
+                        let badgeColor = 'text-amber-400';
+                        let mapHighlightColor = '#d97706';
 
-                        {/* Column 1: Interactive SVG Map (occupies 5 cols) */}
-                        <div className="lg:col-span-5 flex flex-col items-center justify-center bg-slate-50 p-6 rounded-3xl border border-slate-150 relative min-h-[360px]">
-                            {/* Map Labels Overlay */}
-                            <div className="absolute top-4 left-4 text-[9px] text-slate-400 uppercase tracking-wider font-mono">
-                                Map boundaries illustrative
-                            </div>
+                        if (isGalilee) {
+                            themeGradient = 'from-[#052e16] via-[#064e3b] to-[#022c22]';
+                            borderColor = 'border-emerald-500/35';
+                            badgeLabel = `Region 0${index + 1} · Northern Realm`;
+                            badgeColor = 'text-emerald-400';
+                            mapHighlightColor = '#10b981';
+                        } else if (isJudeaSamaria) {
+                            themeGradient = 'from-[#451a03] via-[#78350f] to-[#1c1917]';
+                            borderColor = 'border-amber-500/35';
+                            badgeLabel = `Region 0${index + 1} · Biblical Heartland`;
+                            badgeColor = 'text-amber-400';
+                            mapHighlightColor = '#f59e0b';
+                        } else if (isJerusalem) {
+                            themeGradient = 'from-[#422006] via-[#713f12] to-[#18181b]';
+                            borderColor = 'border-yellow-500/45';
+                            badgeLabel = `Region 0${index + 1} · Eternal Capital`;
+                            badgeColor = 'text-yellow-400';
+                            mapHighlightColor = '#fbbf24';
+                        } else if (isCoastal) {
+                            themeGradient = 'from-[#082f49] via-[#075985] to-[#0f172a]';
+                            borderColor = 'border-cyan-500/35';
+                            badgeLabel = `Region 0${index + 1} · Mediterranean Coast`;
+                            badgeColor = 'text-cyan-400';
+                            mapHighlightColor = '#06b6d4';
+                        } else if (isNegev) {
+                            themeGradient = 'from-[#431407] via-[#9a3412] to-[#1c1917]';
+                            borderColor = 'border-orange-500/35';
+                            badgeLabel = `Region 0${index + 1} · Southern Wilderness`;
+                            badgeColor = 'text-orange-400';
+                            mapHighlightColor = '#f97316';
+                        }
 
-                            <svg
-                                className="w-full max-w-[260px] h-auto text-slate-300 drop-shadow-md"
-                                viewBox="0 0 200 350"
-                                fill="none"
-                                stroke="#cbd5e1"
-                                strokeWidth="2"
-                            >
-                                {/* Background Outline representing Jordan River / borders */}
-                                <path d="M 140,25 C 130,60 133,130 115,148 C 110,160 110,240 80,320" stroke="#93c5fd" strokeWidth="1" strokeDasharray="3,3" />
-
-                                {REGIONS.map((region) => {
-                                    const isSelected = selectedRegion.id === region.id;
-                                    return (
-                                        <g key={region.id} className="cursor-pointer">
-                                            <motion.path
-                                                d={region.coordinates}
-                                                className="transition-all duration-300 outline-none"
-                                                fill={isSelected ? '#d97706' : '#e2e8f0'}
-                                                fillOpacity={isSelected ? 0.35 : 0.6}
-                                                stroke={isSelected ? '#d97706' : '#94a3b8'}
-                                                strokeWidth={isSelected ? 3.5 : 1.5}
-                                                whileHover={{ scale: 1.02, fillOpacity: 0.8 }}
-                                                onClick={() => setSelectedRegion(region)}
-                                            />
-                                        </g>
-                                    );
-                                })}
-
-                                {/* Holy Cities Pins */}
-                                {/* Jerusalem Pin */}
-                                <circle cx="102" cy="139" r="4.5" fill="#ef4444" stroke="#ffffff" strokeWidth="1.5" className="animate-pulse" />
-                                <text x="109" y="142" fill="#ef4444" fontSize="8" fontWeight="bold" fontFamily="sans-serif">Jerusalem</text>
-
-                                {/* Sea of Galilee */}
-                                <ellipse cx="132" cy="50" rx="6" ry="10" fill="#3b82f6" fillOpacity="0.8" stroke="#1d4ed8" strokeWidth="1" />
-                                <text x="141" y="53" fill="#1d4ed8" fontSize="7" fontWeight="bold" fontFamily="sans-serif">Galilee</text>
-
-                                {/* Dead Sea */}
-                                <ellipse cx="112" cy="180" rx="5" ry="25" fill="#3b82f6" fillOpacity="0.8" stroke="#1d4ed8" strokeWidth="1" />
-                                <text x="120" y="183" fill="#1e3a8a" fontSize="7" fontWeight="bold" fontFamily="sans-serif">Dead Sea</text>
-                            </svg>
-
-                            {/* Region quick selector buttons */}
-                            <div className="flex flex-wrap justify-center gap-1.5 mt-6 w-full">
-                                {REGIONS.map(r => (
-                                    <button
-                                        key={r.id}
-                                        onClick={() => setSelectedRegion(r)}
-                                        className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider transition-all border ${selectedRegion.id === r.id
-                                                ? 'bg-amber-500 border-amber-600 text-white shadow-sm'
-                                                : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-100'
-                                            }`}
-                                    >
-                                        {r.name.split(' ')[0]}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Column 2: Region Detail Display Card (occupies 7 cols) */}
-                        <div className="lg:col-span-7">
-                            <AnimatePresence mode="wait">
-                                <motion.div
-                                    key={selectedRegion.id}
-                                    initial={{ opacity: 0, x: 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -20 }}
-                                    transition={{ duration: 0.3 }}
-                                    className="h-full flex flex-col justify-between p-6 md:p-8 bg-gradient-to-br from-slate-50 to-white rounded-3xl border border-slate-150 shadow-sm relative overflow-hidden"
-                                >
-                                    {/* Glowing side accent */}
-                                    <div className={`absolute top-0 left-0 w-2 h-full bg-gradient-to-b ${selectedRegion.color}`}></div>
-
-                                    <div className="space-y-5">
-                                        <div className="flex items-start justify-between">
-                                            <div>
-                                                <h3 className="text-2xl font-serif text-slate-900 font-bold">{selectedRegion.name}</h3>
-                                                <p className="text-[#d97706] font-bold text-sm tracking-wide flex items-center gap-2 mt-0.5">
-                                                    <span>{selectedRegion.hebrew}</span> · <span>{selectedRegion.tamilName}</span>
-                                                </p>
+                        return {
+                            id: region.id,
+                            tabLabel: region.name.split(' (')[0],
+                            tabIcon: <MapPin size={14} />,
+                            stageBadge: badgeLabel,
+                            badgeIcon: <MapPin size={12} className={badgeColor} />,
+                            title: region.name,
+                            tamilTitle: `${region.hebrew} · ${region.tamilName}`,
+                            subtitle: region.description,
+                            themeGradient,
+                            borderColor,
+                            content: (
+                                <div className="space-y-4 text-left">
+                                    {/* Hebrew Pronunciation & Audio Bar */}
+                                    <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-black/40 backdrop-blur-md border border-white/10">
+                                        <div>
+                                            <div className="text-[10px] font-mono tracking-widest text-amber-300 uppercase font-bold">
+                                                Hebrew Name & Audio
                                             </div>
-                                            <button
-                                                onClick={() => handlePlayAudio(selectedRegion.hebrew)}
-                                                className="p-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 hover:bg-amber-100 transition-colors shadow-sm"
-                                                title="Hear Hebrew pronunciation"
-                                            >
-                                                <Volume2 size={16} />
-                                            </button>
+                                            <div className="text-xl font-serif font-bold text-white tracking-wide">
+                                                {region.hebrew}
+                                            </div>
                                         </div>
+                                        <button
+                                            onClick={() => handlePlayAudio(region.hebrew)}
+                                            className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold text-xs flex items-center gap-2 hover:from-amber-600 hover:to-amber-700 transition-all shadow-md shadow-amber-500/20 active:scale-95 cursor-pointer"
+                                            title="Listen to authentic Hebrew pronunciation"
+                                        >
+                                            <Volume2 size={15} />
+                                            <span>Listen ({region.hebrew})</span>
+                                        </button>
+                                    </div>
 
-                                        <div className="space-y-3">
-                                            <div>
-                                                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1">Geographic Overview</span>
-                                                <p className="text-slate-600 text-sm leading-relaxed">{selectedRegion.description}</p>
-                                                <p className="text-slate-500 text-xs italic leading-relaxed mt-2 font-serif bg-amber-500/5 px-3 py-1.5 rounded-lg border-l border-amber-300">{selectedRegion.tamilDesc}</p>
-                                            </div>
+                                    {/* Tamil Description Callout Box */}
+                                    <div className="p-3.5 rounded-2xl bg-amber-500/10 border-l-4 border-amber-400 backdrop-blur-sm">
+                                        <div className="text-[10px] font-black uppercase tracking-wider text-amber-300 mb-1">
+                                            தமிழ் விளக்கம் (Tamil Summary)
+                                        </div>
+                                        <p className="text-amber-100/90 text-xs sm:text-sm font-serif leading-relaxed italic">
+                                            {region.tamilDesc}
+                                        </p>
+                                    </div>
 
-                                            <div className="grid sm:grid-cols-2 gap-4 pt-2">
-                                                <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
-                                                    <span className="text-[10px] font-black uppercase text-brand-600 tracking-wider block mb-1 flex items-center gap-1">
-                                                        <Scroll size={11} /> Biblical History
-                                                    </span>
-                                                    <p className="text-slate-600 text-xs leading-relaxed">{selectedRegion.biblicalSignificance}</p>
-                                                </div>
-                                                <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
-                                                    <span className="text-[10px] font-black uppercase text-[#1e3a8a] tracking-wider block mb-1 flex items-center gap-1">
-                                                        <Landmark size={11} /> Archaeology
-                                                    </span>
-                                                    <p className="text-slate-600 text-xs leading-relaxed">{selectedRegion.archaeology}</p>
-                                                </div>
-                                            </div>
+                                    {/* 2-Column Grid: Biblical History & Archaeology */}
+                                    <div className="grid sm:grid-cols-2 gap-3.5">
+                                        <div className="p-4 rounded-2xl bg-black/35 backdrop-blur-md border border-white/10 space-y-1.5">
+                                            <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
+                                                <Scroll size={12} /> Biblical History & Covenants
+                                            </span>
+                                            <p className="text-white/80 text-xs leading-relaxed">
+                                                {region.biblicalSignificance}
+                                            </p>
+                                        </div>
+                                        <div className="p-4 rounded-2xl bg-black/35 backdrop-blur-md border border-white/10 space-y-1.5">
+                                            <span className="text-[10px] font-black uppercase text-blue-300 tracking-wider flex items-center gap-1.5">
+                                                <Landmark size={12} /> Archaeological Marvels
+                                            </span>
+                                            <p className="text-white/80 text-xs leading-relaxed">
+                                                {region.archaeology}
+                                            </p>
                                         </div>
                                     </div>
 
-                                    <div className="pt-6 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400 font-bold">
-                                        <span className="flex items-center gap-1">
-                                            <MapPin size={12} className="text-[#d97706]" /> Eretz Covenant Boundary
+                                    {/* Bottom Covenant Indicator */}
+                                    <div className="pt-2 flex items-center justify-between text-[11px] text-white/60 font-semibold">
+                                        <span className="flex items-center gap-1 text-amber-300/80">
+                                            <MapPin size={12} className="text-amber-400" /> Eretz Covenant Boundary
                                         </span>
-                                        <span className="uppercase text-[10px] tracking-widest text-[#d97706]">City of Truth Sanctuary Hub</span>
+                                        <span className="uppercase text-[9px] tracking-widest text-white/50">
+                                            City of Truth Sanctuary Hub
+                                        </span>
                                     </div>
-                                </motion.div>
-                            </AnimatePresence>
-                        </div>
-                    </div>
-                </section>
+                                </div>
+                            ),
+                            visualSide: (
+                                <div className="w-full h-full min-h-[360px] p-5 rounded-3xl bg-black/45 backdrop-blur-xl border border-white/15 flex flex-col items-center justify-center text-center relative overflow-hidden group/map shadow-2xl">
+                                    <div className="absolute top-3 left-4 text-[9px] text-amber-300/80 uppercase tracking-widest font-mono flex items-center gap-1">
+                                        <Compass size={10} className="text-amber-400 animate-spin-slow" />
+                                        <span>Territory Map · {region.name.split(' ')[0]}</span>
+                                    </div>
 
-                {/* Wikipedia-Style Detailed Knowledge Hub */}
-                <section className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-                    {/* Tab Navigation bar */}
-                    <div className="flex border-b border-slate-100 bg-slate-50 flex-wrap">
-                        {[
-                            { id: 'overview', label: 'Overview & Facts', icon: <Landmark size={14} /> },
-                            { id: 'history', label: 'History & Prophecy', icon: <History size={14} /> },
-                            { id: 'geography', label: 'Wonders & Nature', icon: <Compass size={14} /> },
-                            { id: 'archaeology', label: 'Archaeology & Relics', icon: <Scroll size={14} /> },
-                            { id: 'language', label: 'Hebrew Connection', icon: <Heart size={14} /> }
-                        ].map(tab => (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id as any)}
-                                className={`flex items-center gap-2 px-6 py-4 text-xs font-black uppercase tracking-wider transition-all border-r border-slate-100 shrink-0 ${activeTab === tab.id
-                                        ? 'bg-white text-slate-900 border-b-2 border-b-amber-500'
-                                        : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100/50'
-                                    }`}
-                            >
-                                {tab.icon}
-                                {tab.label}
-                            </button>
-                        ))}
-                    </div>
+                                    <div className="py-2 w-full flex items-center justify-center">
+                                        <svg
+                                            className="w-full max-w-[240px] h-auto text-slate-400 drop-shadow-2xl"
+                                            viewBox="0 0 200 350"
+                                            fill="none"
+                                            stroke="#cbd5e1"
+                                            strokeWidth="2"
+                                        >
+                                            {/* Jordan River & Border Outline */}
+                                            <path d="M 140,25 C 130,60 133,130 115,148 C 110,160 110,240 80,320" stroke="#60a5fa" strokeWidth="1.2" strokeDasharray="3,3" opacity="0.6" />
 
-                    {/* Tab Content display box */}
-                    <div className="p-6 md:p-10">
-                        <AnimatePresence mode="wait">
-                            <motion.div
-                                key={activeTab}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                transition={{ duration: 0.2 }}
-                                className="space-y-6"
-                            >
-                                {activeTab === 'overview' && (
-                                    <div className="space-y-6 text-left">
-                                        <div className="border-l-4 border-amber-500 pl-4">
-                                            <h3 className="text-2xl font-serif text-slate-900 font-bold">General State & Biblical Land Profile</h3>
-                                            <p className="text-slate-500 text-sm mt-1">Eretz Israel - A geography of divine covenants, history, and geographical diversity.</p>
-                                        </div>
+                                            {/* Regions Polygons */}
+                                            {REGIONS.map((r) => {
+                                                const isCurrent = r.id === region.id;
+                                                return (
+                                                    <g key={r.id}>
+                                                        <path
+                                                            d={r.coordinates}
+                                                            className="transition-all duration-500"
+                                                            fill={isCurrent ? mapHighlightColor : '#475569'}
+                                                            fillOpacity={isCurrent ? 0.75 : 0.25}
+                                                            stroke={isCurrent ? '#ffffff' : '#64748b'}
+                                                            strokeWidth={isCurrent ? 2.5 : 1}
+                                                            style={{
+                                                                filter: isCurrent ? `drop-shadow(0 0 8px ${mapHighlightColor})` : 'none'
+                                                            }}
+                                                        />
+                                                    </g>
+                                                );
+                                            })}
 
-                                        <div className="grid md:grid-cols-3 gap-6">
-                                            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100">
-                                                <h4 className="text-xs font-black uppercase tracking-widest text-[#d97706] mb-3">State Capitals & Center</h4>
-                                                <div className="space-y-1.5 text-slate-600 text-sm">
-                                                    <p><strong>Official Capital:</strong> Jerusalem (Yerushalayim)</p>
-                                                    <p><strong>Judicial/Legal:</strong> Supreme Court of Israel</p>
-                                                    <p><strong>Economic Hub:</strong> Tel Aviv-Yafo</p>
-                                                </div>
+                                            {/* Holy Cities Pins */}
+                                            {/* Jerusalem Pin */}
+                                            <circle cx="102" cy="139" r="4.5" fill="#ef4444" stroke="#ffffff" strokeWidth="1.5" className="animate-pulse" />
+                                            <text x="109" y="142" fill="#fca5a5" fontSize="8" fontWeight="bold" fontFamily="sans-serif">Jerusalem</text>
+
+                                            {/* Sea of Galilee */}
+                                            <ellipse cx="132" cy="50" rx="6" ry="10" fill="#38bdf8" fillOpacity="0.9" stroke="#0284c7" strokeWidth="1" />
+                                            <text x="141" y="53" fill="#93c5fd" fontSize="7" fontWeight="bold" fontFamily="sans-serif">Galilee</text>
+
+                                            {/* Dead Sea */}
+                                            <ellipse cx="112" cy="180" rx="5" ry="25" fill="#38bdf8" fillOpacity="0.8" stroke="#0284c7" strokeWidth="1" />
+                                            <text x="120" y="183" fill="#93c5fd" fontSize="7" fontWeight="bold" fontFamily="sans-serif">Dead Sea</text>
+                                        </svg>
+                                    </div>
+
+                                    <div className="w-full mt-2 pt-3 border-t border-white/10 flex items-center justify-between text-[10px] text-white/70 font-mono">
+                                        <span className="text-amber-400 font-bold">{region.hebrew}</span>
+                                        <span className="text-white/50">{region.id.toUpperCase()} SECTOR</span>
+                                    </div>
+                                </div>
+                            )
+                        };
+                    });
+
+                    return (
+                        <PeelingStackCards
+                            badgeLabel="Interactive Regional Hub"
+                            title="Discover Israel's Regions"
+                            tamilTitle="இஸ்ரேலின் புனித மண்டலங்கள்"
+                            subtitle="Explore the biblical significance, geographic wonder, and archaeological marvels across the five holy regions of the Promised Land."
+                            items={regionCards}
+                        />
+                    );
+                })()}
+
+                {/* 3D Peeling Stacking Cards - Knowledge Hub */}
+                {(() => {
+                    const israelKnowledgeCards: PeelingCardItem[] = [
+                        {
+                            id: 'overview',
+                            tabLabel: 'Overview & Facts',
+                            tabIcon: <Landmark size={14} />,
+                            stageBadge: 'Profile 01 · Eretz Israel',
+                            badgeIcon: <Landmark size={12} className="text-amber-400" />,
+                            title: 'General State & Biblical Land Profile',
+                            tamilTitle: 'அரசு மற்றும் விவிலிய நில விவரம்',
+                            subtitle: 'Eretz Israel - A geography of divine covenants, history, and geographical diversity.',
+                            themeGradient: 'from-[#1c1917] via-[#27272a] to-[#713f12]',
+                            borderColor: 'border-amber-500/30',
+                            content: (
+                                <div className="space-y-5 text-left">
+                                    <div className="grid md:grid-cols-3 gap-4">
+                                        <div className="p-4 rounded-2xl bg-black/40 backdrop-blur-md border border-amber-500/25">
+                                            <h4 className="text-[11px] font-black uppercase tracking-widest text-[#fbbf24] mb-2">State Capitals & Center</h4>
+                                            <div className="space-y-1 text-white/80 text-xs">
+                                                <p><strong className="text-white">Official Capital:</strong> Jerusalem (Yerushalayim)</p>
+                                                <p><strong className="text-white">Judicial/Legal:</strong> Supreme Court of Israel</p>
+                                                <p><strong className="text-white">Economic Hub:</strong> Tel Aviv-Yafo</p>
                                             </div>
+                                        </div>
 
-                                            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100">
-                                                <h4 className="text-xs font-black uppercase tracking-widest text-[#d97706] mb-3">Key State Demographics</h4>
-                                                <div className="space-y-1.5 text-slate-600 text-sm">
-                                                    <p><strong>Languages:</strong> Hebrew (עִבְרִית)</p>
-                                                    <p><strong>Independence Day:</strong> 5th of Iyar (Yom Ha'atzmaut)</p>
-                                                    <p><strong>National Flower:</strong> Cyclamen persicum (Rakefet)</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100">
-                                                <h4 className="text-xs font-black uppercase tracking-widest text-[#d97706] mb-3">National State Symbols</h4>
-                                                <div className="space-y-1.5 text-slate-600 text-sm">
-                                                    <p><strong>Emblem:</strong> Menorah flanked by olive branches</p>
-                                                    <p><strong>Anthem:</strong> Hatikvah ("The Hope")</p>
-                                                    <p><strong>National Bird:</strong> Hoopoe (Duchifat)</p>
-                                                </div>
+                                        <div className="p-4 rounded-2xl bg-black/40 backdrop-blur-md border border-amber-500/25">
+                                            <h4 className="text-[11px] font-black uppercase tracking-widest text-[#fbbf24] mb-2">Key State Demographics</h4>
+                                            <div className="space-y-1 text-white/80 text-xs">
+                                                <p><strong className="text-white">Languages:</strong> Hebrew (עִבְרִית)</p>
+                                                <p><strong className="text-white">Independence Day:</strong> 5th of Iyar (Yom Ha'atzmaut)</p>
+                                                <p><strong className="text-white">National Flower:</strong> Cyclamen persicum (Rakefet)</p>
                                             </div>
                                         </div>
 
-                                        <div className="text-slate-600 text-sm leading-relaxed space-y-4 pt-2">
-                                            <p className="text-justify">
-                                                Geographically located in Western Asia, Israel borders Lebanon, Syria, Jordan, and Egypt. It sits at the absolute crossroads of Europe, Asia, and Africa. Eretz Israel contains multiple geographical ecosystems: green rolling hills in the north, Mediterranean coastlines in the west, high mountainous ridges in the center, and dry desert plains in the south.
-                                            </p>
-                                            <p className="text-justify">
-                                                Throughout history, it has served as the anchor point of biblical history. From the early covenants with Abraham, to the kingship of David and Solomon, the birth of Yeshua (Jesus), and the prophecies of future restoration, this land remains central to scripture and modern biblical fulfillment.
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {activeTab === 'history' && (
-                                    <div className="space-y-6 text-left">
-                                        <div className="border-l-4 border-amber-500 pl-4">
-                                            <h3 className="text-2xl font-serif text-slate-900 font-bold">Chronology of the Holy Land & Prophetic Restoration</h3>
-                                            <p className="text-slate-500 text-sm mt-1">A timeline of covenant, exile, rebirth, and the fulfillment of ancient prophecy.</p>
-                                        </div>
-
-                                        {/* Timeline style list */}
-                                        <div className="space-y-6 relative before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
-                                            {[
-                                                { era: 'c. 2000 BC', title: 'The Abrahamic Covenant', text: 'God establishes a covenant with Abraham, promising the land of Canaan to his descendants as an everlasting heritage (Genesis 15:18).' },
-                                                { era: 'c. 1000 BC', title: 'The Davidic Kingdom', text: 'King David unites the tribes of Israel, captures Jerusalem, and establishes it as the eternal capital. Solomon builds the First Temple.' },
-                                                { era: '586 BC & AD 70', title: 'Exiles & Destruction', text: 'Destruction of the First Temple by Babylonians, followed by the Second Temple destruction by Romans in AD 70, scattering the Jewish people globally.' },
-                                                { era: 'May 14, 1948', title: 'Rebirth of the Nation', text: 'Against all odds, the modern State of Israel declares independence, fulfilling Isaiah\'s prophecy: "Can a nation be born in a day?" (Isaiah 66:8).' },
-                                                { era: 'Modern Era', title: 'Gathering of the Exiles (Aliyah)', text: 'Millions of Jewish people return from all four corners of the globe, as prophesied by Jeremiah and Ezekiel, restoring the land and reviving the Hebrew language.' }
-                                            ].map((time, idx) => (
-                                                <div key={idx} className="flex gap-4 relative">
-                                                    <div className="w-9 h-9 rounded-full bg-amber-50 border-2 border-amber-400 flex items-center justify-center text-[10px] font-black text-amber-700 z-10 shrink-0 shadow-sm">
-                                                        {idx + 1}
-                                                    </div>
-                                                    <div>
-                                                        <span className="text-[10px] font-black uppercase text-amber-600 tracking-wider block">{time.era}</span>
-                                                        <h4 className="font-bold text-slate-900 text-base mt-0.5">{time.title}</h4>
-                                                        <p className="text-slate-600 text-xs md:text-sm leading-relaxed mt-1">{time.text}</p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {activeTab === 'geography' && (
-                                    <div className="space-y-6 text-left">
-                                        <div className="border-l-4 border-amber-500 pl-4">
-                                            <h3 className="text-2xl font-serif text-slate-900 font-bold">Geographical Marvels of the Land</h3>
-                                            <p className="text-slate-500 text-sm mt-1">Eretz Israel boasts highly diverse and unique ecosystems in a highly compact area.</p>
-                                        </div>
-
-                                        <div className="grid md:grid-cols-2 gap-6 pt-2">
-                                            {[
-                                                { name: 'The Dead Sea (Yam HaMelah)', desc: 'The absolute lowest land elevation on Earth, sitting over 1,400 feet (430m) below sea level. Its high mineral concentrations allow effortless floating and carry ancient healing properties.' },
-                                                { name: 'Sea of Galilee (Kinneret)', desc: 'Israel\'s largest freshwater lake, surrounded by rolling hills. This gorgeous basin provides water supply to the nation and was the beautiful canvas of Messiah Yeshua\'s miracles.' },
-                                                { name: 'Mount Hermon (Har Hermon)', desc: 'The majestic snow-capped northern peak, representing the highest peak in Israel. Snowy waters melt and cascade southward to form the Jordan River.' },
-                                                { name: 'The Jordan River (Nehar HaYarden)', desc: 'A deeply sacred river running from the north through the Jordan Rift Valley into the Dead Sea. The site of Joshua\'s crossing and Messiah Yeshua\'s baptism.' }
-                                            ].map((geo, index) => (
-                                                <div key={index} className="p-6 rounded-2xl bg-slate-50 border border-slate-100 flex gap-4 items-start shadow-sm hover:scale-[1.01] transition-transform">
-                                                    <div className="w-10 h-10 bg-amber-100 text-amber-700 rounded-xl flex items-center justify-center shrink-0 font-bold font-serif">
-                                                        {index + 1}
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="font-bold text-slate-900 text-base">{geo.name}</h4>
-                                                        <p className="text-slate-600 text-xs md:text-sm leading-relaxed mt-2">{geo.desc}</p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {activeTab === 'archaeology' && (
-                                    <div className="space-y-6 text-left">
-                                        <div className="border-l-4 border-amber-500 pl-4">
-                                            <h3 className="text-2xl font-serif text-slate-900 font-bold">Archaeological Discoveries Confirming Scripture</h3>
-                                            <p className="text-slate-500 text-sm mt-1">Archaeology in Israel serves as a tangible verification of biblical integrity.</p>
-                                        </div>
-
-                                        <div className="space-y-4 text-slate-600 text-sm leading-relaxed">
-                                            <p>
-                                                Few places in the world have been excavated as thoroughly as Israel. Over 30,000 archaeological sites have been mapped, revealing massive historic proofs that confirm biblical narratives down to exact details, locations, and names.
-                                            </p>
-
-                                            <div className="grid md:grid-cols-2 gap-6 pt-2">
-                                                <div className="p-5 rounded-2xl border border-slate-150 bg-gradient-to-br from-white to-slate-50 shadow-sm">
-                                                    <h4 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                                                        <span className="w-2 h-2 rounded-full bg-amber-500" /> The Dead Sea Scrolls
-                                                    </h4>
-                                                    <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                                                        Found in the Qumran caves in 1947. These ancient manuscripts contain parts of almost every book of the Hebrew Bible, dating back over 2,000 years, confirming that scripture remained perfectly unchanged over millennia.
-                                                    </p>
-                                                </div>
-                                                <div className="p-5 rounded-2xl border border-slate-150 bg-gradient-to-br from-white to-slate-50 shadow-sm">
-                                                    <h4 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                                                        <span className="w-2 h-2 rounded-full bg-amber-500" /> The Tel Dan Stele
-                                                    </h4>
-                                                    <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                                                        A 9th-century BC stone inscription found in northern Israel. It contains the oldest extra-biblical reference to the "House of David" (Beit David), verifying David\'s actual historical dynasty.
-                                                    </p>
-                                                </div>
-                                                <div className="p-5 rounded-2xl border border-slate-150 bg-gradient-to-br from-white to-slate-50 shadow-sm">
-                                                    <h4 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                                                        <span className="w-2 h-2 rounded-full bg-amber-500" /> Temple Mount Wall (Kotel)
-                                                    </h4>
-                                                    <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                                                        Massive limestone block structures built by Herod the Great around the Second Temple. They stand as a silent monument to the Temple where Yeshua Himself walked, preached, and drove out moneychangers.
-                                                    </p>
-                                                </div>
-                                                <div className="p-5 rounded-2xl border border-slate-150 bg-gradient-to-br from-white to-slate-50 shadow-sm">
-                                                    <h4 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                                                        <span className="w-2 h-2 rounded-full bg-amber-500" /> Pool of Siloam
-                                                    </h4>
-                                                    <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                                                        The rock-cut pool in the City of David where Yeshua sent the blind man to wash, curing his sight (John 9:7). Excavated fully in 2004, confirming the gospel account\'s exact location.
-                                                    </p>
-                                                </div>
+                                        <div className="p-4 rounded-2xl bg-black/40 backdrop-blur-md border border-amber-500/25">
+                                            <h4 className="text-[11px] font-black uppercase tracking-widest text-[#fbbf24] mb-2">National State Symbols</h4>
+                                            <div className="space-y-1 text-white/80 text-xs">
+                                                <p><strong className="text-white">Emblem:</strong> Menorah flanked by olive branches</p>
+                                                <p><strong className="text-white">Anthem:</strong> Hatikvah ("The Hope")</p>
+                                                <p><strong className="text-white">National Bird:</strong> Hoopoe (Duchifat)</p>
                                             </div>
                                         </div>
                                     </div>
-                                )}
 
-                                {activeTab === 'language' && (
-                                    <div className="space-y-6 text-left">
-                                        <div className="border-l-4 border-amber-500 pl-4">
-                                            <h3 className="text-2xl font-serif text-slate-900 font-bold">The Resurrection of Hebrew (עִבְרִית)</h3>
-                                            <p className="text-slate-500 text-sm mt-1">How a sacred language of antiquity was miraculously restored to common speech.</p>
-                                        </div>
-
-                                        <div className="text-slate-600 text-sm leading-relaxed space-y-4 text-justify">
-                                            <p>
-                                                Hebrew is the only historical language in human history that died out as a spoken everyday tongue for nearly 2,000 years, only to be resurrected as a fully functional, modern national language spoken by millions. This miraculous event aligns perfectly with Zephaniah 3:9, where God promises to "turn to the people a pure language."
-                                            </p>
-                                            <p>
-                                                For generations, Hebrew was preserved exclusively as "Lashon HaKodesh" (The Holy Tongue) for prayer, liturgy, and sacred study. However, in the late 19th century, a visionary scholar named <strong>Eliezer Ben-Yehuda</strong> spearheaded a relentless campaign to revive Hebrew as a modern spoken language, inventing thousands of new words for modern objects while preserving ancient roots.
-                                            </p>
-                                        </div>
-
-                                        <div className="p-6 rounded-[2rem] bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200">
-                                            <h4 className="text-xs font-black uppercase tracking-widest text-[#d97706] mb-3 flex items-center gap-2">
-                                                <Scroll size={14} className="text-amber-500" /> Sacred Roots and Power
-                                            </h4>
-                                            <p className="text-slate-700 text-xs md:text-sm leading-relaxed text-justify">
-                                                In Hebrew, words are not random labels; they are formed by three-letter core roots (Shoresh) that carry intrinsic spiritual frequency. E.g., the word for hand is <strong>Yad (יד)</strong>, representing power; the word for love is <strong>Ahava (אהבה)</strong>, sharing a root that means "to give". By learning the holy tongue, we unlock deep biblical codes and ancient keys that bring us closer to the original message of the Bible.
-                                            </p>
-                                        </div>
+                                    <div className="text-white/80 text-xs sm:text-sm leading-relaxed space-y-3 pt-1">
+                                        <p className="text-justify">
+                                            Geographically located in Western Asia, Israel borders Lebanon, Syria, Jordan, and Egypt. It sits at the absolute crossroads of Europe, Asia, and Africa. Eretz Israel contains multiple ecosystems: green rolling hills in the north, Mediterranean coastlines in the west, high mountainous ridges in the center, and dry desert plains in the south.
+                                        </p>
+                                        <p className="text-justify">
+                                            Throughout history, it has served as the anchor point of biblical history. From the early covenants with Abraham, to the kingship of David and Solomon, the birth of Yeshua (Jesus), and the prophecies of future restoration, this land remains central to scripture.
+                                        </p>
                                     </div>
-                                )}
-                            </motion.div>
-                        </AnimatePresence>
-                    </div>
-                </section>
+                                </div>
+                            ),
+                            visualSide: (
+                                <div className="w-full h-full min-h-[260px] p-6 rounded-3xl bg-black/40 backdrop-blur-md border border-amber-500/30 flex flex-col items-center justify-center text-center relative overflow-hidden group/visual">
+                                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400/25 to-amber-600/10 border-2 border-amber-400/50 flex items-center justify-center mb-4 shadow-xl group-hover/visual:scale-110 transition-transform duration-500">
+                                        <Sparkles size={36} className="text-amber-400 animate-pulse" />
+                                    </div>
+
+                                    <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono font-bold tracking-widest uppercase mb-2 border border-amber-500/30">
+                                        YHWH Covenant Land
+                                    </span>
+                                    <h5 className="font-serif font-bold text-base text-white">Eretz HaKodesh</h5>
+                                    <p className="text-amber-200/70 text-xs mt-1 max-w-[240px]">
+                                        Promised to Abraham and his descendants as an everlasting covenant inheritance.
+                                    </p>
+                                </div>
+                            )
+                        },
+                        {
+                            id: 'history',
+                            tabLabel: 'History & Prophecy',
+                            tabIcon: <History size={14} />,
+                            stageBadge: 'Profile 02 · Prophetic Timeline',
+                            badgeIcon: <History size={12} className="text-blue-400" />,
+                            title: 'Chronology of the Holy Land & Prophecy',
+                            tamilTitle: 'வரலாறு மற்றும் தீர்க்கதரிசனம்',
+                            subtitle: 'A timeline of covenant, exile, rebirth, and the fulfillment of ancient prophecy.',
+                            themeGradient: 'from-[#0f172a] via-[#1e293b] to-[#1e1b4b]',
+                            borderColor: 'border-blue-500/30',
+                            content: (
+                                <div className="space-y-4 text-left">
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                        {[
+                                            { era: 'c. 2000 BC', title: 'The Abrahamic Covenant', text: 'God establishes a covenant with Abraham, promising Canaan to his descendants forever (Genesis 15:18).' },
+                                            { era: 'c. 1000 BC', title: 'The Davidic Kingdom', text: 'King David unites the tribes and establishes Jerusalem as eternal capital. Solomon builds First Temple.' },
+                                            { era: '586 BC & AD 70', title: 'Exiles & Destruction', text: 'Destruction of First Temple by Babylonians, Second Temple by Romans, scattering Jewish people globally.' },
+                                            { era: 'May 14, 1948', title: 'Rebirth of the Nation', text: 'Against all odds, modern Israel declares independence, fulfilling Isaiah 66:8: "Can a nation be born in a day?"' },
+                                            { era: 'Modern Era', title: 'Gathering of Exiles (Aliyah)', text: 'Millions return from all four corners of the globe, restoring the land and reviving Hebrew language.' }
+                                        ].map((time, idx) => (
+                                            <div
+                                                key={idx}
+                                                className="p-3.5 rounded-2xl bg-black/40 backdrop-blur-md border border-blue-500/20 hover:border-blue-500/40 transition-all"
+                                            >
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-mono text-[10px] font-bold border border-blue-500/30">
+                                                        {time.era}
+                                                    </span>
+                                                    <span className="text-[10px] text-blue-200/60 uppercase tracking-widest font-mono">
+                                                        ERA 0{idx + 1}
+                                                    </span>
+                                                </div>
+                                                <h4 className="font-bold text-white text-xs mt-1">{time.title}</h4>
+                                                <p className="text-white/70 text-xs mt-1 leading-relaxed">{time.text}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ),
+                            visualSide: (
+                                <div className="w-full h-full min-h-[260px] p-6 rounded-3xl bg-black/40 backdrop-blur-md border border-blue-500/30 flex flex-col items-center justify-center text-center relative overflow-hidden group/visual">
+                                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-400/25 to-blue-600/10 border-2 border-blue-400/50 flex items-center justify-center mb-4 shadow-xl group-hover/visual:scale-110 transition-transform duration-500">
+                                        <Scroll size={36} className="text-blue-400" />
+                                    </div>
+
+                                    <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-mono font-bold tracking-widest uppercase mb-2 border border-blue-500/30">
+                                        Prophetic Fulfillment
+                                    </span>
+                                    <h5 className="font-serif font-bold text-base text-white">Isaiah 66:8</h5>
+                                    <p className="text-blue-200/70 text-xs mt-1 max-w-[240px]">
+                                        "Who has heard such a thing? Who has seen such things? Shall the earth be made to give birth in one day?"
+                                    </p>
+                                </div>
+                            )
+                        },
+                        {
+                            id: 'geography',
+                            tabLabel: 'Wonders & Nature',
+                            tabIcon: <Compass size={14} />,
+                            stageBadge: 'Profile 03 · Sacred Topography',
+                            badgeIcon: <Compass size={12} className="text-emerald-400" />,
+                            title: 'Geographical Marvels of the Land',
+                            tamilTitle: 'இயற்கை அதிசயங்கள்',
+                            subtitle: 'Eretz Israel boasts highly diverse and unique ecosystems in a compact area.',
+                            themeGradient: 'from-[#022c22] via-[#064e3b] to-[#0c4a6e]',
+                            borderColor: 'border-emerald-500/30',
+                            content: (
+                                <div className="space-y-4 text-left">
+                                    <div className="grid sm:grid-cols-2 gap-3 pt-1">
+                                        {[
+                                            { name: 'The Dead Sea (Yam HaMelah)', tag: 'Elevation: -430m', desc: 'The absolute lowest land elevation on Earth. High mineral concentration enables effortless floating and healing properties.' },
+                                            { name: 'Sea of Galilee (Kinneret)', tag: 'Freshwater Basin', desc: 'Israel\'s largest freshwater lake, surrounded by rolling hills. The canvas of Yeshua\'s miracles, walking on water, and feeding 5,000.' },
+                                            { name: 'Mount Hermon (Har Hermon)', tag: 'Highest Peak: 2,814m', desc: 'Majestic snow-capped northern peak. Snowmelt cascades southward to feed the Headwaters of the Jordan River.' },
+                                            { name: 'The Jordan River (Nehar HaYarden)', tag: 'Sacred Waterway', desc: 'Sacred river coursing down the Rift Valley into the Dead Sea. Site of Joshua\'s crossing and Yeshua\'s baptism.' }
+                                        ].map((geo, index) => (
+                                            <div
+                                                key={index}
+                                                className="p-3.5 rounded-2xl bg-black/40 backdrop-blur-md border border-emerald-500/20 hover:border-emerald-500/40 transition-all"
+                                            >
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <span className="font-bold text-white text-xs">{geo.name}</span>
+                                                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[9px] font-bold border border-emerald-500/30">
+                                                        {geo.tag}
+                                                    </span>
+                                                </div>
+                                                <p className="text-white/70 text-xs mt-1 leading-relaxed">{geo.desc}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ),
+                            visualSide: (
+                                <div className="w-full h-full min-h-[260px] p-6 rounded-3xl bg-black/40 backdrop-blur-md border border-emerald-500/30 flex flex-col items-center justify-center text-center relative overflow-hidden group/visual">
+                                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-400/25 to-emerald-600/10 border-2 border-emerald-400/50 flex items-center justify-center mb-4 shadow-xl group-hover/visual:scale-110 transition-transform duration-500">
+                                        <Compass size={36} className="text-emerald-400 animate-spin-slow" />
+                                    </div>
+
+                                    <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold tracking-widest uppercase mb-2 border border-emerald-500/30">
+                                        Mount Hermon to Dead Sea
+                                    </span>
+                                    <h5 className="font-serif font-bold text-base text-white">Vertical Ecosystem Range</h5>
+                                    <p className="text-emerald-200/70 text-xs mt-1 max-w-[240px]">
+                                        Spanning from snowy sub-alpine heights to the lowest topographical depression on Earth.
+                                    </p>
+                                </div>
+                            )
+                        },
+                        {
+                            id: 'archaeology',
+                            tabLabel: 'Archaeology & Relics',
+                            tabIcon: <Scroll size={14} />,
+                            stageBadge: 'Profile 04 · Stones Crying Out',
+                            badgeIcon: <Scroll size={12} className="text-amber-400" />,
+                            title: 'Archaeological Discoveries Confirming Scripture',
+                            tamilTitle: 'தொல்பொருள் சான்றுகள்',
+                            subtitle: 'Over 30,000 mapped archaeological sites verifying biblical narratives.',
+                            themeGradient: 'from-[#292524] via-[#451a03] to-[#1c1917]',
+                            borderColor: 'border-amber-500/30',
+                            content: (
+                                <div className="space-y-4 text-left">
+                                    <div className="grid sm:grid-cols-2 gap-3 pt-1">
+                                        {[
+                                            { title: 'The Dead Sea Scrolls', tag: 'Qumran Caves 1947', desc: 'Over 2,000-year-old manuscripts containing almost every book of Hebrew Scripture, proving text fidelity.' },
+                                            { title: 'The Tel Dan Stele', tag: 'House of David Inscription', desc: '9th-century BC stone inscription containing the oldest extra-biblical reference to Beit David (House of David).' },
+                                            { title: 'Western Wall (Kotel)', tag: 'Temple Mount Herodian Blocks', desc: 'Massive limestone megaliths of the Second Temple complex where Messiah Yeshua preached and walked.' },
+                                            { title: 'Pool of Siloam', tag: 'City of David Excavation', desc: 'Rock-cut pool where Yeshua sent the blind man to wash and receive miraculous sight (John 9:7).' }
+                                        ].map((item, idx) => (
+                                            <div
+                                                key={idx}
+                                                className="p-3.5 rounded-2xl bg-black/40 backdrop-blur-md border border-amber-500/20 hover:border-amber-500/40 transition-all"
+                                            >
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <span className="font-bold text-white text-xs">{item.title}</span>
+                                                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-[9px] font-bold border border-amber-500/30">
+                                                        {item.tag}
+                                                    </span>
+                                                </div>
+                                                <p className="text-white/70 text-xs mt-1 leading-relaxed">{item.desc}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ),
+                            visualSide: (
+                                <div className="w-full h-full min-h-[260px] p-6 rounded-3xl bg-black/40 backdrop-blur-md border border-amber-500/30 flex flex-col items-center justify-center text-center relative overflow-hidden group/visual">
+                                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400/25 to-amber-600/10 border-2 border-amber-400/50 flex items-center justify-center mb-4 shadow-xl group-hover/visual:scale-110 transition-transform duration-500">
+                                        <Landmark size={36} className="text-amber-400" />
+                                    </div>
+
+                                    <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono font-bold tracking-widest uppercase mb-2 border border-amber-500/30">
+                                        Physical Verification
+                                    </span>
+                                    <h5 className="font-serif font-bold text-base text-white">Stones of Testimony</h5>
+                                    <p className="text-amber-200/70 text-xs mt-1 max-w-[240px]">
+                                        Confirming scriptural genealogies, monarchies, battles, and sacred worship sites.
+                                    </p>
+                                </div>
+                            )
+                        },
+                        {
+                            id: 'language',
+                            tabLabel: 'Hebrew Connection',
+                            tabIcon: <Heart size={14} />,
+                            stageBadge: 'Profile 05 · Lashon HaKodesh',
+                            badgeIcon: <Heart size={12} className="text-purple-400" />,
+                            title: 'The Resurrection of Hebrew (עִבְரִית)',
+                            tamilTitle: 'எபிரேய மொழி மறுமலர்ச்சி',
+                            subtitle: 'How a sacred language of antiquity was miraculously restored to common speech.',
+                            themeGradient: 'from-[#1e1b4b] via-[#4c1d95] to-[#2e1065]',
+                            borderColor: 'border-purple-500/30',
+                            content: (
+                                <div className="space-y-4 text-left">
+                                    <p className="text-white/80 text-xs sm:text-sm leading-relaxed text-justify">
+                                        Hebrew is the only language in human history that died out as an everyday spoken tongue for nearly 2,000 years, only to be resurrected as a vibrant national language, fulfilling Zephaniah 3:9 ("turn to the people a pure language").
+                                    </p>
+                                    <div className="p-4 rounded-2xl bg-black/40 backdrop-blur-md border border-purple-500/25">
+                                        <h4 className="text-xs font-black uppercase tracking-widest text-[#d8b4fe] mb-1.5 flex items-center gap-2">
+                                            <Scroll size={13} className="text-purple-300" /> Sacred Roots and Power
+                                        </h4>
+                                        <p className="text-white/75 text-xs sm:text-sm leading-relaxed text-justify">
+                                            In Hebrew, words are built around three-letter root systems (Shoresh) carrying deep divine resonance. E.g., Yad (יד) signifies hand/power; Ahava (אהבה) embodies love from the root "to give".
+                                        </p>
+                                    </div>
+                                </div>
+                            ),
+                            visualSide: (
+                                <div className="w-full h-full min-h-[260px] p-6 rounded-3xl bg-black/40 backdrop-blur-md border border-purple-500/30 flex flex-col items-center justify-center text-center relative overflow-hidden group/visual">
+                                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-400/25 to-purple-600/10 border-2 border-purple-400/50 flex items-center justify-center mb-4 shadow-xl group-hover/visual:scale-110 transition-transform duration-500">
+                                        <span className="text-4xl font-serif text-purple-300 font-bold">ש</span>
+                                    </div>
+
+                                    <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 text-[10px] font-mono font-bold tracking-widest uppercase mb-2 border border-purple-500/30">
+                                        Lashon HaKodesh
+                                    </span>
+                                    <h5 className="font-serif font-bold text-base text-white">The Holy Tongue</h5>
+                                    <p className="text-purple-200/70 text-xs mt-1 max-w-[240px]">
+                                        Language of Genesis creation, divine commandments, and prophetic redemption.
+                                    </p>
+                                </div>
+                            )
+                        }
+                    ];
+
+                    return (
+                        <PeelingStackCards
+                            badgeLabel="Holy Land Knowledge Stacks"
+                            title="Eretz Israel Knowledge Hub"
+                            tamilTitle="இஸ்ரேல் தேசக் களஞ்சியம்"
+                            subtitle="Scroll through the 3D peeling stacking cards covering covenants, prophetic history, geography, archaeology, and the Hebrew language."
+                            items={israelKnowledgeCards}
+                            defaultViewMode="stack"
+                        />
+                    );
+                })()}
 
                 {/* Footer Scripture */}
                 <footer className="mt-10 text-center py-8 border-t border-amber-500/10 max-w-2xl mx-auto space-y-3">

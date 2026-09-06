@@ -2,8 +2,6 @@ import { initFirebaseAdmin } from './_firebaseAdmin';
 import {
   generateAuthenticationOptions,
   generateRegistrationOptions,
-  isoBase64URL,
-  isoUint8Array,
   type PublicKeyCredentialCreationOptionsJSON,
   type PublicKeyCredentialRequestOptionsJSON,
   type WebAuthnCredential,
@@ -95,7 +93,7 @@ export async function createRegistrationOptions(user: any) {
   const options = await generateRegistrationOptions({
     rpName: RP_NAME,
     rpID: RP_ID,
-    userID: isoUint8Array.fromUTF8String(String(user.id)),
+    userID: Buffer.from(String(user.id)),
     userName: String(user.email || user.id),
     attestationType: 'none',
     excludeCredentials: existing,
@@ -104,7 +102,6 @@ export async function createRegistrationOptions(user: any) {
       residentKey: 'required',
       userVerification: 'required',
     },
-    preferredAuthenticatorType: 'localDevice',
     supportedAlgorithmIDs: [-7, -257],
   });
 
@@ -122,7 +119,6 @@ export async function createAuthenticationOptions(user: any) {
       transports: credential.transports as any,
     }],
     userVerification: 'required',
-    preferredAuthenticatorType: 'localDevice',
   });
 }
 
@@ -131,5 +127,5 @@ export function publicKeyToBase64url(publicKey: Uint8Array) {
 }
 
 export function credentialIdToString(id: Uint8Array | string) {
-  return typeof id === 'string' ? id : isoBase64URL.fromBuffer(id);
+  return typeof id === 'string' ? id : Buffer.from(id).toString('base64url');
 }

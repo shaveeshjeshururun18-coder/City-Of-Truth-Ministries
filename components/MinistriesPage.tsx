@@ -2,6 +2,9 @@ import React, { useMemo, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Star, Globe, Heart, Music, Droplets } from 'lucide-react';
 import { MinistryGallery } from './MinistryGallery';
+import { CoverFlowCarousel, CarouselItem } from './ui/3-d-coverflow-carousel';
+import { ImageGallery, ImageData } from './ui/carousel-circular-image-gallery';
+import { ShaderFilmstripCarousel } from './ui/shader-filmstrip-carousel';
 import { api } from '../services/api';
 import { Ministry } from '../types';
 
@@ -129,9 +132,54 @@ export const MinistriesPage: React.FC<{ currentUser?: any; setView?: any }> = ()
     const musicItems = useMemo(() => getCategoryItems('Sacred Music & Praise', 4), [visibleDynamicMinistries, assets]);
     const healingItems = useMemo(() => getCategoryItems('Healing & Miracle Service', 5), [visibleDynamicMinistries, assets]);
 
+    const galleryImages: ImageData[] = useMemo(() => {
+        const categoryLabels = [
+            'Spiritual Gatherings',
+            'Youth Ministry',
+            'Helping Hands & Charity',
+            'Sacred Music & Praise',
+            'Healing & Miracle Service',
+            'Community Impact'
+        ];
+
+        // Include all 40 ministry photos
+        const list: ImageData[] = [];
+        for (let i = 0; i < 40; i++) {
+            const num = i.toString().padStart(4, '0');
+            const category = categoryLabels[i % categoryLabels.length];
+            list.push({
+                title: `${category} • Moment #${i + 1}`,
+                url: `${import.meta.env.BASE_URL}ministry/IMG-20231230-WA${num}.jpg`
+            });
+        }
+
+        // Plus any uploaded dynamic ministry images
+        visibleDynamicMinistries.forEach((m) => {
+            if (inferMediaType(m) === 'image' && m.image) {
+                list.push({
+                    title: m.name || m.category || 'Ministry Moment',
+                    url: m.image
+                });
+            }
+        });
+
+        return list;
+    }, [visibleDynamicMinistries]);
+
     useEffect(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
         api.getMinistries().then(setDynamicMinistries);
     }, []);
+
+    const handleCarouselCtaClick = (item: CarouselItem) => {
+        if (item.ctaUrl && item.ctaUrl.startsWith('#')) {
+            const targetId = item.ctaUrl.substring(1);
+            const element = document.getElementById(targetId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+    };
 
     return (
         <div className="min-h-screen bg-[#fdfcf0] font-sans selection:bg-brand-200 selection:text-brand-950 overflow-x-hidden">
@@ -151,17 +199,23 @@ export const MinistriesPage: React.FC<{ currentUser?: any; setView?: any }> = ()
                     Our <span className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-accent-600 to-accent-400 italic font-light pr-4">Service</span>
                 </h1>
 
-                <p className="text-xl md:text-2xl text-slate-500 font-light max-w-2xl mx-auto leading-relaxed mb-12">
+                <p className="text-xl md:text-2xl text-slate-500 font-light max-w-2xl mx-auto leading-relaxed mb-8">
                     Discover the diverse ways we serve our community and share the light of Truth.
                 </p>
             </div>
 
-
+            {/* 3D Tilted Coverflow Carousel Showcase */}
+            <div className="w-full mb-16 shadow-2xl">
+                <CoverFlowCarousel
+                    sectionLabel="MINISTRY WINGS SHOWCASE"
+                    onCtaClick={handleCarouselCtaClick}
+                />
+            </div>
 
             {/* Specialized Ministry Sections */}
             <div className="space-y-0 pb-20">
                 {/* Spiritual Gatherings */}
-                <section className="bg-white py-24 relative overflow-hidden">
+                <section id="spiritual-gatherings" className="bg-white py-24 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-1/3 h-full bg-slate-50/50 -skew-x-12 translate-x-20 pointer-events-none" />
                     <div className="relative z-10 pl-4 md:pl-12">
                         <div className="container mx-auto px-6 mb-12">
@@ -179,7 +233,7 @@ export const MinistriesPage: React.FC<{ currentUser?: any; setView?: any }> = ()
                 </section>
 
                 {/* Youth Ministry */}
-                <section className="bg-slate-50 py-24 relative overflow-hidden">
+                <section id="youth-ministry" className="bg-slate-50 py-24 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-1/4 h-full bg-white/50 skew-x-12 -translate-x-20 pointer-events-none" />
                     <div className="relative z-10 pl-4 md:pl-12">
                         <div className="container mx-auto px-6 mb-12 text-right lg:text-left">
@@ -197,7 +251,7 @@ export const MinistriesPage: React.FC<{ currentUser?: any; setView?: any }> = ()
                 </section>
 
                 {/* Community Impact */}
-                <section className="bg-white py-24 relative overflow-hidden">
+                <section id="community-impact" className="bg-white py-24 relative overflow-hidden">
                     <div className="container mx-auto px-6 mb-12">
                         <div className="flex items-center gap-3 mb-4">
                             <div className="w-10 h-10 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center shadow-sm">
@@ -214,7 +268,7 @@ export const MinistriesPage: React.FC<{ currentUser?: any; setView?: any }> = ()
                 </section>
 
                 {/* Helping Hands - Charity */}
-                <section className="bg-brand-950 py-32 relative overflow-hidden">
+                <section id="helping-hands" className="bg-brand-950 py-32 relative overflow-hidden">
                     <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] pointer-events-none" />
                     <div className="container mx-auto px-6 mb-16 relative z-10 text-center">
                         <motion.div
@@ -227,13 +281,13 @@ export const MinistriesPage: React.FC<{ currentUser?: any; setView?: any }> = ()
                         <h2 className="text-4xl md:text-7xl font-serif font-black text-white mb-6 tracking-tighter">Helping <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-400 to-accent-200">Hands</span></h2>
                         <p className="text-brand-100/60 max-w-2xl mx-auto text-lg font-light leading-relaxed">Pure religion and undefiled before God and the Father is this, To visit the fatherless and widows in their affliction...</p>
                     </div>
-                    <div className="relative z-10 pl-4 md:pl-12">
-                        <MinistryGallery items={helpingItems} />
+                    <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6">
+                        <ShaderFilmstripCarousel />
                     </div>
                 </section>
 
                 {/* Sacred Music & Praise */}
-                <section className="bg-white py-24 relative overflow-hidden">
+                <section id="sacred-music" className="bg-white py-24 relative overflow-hidden">
                     <div className="relative z-10 pl-4 md:pl-12">
                         <div className="container mx-auto px-6 mb-12">
                             <div className="flex items-center gap-3 mb-4">
@@ -250,7 +304,7 @@ export const MinistriesPage: React.FC<{ currentUser?: any; setView?: any }> = ()
                 </section>
 
                 {/* Healing & Miracle Service */}
-                <section className="bg-slate-50 py-24 relative overflow-hidden">
+                <section id="healing-miracles" className="bg-slate-50 py-24 relative overflow-hidden">
                     <div className="container mx-auto px-6 mb-12 text-center">
                         <div className="flex items-center justify-center gap-3 mb-4">
                             <div className="w-10 h-10 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center shadow-sm">
@@ -267,6 +321,21 @@ export const MinistriesPage: React.FC<{ currentUser?: any; setView?: any }> = ()
                 </section>
             </div>
 
+            {/* Morphing Circular Image Gallery (from ooo.txt) */}
+            <section className="relative py-24 bg-[#070a16] text-white overflow-hidden border-y border-amber-500/15">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.18),transparent_55%)] pointer-events-none" />
+                <div className="container mx-auto px-6 max-w-6xl relative z-10">
+                    <div className="text-center mb-8">
+                        <span className="text-amber-400 font-bold uppercase tracking-[0.22em] text-xs">Sacred Sanctuary</span>
+                        <h2 className="text-4xl md:text-5xl font-serif font-black mt-3 text-amber-50">Visual Moments Gallery</h2>
+                        <p className="text-slate-300 mt-4 max-w-2xl mx-auto">
+                            Explore our fellowship, praise, and community moments with smooth circular morphing transitions.
+                        </p>
+                    </div>
+                    <ImageGallery images={galleryImages} />
+                </div>
+            </section>
+
             {/* Quote Area */}
             <div className="bg-white relative overflow-hidden">
                 <div className="container mx-auto px-6 py-32 text-center relative z-10">
@@ -279,7 +348,6 @@ export const MinistriesPage: React.FC<{ currentUser?: any; setView?: any }> = ()
                     </div>
                 </div>
             </div>
-
         </div>
     );
 };

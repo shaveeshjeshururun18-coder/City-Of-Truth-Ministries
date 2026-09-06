@@ -69,7 +69,11 @@ import { GoldenMenorahPage } from './components/GoldenMenorahPage';
 import { AIPage } from './components/AIPage';
 import { DivineAssistant } from './components/DivineAssistant';
 import AIChatAssistant from './components/AIChatAssistant';
-import { MinistryHighlights, HebrewSanctuaryIntro, HebrewPagesPreviewSection, PastorBaruchPreviewSection, ValparaiPresence, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, CommunityMembersSection, DailyPsalm119Section } from './components/HomeSections';
+import { MinistryHighlights, HebrewSanctuaryIntro, HebrewPagesPreviewSection, PastorBaruchPreviewSection, ValparaiPresence, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, CommunityMembersSection, DailyPsalm119Section, HeroCinematicIntro, MinistryBentoGrid } from './components/HomeSections';
+import { InfiniteEmblemMarquee } from './components/ui/infinite-emblem-marquee';
+import { CinematicOpeningScreen } from './components/ui/cinematic-opening-screen';
+import { DotMatrixText } from './components/ui/dot-text';
+import { DotShaderCanvas } from './components/ui/modern-login-signup';
 import { MessageFromLeader } from './components/MessageFromLeader';
 import { HebrewAlphabetPage } from './components/HebrewAlphabetPage';
 import { MinistriesPage } from './components/MinistriesPage';
@@ -86,6 +90,9 @@ import { CommunityProfileForm } from './components/CommunityProfileForm';
 
 import VerifyIDPage from './components/VerifyIDPage';
 import { VisitingCard3D } from './components/VisitingCard3D';
+import { Footer } from './components/ui/footer-section';
+import { InfiniteLogoScroll } from './components/InfiniteLogoScroll';
+
 import { ErrorBoundary } from './components/ErrorBoundary';
 import GreetingCard from './components/GreetingCard';
 import SplashScreen from './components/SplashScreen';
@@ -360,14 +367,25 @@ const ensureHebrewNavItems = (items: NavItem[]): NavItem[] => {
   return withMenus;
 };
 
-const DEFAULT_HOME_SECTIONS_ORDER = ['hero', 'dailyPsalm', 'about', 'menorah', 'highlights', 'leader', 'hebrew', 'hebrewPages', 'pastorBaruch', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'verify'];
+const DEFAULT_HOME_SECTIONS_ORDER = ['hero', 'about', 'highlights', 'menorah', 'leader', 'hebrew', 'pastorBaruch', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'verify'];
 
 const normalizeHomeSectionsOrder = (sections: string[]): string[] => {
   // Preserve the INPUT order — only deduplicate and add genuinely missing sections
   const uniqueSections = Array.from(new Set(sections));
   const validSections = uniqueSections.filter(s => DEFAULT_HOME_SECTIONS_ORDER.includes(s));
   const missingSections = DEFAULT_HOME_SECTIONS_ORDER.filter(s => !validSections.includes(s));
-  return [...validSections, ...missingSections];
+  const result = [...validSections];
+  missingSections.forEach(missing => {
+    if (missing === 'highlights') {
+      const aboutIdx = result.indexOf('about');
+      if (aboutIdx !== -1) {
+        result.splice(aboutIdx + 1, 0, 'highlights');
+        return;
+      }
+    }
+    result.push(missing);
+  });
+  return result;
 };
 
 const TestimonialSection: React.FC<TestimonialSectionProps> = ({ currentUser }) => {
@@ -1597,7 +1615,7 @@ const App: React.FC = () => {
   // Check if on verify route (supports /verify/s/shareToken and /verify/memberId)
   const verifyMatch = location.pathname.match(/^\/verify\/(?:s\/)?(.+)$/);
   const isVerifyRoute = !!verifyMatch;
-  const verifyUserId = verifyMatch ? verifyMatch[1] : null;
+  const verifyUserId = verifyMatch ? decodeURIComponent(verifyMatch[1]).trim() : null;
   const isAuthRoute = location.pathname === '/auth';
   const isVerifyScannerRoute = location.pathname === '/verify-id';
   const isHebrewAlphabetRoute = location.pathname === '/hebrew-alphabet';
@@ -2229,7 +2247,7 @@ const App: React.FC = () => {
 
   // If on admin route, show admin interface
   if (isAdminRoute) {
-    if (!isAdminAuthenticated) {
+    if (!isAdminAuthenticated && currentUser?.role !== 'Admin') {
       return <AdminPasswordModal onSuccess={handleAdminAuthenticated} />;
     }
     return (
@@ -2367,6 +2385,7 @@ const App: React.FC = () => {
       
       {!isFrame && (
         <>
+          <CinematicOpeningScreen />
           <WebsiteBuilderManager
             isEditMode={isWebsiteBuilderMode}
             onExit={() => navigate('/')}
@@ -2523,413 +2542,105 @@ const App: React.FC = () => {
                     return <DailyPsalm119Section key="dailyPsalm" />;
                   case 'hero':
                     return (
-                      <section key="hero" className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden py-8 md:py-12">
-                {/* Cinematic image background with subtle golden motion */}
-                <div className="absolute inset-0 z-0 overflow-hidden">
-                  {/* Desktop Background */}
-                  <motion.img
-                    className="hidden md:block absolute inset-0 w-full h-full object-cover scale-[1.03]"
-                    src="/assets/landing-background.png"
-                    alt="City of Truth Ministries worship background"
-                    initial={{ scale: 1.02 }}
-                    animate={{ scale: 1.07 }}
-                    transition={{ duration: 18, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }}
-                  />
-                  {/* Mobile Background */}
-                  <motion.img
-                    className="block md:hidden absolute inset-0 w-full h-full object-cover scale-[1.03]"
-                    src="/assets/landing-background-mobile.png"
-                    alt="City of Truth Ministries worship background mobile"
-                    initial={{ scale: 1.02 }}
-                    animate={{ scale: 1.07 }}
-                    transition={{ duration: 18, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }}
-                  />
-                  <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(5,4,12,0.76) 0%, rgba(20,14,5,0.7) 48%, rgba(5,4,12,0.94) 100%)' }} />
-                  <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 70% 45% at 50% 42%, rgba(212,160,0,0.18) 0%, transparent 70%)' }} />
-                  <motion.div
-                    className="absolute -left-1/4 top-0 h-full w-1/2 bg-gradient-to-r from-transparent via-amber-300/10 to-transparent blur-2xl"
-                    animate={{ x: ['0%', '180%'], opacity: [0.08, 0.2, 0.08] }}
-                    transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut' }}
-                  />
-                  {[0, 1, 2, 3, 4, 5].map(i => (
-                    <motion.span
-                      key={i}
-                      className="absolute h-1.5 w-1.5 rounded-full bg-amber-200/70 shadow-[0_0_14px_rgba(251,191,36,0.85)]"
-                      style={{ left: `${14 + i * 14}%`, bottom: `${8 + (i % 3) * 16}%` }}
-                      animate={{ y: [-8, -46, -8], opacity: [0.15, 0.75, 0.15], scale: [0.8, 1.25, 0.8] }}
-                      transition={{ duration: 5 + i, repeat: Infinity, delay: i * 0.7 }}
-                    />
-                  ))}
-                </div>
-
-                <div className="relative z-10 text-center px-4 md:px-6 max-w-4xl mx-auto w-full pt-10 md:pt-16">
-                  {/* Registration badge — minimal pill */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.7 }}
-                    className="inline-flex flex-wrap items-center justify-center gap-2 mb-6 px-5 py-2 rounded-full border border-yellow-400/40 bg-yellow-500/10 backdrop-blur-xl"
-                    style={{ boxShadow: '0 0 24px rgba(251,191,36,0.28)' }}
-                  >
-                    <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" style={{ boxShadow: '0 0 8px rgba(251,191,36,0.9)' }} />
-                    <span className="text-yellow-200 font-semibold tracking-widest uppercase text-[11px]">✦ Registration Open ✦</span>
-                    <span className="hidden sm:inline-block h-3 w-px bg-yellow-200/30" />
-                    <span className="text-yellow-100/90 font-black tracking-widest uppercase text-[10px]">
-                      Closes in {countdown.days}d {countdown.hours}h {countdown.minutes}m
-                    </span>
-                  </motion.div>
-
-                  {/* Desktop Layout (md and larger) */}
-                  <div className="hidden md:block">
-                    {/* Main title */}
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9, y: 40 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-                      className="mb-4 whitespace-nowrap overflow-visible w-full flex justify-center"
-                    >
-                      <h1 className="font-black tracking-wider leading-none whitespace-nowrap overflow-visible">
-                        <span className="pure-gold-text inline-block text-5xl sm:text-7xl lg:text-[6.8rem] xl:text-[8rem] 2xl:text-[9.5rem] pb-2 md:pb-4 whitespace-nowrap">சத்திய நகரம்</span>
-                      </h1>
-                    </motion.div>
-
-                    {/* Subtitle */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.8, delay: 0.3 }}
-                      className="mb-2"
-                    >
-                      <h2 className="text-xl md:text-2xl font-semibold tracking-[0.2em] uppercase" style={{ color: "rgba(253,230,138,0.85)", letterSpacing: "0.2em" }}>City of Truth Ministries • வால்பாறை</h2>
-                    </motion.div>
-
-                    {/* Support text */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 15 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.7, delay: 0.4 }}
-                      className="mb-10"
-                    >
-                      <span className="text-lg md:text-xl font-medium md:font-bold tracking-[0.25em]" style={{ color: "rgba(251,191,36,0.65)" }}>ஊழியங்கள்</span>
-                    </motion.div>
-                  </div>
-
-                  {/* Mobile Layout (less than md - Stacked title alignment) */}
-                  <div className="block md:hidden mb-10 w-full overflow-hidden px-1">
-                    <motion.div
-                      initial={{ opacity: 0, y: 30 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 1.0 }}
-                      className="flex flex-col items-center justify-center w-full text-center"
-                    >
-                      <h1 className="font-serif font-black tracking-wide flex flex-col items-center justify-center leading-tight w-full">
-                        <span className="pure-gold-text inline-block text-[clamp(1.75rem,8.5vw,2.85rem)] pt-2 pb-1 px-1 mb-1 max-w-full leading-tight whitespace-nowrap">
-                          சத்திய நகரம்
-                        </span>
-                        <span className="pure-gold-text inline-block text-[clamp(1.65rem,8vw,2.65rem)] pt-1 pb-3 px-1 mb-1 max-w-full leading-tight whitespace-nowrap">
-                          ஊழியங்கள்
-                        </span>
-                      </h1>
-                      <h2 className="text-[clamp(0.6rem,3.2vw,0.8rem)] font-extrabold tracking-[0.16em] uppercase mt-1 px-2 whitespace-nowrap text-center" style={{ color: "rgba(253,230,138,0.88)" }}>
-                        City of Truth Ministries • வால்பாறை
-                      </h2>
-                    </motion.div>
-                  </div>
-
-                  {/* Animated verse carousel */}
-                  <div className="h-24 md:h-20 mb-8 flex items-center justify-center px-4">
-                    <AnimatePresence mode="wait">
-                      <motion.p
-                        key={heroVerse.ref}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.55 }}
-                        className="text-sm md:text-base max-w-xl mx-auto leading-relaxed font-light italic"
-                        style={{ color: "rgba(253,230,138,0.68)" }}
-                      >
-                        "{heroVerse.text}"<br />
-                        <span className="not-italic tracking-wider text-xs" style={{ color: "rgba(251,191,36,0.5)" }}>— {heroVerse.ref}</span>
-                      </motion.p>
-                    </AnimatePresence>
-                  </div>
-
-                   {/* Buttons */}
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.6, delay: 0.7 }}
-                    className="flex flex-col items-center justify-center w-full px-2 sm:px-0"
-                  >
-                    <div className="flex items-center justify-center gap-3 sm:gap-5 w-full max-w-[31rem]">
-                      <button
-                        id="tour-register-btn"
-                        type="button"
-                        onClick={() => setCurrentView(ViewState.ID_CARD)}
-                        className="group relative h-10 sm:h-11 w-36 sm:w-44 overflow-hidden border border-amber-600/70 bg-gradient-to-r from-[#8b5a0f] via-[#f6c04d] to-[#7a4707] text-[#2a1500] text-[10px] sm:text-[11px] font-black uppercase tracking-[0.14em] shadow-[0_0_18px_rgba(245,158,11,0.45),inset_0_0_16px_rgba(255,255,255,0.28)] transition-all hover:brightness-110 active:scale-95"
-                        style={{ clipPath: 'polygon(9px 0, calc(100% - 9px) 0, 100% 9px, 100% calc(100% - 9px), calc(100% - 9px) 100%, 9px 100%, 0 calc(100% - 9px), 0 9px)' }}
-                      >
-                        <span className="absolute inset-x-3 top-1 h-px bg-yellow-100/55" />
-                        <span className="relative z-10">Register Now</span>
-                        <span className="absolute inset-y-0 -left-10 w-8 rotate-12 bg-white/50 blur-sm transition-transform duration-700 group-hover:translate-x-56" />
-                      </button>
-                      <button
-                        id="tour-login-btn"
-                        type="button"
-                        onClick={() => navigate('/auth?view=login')}
-                        className="relative h-10 sm:h-11 w-36 sm:w-44 overflow-hidden border border-amber-500/55 bg-black/35 text-amber-200 text-[10px] sm:text-[11px] font-black uppercase tracking-[0.16em] shadow-[inset_0_0_18px_rgba(245,158,11,0.12)] backdrop-blur-sm transition-all hover:bg-amber-500/10 hover:border-amber-300/75 active:scale-95"
-                        style={{ clipPath: 'polygon(9px 0, calc(100% - 9px) 0, 100% 9px, 100% calc(100% - 9px), calc(100% - 9px) 100%, 9px 100%, 0 calc(100% - 9px), 0 9px)' }}
-                      >
-                        <span className="absolute inset-x-3 top-1 h-px bg-yellow-100/20" />
-                        <span className="relative z-10">Login</span>
-                      </button>
-                    </div>
-                    <div className="mt-3 flex w-full max-w-[31rem] items-center justify-center gap-2 text-amber-500/55">
-                      <span className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/45 to-amber-500/10" />
-                      <span className="relative h-4 w-20">
-                        <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rotate-45 border border-amber-400/70 bg-amber-300/20" />
-                        <span className="absolute left-[20%] top-1/2 h-px w-4 -translate-y-1/2 bg-amber-500/55" />
-                        <span className="absolute right-[20%] top-1/2 h-px w-4 -translate-y-1/2 bg-amber-500/55" />
-                      </span>
-                      <span className="h-px flex-1 bg-gradient-to-l from-transparent via-amber-500/45 to-amber-500/10" />
-                    </div>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.65, delay: 0.82 }}
-                    className="mt-7 grid grid-cols-3 gap-2 sm:gap-3 w-full max-w-xl mx-auto px-2"
-                  >
-                    {[
-                      { icon: BookOpen, label: 'Alphabet', action: () => navigate('/hebrew-alphabet') },
-                      { icon: Globe, label: 'Baruch Hashem', action: () => setCurrentView(ViewState.BARUCH_HASHEM) },
-                      { icon: UserIcon, label: 'Pastor', action: () => setCurrentView(ViewState.PASTOR) },
-                    ].map(({ icon: Icon, label, action }) => (
-                      <button
-                        key={label}
-                        type="button"
-                        onClick={action}
-                        className="group rounded-2xl border border-yellow-300/20 bg-black/24 px-2 py-3 backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-yellow-300/45 hover:bg-yellow-400/10 active:scale-[0.98]"
-                      >
-                        <span className="mx-auto mb-1.5 flex h-8 w-8 items-center justify-center rounded-xl bg-yellow-300/12 text-yellow-200 group-hover:bg-yellow-300/20">
-                          <Icon size={15} />
-                        </span>
-                        <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-yellow-100/85">{label}</span>
-                      </button>
-                    ))}
-                  </motion.div>
-
-                  {/* Quick Message Widget */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.7, delay: 0.9 }}
-                    className="mt-10 flex flex-col items-center gap-2 px-4 sm:px-0 w-full"
-                  >
-                    <p className="text-[10px] uppercase tracking-[0.2em] font-semibold mb-1" style={{ color: "rgba(251,191,36,0.45)" }}>✦ Send Us a Message ✦</p>
-                    <div
-                      className="flex w-full max-w-sm overflow-hidden rounded-2xl"
-                      style={{ background: "rgba(251,191,36,0.05)", backdropFilter: "blur(14px)", border: "1px solid rgba(251,191,36,0.2)", boxShadow: "0 4px 24px rgba(0,0,0,0.25), 0 0 0 1px rgba(251,191,36,0.08)" }}
-                    >
-                      <input
-                        type="text"
-                        placeholder="Type your message or prayer request…"
-                        value={heroEmail}
-                        onChange={e => setHeroEmail(e.target.value)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' && heroEmail.trim()) {
-                            handleHeroSendMessage();
-                          }
-                        }}
-                        className="flex-1 bg-transparent text-white placeholder:text-white/35 text-xs sm:text-sm px-4 py-3 outline-none font-light min-w-0"
-                      />
-                      <button
-                        disabled={!heroEmail.trim()}
-                        onClick={handleHeroSendMessage}
-                        className="flex items-center gap-1.5 text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider px-4 py-3 transition-all disabled:opacity-30 shrink-0"
-                        style={{ background: "rgba(251,191,36,0.22)", borderLeft: "1px solid rgba(251,191,36,0.2)", color: "rgba(253,230,138,0.95)" }}
-                      >
-                        <Send size={13} />
-                        Send
-                      </button>
-                    </div>
-                    <p className="text-[10px] tracking-wide" style={{ color: "rgba(251,191,36,0.25)" }}>Your message will reach our Admin directly.</p>
-                  </motion.div>
-                  {currentUser && (() => {
-                    const userNotes = memberNotifications.filter(note => note.userId === currentUser.id && note.from === 'admin');
-                    const unreadCount = userNotes.filter(note => !note.read).length;
-                    if (userNotes.length === 0) return null;
-                    return (
-                      <motion.button
-                        initial={{ opacity: 0, y: 16 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 1.05 }}
-                        onClick={() => {
-                          if (currentUser.status === 'Rejected') {
-                            alert(REJECTED_ACCESS_MESSAGE);
-                            return;
-                          }
-                          setDashboardFocusSection('notifications');
-                          setCurrentView(ViewState.USER_DASHBOARD);
-                        }}
-                        className="mt-4 w-full max-w-sm rounded-2xl border border-yellow-300/40 bg-yellow-500/10 backdrop-blur-xl px-4 py-3 text-left hover:bg-yellow-500/20 transition-colors"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-xs sm:text-sm font-black text-yellow-100">Admin Notification{userNotes.length > 1 ? 's' : ''}</p>
-                          <span className="px-2 py-0.5 rounded-full bg-yellow-300 text-brand-950 text-[10px] font-black">
-                            {unreadCount > 0 ? `${unreadCount} New` : `${userNotes.length} Total`}
-                          </span>
+                      <React.Fragment key="hero">
+                        <HeroCinematicIntro
+                          setCurrentView={setCurrentView}
+                          navigate={navigate}
+                          countdown={countdown}
+                          heroVerse={heroVerse}
+                          currentUser={currentUser}
+                          memberNotifications={memberNotifications}
+                          onOpenNotifications={() => {
+                            setDashboardFocusSection('notifications');
+                            setCurrentView(ViewState.USER_DASHBOARD);
+                          }}
+                          onSendMessage={(message: string) => {
+                            const sender = getContactSenderMeta();
+                            saveContactMessage({
+                              name: sender.name,
+                              email: sender.email,
+                              subject: sender.senderId ? `Hero Quick Message (${sender.senderId})` : 'Hero Quick Message',
+                              message,
+                              source: 'hero-widget',
+                              senderType: sender.senderType,
+                              senderId: sender.senderId
+                            });
+                            setShowLeaderMessage(true);
+                          }}
+                        />
+                        <div className="py-6 bg-[#05040a] border-y border-white/5">
+                          <InfiniteEmblemMarquee />
                         </div>
-                        <p className="mt-1 text-[11px] text-yellow-50/90 line-clamp-2">{userNotes[0]?.message}</p>
-                        <p className="mt-2 text-[10px] uppercase tracking-[0.14em] text-yellow-200/80">Tap to open dashboard messages</p>
-                      </motion.button>
+                      </React.Fragment>
                     );
-                  })()}
-                </div>
-                <motion.button
-                  type="button"
-                  onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}
-                  className="absolute bottom-5 left-1/2 z-20 -translate-x-1/2 hidden sm:flex flex-col items-center gap-1 text-yellow-100/55 hover:text-yellow-100 transition-colors"
-                  animate={{ y: [0, 7, 0] }}
-                  transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-                  aria-label="Scroll to explore"
-                >
-                  <span className="text-[9px] font-black uppercase tracking-[0.25em]">Scroll to Explore</span>
-                  <ChevronRight size={18} className="rotate-90" />
-                </motion.button>
-              </section>
-            );
                   case 'about':
                     return (
-                      <section key="about" className="py-24 bg-gradient-to-br from-[#0c0813] via-[#060409] to-[#0f091a] text-white relative overflow-hidden">
-                        {/* Background ambient glows */}
-                        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-600/10 rounded-full blur-[120px] pointer-events-none" />
-                        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-[120px] pointer-events-none" />
-                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.015),transparent_60%)] pointer-events-none" />
-                        
-                        <div className="container mx-auto px-6 relative z-10">
-                          <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
-                            {/* Left text & stats column */}
-                            <motion.div
-                              initial={{ opacity: 0, x: -40 }}
-                              whileInView={{ opacity: 1, x: 0 }}
-                              viewport={{ once: true }}
-                              transition={{ duration: 0.8 }}
-                              className="text-left"
-                            >
-                              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 mb-6 backdrop-blur-xl">
-                                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-red-400">COT Broadcasting Hub</span>
-                              </div>
-                              
-                              <h2 className="text-4xl md:text-5xl lg:text-6xl font-serif font-black mb-6 leading-[1.1] tracking-tight">
-                                Experience Divine Truth <br className="hidden md:inline" />
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-rose-400 to-amber-400">
-                                  In Power & Glory
-                                </span>
-                              </h2>
-                              
-                              <p className="text-gray-400 text-lg leading-relaxed mb-8">
-                                Step into a sanctuary of high-production spiritual broadcasts. Stream our anointed sermons, deep Hebrew mysteries, and divine worship songs directly on our official YouTube channel. Live every Sunday, archived for your spiritual growth.
-                              </p>
-                              
-                              {/* Premium Stats Dashboard Grid */}
-                              <div className="grid grid-cols-3 gap-4 mb-10">
-                                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
-                                  <p className="text-3xl font-black text-red-500">100+</p>
-                                  <p className="text-[11px] uppercase tracking-wider text-gray-500 font-bold mt-1">Sermons</p>
-                                </div>
-                                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
-                                  <p className="text-3xl font-black text-amber-500">Live</p>
-                                  <p className="text-[11px] uppercase tracking-wider text-gray-500 font-bold mt-1">Broadcasts</p>
-                                </div>
-                                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
-                                  <p className="text-3xl font-black text-rose-500">Torah</p>
-                                  <p className="text-[11px] uppercase tracking-wider text-gray-500 font-bold mt-1">Hebrew Hub</p>
-                                </div>
-                              </div>
-                              
-                              <div className="flex flex-wrap gap-4">
-                                <button
-                                  onClick={() => window.open(youtubeLink, '_blank', 'noopener,noreferrer')}
-                                  className="group flex items-center gap-3 px-8 py-4 rounded-full bg-gradient-to-r from-red-600 to-rose-600 text-white font-extrabold text-base hover:from-red-500 hover:to-rose-500 transition-all shadow-lg shadow-red-600/30 hover:shadow-red-600/50 hover:scale-105 active:scale-95"
-                                >
-                                  <Youtube size={22} className="text-white" />
-                                  Watch Live on YouTube
-                                  <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                                </button>
-                                <button
-                                  onClick={() => setCurrentView(ViewState.ABOUT)}
-                                  className="group flex items-center gap-2 px-8 py-4 rounded-full border border-white/20 bg-white/5 font-extrabold text-base text-gray-200 hover:bg-white/10 hover:border-amber-400/40 hover:text-amber-300 transition-all"
-                                >
-                                  Explore Hebrew Tools
-                                </button>
-                              </div>
-                            </motion.div>
-                            
-                            {/* Right interactive video player column */}
-                            <motion.div
-                              initial={{ opacity: 0, scale: 0.95, x: 40 }}
-                              whileInView={{ opacity: 1, scale: 1, x: 0 }}
-                              viewport={{ once: true }}
-                              transition={{ duration: 0.8 }}
-                              className="relative mx-auto lg:mx-0 w-full max-w-lg lg:max-w-none"
-                            >
-                              <div className="relative group rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(239,68,68,0.18)] border border-white/10 bg-white/5 backdrop-blur-xl p-3">
-                                <div className="relative aspect-video rounded-2xl overflow-hidden bg-black shadow-inner">
-                                  <video
-                                    src="/சத்திய_நகரம்_City_of_Truth_Min.mp4"
-                                    poster="https://images.unsplash.com/photo-1510590337019-5ef2d39aa786?q=80&w=2670&auto=format&fit=crop"
-                                    autoPlay
-                                    loop
-                                    muted
-                                    playsInline
-                                    className="w-full h-full object-cover"
-                                    style={{ boxShadow: "inset 0 0 40px rgba(0,0,0,0.8)" }}
-                                  />
-                                </div>
-                              </div>
-                              
-                              {/* Decorative back glow card */}
-                              <div className="absolute -inset-1.5 rounded-[2rem] bg-gradient-to-r from-red-600 to-amber-500 opacity-25 blur-2xl -z-10 group-hover:opacity-40 transition-opacity duration-500" />
-                            </motion.div>
-                          </div>
-                        </div>
-                      </section>
+                      <MinistryBentoGrid
+                        key="about"
+                        setView={setCurrentView}
+                        navigate={navigate}
+                        youtubeLink={youtubeLink}
+                      />
                     );
           case 'menorah': return <GoldenMenorah key="menorah" onPreviewClick={() => handleViewChange(ViewState.GOLDEN_MENORAH)} />;
           case 'highlights': return <MinistryHighlights key="highlights" setView={handleViewChange} />;
           case 'leader': return null; // Leader message is now a fixed overlay triggered by email input
           case 'hebrew': return <HebrewSanctuaryIntro key="hebrew" setView={setCurrentView} />;
-          case 'hebrewPages': return <HebrewPagesPreviewSection key="hebrewPages" setView={setCurrentView} />;
+          case 'hebrewPages': return null;
           case 'pastorBaruch': return <PastorBaruchPreviewSection key="pastorBaruch" setView={setCurrentView} />;
           case 'valparai': return <ValparaiPresence key="valparai" setView={setCurrentView} />;
           case 'testimonials': return <TestimonialSection key="testimonials" currentUser={currentUser || undefined} />;
           case 'members': return <CommunityMembersSection key="members" setView={setCurrentView} users={users} />;
           case 'preview': return <EntrustCardPreview key="preview" setView={setCurrentView} />;
-          case 'donations': return <DonationsHighlight key="donations" setView={setCurrentView} onDonate={() => setShowDonationModal(true)} />;
+          case 'donations': return null;
           case 'verify':
             return (
-              <section key="verify" className="py-24 bg-white relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-500 via-accent-500 to-brand-500" />
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(99,102,241,0.04)_0%,transparent_60%)] pointer-events-none" />
+              <section key="verify" className="py-24 bg-slate-950 text-white relative overflow-hidden border-t border-b border-white/10">
+                {/* Dynamic WebGL Dot Shader Canvas for Ambient Dots */}
+                <DotShaderCanvas className="absolute inset-0 w-full h-full pointer-events-none z-0 opacity-40" />
+
+                {/* Stardust Texture & Radial Dot Matrix Pattern */}
+                <div className="absolute inset-0 bg-[radial-gradient(#38bdf8_1.2px,transparent_1.2px)] [background-size:24px_24px] opacity-15 pointer-events-none z-0" />
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none z-0" />
+                
+                {/* Ambient Glows */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-brand-500/15 blur-[140px] rounded-full pointer-events-none z-0" />
+                <div className="absolute top-1/4 right-1/4 w-[400px] h-[200px] bg-sky-500/10 blur-[100px] rounded-full pointer-events-none z-0" />
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-500 via-accent-400 to-brand-500 opacity-80 z-10" />
+
                 <div className="container mx-auto px-6 relative z-10">
-                  <div className="text-center mb-16">
+                  <div className="text-center mb-10 md:mb-14">
                     <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-                      <span className="inline-flex items-center gap-2 px-4 py-2 bg-brand-50 text-brand-600 rounded-full text-xs font-black uppercase tracking-widest mb-6 border border-brand-100">
+                      <span className="inline-flex items-center gap-2 px-4 py-2 bg-brand-950/80 text-brand-300 rounded-full text-xs font-black uppercase tracking-widest mb-6 border border-brand-500/30 backdrop-blur-md shadow-[0_0_15px_rgba(99,102,241,0.25)]">
                         <ShieldCheck size={14} /> Member Verification
                       </span>
-                      <h2 className="text-4xl md:text-5xl font-serif font-black text-brand-950 mb-4">Verify Your Membership</h2>
-                      <p className="text-slate-500 max-w-xl mx-auto font-medium">Confirm your City of Truth membership status through any of these official methods.</p>
+                      
+                      {/* Interactive Dot Matrix Animated Typography Stage */}
+                      <div className="w-full max-w-2xl mx-auto h-20 md:h-28 my-2 flex items-center justify-center">
+                        <DotMatrixText
+                          text={["VERIFY MEMBERSHIP", "ENTRUST ACCESS", "CITY OF TRUTH"]}
+                          transition="fade"
+                          cycleInterval={3200}
+                          dotSize={3.5}
+                          gap={2.2}
+                          activeColor="#60a5fa"
+                          inactiveColor="rgba(255, 255, 255, 0.06)"
+                          showInactive={true}
+                          className="w-full h-full drop-shadow-[0_0_25px_rgba(96,165,250,0.4)]"
+                        />
+                      </div>
+
+                      <h2 className="text-3xl md:text-5xl font-serif font-black text-white mb-4 tracking-tight drop-shadow-md">Verify Your Membership</h2>
+                      <p className="text-slate-400 max-w-xl mx-auto font-medium text-sm md:text-base">Confirm your City of Truth membership status through any of these official methods.</p>
                     </motion.div>
                   </div>
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-                      {[
-                        { id: 'tour-verify-login-card', icon: UserIcon, label: 'Login to Account', desc: 'Access your personal dashboard with your Member ID, phone, or email.', color: 'from-brand-500 to-brand-700', light: 'bg-brand-50 text-brand-600', action: () => navigate('/auth?view=login'), cta: 'Login Now' },
-                        { id: 'tour-verify-upload-card', icon: UploadCloud, label: 'Upload Entrust PDF', desc: 'Upload your Entrust Card PDF to verify your membership document.', color: 'from-accent-500 to-accent-700', light: 'bg-accent-50 text-accent-600', action: () => navigate('/auth?view=login&option=upload'), cta: 'Upload File' },
-                      { id: 'tour-verify-card-view', icon: CreditCard, label: 'View Entrust Card', desc: 'Register or view your official digital ID card and QR code.', color: 'from-emerald-500 to-emerald-700', light: 'bg-emerald-50 text-emerald-600', action: () => setCurrentView(ViewState.ID_CARD), cta: 'View Card' },
-                      { id: 'tour-verify-scan-card', icon: CheckCircle, label: 'Scan QR Code', desc: 'Scan any member\'s QR code to instantly verify their identity.', color: 'from-amber-500 to-orange-600', light: 'bg-amber-50 text-amber-600', action: () => navigate('/auth?view=login&option=scan'), cta: 'Open Scanner' },
+
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+                    {[
+                      { id: 'tour-verify-login-card', icon: UserIcon, label: 'Login to Account', desc: 'Access your personal dashboard with your Member ID, phone, or email.', color: 'from-brand-400 to-sky-400', light: 'bg-brand-500/15 text-brand-300 border border-brand-500/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]', action: () => navigate('/auth?view=login'), cta: 'Login Now' },
+                      { id: 'tour-verify-upload-card', icon: UploadCloud, label: 'Upload Entrust PDF', desc: 'Upload your Entrust Card PDF to verify your membership document.', color: 'from-accent-400 to-amber-300', light: 'bg-accent-500/15 text-accent-300 border border-accent-500/30 shadow-[0_0_15px_rgba(234,179,8,0.2)]', action: () => navigate('/auth?view=login&option=upload'), cta: 'Upload File' },
+                      { id: 'tour-verify-card-view', icon: CreditCard, label: 'View Entrust Card', desc: 'Register or view your official digital ID card and QR code.', color: 'from-emerald-400 to-teal-300', light: 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.2)]', action: () => setCurrentView(ViewState.ID_CARD), cta: 'View Card' },
+                      { id: 'tour-verify-scan-card', icon: CheckCircle, label: 'Scan QR Code', desc: 'Scan any member\'s QR code to instantly verify their identity.', color: 'from-amber-400 to-orange-400', light: 'bg-amber-500/15 text-amber-300 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]', action: () => navigate('/auth?view=login&option=scan'), cta: 'Open Scanner' },
                     ].map((item, i) => (
                       <motion.div
                         id={item.id}
@@ -2939,16 +2650,16 @@ const App: React.FC = () => {
                         transition={{ delay: i * 0.1 }}
                         viewport={{ once: true }}
                         onClick={item.action}
-                        className="group bg-white border border-slate-100 rounded-3xl p-7 shadow-md hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer relative overflow-hidden"
+                        className="group bg-slate-900/80 hover:bg-slate-900 border border-white/10 hover:border-brand-400/40 rounded-3xl p-7 shadow-[0_15px_35px_rgba(0,0,0,0.5)] hover:shadow-[0_20px_50px_rgba(59,130,246,0.25)] hover:-translate-y-2 transition-all duration-300 cursor-pointer relative overflow-hidden backdrop-blur-md"
                       >
-                        <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-5 transition-opacity duration-500 from-brand-500 to-accent-500 rounded-3xl" />
+                        <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-10 transition-opacity duration-500 from-brand-500 to-accent-500 rounded-3xl pointer-events-none" />
                         <div className={`w-14 h-14 ${item.light} rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300`}>
                           <item.icon size={26} />
                         </div>
-                        <h3 className="font-black text-brand-950 text-lg mb-2 leading-tight"><EditableText id={'footer-' + item.label} defaultText={item.label} /></h3>
-                        <p className="text-slate-500 text-sm leading-relaxed mb-5">{item.desc}</p>
+                        <h3 className="font-black text-white text-lg mb-2 leading-tight"><EditableText id={'footer-' + item.label} defaultText={item.label} /></h3>
+                        <p className="text-slate-400 text-sm leading-relaxed mb-5">{item.desc}</p>
                         <div className={`inline-flex items-center gap-2 text-sm font-bold bg-gradient-to-r ${item.color} bg-clip-text text-transparent group-hover:gap-3 transition-all`}>
-                          {item.cta} <ChevronRight size={14} className={`text-brand-500`} />
+                          {item.cta} <ChevronRight size={14} className="text-brand-400" />
                         </div>
                       </motion.div>
                     ))}
@@ -3018,7 +2729,7 @@ const App: React.FC = () => {
           )}
 
           {currentView === ViewState.ABOUT_VALPARAI && (
-            <motion.div key="valparai" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+            <motion.div key="valparai" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <ValparaiPage setView={setCurrentView} />
             </motion.div>
           )}
@@ -3474,292 +3185,21 @@ const App: React.FC = () => {
             </motion.div>
           )}
 
-      {/* Universal Interactive Footer (Extracted from Commit 409fde8) */}
+
+
+      {/* Universal Interactive Footer (Animated Footer from ooo.txt) */}
       {!isFrame && currentView !== ViewState.ADMIN_DASHBOARD && (
-        <footer className="bg-brand-950 text-white pt-24 pb-16 relative overflow-hidden mt-16 border-t border-amber-400/20">
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none"></div>
-          <div className="absolute bottom-0 left-0 w-full h-[500px] bg-gradient-to-t from-black/80 to-transparent pointer-events-none"></div>
-
-          <div className="max-w-7xl mx-auto px-6 relative z-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
-              {/* Col 1: Ministry Identity */}
-              <div className="col-span-1">
-                <div className="flex items-center gap-4 mb-6">
-                  <img src="/logo.png" alt="COT Logo" className="w-14 h-14 object-contain" />
-                  <div>
-                    <h3 className="text-xl font-serif font-black text-white leading-none">
-                      <EditableText id="footer-logo" defaultText="City of Truth" />
-                    </h3>
-                    <p className="text-[10px] text-amber-400 font-black uppercase tracking-[0.3em] mt-1">Ministries</p>
-                  </div>
-                </div>
-                <p className="text-brand-100/70 leading-relaxed text-xs mb-6">
-                  Valparai Sanctuary<br />
-                  Tamil Nadu, India
-                </p>
-                <div className="flex gap-3">
-                  {[
-                    { Icon: Youtube, href: youtubeLink },
-                    { Icon: Facebook, href: "https://facebook.com/cityoftruthministries" },
-                    { Icon: Instagram, href: "https://instagram.com/cityoftruthministries" }
-                  ].map(({ Icon, href }, i) => (
-                    <a key={i} href={href} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center hover:bg-white hover:text-brand-950 transition-all border border-white/10 cursor-pointer">
-                      <Icon size={16} />
-                    </a>
-                  ))}
-                </div>
-              </div>
-
-              {/* Col 2: Main Pages & Sub Part Pages */}
-              <div className="col-span-1">
-                <h4 className="font-bold text-white mb-5 text-sm uppercase tracking-wider text-amber-400">Site Map — Main Pages</h4>
-                <ul className="space-y-3 text-xs text-brand-100/70">
-                  {footerMainPages.map(item => (
-                    <li key={item.label}>
-                      <button
-                        onClick={() => {
-                          if (item.href) { navigate(item.href); return; }
-                          if (item.view) { setCurrentView(item.view); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-                        }}
-                        className="hover:text-amber-300 transition-colors flex items-center gap-2 text-left cursor-pointer"
-                      >
-                        <div className="w-1.5 h-1.5 rounded-full bg-amber-400/70"></div>
-                        <EditableText id={'footer-' + item.label} defaultText={item.label} />
-                      </button>
-                    </li>
-                  ))}
-                  {currentUser && (
-                    <li>
-                      <button
-                        onClick={() => {
-                          if (currentUser.status === 'Rejected') {
-                            alert(REJECTED_ACCESS_MESSAGE);
-                            return;
-                          }
-                          setCurrentView(ViewState.USER_DASHBOARD);
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                        className="hover:text-amber-300 transition-colors flex items-center gap-2 text-left cursor-pointer"
-                      >
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/80"></div>
-                        User Dashboard
-                      </button>
-                    </li>
-                  )}
-                  <li>
-                    <a href="/admin" className="hover:text-amber-300 transition-colors flex items-center gap-2 text-xs text-brand-100/70">
-                      <div className="w-1.5 h-1.5 rounded-full bg-red-500/80"></div>
-                      Admin Dashboard
-                    </a>
-                  </li>
-                </ul>
-                <div className="mt-6 pt-4 border-t border-white/10">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400 mb-3">Sub Part Pages</p>
-                  <ul className="space-y-2 text-xs text-brand-100/70">
-                    {footerSubPartPages.map((item) => (
-                      <li key={item.label}>
-                        <button
-                          onClick={item.action}
-                          className="hover:text-amber-300 transition-colors flex items-center gap-2 text-left cursor-pointer"
-                        >
-                          <div className={`w-1.5 h-1.5 rounded-full ${item.dotClass}`}></div>
-                          <EditableText id={'footer-' + item.label} defaultText={item.label} />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              {/* Col 3: Hebrew Site Map */}
-              <div className="col-span-1">
-                <h4 className="font-bold text-white mb-5 text-sm uppercase tracking-wider text-amber-400">Hebrew Site Map</h4>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400/80 mb-2">Hebrew Content</p>
-                    <ul className="space-y-2 text-xs text-brand-100/70">
-                      {footerHebrewContentPages.map(item => (
-                        <li key={item.label}>
-                          <button
-                            onClick={() => {
-                              if (item.href) { navigate(item.href); return; }
-                              if (item.view) { setCurrentView(item.view); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-                            }}
-                            className="hover:text-amber-300 transition-colors flex items-center gap-2 text-left cursor-pointer"
-                          >
-                            <div className="w-1.5 h-1.5 rounded-full bg-amber-400/70"></div>
-                            <EditableText id={'footer-' + item.label} defaultText={item.label} />
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400/80 mb-2">Hebrew Grammar</p>
-                    <ul className="space-y-2 text-xs text-brand-100/70">
-                      {footerHebrewGrammarPages.map(item => (
-                        <li key={item.label}>
-                          <button
-                            onClick={() => { setCurrentView(item.view); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                            className="hover:text-amber-300 transition-colors flex items-center gap-2 text-left cursor-pointer"
-                          >
-                            <div className="w-1.5 h-1.5 rounded-full bg-sky-400/70"></div>
-                            <EditableText id={'footer-' + item.label} defaultText={item.label} />
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400/80 mb-2">Hebrew Tools</p>
-                    <ul className="space-y-2 text-xs text-brand-100/70">
-                      {footerHebrewToolPages.map(item => (
-                        <li key={item.label}>
-                          <button
-                            onClick={() => { setCurrentView(item.view); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                            className="hover:text-amber-300 transition-colors flex items-center gap-2 text-left cursor-pointer"
-                          >
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/70"></div>
-                            <EditableText id={'footer-' + item.label} defaultText={item.label} />
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              {/* Col 4: Stay Connected & 3D Visiting Card */}
-              <div className="col-span-1">
-                <h4 className="font-bold text-white mb-5 text-sm uppercase tracking-wider text-amber-400">Stay Connected</h4>
-                <p className="text-xs text-brand-100/70 mb-3">Join our mailing list for weekly inspiration & updates.</p>
-                <div className="flex gap-2 mb-4">
-                  <input 
-                    type="email" 
-                    placeholder="Your Email" 
-                    className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs outline-none focus:bg-white/10 transition-colors w-full text-white placeholder-slate-400" 
-                    onFocus={() => setShowLeaderMessage(true)}
-                    onChange={(e) => {
-                      if (e.target.value.length > 0) setShowLeaderMessage(true);
-                    }}
-                  />
-                  <button className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl px-3 py-2 transition-colors cursor-pointer shrink-0">
-                    <ArrowRight size={16} />
-                  </button>
-                </div>
-
-                {/* Embedded 3D Visiting Card */}
-                <div className="mt-6">
-                  <VisitingCard3D compact={true} />
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Bar & Interactive Developer Credit Button */}
-            <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
-              <div className="text-center md:text-left space-y-3">
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-100/40">
-                  © 2026 City of Truth Ministries • Valparai Sanctuary, Tamil Nadu
-                </p>
-
-                {/* Developer Credit Button */}
-                <div className="flex justify-center md:justify-start">
-                  <div className="developer-btn-container">
-                    <div className="developer-btn-drawer developer-transition-top">Crafted with...</div>
-                    <div className="developer-btn-drawer developer-transition-bottom">...Excellence</div>
-                    <button className="developer-btn">
-                      <span className="developer-btn-text">S.Shaveesh Jeshurun</span>
-                    </button>
-                    <style>{`
-                    .developer-btn-container {
-                      --timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-                      --duration: 250ms;
-                      position: relative;
-                      display: inline-flex;
-                      align-items: center;
-                      justify-content: center;
-                      margin-top: 14px;
-                      margin-bottom: 14px;
-                    }
-                    .developer-btn {
-                      position: relative;
-                      min-width: 220px;
-                      min-height: 44px;
-                      border-radius: 14px;
-                      border: 1.5px solid rgba(255, 255, 255, 0.5);
-                      padding: 0.6em 1.3em;
-                      background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
-                      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
-                      transition: all var(--duration) var(--timing-function);
-                      cursor: pointer;
-                      z-index: 2;
-                    }
-                    .developer-btn-drawer {
-                      position: absolute;
-                      display: flex;
-                      align-items: center;
-                      justify-content: center;
-                      min-height: 28px;
-                      border-radius: 12px;
-                      border: 1.5px solid rgba(255, 255, 255, 0.6);
-                      padding: 0.25em 1em;
-                      font-size: 0.78em;
-                      font-weight: 800;
-                      font-family: "Inter", sans-serif;
-                      color: #044e36;
-                      background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
-                      opacity: 0;
-                      transition: all var(--duration) var(--timing-function);
-                      z-index: 1;
-                      box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
-                      white-space: nowrap;
-                    }
-                    .developer-transition-top {
-                      top: 0;
-                      left: 50%;
-                      transform: translateX(-50%) translateY(0) scale(0.9);
-                    }
-                    .developer-transition-bottom {
-                      bottom: 0;
-                      left: 50%;
-                      transform: translateX(-50%) translateY(0) scale(0.9);
-                    }
-                    .developer-btn-text {
-                      display: inline-block;
-                      font-size: 0.95em;
-                      font-family: "Inter", sans-serif;
-                      font-weight: 800;
-                      color: #ffffff;
-                      letter-spacing: 0.02em;
-                      transition: all var(--duration) var(--timing-function);
-                    }
-                    .developer-btn-container:hover .developer-btn {
-                      transform: scale(1.03);
-                      box-shadow: 0 10px 24px rgba(56, 189, 248, 0.5);
-                    }
-                    .developer-btn-container:hover .developer-transition-top {
-                      transform: translateX(-50%) translateY(-28px) scale(1);
-                      opacity: 1;
-                    }
-                    .developer-btn-container:hover .developer-transition-bottom {
-                      transform: translateX(-50%) translateY(28px) scale(1);
-                      opacity: 1;
-                    }
-                    .developer-btn-container:hover .developer-btn-text {
-                      color: #ffffff;
-                    }
-                    `}</style>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-6 text-xs text-brand-100/50">
-                <button onClick={() => setCurrentView(ViewState.HOME)} className="hover:text-white transition-colors cursor-pointer">Privacy Policy</button>
-                <button onClick={() => setCurrentView(ViewState.HOME)} className="hover:text-white transition-colors cursor-pointer">Terms of Service</button>
-              </div>
-            </div>
-          </div>
-        </footer>
+        <>
+          <InfiniteLogoScroll />
+          <Footer
+          currentView={currentView}
+          setCurrentView={setCurrentView}
+          navigate={navigate}
+          currentUser={currentUser}
+          setShowLeaderMessage={setShowLeaderMessage}
+          youtubeLink={youtubeLink}
+        />
+        </>
       )}
 
           </AnimatePresence>

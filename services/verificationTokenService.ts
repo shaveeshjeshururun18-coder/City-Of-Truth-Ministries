@@ -23,7 +23,7 @@ export function generateSecureShareToken(): string {
  * Deterministic fallback 256-bit secure token when shareToken is not yet saved.
  * Ensures plain user IDs like COT-1001 are NEVER exposed in public share links.
  */
-function getDeterministicSecureToken(user: User): string {
+export function getDeterministicSecureToken(user: User): string {
   const seed = `cot_sec_salt_256_${user.id}_${user.joinedDate || user.phone || 'covenant'}`;
   let hash1 = 5381;
   let hash2 = 0;

@@ -15,8 +15,287 @@ interface MinistryGalleryProps {
     items: MediaItem[];
 }
 
+interface InertiaGalleryCardProps {
+    item: MediaItem;
+    index: number;
+    failedMedia: Record<string, boolean>;
+    setFailedMedia: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+    onClick: () => void;
+}
+
+const InertiaGalleryCard: React.FC<InertiaGalleryCardProps> = ({
+    item,
+    index,
+    failedMedia,
+    setFailedMedia,
+    onClick,
+}) => {
+    const [physics, setPhysics] = useState({
+        x: 0,
+        y: 0,
+        rotateX: 0,
+        rotateY: 0,
+        rotateZ: 0,
+        scale: 1,
+    });
+    const [isHovered, setIsHovered] = useState(false);
+    const cardRef = useRef<HTMLDivElement>(null);
+    const lastPos = useRef({ x: 0, y: 0, time: 0 });
+    const velocity = useRef({ x: 0, y: 0 });
+    const animFrameRef = useRef<number | null>(null);
+    const posRef = useRef({ x: 0, y: 0, rotateX: 0, rotateY: 0, rotateZ: 0 });
+    const hasDragged = useRef(false);
+
+    useEffect(() => {
+        return () => {
+            if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+        };
+    }, []);
+
+    const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+        setIsHovered(true);
+        if (animFrameRef.current) {
+            cancelAnimationFrame(animFrameRef.current);
+            animFrameRef.current = null;
+        }
+        lastPos.current = { x: e.clientX, y: e.clientY, time: performance.now() };
+        velocity.current = { x: 0, y: 0 };
+    };
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!cardRef.current) return;
+        const now = performance.now();
+        const dt = Math.max(now - lastPos.current.time, 10);
+        const dx = e.clientX - lastPos.current.x;
+        const dy = e.clientY - lastPos.current.y;
+
+        // Instant cursor velocity normalized to 60fps
+        velocity.current = {
+            x: (dx / dt) * 16,
+            y: (dy / dt) * 16,
+        };
+        lastPos.current = { x: e.clientX, y: e.clientY, time: now };
+
+        const rect = cardRef.current.getBoundingClientRect();
+        const normX = (e.clientX - rect.left) / rect.width - 0.5; // -0.5 to 0.5
+        const normY = (e.clientY - rect.top) / rect.height - 0.5; // -0.5 to 0.5
+
+        // Direct interactive mouse momentum & 3D tilt
+        const targetX = normX * 22 + velocity.current.x * 0.7;
+        const targetY = normY * 22 + velocity.current.y * 0.7;
+        const targetRotY = normX * 14 + velocity.current.x * 0.35;
+        const targetRotX = -normY * 14 - velocity.current.y * 0.35;
+        const targetRotZ = Math.max(Math.min(velocity.current.x * 0.3, 5), -5);
+
+        posRef.current = {
+            x: targetX,
+            y: targetY,
+            rotateX: targetRotX,
+            rotateY: targetRotY,
+            rotateZ: targetRotZ,
+        };
+
+        setPhysics({
+            x: targetX,
+            y: targetY,
+            rotateX: targetRotX,
+            rotateY: targetRotY,
+            rotateZ: targetRotZ,
+            scale: 1.035,
+        });
+    };
+
+    const handleMouseLeave = () => {
+        setIsHovered(false);
+        lastPos.current = { x: 0, y: 0, time: 0 };
+
+        // Crav-Burgers inertia impulse physics
+        let curPos = { ...posRef.current };
+        let vel = {
+            x: Math.max(Math.min(velocity.current.x * 1.8, 45), -45),
+            y: Math.max(Math.min(velocity.current.y * 1.8, 45), -45),
+            rotateX: Math.max(Math.min(-velocity.current.y * 0.35, 12), -12),
+            rotateY: Math.max(Math.min(velocity.current.x * 0.35, 12), -12),
+            rotateZ: Math.max(Math.min(velocity.current.x * 0.25, 7), -7),
+        };
+
+        const springK = 0.085; // Hooke's spring return factor
+        const damping = 0.78;  // Momentum friction resistance
+
+        const runInertiaPhysics = () => {
+            vel.x = (vel.x + (0 - curPos.x) * springK) * damping;
+            vel.y = (vel.y + (0 - curPos.y) * springK) * damping;
+            vel.rotateX = (vel.rotateX + (0 - curPos.rotateX) * springK) * damping;
+            vel.rotateY = (vel.rotateY + (0 - curPos.rotateY) * springK) * damping;
+            vel.rotateZ = (vel.rotateZ + (0 - curPos.rotateZ) * springK) * damping;
+
+            curPos.x += vel.x;
+            curPos.y += vel.y;
+            curPos.rotateX += vel.rotateX;
+            curPos.rotateY += vel.rotateY;
+            curPos.rotateZ += vel.rotateZ;
+
+            posRef.current = { ...curPos };
+
+            const speed = Math.abs(vel.x) + Math.abs(vel.y) + Math.abs(vel.rotateZ);
+            const dist = Math.abs(curPos.x) + Math.abs(curPos.y) + Math.abs(curPos.rotateZ);
+
+            if (speed > 0.02 || dist > 0.05) {
+                setPhysics({
+                    ...curPos,
+                    scale: 1,
+                });
+                animFrameRef.current = requestAnimationFrame(runInertiaPhysics);
+            } else {
+                setPhysics({
+                    x: 0,
+                    y: 0,
+                    rotateX: 0,
+                    rotateY: 0,
+                    rotateZ: 0,
+                    scale: 1,
+                });
+                posRef.current = { x: 0, y: 0, rotateX: 0, rotateY: 0, rotateZ: 0 };
+                animFrameRef.current = null;
+            }
+        };
+
+        if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = requestAnimationFrame(runInertiaPhysics);
+    };
+
+    const handleClick = () => {
+        if (!hasDragged.current) {
+            onClick();
+        }
+    };
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: (index % 5) * 0.1, duration: 0.5 }}
+            className="relative select-none"
+            style={{ perspective: 1200 }}
+        >
+            <motion.div
+                ref={cardRef}
+                drag
+                dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+                dragElastic={0.22}
+                dragTransition={{ bounceStiffness: 350, bounceDamping: 22, power: 0.25 }}
+                onDragStart={() => { hasDragged.current = true; }}
+                onDragEnd={() => { setTimeout(() => { hasDragged.current = false; }, 60); }}
+                onMouseEnter={handleMouseEnter}
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+                onClick={handleClick}
+                animate={{
+                    x: physics.x,
+                    y: physics.y,
+                    rotateX: physics.rotateX,
+                    rotateY: physics.rotateY,
+                    rotateZ: physics.rotateZ,
+                    scale: physics.scale,
+                }}
+                transition={{
+                    type: isHovered ? "tween" : "spring",
+                    duration: isHovered ? 0.06 : 0.45,
+                    ease: "easeOut",
+                    stiffness: 300,
+                    damping: 20,
+                }}
+                style={{
+                    transformStyle: "preserve-3d",
+                }}
+                className={`relative overflow-hidden rounded-2xl md:rounded-[2.5rem] shadow-sm transition-shadow duration-500 bg-white border border-slate-100/60 aspect-square w-full md:size-80 cursor-grab active:cursor-grabbing ${
+                    isHovered
+                        ? 'shadow-[0_25px_60px_rgba(0,0,0,0.32)] border-amber-400/80 ring-2 ring-amber-400/30'
+                        : 'shadow-sm border-slate-100/50'
+                }`}
+            >
+                {/* Media Item */}
+                {item.type === 'image' && !failedMedia[item.id] ? (
+                    <img
+                        src={item.src}
+                        alt="Ministry Moment"
+                        className={`w-full h-full object-cover transition-transform duration-700 ease-out pointer-events-none ${
+                            isHovered ? 'scale-110' : 'scale-100'
+                        }`}
+                        loading="lazy"
+                        onError={() => setFailedMedia(prev => ({ ...prev, [item.id]: true }))}
+                    />
+                ) : item.type === 'video' && !failedMedia[item.id] ? (
+                    <video
+                        src={item.src}
+                        className="w-full h-full object-cover pointer-events-none"
+                        controls={false}
+                        muted
+                        loop
+                        autoPlay
+                        playsInline
+                        onError={() => setFailedMedia(prev => ({ ...prev, [item.id]: true }))}
+                    />
+                ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-center bg-slate-100 text-slate-500 px-4 pointer-events-none">
+                        <ImageIcon size={24} className="mb-2" />
+                        <p className="text-xs font-bold uppercase tracking-wide">Media unavailable</p>
+                        <p className="text-[10px] mt-1">{item.date || 'Ministry Moment'}</p>
+                    </div>
+                )}
+
+                {/* Refined Overlay */}
+                <div className={`absolute inset-0 bg-gradient-to-t from-brand-950/90 via-brand-950/20 to-transparent transition-opacity duration-500 pointer-events-none ${
+                    isHovered ? 'opacity-90' : 'opacity-60'
+                }`} />
+
+                {/* Zoom / Play hint on hover */}
+                <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 pointer-events-none ${
+                    isHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
+                }`}>
+                    <div className="w-14 h-14 bg-amber-400/90 backdrop-blur-md rounded-full flex items-center justify-center text-slate-950 shadow-xl border border-white/50">
+                        {item.type === 'video'
+                            ? <Play size={22} className="ml-1 fill-current" />
+                            : <ZoomIn size={22} />
+                        }
+                    </div>
+                </div>
+
+                {/* Content Overlays */}
+                <div className="absolute top-4 right-4 w-10 h-10 bg-white/15 backdrop-blur-xl rounded-full flex items-center justify-center text-white border border-white/20 shadow-md pointer-events-none">
+                    {item.type === 'video' ? <Play size={16} fill="currentColor" /> : <ImageIcon size={16} />}
+                </div>
+                <div className="absolute top-4 left-4 flex flex-col gap-2 pointer-events-none">
+                    {item.category && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-white/20 backdrop-blur-md border border-white/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white shadow">
+                            <Tag size={12} /> {item.category}
+                        </span>
+                    )}
+                    {item.type === 'video' && item.duration && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-brand-950/80 backdrop-blur-md border border-white/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white shadow">
+                            <Clock size={12} /> {item.duration}
+                        </span>
+                    )}
+                </div>
+
+                <div className={`absolute bottom-0 left-0 right-0 p-3 md:p-6 transition-all duration-500 pointer-events-none ${
+                    isHovered ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-90'
+                }`}>
+                    <div className="flex items-center gap-2 text-accent-400 mb-1 md:mb-2">
+                        <div className="w-4 h-[1px] bg-accent-400" />
+                        <span className="text-[8px] md:text-[10px] font-black tracking-[0.2em] uppercase">{item.type}</span>
+                    </div>
+                    <div className="text-sm md:text-lg font-serif font-bold text-white mb-1 md:mb-2 leading-tight">
+                        {item.date || 'Ministry Moment'}
+                    </div>
+                </div>
+            </motion.div>
+        </motion.div>
+    );
+};
+
 export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items = [] }) => {
-    const [hoveredId, setHoveredId] = useState<string | null>(null);
     const [failedMedia, setFailedMedia] = useState<Record<string, boolean>>({});
     const [lightboxIndex, setLightboxIndex] = useState<number>(0);
     const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -73,96 +352,14 @@ export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items = [] }) 
                     style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                 >
                     {items.map((item, index) => (
-                        <motion.div
+                        <InertiaGalleryCard
                             key={item.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ delay: (index % 5) * 0.1, duration: 0.5 }}
-                            className="relative cursor-pointer"
-                            onMouseEnter={() => setHoveredId(item.id)}
-                            onMouseLeave={() => setHoveredId(null)}
+                            item={item}
+                            index={index}
+                            failedMedia={failedMedia}
+                            setFailedMedia={setFailedMedia}
                             onClick={() => openLightbox(index)}
-                        >
-                            <div className={`relative overflow-hidden rounded-2xl md:rounded-[2.5rem] shadow-sm transition-all duration-700 bg-white border border-slate-100/50 ${
-                                hoveredId === item.id ? 'scale-[1.02] shadow-2xl ring-1 ring-accent-400/30' : 'scale-100'
-                            } aspect-square w-full md:size-80`}>
-
-                                {item.type === 'image' && !failedMedia[item.id] ? (
-                                    <img
-                                        src={item.src}
-                                        alt="Ministry Moment"
-                                        className={`w-full h-full object-cover transition-all duration-1000 ${
-                                            hoveredId === item.id ? 'scale-110' : 'scale-100'
-                                        }`}
-                                        loading="lazy"
-                                        onError={() => setFailedMedia(prev => ({ ...prev, [item.id]: true }))}
-                                    />
-                                ) : item.type === 'video' && !failedMedia[item.id] ? (
-                                    <video
-                                        src={item.src}
-                                        className="w-full h-full object-cover pointer-events-none"
-                                        controls={false}
-                                        muted
-                                        loop
-                                        autoPlay
-                                        playsInline
-                                        onError={() => setFailedMedia(prev => ({ ...prev, [item.id]: true }))}
-                                    />
-                                ) : (
-                                    <div className="w-full h-full flex flex-col items-center justify-center text-center bg-slate-100 text-slate-500 px-4">
-                                        <ImageIcon size={24} className="mb-2" />
-                                        <p className="text-xs font-bold uppercase tracking-wide">Media unavailable</p>
-                                        <p className="text-[10px] mt-1">{item.date || 'Ministry Moment'}</p>
-                                    </div>
-                                )}
-
-                                {/* Refined Overlay */}
-                                <div className={`absolute inset-0 bg-gradient-to-t from-brand-950/90 via-brand-950/20 to-transparent transition-opacity duration-500 ${
-                                    hoveredId === item.id ? 'opacity-90' : 'opacity-60'
-                                }`} />
-
-                                {/* Zoom / Play hint on hover */}
-                                <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ${
-                                    hoveredId === item.id ? 'opacity-100' : 'opacity-0'
-                                }`}>
-                                    <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/40 shadow-xl">
-                                        {item.type === 'video'
-                                            ? <Play size={22} className="text-white ml-1" fill="white" />
-                                            : <ZoomIn size={22} className="text-white" />
-                                        }
-                                    </div>
-                                </div>
-
-                                {/* Content Overlays */}
-                                <div className="absolute top-4 right-4 w-10 h-10 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center text-white border border-white/20">
-                                    {item.type === 'video' ? <Play size={16} fill="currentColor" /> : <ImageIcon size={16} />}
-                                </div>
-                                <div className="absolute top-4 left-4 flex flex-col gap-2">
-                                    {item.category && (
-                                        <span className="inline-flex items-center gap-1 rounded-full bg-white/15 border border-white/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
-                                            <Tag size={12} /> {item.category}
-                                        </span>
-                                    )}
-                                    {item.type === 'video' && item.duration && (
-                                        <span className="inline-flex items-center gap-1 rounded-full bg-brand-950/70 border border-white/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
-                                            <Clock size={12} /> {item.duration}
-                                        </span>
-                                    )}
-                                </div>
-
-                                <div className={`absolute bottom-0 left-0 right-0 p-3 md:p-6 transition-all duration-500 ${
-                                    hoveredId === item.id ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-90'
-                                }`}>
-                                    <div className="flex items-center gap-2 text-accent-400 mb-1 md:mb-2">
-                                        <div className="w-4 h-[1px] bg-accent-400" />
-                                        <span className="text-[8px] md:text-[10px] font-black tracking-[0.2em] uppercase">{item.type}</span>
-                                    </div>
-                                    <div className="text-sm md:text-lg font-serif font-bold text-white mb-1 md:mb-2 leading-tight">
-                                        {item.date || 'Ministry Moment'}
-                                    </div>
-                                </div>
-                            </div>
-                        </motion.div>
+                        />
                     ))}
                 </div>
 

@@ -1,159 +1,439 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, BookOpen, GraduationCap, Globe, Heart, Award, Star, Volume2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { BookOpen, GraduationCap, Globe, Heart, Award, Star, Volume2, MapPin, Calendar } from 'lucide-react';
 import { audioService } from '../services/audioService';
 
 interface PastorPageProps {
     className?: string;
 }
 
-export const PastorPage: React.FC<PastorPageProps> = ({
-    className = ""
-}) => {
-    const [imageError, setImageError] = useState(false);
+/* ─── colour tokens (mirrors hero HTML) ─────────────────────────────── */
+const C = {
+    navy:      '#14213D',
+    parchment: '#F6F1E4',
+    sand:      '#ECE1C8',
+    gold:      '#C68A2E',
+    charcoal:  '#241F18',
+    muted:     '#6B6252',
+};
 
-    // Staggered animation variants
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: { staggerChildren: 0.15, delayChildren: 0.2 }
-        }
-    };
+/* ─── tiny reusable chip ─────────────────────────────────────────────── */
+const Chip: React.FC<{ label: string; value: string; rotate?: number }> = ({ label, value, rotate = 0 }) => (
+    <div style={{
+        background: '#fff',
+        borderRadius: 999,
+        padding: '9px 18px',
+        fontSize: 13,
+        fontWeight: 600,
+        color: C.charcoal,
+        boxShadow: '0 14px 26px -10px rgba(20,20,20,.28)',
+        whiteSpace: 'nowrap',
+        transform: `rotate(${rotate}deg)`,
+        display: 'inline-block',
+    }}>
+        <span style={{ display: 'block', fontSize: 9.5, fontWeight: 700, color: C.muted, letterSpacing: '0.08em', marginBottom: 2 }}>
+            {label}
+        </span>
+        {value}
+    </div>
+);
 
-    const itemVariants = {
-        hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 100 } }
-    };
+/* ─── sparkle SVG ────────────────────────────────────────────────────── */
+const Sparkle: React.FC<{ size?: number; opacity?: number }> = ({ size = 28, opacity = 0.55 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={C.gold} aria-hidden="true" style={{ opacity }}>
+        <path d="M12 0 L14.2 9.8 L24 12 L14.2 14.2 L12 24 L9.8 14.2 L0 12 L9.8 9.8 Z"/>
+    </svg>
+);
 
-    const features = [
-        { icon: BookOpen, text: "ஆழ்ந்த வேதஅறிவுடன் அர்ப்பணிப்பாக ஊழியம் செய்யும் தேவ ஊழியக்காரர்." },
-        { icon: GraduationCap, text: "வேதாகமத்தை தெளிவாகவும் ஆன்மீக ஆழத்துடனும் கற்பிப்பவர்." },
-        { icon: Heart, text: "அவரது ஊழியம் “בָּרוּךְ הַשֵׁם – ஆண்டவர் நாமம் பெருமை பெறுக” என்ற நம்பிக்கையில் நிலைத்துள்ளது." },
-        { icon: Star, text: "“ஆத்தும நன்றி பலிகள் — நம் தேவனுக்கு நன்றி கூறுங்கள்” என்ற உண்மையை வலியுறுத்துபவர்." },
-        { icon: Award, text: "அவரது போதனைகள் விசுவாசிகளுக்கு நன்றி, விசுவாசம் மற்றும் பரிசுத்த வாழ்வை ஊக்குவிக்கின்றன." },
-        { icon: Globe, text: "தேவவசனத்தை வருங்கால தலைமுறைகளுக்கு கொண்டு சேர்ப்பது அவர் வாழ்வின் முக்கிய பணி." }
+/* ─── feature card ───────────────────────────────────────────────────── */
+const Feature: React.FC<{ Icon: React.ComponentType<{ size: number; color: string }>; text: string; delay: number }> = ({ Icon, text, delay }) => (
+    <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ delay, duration: 0.45, ease: 'easeOut' }}
+        whileHover={{ y: -2 }}
+        style={{
+            background: 'rgba(246,241,228,0.7)',
+            border: `1px solid ${C.sand}`,
+            borderRadius: 20,
+            padding: '14px 18px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 14,
+            backdropFilter: 'blur(6px)',
+            cursor: 'default',
+        }}
+    >
+        <div style={{
+            width: 36, height: 36, borderRadius: '50%',
+            background: C.navy, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+            <Icon size={16} color={C.gold} />
+        </div>
+        <p style={{ margin: 0, fontSize: 14, color: C.charcoal, lineHeight: 1.55, fontWeight: 500 }}>{text}</p>
+    </motion.div>
+);
+
+export const PastorPage: React.FC<PastorPageProps> = ({ className = '' }) => {
+    const [imgError, setImgError] = useState(false);
+
+    const features: { Icon: React.ComponentType<{ size: number; color: string }>; text: string }[] = [
+        { Icon: BookOpen,      text: 'ஆழ்ந்த வேதஅறிவுடன் அர்ப்பணிப்பாக ஊழியம் செய்யும் தேவ ஊழியக்காரர்.' },
+        { Icon: GraduationCap, text: 'Master of Divinity (ATA) · Bachelor of Divinity (NATA)' },
+        { Icon: Globe,         text: 'Advanced Hebrew Studies at TPI – USA · தமிழ் & English ministry.' },
+        { Icon: Heart,         text: '"בָּרוּךְ הַשֵׁם – ஆண்டவர் நாமம் பெருமை பெறுக" என்ற நம்பிக்கையில் நிலைத்துள்ளது.' },
+        { Icon: Award,         text: 'போதனைகள் விசுவாசிகளுக்கு நன்றி, விசுவாசம் மற்றும் பரிசுத்த வாழ்வை ஊக்குவிக்கின்றன.' },
+        { Icon: Star,          text: 'தேவவசனத்தை வருங்கால தலைமுறைகளுக்கு கொண்டு சேர்ப்பது அவர் வாழ்வின் முக்கிய பணி.' },
     ];
 
     return (
-        <div className={`relative w-full min-h-screen bg-gradient-to-br from-sky-50 via-white to-sky-100 overflow-hidden pt-24 pb-20 ${className}`}>
-            {/* Decorative background circles */}
-            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[500px] h-[500px] rounded-full bg-sky-200/40 blur-3xl pointer-events-none"></div>
-            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[600px] h-[600px] rounded-full bg-blue-200/30 blur-[100px] pointer-events-none"></div>
-
+        <div
+            className={className}
+            style={{
+                minHeight: '100vh',
+                width: '100%',
+                background: `
+                    radial-gradient(circle at 18% 24%, rgba(198,138,46,0.16) 0%, transparent 42%),
+                    radial-gradient(circle at 82% 78%, rgba(28,45,84,0.5) 0%, transparent 50%),
+                    linear-gradient(150deg,#0B0F1A 0%, #16233F 42%, #2A2013 82%, #171008 100%)
+                `,
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'center',
+                padding: '80px 20px 60px',
+                fontFamily: "'Work Sans', 'Inter', sans-serif",
+                overflowX: 'hidden',
+            }}
+        >
+            {/* ── Parchment card ── */}
             <motion.div
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                variants={containerVariants}
-                className="w-full max-w-7xl mx-auto px-6 relative z-10 flex flex-col md:flex-row gap-12 lg:gap-20 items-center justify-center pt-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, ease: 'easeOut' }}
+                style={{
+                    position: 'relative',
+                    width: '100%',
+                    maxWidth: 1180,
+                    background: C.parchment,
+                    borderRadius: 32,
+                    padding: 'clamp(28px,4vw,56px) clamp(22px,4vw,60px) 48px',
+                    boxShadow: '0 50px 90px -30px rgba(5,8,20,.6)',
+                    overflow: 'hidden',
+                }}
             >
-                    
-                    {/* Left Column - Photo & Titles */}
-                    <div className="flex flex-col items-center md:w-1/3 text-center shrink-0">
-                        {/* Profile Image with Animated Border */}
-                        <motion.div 
-                            variants={itemVariants}
-                            className="relative mb-8 group"
+                {/* ── Decorative corner sparkles ── */}
+                <span style={{ position: 'absolute', top: 26, right: 34, opacity: 0.55, pointerEvents: 'none' }}><Sparkle /></span>
+                <span style={{ position: 'absolute', bottom: 26, left: 34, opacity: 0.35, pointerEvents: 'none' }}><Sparkle size={18} /></span>
+
+                {/* ── Section label ── */}
+                <motion.p
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.25, duration: 0.5 }}
+                    style={{
+                        margin: '0 0 clamp(18px,3vw,32px)',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: '0.22em',
+                        color: C.muted,
+                        textTransform: 'uppercase',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                    }}
+                >
+                    <span style={{ width: 28, height: 2, background: C.gold, display: 'inline-block', borderRadius: 2 }} />
+                    Our Pastor
+                    <span style={{ width: 28, height: 2, background: C.gold, display: 'inline-block', borderRadius: 2 }} />
+                </motion.p>
+
+                {/* ── Hero layout: photo + content ── */}
+                <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 'clamp(28px,5vw,64px)',
+                    alignItems: 'flex-start',
+                    justifyContent: 'center',
+                }}>
+
+                    {/* ─── LEFT: arch photo ─────────────────────────────── */}
+                    <div style={{ position: 'relative', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+
+                        {/* Watermark word */}
+                        <div
+                            aria-hidden="true"
+                            style={{
+                                position: 'absolute',
+                                top: -12,
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                fontFamily: "'Source Serif 4', 'Georgia', serif",
+                                fontWeight: 700,
+                                fontSize: 'clamp(52px, 9vw, 120px)',
+                                color: C.sand,
+                                letterSpacing: '0.02em',
+                                whiteSpace: 'nowrap',
+                                userSelect: 'none',
+                                pointerEvents: 'none',
+                                zIndex: 0,
+                            }}
                         >
-                            <div className="absolute -inset-2 bg-gradient-to-br from-sky-400 to-blue-600 blur-xl opacity-30 group-hover:opacity-50 transition-opacity duration-500 rounded-[2rem]"></div>
-                            <div className="w-56 h-72 md:w-64 md:h-80 rounded-[2rem] overflow-hidden border-4 border-white shadow-2xl relative z-10 bg-sky-100 flex items-center justify-center">
-                                {!imageError ? (
-                                    <img 
-                                        src="/assets/pastor.jpeg" 
-                                        alt="Reverend Lazarus M.S." 
-                                        className="w-full h-full object-cover object-top scale-105"
-                                        onError={() => setImageError(true)}
-                                    />
-                                ) : (
-                                    <div className="text-sky-800 text-6xl font-serif">LM</div>
-                                )}
-                            </div>
+                            TRUTH
+                        </div>
+
+                        {/* Arch frame */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.92 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.3, duration: 0.65, ease: 'easeOut' }}
+                            style={{
+                                position: 'relative',
+                                zIndex: 1,
+                                width: 'clamp(200px, 26vw, 300px)',
+                                aspectRatio: '3/4',
+                                borderRadius: '400px 400px 0 0',
+                                background: `linear-gradient(200deg,#E3B45C 0%, ${C.gold} 24%, #6E4F24 58%, #172040 100%)`,
+                                display: 'flex',
+                                alignItems: 'flex-end',
+                                justifyContent: 'center',
+                                overflow: 'hidden',
+                                boxShadow: '0 30px 60px -20px rgba(20,33,61,.5)',
+                            }}
+                        >
+                            {!imgError ? (
+                                <img
+                                    src="/assets/pastor-lazarus.png"
+                                    alt="Reverend Lazarus M.S. – Senior Pastor"
+                                    onError={() => setImgError(true)}
+                                    style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'cover',
+                                        objectPosition: 'top center',
+                                        display: 'block',
+                                    }}
+                                />
+                            ) : (
+                                /* Fallback silhouette */
+                                <svg viewBox="0 0 100 130" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ width: '60%' }}>
+                                    <circle cx="50" cy="41" r="20" fill="#F6F1E4" opacity="0.92"/>
+                                    <path d="M16 128 C16 90 30 59 50 59 C70 59 84 90 84 128 Z" fill="#F6F1E4" opacity="0.92"/>
+                                </svg>
+                            )}
                         </motion.div>
 
-                        <motion.div variants={itemVariants} className="mt-4">
-                            <div className="flex flex-col items-center gap-3">
-                                <h3 className="text-xl font-serif text-blue-900/80 mb-1 tracking-wide">רבי מַשָּׁל בן אל עצר</h3>
-                                <button 
-                                    onClick={() => audioService.playHebrew('רבי מַשָּׁל בן אל עצר')}
-                                    className="flex items-center gap-2.5 px-6 py-3 bg-white border border-sky-100 rounded-full text-sky-600 hover:bg-sky-600 hover:text-white transition-all shadow-lg shadow-sky-900/5 hover:shadow-sky-500/20 group relative overflow-hidden active:scale-95"
-                                >
-                                    <div className="absolute inset-0 bg-sky-400/10 scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
-                                    <span className="relative z-10 text-xs font-black uppercase tracking-widest">Listen Pronunciation</span>
-                                    <div className="relative z-10">
-                                        <Volume2 size={18} className="group-hover:scale-110 transition-transform animate-pulse" />
-                                    </div>
-                                </button>
+                        {/* Floating info chips */}
+                        <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.55, duration: 0.45 }}
+                            style={{ position: 'absolute', top: 60, right: -18, zIndex: 2 }}
+                        >
+                            <Chip label="FOUNDED" value="2009" rotate={6} />
+                        </motion.div>
+                        <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.65, duration: 0.45 }}
+                            style={{ position: 'absolute', top: 200, left: -18, zIndex: 2 }}
+                        >
+                            <Chip label="SERVING" value="Chennai · Valparai" rotate={-7} />
+                        </motion.div>
+
+                        {/* Stat card below arch */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 14 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.75, duration: 0.45 }}
+                            style={{
+                                marginTop: 28,
+                                background: '#fff',
+                                borderRadius: 20,
+                                padding: '16px 28px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 18,
+                                boxShadow: '0 20px 40px -18px rgba(20,20,20,.32)',
+                            }}
+                        >
+                            <div>
+                                <p style={{ margin: 0, fontSize: 12, color: C.muted, lineHeight: 1.4 }}>Years of<br/>Ministry</p>
                             </div>
+                            <span style={{
+                                fontFamily: "'Source Serif 4', 'Georgia', serif",
+                                fontSize: 34,
+                                fontWeight: 700,
+                                color: C.navy,
+                                lineHeight: 1,
+                            }}>17+</span>
                         </motion.div>
                     </div>
 
-                    {/* Right Column - Credentials & Bio */}
-                    <div className="flex-1 flex flex-col justify-center">
-                        
-                        <motion.div variants={itemVariants} className="mb-8">
-                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-sky-500 mb-4 flex items-center gap-2 font-tamil">
-                                <span className="w-6 h-[2px] bg-sky-300"></span> ஆசிரியர் குறிப்பு <span className="w-6 h-[2px] bg-sky-300"></span>
-                            </h3>
+                    {/* ─── RIGHT: bio content ───────────────────────────── */}
+                    <div style={{ flex: 1, minWidth: 'min(100%, 300px)' }}>
 
-                            {/* Identity Block */}
-                            <div className="mb-6 p-4 bg-brand-50/50 rounded-2xl border border-brand-100/50">
-                                <div className="flex items-center justify-between gap-4 mb-2">
-                                    <h3 className="font-bold text-brand-950 text-xl">Reverend Lazarus M.S.</h3>
-                                    <button
-                                        onClick={() => audioService.playHebrew("Rabbi Masal Ben El Etzar", 0.8)}
-                                        className="p-2.5 bg-brand-600 text-white rounded-full hover:bg-brand-700 transition-all shadow-md hover:scale-110 active:scale-95 group"
-                                        title="Hear Hebrew Pronunciation"
-                                    >
-                                        <Volume2 size={18} className="group-hover:animate-pulse" />
-                                    </button>
-                                </div>
-                                <div className="space-y-1">
-                                    <p className="text-[#d19b4b] font-black text-sm uppercase tracking-[0.1em]">Rabbi Masal Ben El Etzar</p>
-                                    <p className="text-brand-900 font-bold text-xl font-tamil tracking-wide">ரப்பி மசால் பென் எல் எட்சர்</p>
-                                </div>
-                            </div>
+                        {/* Eyebrow */}
+                        <motion.p
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.3 }}
+                            style={{ margin: '0 0 10px', fontSize: 15, color: C.muted }}
+                        >
+                            Hey, I'm <strong style={{ color: C.charcoal }}>Pastor Lazarus M.S.</strong>
+                        </motion.p>
 
-                            <div className="space-y-3">
-                                <div className="flex items-start gap-3">
-                                    <GraduationCap className="shrink-0 text-sky-500 mt-1" size={20} />
-                                    <div>
-                                        <p className="font-bold text-sky-900">Master of Divinity (ATA)</p>
-                                        <p className="font-bold text-sky-900">Bachelor of Divinity (NATA)</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-start gap-3">
-                                    <Globe className="shrink-0 text-sky-500 mt-1" size={20} />
-                                    <p className="font-semibold text-sky-900 font-tamil text-base leading-relaxed">
-                                        USA-விலுள்ள TPI-யில் எபிரேயத்தில் மேம்பட்ட படிப்பு பெற்றவர். <br/>
-                                        <span className="text-sm text-sky-600 font-sans font-normal">(Advanced Hebrew Studies at TPI - USA)</span>
-                                    </p>
-                                </div>
-                            </div>
+                        {/* Headline */}
+                        <motion.h1
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.35, duration: 0.55 }}
+                            style={{
+                                fontFamily: "'Source Serif 4', 'Georgia', serif",
+                                fontWeight: 700,
+                                color: C.charcoal,
+                                fontSize: 'clamp(30px, 4vw, 50px)',
+                                lineHeight: 1.1,
+                                margin: '0 0 8px',
+                            }}
+                        >
+                            Truth That<br/>Sets You Free
+                        </motion.h1>
+
+                        {/* Hebrew name + pronunciation */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.45 }}
+                            style={{ margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}
+                        >
+                            <span style={{
+                                fontFamily: "'Source Serif 4', 'Georgia', serif",
+                                fontSize: 18,
+                                color: C.navy,
+                                opacity: 0.85,
+                                direction: 'rtl',
+                            }}>
+                                רבי מַשָּׁל בן אל עצר
+                            </span>
+                            <button
+                                onClick={() => audioService.playHebrew('רבי מַשָּׁל בן אל עצר')}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: 6,
+                                    padding: '6px 14px', borderRadius: 999,
+                                    background: C.navy, border: 'none', cursor: 'pointer',
+                                    color: C.gold, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
+                                    transition: 'transform 0.2s, background 0.2s',
+                                    fontFamily: 'inherit',
+                                }}
+                                onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-1px)')}
+                                onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
+                                aria-label="Listen to Hebrew pronunciation"
+                            >
+                                <Volume2 size={13} /> LISTEN
+                            </button>
                         </motion.div>
 
-                        {/* Animated Grid of 6 Key Points */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {features.map((feature, i) => (
-                                <motion.div 
-                                    key={i}
-                                    variants={itemVariants}
-                                    whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.95)" }}
-                                    className="bg-white/70 p-4 rounded-2xl border border-sky-100 shadow-sm flex items-start gap-3 transition-colors text-left"
-                                >
-                                    <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center shrink-0 mt-0.5">
-                                        <feature.icon size={16} className="text-sky-600" />
-                                    </div>
-                                    <p className="text-sm md:text-base text-sky-950 font-semibold leading-relaxed font-tamil">
-                                        {feature.text}
-                                    </p>
-                                </motion.div>
+                        {/* Tamil transliteration */}
+                        <motion.p
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.5 }}
+                            style={{ margin: '0 0 20px', fontSize: 17, fontWeight: 700, color: C.gold }}
+                        >
+                            ரப்பி மசால் பென் எல் எட்சர்
+                        </motion.p>
+
+                        {/* Gold divider */}
+                        <div style={{ width: 48, height: 3, background: C.gold, borderRadius: 2, margin: '0 0 20px' }} />
+
+                        {/* Bio blurb */}
+                        <motion.p
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.55 }}
+                            style={{
+                                margin: '0 0 22px',
+                                fontSize: 15,
+                                color: C.muted,
+                                lineHeight: 1.6,
+                                maxWidth: 440,
+                            }}
+                        >
+                            A ministry of faith, grace, and community — walking together in
+                            Chennai and Valparai since 2009. Called to teach the truth of
+                            God's Word in both Tamil and Hebrew, bridging ancient wisdom
+                            with living faith.
+                        </motion.p>
+
+                        {/* Meta tags row */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.6 }}
+                            style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}
+                        >
+                            {([
+                                { Icon: MapPin,        label: 'Chennai & Valparai' },
+                                { Icon: Calendar,      label: 'Est. 2009' },
+                                { Icon: GraduationCap, label: 'M.Div · B.Div · TPI' },
+                            ] as { Icon: React.ComponentType<{ size: number; color: string }>; label: string }[]).map(({ Icon, label }) => (
+                                <div key={label} style={{
+                                    display: 'flex', alignItems: 'center', gap: 6,
+                                    padding: '7px 14px', borderRadius: 999,
+                                    background: '#fff',
+                                    boxShadow: '0 6px 18px -8px rgba(20,20,20,.2)',
+                                    fontSize: 12.5, fontWeight: 600, color: C.charcoal,
+                                }}>
+                                    <Icon size={13} color={C.gold} /> {label}
+                                </div>
+                            ))}
+                        </motion.div>
+
+                        {/* Feature grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+                            {features.map((f, i) => (
+                                <Feature key={i} Icon={f.Icon} text={f.text} delay={0.65 + i * 0.08} />
                             ))}
                         </div>
 
+                        {/* CTA buttons */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 1.1, duration: 0.45 }}
+                            style={{ marginTop: 32, display: 'flex', gap: 12, flexWrap: 'wrap' }}
+                        >
+                            <button
+                                style={{
+                                    background: C.navy, color: C.parchment,
+                                    border: 'none', padding: '13px 28px',
+                                    borderRadius: 999, fontSize: 14.5, fontWeight: 700,
+                                    cursor: 'pointer', transition: 'transform .2s, background .2s',
+                                    fontFamily: 'inherit',
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = '#1d2f5a'; }}
+                                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = C.navy; }}
+                            >
+                                Plan a Visit
+                            </button>
+                            <button
+                                style={{
+                                    background: 'transparent', color: C.navy,
+                                    border: `2px solid ${C.navy}`, padding: '11px 28px',
+                                    borderRadius: 999, fontSize: 14.5, fontWeight: 700,
+                                    cursor: 'pointer', transition: 'transform .2s, background .2s, color .2s',
+                                    fontFamily: 'inherit',
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.background = C.navy; e.currentTarget.style.color = C.parchment; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = C.navy; }}
+                            >
+                                Watch Sermons
+                            </button>
+                        </motion.div>
                     </div>
+                </div>
             </motion.div>
         </div>
     );
 };
-

@@ -101,7 +101,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentView, setView }) =>
                         <div className="grid grid-cols-5 gap-1 text-center">
                             {MAIN_NAV_ITEMS.map((item, idx) => {
                                 const Icon = item.icon;
-                                const isActive = currentView === item.id && (idx !== 2 || currentView === ViewState.USER_DASHBOARD);
+                                const isActive = (currentView as any) === item.id && (idx !== 2 || (currentView as any) === ViewState.USER_DASHBOARD);
                                 return (
                                     <button
                                         key={idx}

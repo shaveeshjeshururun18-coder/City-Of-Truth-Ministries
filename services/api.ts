@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { User, Testimonial, DeletedUser, Permalink, MemberNotification, SiteVisit } from '../types';
+import { getDeterministicSecureToken } from './verificationTokenService';
 import { ref as storageRef, listAll, deleteObject } from 'firebase/storage';
 import { storage } from './firebase';
 
@@ -695,6 +696,9 @@ export const api = {
             }
 
             if (token.startsWith('sec_v1_')) {
+                const deterministicFound = allUsers.find(u => getDeterministicSecureToken(u) === token);
+                if (deterministicFound) return deterministicFound;
+
                 const legacyFound = allUsers.find(u => token.includes(u.id.toLowerCase().replace(/[^a-z0-9]/g, '')));
                 if (legacyFound) return legacyFound;
             }
@@ -702,8 +706,17 @@ export const api = {
             return null;
         } catch (error: any) {
             console.error('Error finding user by verification token:', error);
-            // getUsers() fallback inside the try block handles local DB if permission-denied.
-            return null;
+            try {
+                const allUsers = await api.getUsers();
+                const normalizedToken = decodeURIComponent(token).trim();
+                return allUsers.find(u =>
+                    u.id === normalizedToken ||
+                    u.verification?.shareToken === normalizedToken ||
+                    getDeterministicSecureToken(u) === normalizedToken
+                ) || null;
+            } catch {
+                return null;
+            }
         }
     },
 

@@ -1,10 +1,30 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Play, Info, ArrowRight, Share2, Phone, MessageCircle, Heart, Flame, Shield, Crown, Video, Clock } from 'lucide-react';
+import {
+    BookOpen,
+    Play,
+    Info,
+    ArrowRight,
+    Share2,
+    Phone,
+    MessageCircle,
+    Heart,
+    Flame,
+    Shield,
+    Crown,
+    Video,
+    Clock,
+    Maximize2,
+    X,
+    Sparkles,
+    Volume2,
+    VolumeX,
+    Eye
+} from 'lucide-react';
 import { Button } from './Button';
 import { api, BaruchVideo } from '../services/api';
 import { CircularCarousel } from '@/components/ui/circular-carousel';
-import { Footer } from '@/components/ui/footer-section';
+import { HebrewSymbolCycler } from '@/components/ui/hebrew-symbol-cycler';
 
 // Data from user request
 const praiseData = [
@@ -20,7 +40,7 @@ const praiseData = [
     { part: 10, letter: "י", name: "Yod", range: "73 - 80", theme: "மேன்மை (Excellence)", page: 90 },
     { part: 11, letter: "כ", name: "Kaf", range: "81 - 88", theme: "செம்மை (Uprightness)", page: 99 },
     { part: 12, letter: "ל", name: "Lamed", range: "89 - 96", theme: "பேரன்பு (Steadfast Love)", page: 108 },
-    { part: 13, letter: "מ", name: "Mem", range: "97 - 104", theme: "கருணை (Mercy)", page: 117 },
+    { part: 13, letter: "ம", name: "Mem", range: "97 - 104", theme: "கருணை (Mercy)", page: 117 },
     { part: 14, letter: "נ", name: "Nun", range: "105 - 112", theme: "சமாதானம் (Peace)", page: 126 },
     { part: 15, letter: "ס", name: "Samekh", range: "113 - 120", theme: "நீதிநியாயம் (Justice)", page: 135 },
     { part: 16, letter: "ע", name: "Ayin", range: "121 - 128", theme: "இரக்கம் (Compassion)", page: 144 },
@@ -45,7 +65,7 @@ const GallerySection: React.FC<{
     const getThumbnailSrc = (index: number) => {
         const partNum = index + 1;
         const ext = partNum === 1 ? 'jpg' : 'png';
-        return `/barch_hasem/${partNum}.${ext}`;
+        return `/images/baruch-hashem/parts/${partNum}.${ext}`;
     };
 
     return (
@@ -128,6 +148,17 @@ const GallerySection: React.FC<{
 export const BaruchHashemPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'hebrew' | 'tamil' | 'meaning'>('hebrew');
     const [isPlaying, setIsPlaying] = useState(false);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(0);
+    const [wrapperModalOpen, setWrapperModalOpen] = useState(false);
+
+    const formatTime = (secs: number) => {
+        if (!secs || isNaN(secs)) return "0:00";
+        const m = Math.floor(secs / 60);
+        const s = Math.floor(secs % 60);
+        return `${m}:${s < 10 ? '0' : ''}${s}`;
+    };
+
     const DEFAULT_VIDEOS: Record<number, string> = {
         1: "4nFxzgqQ_8I",
         2: "1TrWrscz3A8",
@@ -148,9 +179,16 @@ export const BaruchHashemPage: React.FC = () => {
     const chapterSectionRef = useRef<HTMLElement>(null);
     const carouselItems = praiseData.map((item) => ({
         id: String(item.part),
+        part: item.part,
         title: `${item.name} · Part ${item.part}`,
         description: item.theme,
-        tag: item.letter
+        tag: item.letter,
+        range: item.range,
+        page: item.page,
+        name: item.name,
+        theme: item.theme,
+        image: `/images/baruch-hashem/parts/${item.part}.${item.part === 1 ? 'jpg' : 'png'}`,
+        onSelect: () => scrollToChapter(item.part - 1)
     }));
 
     useEffect(() => {
@@ -194,18 +232,52 @@ export const BaruchHashemPage: React.FC = () => {
     };
 
     useEffect(() => {
-        // Attempt auto-play when entering page
-        const timer = setTimeout(() => {
-            if (audioRef.current) {
-                audioRef.current.play().then(() => {
-                    setIsPlaying(true);
-                }).catch(err => {
-                    console.log("Autoplay blocked by browser. User interaction required.", err);
-                });
-            }
-        }, 1500); // Small delay to ensure page is loaded
+        let hasInteracted = false;
 
-        // Listen for iframe clicks to pause audio
+        const attemptPlay = () => {
+            if (audioRef.current && audioRef.current.paused) {
+                const playPromise = audioRef.current.play();
+                if (playPromise !== undefined) {
+                    playPromise
+                        .then(() => {
+                            setIsPlaying(true);
+                            removeInteractionListeners();
+                        })
+                        .catch((err) => {
+                            console.log("[BaruchHashem] Autoplay waiting for interaction:", err?.message || err);
+                        });
+                }
+            }
+        };
+
+        const onUserInteraction = () => {
+            if (!hasInteracted) {
+                hasInteracted = true;
+                attemptPlay();
+            }
+        };
+
+        const interactionEvents = ['click', 'touchstart', 'pointerdown', 'keydown', 'scroll'];
+
+        const removeInteractionListeners = () => {
+            interactionEvents.forEach((evt) => {
+                window.removeEventListener(evt, onUserInteraction);
+            });
+        };
+
+        // 1. Immediate attempt (succeeds if entered through click or supported browser state)
+        attemptPlay();
+
+        // 2. Short delays to catch when audio media buffer/ref is ready
+        const timer1 = setTimeout(attemptPlay, 150);
+        const timer2 = setTimeout(attemptPlay, 600);
+
+        // 3. Fallback: play on first user interaction anywhere on the screen
+        interactionEvents.forEach((evt) => {
+            window.addEventListener(evt, onUserInteraction, { once: true, passive: true });
+        });
+
+        // 4. Pause audio if user focuses an embedded YouTube video iframe
         const handleBlur = () => {
             setTimeout(() => {
                 if (document.activeElement && document.activeElement.tagName === 'IFRAME') {
@@ -220,19 +292,28 @@ export const BaruchHashemPage: React.FC = () => {
         window.addEventListener('blur', handleBlur);
 
         return () => {
-            clearTimeout(timer);
+            clearTimeout(timer1);
+            clearTimeout(timer2);
+            removeInteractionListeners();
             window.removeEventListener('blur', handleBlur);
+            if (audioRef.current) {
+                audioRef.current.pause();
+            }
         };
     }, []);
 
     const toggleAudio = () => {
         if (audioRef.current) {
-            if (isPlaying) {
+            if (!audioRef.current.paused) {
                 audioRef.current.pause();
+                setIsPlaying(false);
             } else {
-                audioRef.current.play();
+                audioRef.current.play().then(() => {
+                    setIsPlaying(true);
+                }).catch(err => {
+                    console.warn("Audio play blocked:", err);
+                });
             }
-            setIsPlaying(!isPlaying);
         }
     };
 
@@ -248,102 +329,353 @@ export const BaruchHashemPage: React.FC = () => {
         <div className="min-h-screen bg-slate-50 font-sans">
 
             {/* 1. Hero Section (Blessing Page) */}
-            <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#0b1121] text-white pt-24 md:pt-20">
+            <section className="relative min-h-[92vh] flex items-center justify-center overflow-hidden bg-[#060913] text-white pt-24 pb-20 md:py-24">
+                {/* Ethereal Sacred Lighting, Ruby Sanctuary Tint & Radial Glows */}
+                <div className="absolute inset-0 bg-gradient-to-b from-[#0a1024] via-[#060913] to-[#03050a] pointer-events-none" />
+                <div className="absolute -top-36 left-1/2 -translate-x-1/2 w-[1200px] h-[600px] bg-[radial-gradient(ellipse_at_center,rgba(245,158,11,0.25)_0%,rgba(159,18,57,0.18)_45%,transparent_75%)] blur-[75px] pointer-events-none" />
+                
                 <motion.div
-                    className="absolute -top-28 -left-24 h-72 w-72 rounded-full bg-amber-400/20 blur-3xl pointer-events-none"
-                    animate={{ opacity: [0.35, 0.7, 0.35], scale: [1, 1.1, 1] }}
+                    className="absolute -top-28 -left-24 h-96 w-96 rounded-full bg-sky-500/12 blur-3xl pointer-events-none"
+                    animate={{ opacity: [0.3, 0.65, 0.3], scale: [1, 1.1, 1] }}
                     transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
                 />
                 <motion.div
-                    className="absolute -bottom-24 -right-16 h-72 w-72 rounded-full bg-indigo-500/25 blur-3xl pointer-events-none"
+                    className="absolute -bottom-24 -right-16 h-96 w-96 rounded-full bg-amber-500/20 blur-3xl pointer-events-none"
                     animate={{ opacity: [0.25, 0.55, 0.25], scale: [1.05, 1, 1.05] }}
                     transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
                 />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(251,191,36,0.2),transparent_48%)] pointer-events-none" />
-                {/* Background Menorah Watermark */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
-                    <Flame size={600} className="text-amber-500 animate-pulse-slow" />
+
+                {/* Background Menorah Emblem Watermark */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-[0.05] pointer-events-none select-none">
+                    <img src="/assets/golden_menorah.png" alt="Menorah Watermark" className="w-[600px] h-[600px] object-contain filter drop-shadow-[0_0_80px_rgba(245,158,11,0.5)]" />
                 </div>
 
-                <div className="container mx-auto px-6 text-center relative z-10">
-                    <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8 }}
-                    >
-                        <div className="flex flex-col items-center justify-center">
+                <div className="container mx-auto px-4 sm:px-6 relative z-10 max-w-7xl">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+                        
+                        {/* ─── Left Column: Sacred Revelation & Controls ─── */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 25 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8 }}
+                            className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left space-y-6"
+                        >
+                            {/* Status Badge */}
+                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-amber-400/40 bg-amber-500/10 backdrop-blur-xl shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,1)]" />
+                                </span>
+                                <span className="text-amber-300 font-bold uppercase tracking-widest text-[10px] sm:text-xs">
+                                    BARUCH HASHEM · 22 HEBREW PILLARS OF PRAISE
+                                </span>
+                            </div>
 
-                            <div className="max-w-4xl">
-                                <p className="text-amber-500 font-bold uppercase tracking-[0.3em] mb-4 text-sm font-tamil">சத்திய நகர ஊழியங்கள்</p>
-                                <h1 className="text-4xl sm:text-7xl lg:text-8xl font-serif font-bold mb-6 bg-gradient-to-b from-amber-100 to-amber-600 bg-clip-text text-transparent">
+                            {/* Grand Hebrew & English Title Calligraphy */}
+                            <div className="space-y-2">
+                                <h1 className="text-4xl sm:text-6xl lg:text-7xl font-serif font-black tracking-tight leading-none bg-gradient-to-r from-amber-100 via-amber-300 to-yellow-200 bg-clip-text text-transparent drop-shadow-[0_4px_30px_rgba(245,158,11,0.4)]">
                                     הַקָּדוֹשׁ בָּרוּךְ הוּא
                                 </h1>
-                                <h2 className="text-2xl md:text-4xl font-serif text-amber-200 mb-2">Baruch Hashem</h2>
-                                <p className="text-xl text-slate-400 mb-8 italic">"Holy One, Blessed be He"</p>
-
-                                <div className="w-24 h-1 bg-amber-600 mx-auto mb-10 rounded-full"></div>
-
-                                <h3 className="text-3xl md:text-6xl font-bold font-tamil mb-4 text-white leading-tight">ஆத்தும நன்றி பலிகள்</h3>
-                                <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto mb-12 leading-relaxed">
-                                    "Give thanks to our God" <br />
-                                    <span className="text-amber-500 font-tamil">போற்றுதலுக்குரிய புனிதமான ஆண்டவரது திருப்பெயர் மகிமைப்படுவதாக</span>
+                                <p className="text-lg sm:text-2xl font-serif font-bold tracking-[0.18em] text-amber-200/90 uppercase">
+                                    Baruch Hashem <span className="text-amber-500 font-light">•</span> Blessed Be His Holy Name
                                 </p>
+                            </div>
 
-                                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                                     <div
-                                        onClick={toggleAudio}
-                                        className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 hover:bg-white/20 transition-all cursor-pointer group"
-                                    >
-                                        <div className="w-10 h-10 bg-amber-600 rounded-full flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                                            {isPlaying ? <span className="text-white font-bold animate-pulse">||</span> : <Play size={18} className="text-white ml-1 fill-white" />}
-                                        </div>
-                                        <div className="text-left">
-                                            <p className="text-[10px] text-amber-300 uppercase tracking-widest font-bold">{isPlaying ? 'Playing...' : 'Listen Sample'}</p>
-                                            <p className="text-xs font-bold text-white">Baruch Hashem</p>
-                                        </div>
-                                        <audio ref={audioRef} className="hidden" src="/barch_hasem/sample_audio.mp3" onEnded={() => setIsPlaying(false)}></audio>
-                                    </div>
-                                    <Button
-                                       variant="glass"
-                                       className="px-6 py-3 text-sm"
-                                       onClick={scrollToHighlights}
-                                    >
-                                       Explore 22 Parts <ArrowRight size={16} />
-                                    </Button>
-                                    <Button
-                                       variant="accent"
-                                       className="px-6 py-3 text-sm"
-                                       onClick={scrollToContact}
-                                    >
-                                       Contact Ministry
-                                    </Button>
-                                </div>
-
-                                <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
-                                   {[
-                                       { icon: Crown, title: '22 Hebrew Parts', subtitle: 'Aleph to Tav praise flow' },
-                                       { icon: Shield, title: '176 Praises', subtitle: 'Spiritual declarations' },
-                                       { icon: Heart, title: 'Tamil Meaning', subtitle: 'Worship with understanding' }
-                                   ].map((item) => (
-                                       <div key={item.title} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-md">
-                                           <item.icon size={18} className="text-amber-300 mb-2" />
-                                           <p className="text-sm font-semibold text-white">{item.title}</p>
-                                           <p className="text-xs text-slate-300">{item.subtitle}</p>
-                                       </div>
-                                   ))}
+                            {/* Tamil Grand Title & Scripture Affirmation */}
+                            <div className="space-y-3 w-full max-w-xl">
+                                <h2 className="text-3xl sm:text-5xl font-black font-tamil tracking-tight text-white leading-tight drop-shadow-[0_4px_25px_rgba(245,158,11,0.3)]">
+                                    ஆத்தும நன்றி பலிகள்
+                                </h2>
+                                <div className="rounded-2xl p-4 bg-white/[0.03] border border-white/10 backdrop-blur-md text-left space-y-1">
+                                    <p className="text-sm sm:text-base font-serif italic text-amber-100/90">
+                                        "Give thanks to our God"
+                                    </p>
+                                    <p className="text-xs sm:text-sm font-tamil text-amber-300 font-medium">
+                                        நம் தேவனுக்கு நன்றி கூறுங்கள் · ஆண்டவரது திருப்பெயர் மகிமைப்படுவதாக
+                                    </p>
                                 </div>
                             </div>
-                        </div>
-                    </motion.div>
+
+                            {/* Sacred Hebrew Ark Symbol Cycler Pedestal */}
+                            <div className="w-full max-w-lg py-1">
+                                <div className="rounded-3xl p-4 bg-white/[0.03] border border-amber-400/30 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.6)]">
+                                    <HebrewSymbolCycler />
+                                </div>
+                            </div>
+
+                            {/* Unified Luxury Action Bar */}
+                            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3.5 pt-2 w-full">
+                                {/* Live Audio Player Button */}
+                                <div
+                                    onClick={toggleAudio}
+                                    className="group relative flex items-center gap-3.5 px-5 py-3 rounded-2xl bg-black/55 hover:bg-black/75 border border-amber-400/40 hover:border-amber-300 backdrop-blur-xl transition-all duration-300 cursor-pointer shadow-lg active:scale-95"
+                                >
+                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(245,158,11,0.4)]">
+                                        {isPlaying ? (
+                                            <div className="flex items-center gap-0.5">
+                                                {[14, 22, 12, 18].map((h, idx) => (
+                                                    <motion.span
+                                                        key={idx}
+                                                        className="w-1 bg-brand-950 rounded-full"
+                                                        animate={{ height: [`${h * 0.3}px`, `${h * 0.9}px`, `${h * 0.3}px`] }}
+                                                        transition={{ duration: 0.8 + idx * 0.15, repeat: Infinity, ease: 'easeInOut' }}
+                                                        style={{ height: `${h * 0.6}px` }}
+                                                    />
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <Play size={18} className="text-brand-950 ml-0.5 fill-brand-950" />
+                                        )}
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-[10px] text-amber-300 uppercase tracking-widest font-black flex items-center gap-1.5">
+                                            <span className={`w-1.5 h-1.5 rounded-full ${isPlaying ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+                                            {isPlaying ? 'PLAYING SACRED AUDIO' : 'LISTEN SACRED CHANT'}
+                                        </p>
+                                        <p className="text-xs font-bold text-white">Baruch Hashem Praise</p>
+                                        {duration > 0 && (
+                                            <p className="text-[10px] text-slate-400 font-mono">
+                                                {formatTime(currentTime)} / {formatTime(duration)}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <audio
+                                        ref={audioRef}
+                                        className="hidden"
+                                        src="/audio/baruch-hashem.mp3"
+                                        preload="auto"
+                                        autoPlay
+                                        loop
+                                        playsInline
+                                        onPlay={() => setIsPlaying(true)}
+                                        onPause={() => setIsPlaying(false)}
+                                        onTimeUpdate={() => {
+                                            if (audioRef.current) setCurrentTime(audioRef.current.currentTime);
+                                        }}
+                                        onLoadedMetadata={() => {
+                                            if (audioRef.current) setDuration(audioRef.current.duration);
+                                        }}
+                                        onEnded={() => setIsPlaying(false)}
+                                    />
+                                </div>
+
+                                {/* Explore 22 Parts CTA Button */}
+                                <button
+                                    type="button"
+                                    onClick={scrollToHighlights}
+                                    className="group relative inline-flex items-center gap-2.5 px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-brand-950 font-black text-xs uppercase tracking-wider shadow-[0_0_25px_rgba(245,158,11,0.4)] hover:shadow-[0_0_35px_rgba(245,158,11,0.6)] hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer overflow-hidden"
+                                >
+                                    <Sparkles size={15} className="shrink-0" />
+                                    <span>Explore 22 Parts</span>
+                                    <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
+                                    <div className="absolute inset-0 bg-white/30 translate-x-[-120%] group-hover:translate-x-[120%] transition-transform duration-700 ease-out rotate-12" />
+                                </button>
+
+                                {/* Contact Ministry Button */}
+                                <button
+                                    type="button"
+                                    onClick={scrollToContact}
+                                    className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl border border-white/20 bg-white/[0.04] hover:bg-amber-500/15 hover:border-amber-400/40 text-amber-200 font-bold text-xs uppercase tracking-wider backdrop-blur-md transition-all active:scale-95 cursor-pointer shadow-inner"
+                                >
+                                    <Phone size={13} className="text-amber-400" />
+                                    <span>Contact Ministry</span>
+                                </button>
+                            </div>
+
+                            {/* 3 Prestigious Sanctuary Metric Badges */}
+                            <div className="grid grid-cols-3 gap-3 w-full max-w-xl pt-2 text-left">
+                                {[
+                                    { icon: Crown, title: '22 Parts', subtitle: 'Aleph to Tav', color: 'text-amber-300' },
+                                    { icon: Shield, title: '176 Praises', subtitle: 'Psalm 119 Order', color: 'text-sky-300' },
+                                    { icon: Heart, title: 'Tamil Meaning', subtitle: 'Full Revelation', color: 'text-rose-300' },
+                                ].map((item) => (
+                                    <div
+                                        key={item.title}
+                                        className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl flex flex-col items-start gap-1.5"
+                                    >
+                                        <item.icon size={16} className={item.color} />
+                                        <h4 className="text-xs font-bold text-white">{item.title}</h4>
+                                        <p className="text-[10px] text-slate-400 leading-tight">{item.subtitle}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </motion.div>
+
+                        {/* ─── Right Column: 3D Official Book Wrapper Showcase ─── */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.94 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.9, delay: 0.2 }}
+                            className="lg:col-span-5 flex flex-col items-center justify-center relative"
+                        >
+                            {/* Ambient Divine Radiance Aura behind the Book */}
+                            <div className="absolute -inset-8 bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.32)_0%,rgba(159,18,57,0.22)_45%,transparent_75%)] blur-3xl pointer-events-none" />
+
+                            {/* 3D Interactive Hardcover Book Container */}
+                            <motion.div
+                                whileHover={{ rotateY: -6, rotateX: 3, scale: 1.03 }}
+                                transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+                                style={{ perspective: 1200, transformStyle: 'preserve-3d' }}
+                                className="relative group cursor-pointer w-full max-w-md"
+                                onClick={() => setWrapperModalOpen(true)}
+                            >
+                                {/* Hardcover Frame with Gilded Edges and Ruby Border */}
+                                <div className="relative aspect-[1.418/1] rounded-2xl overflow-hidden shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),0_0_50px_rgba(245,158,11,0.35)] border-2 border-amber-400/70 ring-1 ring-amber-300/30 bg-gradient-to-br from-amber-950 via-slate-950 to-black">
+                                    {/* Authentic Wrapper Artwork */}
+                                    <img
+                                        src="/images/baruch-hashem/athuma-nandri-wrapper.jpg"
+                                        alt="ஆத்தும நன்றி பலிகள் Sacred Wrapper Cover"
+                                        className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                                        onError={(e) => {
+                                            // Fallback to wrapper.jpg
+                                            (e.target as HTMLImageElement).src = '/images/baruch-hashem/wrapper.jpg';
+                                        }}
+                                    />
+
+                                    {/* Specular Sheen Effect */}
+                                    <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+
+                                    {/* Hover Overlay */}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-5">
+                                        <div className="flex items-center justify-between">
+                                            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-400 text-brand-950 font-black text-xs uppercase tracking-wider shadow-lg">
+                                                <Eye size={14} /> Zoom Full Wrapper
+                                            </span>
+                                            <span className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
+                                                <Maximize2 size={16} />
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Official Sacred Edition Badge */}
+                                    <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-black/65 backdrop-blur-md border border-amber-400/60 text-[10px] font-mono font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5 shadow-md">
+                                        <Sparkles size={11} className="text-amber-400" />
+                                        Official Wrapper
+                                    </div>
+                                </div>
+
+                                {/* 3D Gilded Shadow & Pages Thickness Simulation */}
+                                <div className="absolute -bottom-3 left-4 right-4 h-3 bg-gradient-to-r from-amber-600/30 via-amber-400/50 to-amber-600/30 blur-md -z-10" />
+                            </motion.div>
+
+                            {/* Caption & Quick Buttons Under the Book */}
+                            <div className="mt-4 flex items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setWrapperModalOpen(true)}
+                                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/[0.06] hover:bg-amber-500/20 border border-white/10 hover:border-amber-400/50 text-amber-200 text-xs font-bold transition-all shadow-sm cursor-pointer"
+                                >
+                                    <Maximize2 size={13} className="text-amber-400" />
+                                    <span>Inspect Wrapper (HD)</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={scrollToContact}
+                                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/30 border border-amber-400/40 text-amber-300 text-xs font-bold transition-all shadow-sm cursor-pointer"
+                                >
+                                    <Phone size={13} />
+                                    <span>Order Book</span>
+                                </button>
+                            </div>
+                        </motion.div>
+
+                    </div>
                 </div>
             </section>
+
+            {/* ─── Full-Screen HD Sacred Wrapper Lightbox Modal ─── */}
+            <AnimatePresence>
+                {wrapperModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-10 bg-black/90 backdrop-blur-2xl"
+                        onClick={() => setWrapperModalOpen(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.92, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.92, opacity: 0 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                            className="relative max-w-5xl w-full bg-[#0a0f1d] border border-amber-400/40 rounded-3xl overflow-hidden shadow-[0_0_80px_rgba(245,158,11,0.3)] flex flex-col max-h-[90vh]"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Modal Header */}
+                            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-black/40">
+                                <div className="flex items-center gap-3">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shadow-[0_0_8px_#f59e0b]" />
+                                    <div>
+                                        <h3 className="text-sm sm:text-base font-serif font-bold text-white">
+                                            ஆத்தும நன்றி பலிகள் · Official Sacred Book Wrapper
+                                        </h3>
+                                        <p className="text-[11px] text-amber-300 font-mono">
+                                            בָּרוּךְ הַשֵּׁם · High Resolution Sacred Treasury Cover
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setWrapperModalOpen(false)}
+                                    className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+                                    aria-label="Close modal"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            {/* Modal Body: High Resolution Image */}
+                            <div className="p-4 sm:p-6 overflow-y-auto flex-1 flex flex-col items-center justify-center bg-black/50">
+                                <div className="relative rounded-2xl overflow-hidden border border-amber-400/30 shadow-2xl max-w-4xl">
+                                    <img
+                                        src="/images/baruch-hashem/athuma-nandri-wrapper.jpg"
+                                        alt="Full Sacred Wrapper"
+                                        className="w-full h-auto object-contain max-h-[60vh] select-none"
+                                    />
+                                </div>
+                                
+                                {/* Iconographic Guide */}
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 w-full max-w-4xl text-left">
+                                    <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/10">
+                                        <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wider">Golden Cherubim</h4>
+                                        <p className="text-[11px] text-slate-300 mt-1">Outstretched wings over the Mercy Seat facing the divine presence.</p>
+                                    </div>
+                                    <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/10">
+                                        <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wider">Sacred Name יהוה</h4>
+                                        <p className="text-[11px] text-slate-300 mt-1">Radiant sunburst halo declaring the eternal name of the Almighty.</p>
+                                    </div>
+                                    <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/10">
+                                        <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wider">7-Branched Menorah</h4>
+                                        <p className="text-[11px] text-slate-300 mt-1">The perpetual golden lampstand flanked by fruitful olive branches.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="px-6 py-3.5 border-t border-white/10 bg-black/40 flex items-center justify-between text-xs">
+                                <span className="text-slate-400">City of Truth Ministries · Official Treasury</span>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setWrapperModalOpen(false);
+                                        scrollToContact();
+                                    }}
+                                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-600 text-brand-950 font-bold hover:brightness-110 transition-all cursor-pointer"
+                                >
+                                    Connect for Printed Copies
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <GallerySection onImageClick={scrollToChapter} videos={videos} />
 
             <section className="relative py-24 bg-[#070a16] text-white overflow-hidden border-y border-amber-500/15">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.18),transparent_55%)] pointer-events-none" />
-                <div className="container mx-auto px-6 max-w-6xl relative z-10">
-                    <div className="text-center mb-14">
+                <div className="container mx-auto px-6 max-w-6xl relative z-10 flex flex-col items-center">
+                    <div className="text-center mb-10 max-w-2xl mx-auto">
                         <span className="text-amber-400 font-bold uppercase tracking-[0.22em] text-xs">Magnificent Grandeur</span>
                         <h2 className="text-4xl md:text-5xl font-serif font-bold mt-3 text-amber-50">Circle of Praise</h2>
                         <p className="text-slate-300 mt-4 max-w-2xl mx-auto">
@@ -377,10 +709,12 @@ export const BaruchHashemPage: React.FC = () => {
                                     {/* Card Header Banner */}
                                     <div className="relative h-40 bg-slate-900 overflow-hidden shrink-0">
                                         <img 
-                                            src={`/barch_hasem/${item.part}.${item.part === 1 ? 'jpg' : 'png'}`}
+                                            src={`/images/baruch-hashem/parts/${item.part}.${item.part === 1 ? 'jpg' : 'png'}`}
                                             alt={item.name}
-                                            className="absolute inset-0 w-full h-full object-cover opacity-60"
-                                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                            className="absolute inset-0 w-full h-full object-cover opacity-75 group-hover:scale-105 transition-transform duration-500"
+                                            onError={(e) => { 
+                                                (e.target as HTMLImageElement).src = `/barch_hasem/${item.part}.${item.part === 1 ? 'jpg' : 'png'}`; 
+                                            }}
                                         />
                                         <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
                                         <div className="absolute bottom-0 left-0 p-5 w-full flex items-end justify-between">
@@ -596,10 +930,6 @@ export const BaruchHashemPage: React.FC = () => {
 
                     </div>
                 </div>
-            </section>
-
-            <section className="bg-[#050810] pb-0 pt-16">
-                <Footer />
             </section>
         </div>
     );

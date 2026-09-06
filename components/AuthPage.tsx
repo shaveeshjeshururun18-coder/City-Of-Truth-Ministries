@@ -11,6 +11,9 @@ import { analyzeStaticImage, initFaceMesh } from './FaceMesh/utils/faceMeshLoade
 
 import { loginWithBiometricPasskey } from '../services/webauthnService';
 import { validateUploadedFile } from '../services/fileValidationService';
+import { DotShaderCanvas } from './ui/modern-login-signup';
+import { CovenantTrustSeal } from './ui/covenant-trust-seal';
+import { DotMatrixText } from './ui/dot-text';
 
 GlobalWorkerOptions.workerSrc = pdfWorker;
 
@@ -811,12 +814,15 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     const heroContainerClass = view === 'login' ? 'h-20 md:h-24 justify-center' : 'h-64 md:h-80 justify-center';
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col relative text-brand-900">
+        <div className="min-h-screen bg-slate-950 flex flex-col relative text-brand-900 overflow-hidden">
+            {/* Dynamic WebGL Dot Shader Canvas for Entire Page */}
+            <DotShaderCanvas />
+
             {/* Background pattern */}
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.05] pointer-events-none z-0" />
 
-            {/* Header / Hero Area — Royal Navy Variant */}
-            <div className={`${heroContainerClass} bg-gradient-to-br from-brand-900 to-brand-950 relative flex flex-col items-center overflow-hidden flex-shrink-0 px-6`}>
+            {/* Header / Hero Area — Glassmorphic Royal Navy Variant */}
+            <div className={`${heroContainerClass} bg-gradient-to-br from-brand-950/70 via-brand-900/50 to-slate-950/70 backdrop-blur-md border-b border-white/10 relative flex flex-col items-center overflow-hidden flex-shrink-0 px-6 z-10`}>
                 {/* Back Button */}
                 <button
                     onClick={onBack}
@@ -916,9 +922,25 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             exit={{ opacity: 0, scale: 0.95 }}
                             className="max-w-3xl mx-auto space-y-8 md:space-y-12"
                         >
-                            <div className="bg-gradient-to-br from-brand-700 to-brand-900 p-5 sm:p-8 md:p-16 rounded-[2rem] md:rounded-[4rem] border border-brand-600 shadow-[0_30px_100_rgba(59,130,246,0.2)] text-center relative overflow-hidden">
+                            <div className="bg-gradient-to-br from-brand-900/75 via-brand-800/60 to-brand-950/80 backdrop-blur-2xl p-5 sm:p-8 md:p-16 rounded-[2rem] md:rounded-[4rem] border border-white/20 shadow-[0_30px_100px_rgba(15,23,42,0.6)] text-center relative overflow-hidden">
                                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none" />
                                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-white/50 to-white/20 opacity-60" />
+                                
+                                {/* Dynamic Dot Matrix Typography Banner */}
+                                <div className="w-full max-w-md mx-auto h-16 sm:h-20 md:h-24 mb-6 relative flex items-center justify-center z-10">
+                                    <DotMatrixText
+                                        text={["MEMBER LOGIN", "CITY OF TRUTH", "VERIFY ACCESS"]}
+                                        transition="scramble"
+                                        cycleInterval={3200}
+                                        dotSize={3.5}
+                                        gap={2.2}
+                                        activeColor="#ffffff"
+                                        inactiveColor="rgba(255, 255, 255, 0.08)"
+                                        showInactive={true}
+                                        className="w-full h-full drop-shadow-[0_0_20px_rgba(255,255,255,0.4)]"
+                                    />
+                                </div>
+
                                 <p className="text-brand-50/95 mb-6 md:mb-10 text-sm sm:text-base md:text-lg font-semibold relative z-10">Login with any one detail: Member ID, Phone Number, Name, or Email.</p>
 
                                 <div className="mb-6 md:mb-12 z-10">
@@ -930,6 +952,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                             If you login with another account while already signed in, that account will be added as an extra profile in your dashboard.
                                         </p>
                                     </div>
+                                    {/* Interactive Covenant Trust Seal (Tap to cycle security tiers) */}
+                                    <CovenantTrustSeal />
+
                                     <p className="text-left text-[10px] md:text-xs font-black uppercase tracking-[0.18em] text-white/90 mb-2">Enter Member Detail</p>
                                     <div className="relative">
                                         <div className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-white/80">

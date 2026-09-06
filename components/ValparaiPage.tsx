@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Mountain, History, Leaf, TrendingUp, CloudRain, Plane, Navigation, Sparkles, Scroll, ArrowRight, Video, Camera, Compass, Globe, Info, Download, Loader2 } from 'lucide-react';
+import { MapPin, Mountain, History, Leaf, TrendingUp, CloudRain, Plane, Navigation, Sparkles, Scroll, ArrowRight, Video, Camera, Compass, Globe, Info, Download, Loader2, ShieldCheck } from 'lucide-react';
 import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
+import { PeelingStackCards, PeelingCardItem } from './ui/peeling-stack-cards';
 
 interface DestinationData {
     name: string;
@@ -168,7 +169,7 @@ export const ValparaiPage: React.FC<{ setView?: any }> = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="min-h-screen bg-slate-50 pt-32 pb-20 overflow-hidden font-sans text-slate-800 relative"
+            className="min-h-screen bg-slate-50 pt-32 pb-20 font-sans text-slate-800 relative"
         >
             <style>{`
                 @keyframes pulseSlow {
@@ -259,99 +260,106 @@ export const ValparaiPage: React.FC<{ setView?: any }> = () => {
                 </div>
             </div>
 
-            {/* Interactive Sightseeing Travel Hub */}
-            <div className="container mx-auto px-6 max-w-5xl mb-24">
-                <div className="bg-white/70 backdrop-blur-md p-6 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                    <div className="text-center max-w-xl mx-auto mb-10">
-                        <span className="px-3.5 py-1.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-black tracking-widest uppercase border border-blue-100 inline-block mb-3">
-                            Scenic Explorations
-                        </span>
-                        <h3 className="text-3xl font-serif text-slate-950 font-bold">Interactive Destination Guide</h3>
-                        <p className="text-slate-400 text-sm font-medium mt-1">
-                            Click a scenic hot-spot in the sidebar to review detailed tourist guides, travel mists, and regional significance.
-                        </p>
-                    </div>
+            {/* 3D Peeling Stacking Cards - Scenic Explorations (Destinations) */}
+            {(() => {
+                const destinationCards: PeelingCardItem[] = DESTINATIONS.map((dest, index) => {
+                    let themeGradient = 'from-[#052e16] via-[#064e3b] to-[#022c22]';
+                    let borderColor = 'border-emerald-500/35';
+                    let badgeText = `Destination 0${index + 1} · High-Altitude Shola`;
+                    let badgeIcon = <Mountain size={12} className="text-emerald-400" />;
 
-                    <div className="flex flex-col gap-8 items-stretch">
-                        {/* Top Side: Destination selector buttons */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            {DESTINATIONS.map((dest) => (
-                                <button
-                                    key={dest.name}
-                                    onClick={() => setSelectedDest(dest)}
-                                    className={`w-full p-4 rounded-2xl border text-left transition-all flex flex-col justify-center group ${selectedDest?.name === dest.name
-                                            ? 'bg-gradient-to-r from-blue-600 to-blue-700 border-blue-700 text-white shadow-md'
-                                            : 'bg-white hover:bg-slate-50 border-slate-150 text-slate-700 shadow-sm'
-                                        }`}
-                                >
-                                    <div className="flex w-full items-center justify-between mb-1">
-                                        <h4 className="font-bold text-sm truncate pr-2">{dest.name}</h4>
-                                        <ArrowRight size={14} className={`shrink-0 transition-transform ${selectedDest?.name === dest.name ? 'translate-x-1' : 'group-hover:translate-x-1 text-slate-400'}`} />
+                    if (index === 1) {
+                        themeGradient = 'from-[#082f49] via-[#075985] to-[#0c4a6e]';
+                        borderColor = 'border-cyan-500/35';
+                        badgeText = `Destination 0${index + 1} · Deep Mountain Reservoir`;
+                        badgeIcon = <Compass size={12} className="text-cyan-400" />;
+                    } else if (index === 2) {
+                        themeGradient = 'from-[#1e1b4b] via-[#312e81] to-[#0f172a]';
+                        borderColor = 'border-indigo-500/35';
+                        badgeText = `Destination 0${index + 1} · South Indian Cherrapunji`;
+                        badgeIcon = <CloudRain size={12} className="text-indigo-400" />;
+                    } else if (index === 3) {
+                        themeGradient = 'from-[#451a03] via-[#78350f] to-[#1c1917]';
+                        borderColor = 'border-amber-500/35';
+                        badgeText = `Destination 0${index + 1} · 40 Hairpin Ghat Bend`;
+                        badgeIcon = <MapPin size={12} className="text-amber-400" />;
+                    }
+
+                    return {
+                        id: `dest-${index}`,
+                        tabLabel: dest.name.split(' (')[0].replace(' & Hairpins', ''),
+                        tabIcon: <MapPin size={14} />,
+                        stageBadge: badgeText,
+                        badgeIcon,
+                        title: dest.name,
+                        tamilTitle: dest.tamilName,
+                        subtitle: `${dest.distance} · ${dest.tips}`,
+                        themeGradient,
+                        borderColor,
+                        content: (
+                            <div className="space-y-4 text-left">
+                                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-black/40 backdrop-blur-md border border-white/15 text-white/90 text-xs font-mono font-bold">
+                                    <MapPin size={13} className="text-amber-400" />
+                                    <span>{dest.distance}</span>
+                                </div>
+
+                                <p className="text-white/85 text-xs sm:text-sm leading-relaxed text-justify">
+                                    {dest.desc}
+                                </p>
+
+                                <div className="p-3.5 rounded-2xl bg-amber-500/10 border-l-4 border-amber-400 backdrop-blur-sm">
+                                    <div className="text-[10px] font-black uppercase tracking-wider text-amber-300 mb-1">
+                                        தமிழ் விளக்கம் (Tamil Summary)
                                     </div>
-                                    <p className={`text-[10px] font-medium ${selectedDest?.name === dest.name ? 'text-blue-100' : 'text-slate-450'}`}>
-                                        {dest.tamilName}
+                                    <p className="text-amber-100/90 text-xs sm:text-sm font-serif leading-relaxed italic text-justify">
+                                        {dest.tamilDesc}
                                     </p>
-                                </button>
-                            ))}
-                        </div>
+                                </div>
 
-                        {/* Bottom Side: Ancient Museum Photo & Detail Preview Panel */}
-                        <div className="w-full">
-                            <AnimatePresence mode="wait">
-                                {selectedDest && (
-                                    <motion.div
-                                        key={selectedDest.name}
-                                        initial={{ opacity: 0, scale: 0.95 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.95 }}
-                                        transition={{ duration: 0.25 }}
-                                        className="h-full flex flex-col justify-between p-6 bg-gradient-to-b from-[#0c132c] via-[#050b1e] to-[#02050f] text-white rounded-3xl border-2 border-[#D4AF37]/40 shadow-2xl relative overflow-hidden group"
-                                    >
-                                        {/* Ancient Museum Gold Corner Ornaments */}
-                                        <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-[#D4AF37]" />
-                                        <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-[#D4AF37]" />
-                                        <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-[#D4AF37]" />
-                                        <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-[#D4AF37]" />
+                                <div className="pt-2 flex items-center justify-between text-[11px] text-white/70 font-semibold border-t border-white/10">
+                                    <span className="flex items-center gap-1.5 text-amber-300">
+                                        <Info size={13} className="text-amber-400 shrink-0" />
+                                        <span>{dest.tips}</span>
+                                    </span>
+                                </div>
+                            </div>
+                        ),
+                        visualSide: (
+                            <div className="w-full h-full min-h-[280px] sm:min-h-[340px] rounded-3xl overflow-hidden border-2 border-amber-400/40 shadow-2xl relative group/visual flex flex-col justify-end p-4">
+                                <div className="absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 border-amber-400/80 z-20" />
+                                <div className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-amber-400/80 z-20" />
+                                <div className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-amber-400/80 z-20" />
+                                <div className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-amber-400/80 z-20" />
 
-                                        {/* Stone Tablet Event Header Label */}
-                                        <div className="mb-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-xl bg-amber-950/60 border border-[#D4AF37]/50 text-[#D4AF37] text-xs font-serif font-black shadow-md">
-                                            <span>{selectedDest.name}</span>
-                                            <span className="text-amber-300 font-sans font-normal text-[10px]">({selectedDest.distance})</span>
-                                        </div>
+                                <img
+                                    src={dest.imgUrl}
+                                    alt={dest.name}
+                                    className="absolute inset-0 w-full h-full object-cover group-hover/visual:scale-105 transition-transform duration-700"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none" />
 
-                                        {/* Ancient Museum Photo Frame (Full color modern photo with gold border & wax seal accent) */}
-                                        <div className="relative rounded-2xl overflow-hidden border-2 border-[#D4AF37]/60 shadow-xl mb-4 h-48 sm:h-56 group-hover:border-[#D4AF37] transition-all">
-                                            <img
-                                                src={selectedDest.imgUrl}
-                                                alt={selectedDest.name}
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                            />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent pointer-events-none" />
+                                <div className="relative z-10 flex items-center justify-between text-white text-xs font-serif">
+                                    <span className="font-bold text-amber-300 text-sm drop-shadow">{dest.tamilName}</span>
+                                    <span className="px-2.5 py-0.5 rounded-full bg-black/70 border border-white/25 text-[10px] font-sans font-bold">
+                                        Full Color Archive
+                                    </span>
+                                </div>
+                            </div>
+                        )
+                    };
+                });
 
-
-                                            <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white text-xs font-serif">
-                                                <span className="font-bold text-[#D4AF37] text-sm">{selectedDest.tamilName}</span>
-                                                <span className="px-2.5 py-0.5 rounded-full bg-black/60 border border-white/20 text-[10px] font-sans font-bold">Full Color Archive</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-3">
-                                            <p className="text-slate-200 text-xs md:text-sm leading-relaxed text-justify">{selectedDest.desc}</p>
-                                            <p className="text-amber-200/90 text-xs italic font-serif leading-relaxed text-justify bg-amber-950/30 px-3 py-2 rounded-lg border-l-2 border-[#D4AF37]">{selectedDest.tamilDesc}</p>
-                                        </div>
-
-                                        <div className="mt-4 pt-3 border-t border-[#D4AF37]/20 flex items-center justify-between text-[11px] text-slate-400">
-                                            <span className="flex items-center gap-1 text-[#D4AF37] font-bold">
-                                                <Info size={12} /> {selectedDest.tips}
-                                            </span>
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                return (
+                    <PeelingStackCards
+                        badgeLabel="Scenic Explorations"
+                        title="Interactive Destination Guide"
+                        tamilTitle="வால்பாறை முக்கிய சுற்றுலா இடங்கள்"
+                        subtitle="Explore detailed tourist guides, scenic waterfalls, high-altitude grasslands, and mountain reservoirs across Valparai."
+                        items={destinationCards}
+                        className="mb-24"
+                    />
+                );
+            })()}
 
             {/* Download PDF Button */}
             <div className="container mx-auto px-6 max-w-5xl mb-8 flex justify-end">
@@ -438,151 +446,230 @@ export const ValparaiPage: React.FC<{ setView?: any }> = () => {
                 </div>
             </div>
 
-            {/* Wikipedia-Style Detailed Knowledge Hub */}
-            <div className="container mx-auto px-6 max-w-5xl mb-24">
-                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden shadow-lg shadow-blue-500/5">
-                    {/* Tab Navigation header */}
-                    <div className="flex border-b border-slate-100 bg-slate-50 flex-wrap">
-                        {[
-                            { id: 'heritage', label: 'History & Heritage', icon: <History size={14} /> },
-                            { id: 'biodiversity', label: 'Ecology & Wildlife', icon: <Leaf size={14} /> },
-                            { id: 'climate', label: 'Monsoons & Climate', icon: <CloudRain size={14} /> },
-                            { id: 'estate', label: 'Estates & Infrastructure', icon: <TrendingUp size={14} /> }
-                        ].map(tab => (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id as 'heritage' | 'biodiversity' | 'climate' | 'estate')}
-                                className={`flex items-center gap-2 px-6 py-4 text-xs font-black uppercase tracking-wider transition-all border-r border-slate-100 shrink-0 ${activeTab === tab.id
-                                        ? 'bg-white text-slate-900 border-b-2 border-b-blue-600'
-                                        : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100/50'
-                                    }`}
-                            >
-                                {tab.icon}
-                                {tab.label}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Tab contents */}
-                    <div className="p-6 md:p-10">
-                        <AnimatePresence mode="wait">
-                            <motion.div
-                                key={activeTab}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                transition={{ duration: 0.2 }}
-                                className="space-y-6"
-                            >
-                                {activeTab === 'heritage' && (
-                                    <div className="space-y-6 text-left">
-                                        <div className="border-l-4 border-blue-600 pl-4">
-                                            <h3 className="text-2xl font-serif text-slate-900 font-bold">Historical Timeline of Valparai</h3>
-                                            <p className="text-slate-500 text-sm mt-1">From initial commercial coffee in 1846 to the modern tea plantation era.</p>
-                                        </div>
-
-                                        <div className="space-y-6 relative before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 pt-2">
-                                            {HISTORICAL_TIMELINE.map((time, idx) => (
-                                                <div key={idx} className="flex gap-4 relative">
-                                                    <div className="w-9 h-9 rounded-full bg-blue-50 border border-blue-400 flex items-center justify-center text-xs font-bold text-blue-700 z-10 shrink-0 shadow-sm">
-                                                        {idx + 1}
-                                                    </div>
-                                                    <div>
-                                                        <span className="text-xs font-black text-blue-600 tracking-wider block">{time.year}</span>
-                                                        <h4 className="font-bold text-slate-900 text-base mt-0.5">{time.title}</h4>
-                                                        <p className="text-slate-500 text-xs md:text-sm leading-relaxed mt-1">{time.desc}</p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {activeTab === 'biodiversity' && (
-                                    <div className="space-y-6 text-left">
-                                        <div className="border-l-4 border-blue-600 pl-4">
-                                            <h3 className="text-2xl font-serif text-slate-900 font-bold">Western Ghats Ecology & Anaimalai Wildlife</h3>
-                                            <p className="text-slate-500 text-sm mt-1">The Anaimalai Sanctuary stands as a precious, highly protected ecological hotspot.</p>
-                                        </div>
-
-                                        <p className="text-slate-600 text-sm leading-relaxed text-justify">
-                                            Valparai is entirely surrounded by the core boundaries of the Anaimalai Tiger Reserve. It contains extensive rain forest corridors that harbor highly unique and endangered species found nowhere else on earth. The core evergreen forests are heavily monitored to support seamless wildlife migration corridors.
-                                        </p>
-
-                                        <div className="grid sm:grid-cols-2 gap-6 pt-2">
-                                            {[
-                                                { name: "Lion-tailed Macaque (Macaque silenus)", status: "Endangered", desc: "A highly iconic arboreal old-world monkey with a striking silver-white mane. Over half of its global wild population lives in the shola forest patches of Valparai." },
-                                                { name: "Nilgiri Tahr (Nilgiritragus hylocrius)", status: "Endangered", desc: "The official state animal of Tamil Nadu. An agile wild mountain ungulate residing on the steep high-altitude rocky crags of the surrounding Anaimalai range." },
-                                                { name: "Indian Gaur (Bison)", status: "Vulnerable", desc: "The largest bovine species globally. Frequently seen walking peacefully through the tea bushes of private estates, grazing in massive herds." },
-                                                { name: "Great Indian Hornbill (Buceros bicornis)", status: "Vulnerable", desc: "A massive, colorful canopy bird known for its roaring calls and majestic flight, fully dependent on tall, old-growth rainforest nesting trees." }
-                                            ].map((animal, idx) => (
-                                                <div key={idx} className="p-5 rounded-2xl bg-slate-50 border border-slate-100 shadow-sm relative overflow-hidden">
-                                                    <span className="px-2 py-0.5 bg-red-50 text-red-600 border border-red-100 rounded-md text-[8px] font-black uppercase tracking-widest absolute top-4 right-4 shadow-sm">
-                                                        {animal.status}
-                                                    </span>
-                                                    <h4 className="font-bold text-slate-900 text-sm pr-16">{animal.name}</h4>
-                                                    <p className="text-slate-500 text-xs mt-2.5 leading-relaxed text-justify">{animal.desc}</p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {activeTab === 'climate' && (
-                                    <div className="space-y-6 text-left">
-                                        <div className="border-l-4 border-blue-600 pl-4">
-                                            <h3 className="text-2xl font-serif text-slate-900 font-bold">Climate Dynamics & Monsoon Behavior</h3>
-                                            <p className="text-slate-500 text-sm mt-1">One of the wettest mountainous hill stations in the Indian subcontinent.</p>
-                                        </div>
-
-                                        <div className="grid sm:grid-cols-3 gap-4">
-                                            <div className="p-5 rounded-2xl bg-sky-50 border border-sky-100 text-center">
-                                                <span className="text-[10px] font-black text-sky-600 uppercase tracking-widest block mb-1">Cherrapunji of the South</span>
-                                                <span className="text-slate-900 font-bold text-base block">Chinnakallar Basin</span>
-                                                <span className="text-slate-500 text-[10px] block mt-1">Highest regional rainfall in TN</span>
+            {/* 3D Peeling Stacking Cards - Detailed Knowledge Hub */}
+            {(() => {
+                const valparaiKnowledgeCards: PeelingCardItem[] = [
+                    {
+                        id: 'heritage',
+                        tabLabel: 'History & Heritage',
+                        tabIcon: <History size={14} />,
+                        stageBadge: 'Stage 01 · 1846–2007 CE',
+                        badgeIcon: <History size={12} className="text-amber-400" />,
+                        title: 'Historical Timeline of Valparai',
+                        tamilTitle: 'வரலாற்று காலவரிசை',
+                        subtitle: 'From initial commercial coffee in 1846 to the modern tea plantation era.',
+                        themeGradient: 'from-[#1c1917] via-[#292524] to-[#451a03]',
+                        borderColor: 'border-amber-500/30',
+                        content: (
+                            <div className="space-y-4 text-left">
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    {HISTORICAL_TIMELINE.map((time, idx) => (
+                                        <div
+                                            key={idx}
+                                            className="p-4 rounded-2xl bg-black/40 backdrop-blur-md border border-amber-500/20 hover:border-amber-500/40 transition-all group/item"
+                                        >
+                                            <div className="flex items-center justify-between mb-1.5">
+                                                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-[11px] font-bold border border-amber-500/30">
+                                                    {time.year}
+                                                </span>
+                                                <span className="text-[10px] text-amber-200/60 uppercase tracking-widest font-mono">
+                                                    MILESTONE 0{idx + 1}
+                                                </span>
                                             </div>
-                                            <div className="p-5 rounded-2xl bg-purple-50 border border-purple-100 text-center">
-                                                <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest block mb-1">Summer Climate</span>
-                                                <span className="text-slate-900 font-bold text-base block">15°C - 25°C</span>
-                                                <span className="text-slate-500 text-[10px] block mt-1">Mild and pleasant weather</span>
-                                            </div>
-                                            <div className="p-5 rounded-2xl bg-blue-50 border border-blue-100 text-center">
-                                                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest block mb-1">Winter Climate</span>
-                                                <span className="text-slate-900 font-bold text-base block">10°C - 15°C</span>
-                                                <span className="text-slate-500 text-[10px] block mt-1">Misty and chilly nights</span>
-                                            </div>
-                                        </div>
-
-                                        <p className="text-slate-600 text-sm leading-relaxed text-justify pt-2">
-                                            Valparai experiences a tropical monsoon climate. Because it stands directly in the pathway of the Western Ghats wind currents, it intercepts both the Southwest Monsoon (June to September) and the Northeast Monsoon (October to November). Heavy mists frequently settle across the tea valleys, giving the hill station its famous mystical, serene atmosphere.
-                                        </p>
-                                    </div>
-                                )}
-
-                                {activeTab === 'estate' && (
-                                    <div className="space-y-6 text-left">
-                                        <div className="border-l-4 border-blue-600 pl-4">
-                                            <h3 className="text-2xl font-serif text-slate-900 font-bold">Plantation Economy & Hydro-Power Complex</h3>
-                                            <p className="text-slate-500 text-sm mt-1">Industrial-scale tea cultivation and critical clean energy powerhouses.</p>
-                                        </div>
-
-                                        <p className="text-slate-600 text-sm leading-relaxed text-justify">
-                                            The main driver of Valparai's economy is commercial tea manufacturing. Massive tracts of estates are owned by major tea conglomerates. The region also hosts the highly vital Parambikulam-Aliyar Project (PAP), bringing a complex network of reservoirs, dams, water channels, and deep mountain tunnels that generate massive amounts of clean hydroelectric energy for Tamil Nadu and Kerala.
-                                        </p>
-
-                                        <div className="p-6 rounded-[2rem] bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100">
-                                            <h4 className="text-xs font-black uppercase text-blue-800 tracking-wider mb-2">Sustainable Shade Culture</h4>
-                                            <p className="text-slate-700 text-xs md:text-sm leading-relaxed text-justify">
-                                                Due to the strict forest laws protecting surrounding reserve corridors, local tea estates practice unique shade-grown cultivation. Massive native rainforest trees are preserved directly within the plantations, allowing local wildlife herds (like gaur and birds) to live alongside humans, creating an extraordinary model of sustainable ecology.
+                                            <h4 className="font-bold text-white text-sm group-hover/item:text-amber-200 transition-colors">
+                                                {time.title}
+                                            </h4>
+                                            <p className="text-white/70 text-xs mt-1.5 leading-relaxed">
+                                                {time.desc}
                                             </p>
                                         </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ),
+                        visualSide: (
+                            <div className="w-full h-full min-h-[260px] p-6 rounded-3xl bg-black/40 backdrop-blur-md border border-amber-500/30 flex flex-col items-center justify-center text-center relative overflow-hidden group/visual">
+                                <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-amber-400/60" />
+                                <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-amber-400/60" />
+                                <div className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-amber-400/60" />
+                                <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-amber-400/60" />
+
+                                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400/20 to-amber-600/10 border-2 border-amber-400/40 flex items-center justify-center mb-4 shadow-xl group-hover/visual:scale-110 transition-transform duration-500">
+                                    <Compass size={36} className="text-amber-400 animate-spin-slow" />
+                                </div>
+
+                                <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono font-bold tracking-widest uppercase mb-2 border border-amber-500/30">
+                                    40 Hairpin Ghats
+                                </span>
+                                <h5 className="font-serif font-bold text-base text-white">Pollachi · Valparai Corridor</h5>
+                                <p className="text-amber-200/70 text-xs mt-1 max-w-[240px]">
+                                    Engineered in 1903 to connect dense jungle plateaus with colonial trading hubs.
+                                </p>
+                            </div>
+                        )
+                    },
+                    {
+                        id: 'biodiversity',
+                        tabLabel: 'Ecology & Wildlife',
+                        tabIcon: <Leaf size={14} />,
+                        stageBadge: 'Stage 02 · Western Ghats Bio-Corridor',
+                        badgeIcon: <Leaf size={12} className="text-emerald-400" />,
+                        title: 'Western Ghats Ecology & Anaimalai Wildlife',
+                        tamilTitle: 'வனவிலங்கு மற்றும் சூழலியல்',
+                        subtitle: 'The Anaimalai Sanctuary stands as a precious, highly protected ecological hotspot.',
+                        themeGradient: 'from-[#022c22] via-[#064e3b] to-[#042f2e]',
+                        borderColor: 'border-emerald-500/30',
+                        content: (
+                            <div className="space-y-4 text-left">
+                                <p className="text-emerald-100/80 text-xs sm:text-sm leading-relaxed text-justify">
+                                    Valparai is entirely surrounded by the core boundaries of the Anaimalai Tiger Reserve. It contains extensive rainforest corridors that harbor highly unique and endangered species found nowhere else on earth.
+                                </p>
+                                <div className="grid sm:grid-cols-2 gap-3 pt-1">
+                                    {[
+                                        { name: "Lion-tailed Macaque", status: "Endangered", tag: "Endemic Arboreal", desc: "Over half of the world's wild population thrives in Valparai's shola forest patches." },
+                                        { name: "Nilgiri Tahr", status: "Endangered", tag: "TN State Animal", desc: "Mountain ungulates scaling the high-altitude rocky crags and grassy cliffs." },
+                                        { name: "Indian Gaur (Bison)", status: "Vulnerable", tag: "Largest Bovine", desc: "Massive herds peacefully grazing among private tea estate bushes." },
+                                        { name: "Great Indian Hornbill", status: "Vulnerable", tag: "Canopy Giant", desc: "Spectacular canopy bird nesting in tall, old-growth rainforest trees." }
+                                    ].map((animal, idx) => (
+                                        <div
+                                            key={idx}
+                                            className="p-3.5 rounded-2xl bg-black/40 backdrop-blur-md border border-emerald-500/20 hover:border-emerald-500/40 transition-all"
+                                        >
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="font-bold text-white text-xs">{animal.name}</span>
+                                                <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30 text-[9px] font-black uppercase tracking-wider">
+                                                    {animal.status}
+                                                </span>
+                                            </div>
+                                            <p className="text-emerald-300/70 text-[10px] font-mono mb-1">{animal.tag}</p>
+                                            <p className="text-white/70 text-xs leading-relaxed">{animal.desc}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ),
+                        visualSide: (
+                            <div className="w-full h-full min-h-[260px] p-6 rounded-3xl bg-black/40 backdrop-blur-md border border-emerald-500/30 flex flex-col items-center justify-center text-center relative overflow-hidden group/visual">
+                                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-400/20 to-emerald-600/10 border-2 border-emerald-400/40 flex items-center justify-center mb-4 shadow-xl group-hover/visual:scale-110 transition-transform duration-500">
+                                    <Leaf size={36} className="text-emerald-400 animate-pulse" />
+                                </div>
+
+                                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold tracking-widest uppercase mb-2 border border-emerald-500/30">
+                                    UNESCO World Heritage
+                                </span>
+                                <h5 className="font-serif font-bold text-base text-white">Anaimalai Tiger Reserve</h5>
+                                <p className="text-emerald-200/70 text-xs mt-1 max-w-[240px]">
+                                    Continuous evergreen rainforest canopy supporting seamless wildlife migrations.
+                                </p>
+                            </div>
+                        )
+                    },
+                    {
+                        id: 'climate',
+                        tabLabel: 'Monsoons & Climate',
+                        tabIcon: <CloudRain size={14} />,
+                        stageBadge: 'Stage 03 · High Mist Elevation',
+                        badgeIcon: <CloudRain size={12} className="text-sky-400" />,
+                        title: 'Climate Dynamics & Monsoon Behavior',
+                        tamilTitle: 'பருவமழை மற்றும் காலநிலை',
+                        subtitle: 'One of the wettest mountainous hill stations in the Indian subcontinent.',
+                        themeGradient: 'from-[#08121f] via-[#0c4a6e] to-[#07284b]',
+                        borderColor: 'border-sky-500/30',
+                        content: (
+                            <div className="space-y-4 text-left">
+                                <div className="grid sm:grid-cols-3 gap-3">
+                                    <div className="p-4 rounded-2xl bg-black/40 backdrop-blur-md border border-sky-500/20 text-center">
+                                        <span className="text-[10px] font-black text-sky-300 uppercase tracking-widest block mb-1">Cherrapunji of the South</span>
+                                        <span className="text-white font-bold text-base block">Chinnakallar Basin</span>
+                                        <span className="text-white/60 text-[10px] block mt-1">Highest regional rainfall in TN</span>
                                     </div>
-                                )}
-                            </motion.div>
-                        </AnimatePresence>
-                    </div>
-                </div>
-            </div>
+                                    <div className="p-4 rounded-2xl bg-black/40 backdrop-blur-md border border-sky-500/20 text-center">
+                                        <span className="text-[10px] font-black text-purple-300 uppercase tracking-widest block mb-1">Summer Climate</span>
+                                        <span className="text-white font-bold text-base block">15°C - 25°C</span>
+                                        <span className="text-white/60 text-[10px] block mt-1">Mild and pleasant alpine air</span>
+                                    </div>
+                                    <div className="p-4 rounded-2xl bg-black/40 backdrop-blur-md border border-sky-500/20 text-center">
+                                        <span className="text-[10px] font-black text-sky-300 uppercase tracking-widest block mb-1">Winter Climate</span>
+                                        <span className="text-white font-bold text-base block">10°C - 15°C</span>
+                                        <span className="text-white/60 text-[10px] block mt-1">Misty and chilly nights</span>
+                                    </div>
+                                </div>
+                                <p className="text-white/80 text-xs sm:text-sm leading-relaxed text-justify">
+                                    Valparai experiences a tropical monsoon climate, intercepting both the Southwest Monsoon (June to September) and Northeast Monsoon (October to November). Heavy mists frequently settle across the tea valleys, giving the hill station its famous mystical atmosphere.
+                                </p>
+                            </div>
+                        ),
+                        visualSide: (
+                            <div className="w-full h-full min-h-[260px] p-6 rounded-3xl bg-black/40 backdrop-blur-md border border-sky-500/30 flex flex-col items-center justify-center text-center relative overflow-hidden group/visual">
+                                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-sky-400/20 to-sky-600/10 border-2 border-sky-400/40 flex items-center justify-center mb-4 shadow-xl group-hover/visual:scale-110 transition-transform duration-500">
+                                    <CloudRain size={36} className="text-sky-400 animate-bounce" />
+                                </div>
+
+                                <span className="px-3 py-1 rounded-full bg-sky-500/20 text-sky-300 text-[10px] font-mono font-bold tracking-widest uppercase mb-2 border border-sky-500/30">
+                                    Dual Monsoon Hub
+                                </span>
+                                <h5 className="font-serif font-bold text-base text-white">Chinnakallar Precipitation</h5>
+                                <p className="text-sky-200/70 text-xs mt-1 max-w-[240px]">
+                                    Ranking among the top high-volume precipitation basins in the Indian subcontinent.
+                                </p>
+                            </div>
+                        )
+                    },
+                    {
+                        id: 'estate',
+                        tabLabel: 'Estates & Infrastructure',
+                        tabIcon: <TrendingUp size={14} />,
+                        stageBadge: 'Stage 04 · Green Economy',
+                        badgeIcon: <TrendingUp size={12} className="text-indigo-400" />,
+                        title: 'Plantation Economy & Hydro-Power Complex',
+                        tamilTitle: 'தேயிலை மற்றும் நீர்மின் திட்டம்',
+                        subtitle: 'Industrial-scale tea cultivation and critical clean energy powerhouses.',
+                        themeGradient: 'from-[#1e1b4b] via-[#1e3a8a] to-[#064e3b]',
+                        borderColor: 'border-indigo-500/30',
+                        content: (
+                            <div className="space-y-4 text-left">
+                                <p className="text-white/80 text-xs sm:text-sm leading-relaxed text-justify">
+                                    The main driver of Valparai's economy is commercial tea manufacturing. The region also hosts the vital Parambikulam-Aliyar Project (PAP), bringing a complex network of reservoirs, dams, water channels, and deep mountain tunnels generating massive clean hydroelectric energy.
+                                </p>
+                                <div className="p-4 rounded-2xl bg-black/40 backdrop-blur-md border border-indigo-500/25">
+                                    <h4 className="text-xs font-black uppercase text-indigo-300 tracking-wider mb-1.5 flex items-center gap-1.5">
+                                        <Leaf size={13} className="text-emerald-400" /> Sustainable Shade Culture
+                                    </h4>
+                                    <p className="text-white/75 text-xs sm:text-sm leading-relaxed text-justify">
+                                        Due to strict reserve laws, local tea estates practice unique shade-grown cultivation, preserving massive native rainforest trees directly within the plantations so local wildlife herds can live alongside agriculture.
+                                    </p>
+                                </div>
+                            </div>
+                        ),
+                        visualSide: (
+                            <div className="w-full h-full min-h-[260px] p-6 rounded-3xl bg-black/40 backdrop-blur-md border border-indigo-500/30 flex flex-col items-center justify-center text-center relative overflow-hidden group/visual">
+                                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-400/20 to-emerald-600/10 border-2 border-indigo-400/40 flex items-center justify-center mb-4 shadow-xl group-hover/visual:scale-110 transition-transform duration-500">
+                                    <TrendingUp size={36} className="text-indigo-400" />
+                                </div>
+
+                                <span className="px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-mono font-bold tracking-widest uppercase mb-2 border border-indigo-500/30">
+                                    Hydro & Agro Synergy
+                                </span>
+                                <h5 className="font-serif font-bold text-base text-white">PAP Hydroelectric Complex</h5>
+                                <p className="text-indigo-200/70 text-xs mt-1 max-w-[240px]">
+                                    Sholayar Dam powerhouse and deep underground flume tunnels powering South India.
+                                </p>
+                            </div>
+                        )
+                    }
+                ];
+
+                return (
+                    <PeelingStackCards
+                        badgeLabel="Interactive Knowledge Stacks"
+                        title="Detailed Knowledge Hub"
+                        tamilTitle="வால்பாறை களஞ்சியம்"
+                        subtitle="Scroll down to explore the 3D peeling stacking cards covering history, ecology, climate, and estate infrastructure."
+                        items={valparaiKnowledgeCards}
+                        defaultViewMode="stack"
+                    />
+                );
+            })()}
 
             {/* City of Truth Ministries local Sanctuary Spotlight in Light Blue/Purple/Amber Gradient */}
             <div className="container mx-auto px-6 max-w-5xl mb-16">

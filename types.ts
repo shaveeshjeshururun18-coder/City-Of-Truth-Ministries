@@ -413,3 +413,10 @@ export interface WidgetSettingsConfig {
   cotChatLabelVisible?: boolean;
   cotChatLabelText?: string;
 }
+
+export interface SectionProps {
+  currentUser?: User | null;
+  setCurrentView?: (view: any) => void;
+  onNavigate?: (path: string) => void;
+  navigate?: (path: string) => void;
+}

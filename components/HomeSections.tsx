@@ -13,6 +13,8 @@ const EntrustCardPreviewLazy = React.lazy(() => import('./HomeSections/EntrustCa
 const LeaderMessageSectionLazy = React.lazy(() => import('./HomeSections/LeaderMessageSection').then(module => ({ default: module.LeaderMessageSection })));
 const DonationsHighlightLazy = React.lazy(() => import('./HomeSections/DonationsHighlight').then(module => ({ default: module.DonationsHighlight })));
 const CommunityMembersSectionLazy = React.lazy(() => import('./HomeSections/CommunityMembersSection').then(module => ({ default: module.CommunityMembersSection })));
+const HeroCinematicIntroLazy = React.lazy(() => import('./HomeSections/HeroCinematicIntro').then(module => ({ default: module.HeroCinematicIntro })));
+const MinistryBentoGridLazy = React.lazy(() => import('./HomeSections/MinistryBentoGrid').then(module => ({ default: module.MinistryBentoGrid })));
 
 // Wrapper for Suspense
 export const MinistryHighlights = (props: any) => (
@@ -75,3 +77,14 @@ export const CommunityMembersSection = (props: any) => (
     <CommunityMembersSectionLazy {...props} />
   </Suspense>
 );
+export const HeroCinematicIntro = (props: any) => (
+  <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-amber-300">Loading Sanctuary...</div>}>
+    <HeroCinematicIntroLazy {...props} />
+  </Suspense>
+);
+export const MinistryBentoGrid = (props: any) => (
+  <Suspense fallback={<div className="h-40 flex items-center justify-center text-slate-400">Loading...</div>}>
+    <MinistryBentoGridLazy {...props} />
+  </Suspense>
+);
+
