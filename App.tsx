@@ -2358,7 +2358,7 @@ const App: React.FC = () => {
 
   return (
     <WebsiteBuilderContext.Provider value={contextValue}>
-    <div className={`min-h-screen transition-colors duration-1000 ease-in-out font-sans ${getThemeClass()}`}>
+    <div className={`min-h-screen font-sans ${getThemeClass()}`}>
       {/* Permalink Display Bar */}
       {!isFrame && Array.isArray(permalinks) && permalinks.length > 0 && (
         <React.Suspense fallback={null}>

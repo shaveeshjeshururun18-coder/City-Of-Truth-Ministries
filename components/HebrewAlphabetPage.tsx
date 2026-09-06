@@ -232,7 +232,7 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
     const selectedLetter = selectedIndex !== null ? HEBREW_LETTERS[selectedIndex] : null;
 
     return (
-        <div className="min-h-screen w-full bg-[#0f0d0a] text-[#ede6d6] pb-28 overflow-x-hidden relative font-sans select-none">
+        <div className="min-h-screen w-full bg-[#0f0d0a] text-[#ede6d6] pb-28 relative font-sans select-none">
             {/* Subtle ancient parchment vignette & radial lighting */}
             <div className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(201,162,39,0.14)_0%,transparent_60%)]" />
             <div className="fixed inset-0 pointer-events-none z-0 opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]" />

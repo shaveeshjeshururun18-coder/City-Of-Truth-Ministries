@@ -596,7 +596,7 @@ export const HeroCinematicIntro: React.FC<HeroCinematicIntroProps> = ({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.55 }}
-              className="grid grid-cols-3 gap-3 w-full max-w-xl pt-2"
+              className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-xl pt-2"
             >
               {[
                 { icon: BookOpen, label: 'Hebrew Hub', desc: 'Alphabet & Root', action: () => navigate('/hebrew-alphabet') },
