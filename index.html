@@ -5,97 +5,52 @@
     <link rel="icon" type="image/png" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>City of Truth Ministries</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- MediaPipe & Face API CDNs -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js" crossorigin="anonymous"></script>
-    
-    <!-- ThumbmarkJS Device Fingerprinting -->
+    <!-- Preconnect for Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Catamaran:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&family=Mukta+Malar:wght@400;500;600;700;800&family=Noto+Sans+Tamil:wght@400;500;600;700;800&family=Noto+Serif+Tamil:wght@400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+    <!-- Deferred Device Fingerprinting (non-blocking) -->
     <script type="module">
-      import('https://cdn.jsdelivr.net/npm/@thumbmarkjs/thumbmarkjs/dist/thumbmark.umd.js')
-        .then(() => {
-          if (window.ThumbmarkJS && window.ThumbmarkJS.Thumbmark) {
-            const tm = new window.ThumbmarkJS.Thumbmark({ api_key: '5fba97741a00b8ee87056ddeda3987fb' });
-            tm.get().then((result) => {
-              console.log('ThumbmarkJS Result:', result);
-              window.thumbmarkResult = result;
-              if (result) {
-                try {
-                  localStorage.setItem('cot_thumbmark_fingerprint', JSON.stringify(result));
-                } catch (e) {}
-              }
-            }).catch((err) => {
-              console.warn('ThumbmarkJS get error:', err);
-            });
-          }
-        })
-        .catch((err) => {
-          console.warn('Failed to load ThumbmarkJS:', err);
-        });
-    </script>
-    
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              brand: {
-                50: '#f0f4ff',
-                100: '#e1e9fe',
-                200: '#c7d5fd',
-                300: '#a3b8fc',
-                400: '#8193f8',
-                500: '#646df2',
-                600: '#4c51f7',
-                700: '#3c3ee2',
-                800: '#3233ba',
-                900: '#2d2f93',
-                950: '#1b1c57',
-              },
-              accent: {
-                50: '#fffce7',
-                100: '#fff9c1',
-                200: '#fff287',
-                300: '#ffe541',
-                400: '#ffd21d',
-                500: '#ffb703',
-                600: '#e38200',
-                700: '#bd5b03',
-                800: '#9a4708',
-                900: '#7e3b0b',
-                950: '#491d00',
-              },
-            },
-            fontFamily: {
-              serif: ['Playfair Display', 'serif'],
-              sans: ['Inter', 'sans-serif'],
-              tamil: ['Mukta Malar', 'Noto Sans Tamil', 'Catamaran', 'sans-serif'],
-              tamilSerif: ['Noto Serif Tamil', 'serif'],
-              bamini25: ['Bamini_25', 'sans-serif'],
-              bamini03: ['Bamini_03', 'sans-serif'],
-            },
-            animation: {
-              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+      const initThumbmark = () => {
+        import('https://cdn.jsdelivr.net/npm/@thumbmarkjs/thumbmarkjs/dist/thumbmark.umd.js')
+          .then(() => {
+            if (window.ThumbmarkJS && window.ThumbmarkJS.Thumbmark) {
+              const tm = new window.ThumbmarkJS.Thumbmark({ api_key: '5fba97741a00b8ee87056ddeda3987fb' });
+              tm.get().then((result) => {
+                window.thumbmarkResult = result;
+                if (result) {
+                  try {
+                    localStorage.setItem('cot_thumbmark_fingerprint', JSON.stringify(result));
+                  } catch (e) {}
+                }
+              }).catch(() => {});
             }
-          }
-        }
+          })
+          .catch(() => {});
+      };
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(initThumbmark, { timeout: 3000 });
+      } else {
+        setTimeout(initThumbmark, 2000);
       }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Catamaran:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&family=Mukta+Malar:wght@400;500;600;700;800&family=Noto+Sans+Tamil:wght@400;500;600;700;800&family=Noto+Serif+Tamil:wght@400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
     <style>
       @font-face {
         font-family: 'Bamini_25';
         src: url('/fonts/Bamini_Tamil_25.ttf') format('truetype');
         font-weight: normal;
         font-style: normal;
+        font-display: swap;
       }
       @font-face {
         font-family: 'Bamini_03';
         src: url('/fonts/Bamini_Tamil_03.ttf') format('truetype');
         font-weight: normal;
         font-style: normal;
+        font-display: swap;
       }
 
       /* Automatic Tamil Unicode Font Fallback for all Tamil text */
@@ -137,6 +92,8 @@
         ) !important;
         background-size: 200% auto !important;
         animation: gold-shimmer 4s linear infinite;
+        will-change: background-position;
+        transform: translateZ(0);
       }
       .pure-gold-text {
         background-image: linear-gradient(
@@ -157,6 +114,8 @@
         filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.8)) drop-shadow(0px 4px 16px rgba(251, 191, 36, 0.45));
         font-weight: 900;
         animation: gold-shimmer 4s linear infinite;
+        will-change: background-position;
+        transform: translateZ(0);
       }
       body.lightbox-open nav {
         opacity: 0 !important;

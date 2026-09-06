@@ -1748,18 +1748,58 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
     /* ─────────────────────────────────────────────── */
     return (
-        <div className={`min-h-screen pt-28 pb-20 ${isDarkMode ? 'bg-slate-900 text-slate-100' : 'bg-[#f0f2f5] text-slate-900'} relative flex flex-col items-center overflow-x-hidden px-3 sm:px-5 user-dashboard-root`}>
-            {isDarkMode && (
-                <style dangerouslySetInnerHTML={{
-                    __html: `
-                    .user-dashboard-root .bg-white { background-color: #1e293b !important; }
-                    .user-dashboard-root .bg-slate-50 { background-color: #0f172a !important; }
-                    .user-dashboard-root .text-slate-900, .user-dashboard-root .text-slate-800, .user-dashboard-root .text-slate-700 { color: #f1f5f9 !important; }
-                    .user-dashboard-root .text-slate-600, .user-dashboard-root .text-slate-500 { color: #94a3b8 !important; }
-                    .user-dashboard-root .border-slate-200, .user-dashboard-root .border-slate-100 { border-color: #334155 !important; }
-                    .user-dashboard-root input, .user-dashboard-root select, .user-dashboard-root textarea { background-color: #0f172a !important; color: #f8fafc !important; border-color: #334155 !important; }
-                ` }} />
-            )}
+        <div className="min-h-screen pt-28 pb-24 bg-[#060a12] text-slate-100 relative flex flex-col items-center overflow-x-hidden px-3 sm:px-5 user-dashboard-root">
+            {/* Global Orange & Blue Sanctuary Theme Enforcement */}
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                .user-dashboard-root {
+                    background-color: #060a12 !important;
+                    color: #f1f5f9 !important;
+                }
+                .user-dashboard-root .bg-white {
+                    background-color: #0c1220 !important;
+                    border-color: rgba(255, 255, 255, 0.1) !important;
+                    color: #f8fafc !important;
+                }
+                .user-dashboard-root .bg-slate-50 {
+                    background-color: #080d17 !important;
+                    border-color: rgba(255, 255, 255, 0.08) !important;
+                    color: #f1f5f9 !important;
+                }
+                .user-dashboard-root .bg-slate-100 {
+                    background-color: #111a2e !important;
+                    color: #f1f5f9 !important;
+                }
+                .user-dashboard-root .text-slate-900,
+                .user-dashboard-root .text-slate-800,
+                .user-dashboard-root .text-slate-700 {
+                    color: #f8fafc !important;
+                }
+                .user-dashboard-root .text-slate-600,
+                .user-dashboard-root .text-slate-500 {
+                    color: #94a3b8 !important;
+                }
+                .user-dashboard-root .border-slate-200,
+                .user-dashboard-root .border-slate-100 {
+                    border-color: rgba(255, 255, 255, 0.12) !important;
+                }
+                .user-dashboard-root input,
+                .user-dashboard-root select,
+                .user-dashboard-root textarea {
+                    background-color: #0c1220 !important;
+                    color: #f8fafc !important;
+                    border-color: rgba(255, 255, 255, 0.15) !important;
+                }
+            ` }} />
+
+            {/* Ambient Celestial Cobalt Blue & Radiant Burnt Orange Glows Across the Entire Dashboard */}
+            <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+                <div className="absolute -top-32 -left-32 w-[650px] h-[650px] bg-orange-600/18 rounded-full blur-[140px]" />
+                <div className="absolute top-1/4 -right-32 w-[650px] h-[650px] bg-blue-600/20 rounded-full blur-[140px]" />
+                <div className="absolute -bottom-32 left-1/4 w-[600px] h-[600px] bg-orange-500/14 rounded-full blur-[140px]" />
+                <div className="absolute top-2/3 right-1/4 w-[500px] h-[500px] bg-blue-500/12 rounded-full blur-[130px]" />
+            </div>
+
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.06] pointer-events-none z-0" />
             {topNotification && dismissedTopNotificationId !== topNotification.id && (
                 <div className="sticky top-20 z-50 w-full max-w-md lg:max-w-7xl xl:max-w-[88rem] 2xl:max-w-[95rem] mb-3">
@@ -2030,14 +2070,536 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             ══════════════════════════════════════ */}
             <div className="w-full max-w-full mx-auto relative z-10 px-4">
 
-                {/* ── 🗂️ SECTION NAVIGATION SWITCHER TABS ── */}
-                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-2 border-b border-slate-200 w-full mb-6">
+                {/* ═══════════════════════════════════════════════════════
+                    THE 3-CARD THEMATIC SHOWCASE (IMAGE 3 THEME)
+                    (100% Real User Data & Covenant Ministry Integration)
+                ═══════════════════════════════════════════════════════ */}
+                <div className="mb-10 space-y-6">
+
+                    {/* ── TOP SANCTUARY CONTROL BAR ── */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                        <div className="flex items-center gap-3">
+                            <div className="w-3 h-3 rounded-full bg-orange-500 animate-pulse shadow-[0_0_12px_#f97316]" />
+                            <span className="text-xs font-black uppercase tracking-[0.25em] text-slate-800 dark:text-slate-200">
+                                City of Truth · Covenant Worshipper Sanctuary
+                            </span>
+                            <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                256-BIT CRYPTO PASS
+                            </span>
+                        </div>
+
+                        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                            {/* Dark/Light Switch */}
+                            <button
+                                onClick={toggleUserDarkMode}
+                                className="px-3.5 py-1.5 rounded-full bg-white/80 dark:bg-white/10 hover:bg-white border border-slate-300 dark:border-white/15 text-xs font-bold text-slate-700 dark:text-slate-200 backdrop-blur-md transition-all active:scale-95 shadow-sm cursor-pointer flex items-center gap-1.5"
+                            >
+                                {isDarkMode ? <Sun size={13} className="text-amber-400" /> : <Moon size={13} className="text-indigo-600" />}
+                                <span>{isDarkMode ? 'Light UI' : 'Dark UI'}</span>
+                            </button>
+
+                            {/* Tour Guide */}
+                            <button
+                                onClick={dashboardTour.start}
+                                className="px-3.5 py-1.5 rounded-full bg-white/80 dark:bg-white/10 hover:bg-white border border-slate-300 dark:border-white/15 text-xs font-bold text-slate-700 dark:text-slate-200 backdrop-blur-md transition-all active:scale-95 shadow-sm cursor-pointer flex items-center gap-1.5"
+                            >
+                                <Sparkles size={13} className="text-amber-500" />
+                                <span>Guide</span>
+                            </button>
+
+                            {/* Logout */}
+                            <button
+                                onClick={onLogout}
+                                className="px-3.5 py-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 border border-red-300 dark:border-red-500/30 text-red-700 dark:text-red-300 text-xs font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
+                            >
+                                <LogOut size={13} />
+                                <span>Logout</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* ── THE 3 THEMATIC CARDS GRID ── */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-stretch">
+
+                        {/* ──────────────────────────────────────────────────
+                            CARD 1 (LEFT): SACRED CALENDAR & SESSIONS
+                            (Burnt Orange / Terracotta Theme from Image 3)
+                        ────────────────────────────────────────────────── */}
+                        <div
+                            className="rounded-[2.75rem] p-6 text-white shadow-2xl relative overflow-hidden border border-white/20 flex flex-col justify-between min-h-[640px] select-none"
+                            style={{
+                                background: 'linear-gradient(180deg, #2c0e05 0%, #681f06 28%, #a83607 62%, #ea580c 100%)',
+                                boxShadow: '0 25px 60px -15px rgba(194, 65, 12, 0.45)'
+                            }}
+                        >
+                            <div>
+                                {/* Top Header: Calendar + Bell Circle */}
+                                <div className="flex items-center justify-between mb-5 pt-1">
+                                    <h2 className="text-2xl font-bold font-sans tracking-tight text-white">Calendar</h2>
+                                    <button
+                                        onClick={() => setIsCalendarModalOpen(true)}
+                                        className="w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 border border-white/15 backdrop-blur-md flex items-center justify-center text-white/95 shadow-inner transition-colors cursor-pointer"
+                                        title="Calendar Details"
+                                    >
+                                        <Bell size={17} />
+                                    </button>
+                                </div>
+
+                                {/* Month Selector: < Av / Elul 5786 > */}
+                                <div className="flex items-center justify-between text-xs font-bold text-white/90 px-2 mb-4">
+                                    <button
+                                        onClick={() => setIsCalendarModalOpen(true)}
+                                        className="p-1 hover:bg-white/10 rounded-full cursor-pointer text-base leading-none transition-colors"
+                                    >
+                                        ‹
+                                    </button>
+                                    <span className="font-semibold text-sm tracking-wide text-white">
+                                        Av / Elul 5786 (2026)
+                                    </span>
+                                    <button
+                                        onClick={() => setIsCalendarModalOpen(true)}
+                                        className="p-1 hover:bg-white/10 rounded-full cursor-pointer text-base leading-none transition-colors"
+                                    >
+                                        ›
+                                    </button>
+                                </div>
+
+                                {/* Calendar Days Header: S M T W T F S */}
+                                <div className="grid grid-cols-7 text-center text-[11px] font-bold text-white/60 mb-2">
+                                    <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+                                </div>
+
+                                {/* Calendar Days Grid: 1 to 30 with active day 16 in black */}
+                                <div className="grid grid-cols-7 gap-y-2 text-center text-xs font-semibold mb-6">
+                                    {Array.from({ length: 30 }).map((_, i) => {
+                                        const day = i + 1;
+                                        const isActive = day === 16;
+                                        return (
+                                            <div key={day} className="flex items-center justify-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsCalendarModalOpen(true)}
+                                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                                                        isActive
+                                                            ? 'bg-[#111116] text-white font-black shadow-lg ring-2 ring-white/30 scale-105'
+                                                            : 'border border-white/25 text-white/90 hover:bg-white/20'
+                                                    }`}
+                                                >
+                                                    {day}
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Event Schedule Cards with Avatar Stacks */}
+                                <div className="space-y-3 mb-6">
+                                    {/* Event 1: Sabbath Ministry Fellowship */}
+                                    <div
+                                        onClick={() => window.open('https://chat.whatsapp.com/KyifBLN6FFzFj8lSfZFrQb?s=cl&p=a&ilr=1&amv=2', '_blank', 'noopener,noreferrer')}
+                                        className="rounded-2xl bg-white/15 hover:bg-white/20 backdrop-blur-md p-4 border border-white/15 flex items-center justify-between shadow-sm cursor-pointer transition-all"
+                                    >
+                                        <div className="min-w-0 pr-2">
+                                            <p className="font-bold text-sm text-white truncate">Sabbath Ministry Fellowship</p>
+                                            <div className="flex items-center gap-3 text-[11px] text-white/80 font-mono mt-1">
+                                                <span>Start: <strong className="text-white">08:02</strong></span>
+                                                <span>Finish: <strong className="text-white">10:39</strong></span>
+                                            </div>
+                                        </div>
+                                        {/* Avatar Stack */}
+                                        <div className="flex items-center -space-x-2 shrink-0">
+                                            <div className="w-7 h-7 rounded-full bg-cyan-400 border-2 border-[#a83607] text-[9px] font-black flex items-center justify-center text-slate-900 shadow">COT</div>
+                                            <div className="w-7 h-7 rounded-full bg-amber-400 border-2 border-[#a83607] text-[9px] font-black flex items-center justify-center text-slate-900 shadow">VP</div>
+                                            <div className="w-7 h-7 rounded-full bg-purple-500 border-2 border-[#a83607] text-[9px] font-black flex items-center justify-center text-white shadow">+3</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Event 2: Hebrew Scripture Reading */}
+                                    <div
+                                        onClick={() => setIsCalendarModalOpen(true)}
+                                        className="rounded-2xl bg-white/15 hover:bg-white/20 backdrop-blur-md p-4 border border-white/15 flex items-center justify-between shadow-sm cursor-pointer transition-all"
+                                    >
+                                        <div className="min-w-0 pr-2">
+                                            <p className="font-bold text-sm text-white truncate">Hebrew Scripture & Torah</p>
+                                            <div className="flex items-center gap-3 text-[11px] text-white/80 font-mono mt-1">
+                                                <span>Start: <strong className="text-white">18:00</strong></span>
+                                                <span>Finish: <strong className="text-white">19:30</strong></span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center -space-x-2 shrink-0">
+                                            <div className="w-7 h-7 rounded-full bg-emerald-400 border-2 border-[#ea580c] text-[9px] font-black flex items-center justify-center text-slate-900 shadow">📖</div>
+                                            <div className="w-7 h-7 rounded-full bg-blue-500 border-2 border-[#ea580c] text-[9px] font-black flex items-center justify-center text-white shadow">🕊️</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Bottom Floating Pill Dock on Card 1 */}
+                            <div className="w-full flex justify-center pt-2">
+                                <div className="rounded-full bg-white/20 backdrop-blur-xl border border-white/25 px-3 py-1.5 flex items-center gap-3 shadow-lg">
+                                    <button
+                                        onClick={() => setActiveDashboardTab('profile')}
+                                        className="p-1.5 rounded-full hover:bg-white/20 text-white cursor-pointer transition-transform active:scale-95"
+                                        title="My Profile"
+                                    >
+                                        <UserIcon size={15} />
+                                    </button>
+                                    <button
+                                        onClick={() => setIsCalendarModalOpen(true)}
+                                        className="px-2.5 py-1 rounded-full bg-white text-slate-950 font-black text-xs shadow cursor-pointer flex items-center gap-1"
+                                        title="Jewish Calendar PDF"
+                                    >
+                                        <Calendar size={13} />
+                                        <span>5786 PDF</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveDashboardTab('downloads')}
+                                        className="p-1.5 rounded-full hover:bg-white/20 text-white cursor-pointer transition-transform active:scale-95"
+                                        title="Downloads Centre"
+                                    >
+                                        <Download size={14} />
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveDashboardTab('settings')}
+                                        className="p-1.5 rounded-full hover:bg-white/20 text-white cursor-pointer transition-transform active:scale-95"
+                                        title="Settings"
+                                    >
+                                        <Settings size={14} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* ──────────────────────────────────────────────────
+                            CARD 2 (CENTER): DAILY FOCUS & SESSIONS
+                            (Celestial Cobalt Blue to Deep Obsidian Black)
+                        ────────────────────────────────────────────────── */}
+                        <div
+                            className="rounded-[2.75rem] text-white shadow-2xl relative overflow-hidden border border-white/20 flex flex-col justify-between min-h-[640px] select-none"
+                            style={{
+                                background: 'linear-gradient(180deg, #09122c 0%, #17326b 28%, #1d4ed8 62%, #38bdf8 100%)',
+                                boxShadow: '0 25px 60px -15px rgba(29, 78, 216, 0.45)'
+                            }}
+                        >
+                            {/* Top Blue Hero Section */}
+                            <div className="p-6 pb-5 pt-7">
+                                <div className="flex items-center justify-between mb-4">
+                                    <span className="text-sm font-semibold tracking-wide text-white/95">
+                                        Tue, 25 Av 5786
+                                    </span>
+                                    <button
+                                        onClick={() => setShowQrPreview(true)}
+                                        className="w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 border border-white/15 backdrop-blur-md flex items-center justify-center text-white shadow-inner transition-colors cursor-pointer"
+                                        title="Notifications"
+                                    >
+                                        <Bell size={17} />
+                                    </button>
+                                </div>
+
+                                {/* Headline personalized for real user */}
+                                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white leading-snug">
+                                    Good morning, {displayProfile.name.split(' ')[0]}!
+                                </h2>
+                                <p className="mt-2 text-sm text-white/95 leading-relaxed font-normal">
+                                    Your sacred covenant pass, Hebrew resources, and family profiles are fully synchronized. Ready to worship? 🕊️
+                                </p>
+
+                                {/* Meta Chip: ID & Status */}
+                                <div className="flex items-center gap-3 mt-4 text-xs font-mono font-medium text-white/90">
+                                    <span>COT-ID: <strong className="text-white font-bold">{displayProfile.id}</strong></span>
+                                    <span>•</span>
+                                    <span>Status: <strong className="text-emerald-300 font-bold">{user.status === 'Active' ? 'Verified Member' : 'Pending Review'}</strong></span>
+                                </div>
+                            </div>
+
+                            {/* Deep Matte Obsidian Black Card (Exact bottom sheet from Image 3) */}
+                            <div className="bg-[#0b0c10] rounded-t-[2.75rem] p-6 border-t border-white/10 shadow-2xl space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-bold text-base text-white">Active Sessions & Passes</h3>
+                                    <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                                        ACTIVE PASS
+                                    </span>
+                                </div>
+
+                                {/* Row 1: Entrust Digital Pass */}
+                                <div
+                                    onClick={canAccessEntrustFeatures ? handleDownloadPDF : handleBlockedFeature}
+                                    className="flex items-center justify-between p-3.5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] transition-colors cursor-pointer group"
+                                >
+                                    <div className="min-w-0 pr-2">
+                                        <p className="text-xs text-slate-400 font-semibold truncate">Entrust Digital Pass</p>
+                                        <p className="text-lg font-mono font-black text-white">{displayProfile.id}</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="w-10 h-10 rounded-full bg-white text-slate-950 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform shrink-0 cursor-pointer"
+                                        title="Download Pass PDF"
+                                    >
+                                        <Download size={16} />
+                                    </button>
+                                </div>
+
+                                {/* Row 2: Covenant Member Registration Form */}
+                                <div
+                                    onClick={() => {
+                                        if (hasMemberFormSubmitted) handleExportMemberFormPDF();
+                                        else setShowCommunityProfileForm(true);
+                                    }}
+                                    className="flex items-center justify-between p-3.5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] transition-colors cursor-pointer group"
+                                >
+                                    <div className="min-w-0 pr-2">
+                                        <p className="text-xs text-slate-400 font-semibold truncate">Covenant Member Form</p>
+                                        <p className="text-lg font-mono font-black text-white">
+                                            {hasMemberFormSubmitted ? 'Completed ✓' : 'Submit Form'}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="w-10 h-10 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform shrink-0 cursor-pointer"
+                                        title="Open Member Form"
+                                    >
+                                        <Edit2 size={16} />
+                                    </button>
+                                </div>
+
+                                {/* Row 3: Biometric Passkey */}
+                                <div
+                                    onClick={handleSetupBiometricPasskey}
+                                    className="flex items-center justify-between p-3.5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] transition-colors cursor-pointer group"
+                                >
+                                    <div className="min-w-0 pr-2">
+                                        <p className="text-xs text-slate-400 font-semibold truncate">Hardware Security</p>
+                                        <p className="text-lg font-mono font-black text-white">
+                                            {user.biometrics?.credentialId ? 'Synced 🔒' : 'Enroll Key'}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="w-10 h-10 rounded-full bg-purple-500 text-white flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform shrink-0 cursor-pointer"
+                                        title="Hardware Biometric Key"
+                                    >
+                                        <Fingerprint size={16} />
+                                    </button>
+                                </div>
+
+                                {/* Bottom Floating Pill Dock with Active White Home Icon */}
+                                <div className="w-full flex justify-center pt-2">
+                                    <div className="rounded-full bg-white/10 backdrop-blur-xl border border-white/15 px-3 py-1.5 flex items-center gap-3 shadow-lg">
+                                        {/* Active Home White Circle */}
+                                        <button
+                                            onClick={() => {
+                                                setActiveDashboardTab('profile');
+                                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                                            }}
+                                            className="w-8 h-8 rounded-full bg-white text-slate-950 flex items-center justify-center shadow font-black cursor-pointer"
+                                            title="My Identity"
+                                        >
+                                            <UserIcon size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => setIsCalendarModalOpen(true)}
+                                            className="p-1.5 rounded-full hover:bg-white/15 text-white/80 hover:text-white cursor-pointer transition-transform active:scale-95"
+                                            title="Calendar Modal"
+                                        >
+                                            <Calendar size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => setShowQrPreview(true)}
+                                            className="p-1.5 rounded-full hover:bg-white/15 text-white/80 hover:text-white cursor-pointer transition-transform active:scale-95"
+                                            title="QR Pass Modal"
+                                        >
+                                            <QrCode size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => setActiveDashboardTab('achievements')}
+                                            className="p-1.5 rounded-full hover:bg-white/15 text-white/80 hover:text-white cursor-pointer transition-transform active:scale-95"
+                                            title="Covenant Badges"
+                                        >
+                                            <Award size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => setActiveDashboardTab('settings')}
+                                            className="p-1.5 rounded-full hover:bg-white/15 text-white/80 hover:text-white cursor-pointer transition-transform active:scale-95"
+                                            title="Security Settings"
+                                        >
+                                            <Settings size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* ──────────────────────────────────────────────────
+                            CARD 3 (RIGHT): SESSION / TIMER / DIAL GAUGE
+                            (Terracotta Theme with Watchmaker Radial Dial)
+                        ────────────────────────────────────────────────── */}
+                        <div
+                            className="rounded-[2.75rem] p-6 text-white shadow-2xl relative overflow-hidden border border-white/20 flex flex-col justify-between min-h-[640px] select-none"
+                            style={{
+                                background: 'linear-gradient(180deg, #2c0e05 0%, #681f06 28%, #b33c08 62%, #ea580c 100%)',
+                                boxShadow: '0 25px 60px -15px rgba(194, 65, 12, 0.45)'
+                            }}
+                        >
+                            <div>
+                                {/* Top Bar: "Session & Pass" + Dismiss/QR Icon */}
+                                <div className="flex items-center justify-between mb-2 pt-1">
+                                    <h2 className="text-2xl font-bold font-sans tracking-tight text-white">Session & Pass</h2>
+                                    <button
+                                        onClick={() => setShowQrPreview(true)}
+                                        className="w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 border border-white/15 backdrop-blur-md flex items-center justify-center text-white/95 transition-colors cursor-pointer"
+                                        title="QR Pass"
+                                    >
+                                        <QrCode size={17} />
+                                    </button>
+                                </div>
+
+                                {/* ── THE WATCHMAKER RADIAL CLOCK DIAL GAUGE ── */}
+                                <div className="flex flex-col items-center my-3">
+                                    <div className="relative w-64 h-64 flex items-center justify-center select-none">
+                                        {/* Outer Dial SVG with 60 Precise Watchmaker Ticks */}
+                                        <svg className="w-full h-full absolute inset-0" viewBox="0 0 240 240">
+                                            {/* Outer soft ring */}
+                                            <circle
+                                                cx="120"
+                                                cy="120"
+                                                r="105"
+                                                fill="none"
+                                                stroke="rgba(255, 255, 255, 0.12)"
+                                                strokeWidth="14"
+                                            />
+                                            {/* Prominent dark/black arc segment */}
+                                            <circle
+                                                cx="120"
+                                                cy="120"
+                                                r="105"
+                                                fill="none"
+                                                stroke="#111116"
+                                                strokeWidth="16"
+                                                strokeDasharray="660"
+                                                strokeDashoffset="510"
+                                                strokeLinecap="round"
+                                                transform="rotate(-90 120 120)"
+                                            />
+
+                                            {/* 60 Radial Minute & Hour Tick Marks */}
+                                            {Array.from({ length: 60 }).map((_, i) => {
+                                                const angle = (i * 6) * (Math.PI / 180);
+                                                const isMajor = i % 5 === 0;
+                                                const rOuter = 96;
+                                                const rInner = isMajor ? 86 : 91;
+                                                const x1 = 120 + rOuter * Math.cos(angle);
+                                                const y1 = 120 + rOuter * Math.sin(angle);
+                                                const x2 = 120 + rInner * Math.cos(angle);
+                                                const y2 = 120 + rInner * Math.sin(angle);
+                                                return (
+                                                    <line
+                                                        key={i}
+                                                        x1={x1}
+                                                        y1={y1}
+                                                        x2={x2}
+                                                        y2={y2}
+                                                        stroke={isMajor ? "rgba(255, 255, 255, 0.75)" : "rgba(255, 255, 255, 0.28)"}
+                                                        strokeWidth={isMajor ? 1.5 : 1}
+                                                    />
+                                                );
+                                            })}
+                                        </svg>
+
+                                        {/* Clock Hour Numbers (12, 3, 6, 9) */}
+                                        <div className="absolute inset-5 flex items-center justify-center pointer-events-none text-[10px] font-mono text-white/70 font-bold">
+                                            <span className="absolute top-2 font-black text-white/90">12</span>
+                                            <span className="absolute right-2 font-black text-white/90">3</span>
+                                            <span className="absolute bottom-2 font-black text-white/90">6</span>
+                                            <span className="absolute left-2 font-black text-white/90">9</span>
+                                        </div>
+
+                                        {/* Inner Crisp White Radial Dial with Real Pass Info */}
+                                        <div className="relative w-44 h-44 rounded-full bg-white shadow-2xl flex flex-col items-center justify-center border-4 border-white/60">
+                                            <div className="absolute inset-1 rounded-full border border-dashed border-slate-300 pointer-events-none" />
+
+                                            <p className="text-xl font-mono font-black text-slate-950 tracking-tight">
+                                                {displayProfile.id.slice(-8)}
+                                            </p>
+                                            <p className="text-[9px] font-bold uppercase tracking-widest text-orange-600 mt-1">
+                                                ACTIVE PASS
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Real Member Title under Dial */}
+                                    <h3 className="font-bold text-base text-white tracking-wide mt-2">
+                                        {displayProfile.name}
+                                    </h3>
+                                </div>
+
+                                {/* Dual Metrics Grid (Real Member Data) */}
+                                <div className="grid grid-cols-2 gap-4 mt-2 mb-5 px-1">
+                                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+                                        <p className="text-[10px] uppercase font-bold text-white/70">Member Status</p>
+                                        <p className="text-sm font-mono font-black text-white mt-1">
+                                            {user.status === 'Active' ? 'Verified ✓' : 'Pending'}
+                                        </p>
+                                        <p className="text-[11px] font-mono text-orange-200 mt-0.5">
+                                            Joined {user.joinedDate || user.memberSince || '2026'}
+                                        </p>
+                                    </div>
+
+                                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+                                        <p className="text-[10px] uppercase font-bold text-white/70">Assembly</p>
+                                        <p className="text-sm font-bold text-white mt-1 truncate">
+                                            {(displayProfile as any).assemblyName || displayProfile.location || 'City of Truth'}
+                                        </p>
+                                        <p className="text-[11px] font-mono text-white/70 mt-0.5">
+                                            256-Bit Pass
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Bottom Floating Pill Controls (Flip, Action white button, Share) */}
+                            <div className="w-full flex justify-center pt-1">
+                                <div className="rounded-full bg-white/20 backdrop-blur-xl border border-white/25 px-5 py-2 flex items-center gap-5 shadow-lg">
+                                    {/* Flip Pass Card */}
+                                    <button
+                                        onClick={() => setCardFlipped(prev => !prev)}
+                                        className="p-1.5 rounded-full hover:bg-white/20 text-white cursor-pointer transition-transform active:scale-95"
+                                        title="Flip 3D Card"
+                                    >
+                                        <span className="text-base">🔄</span>
+                                    </button>
+
+                                    {/* Center Action White Circle Button */}
+                                    <button
+                                        onClick={canAccessEntrustFeatures ? handleDownloadPDF : handleBlockedFeature}
+                                        className="w-10 h-10 rounded-full bg-white text-slate-950 flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer font-black"
+                                        title="Download Official Pass PDF"
+                                    >
+                                        <Download size={17} />
+                                    </button>
+
+                                    {/* Share / Copy Token */}
+                                    <button
+                                        onClick={handleRegenerateShareLink}
+                                        className="p-1.5 rounded-full hover:bg-white/20 text-white cursor-pointer transition-transform active:scale-95"
+                                        title="Copy Share Link"
+                                    >
+                                        <Copy size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                {/* ── 🗂️ SECTION NAVIGATION SWITCHER TABS (Orange & Blue Theme) ── */}
+                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-2 border-b border-white/10 w-full mb-6">
                     {[
-                        { id: 'profile', label: 'My Profile', icon: UserIcon },
+                        { id: 'profile', label: 'My Pass & Identity', icon: UserIcon },
                         { id: 'downloads', label: 'Download Centre', icon: Download },
                         { id: 'ministry', label: 'Ministry & Scripture', icon: BookOpen },
-                        { id: 'achievements', label: 'Achievements', icon: Award },
-                        { id: 'settings', label: 'Settings & Security', icon: Settings },
+                        { id: 'achievements', label: 'Covenant Badges', icon: Award },
+                        { id: 'settings', label: 'Security & Settings', icon: Settings },
                     ].map(tab => {
                         const Icon = tab.icon;
                         const isActive = activeDashboardTab === tab.id;
@@ -2047,11 +2609,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 onClick={() => setActiveDashboardTab(tab.id as any)}
                                 className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-extrabold shrink-0 transition-all cursor-pointer border ${
                                     isActive
-                                        ? 'bg-brand-950 text-amber-300 border-brand-900 shadow-md shadow-brand-950/20 scale-[1.02]'
-                                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+                                        ? 'bg-gradient-to-r from-orange-600 via-amber-500 to-orange-500 text-slate-950 border-orange-400 shadow-lg shadow-orange-500/25 scale-[1.02]'
+                                        : 'bg-[#0c1220]/80 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
                                 } whitespace-nowrap`}
                             >
-                                <Icon size={14} className={isActive ? 'text-amber-400' : 'text-slate-400'} />
+                                <Icon size={14} className={isActive ? 'text-slate-950' : 'text-orange-400/80'} />
                                 <span>{tab.label}</span>
                             </button>
                         );
@@ -2062,45 +2624,47 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     {/* ── LEFT COLUMN ── */}
                     <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-5">
 
-                        {/* ── 📊 DASHBOARD STATISTICS SUMMARY GRID (2 STAT CARDS) ── */}
+                        {/* ── 📊 DASHBOARD STATISTICS SUMMARY GRID (2 STAT CARDS - Orange & Blue Theme) ── */}
                         <div className="grid grid-cols-2 gap-2.5">
-                            <div className="bg-brand-50/90 border border-brand-200 p-2.5 rounded-2xl shadow-xs flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
-                                    <span className="text-brand-700 font-black text-xs">📅</span>
+                            {/* Card 1: Member Since (Burnt Orange Theme) */}
+                            <div className="bg-gradient-to-br from-[#2c0e05] to-[#5a1b06] border border-orange-500/40 p-3 rounded-2xl shadow-lg flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-orange-500/20 text-orange-400 border border-orange-400/30 flex items-center justify-center shrink-0">
+                                    <Calendar size={15} />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <p className="text-[9px] font-black uppercase text-brand-700 tracking-wider">Joined</p>
-                                    <p className="text-[11px] font-black text-brand-900 truncate">{user.joinedDate || user.memberSince || '2026'}</p>
+                                    <p className="text-[9px] font-black uppercase text-orange-300 tracking-wider">Member Since</p>
+                                    <p className="text-xs font-black text-white font-mono truncate">{user.joinedDate || user.memberSince || '2026'}</p>
                                 </div>
                             </div>
 
-                            <div className="bg-indigo-50/90 border border-indigo-200 p-2.5 rounded-2xl shadow-xs flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
-                                    <span className="text-indigo-700 font-black text-xs">📊</span>
+                            {/* Card 2: Covenant Status (Celestial Blue Theme) */}
+                            <div className="bg-gradient-to-br from-[#09122c] to-[#1e3a8a] border border-blue-500/40 p-3 rounded-2xl shadow-lg flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 border border-blue-400/30 flex items-center justify-center shrink-0">
+                                    <Award size={15} />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <p className="text-[9px] font-black uppercase text-indigo-700 tracking-wider">Score</p>
-                                    <p className="text-[11px] font-black text-indigo-900 truncate">{calculateProfileCompletion(user)}%</p>
+                                    <p className="text-[9px] font-black uppercase text-blue-300 tracking-wider">Covenant Status</p>
+                                    <p className="text-xs font-black text-white truncate">{user.status === 'Active' ? 'Verified Member ✓' : 'Pending Review'}</p>
                                 </div>
                             </div>
                         </div>
 
                     {/* ── PROFILE HEADER CARD (10/10 REFINED HERO) ── */}
-                    <div className="bg-gradient-to-br from-white via-slate-50 to-brand-50/40 rounded-3xl p-5 shadow-lg border border-slate-200/80 relative overflow-hidden w-full max-w-full">
+                    <div className="bg-gradient-to-br from-[#0c1322] via-[#080d17] to-[#140b07] rounded-3xl p-6 shadow-2xl border border-white/15 relative overflow-hidden text-white w-full max-w-full">
                         {/* Ambient decorative glow */}
                         <div className="absolute -top-16 -right-16 w-44 h-44 bg-amber-400/15 rounded-full blur-3xl pointer-events-none" />
 
                         {/* TOP: Greeting & Profile Completion */}
                         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                             <div>
-                                <h1 className="font-extrabold text-slate-900 text-lg sm:text-xl flex items-center gap-2">
+                                <h1 className="font-extrabold text-white text-lg sm:text-xl flex items-center gap-2">
                                     👋 Shalom, {displayProfile.name.split(' ')[0]}…
                                 </h1>
                                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                                     <span className="inline-flex items-center gap-1 font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md text-[10px] border border-emerald-200 shadow-xs">
                                         Verified Member ✓
                                     </span>
-                                    <span className="text-xs font-mono font-bold text-slate-600">
+                                    <span className="text-xs font-mono font-bold text-slate-300">
                                         {displayProfile.id}
                                     </span>
                                 </div>
@@ -2134,7 +2698,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         </div>
 
                         {/* MID: Avatar + Metadata */}
-                        <div className="flex items-center gap-3.5 pt-3 border-t border-slate-200/60">
+                        <div className="flex items-center gap-3.5 pt-3 border-t border-white/15">
                             {/* Avatar */}
                             <div
                                 onClick={handleMedalClick}
@@ -2150,50 +2714,50 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                             {/* Details */}
                             <div className="flex-1 min-w-0">
-                                <h2 className="font-bold text-slate-900 text-base leading-tight truncate">
+                                <h2 className="font-bold text-white text-base leading-tight truncate">
                                     {displayProfile.name}
                                 </h2>
-                                <div className="text-[11px] font-semibold text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
-                                    <span>📅 Member since: <strong className="text-slate-800">{user.joinedDate || user.memberSince || '2026'}</strong></span>
-                                    <span>🕒 Last login: <strong className="text-slate-800">Today</strong></span>
+                                <div className="text-[11px] font-semibold text-slate-300 flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
+                                    <span>📅 Member since: <strong className="text-amber-300">{user.joinedDate || user.memberSince || '2026'}</strong></span>
+                                    <span>🕒 Last login: <strong className="text-emerald-400">Today</strong></span>
                                 </div>
                             </div>
                         </div>
 
-                        {/* ⚡ 4 PRIMARY QUICK ACTION TILES ── */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4 pt-4 border-t border-slate-200/80">
-                            {/* 1. Download Card */}
+                        {/* ⚡ 4 PRIMARY QUICK ACTION TILES (Orange & Blue Theme) ── */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4 pt-4 border-t border-white/10">
+                            {/* 1. Download Card (Burnt Orange Theme) */}
                             <button
                                 onClick={handleDownloadProfilePhoto}
-                                className="p-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl flex flex-col items-center justify-center gap-1 shadow-md shadow-emerald-600/20 active:scale-95 transition-all text-xs font-bold cursor-pointer group"
+                                className="p-3 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-2xl flex flex-col items-center justify-center gap-1 shadow-md shadow-orange-600/25 active:scale-95 transition-all text-xs font-bold cursor-pointer group"
                             >
                                 <Download size={16} className="group-hover:scale-110 transition-transform" />
                                 <span>Download Card</span>
                             </button>
 
-                            {/* 2. Download PDF */}
+                            {/* 2. Download PDF (Celestial Blue Theme) */}
                             <button
                                 onClick={handleDownloadPDF}
                                 disabled={isProcessing}
-                                className="p-3 bg-brand-700 hover:bg-brand-800 text-white rounded-2xl flex flex-col items-center justify-center gap-1 shadow-md shadow-brand-700/20 active:scale-95 transition-all text-xs font-bold cursor-pointer disabled:opacity-60 group"
+                                className="p-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-2xl flex flex-col items-center justify-center gap-1 shadow-md shadow-blue-600/25 active:scale-95 transition-all text-xs font-bold cursor-pointer disabled:opacity-60 group"
                             >
                                 <FileText size={16} className="group-hover:scale-110 transition-transform" />
                                 <span>{isProcessing ? 'Generating...' : 'Download PDF'}</span>
                             </button>
 
-                            {/* 3. QR Code */}
+                            {/* 3. QR Code (Obsidian Navy Theme) */}
                             <button
                                 onClick={() => setShowQrPreview(true)}
-                                className="p-3 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl flex flex-col items-center justify-center gap-1 shadow-md shadow-violet-600/20 active:scale-95 transition-all text-xs font-bold cursor-pointer group"
+                                className="p-3 bg-gradient-to-r from-indigo-950 to-slate-800 hover:bg-slate-700 text-white rounded-2xl flex flex-col items-center justify-center gap-1 border border-white/15 shadow-md active:scale-95 transition-all text-xs font-bold cursor-pointer group"
                             >
                                 <QrCode size={16} className="group-hover:scale-110 transition-transform" />
                                 <span>QR Code</span>
                             </button>
 
-                            {/* 4. Edit Profile */}
+                            {/* 4. Edit Profile (Terracotta Amber Theme) */}
                             <button
                                 onClick={startEditing}
-                                className="p-3 bg-amber-500 hover:bg-amber-600 text-amber-950 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-md shadow-amber-500/20 active:scale-95 transition-all text-xs font-bold cursor-pointer group"
+                                className="p-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-md shadow-amber-500/25 active:scale-95 transition-all text-xs font-bold cursor-pointer group"
                             >
                                 <Edit2 size={16} className="group-hover:scale-110 transition-transform" />
                                 <span>Edit Profile</span>
@@ -2231,11 +2795,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 </button>
                             </div>
                         )}
-                    </div>
 
                         {/* Dedicated Family Profiles Horizontal Avatar Switcher Bar */}
                         {(user.linkedProfiles && user.linkedProfiles.length > 0) && (
-                            <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center gap-2.5 overflow-x-auto no-scrollbar pb-1">
+                            <div className="mt-4 pt-3.5 border-t border-white/10 flex items-center gap-2.5 overflow-x-auto no-scrollbar pb-1">
                                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 shrink-0 mr-1">Profiles:</span>
                                 
                                 {/* Primary Me Avatar Pill */}
@@ -2244,7 +2807,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         setActiveProfileId(user.id);
                                         handleMedalClick();
                                     }}
-                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 border ${activeProfileId === user.id ? 'bg-brand-700 text-white border-brand-700 shadow-md shadow-brand-500/30' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'}`}
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 border ${activeProfileId === user.id ? 'bg-amber-500 text-slate-950 font-black border-amber-400 shadow-md shadow-amber-500/25' : 'bg-white/10 text-white border-white/15 hover:bg-white/20'}`}
                                 >
                                     <div className="w-5 h-5 rounded-full overflow-hidden shrink-0 border border-white">
                                         {renderAvatarContent(user.photo, user.name, 'text-[8px]')}
@@ -2261,7 +2824,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             handleMedalClick();
                                         }}
                                         title={pf.name}
-                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 border ${activeProfileId === pf.id ? 'bg-accent-600 text-white border-accent-600 shadow-md shadow-accent-500/30' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'}`}
+                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 border ${activeProfileId === pf.id ? 'bg-cyan-500 text-slate-950 font-black border-cyan-400 shadow-md shadow-cyan-500/25' : 'bg-white/10 text-white border-white/15 hover:bg-white/20'}`}
                                     >
                                         <div className="w-5 h-5 rounded-full overflow-hidden shrink-0 border border-white">
                                             {renderAvatarContent(pf.photo, pf.name, 'text-[8px]')}
@@ -2274,20 +2837,20 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     </div>
 
                     {/* ── VISIBLE MEMBER BADGE PICKER ── */}
-                    <div className="w-full bg-white rounded-[24px] p-4 shadow-md border border-slate-100 relative overflow-hidden">
+                    <div className="w-full bg-[#0c1220] rounded-[24px] p-5 shadow-xl border border-white/15 relative overflow-hidden text-white">
                         <div className="absolute right-0 top-0 h-32 w-32 bg-gradient-to-bl from-amber-100/60 to-transparent rounded-bl-[64px] pointer-events-none" />
                         <div className="absolute left-0 bottom-0 h-24 w-24 bg-gradient-to-tr from-blue-50/60 to-transparent rounded-tr-[48px] pointer-events-none" />
                         <div className="relative flex items-start justify-between gap-3 mb-4">
                             <div className="min-w-0">
-                                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-600">🏅 Ministry Badges</p>
-                                <h3 className="text-sm font-black text-slate-900 mt-0.5">Choose Your Badge</h3>
-                                <p className="text-[11px] text-slate-500 mt-1">Displayed on your dashboard identity card.</p>
+                                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-500">🏅 Ministry Badges</p>
+                                <h3 className="text-sm font-black text-white mt-0.5">Choose Your Badge</h3>
+                                <p className="text-[11px] text-slate-300 mt-1">Displayed on your dashboard identity card.</p>
                             </div>
                             {visibleBadge && (
                                 <button
                                     type="button"
                                     onClick={() => setShowBadgePickerDetails(v => !v)}
-                                    className="shrink-0 flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1.5 shadow-sm hover:bg-white transition-colors"
+                                    className="shrink-0 flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-2.5 py-1.5 shadow-sm hover:bg-white/20 transition-colors cursor-pointer"
                                     aria-expanded={showBadgePickerDetails}
                                     aria-label={showBadgePickerDetails ? 'Show less badge details' : 'Show more badge details'}
                                 >
@@ -2303,7 +2866,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                             <BadgeIcon badgeId={visibleBadge.id} size={12} />
                                         </div>
                                     )}
-                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 whitespace-nowrap">
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-200 whitespace-nowrap">
                                         {showBadgePickerDetails ? 'Show less' : 'Show more'}
                                     </span>
                                 </button>
@@ -2675,11 +3238,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                     {/* ── RIGHT COLUMN ── */}
                     <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-6">
-                    <div id="dashboard-notifications-card" ref={notificationsSectionRef} className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-3">
+                    <div id="dashboard-notifications-card" ref={notificationsSectionRef} className="bg-[#0c1220] rounded-3xl border border-white/15 shadow-xl p-4 sm:p-5 space-y-3 text-white">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <Bell size={18} className="text-brand-600" />
-                                <h3 className="text-sm font-black text-slate-900">Notifications</h3>
+                                <Bell size={18} className="text-orange-400" />
+                                <h3 className="text-sm font-black text-white">Notifications</h3>
                                 <span className="text-[10px] font-mono font-bold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded-full">{notifications.length}</span>
                             </div>
                             <span className="text-[10px] font-mono text-slate-400">Last checked: Today</span>
@@ -2745,7 +3308,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         </div>
                     </div> {/* ── Close notifications-card ── */}
                     {/* ── 📖 SPIRITUAL MINISTRY WIDGET ── */}
-                    <div className="p-5 rounded-3xl bg-gradient-to-br from-slate-950 via-brand-950 to-slate-900 text-white shadow-xl border border-amber-400/30 space-y-3">
+                    <div className="p-5 rounded-3xl bg-gradient-to-br from-[#09122c] via-[#0c1220] to-[#2c0e05] text-white shadow-xl border border-orange-500/40 space-y-3">
                         <div className="flex items-center justify-between text-xs border-b border-white/10 pb-2">
                             <span className="flex items-center gap-1.5 font-bold text-amber-300 uppercase tracking-widest text-[10px]">
                                 <BookOpen size={14} className="text-amber-400" /> Verse of the Day
@@ -2783,7 +3346,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
                         <div className="relative bg-white rounded-[25px] overflow-hidden z-10">
                             {/* Gold ID Number Header - show full ID, no masking */}
-                            <div className="bg-gradient-to-r from-[#d4a547] via-[#f0c040] to-[#c8922a] px-5 py-3.5 flex items-center justify-between">
+                            <div className="bg-gradient-to-r from-orange-600 via-amber-500 to-blue-600 px-5 py-3.5 flex items-center justify-between">
                                 <span className="font-black text-[#3d2500] text-xl tracking-[3px] font-mono">
                                     {displayProfile.id.toUpperCase()}
                                 </span>
@@ -3014,8 +3577,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         </div>
                     </div>
 
-                    {/* ── RIGHT COLUMN ── */}
-                    <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-6">
                     <div id="dashboard-action-cards" className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
 
                         {/* Profile Photo Download Card (Standalone Prominent Button) */}
@@ -3165,7 +3726,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             link.click();
                             document.body.removeChild(link);
                         }}
-                            className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#1a237e] to-[#3949ab] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                            className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#09122c] to-[#1d4ed8] border border-blue-500/40 text-white hover:brightness-110' : 'bg-[#0c1220] border border-white/10 text-slate-500 cursor-not-allowed'}`}>
                             <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3">
                                 <svg viewBox="0 0 24 24" className="w-[22px] h-[22px] fill-white"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.38.07 2.33.76 3.13.8 1.18-.25 2.31-.94 3.56-.84 1.5.12 2.63.72 3.37 1.8-3.09 1.85-2.56 5.93.28 7.05-.55 1.5-1.27 2.98-2.34 4.07zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" /></svg>
                             </div>
@@ -3187,7 +3748,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             }
                             window.open('https://chat.whatsapp.com/KyifBLN6FFzFj8lSfZFrQb?s=cl&p=a&ilr=1&amv=2', '_blank', 'noopener,noreferrer');
                         }}
-                            className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#075e54] to-[#128c7e] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                            className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#042f2e] to-[#0d554a] border border-emerald-500/40 text-white hover:brightness-110' : 'bg-[#0c1220] border border-white/10 text-slate-500 cursor-not-allowed'}`}>
                             <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3">
                                 <MessageSquare size={22} className={canAccessEntrustFeatures ? 'text-white' : 'text-slate-400'} />
                             </div>
@@ -3214,7 +3775,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             link.click();
                             document.body.removeChild(link);
                         }}
-                            className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#7c4d00] to-[#f59e0b] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                            className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#2c0e05] to-[#ea580c] border border-orange-500/40 text-white hover:brightness-110' : 'bg-[#0c1220] border border-white/10 text-slate-500 cursor-not-allowed'}`}>
                             <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Flag size={22} /></div>
                             <p className="font-bold text-base leading-tight mb-1">Download Menorah Flag</p>
                             <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-3`}>Save the official ministry flag image to your device.</p>
@@ -3236,7 +3797,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             link.click();
                             document.body.removeChild(link);
                         }}
-                            className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#064e3b] to-[#10b981] text-white hover:brightness-110' : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                            className={`col-span-2 lg:col-span-full rounded-[22px] p-5 text-left shadow-xl transition-all relative overflow-hidden group block ${canAccessEntrustFeatures ? 'bg-gradient-to-br from-[#0c1a3a] to-[#2563eb] border border-blue-500/40 text-white hover:brightness-110' : 'bg-[#0c1220] border border-white/10 text-slate-500 cursor-not-allowed'}`}>
                             <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3"><Download size={22} /></div>
                             <p className="font-bold text-base leading-tight mb-1">Hebrew Alphabet Chart</p>
                             <p className={`${canAccessEntrustFeatures ? 'text-white/80' : 'text-slate-400'} text-[11px] mb-3`}>Sacred Alphabet & Gematria Chart PDF.</p>
@@ -3268,7 +3829,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                             )}
 
                             {/* Inner Bundle Card Container */}
-                            <div className="relative z-10 rounded-[23px] bg-gradient-to-br from-[#1e0e4b] via-[#3b1578] to-[#5b21b6] p-6 text-white overflow-hidden flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+                            <div className="relative z-10 rounded-[23px] bg-gradient-to-br from-[#09122c] via-[#101b33] to-[#2c0e05] border border-orange-500/40 p-6 text-white overflow-hidden flex flex-col xl:flex-row xl:items-center justify-between gap-6">
 
                                 {/* Left Side: Dual Badges (Website Logo & Golden Temple) + Title */}
                                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
@@ -3367,7 +3928,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         type="button"
                                         className={`inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition-all shadow-xl ${
                                             canAccessEntrustFeatures
-                                                ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-slate-950 shadow-amber-500/20 active:scale-95'
+                                                ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-orange-400 hover:from-orange-400 hover:to-amber-300 text-slate-950 font-black shadow-lg shadow-orange-500/30 active:scale-95'
                                                 : 'bg-slate-700 text-slate-400 cursor-not-allowed'
                                         }`}
                                     >
@@ -3380,6 +3941,38 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                     </div> {/* ── Close Action Cards Grid ── */}
                     </div> {/* ── Close Right Column ── */}
                 </div> {/* ── Close Grid Container ── */}
+            {/* ── FLOATING FROSTED GLASS CAPSULE DOCK (Image 3 Theme) ── */}
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-950/85 dark:bg-black/85 backdrop-blur-2xl border border-white/15 rounded-full px-3 py-1.5 flex items-center gap-2 sm:gap-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+                    {[
+                        { id: 'profile', label: 'Pass', icon: UserIcon },
+                        { id: 'downloads', label: 'Downloads', icon: Download },
+                        { id: 'ministry', label: 'Ministry', icon: BookOpen },
+                        { id: 'achievements', label: 'Badges', icon: Award },
+                        { id: 'settings', label: 'Security', icon: Settings },
+                    ].map(tab => {
+                        const Icon = tab.icon;
+                        const isActive = activeDashboardTab === tab.id;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => {
+                                    setActiveDashboardTab(tab.id as any);
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                                className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                                    isActive
+                                        ? 'bg-white text-slate-950 shadow-md scale-105 font-black'
+                                        : 'text-slate-400 hover:text-white hover:bg-white/10'
+                                }`}
+                                title={tab.label}
+                            >
+                                <Icon size={15} className={isActive ? 'text-slate-950' : 'text-slate-400'} />
+                                <span className={isActive ? 'inline' : 'hidden sm:inline'}>{tab.label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+
             </div> {/* ── Close Main Content Container ── */}
 
             {/* ── CARD PREVIEW MODAL (Screenshot 3 style) ── */}

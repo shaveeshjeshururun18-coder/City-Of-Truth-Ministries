@@ -28,11 +28,20 @@ export default defineConfig(({ mode }) => {
               if (id.includes('pdfjs-dist') || id.includes('jspdf')) {
                 return 'pdf-vendor';
               }
-              if (id.includes('lucide-react') || id.includes('framer-motion')) {
+              if (id.includes('three') || id.includes('cobe')) {
+                return 'three-vendor';
+              }
+              if (id.includes('openai') || id.includes('@google/genai') || id.includes('@openrouter/sdk')) {
+                return 'ai-vendor';
+              }
+              if (id.includes('lucide-react') || id.includes('framer-motion') || id.includes('motion')) {
                 return 'ui-vendor';
               }
               if (id.includes('firebase')) {
                 return 'firebase-vendor';
+              }
+              if (id.includes('react-dom') || id.includes('react-router-dom') || id.includes('/react/')) {
+                return 'react-vendor';
               }
             }
           }

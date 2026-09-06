@@ -61,42 +61,46 @@ import { EditableText } from './components/EditableText';
 import { PermalinkDisplay } from './components/PermalinkDisplay';
 import { SharePageButton } from './components/SharePageButton';
 import { Button } from './components/Button';
-import { AuthPage } from './components/AuthPage';
-// Removed SpiritualAssistant import
-import { WorshipperIDCard, EntrustCard3D } from './components/WorshipperIDCard';
 import { GoldenMenorah } from './components/GoldenMenorah';
-import { GoldenMenorahPage } from './components/GoldenMenorahPage';
-import { AIPage } from './components/AIPage';
-import { DivineAssistant } from './components/DivineAssistant';
-import AIChatAssistant from './components/AIChatAssistant';
-import { MinistryHighlights, HebrewSanctuaryIntro, HebrewPagesPreviewSection, PastorBaruchPreviewSection, ValparaiPresence, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, CommunityMembersSection, DailyPsalm119Section, HeroCinematicIntro, MinistryBentoGrid } from './components/HomeSections';
+import { MinistryHighlights, HebrewSanctuaryIntro, HebrewPagesPreviewSection, PastorBaruchPreviewSection, ValparaiPresence, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, CommunityMembersSection, DailyPsalm119Section, HeroCinematicIntro, MinistryBentoGrid, TestimonialHighlights } from './components/HomeSections';
 import { InfiniteEmblemMarquee } from './components/ui/infinite-emblem-marquee';
 import { CinematicOpeningScreen } from './components/ui/cinematic-opening-screen';
 import { DotMatrixText } from './components/ui/dot-text';
 import { DotShaderCanvas } from './components/ui/modern-login-signup';
 import { MessageFromLeader } from './components/MessageFromLeader';
-import { HebrewAlphabetPage } from './components/HebrewAlphabetPage';
-import { MinistriesPage } from './components/MinistriesPage';
-import { BaruchHashemPage } from './components/BaruchHashemPage';
-import { UserDashboard } from './components/UserDashboard';
-import { ValparaiPage } from './components/ValparaiPage';
-import { AdminPasswordModal } from './components/AdminPasswordModal';
-import { AdminDashboard } from './components/AdminDashboard';
-import { HebrewResources } from './components/HebrewResources';
-import { QRVerifyPage } from './components/QRVerifyPage';
-import { DonationModal } from './components/DonationModal';
-import { PastorPage } from './components/PastorPage';
-import { CommunityProfileForm } from './components/CommunityProfileForm';
-
-import VerifyIDPage from './components/VerifyIDPage';
-import { VisitingCard3D } from './components/VisitingCard3D';
 import { Footer } from './components/ui/footer-section';
 import { InfiniteLogoScroll } from './components/InfiniteLogoScroll';
-
 import { ErrorBoundary } from './components/ErrorBoundary';
-
-import { GlobalAnimatedCharacter } from './components/GlobalAnimatedCharacter';
 import { GuidedTour, useTour } from './components/GuidedTour';
+import { AdminPasswordModal } from './components/AdminPasswordModal';
+
+// Astro-style Island Code Splitting for non-home views & heavy components
+const AuthPage = React.lazy(() => import('./components/AuthPage').then(m => ({ default: m.AuthPage })));
+const WorshipperIDCard = React.lazy(() => import('./components/WorshipperIDCard').then(m => ({ default: m.WorshipperIDCard })));
+const GoldenMenorahPage = React.lazy(() => import('./components/GoldenMenorahPage').then(m => ({ default: m.GoldenMenorahPage })));
+const AIPage = React.lazy(() => import('./components/AIPage').then(m => ({ default: m.AIPage })));
+const DivineAssistant = React.lazy(() => import('./components/DivineAssistant').then(m => ({ default: m.DivineAssistant })));
+const HebrewAlphabetPage = React.lazy(() => import('./components/HebrewAlphabetPage').then(m => ({ default: m.HebrewAlphabetPage })));
+const MinistriesPage = React.lazy(() => import('./components/MinistriesPage').then(m => ({ default: m.MinistriesPage })));
+const BaruchHashemPage = React.lazy(() => import('./components/BaruchHashemPage').then(m => ({ default: m.BaruchHashemPage })));
+const UserDashboard = React.lazy(() => import('./components/UserDashboard').then(m => ({ default: m.UserDashboard })));
+const ValparaiPage = React.lazy(() => import('./components/ValparaiPage').then(m => ({ default: m.ValparaiPage })));
+const AdminDashboard = React.lazy(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const HebrewResources = React.lazy(() => import('./components/HebrewResources').then(m => ({ default: m.HebrewResources })));
+const QRVerifyPage = React.lazy(() => import('./components/QRVerifyPage').then(m => ({ default: m.QRVerifyPage })));
+const DonationModal = React.lazy(() => import('./components/DonationModal').then(m => ({ default: m.DonationModal })));
+const PastorPage = React.lazy(() => import('./components/PastorPage').then(m => ({ default: m.PastorPage })));
+const CommunityProfileForm = React.lazy(() => import('./components/CommunityProfileForm').then(m => ({ default: m.CommunityProfileForm })));
+const VerifyIDPage = React.lazy(() => import('./components/VerifyIDPage'));
+const ContactPage = React.lazy(() => import('./components/ContactPage').then(m => ({ default: m.ContactPage })));
+
+// High-speed fallback placeholder
+const SanctuaryViewLoading = () => (
+  <div className="min-h-[50vh] flex flex-col items-center justify-center py-20">
+    <div className="w-10 h-10 rounded-full border-2 border-amber-400/20 border-t-amber-400 animate-spin mb-3" />
+    <span className="text-[11px] font-black tracking-widest text-slate-400 uppercase">Loading Sanctuary...</span>
+  </div>
+);
 import { getHebrewDateInfo } from './components/CalendarLogic';
 import { dynamicTours } from './components/dynamicTours';
 
@@ -200,10 +204,6 @@ const itemVariants = {
 };
 
 
-// LIGHT THEMED TESTIMONIAL SECTION
-interface TestimonialSectionProps {
-  currentUser?: User;
-}
 
 interface ContactMessage {
   id: string;
@@ -384,147 +384,6 @@ const normalizeHomeSectionsOrder = (sections: string[]): string[] => {
     result.push(missing);
   });
   return result;
-};
-
-const TestimonialSection: React.FC<TestimonialSectionProps> = ({ currentUser }) => {
-  const [formData, setFormData] = useState({ name: currentUser?.name || '', location: currentUser?.location || '', text: '' });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmedName = formData.name.trim();
-    const trimmedText = formData.text.trim();
-    const trimmedLocation = formData.location.trim();
-    if (!trimmedName || !trimmedText) {
-      alert("Please fill in your name and testimony.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const isRegistered = !!currentUser;
-      const senderStatus = isRegistered ? currentUser.status : 'Guest';
-      await api.createTestimonial({
-        userId: isRegistered ? currentUser.id : 'NON_REGISTERED',
-        userName: isRegistered ? (currentUser.name || trimmedName) : trimmedName,
-        content: trimmedText,
-        date: new Date().toISOString(),
-        status: 'Pending',
-        rating: 5,
-        userPhoto: isRegistered ? currentUser.photo : undefined,
-        location: isRegistered ? currentUser.location : trimmedLocation,
-        role: isRegistered ? currentUser.role : 'Guest',
-        senderType: isRegistered ? 'Registered' : 'Non-Registered',
-        senderStatus
-      });
-      alert("Testimony sent successfully! It will be visible after approval.");
-      setFormData({ name: '', location: '', text: '' });
-    } catch (error) {
-      console.error(error);
-      alert("Failed to send testimony. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const isApproved = currentUser?.status === 'Active';
-
-  return (
-    <section className="py-24 relative z-10 overflow-hidden bg-slate-50">
-      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 pointer-events-none"></div>
-      <div className="container mx-auto px-6 relative z-10">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-serif font-bold text-brand-950 mb-4">Voices of Faith</h2>
-          <p className="text-slate-600 max-w-2xl mx-auto text-lg font-normal mb-8">Hear how City of Truth Ministries is impacting lives in Valparai and beyond.</p>
-        </div>
-
-        <div className={isApproved ? "grid lg:grid-cols-2 gap-16 items-start" : "max-w-3xl mx-auto w-full"}>
-          {/* Integrated Form Side - Light Theme */}
-          {isApproved && (
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-xl"
-            >
-              <div className="flex items-center gap-4 mb-8">
-                <div className="bg-brand-600 p-3 rounded-2xl text-white shadow-lg">
-                  <MessageCircle size={24} />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-serif font-bold text-brand-950">Share Your Testimony</h3>
-                  <p className="text-sm text-slate-500">Your story can be a beacon for someone else.</p>
-                </div>
-              </div>
-              <form className="space-y-4" onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <input
-                    type="text"
-                    placeholder="Your Name"
-                    readOnly
-                    className="w-full bg-slate-100 border border-slate-200 p-4 rounded-xl outline-none text-brand-950 cursor-not-allowed opacity-70"
-                    value={formData.name}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Location"
-                    readOnly
-                    className="w-full bg-slate-100 border border-slate-200 p-4 rounded-xl outline-none text-brand-950 cursor-not-allowed opacity-70"
-                    value={formData.location}
-                  />
-                </div>
-                <textarea
-                  placeholder="Tell us about your encounter with God's truth..."
-                  className="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl outline-none focus:border-brand-500 transition-colors text-brand-950 placeholder:text-slate-400 h-40"
-                  value={formData.text}
-                  onChange={e => setFormData({ ...formData, text: e.target.value })}
-                ></textarea>
-                <Button disabled={isSubmitting} variant="primary" fullWidth className="py-4 shadow-xl shadow-brand-500/20">
-                  {isSubmitting ? "Sending..." : "Send Testimony"} <Send size={18} />
-                </Button>
-              </form>
-            </motion.div>
-          )}
-
-          {/* Testimonials List Side - Light Theme */}
-          <div className="space-y-6">
-            {[
-              { name: "S.Shaveesh Jeshurun", role: "Member", text: "This ministry has completely transformed my spiritual life. The community in Valparai is so welcoming and the teachings are profound.", rating: 5 },
-              { name: "Sri Priya", role: "Visitor", text: "A beautiful place to worship amidst the hills. The presence of God is tangible here from the first prayer.", rating: 5 },
-              { name: "Prasad R", role: "Volunteer", text: "Wonderful service and amazing youth programs. Blessed to be part of this family and grow in His truth.", rating: 5 }
-            ].map((t, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: 30 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.1 }}
-                viewport={{ once: true }}
-                className="bg-white p-8 rounded-3xl shadow-md border border-slate-100 hover:shadow-xl transition-all group"
-              >
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center text-brand-600 font-bold border border-brand-100">
-                      {t.name.charAt(0)}
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-brand-950 leading-none">{t.name}</h4>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-brand-600 mt-1 block">{t.role}</span>
-                    </div>
-                  </div>
-                  <div className="flex gap-0.5">
-                    {[...Array(5)].map((_, starI) => (
-                      <Star key={starI} size={12} className={`${starI < Math.floor(t.rating) ? "text-amber-500 fill-amber-500" : "text-slate-200"}`} />
-                    ))}
-                  </div>
-                </div>
-                <p className="text-slate-600 italic leading-relaxed font-serif">"{t.text}"</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
 };
 
 const App: React.FC = () => {
@@ -2320,7 +2179,11 @@ const App: React.FC = () => {
 
   // If on verify route (QR code scan)
   if (isVerifyRoute && verifyUserId) {
-    return <QRVerifyPage userId={verifyUserId} onBack={() => navigate('/')} onProceedToDashboard={handleLogin} />;
+    return (
+      <React.Suspense fallback={<SanctuaryViewLoading />}>
+        <QRVerifyPage userId={verifyUserId} onBack={() => navigate('/')} onProceedToDashboard={handleLogin} />
+      </React.Suspense>
+    );
   }
 
   if (isAuthRoute) {
@@ -2333,25 +2196,31 @@ const App: React.FC = () => {
       : 'login';
 
     return (
-      <AuthPage
-        onLogin={handleLogin}
-        onNavigateToRegister={() => {
-          navigate('/');
-          setCurrentView(ViewState.ID_CARD);
-        }}
-        onAdminClick={() => navigate('/admin')}
-        onBack={() => navigate('/')}
-        users={users}
-        sessionUser={currentUser ? { id: currentUser.id, name: currentUser.name, photo: currentUser.photo } : null}
-        initialView={initialView}
-        initialIdentifier={routeIdentifier}
-        initialAction={routeAction === 'scan' || routeAction === 'upload' ? routeAction : undefined}
-      />
+      <React.Suspense fallback={<SanctuaryViewLoading />}>
+        <AuthPage
+          onLogin={handleLogin}
+          onNavigateToRegister={() => {
+            navigate('/');
+            setCurrentView(ViewState.ID_CARD);
+          }}
+          onAdminClick={() => navigate('/admin')}
+          onBack={() => navigate('/')}
+          users={users}
+          sessionUser={currentUser ? { id: currentUser.id, name: currentUser.name, photo: currentUser.photo } : null}
+          initialView={initialView}
+          initialIdentifier={routeIdentifier}
+          initialAction={routeAction === 'scan' || routeAction === 'upload' ? routeAction : undefined}
+        />
+      </React.Suspense>
     );
   }
 
   if (isVerifyScannerRoute) {
-    return <VerifyIDPage onProceedToDashboard={handleLogin} currentUser={currentUser} />;
+    return (
+      <React.Suspense fallback={<SanctuaryViewLoading />}>
+        <VerifyIDPage onProceedToDashboard={handleLogin} currentUser={currentUser} />
+      </React.Suspense>
+    );
   }
 
   // Hebrew alphabet route rendering moved to main layout below
@@ -2432,6 +2301,7 @@ const App: React.FC = () => {
       )}
 
       <main className="relative pb-24 md:pb-0">
+        <React.Suspense fallback={<SanctuaryViewLoading />}>
         {isHebrewAlphabetRoute ? (
           <AnimatePresence mode="wait">
             <motion.div key="hebrew-alphabet" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -2572,7 +2442,7 @@ const App: React.FC = () => {
           case 'hebrewPages': return null;
           case 'pastorBaruch': return <PastorBaruchPreviewSection key="pastorBaruch" setView={setCurrentView} />;
           case 'valparai': return <ValparaiPresence key="valparai" setView={setCurrentView} />;
-          case 'testimonials': return <TestimonialSection key="testimonials" currentUser={currentUser || undefined} />;
+          case 'testimonials': return <TestimonialHighlights key="testimonials" setView={setCurrentView} currentUser={currentUser || undefined} />;
           case 'members': return <CommunityMembersSection key="members" setView={setCurrentView} users={users} />;
           case 'preview': return <EntrustCardPreview key="preview" setView={setCurrentView} />;
           case 'donations': return null;
@@ -3011,160 +2881,16 @@ const App: React.FC = () => {
           )}
 
           {currentView === ViewState.CONTACT && (
-            <motion.div key="contact" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="pt-24 md:pt-32 pb-20 bg-slate-50 min-h-screen">
-              <div className="container mx-auto px-6 max-w-7xl">
-                {/* Header */}
-                <header className="text-center mb-16 max-w-2xl mx-auto">
-                  <motion.span
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="inline-flex items-center gap-2 bg-brand-50 text-brand-600 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase mb-6"
-                  >
-                    <Headset size={14} /> WE'D LOVE TO HEAR FROM YOU
-                  </motion.span>
-                  <h1 className="text-4xl md:text-6xl font-serif font-bold text-brand-950 mb-6 tracking-tight">Get in Touch</h1>
-                  <p className="text-lg text-slate-500 font-normal leading-relaxed">
-                    Whether you have a prayer request, a question about our ministries, or just want to say hello, we are here for you.
-                  </p>
-                </header>
-
-                <div className="grid lg:grid-cols-2 gap-16 items-start">
-                  {/* Left Column */}
-                  <div className="space-y-10 text-left">
-                    <div className="flex flex-col gap-5">
-                      <motion.div
-                        whileHover={{ scale: 1.02 }}
-                        className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-6"
-                      >
-                        <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shrink-0">
-                          <MapPin size={24} />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-brand-950 text-base">Visit Us</h3>
-                          <p className="text-sm text-slate-500 leading-relaxed">New Market, Valparai<br />Tamil Nadu, 642127</p>
-                        </div>
-                      </motion.div>
-
-                      <motion.div
-                        whileHover={{ scale: 1.02 }}
-                        className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-6"
-                      >
-                        <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shrink-0">
-                          <Clock size={24} />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-brand-950 text-base">Service Times</h3>
-                          <p className="text-sm text-slate-500 leading-relaxed">Sunday: 9:30 AM<br />Wednesday: 6:30 PM</p>
-                        </div>
-                      </motion.div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-4 mb-8">
-                        <div className="h-px bg-slate-200 flex-1"></div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Instant Connect</span>
-                        <div className="h-px bg-slate-200 flex-1"></div>
-                      </div>
-
-                      <a href="https://wa.me/918056125478" target="_blank" rel="noopener noreferrer" className="flex items-center p-5 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/20 transition-transform hover:-translate-y-1 group">
-                        <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mr-5">
-                          <MessageCircle size={24} />
-                        </div>
-                        <div className="flex-1">
-                          <strong className="block text-base">Chat on WhatsApp</strong>
-                          <span className="text-xs opacity-80 font-medium">Available 9 AM - 6 PM</span>
-                        </div>
-                        <ArrowRight size={20} className="opacity-0 group-hover:opacity-100 transition-all -translate-x-4 group-hover:translate-x-0" />
-                      </a>
-
-                      <a href="mailto:faithfulfellowship8@gmail.com" className="flex items-center p-5 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/20 transition-transform hover:-translate-y-1 group">
-                        <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mr-5">
-                          <Mail size={24} />
-                        </div>
-                        <div className="flex-1">
-                          <strong className="block text-base">Send Message</strong>
-                          <span className="text-xs opacity-80 font-medium">Replies within 24 hours</span>
-                        </div>
-                        <ArrowRight size={20} className="opacity-0 group-hover:opacity-100 transition-all -translate-x-4 group-hover:translate-x-0" />
-                      </a>
-
-                      <a href="tel:+918056125478" className="flex items-center p-5 rounded-2xl bg-white border border-slate-100 shadow-sm transition-transform hover:-translate-y-1 group">
-                        <div className="w-12 h-12 bg-brand-50 text-brand-600 rounded-xl flex items-center justify-center mr-5">
-                          <Phone size={24} />
-                        </div>
-                        <div className="flex-1 text-left">
-                          <strong className="block text-base text-brand-950 font-bold">Call Support</strong>
-                          <span className="text-[10px] text-slate-500 uppercase tracking-widest font-black">+91 80561 25478</span>
-                        </div>
-                        <ChevronRight size={20} className="text-slate-300" />
-                      </a>
-                    </div>
-                  </div>
-
-                  {/* Right Column: Form */}
-                  <div className="bg-white p-10 md:p-12 rounded-[3.5rem] shadow-2xl shadow-slate-200/50 border border-slate-50 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-40 h-40 bg-brand-50 rounded-full blur-3xl opacity-50 -mr-20 -mt-20"></div>
-                    <form className="space-y-6 md:space-y-8 relative z-10 text-left" onSubmit={handleContactFormSubmit}>
-                      {currentUser && (
-                        <div className="text-[10px] font-black uppercase tracking-[0.16em] text-brand-700 bg-brand-50 border border-brand-100 rounded-xl px-3 py-2">
-                          Sending as {currentUser.name || 'Registered User'} ({currentUser.id})
-                        </div>
-                      )}
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Your Name</label>
-                        <div className="relative">
-                          <UserIcon size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
-                          <input type="text" placeholder="John Doe" readOnly={!!currentUser} className={`w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3 md:py-4 border border-slate-100 rounded-2xl outline-none transition-all text-sm font-bold text-brand-950 ${currentUser ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-slate-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-brand-500/10'}`} value={contactForm.name} onChange={e => setContactForm(prev => ({ ...prev, name: e.target.value }))} />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Email Address</label>
-                        <div className="relative">
-                          <Mail size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
-                          <input type="email" placeholder="john@example.com" readOnly={!!currentUser} className={`w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3 md:py-4 border border-slate-100 rounded-2xl outline-none transition-all text-sm font-bold text-brand-950 ${currentUser ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-slate-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-brand-500/10'}`} value={contactForm.email} onChange={e => setContactForm(prev => ({ ...prev, email: e.target.value }))} />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Subject</label>
-                        <div className="relative">
-                          <Briefcase size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
-                          <select className="w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all text-sm font-bold text-brand-950 appearance-none" value={contactForm.subject} onChange={e => setContactForm(prev => ({ ...prev, subject: e.target.value }))}>
-                            <option>Prayer Request</option>
-                            <option>General Inquiry</option>
-                            <option>Event Info</option>
-                          </select>
-                          <ChevronRight size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 rotate-90 pointer-events-none" />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Message</label>
-                        <textarea placeholder="How can we help you today?" className="w-full p-4 md:p-6 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all text-sm font-bold text-brand-950 h-28 md:h-32 resize-none" value={contactForm.message} onChange={e => setContactForm(prev => ({ ...prev, message: e.target.value }))}></textarea>
-                      </div>
-
-                      <Button type="submit" variant="primary" fullWidth className="py-4 md:py-6 text-xs sm:text-sm font-black uppercase tracking-[0.2em] rounded-2xl bg-brand-950 shadow-2xl shadow-brand-950/30">
-                        Send Message <Send size={18} />
-                      </Button>
-                    </form>
-                  </div>
-                </div>
-
-                {/* Map Section */}
-                <div className="mt-24 h-[450px] rounded-[3rem] overflow-hidden shadow-2xl border-8 border-white relative z-10">
-                  <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15685.83603417646!2d76.9404285871582!3d10.327499999999999!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ba85d7d3f1d2b7f%3A0x6b0b8b0b8b0b8b0b!2sValparai%2C%20Tamil%20Nadu!5e0!3m2!1sen!2sin!4v1710336000000!5m2!1sen!2sin"
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    allowFullScreen={true}
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                    className="w-full h-full"
-                  ></iframe>
-                </div>
-              </div>
+            <motion.div key="contact" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <React.Suspense fallback={<SanctuaryViewLoading />}>
+                <ContactPage
+                  currentUser={currentUser}
+                  contactForm={contactForm}
+                  setContactForm={setContactForm}
+                  handleContactFormSubmit={handleContactFormSubmit}
+                  setCurrentView={setCurrentView}
+                />
+              </React.Suspense>
             </motion.div>
           )}
 
@@ -3187,6 +2913,7 @@ const App: React.FC = () => {
 
           </AnimatePresence>
         )}
+        </React.Suspense>
       </main>
       {!isFrame && (
         <>
@@ -3316,7 +3043,11 @@ const App: React.FC = () => {
       </AnimatePresence>
 
       {/* Donation Modal */}
-      <DonationModal isOpen={showDonationModal} onClose={() => setShowDonationModal(false)} />
+      {showDonationModal && (
+        <React.Suspense fallback={null}>
+          <DonationModal isOpen={showDonationModal} onClose={() => setShowDonationModal(false)} />
+        </React.Suspense>
+      )}
 
       {/* Account Status Notice */}
       <AnimatePresence>
@@ -3508,7 +3239,9 @@ const App: React.FC = () => {
       )}
       {/* Divine Assistant - Always Visible */}
       {!isFrame && (
-        <DivineAssistant />
+        <React.Suspense fallback={null}>
+          <DivineAssistant />
+        </React.Suspense>
       )}
         </>
       )}

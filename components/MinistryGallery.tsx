@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Image as ImageIcon, Clock, Tag, ChevronLeft, ChevronRight, X, ZoomIn } from 'lucide-react';
 
@@ -15,7 +15,7 @@ interface MinistryGalleryProps {
     items: MediaItem[];
 }
 
-interface InertiaGalleryCardProps {
+interface GalleryCardProps {
     item: MediaItem;
     index: number;
     failedMedia: Record<string, boolean>;
@@ -23,196 +23,54 @@ interface InertiaGalleryCardProps {
     onClick: () => void;
 }
 
-const InertiaGalleryCard: React.FC<InertiaGalleryCardProps> = ({
+const GalleryCard: React.FC<GalleryCardProps> = ({
     item,
     index,
     failedMedia,
     setFailedMedia,
     onClick,
 }) => {
-    const [physics, setPhysics] = useState({
-        x: 0,
-        y: 0,
-        rotateX: 0,
-        rotateY: 0,
-        rotateZ: 0,
-        scale: 1,
-    });
     const [isHovered, setIsHovered] = useState(false);
-    const cardRef = useRef<HTMLDivElement>(null);
-    const lastPos = useRef({ x: 0, y: 0, time: 0 });
-    const velocity = useRef({ x: 0, y: 0 });
-    const animFrameRef = useRef<number | null>(null);
-    const posRef = useRef({ x: 0, y: 0, rotateX: 0, rotateY: 0, rotateZ: 0 });
-    const hasDragged = useRef(false);
-
-    useEffect(() => {
-        return () => {
-            if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-        };
-    }, []);
-
-    const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
-        setIsHovered(true);
-        if (animFrameRef.current) {
-            cancelAnimationFrame(animFrameRef.current);
-            animFrameRef.current = null;
-        }
-        lastPos.current = { x: e.clientX, y: e.clientY, time: performance.now() };
-        velocity.current = { x: 0, y: 0 };
-    };
-
-    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!cardRef.current) return;
-        const now = performance.now();
-        const dt = Math.max(now - lastPos.current.time, 10);
-        const dx = e.clientX - lastPos.current.x;
-        const dy = e.clientY - lastPos.current.y;
-
-        // Instant cursor velocity normalized to 60fps
-        velocity.current = {
-            x: (dx / dt) * 16,
-            y: (dy / dt) * 16,
-        };
-        lastPos.current = { x: e.clientX, y: e.clientY, time: now };
-
-        const rect = cardRef.current.getBoundingClientRect();
-        const normX = (e.clientX - rect.left) / rect.width - 0.5; // -0.5 to 0.5
-        const normY = (e.clientY - rect.top) / rect.height - 0.5; // -0.5 to 0.5
-
-        // Direct interactive mouse momentum & 3D tilt
-        const targetX = normX * 22 + velocity.current.x * 0.7;
-        const targetY = normY * 22 + velocity.current.y * 0.7;
-        const targetRotY = normX * 14 + velocity.current.x * 0.35;
-        const targetRotX = -normY * 14 - velocity.current.y * 0.35;
-        const targetRotZ = Math.max(Math.min(velocity.current.x * 0.3, 5), -5);
-
-        posRef.current = {
-            x: targetX,
-            y: targetY,
-            rotateX: targetRotX,
-            rotateY: targetRotY,
-            rotateZ: targetRotZ,
-        };
-
-        setPhysics({
-            x: targetX,
-            y: targetY,
-            rotateX: targetRotX,
-            rotateY: targetRotY,
-            rotateZ: targetRotZ,
-            scale: 1.035,
-        });
-    };
-
-    const handleMouseLeave = () => {
-        setIsHovered(false);
-        lastPos.current = { x: 0, y: 0, time: 0 };
-
-        // Crav-Burgers inertia impulse physics
-        let curPos = { ...posRef.current };
-        let vel = {
-            x: Math.max(Math.min(velocity.current.x * 1.8, 45), -45),
-            y: Math.max(Math.min(velocity.current.y * 1.8, 45), -45),
-            rotateX: Math.max(Math.min(-velocity.current.y * 0.35, 12), -12),
-            rotateY: Math.max(Math.min(velocity.current.x * 0.35, 12), -12),
-            rotateZ: Math.max(Math.min(velocity.current.x * 0.25, 7), -7),
-        };
-
-        const springK = 0.085; // Hooke's spring return factor
-        const damping = 0.78;  // Momentum friction resistance
-
-        const runInertiaPhysics = () => {
-            vel.x = (vel.x + (0 - curPos.x) * springK) * damping;
-            vel.y = (vel.y + (0 - curPos.y) * springK) * damping;
-            vel.rotateX = (vel.rotateX + (0 - curPos.rotateX) * springK) * damping;
-            vel.rotateY = (vel.rotateY + (0 - curPos.rotateY) * springK) * damping;
-            vel.rotateZ = (vel.rotateZ + (0 - curPos.rotateZ) * springK) * damping;
-
-            curPos.x += vel.x;
-            curPos.y += vel.y;
-            curPos.rotateX += vel.rotateX;
-            curPos.rotateY += vel.rotateY;
-            curPos.rotateZ += vel.rotateZ;
-
-            posRef.current = { ...curPos };
-
-            const speed = Math.abs(vel.x) + Math.abs(vel.y) + Math.abs(vel.rotateZ);
-            const dist = Math.abs(curPos.x) + Math.abs(curPos.y) + Math.abs(curPos.rotateZ);
-
-            if (speed > 0.02 || dist > 0.05) {
-                setPhysics({
-                    ...curPos,
-                    scale: 1,
-                });
-                animFrameRef.current = requestAnimationFrame(runInertiaPhysics);
-            } else {
-                setPhysics({
-                    x: 0,
-                    y: 0,
-                    rotateX: 0,
-                    rotateY: 0,
-                    rotateZ: 0,
-                    scale: 1,
-                });
-                posRef.current = { x: 0, y: 0, rotateX: 0, rotateY: 0, rotateZ: 0 };
-                animFrameRef.current = null;
-            }
-        };
-
-        if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-        animFrameRef.current = requestAnimationFrame(runInertiaPhysics);
-    };
-
-    const handleClick = () => {
-        if (!hasDragged.current) {
-            onClick();
-        }
-    };
+    const tiltPattern = [-3.4, 2.6, -1.8, 3.2, -2.4, 1.5];
+    const rotation = tiltPattern[index % tiltPattern.length];
+    const staggerClass = index % 4 === 1
+        ? 'md:translate-y-8'
+        : index % 4 === 3
+            ? 'md:-translate-y-6'
+            : '';
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 24, rotate: rotation * 0.65 }}
+            whileInView={{ opacity: 1, y: 0, rotate: rotation }}
             viewport={{ once: true }}
             transition={{ delay: (index % 5) * 0.1, duration: 0.5 }}
-            className="relative select-none"
+            whileHover={{ y: -12, rotate: 0, scale: 1.035 }}
+            whileTap={{ scale: 0.98 }}
+            onHoverStart={() => setIsHovered(true)}
+            onHoverEnd={() => setIsHovered(false)}
+            className={`relative select-none ${staggerClass}`}
             style={{ perspective: 1200 }}
         >
             <motion.div
-                ref={cardRef}
-                drag
-                dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-                dragElastic={0.22}
-                dragTransition={{ bounceStiffness: 350, bounceDamping: 22, power: 0.25 }}
-                onDragStart={() => { hasDragged.current = true; }}
-                onDragEnd={() => { setTimeout(() => { hasDragged.current = false; }, 60); }}
-                onMouseEnter={handleMouseEnter}
-                onMouseMove={handleMouseMove}
-                onMouseLeave={handleMouseLeave}
-                onClick={handleClick}
-                animate={{
-                    x: physics.x,
-                    y: physics.y,
-                    rotateX: physics.rotateX,
-                    rotateY: physics.rotateY,
-                    rotateZ: physics.rotateZ,
-                    scale: physics.scale,
+                onClick={onClick}
+                onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        onClick();
+                    }
                 }}
-                transition={{
-                    type: isHovered ? "tween" : "spring",
-                    duration: isHovered ? 0.06 : 0.45,
-                    ease: "easeOut",
-                    stiffness: 300,
-                    damping: 20,
-                }}
+                role="button"
+                tabIndex={0}
+                aria-label={`Open ${item.category || 'ministry'} ${item.type}`}
+                transition={{ type: 'spring', stiffness: 260, damping: 22 }}
                 style={{
-                    transformStyle: "preserve-3d",
+                    transformStyle: 'preserve-3d',
                 }}
-                className={`relative overflow-hidden rounded-2xl md:rounded-[2.5rem] shadow-sm transition-shadow duration-500 bg-white border border-slate-100/60 aspect-square w-full md:size-80 cursor-grab active:cursor-grabbing ${
+                className={`group relative overflow-hidden rounded-[1.35rem] md:rounded-[2.25rem] bg-white border border-white/70 aspect-[4/5] w-full cursor-pointer shadow-[0_16px_35px_rgba(6,28,52,0.14)] transition-shadow duration-500 ${
                     isHovered
-                        ? 'shadow-[0_25px_60px_rgba(0,0,0,0.32)] border-amber-400/80 ring-2 ring-amber-400/30'
-                        : 'shadow-sm border-slate-100/50'
+                        ? 'shadow-[0_28px_70px_rgba(6,28,52,0.32)] border-accent-300 ring-2 ring-accent-300/30'
+                        : 'shadow-[0_16px_35px_rgba(6,28,52,0.14)]'
                 }`}
             >
                 {/* Media Item */}
@@ -220,10 +78,9 @@ const InertiaGalleryCard: React.FC<InertiaGalleryCardProps> = ({
                     <img
                         src={item.src}
                         alt="Ministry Moment"
-                        className={`w-full h-full object-cover transition-transform duration-700 ease-out pointer-events-none ${
-                            isHovered ? 'scale-110' : 'scale-100'
-                        }`}
+                        className="w-full h-full object-cover transition-transform duration-700 ease-out pointer-events-none group-hover:scale-110"
                         loading="lazy"
+                        decoding="async"
                         onError={() => setFailedMedia(prev => ({ ...prev, [item.id]: true }))}
                     />
                 ) : item.type === 'video' && !failedMedia[item.id] ? (
@@ -233,8 +90,8 @@ const InertiaGalleryCard: React.FC<InertiaGalleryCardProps> = ({
                         controls={false}
                         muted
                         loop
-                        autoPlay
                         playsInline
+                        preload="metadata"
                         onError={() => setFailedMedia(prev => ({ ...prev, [item.id]: true }))}
                     />
                 ) : (
@@ -246,15 +103,15 @@ const InertiaGalleryCard: React.FC<InertiaGalleryCardProps> = ({
                 )}
 
                 {/* Refined Overlay */}
-                <div className={`absolute inset-0 bg-gradient-to-t from-brand-950/90 via-brand-950/20 to-transparent transition-opacity duration-500 pointer-events-none ${
-                    isHovered ? 'opacity-90' : 'opacity-60'
+                <div className={`absolute inset-0 bg-gradient-to-t from-brand-950/95 via-brand-950/15 to-transparent transition-opacity duration-500 pointer-events-none ${
+                    isHovered ? 'opacity-95' : 'opacity-75'
                 }`} />
 
                 {/* Zoom / Play hint on hover */}
                 <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 pointer-events-none ${
                     isHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
                 }`}>
-                    <div className="w-14 h-14 bg-amber-400/90 backdrop-blur-md rounded-full flex items-center justify-center text-slate-950 shadow-xl border border-white/50">
+                    <div className="w-14 h-14 bg-accent-300/95 backdrop-blur-md rounded-full flex items-center justify-center text-brand-950 shadow-xl border border-white/60">
                         {item.type === 'video'
                             ? <Play size={22} className="ml-1 fill-current" />
                             : <ZoomIn size={22} />
@@ -263,7 +120,7 @@ const InertiaGalleryCard: React.FC<InertiaGalleryCardProps> = ({
                 </div>
 
                 {/* Content Overlays */}
-                <div className="absolute top-4 right-4 w-10 h-10 bg-white/15 backdrop-blur-xl rounded-full flex items-center justify-center text-white border border-white/20 shadow-md pointer-events-none">
+                <div className="absolute top-4 right-4 w-10 h-10 bg-brand-950/35 backdrop-blur-xl rounded-full flex items-center justify-center text-white border border-white/25 shadow-md pointer-events-none">
                     {item.type === 'video' ? <Play size={16} fill="currentColor" /> : <ImageIcon size={16} />}
                 </div>
                 <div className="absolute top-4 left-4 flex flex-col gap-2 pointer-events-none">
@@ -283,8 +140,8 @@ const InertiaGalleryCard: React.FC<InertiaGalleryCardProps> = ({
                     isHovered ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-90'
                 }`}>
                     <div className="flex items-center gap-2 text-accent-400 mb-1 md:mb-2">
-                        <div className="w-4 h-[1px] bg-accent-400" />
-                        <span className="text-[8px] md:text-[10px] font-black tracking-[0.2em] uppercase">{item.type}</span>
+                        <div className="w-5 h-[2px] bg-accent-300" />
+                        <span className="text-[8px] md:text-[10px] font-black tracking-[0.2em] uppercase">{item.type} archive</span>
                     </div>
                     <div className="text-sm md:text-lg font-serif font-bold text-white mb-1 md:mb-2 leading-tight">
                         {item.date || 'Ministry Moment'}
@@ -299,15 +156,6 @@ export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items = [] }) 
     const [failedMedia, setFailedMedia] = useState<Record<string, boolean>>({});
     const [lightboxIndex, setLightboxIndex] = useState<number>(0);
     const [isOpen, setIsOpen] = useState<boolean>(false);
-    const scrollRef = useRef<HTMLDivElement>(null);
-
-    const scroll = (direction: 'left' | 'right') => {
-        if (scrollRef.current) {
-            const scrollAmount = direction === 'left' ? -350 : 350;
-            scrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-        }
-    };
-
     const openLightbox = useCallback((index: number) => {
         setLightboxIndex(index);
         setIsOpen(true);
@@ -344,15 +192,13 @@ export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items = [] }) 
 
     return (
         <>
-            <div className="relative w-full py-8 group">
-                {/* Scroll Container */}
+            <div className="relative w-full py-8 md:py-12">
+                <div className="pointer-events-none absolute inset-x-8 top-2 h-px bg-gradient-to-r from-transparent via-brand-200/70 to-transparent" />
                 <div
-                    ref={scrollRef}
-                    className="grid grid-cols-2 gap-3 md:flex md:overflow-x-auto md:gap-6 px-4 md:px-6 pb-8 md:pb-12 pt-4 no-scrollbar"
-                    style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                    className="grid grid-cols-2 gap-x-3 gap-y-10 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-12 md:grid-cols-3 md:gap-x-7 md:gap-y-16 xl:grid-cols-4 px-4 sm:px-6 md:px-10 pb-4 pt-5"
                 >
                     {items.map((item, index) => (
-                        <InertiaGalleryCard
+                        <GalleryCard
                             key={item.id}
                             item={item}
                             index={index}
@@ -362,30 +208,6 @@ export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items = [] }) 
                         />
                     ))}
                 </div>
-
-                {/* Left Scroll Arrow */}
-                <button
-                    onClick={(e) => { e.stopPropagation(); scroll('left'); }}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 z-20 hidden md:flex items-center justify-center w-12 h-12 rounded-full bg-white/90 hover:bg-white backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-200/80 transition-all duration-300 opacity-0 group-hover:opacity-100 hover:scale-110 active:scale-95 cursor-pointer"
-                    title="Scroll Left"
-                    aria-label="Scroll gallery left"
-                >
-                    <ChevronLeft size={24} strokeWidth={2.5} className="text-[#C5A880]" />
-                </button>
-
-                {/* Right Scroll Arrow */}
-                <button
-                    onClick={(e) => { e.stopPropagation(); scroll('right'); }}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 z-20 hidden md:flex items-center justify-center w-12 h-12 rounded-full bg-white/90 hover:bg-white backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-200/80 transition-all duration-300 opacity-0 group-hover:opacity-100 hover:scale-110 active:scale-95 cursor-pointer"
-                    title="Scroll Right"
-                    aria-label="Scroll gallery right"
-                >
-                    <ChevronRight size={24} strokeWidth={2.5} className="text-[#C5A880]" />
-                </button>
-
-                {/* Subtle Gradient Fades */}
-                <div className="absolute top-0 bottom-12 right-0 w-24 bg-gradient-to-l from-[#fdfcf0] to-transparent pointer-events-none z-10 hidden md:block" />
-                <div className="absolute top-0 bottom-12 left-0 w-24 bg-gradient-to-r from-[#fdfcf0] to-transparent pointer-events-none z-10 hidden md:block" />
             </div>
 
             {/* ─── Lightbox Modal ─── */}

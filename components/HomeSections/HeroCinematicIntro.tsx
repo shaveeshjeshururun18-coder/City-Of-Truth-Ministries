@@ -49,16 +49,16 @@ export interface HeroSacredTheme {
 const HERO_SACRED_THEMES: HeroSacredTheme[] = [
   {
     id: 'living-sapphire',
-    name: 'Living Sapphire',
+    name: 'Midnight Sapphire',
     subtitle: 'Heavenly Throne Revelation',
-    bgGradient: 'from-[#03142e] via-[#082850] to-[#010915]',
-    auroraGradient: 'radial-gradient(ellipse at top, rgba(14,165,233,0.55) 0%, rgba(3,105,161,0.35) 30%, rgba(2,132,199,0.18) 55%, transparent 80%)',
-    ambientGlow: 'rgba(56, 189, 248, 0.45)',
-    accentGlow: 'rgba(14, 165, 233, 0.35)',
-    rayGoldPrimary: '#38bdf8',
-    rayGoldSecondary: '#e0f2fe',
-    rayAzureLeft: '#0284c7',
-    raySoftEdge: '#0369a1',
+    bgGradient: 'from-[#01030a] via-[#06172f] to-[#02040b]',
+    auroraGradient: 'radial-gradient(ellipse at top, rgba(14,165,233,0.38) 0%, rgba(3,105,161,0.22) 30%, rgba(2,132,199,0.10) 55%, transparent 80%)',
+    ambientGlow: 'rgba(56, 189, 248, 0.30)',
+    accentGlow: 'rgba(14, 165, 233, 0.22)',
+    rayGoldPrimary: '#22d3ee',
+    rayGoldSecondary: '#d9f8ff',
+    rayAzureLeft: '#0369a1',
+    raySoftEdge: '#082f49',
     accentText: 'text-sky-300',
     pillBorder: 'border-sky-400/50',
     pillBg: 'bg-sky-500/15',
@@ -200,14 +200,40 @@ export const HeroCinematicIntro: React.FC<HeroCinematicIntroProps> = ({
   const [isMuted, setIsMuted] = useState(true);
   const [sentSuccess, setSentSuccess] = useState(false);
   const [themeIndex, setThemeIndex] = useState(0);
+  const [isMobileViewport, setIsMobileViewport] = useState(() => (
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+  ));
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => (
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  ));
+  const reduceHeroMotion = isMobileViewport || prefersReducedMotion;
 
-  // Auto-rotate sacred themes smoothly every 2 minutes (120,000 ms)
   useEffect(() => {
+    const mobileQuery = window.matchMedia('(max-width: 767px)');
+    const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const syncMediaPreferences = () => {
+      setIsMobileViewport(mobileQuery.matches);
+      setPrefersReducedMotion(reducedMotionQuery.matches);
+    };
+
+    syncMediaPreferences();
+    mobileQuery.addEventListener('change', syncMediaPreferences);
+    reducedMotionQuery.addEventListener('change', syncMediaPreferences);
+
+    return () => {
+      mobileQuery.removeEventListener('change', syncMediaPreferences);
+      reducedMotionQuery.removeEventListener('change', syncMediaPreferences);
+    };
+  }, []);
+
+  // Keep the palette stable on touch devices so the first viewport remains calm.
+  useEffect(() => {
+    if (reduceHeroMotion) return;
     const timer = setInterval(() => {
       setThemeIndex((prev) => (prev + 1) % HERO_SACRED_THEMES.length);
     }, 120000);
     return () => clearInterval(timer);
-  }, []);
+  }, [reduceHeroMotion]);
 
   const activeTheme = HERO_SACRED_THEMES[themeIndex];
 
@@ -225,18 +251,30 @@ export const HeroCinematicIntro: React.FC<HeroCinematicIntroProps> = ({
   const unreadNotesCount = userNotes.filter(n => !n.read).length;
 
   return (
-    <section className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden pt-16 pb-20 md:py-24 bg-[#02040b]">
+    <section className="hero-cinematic-intro relative min-h-[100svh] flex items-center justify-center overflow-hidden pt-28 sm:pt-20 pb-20 md:py-24 bg-[#02040b]">
       {/* ─── Dynamic Multi-Themed Sacred Backdrop ─── */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none select-none">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTheme.id}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1.8, ease: 'easeInOut' }}
-            className="absolute inset-0"
-          >
+        {reduceHeroMotion ? (
+          <div className="absolute inset-0">
+            <div className={`absolute inset-0 bg-gradient-to-b ${activeTheme.bgGradient}`} />
+            <div
+              className="absolute inset-0"
+              style={{
+                background: `radial-gradient(circle at 50% 8%, ${activeTheme.ambientGlow} 0%, transparent 48%)`
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#02040b] via-transparent to-black/10" />
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTheme.id}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.8, ease: 'easeInOut' }}
+              className="absolute inset-0"
+            >
             {/* Dynamic Sacred Gradient Canvas */}
             <div className={`absolute inset-0 bg-gradient-to-b ${activeTheme.bgGradient}`} />
 
@@ -325,8 +363,9 @@ export const HeroCinematicIntro: React.FC<HeroCinematicIntroProps> = ({
                 WebkitMaskImage: 'radial-gradient(ellipse 70% 55% at 50% 65%, black 15%, transparent 80%)'
               }}
             />
-          </motion.div>
-        </AnimatePresence>
+            </motion.div>
+          </AnimatePresence>
+        )}
 
         {/* ─── Award-Winning Floating Kinetic Atmosphere (Celestial Orbit Rings & Seals in Empty Space) ─── */}
         <motion.div
@@ -392,7 +431,7 @@ export const HeroCinematicIntro: React.FC<HeroCinematicIntroProps> = ({
         </motion.div>
 
         {/* Floating Divine Shekinah Embers & Twinkling Stardust (24 Varied Embers) */}
-        {[...Array(24)].map((_, i) => (
+        {!reduceHeroMotion && [...Array(24)].map((_, i) => (
           <motion.span
             key={i}
             className="absolute rounded-full pointer-events-none"
@@ -540,13 +579,13 @@ export const HeroCinematicIntro: React.FC<HeroCinematicIntroProps> = ({
 
             {/* Anointed Scripture Ticker Carousel */}
             <div className="w-full max-w-xl min-h-[4rem] flex items-center justify-center lg:justify-start py-1">
-              <AnimatePresence mode="wait">
+              <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={heroVerse.ref}
-                  initial={{ opacity: 0, y: 12 }}
+                  initial={reduceHeroMotion ? false : { opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.55 }}
+                  exit={reduceHeroMotion ? undefined : { opacity: 0, y: -12 }}
+                  transition={{ duration: reduceHeroMotion ? 0 : 0.55 }}
                   className="rounded-2xl p-3.5 bg-white/[0.03] border border-white/10 backdrop-blur-md w-full text-left"
                 >
                   <p className="text-sm sm:text-base font-light italic leading-relaxed text-amber-100/80">
@@ -761,10 +800,11 @@ export const HeroCinematicIntro: React.FC<HeroCinematicIntroProps> = ({
                   <video
                     src="/சத்திய_நகரம்_City_of_Truth_Min.mp4"
                     poster="https://images.unsplash.com/photo-1510590337019-5ef2d39aa786?q=80&w=2670&auto=format&fit=crop"
-                    autoPlay
+                    autoPlay={!reduceHeroMotion}
                     loop
                     muted={isMuted}
                     playsInline
+                    preload={reduceHeroMotion ? 'none' : 'metadata'}
                     className="w-full h-full object-cover"
                   />
 

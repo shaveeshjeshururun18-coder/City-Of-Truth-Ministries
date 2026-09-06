@@ -89,12 +89,74 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
       }
     };
 
+    const prefetchView = (view?: ViewState) => {
+      if (!view) return;
+      switch (view) {
+        case ViewState.ABOUT:
+        case ViewState.HEBREW_TOOLS:
+        case ViewState.HEBREW_CALENDAR:
+        case ViewState.HEBREW_CLOCK:
+        case ViewState.HEBREW_NUMBERS:
+        case ViewState.HEBREW_FESTIVALS:
+        case ViewState.HEBREW_REFERENCE:
+        case ViewState.HEBREW_GRAMMAR:
+          import('./HebrewResources');
+          break;
+        case ViewState.HEBREW:
+          import('./HebrewAlphabetPage');
+          break;
+        case ViewState.ABOUT_VALPARAI:
+          import('./ValparaiPage');
+          break;
+        case ViewState.MINISTRIES:
+          import('./MinistriesPage');
+          break;
+        case ViewState.PASTOR:
+          import('./PastorPage');
+          break;
+        case ViewState.BARUCH_HASHEM:
+          import('./BaruchHashemPage');
+          break;
+        case ViewState.GOLDEN_MENORAH:
+          import('./GoldenMenorahPage');
+          break;
+        case ViewState.AI:
+          import('./AIPage');
+          break;
+        case ViewState.ID_CARD:
+          import('./WorshipperIDCard');
+          break;
+        case ViewState.AUTH:
+          import('./AuthPage');
+          break;
+        case ViewState.USER_DASHBOARD:
+          import('./UserDashboard');
+          break;
+        case ViewState.ADMIN_DASHBOARD:
+          import('./AdminDashboard');
+          break;
+        case ViewState.CONTACT:
+          import('./ContactPage');
+          break;
+      }
+    };
+
     const openNavItem = (item: NavItem) => {
-        if (item.href) {
-            navigate(item.href);
-            return;
+        const doNavigate = () => {
+            if (item.href) {
+                navigate(item.href);
+                return;
+            }
+            setView(item.view);
+        };
+
+        if (typeof document !== 'undefined' && 'startViewTransition' in document) {
+            (document as any).startViewTransition(() => {
+                React.startTransition(doNavigate);
+            });
+        } else {
+            React.startTransition(doNavigate);
         }
-        setView(item.view);
     };
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeMobileSubmenu, setActiveMobileSubmenu] = useState<string | null>(null);
@@ -206,8 +268,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                 onDragStart={(e) => handleDragStart(e, originalIndex)}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, originalIndex)}
-                className={`relative group ${isEditMode ? 'border border-dashed border-transparent hover:border-blue-400' : ''} ${item.hidden ? 'opacity-50 grayscale' : ''}`}
-                onMouseEnter={() => hasSubmenu && setDesktopHoverMenu(item.label)}
+                onMouseEnter={() => {
+                  prefetchView(item.view);
+                  if (hasSubmenu) setDesktopHoverMenu(item.label);
+                }}
+                onTouchStart={() => prefetchView(item.view)}
                 onMouseLeave={() => hasSubmenu && setDesktopHoverMenu(null)}
               >
                 {isEditMode && (
@@ -252,6 +317,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                           {item.submenu?.filter(s => !s.hidden).map((sub) => (
                             <button
                               key={sub.label}
+                              onMouseEnter={() => prefetchView(sub.view)}
+                              onTouchStart={() => prefetchView(sub.view)}
                               onClick={() => {
                                 openNavItem(sub);
                                 setDesktopHoverMenu(null);
@@ -293,6 +360,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
               <button
                 id={currentUser ? undefined : 'nav-register-btn'}
+                onMouseEnter={() => prefetchView(currentUser ? ViewState.USER_DASHBOARD : ViewState.ID_CARD)}
+                onTouchStart={() => prefetchView(currentUser ? ViewState.USER_DASHBOARD : ViewState.ID_CARD)}
                 onClick={() => currentUser ? setView(ViewState.USER_DASHBOARD) : setView(ViewState.ID_CARD)}
                 className={`relative z-10 ${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-11 h-11 rounded-2xl shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-[#1a2133] hover:bg-[#1a2133]/90 border-[1.5px] border-cyan-500/80 px-4 h-[38px] sm:h-10 rounded-full shadow-[0_0_15px_-3px_rgba(6,182,212,0.3)]'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group overflow-hidden`}
                 title={currentUser ? "My Account" : "Register"}

@@ -12,11 +12,40 @@ declare global {
 let faceMeshInstance: any = null;
 let staticFaceMeshInstance: any = null;
 
+async function ensureMediaPipeScripts(): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+  if (window.FaceMesh) return true;
+
+  const loadScript = (src: string) => new Promise<void>((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) {
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = src;
+    script.crossOrigin = 'anonymous';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+    document.head.appendChild(script);
+  });
+
+  try {
+    await Promise.all([
+      loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js'),
+      loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js'),
+    ]);
+    return !!window.FaceMesh;
+  } catch (err) {
+    console.warn('Dynamic MediaPipe script loading failed', err);
+    return false;
+  }
+}
+
 export async function initFaceMesh(): Promise<boolean> {
   if (faceMeshInstance) return true;
 
   try {
-    // Check if CDN loaded
+    await ensureMediaPipeScripts();
     if (typeof window !== 'undefined' && window.FaceMesh) {
       faceMeshInstance = new window.FaceMesh({
         locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
@@ -94,6 +123,7 @@ export async function analyzeStaticImage(
   imageSource: HTMLImageElement | HTMLCanvasElement
 ): Promise<FaceLandmark3D[] | null> {
   try {
+    await ensureMediaPipeScripts();
     if (typeof window === 'undefined' || !window.FaceMesh) return null;
 
     if (!staticFaceMeshInstance) {

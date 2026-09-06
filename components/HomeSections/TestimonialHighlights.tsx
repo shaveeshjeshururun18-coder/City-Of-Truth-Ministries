@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Quote } from 'lucide-react';
-import { ViewState } from '../../types';
+import { ChevronLeft, ChevronRight, Quote, MessageSquare } from 'lucide-react';
+import { ViewState, User } from '../../types';
+import { api } from '../../services/api';
+import { TestimonialModal } from '../TestimonialModal';
 
 interface SectionProps {
     setView: (view: ViewState) => void;
+    currentUser?: User | null;
 }
 
 const TESTIMONIALS = [
@@ -55,10 +58,47 @@ const TESTIMONIALS = [
     }
 ];
 
-export const TestimonialHighlights: React.FC<SectionProps> = ({ setView }) => {
+export interface TestimonialItem {
+    id: string | number;
+    text: string;
+    name: string;
+    role: string;
+    location: string;
+    avatar: string;
+    color: string;
+}
+
+export const TestimonialHighlights: React.FC<SectionProps> = ({ setView, currentUser }) => {
+    const [testimonials, setTestimonials] = useState<TestimonialItem[]>(TESTIMONIALS);
     const [active, setActive] = useState(0);
     const [direction, setDirection] = useState(1);
+    const [showModal, setShowModal] = useState(false);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    // Fetch approved testimonials dynamically
+    useEffect(() => {
+        let mounted = true;
+        api.getTestimonials().then(data => {
+            if (!mounted || !data || data.length === 0) return;
+            const approved: TestimonialItem[] = data
+                .filter(t => t.status === 'Approved' && t.content)
+                .map(t => ({
+                    id: t.id,
+                    text: t.content,
+                    name: t.userName || 'Sanctuary Member',
+                    role: t.role || 'Member',
+                    location: t.location || 'Valparai',
+                    avatar: (t.userName || 'M').charAt(0).toUpperCase(),
+                    color: '#6366f1'
+                }));
+            if (approved.length > 0) {
+                setTestimonials([...approved, ...TESTIMONIALS]);
+            }
+        }).catch(err => {
+            console.error('Failed to load testimonials:', err);
+        });
+        return () => { mounted = false; };
+    }, []);
 
     const go = useCallback((idx: number, dir: number) => {
         setDirection(dir);
@@ -66,12 +106,12 @@ export const TestimonialHighlights: React.FC<SectionProps> = ({ setView }) => {
     }, []);
 
     const next = useCallback(() => {
-        go((active + 1) % TESTIMONIALS.length, 1);
-    }, [active, go]);
+        go((active + 1) % testimonials.length, 1);
+    }, [active, go, testimonials.length]);
 
     const prev = useCallback(() => {
-        go((active - 1 + TESTIMONIALS.length) % TESTIMONIALS.length, -1);
-    }, [active, go]);
+        go((active - 1 + testimonials.length) % testimonials.length, -1);
+    }, [active, go, testimonials.length]);
 
     // Auto-scroll every 4s
     useEffect(() => {
@@ -87,7 +127,7 @@ export const TestimonialHighlights: React.FC<SectionProps> = ({ setView }) => {
     const handlePrev = () => { prev(); resetTimer(); };
     const handleNext = () => { next(); resetTimer(); };
 
-    const t = TESTIMONIALS[active];
+    const t = testimonials[active] || testimonials[0];
 
     return (
         <section className="relative py-24 overflow-hidden" style={{ background: 'linear-gradient(135deg, #0a0e1a 0%, #0f172a 40%, #1e1b4b 100%)' }}>
@@ -219,7 +259,7 @@ export const TestimonialHighlights: React.FC<SectionProps> = ({ setView }) => {
 
                 {/* Dot indicators */}
                 <div className="flex items-center justify-center gap-2 mb-12">
-                    {TESTIMONIALS.map((_, i) => (
+                    {testimonials.slice(0, 10).map((_, i) => (
                         <button
                             key={i}
                             onClick={() => { go(i, i > active ? 1 : -1); resetTimer(); }}
@@ -229,6 +269,7 @@ export const TestimonialHighlights: React.FC<SectionProps> = ({ setView }) => {
                                 height: '8px',
                                 background: i === active ? '#a78bfa' : 'rgba(255,255,255,0.2)'
                             }}
+                            aria-label={`Go to slide ${i + 1}`}
                         />
                     ))}
                 </div>
@@ -246,13 +287,29 @@ export const TestimonialHighlights: React.FC<SectionProps> = ({ setView }) => {
                     initial={{ opacity: 0, y: 8 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    onClick={() => setView(ViewState.CONTACT)}
-                    className="inline-flex items-center gap-2 px-8 py-3 rounded-full border border-white/25 bg-white/8 hover:bg-white/15 text-white text-xs font-black tracking-[0.15em] uppercase transition-all backdrop-blur-sm"
+                    onClick={() => {
+                        if (currentUser) {
+                            setShowModal(true);
+                        } else {
+                            setView(ViewState.CONTACT);
+                        }
+                    }}
+                    className="inline-flex items-center gap-2 px-8 py-3 rounded-full border border-white/25 bg-white/8 hover:bg-white/15 text-white text-xs font-black tracking-[0.15em] uppercase transition-all backdrop-blur-sm cursor-pointer active:scale-95"
                     style={{ letterSpacing: '0.12em' }}
                 >
+                    <MessageSquare size={15} />
                     SHARE YOUR TESTIMONY
                 </motion.button>
             </div>
+
+            {/* Testimonial Submission Modal for Logged-In Members */}
+            {currentUser && (
+                <TestimonialModal
+                    isOpen={showModal}
+                    onClose={() => setShowModal(false)}
+                    user={currentUser}
+                />
+            )}
         </section>
     );
 };

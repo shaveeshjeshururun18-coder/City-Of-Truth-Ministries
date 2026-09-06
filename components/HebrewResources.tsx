@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type, Volume2, Loader2, Info, Fingerprint, FileImage, Download, Printer, Globe, Star, Moon, Sun, MapPin, Share2, X, Mic, CheckCircle } from 'lucide-react';
+import { Bell, Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type, Volume2, Loader2, Info, Fingerprint, FileImage, Download, Printer, Globe, Star, Moon, Sun, MapPin, Share2, X, Mic, CheckCircle } from 'lucide-react';
 import { analyzeHebrewWord } from '../services/openRouterService';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { HebrewYearDropdown } from './HebrewYearDropdown';
@@ -1219,514 +1219,630 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
             </div>
 
             {/* ═══════════════════════════════════════════════════════
-                 CONTROLS: Year + Month Navigation + Search + Downloads
+                 SACRED BIBLICAL CALENDAR — Burnt Orange & Circular Matrix
             ═══════════════════════════════════════════════════════ */}
-            <div id="active-calendar-card" className="bg-white rounded-[1.5rem] md:rounded-[2rem] shadow-[0_8px_40px_rgba(0,0,0,0.07)] border border-slate-100 overflow-hidden font-serif mb-4">
-
-                {/* Top Control Bar */}
-                <div className="bg-gradient-to-r from-[#1E3A8A]/5 to-[#D4AF37]/5 border-b border-slate-100 px-4 md:px-8 py-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        {/* Year Selector */}
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <HebrewYearDropdown
-                                selectedYear={safeYear}
-                                onYearChange={(selectedYear) => setYear(selectedYear)}
-                            />
-                            {/* Scope Selector: Day, Week, Month, Year, Decade */}
-                            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
-                                {[
-                                    { scope: 'day', label: 'Day' },
-                                    { scope: 'week', label: 'Week' },
-                                    { scope: 'month', label: 'Month' },
-                                    { scope: 'year', label: 'Year' },
-                                    { scope: 'decade', label: 'Decade' }
-                                ].map(({ scope, label }) => (
-                                    <button
-                                        key={scope}
-                                        onClick={() => setCalendarScope(scope as any)}
-                                        className={`px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
-                                            calendarScope === scope
-                                                ? 'bg-[#1E3A8A] text-white shadow-sm'
-                                                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
-                                        }`}
-                                    >
-                                        {label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Month Nav */}
-                        <div className="flex items-center gap-2 md:gap-4">
-                            <button
-                                onClick={() => setCurrentMonthIdx(prev => Math.max(0, prev - 1))}
-                                disabled={currentMonthIdx === 0}
-                                className="w-9 h-9 rounded-full flex items-center justify-center bg-[#1E3A8A]/10 hover:bg-[#1E3A8A]/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[#1E3A8A] border border-[#1E3A8A]/20"
-                            >
-                                <ChevronLeft size={18} />
-                            </button>
-
-                            <div className="text-center min-w-[140px] md:min-w-[200px]">
-                                <div className="text-lg md:text-2xl font-black text-[#1E3A8A] leading-tight">{name}</div>
-                                <div className="text-[#D4AF37] text-base md:text-lg font-serif">{hebrew}</div>
-                                {firstGregorian && lastGregorian && (
-                                    <div className="text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                                        {firstGregorianYear === lastGregorianYear
-                                            ? `${firstGregorian} – ${lastGregorian}, ${firstGregorianYear}`
-                                            : `${firstGregorian}, ${firstGregorianYear} – ${lastGregorian}, ${lastGregorianYear}`}
-                                    </div>
-                                )}
-                            </div>
-
-                            <button
-                                onClick={() => setCurrentMonthIdx(prev => Math.min(calendarData.length - 1, prev + 1))}
-                                disabled={currentMonthIdx === calendarData.length - 1}
-                                className="w-9 h-9 rounded-full flex items-center justify-center bg-[#1E3A8A]/10 hover:bg-[#1E3A8A]/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[#1E3A8A] border border-[#1E3A8A]/20"
-                            >
-                                <ChevronRight size={18} />
-                            </button>
-                        </div>
-
-                        {/* Today + Search + Download pills */}
+            <div
+                id="active-calendar-card"
+                className="rounded-[2.5rem] md:rounded-[3rem] p-5 sm:p-7 md:p-9 text-white shadow-2xl relative overflow-hidden border border-white/20 select-none mb-6 font-sans"
+                style={{
+                    background: 'linear-gradient(180deg, #2c0e05 0%, #681f06 28%, #a83607 62%, #ea580c 100%)',
+                    boxShadow: '0 25px 60px -15px rgba(194, 65, 12, 0.45)'
+                }}
+            >
+                {/* ── Top Header: Title + Action Buttons & Notification Bell ── */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div>
                         <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => {
+                            <h2 className="text-2xl md:text-3xl font-black font-sans tracking-tight text-white">Calendar</h2>
+                            <span className="text-amber-300 font-serif text-xl md:text-2xl font-bold ml-1">לוח שנה</span>
+                        </div>
+                        <p className="text-xs text-white/70 font-medium mt-0.5">Sacred Biblical Moedim & Daily Jerusalem Appointed Times</p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setShowSearch(s => !s)}
+                            className="w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 border border-white/15 backdrop-blur-md flex items-center justify-center text-white/95 shadow-inner transition-colors cursor-pointer"
+                            title="Search Moedim & Festivals"
+                        >
+                            <Search size={16} />
+                        </button>
+                        <button
+                            onClick={handleDownloadCurrentMonth}
+                            disabled={isGeneratingCurrentMonth}
+                            className="w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 border border-white/15 backdrop-blur-md flex items-center justify-center text-white/95 shadow-inner transition-colors cursor-pointer disabled:opacity-50"
+                            title="Download High-Res Month Image"
+                        >
+                            {isGeneratingCurrentMonth ? <Loader2 size={16} className="animate-spin" /> : <FileImage size={16} />}
+                        </button>
+                        <button
+                            onClick={handleDownloadFullCalendar}
+                            disabled={isGeneratingPdf}
+                            className="w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 border border-white/15 backdrop-blur-md flex items-center justify-center text-white/95 shadow-inner transition-colors cursor-pointer disabled:opacity-50"
+                            title="Download Full 5786 PDF Calendar"
+                        >
+                            {isGeneratingPdf ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                        </button>
+                        <button
+                            onClick={() => {
+                                if (selectedDay) {
+                                    const el = document.getElementById('hebrew-selected-date-card');
+                                    el?.scrollIntoView({ behavior: 'smooth' });
+                                } else {
                                     for (let m = 0; m < calendarData.length; m++) {
                                         const found = calendarData[m].weeks.flat().find(d => d.day !== null && d.gregorianDate === todayKey);
                                         if (found) { setCurrentMonthIdx(m); setSelectedDay(found.day); break; }
                                     }
-                                }}
-                                className="px-3 py-1.5 rounded-full bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30 text-[#1E3A8A] font-black text-[10px] uppercase tracking-widest border border-[#D4AF37]/40 transition-all"
-                            >
-                                Today
-                            </button>
-                            <button
-                                onClick={() => setShowSearch(s => !s)}
-                                className="w-8 h-8 rounded-full flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-500 transition-all border border-slate-200"
-                                title="Search festivals"
-                            >
-                                <Search size={14} />
-                            </button>
-                            <button
-                                onClick={handleDownloadCurrentMonth}
-                                disabled={isGeneratingCurrentMonth}
-                                className="w-8 h-8 rounded-full flex items-center justify-center bg-amber-100 hover:bg-amber-200 text-amber-700 transition-all border border-amber-200 disabled:opacity-50"
-                                title="Download month as PNG"
-                            >
-                                {isGeneratingCurrentMonth ? <Loader2 size={13} className="animate-spin" /> : <FileImage size={13} />}
-                            </button>
-                            <button
-                                onClick={handleDownloadFullCalendar}
-                                disabled={isGeneratingPdf}
-                                className="w-8 h-8 rounded-full flex items-center justify-center bg-[#1E3A8A]/10 hover:bg-[#1E3A8A]/20 text-[#1E3A8A] transition-all border border-[#1E3A8A]/20 disabled:opacity-50"
-                                title="Download full calendar as PDF"
-                            >
-                                {isGeneratingPdf ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-                            </button>
-                        </div>
+                                }
+                            }}
+                            className="w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 border border-white/15 backdrop-blur-md flex items-center justify-center text-white/95 shadow-inner transition-colors cursor-pointer"
+                            title="Calendar Details & Today's Moed"
+                        >
+                            <Bell size={17} />
+                        </button>
                     </div>
-
-                    {/* Search Bar */}
-                    <AnimatePresence>
-                        {showSearch && (
-                            <motion.div
-                                initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                                animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
-                                exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                                className="overflow-hidden"
-                            >
-                                <div className="relative">
-                                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                    <input
-                                        autoFocus
-                                        value={searchQuery}
-                                        onChange={e => setSearchQuery(e.target.value)}
-                                        placeholder="Search festivals… (e.g. Pesach, Shabbat, Purim)"
-                                        className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]/30 focus:border-[#1E3A8A]/50 placeholder:text-slate-300"
-                                    />
-                                    {searchQuery && (
-                                        <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                                            <X size={14} />
-                                        </button>
-                                    )}
-                                </div>
-                                {searchResults.length > 0 && (
-                                    <div className="mt-2 rounded-xl border border-slate-100 bg-white shadow-lg overflow-hidden">
-                                        {searchResults.map((r, i) => (
-                                            <button
-                                                key={i}
-                                                onClick={() => { setCurrentMonthIdx(r.monthIdx); setSelectedDay(r.day); setShowSearch(false); setSearchQuery(''); }}
-                                                className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#1E3A8A]/5 transition-colors border-b border-slate-50 last:border-0 text-left"
-                                            >
-                                                <div>
-                                                    <p className="text-xs font-bold text-[#1E3A8A]">{r.festivals.join(', ')}</p>
-                                                    <p className="text-[10px] text-slate-400 font-semibold">{r.day} {r.monthName} {safeYear}</p>
-                                                </div>
-                                                <ChevronRight size={14} className="text-slate-300" />
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                                {searchQuery && searchResults.length === 0 && (
-                                    <p className="mt-2 text-xs text-slate-400 font-semibold text-center py-2">No festivals found for "{searchQuery}"</p>
-                                )}
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
                 </div>
 
-                {/* ═══ COLOR LEGEND ═══ */}
-                <div className="px-4 md:px-8 py-3 bg-slate-50/70 border-b border-slate-100">
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 justify-center md:justify-start">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mr-1">Legend:</span>
-                        {CALENDAR_LEGEND.map(l => (
-                            <div key={l.label} className="flex items-center gap-1.5">
-                                <div className={`w-2.5 h-2.5 rounded-full ${l.color}`} />
-                                <span className={`text-[10px] font-bold ${l.text}`}>{l.label}</span>
-                            </div>
+                {/* ── Sub-Control Bar: Year Selector + Scope Switcher + Today ── */}
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-6 bg-white/10 backdrop-blur-md rounded-2xl p-2.5 sm:p-3 border border-white/15">
+                    {/* Year Selector */}
+                    <div className="flex items-center gap-2">
+                        <HebrewYearDropdown
+                            selectedYear={safeYear}
+                            onYearChange={(selectedYear) => setYear(selectedYear)}
+                        />
+                    </div>
+
+                    {/* Scope Selector: Day, Week, Month, Year, Decade */}
+                    <div className="flex items-center gap-1 bg-black/25 p-1 rounded-xl border border-white/15">
+                        {[
+                            { scope: 'day', label: 'Day' },
+                            { scope: 'week', label: 'Week' },
+                            { scope: 'month', label: 'Month' },
+                            { scope: 'year', label: 'Year' },
+                            { scope: 'decade', label: 'Decade' }
+                        ].map(({ scope, label }) => (
+                            <button
+                                key={scope}
+                                onClick={() => setCalendarScope(scope as any)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                                    calendarScope === scope
+                                        ? 'bg-white text-slate-950 shadow-md font-black'
+                                        : 'text-white/80 hover:text-white hover:bg-white/15'
+                                }`}
+                            >
+                                {label}
+                            </button>
                         ))}
                     </div>
+
+                    {/* Today Button */}
+                    <button
+                        onClick={() => {
+                            for (let m = 0; m < calendarData.length; m++) {
+                                const found = calendarData[m].weeks.flat().find(d => d.day !== null && d.gregorianDate === todayKey);
+                                if (found) { setCurrentMonthIdx(m); setSelectedDay(found.day); break; }
+                            }
+                        }}
+                        className="px-3.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer"
+                    >
+                        Today
+                    </button>
                 </div>
 
-                {/* ═══ CALENDAR GRID / SCOPE VIEWS ═══ */}
-                <div className="px-3 md:px-8 py-4 md:py-6">
-
-                    {/* ═══ MOON PHASE & CELESTIAL OBSERVER ═══ */}
-                    <div className="mb-6 bg-gradient-to-r from-slate-950 via-[#0B132B] to-slate-950 rounded-2xl md:rounded-3xl p-5 md:p-7 text-white border border-[#D4AF37]/30 shadow-xl relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
-
-                        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
-                            {/* Left: Moon Phase Highlight */}
-                            <div className="flex items-center gap-4">
-                                <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-amber-400/20 to-amber-600/10 border border-[#D4AF37]/40 flex items-center justify-center text-4xl md:text-5xl shadow-[0_0_20px_rgba(212,175,55,0.2)] shrink-0">
-                                    {moonPhase.emoji}
+                {/* ── Search Bar ── */}
+                <AnimatePresence>
+                    {showSearch && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                            animate={{ opacity: 1, height: 'auto', marginBottom: 20 }}
+                            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                            className="overflow-hidden"
+                        >
+                            <div className="relative">
+                                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/60" />
+                                <input
+                                    autoFocus
+                                    value={searchQuery}
+                                    onChange={e => setSearchQuery(e.target.value)}
+                                    placeholder="Search sacred festivals… (e.g. Pesach, Shabbat, Purim, Yom Kippur)"
+                                    className="w-full pl-10 pr-10 py-3 rounded-2xl border border-white/20 text-sm font-medium text-white bg-white/15 backdrop-blur-md placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white/20 transition-all"
+                                />
+                                {searchQuery && (
+                                    <button onClick={() => setSearchQuery('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/60 hover:text-white">
+                                        <X size={16} />
+                                    </button>
+                                )}
+                            </div>
+                            {searchResults.length > 0 && (
+                                <div className="mt-2 rounded-2xl border border-white/15 bg-black/70 backdrop-blur-xl shadow-2xl overflow-hidden divide-y divide-white/10">
+                                    {searchResults.map((r, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={() => { setCurrentMonthIdx(r.monthIdx); setSelectedDay(r.day); setShowSearch(false); setSearchQuery(''); }}
+                                            className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/10 transition-colors text-left text-white cursor-pointer"
+                                        >
+                                            <div>
+                                                <p className="text-sm font-bold text-amber-300">{r.festivals.join(', ')}</p>
+                                                <p className="text-xs text-white/60">{r.day} {r.monthName} {safeYear}</p>
+                                            </div>
+                                            <ChevronRight size={16} className="text-white/40" />
+                                        </button>
+                                    ))}
                                 </div>
-                                <div>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#D4AF37]">ASTRONOMICAL LUNAR PHASE</span>
-                                        <span className="text-[9px] font-bold bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-400/30">
-                                            {moonPhase.illumination}% Illuminated
-                                        </span>
-                                    </div>
-                                    <h4 className="text-xl md:text-2xl font-black text-white mt-0.5">{moonPhase.name}</h4>
-                                    <p className="text-sm font-serif text-[#D4AF37] font-semibold">{moonPhase.hebrewName}</p>
-                                    <p className="text-xs text-slate-300 mt-1 max-w-lg">{moonPhase.hebrewSignificance}</p>
+                            )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* ── Color Legend ── */}
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 justify-center md:justify-start mb-6 px-1">
+                    <span className="text-[10px] font-black text-white/60 uppercase tracking-widest mr-1">Legend:</span>
+                    <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-full px-2.5 py-1">
+                        <span className="w-2.5 h-2.5 rounded-full bg-white/80" />
+                        <span className="text-[11px] font-semibold text-white/90">Regular</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-full px-2.5 py-1">
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-300 shadow-[0_0_6px_rgba(252,211,77,0.8)]" />
+                        <span className="text-[11px] font-semibold text-amber-200">Shabbat</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-full px-2.5 py-1">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+                        <span className="text-[11px] font-semibold text-emerald-200">Feast</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-full px-2.5 py-1">
+                        <span className="w-2.5 h-2.5 rounded-full bg-orange-400 shadow-[0_0_6px_rgba(251,146,60,0.8)]" />
+                        <span className="text-[11px] font-semibold text-orange-200">Fast Day</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-full px-2.5 py-1">
+                        <span className="w-2.5 h-2.5 rounded-full bg-cyan-300 shadow-[0_0_6px_rgba(103,232,249,0.8)]" />
+                        <span className="text-[11px] font-semibold text-cyan-200">New Moon</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-full px-2.5 py-1">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#111116] border border-white/50" />
+                        <span className="text-[11px] font-semibold text-white">Active</span>
+                    </div>
+                </div>
+
+                {/* ── Moon Phase & Celestial Observer Pod ── */}
+                <div className="mb-6 bg-gradient-to-r from-slate-950 via-[#0B132B] to-slate-950 rounded-2xl md:rounded-3xl p-5 md:p-6 text-white border border-[#D4AF37]/30 shadow-xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+
+                    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 relative z-10">
+                        {/* Left: Moon Phase Highlight */}
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-gradient-to-br from-amber-400/20 to-amber-600/10 border border-[#D4AF37]/40 flex items-center justify-center text-3xl md:text-4xl shadow-[0_0_20px_rgba(212,175,55,0.2)] shrink-0">
+                                {moonPhase.emoji}
+                            </div>
+                            <div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#D4AF37]">LUNAR OBSERVATION</span>
+                                    <span className="text-[9px] font-bold bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-400/30">
+                                        {moonPhase.illumination}% Illuminated
+                                    </span>
                                 </div>
+                                <h4 className="text-lg md:text-xl font-black text-white mt-0.5">{moonPhase.name}</h4>
+                                <p className="text-xs font-serif text-[#D4AF37] font-semibold">{moonPhase.hebrewName} · <span className="text-slate-300 font-sans">{moonPhase.hebrewSignificance}</span></p>
+                            </div>
+                        </div>
+
+                        {/* Right: Dual Location Observation Readouts */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full lg:w-auto shrink-0">
+                            <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center sm:text-left">
+                                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-400">
+                                    <MapPin size={11} /> Jerusalem Observation
+                                </div>
+                                <div className="text-xs font-mono font-bold text-white mt-0.5">
+                                    {moonPhase.jerusalemTimeStr} <span className="text-[9px] text-slate-400">(UTC+3)</span>
+                                </div>
+                                <p className="text-[9px] text-slate-300 font-semibold">Lunar Age: {moonPhase.lunarAge} Days</p>
                             </div>
 
-                            {/* Right: Dual Location Observation Readouts (Jerusalem & Chennai) */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full lg:w-auto shrink-0">
-                                <div className="bg-white/5 border border-white/10 rounded-xl p-3.5 text-center sm:text-left">
-                                    <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-400">
-                                        <MapPin size={12} /> Jerusalem Observation
-                                    </div>
-                                    <div className="text-xs font-mono font-bold text-white mt-1">
-                                        {moonPhase.jerusalemTimeStr} <span className="text-[9px] text-slate-400">(UTC+3)</span>
-                                    </div>
-                                    <p className="text-[9px] text-slate-300 font-semibold mt-1">Lunar Age: {moonPhase.lunarAge} Days</p>
+                            <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center sm:text-left">
+                                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-cyan-400">
+                                    <MapPin size={11} /> Chennai Observation
                                 </div>
-
-                                <div className="bg-white/5 border border-white/10 rounded-xl p-3.5 text-center sm:text-left">
-                                    <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-cyan-400">
-                                        <MapPin size={12} /> Chennai Observation
-                                    </div>
-                                    <div className="text-xs font-mono font-bold text-white mt-1">
-                                        {moonPhase.chennaiTimeStr} <span className="text-[9px] text-slate-400">(UTC+5:30)</span>
-                                    </div>
-                                    <p className="text-[9px] text-slate-300 font-semibold mt-1">Hebrew Calendar Sync</p>
+                                <div className="text-xs font-mono font-bold text-white mt-0.5">
+                                    {moonPhase.chennaiTimeStr} <span className="text-[9px] text-slate-400">(UTC+5:30)</span>
                                 </div>
+                                <p className="text-[9px] text-slate-300 font-semibold">Hebrew Calendar Sync</p>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    {/* SCOPE 1: DAY VIEW */}
-                    {calendarScope === 'day' && (
-                        <div className="bg-gradient-to-br from-[#0c1445] via-[#1e1b4b] to-[#020617] text-white p-6 md:p-8 rounded-3xl border border-[#D4AF37]/30 shadow-2xl space-y-6">
-                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/10 pb-5">
-                                <div>
-                                    <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#D4AF37]">DAY VIEW · {name}</span>
-                                    <h3 className="text-3xl sm:text-5xl font-black text-white mt-1">Day {selectedDay || 1}</h3>
-                                    <p className="text-sm text-slate-300 font-serif">{name} {safeYear} · {hebrew}</p>
-                                </div>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => setSelectedDay(prev => Math.max(1, (prev || 1) - 1))}
-                                        className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold transition-all border border-white/10 cursor-pointer"
-                                    >
-                                        ← Prev Day
-                                    </button>
-                                    <button
-                                        onClick={() => setSelectedDay(prev => Math.min(30, (prev || 1) + 1))}
-                                        className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold transition-all border border-white/10 cursor-pointer"
-                                    >
-                                        Next Day →
-                                    </button>
-                                </div>
+                {/* ── SCOPE 1: DAY VIEW ── */}
+                {calendarScope === 'day' && (
+                    <div className="bg-black/30 backdrop-blur-md text-white p-6 md:p-8 rounded-3xl border border-white/15 shadow-2xl space-y-6">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/10 pb-5">
+                            <div>
+                                <span className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-300">DAY VIEW · {name}</span>
+                                <h3 className="text-3xl sm:text-5xl font-black text-white mt-1">Day {selectedDay || 1}</h3>
+                                <p className="text-sm text-slate-200 font-serif">{name} {safeYear} · {hebrew}</p>
                             </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setSelectedDay(prev => Math.max(1, (prev || 1) - 1))}
+                                    className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold transition-all border border-white/10 cursor-pointer"
+                                >
+                                    ← Prev Day
+                                </button>
+                                <button
+                                    onClick={() => setSelectedDay(prev => Math.min(30, (prev || 1) + 1))}
+                                    className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold transition-all border border-white/10 cursor-pointer"
+                                >
+                                    Next Day →
+                                </button>
+                            </div>
+                        </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-1">
-                                    <div className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37]">Jerusalem Time Sync</div>
-                                    <div className="text-2xl font-mono font-bold text-white">{jeruTimeStr} {jeruAMPM}</div>
-                                    <p className="text-xs text-slate-400">Synced to Israel (UTC+3)</p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-1">
+                                <div className="text-[10px] font-black uppercase tracking-widest text-amber-300">Jerusalem Time Sync</div>
+                                <div className="text-2xl font-mono font-bold text-white">{jeruTimeStr} {jeruAMPM}</div>
+                                <p className="text-xs text-slate-300">Synced to Israel (UTC+3)</p>
+                            </div>
+                            <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-1">
+                                <div className="text-[10px] font-black uppercase tracking-widest text-amber-400">Moon Phase & Cycle</div>
+                                <div className="text-xl font-bold text-white">{moonPhase.name} {moonPhase.emoji}</div>
+                                <p className="text-xs text-slate-300">Days to Shabbat: {daysToShabbat} days</p>
+                            </div>
+                            <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-1">
+                                <div className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Shvi&apos;i Shel Yom Psalm</div>
+                                <div className="text-xl font-bold text-white">
+                                    {getShviiShelYom(currentMonthData.weeks.flat().findIndex(d => d.day === (selectedDay || 1)) % 7).psalm}
                                 </div>
-                                <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-1">
-                                    <div className="text-[10px] font-black uppercase tracking-widest text-amber-400">Moon Phase & Cycle</div>
-                                    <div className="text-xl font-bold text-white">{moonPhase.name} {moonPhase.emoji}</div>
-                                    <p className="text-xs text-slate-400">Days to Shabbat: {daysToShabbat} days</p>
-                                </div>
-                                <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-1">
-                                    <div className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Shvi&apos;i Shel Yom Psalm</div>
-                                    <div className="text-xl font-bold text-white">
-                                        {getShviiShelYom(currentMonthData.weeks.flat().findIndex(d => d.day === (selectedDay || 1)) % 7).psalm}
+                                <p className="text-xs text-slate-300">Daily Psalm by weekday</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── SCOPE 2: WEEK VIEW ── */}
+                {calendarScope === 'week' && (
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center px-1">
+                            <h4 className="text-sm font-black uppercase tracking-widest text-amber-300">7-Day Week Overview — {name}</h4>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-7 gap-3">
+                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Shabbat'].map((dayName, idx) => {
+                                const dayNumber = ((selectedDay || 1) + idx) % 30 || 1;
+                                return (
+                                    <div
+                                        key={dayName}
+                                        onClick={() => setSelectedDay(dayNumber)}
+                                        className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                                            idx === 6
+                                                ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-lg'
+                                                : 'bg-white/10 hover:bg-white/20 border-white/20 text-white'
+                                        }`}
+                                    >
+                                        <div className="text-[10px] font-black uppercase tracking-widest opacity-80">{dayName}</div>
+                                        <div className="text-3xl font-black mt-1">{dayNumber}</div>
+                                        <div className="text-xs font-bold opacity-75 mt-0.5">{name}</div>
                                     </div>
-                                    <p className="text-xs text-slate-400">Daily Psalm by weekday</p>
-                                </div>
-                            </div>
+                                );
+                            })}
                         </div>
-                    )}
+                    </div>
+                )}
 
-                    {/* SCOPE 2: WEEK VIEW */}
-                    {calendarScope === 'week' && (
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center px-1">
-                                <h4 className="text-sm font-black uppercase tracking-widest text-[#1E3A8A]">7-Day Week Overview — {name}</h4>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-7 gap-3">
-                                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Shabbat'].map((dayName, idx) => {
-                                    const dayNumber = ((selectedDay || 1) + idx) % 30 || 1;
-                                    return (
-                                        <div
-                                            key={dayName}
-                                            onClick={() => setSelectedDay(dayNumber)}
-                                            className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
-                                                idx === 6
-                                                    ? 'bg-violet-950 text-white border-violet-500 shadow-lg'
-                                                    : 'bg-white border-slate-200 hover:border-[#1E3A8A]'
-                                            }`}
-                                        >
-                                            <div className="text-[10px] font-black uppercase tracking-widest text-amber-500">{dayName}</div>
-                                            <div className="text-3xl font-black mt-1">{dayNumber}</div>
-                                            <div className="text-xs font-bold opacity-75 mt-0.5">{name}</div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* SCOPE 3: MONTH VIEW (Standard Grid with Swipe Support) */}
-                    {calendarScope === 'month' && (
-                        <div
-                            onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
-                            onTouchEnd={(e) => {
-                                if (touchStartX.current === null) return;
-                                const touchEndX = e.changedTouches[0].clientX;
-                                const diff = touchStartX.current - touchEndX;
-                                if (diff > 45) {
-                                    // Swiped Left -> Next Month
-                                    setCurrentMonthIdx(prev => Math.min(calendarData.length - 1, prev + 1));
-                                } else if (diff < -45) {
-                                    // Swiped Right -> Prev Month
-                                    setCurrentMonthIdx(prev => Math.max(0, prev - 1));
-                                }
-                                touchStartX.current = null;
-                            }}
-                            className="space-y-3"
-                        >
-                            {/* Swipe Navigation & Month Switcher Bar */}
-                            <div className="flex items-center justify-between text-xs font-bold text-slate-600 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-xl mb-2">
-                                <button
-                                    onClick={() => setCurrentMonthIdx(prev => Math.max(0, prev - 1))}
-                                    disabled={currentMonthIdx === 0}
-                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-[#1E3A8A] disabled:opacity-30 text-[#1E3A8A] font-extrabold transition-all shadow-sm"
-                                >
-                                    <ChevronLeft size={14} /> Prev Month
-                                </button>
-                                <span className="text-[10px] text-slate-500 font-mono tracking-wider uppercase flex items-center gap-1 font-extrabold">
-                                    👈 Swipe Left / Right 👉
+                {/* ── SCOPE 3: MONTH VIEW (Circular Day Matrix & Image 1 Dashboard Structure) ── */}
+                {calendarScope === 'month' && (
+                    <div
+                        onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+                        onTouchEnd={(e) => {
+                            if (touchStartX.current === null) return;
+                            const touchEndX = e.changedTouches[0].clientX;
+                            const diff = touchStartX.current - touchEndX;
+                            if (diff > 45) {
+                                setCurrentMonthIdx(prev => Math.min(calendarData.length - 1, prev + 1));
+                            } else if (diff < -45) {
+                                setCurrentMonthIdx(prev => Math.max(0, prev - 1));
+                            }
+                            touchStartX.current = null;
+                        }}
+                        className="select-none"
+                    >
+                        {/* Month Selector: < Av / Elul 5786 (2026) > */}
+                        <div className="flex items-center justify-between text-xs font-bold text-white/90 px-2 mb-4 bg-white/10 backdrop-blur-md rounded-2xl py-2.5 border border-white/15">
+                            <button
+                                onClick={() => setCurrentMonthIdx(prev => Math.max(0, prev - 1))}
+                                disabled={currentMonthIdx === 0}
+                                className="p-1 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed rounded-full cursor-pointer text-xl leading-none transition-colors w-8 h-8 flex items-center justify-center"
+                                title="Previous Month"
+                            >
+                                ‹
+                            </button>
+                            <div className="text-center">
+                                <span className="font-semibold text-sm sm:text-base tracking-wide text-white">
+                                    {name} {safeYear}
                                 </span>
-                                <button
-                                    onClick={() => setCurrentMonthIdx(prev => Math.min(calendarData.length - 1, prev + 1))}
-                                    disabled={currentMonthIdx === calendarData.length - 1}
-                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-[#1E3A8A] disabled:opacity-30 text-[#1E3A8A] font-extrabold transition-all shadow-sm"
-                                >
-                                    Next Month <ChevronRight size={14} />
-                                </button>
+                                <span className="text-amber-300 font-serif ml-1.5">({hebrew})</span>
+                                {firstGregorian && lastGregorian && (
+                                    <div className="text-[10px] text-white/70 font-mono mt-0.5">
+                                        {firstGregorian} – {lastGregorian}, {firstGregorianYear}
+                                    </div>
+                                )}
                             </div>
-
-                            {/* Day Headers */}
-                            <div className="grid grid-cols-7 gap-1 md:gap-2 mb-3 md:mb-4 text-center">
-                                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Shabbat'].map((d, i) => {
-                                    const hebDay = HEBREW_DAYS[i];
-                                    return (
-                                        <div key={i} className={`flex flex-col items-center justify-center gap-0.5 py-2 rounded-lg ${i === 6 ? 'bg-violet-50 border border-violet-100' : 'bg-slate-50'
-                                            }`}>
-                                            <span className={`text-[10px] md:text-xs font-black tracking-widest leading-none ${i === 6 ? 'text-violet-700' : 'text-[#1E3A8A]'
-                                                }`}>{d}</span>
-                                            <span className="text-[9px] md:text-[11px] font-bold text-[#D4AF37] leading-none mt-0.5">{hebDay.hebrew}</span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Days */}
-                            <div className="grid grid-cols-7 gap-1 md:gap-2">
-                                {currentMonthData.weeks.map((week, wIdx) => (
-                                    <React.Fragment key={wIdx}>
-                                        {week.map((dayObj, dIdx) => (
-                                            <div key={`${wIdx}-${dIdx}`} className="aspect-square">
-                                                {dayObj.day ? (() => {
-                                                    const isSelected = selectedDay === dayObj.day;
-                                                    const isToday = dayObj.gregorianDate === todayKey;
-                                                    const dayType = getDayType(dayObj.festivals, dayObj.isShabbat, dIdx);
-
-                                                    const cellClass = isSelected
-                                                        ? 'bg-[#1E3A8A] border-[#1E3A8A] text-white shadow-xl ring-2 ring-[#1E3A8A]/40'
-                                                        : isToday
-                                                            ? 'bg-amber-50 border-amber-400 shadow-md ring-2 ring-amber-200'
-                                                            : dayType === 'shabbat'
-                                                                ? 'bg-violet-50 border-violet-200 hover:border-violet-400'
-                                                                : dayType === 'feast'
-                                                                    ? 'bg-emerald-50 border-emerald-200 hover:border-emerald-400'
-                                                                    : dayType === 'fast'
-                                                                        ? 'bg-orange-50 border-orange-200 hover:border-orange-400'
-                                                                        : dayType === 'newmoon'
-                                                                            ? 'bg-blue-50 border-blue-200 hover:border-blue-400'
-                                                                            : dayType === 'festival'
-                                                                                ? 'bg-red-50 border-red-100 hover:border-red-300'
-                                                                                : 'bg-white border-slate-100 hover:border-[#1E3A8A]/30 hover:bg-[#1E3A8A]/5';
-
-                                                    const dotColor = dayType === 'feast' ? 'bg-emerald-500'
-                                                        : dayType === 'fast' ? 'bg-orange-500'
-                                                            : dayType === 'newmoon' ? 'bg-blue-500'
-                                                                : dayType === 'shabbat' ? 'bg-violet-500'
-                                                                    : dayType === 'festival' ? 'bg-red-400'
-                                                                        : null;
-
-                                                    return (
-                                                        <motion.button
-                                                            whileHover={{ scale: 1.06, y: -2 }}
-                                                            whileTap={{ scale: 0.96 }}
-                                                            onClick={() => setSelectedDay(dayObj.day)}
-                                                            className={`w-full h-full flex flex-col items-center justify-between p-1 md:p-2 rounded-xl md:rounded-2xl border-2 transition-all duration-200 relative overflow-hidden group ${cellClass}`}
-                                                        >
-                                                            {/* Day number */}
-                                                            <span className={`text-sm md:text-xl font-black leading-none mt-0.5 ${isSelected ? 'text-white'
-                                                                    : isToday ? 'text-amber-800'
-                                                                        : dayType === 'shabbat' ? 'text-violet-800'
-                                                                            : dayType === 'feast' ? 'text-emerald-800'
-                                                                                : dayType === 'fast' ? 'text-orange-800'
-                                                                                    : dayType === 'newmoon' ? 'text-blue-800'
-                                                                                        : 'text-[#1E3A8A]'
-                                                                }`}>{dayObj.day}</span>
-
-                                                            {/* Center content */}
-                                                            <div className="flex flex-col items-center gap-0.5 w-full">
-                                                                {isToday && (
-                                                                    <div className="text-[7px] md:text-[8px] font-black uppercase tracking-wide text-amber-700 bg-amber-200/60 rounded px-1">TODAY</div>
-                                                                )}
-                                                                {dotColor && !isSelected && (
-                                                                    <div className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
-                                                                )}
-                                                            </div>
-
-                                                            {/* Festival label — tiny */}
-                                                            {dayObj.festivals.length > 0 && (
-                                                                <div className={`text-[7px] md:text-[9px] font-bold leading-tight text-center w-full truncate px-0.5 ${isSelected ? 'text-white/90' : 'text-slate-500'
-                                                                    }`}>
-                                                                    {dayObj.festivals[0].length > 10 ? dayObj.festivals[0].substring(0, 9) + '…' : dayObj.festivals[0]}
-                                                                </div>
-                                                            )}
-
-                                                            {/* Shabbat icon top-right */}
-                                                            {dIdx === 6 && !isSelected && (
-                                                                <div className="absolute top-0.5 right-0.5">
-                                                                    <Star size={8} className="text-violet-400 fill-violet-200" />
-                                                                </div>
-                                                            )}
-                                                        </motion.button>
-                                                    );
-                                                })() : (
-                                                    <div className="w-full h-full" />
-                                                )}
-                                            </div>
-                                        ))}
-                                    </React.Fragment>
-                                ))}
-                            </div>
+                            <button
+                                onClick={() => setCurrentMonthIdx(prev => Math.min(calendarData.length - 1, prev + 1))}
+                                disabled={currentMonthIdx === calendarData.length - 1}
+                                className="p-1 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed rounded-full cursor-pointer text-xl leading-none transition-colors w-8 h-8 flex items-center justify-center"
+                                title="Next Month"
+                            >
+                                ›
+                            </button>
                         </div>
-                    )}
 
-                    {/* SCOPE 4: YEAR VIEW (All 12-13 Months Grid) */}
-                    {calendarScope === 'year' && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {calendarData.map((mObj, mIdx) => (
-                                <div
-                                    key={mObj.name}
-                                    onClick={() => { setCurrentMonthIdx(mIdx); setCalendarScope('month'); }}
-                                    className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
-                                        currentMonthIdx === mIdx
-                                            ? 'bg-gradient-to-br from-[#1E3A8A] to-[#0c1445] text-white border-[#D4AF37] shadow-xl'
-                                            : 'bg-white border-slate-200 hover:border-[#1E3A8A] hover:shadow-md'
-                                    }`}
-                                >
-                                    <div className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37]">Month {mIdx + 1}</div>
-                                    <h4 className="text-lg font-black mt-1 leading-tight">{mObj.name}</h4>
-                                    <p className="text-xs font-serif text-amber-500 font-bold">{mObj.hebrew}</p>
-                                    <p className="text-[10px] opacity-60 mt-2 font-mono">30 Days · Open Month →</p>
+                        {/* Calendar Days Header: S M T W T F S */}
+                        <div className="grid grid-cols-7 text-center text-[11px] sm:text-xs font-bold text-white/70 mb-3 px-1">
+                            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((letter, i) => (
+                                <div key={i} className="flex flex-col items-center">
+                                    <span className={`text-xs md:text-sm font-black tracking-wider ${i === 6 ? 'text-amber-300' : 'text-white/80'}`}>
+                                        {letter}
+                                    </span>
+                                    <span className="text-[9px] font-serif text-amber-200/60 leading-none mt-0.5 hidden sm:inline">
+                                        {HEBREW_DAYS[i].hebrew}
+                                    </span>
                                 </div>
                             ))}
                         </div>
-                    )}
 
-                    {/* SCOPE 5: DECADE VIEW (10-Year Hebrew Timeline) */}
-                    {calendarScope === 'decade' && (
-                        <div className="space-y-4">
-                            <div className="text-center space-y-1 mb-6">
-                                <h4 className="text-2xl font-serif font-black text-[#1E3A8A]">10-Year Hebrew Decade Timeline (5780 – 5789)</h4>
-                                <p className="text-xs text-slate-500 max-w-xl mx-auto">
-                                    Explore Hebrew years across the decade, highlighting Shmita (Sabbatical Year) cycles and Biblical appointments.
-                                </p>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
-                                {Array.from({ length: 10 }, (_, i) => 5780 + i).map((decadeYear) => {
-                                    const isShmita = decadeYear % 7 === 2; // 5782 was Shmita
-                                    const isSelectedYear = decadeYear === safeYear;
-                                    return (
-                                        <div
-                                            key={decadeYear}
-                                            onClick={() => { setYear(decadeYear); setCalendarScope('year'); }}
-                                            className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
-                                                isSelectedYear
-                                                    ? 'bg-gradient-to-br from-amber-500 to-amber-700 text-slate-950 border-amber-300 shadow-xl'
-                                                    : isShmita
-                                                        ? 'bg-emerald-950 text-white border-emerald-500 shadow-md'
-                                                        : 'bg-white border-slate-200 hover:border-[#1E3A8A] text-slate-900'
-                                            }`}
-                                        >
-                                            <div className="flex justify-between items-center mb-1">
-                                                <span className="text-[10px] font-black uppercase tracking-widest opacity-80">Year</span>
-                                                {isShmita && <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-emerald-400 text-slate-950">Shmita</span>}
+                        {/* Calendar Days Grid: Circular day matrix matching Image 1 */}
+                        <div className="grid grid-cols-7 gap-y-2.5 sm:gap-y-3 gap-x-1 sm:gap-x-2 text-center text-xs font-semibold mb-6 items-center justify-items-center">
+                            {currentMonthData.weeks.map((week, wIdx) => (
+                                <React.Fragment key={wIdx}>
+                                    {week.map((dayObj, dIdx) => {
+                                        if (!dayObj.day) {
+                                            return <div key={`${wIdx}-${dIdx}`} className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12" />;
+                                        }
+
+                                        const isSelected = selectedDay === dayObj.day;
+                                        const isToday = dayObj.gregorianDate === todayKey;
+                                        const dayType = getDayType(dayObj.festivals, dayObj.isShabbat, dIdx);
+
+                                        const dotColor = dayType === 'feast' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]'
+                                            : dayType === 'fast' ? 'bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.8)]'
+                                            : dayType === 'newmoon' ? 'bg-cyan-300 shadow-[0_0_8px_rgba(103,232,249,0.8)]'
+                                            : dayType === 'shabbat' ? 'bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.8)]'
+                                            : dayType === 'festival' ? 'bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.8)]'
+                                            : null;
+
+                                        return (
+                                            <div key={`${wIdx}-${dIdx}`} className="flex items-center justify-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedDay(dayObj.day)}
+                                                    title={dayObj.festivals.length > 0 ? `${dayObj.day} ${name} · ${dayObj.festivals.join(', ')}` : `${dayObj.day} ${name}`}
+                                                    className={`w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-full flex flex-col items-center justify-center transition-all cursor-pointer relative group ${
+                                                        isSelected
+                                                            ? 'bg-[#111116] text-white font-black shadow-2xl ring-2 ring-white/50 scale-110 z-10'
+                                                            : isToday
+                                                                ? 'bg-amber-400 text-slate-950 font-black shadow-lg ring-2 ring-amber-300 scale-105'
+                                                                : dayType === 'shabbat'
+                                                                    ? 'border border-amber-300/50 bg-amber-500/15 text-amber-200 font-bold hover:bg-amber-500/30'
+                                                                    : dayType === 'feast'
+                                                                        ? 'border border-emerald-400/60 bg-emerald-500/20 text-emerald-100 font-black hover:bg-emerald-500/30'
+                                                                        : dayType === 'fast'
+                                                                            ? 'border border-orange-400/60 bg-orange-500/20 text-orange-100 font-black hover:bg-orange-500/30'
+                                                                            : dayType === 'newmoon'
+                                                                                ? 'border border-cyan-400/60 bg-cyan-500/20 text-cyan-100 font-bold hover:bg-cyan-500/30'
+                                                                                : 'border border-white/25 text-white/90 hover:bg-white/20 hover:border-white/50'
+                                                    }`}
+                                                >
+                                                    <span className="text-xs sm:text-sm font-bold leading-none">
+                                                        {dayObj.day}
+                                                    </span>
+
+                                                    {/* Status Dot */}
+                                                    {dotColor && !isSelected && (
+                                                        <span className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full mt-0.5 ${dotColor}`} />
+                                                    )}
+                                                    {isSelected && (
+                                                        <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full mt-0.5 bg-amber-400" />
+                                                    )}
+                                                </button>
                                             </div>
-                                            <div className="text-2xl font-black leading-tight">{decadeYear}</div>
-                                            <p className="text-[10px] opacity-75 mt-1">Tap to inspect year</p>
+                                        );
+                                    })}
+                                </React.Fragment>
+                            ))}
+                        </div>
+
+                        {/* Event Schedule Cards with Avatar Stacks (Exact Image 1 layout) */}
+                        <div className="space-y-3 mb-6">
+                            {/* Event 1: Sabbath Ministry Fellowship */}
+                            <div
+                                onClick={() => window.open('https://chat.whatsapp.com/KyifBLN6FFzFj8lSfZFrQb?s=cl&p=a&ilr=1&amv=2', '_blank', 'noopener,noreferrer')}
+                                className="rounded-2xl bg-white/15 hover:bg-white/20 backdrop-blur-md p-4 border border-white/15 flex items-center justify-between shadow-sm cursor-pointer transition-all"
+                            >
+                                <div className="min-w-0 pr-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                        <p className="font-bold text-sm text-white truncate">Sabbath Ministry Fellowship</p>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-[11px] text-white/80 font-mono mt-1">
+                                        <span>Start: <strong className="text-white">08:02</strong></span>
+                                        <span>Finish: <strong className="text-white">10:39</strong></span>
+                                        <span className="hidden sm:inline text-amber-200">· Jerusalem Shabbat Times</span>
+                                    </div>
+                                </div>
+                                {/* Avatar Stack */}
+                                <div className="flex items-center -space-x-2 shrink-0">
+                                    <div className="w-7 h-7 rounded-full bg-cyan-400 border-2 border-[#a83607] text-[9px] font-black flex items-center justify-center text-slate-900 shadow">COT</div>
+                                    <div className="w-7 h-7 rounded-full bg-amber-400 border-2 border-[#a83607] text-[9px] font-black flex items-center justify-center text-slate-900 shadow">VP</div>
+                                    <div className="w-7 h-7 rounded-full bg-purple-500 border-2 border-[#a83607] text-[9px] font-black flex items-center justify-center text-white shadow">+3</div>
+                                </div>
+                            </div>
+
+                            {/* Event 2: Hebrew Scripture & Torah Reading */}
+                            <div
+                                onClick={() => {
+                                    if (selectedDay) {
+                                        const el = document.getElementById('hebrew-selected-date-card');
+                                        el?.scrollIntoView({ behavior: 'smooth' });
+                                    }
+                                }}
+                                className="rounded-2xl bg-white/15 hover:bg-white/20 backdrop-blur-md p-4 border border-white/15 flex items-center justify-between shadow-sm cursor-pointer transition-all"
+                            >
+                                <div className="min-w-0 pr-2">
+                                    <p className="font-bold text-sm text-white truncate">Hebrew Scripture & Torah Reading</p>
+                                    <div className="flex items-center gap-3 text-[11px] text-white/80 font-mono mt-1">
+                                        <span>Start: <strong className="text-white">18:00</strong></span>
+                                        <span>Finish: <strong className="text-white">19:30</strong></span>
+                                        <span className="hidden sm:inline text-amber-200 font-serif">
+                                            {selectedDay ? `Day ${selectedDay} Reading Portion` : 'Daily Psalm & Torah Study'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="flex items-center -space-x-2 shrink-0">
+                                    <div className="w-7 h-7 rounded-full bg-emerald-400 border-2 border-[#ea580c] text-[9px] font-black flex items-center justify-center text-slate-900 shadow">📖</div>
+                                    <div className="w-7 h-7 rounded-full bg-blue-500 border-2 border-[#ea580c] text-[9px] font-black flex items-center justify-center text-white shadow">🕊️</div>
+                                </div>
+                            </div>
+
+                            {/* Event 3: Featured Moed / Festival Card (if selected day or current day has festival) */}
+                            {(() => {
+                                const activeObj = currentMonthData.weeks.flat().find(d => d.day === (selectedDay || 1));
+                                if (!activeObj || activeObj.festivals.length === 0) return null;
+                                return (
+                                    <div
+                                        onClick={() => {
+                                            const el = document.getElementById('hebrew-selected-date-card');
+                                            el?.scrollIntoView({ behavior: 'smooth' });
+                                        }}
+                                        className="rounded-2xl bg-gradient-to-r from-amber-500/25 to-orange-500/20 hover:bg-white/20 backdrop-blur-md p-4 border border-amber-400/30 flex items-center justify-between shadow-sm cursor-pointer transition-all"
+                                    >
+                                        <div className="min-w-0 pr-2">
+                                            <div className="flex items-center gap-2">
+                                                <Sparkles size={14} className="text-amber-300" />
+                                                <p className="font-bold text-sm text-amber-200 truncate">{activeObj.festivals[0]}</p>
+                                            </div>
+                                            <p className="text-[11px] text-white/80 mt-1">
+                                                Sacred Biblical Appointment (Moed) · Tap to explore full theological significance & scripture
+                                            </p>
                                         </div>
-                                    );
-                                })}
+                                        <span className="text-xs font-bold text-amber-300 shrink-0 bg-white/10 px-2.5 py-1 rounded-full border border-amber-300/30">
+                                            Day {activeObj.day} →
+                                        </span>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+
+                        {/* Bottom Floating Pill Dock on Card (matching Image 1 lines 2237-2260) */}
+                        <div className="w-full flex justify-center pt-2">
+                            <div className="rounded-full bg-white/20 backdrop-blur-xl border border-white/25 px-4 py-1.5 flex items-center gap-3 shadow-lg">
+                                <button
+                                    onClick={() => {
+                                        for (let m = 0; m < calendarData.length; m++) {
+                                            const found = calendarData[m].weeks.flat().find(d => d.day !== null && d.gregorianDate === todayKey);
+                                            if (found) { setCurrentMonthIdx(m); setSelectedDay(found.day); break; }
+                                        }
+                                    }}
+                                    className="p-1.5 rounded-full hover:bg-white/20 text-white cursor-pointer transition-transform active:scale-95"
+                                    title="Go to Today"
+                                >
+                                    <Sparkles size={15} className="text-amber-300" />
+                                </button>
+                                <button
+                                    onClick={handleDownloadFullCalendar}
+                                    disabled={isGeneratingPdf}
+                                    className="px-3 py-1 rounded-full bg-white text-slate-950 font-black text-xs shadow cursor-pointer flex items-center gap-1 hover:bg-amber-100 transition-all active:scale-95 disabled:opacity-50"
+                                    title="Jewish Calendar PDF"
+                                >
+                                    {isGeneratingPdf ? <Loader2 size={13} className="animate-spin" /> : <CalendarIcon size={13} />}
+                                    <span>5786 PDF</span>
+                                </button>
+                                <button
+                                    onClick={handleDownloadCurrentMonth}
+                                    disabled={isGeneratingCurrentMonth}
+                                    className="p-1.5 rounded-full hover:bg-white/20 text-white cursor-pointer transition-transform active:scale-95"
+                                    title="Download Month Image"
+                                >
+                                    {isGeneratingCurrentMonth ? <Loader2 size={14} className="animate-spin" /> : <FileImage size={14} />}
+                                </button>
+                                <button
+                                    onClick={() => setShowSearch(s => !s)}
+                                    className="p-1.5 rounded-full hover:bg-white/20 text-white cursor-pointer transition-transform active:scale-95"
+                                    title="Search Moedim"
+                                >
+                                    <Search size={14} />
+                                </button>
                             </div>
                         </div>
-                    )}
-                </div>
-
-                {/* Copyright Footer */}
-                <div className="px-4 md:px-8 py-3 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                        <img src="/brand-logo.png" alt="COT" className="w-6 h-6 object-contain opacity-60" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-                        <p className="text-[10px] font-black text-[#1E3A8A] uppercase tracking-[0.15em]">City of Truth Ministries</p>
                     </div>
-                    <p className="text-[10px] font-black text-[#D4AF37] uppercase tracking-[0.2em]">Hebrew Calendar {safeYear}</p>
-                    <div className="flex items-center gap-3 text-[9px] text-slate-400 font-bold">
+                )}
+
+                {/* ── SCOPE 4: YEAR VIEW ── */}
+                {calendarScope === 'year' && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {calendarData.map((mObj, mIdx) => (
+                            <div
+                                key={mObj.name}
+                                onClick={() => { setCurrentMonthIdx(mIdx); setCalendarScope('month'); }}
+                                className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                                    currentMonthIdx === mIdx
+                                        ? 'bg-[#111116] text-white border-white/40 shadow-xl'
+                                        : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+                                }`}
+                            >
+                                <div className="text-[10px] font-black uppercase tracking-widest text-amber-300">Month {mIdx + 1}</div>
+                                <h4 className="text-lg font-black mt-1 leading-tight">{mObj.name}</h4>
+                                <p className="text-xs font-serif text-amber-200 font-bold">{mObj.hebrew}</p>
+                                <p className="text-[10px] opacity-70 mt-2 font-mono">30 Days · Open Month →</p>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* ── SCOPE 5: DECADE VIEW ── */}
+                {calendarScope === 'decade' && (
+                    <div className="space-y-4">
+                        <div className="text-center space-y-1 mb-6">
+                            <h4 className="text-2xl font-serif font-black text-white">10-Year Hebrew Decade Timeline (5780 – 5789)</h4>
+                            <p className="text-xs text-white/70 max-w-xl mx-auto">
+                                Explore Hebrew years across the decade, highlighting Shmita (Sabbatical Year) cycles and Biblical appointments.
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+                            {Array.from({ length: 10 }, (_, i) => 5780 + i).map((decadeYear) => {
+                                const isShmita = decadeYear % 7 === 2;
+                                const isSelectedYear = decadeYear === safeYear;
+                                return (
+                                    <div
+                                        key={decadeYear}
+                                        onClick={() => { setYear(decadeYear); setCalendarScope('year'); }}
+                                        className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                                            isSelectedYear
+                                                ? 'bg-[#111116] text-white border-white/40 shadow-xl'
+                                                : isShmita
+                                                    ? 'bg-emerald-950/80 text-white border-emerald-400/50 shadow-md'
+                                                    : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+                                        }`}
+                                    >
+                                        <div className="flex justify-between items-center mb-1">
+                                            <span className="text-[10px] font-black uppercase tracking-widest opacity-80">Year</span>
+                                            {isShmita && <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-emerald-400 text-slate-950">Shmita</span>}
+                                        </div>
+                                        <div className="text-2xl font-black leading-tight">{decadeYear}</div>
+                                        <p className="text-[10px] opacity-75 mt-1">Tap to inspect year</p>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* ── Copyright Footer ── */}
+                <div className="px-4 md:px-8 py-3.5 border-t border-white/15 bg-black/20 flex flex-col sm:flex-row items-center justify-between gap-2 mt-6 rounded-b-[2rem]">
+                    <div className="flex items-center gap-2">
+                        <img src="/brand-logo.png" alt="COT" className="w-6 h-6 object-contain opacity-80" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                        <p className="text-[10px] font-black text-white uppercase tracking-[0.15em]">City of Truth Ministries</p>
+                    </div>
+                    <p className="text-[10px] font-black text-amber-300 uppercase tracking-[0.2em]">Hebrew Calendar {safeYear}</p>
+                    <div className="flex items-center gap-3 text-[9px] text-white/70 font-bold">
                         <span>📞 +91 8056125478</span>
                         <span className="hidden sm:inline">🌐 city-of-truth-ministries.vercel.app</span>
                     </div>

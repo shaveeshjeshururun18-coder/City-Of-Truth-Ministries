@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Check, ZoomIn, Move, Sparkles } from 'lucide-react';
 import { Button } from './Button';
-import { removeBackground } from '@imgly/background-removal';
 
 interface ImageCropperProps {
     imageSrc: string;
@@ -92,6 +91,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
     const handleRemoveBackground = async () => {
         setIsRemovingBg(true);
         try {
+            const { removeBackground } = await import('@imgly/background-removal');
             const blob = await removeBackground(currentImageSrc, {
                 progress: (key, current, total) => {
                     console.log(`Downloading AI model: ${key} ${current}/${total}`);

@@ -7,12 +7,16 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import './astryx-styles.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 
+import { SmoothScroll } from './components/SmoothScroll';
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
         <ErrorBoundary>
             <BrowserRouter>
                 <LanguageProvider>
-                    <App />
+                    <SmoothScroll>
+                        <App />
+                    </SmoothScroll>
                 </LanguageProvider>
             </BrowserRouter>
         </ErrorBoundary>

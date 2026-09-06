@@ -2,7 +2,9 @@
 @import '@astryxdesign/core/astryx.css';
 @import '@astryxdesign/theme-neutral/theme.css';
 
-/* Royal Hebrew Theme - Divine Assistant Widget */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* Custom Scrollbar for Premium Feel */
 .scroll-smooth::-webkit-scrollbar {
@@ -64,9 +66,45 @@
   }
 }
 
-/* Smooth Transitions */
+/* Hardware-accelerated Smooth Transitions */
 * {
   transition: box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+html,
+body,
+#root {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  overscroll-behavior-x: none;
+}
+
+.hero-cinematic-intro {
+  isolation: isolate;
+}
+
+@media (max-width: 767px) {
+  .hero-cinematic-intro [class*="backdrop-blur"] {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .hero-cinematic-intro video {
+    transform: translateZ(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-cinematic-intro *,
+  .hero-cinematic-intro *::before,
+  .hero-cinematic-intro *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Ensure Divine Assistant is always visible */
@@ -80,8 +118,6 @@
 .divine-assistant-widget * {
   pointer-events: auto !important;
 }
-
-
 
 /* ========== DARK THEME STYLES ========== */
 
