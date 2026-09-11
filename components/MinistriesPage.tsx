@@ -196,11 +196,34 @@ export const MinistriesPage: React.FC<{ currentUser?: any; setView?: any }> = ()
                     Ministry Hub
                 </motion.div>
 
-                <h1 className="text-4xl sm:text-6xl md:text-8xl lg:text-9xl font-serif font-black text-white mb-8 tracking-tighter leading-[1] md:leading-[0.9]">
-                    Our <span className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-accent-600 to-accent-400 italic font-light pr-4">Service</span>
-                </h1>
+                {/* Master Title: SHAVEESH JESHURUN in Grunge Newspaper Cutout Style (from screenshot) */}
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
+                    className="relative max-w-3xl mx-auto my-6 px-2 sm:px-4"
+                >
+                    <div className="relative group p-2 sm:p-4 rounded-2xl bg-black/60 backdrop-blur-xl border border-white/10 shadow-[0_25px_60px_rgba(0,0,0,0.85)] hover:border-amber-400/40 transition-all duration-500">
+                        {/* Ambient Gold Glow Behind Title */}
+                        <div className="absolute -inset-1 bg-gradient-to-r from-amber-500/20 via-yellow-200/10 to-amber-500/20 rounded-2xl blur-xl opacity-60 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
-                <p className="text-xl md:text-2xl text-brand-100/65 font-light max-w-2xl mx-auto leading-relaxed mb-8">
+                        {/* Master Ministry Title Banner */}
+                        <img
+                            src="/ministry/ministries_title_banner.png"
+                            alt="City of Truth Ministries"
+                            className="relative z-10 w-full max-w-2xl mx-auto object-contain rounded-xl filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.9)] hover:scale-[1.01] transition-transform duration-300"
+                        />
+
+                        {/* Subtitle Badge */}
+                        <div className="relative z-10 mt-3 sm:mt-4 flex items-center justify-center gap-2 flex-wrap text-amber-200/90 font-mono text-[11px] sm:text-xs tracking-[0.25em] uppercase font-bold">
+                            <span>✦ Ministry Wings & Sacred Service</span>
+                            <span className="text-white/30">•</span>
+                            <span>Valparai, Tamil Nadu ✦</span>
+                        </div>
+                    </div>
+                </motion.div>
+
+                <p className="text-lg md:text-2xl text-brand-100/75 font-light max-w-2xl mx-auto leading-relaxed mb-8">
                     Discover the diverse ways we serve our community and share the light of Truth.
                 </p>
             </div>

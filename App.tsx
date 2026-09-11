@@ -62,14 +62,13 @@ import { PermalinkDisplay } from './components/PermalinkDisplay';
 import { SharePageButton } from './components/SharePageButton';
 import { Button } from './components/Button';
 import { GoldenMenorah } from './components/GoldenMenorah';
-import { MinistryHighlights, HebrewSanctuaryIntro, HebrewPagesPreviewSection, PastorBaruchPreviewSection, ValparaiPresence, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, CommunityMembersSection, DailyPsalm119Section, HeroCinematicIntro, MinistryBentoGrid, TestimonialHighlights } from './components/HomeSections';
+import { GlobalPresenceSection } from './components/HomeSections/GlobalPresenceSection';
+import { MinistryHighlights, HebrewSanctuaryIntro, HebrewPagesPreviewSection, PastorBaruchPreviewSection, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, CommunityMembersSection, DailyPsalm119Section, HeroCinematicIntro, MinistryBentoGrid, TestimonialHighlights } from './components/HomeSections';
 import { InfiniteEmblemMarquee } from './components/ui/infinite-emblem-marquee';
 import { CinematicOpeningScreen } from './components/ui/cinematic-opening-screen';
 import { DotMatrixText } from './components/ui/dot-text';
 import { DotShaderCanvas } from './components/ui/modern-login-signup';
 import { MessageFromLeader } from './components/MessageFromLeader';
-import { Footer } from './components/ui/footer-section';
-import { InfiniteLogoScroll } from './components/InfiniteLogoScroll';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { GuidedTour, useTour } from './components/GuidedTour';
 import { AdminPasswordModal } from './components/AdminPasswordModal';
@@ -93,6 +92,37 @@ const PastorPage = React.lazy(() => import('./components/PastorPage').then(m => 
 const CommunityProfileForm = React.lazy(() => import('./components/CommunityProfileForm').then(m => ({ default: m.CommunityProfileForm })));
 const VerifyIDPage = React.lazy(() => import('./components/VerifyIDPage'));
 const ContactPage = React.lazy(() => import('./components/ContactPage').then(m => ({ default: m.ContactPage })));
+const Footer = React.lazy(() => import('./components/ui/footer-section').then(m => ({ default: m.Footer })));
+const InfiniteLogoScroll = React.lazy(() => import('./components/InfiniteLogoScroll').then(m => ({ default: m.InfiniteLogoScroll })));
+
+interface DeferredSiteFooterProps {
+  currentView: ViewState;
+  setCurrentView: (view: ViewState) => void;
+  navigate: (path: string) => void;
+  currentUser: User | null;
+  setShowLeaderMessage: (show: boolean) => void;
+  youtubeLink: string;
+}
+
+// These sections live below the page content. Deferring their code and image
+// requests lets navigation and the first visible Home content become usable first.
+const DeferredSiteFooter: React.FC<DeferredSiteFooterProps> = (props) => {
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setIsReady(true), 1200);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  if (!isReady) return null;
+
+  return (
+    <React.Suspense fallback={null}>
+      <InfiniteLogoScroll />
+      <Footer {...props} />
+    </React.Suspense>
+  );
+};
 
 // High-speed fallback placeholder
 const SanctuaryViewLoading = () => (
@@ -365,7 +395,7 @@ const ensureHebrewNavItems = (items: NavItem[]): NavItem[] => {
   return withMenus;
 };
 
-const DEFAULT_HOME_SECTIONS_ORDER = ['hero', 'about', 'highlights', 'menorah', 'leader', 'hebrew', 'pastorBaruch', 'valparai', 'testimonials', 'members', 'preview', 'donations', 'verify'];
+const DEFAULT_HOME_SECTIONS_ORDER = ['hero', 'about', 'highlights', 'menorah', 'leader', 'hebrew', 'pastorBaruch', 'testimonials', 'members', 'preview', 'donations', 'globalPresence', 'verify'];
 
 const normalizeHomeSectionsOrder = (sections: string[]): string[] => {
   // Preserve the INPUT order — only deduplicate and add genuinely missing sections
@@ -2441,11 +2471,12 @@ const App: React.FC = () => {
           case 'hebrew': return <HebrewSanctuaryIntro key="hebrew" setView={setCurrentView} />;
           case 'hebrewPages': return null;
           case 'pastorBaruch': return <PastorBaruchPreviewSection key="pastorBaruch" setView={setCurrentView} />;
-          case 'valparai': return <ValparaiPresence key="valparai" setView={setCurrentView} />;
           case 'testimonials': return <TestimonialHighlights key="testimonials" setView={setCurrentView} currentUser={currentUser || undefined} />;
           case 'members': return <CommunityMembersSection key="members" setView={setCurrentView} users={users} />;
           case 'preview': return <EntrustCardPreview key="preview" setView={setCurrentView} />;
           case 'donations': return null;
+          case 'globalPresence':
+            return <GlobalPresenceSection key="globalPresence" />;
           case 'verify':
             return (
               <section key="verify" className="py-24 bg-slate-950 text-white relative overflow-hidden border-t border-b border-white/10">
@@ -2898,9 +2929,7 @@ const App: React.FC = () => {
 
       {/* Universal Interactive Footer (Animated Footer from ooo.txt) */}
       {!isFrame && currentView !== ViewState.ADMIN_DASHBOARD && (
-        <>
-          <InfiniteLogoScroll />
-          <Footer
+        <DeferredSiteFooter
           currentView={currentView}
           setCurrentView={setCurrentView}
           navigate={navigate}
@@ -2908,7 +2937,6 @@ const App: React.FC = () => {
           setShowLeaderMessage={setShowLeaderMessage}
           youtubeLink={youtubeLink}
         />
-        </>
       )}
 
           </AnimatePresence>

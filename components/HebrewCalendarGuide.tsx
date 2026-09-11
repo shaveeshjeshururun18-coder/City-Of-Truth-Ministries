@@ -8,6 +8,7 @@ import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { HEBREW_MONTHS_DATA, KEY_DETAILS } from './PrintableReferenceGuide';
 import { audioService } from '../services/audioService';
+import { HebrewCalendarWidget } from './HebrewCalendarWidget';
 
 const HEBREW_DAYS = [
     { name: 'Yom Rishon', english: 'Sunday', hebrew: 'יוֹם רִאשׁוֹן', tamil: 'யோம் ரிஷோன் (ஞாயிறு)', psalm: 'Ps. 24' },
@@ -233,6 +234,11 @@ export const HebrewCalendarGuide: React.FC = () => {
                     Download PDF
                 </button>
             </header>
+
+            {/* LIVE HEBREW CALENDAR & BIBLICAL MOED WIDGET */}
+            <div className="max-w-2xl mx-auto mb-10 px-4">
+                <HebrewCalendarWidget />
+            </div>
 
             {/* Months timeline */}
             <section id="guide-months" className="relative mb-10 md:mb-12">

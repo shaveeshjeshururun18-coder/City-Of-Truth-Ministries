@@ -5,6 +5,7 @@ import { Button } from './Button';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import menorahBack from '/entrust-card-flag.png';
+import QRCode from 'qrcode';
 import { ImageCropper } from './ImageCropper';
 import { CameraStage } from './FaceMesh/CameraStage';
 import { CapturedPhoto, GeometryAnalysis } from './FaceMesh/types';
@@ -193,10 +194,43 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
         }
         return null;
     })();
+    const [qrDataUrl, setQrDataUrl] = useState<string>('');
     const fullDetails = `CITY OF TRUTH MINISTRIES\nID: ${uniqueId}\nName: ${name}\nLocation: ${location}\nPhone: ${formattedEmergency}\nJoined Date: ${formatDateToDDMMYYYY(memberSince)}`.trim();
     const appOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://city-of-truth-ministries.vercel.app';
     const verifyUrl = getVerificationShareUrl({ id: uniqueId } as any);
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(verifyUrl)}&bgcolor=ffffff&color=2c298c&margin=0&format=png&cb=${encodeURIComponent(uniqueId || 'COT-SAMPLE')}`;
+
+    const uniqueQrPayload = [
+        `CITY OF TRUTH MINISTRIES - ENTRUST CARD`,
+        `ID: ${uniqueId || 'COT-1960'}`,
+        `Name: ${name || 'Member'}`,
+        `Location: ${location || 'Chennai'}`,
+        `Phone: ${formattedEmergency || '+91 80561 25478'}`,
+        `Joined: ${formatDateToDDMMYYYY(memberSince) || '20-01-2026'}`,
+        `Status: ${status || 'Verified Member'}`,
+        `Verify: ${verifyUrl}`
+    ].join('\n');
+
+    useEffect(() => {
+        let active = true;
+        QRCode.toDataURL(uniqueQrPayload, {
+            margin: 1,
+            width: 320,
+            color: {
+                dark: '#211710',
+                light: '#f6f2e9'
+            }
+        }).then(url => {
+            if (active) setQrDataUrl(url);
+        }).catch(err => {
+            console.error('Local QR generation failed', err);
+        });
+        return () => { active = false; };
+    }, [uniqueQrPayload]);
+
+    const qrFallbackUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(uniqueQrPayload)}&bgcolor=f6f2e9&color=211710&margin=1&format=png&cb=${encodeURIComponent(uniqueId || 'COT-SAMPLE')}`;
+    const finalQrUrl = qrDataUrl || qrFallbackUrl;
+    const qrCodeUrl = finalQrUrl;
+
     const sanitizedFamilyMembers = familyMembers.filter(member => member.name.trim());
     const memberCount = sanitizedFamilyMembers.length + 1;
     const memberNames = sanitizedFamilyMembers
@@ -206,112 +240,164 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
 
     const IndividualFrontFace = () => {
         return (
-            <div className="absolute inset-0 bg-white rounded-[inherit] overflow-hidden border border-gray-200 shadow-2xl flex flex-col group/card cursor-pointer transition-all duration-500 hover:shadow-cyan-500/20 hover:border-cyan-300" style={{ backfaceVisibility: 'hidden' }}>
-                {/* Holographic Glass Reflection Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-cyan-300/20 opacity-0 group-hover/card:opacity-100 transition-opacity duration-700 pointer-events-none z-30" />
+            <div
+                className="absolute inset-0 rounded-[inherit] overflow-hidden shadow-2xl flex flex-col group/card cursor-pointer transition-all duration-500 hover:shadow-amber-500/20"
+                style={{ backfaceVisibility: 'hidden', backgroundColor: '#f6f1e8' }}
+            >
+                {/* Sovereign Banknote Card Background */}
+                <img
+                    src="/entrust-sovereign-bg.jpg"
+                    alt="City of Truth Ministries Entrust Card"
+                    className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
+                    crossOrigin="anonymous"
+                />
 
-                {/* Header */}
-                <div className="bg-brand-900 text-white px-3 py-2 flex items-center justify-between shrink-0 relative z-20">
-                    <div className="flex items-center gap-2">
-                        <img src="/logo.png" alt="Logo" className="w-7 h-7 object-contain" />
-                        <div>
-                            <h2 className="font-bold text-[8px] uppercase tracking-wider leading-none text-white drop-shadow-lg">City of Truth Ministries</h2>
-                            <p className="text-[6px] text-accent-200 font-bold mt-0.5 drop-shadow-sm">
-                                <span className="font-black text-amber-300 drop-shadow-[0_0_4px_rgba(245,158,11,0.8)]">சத்திய நகரம் ஊழியங்கள்</span>{' '}
-                                <span className="font-extrabold text-white bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent drop-shadow-lg">வால்பாறை</span>
-                            </p>
-                        </div>
-                    </div>
-                    <div className="bg-accent-50 px-3 py-1 rounded-full whitespace-nowrap min-w-0 flex items-center gap-1 shadow-xs border border-accent-200/50">
-                        <p className="text-accent-700 font-bold text-[7px] tracking-wider">வழிப்பாட்டாளர் அடையாள அட்டை</p>
-                    </div>
-                </div>
+                {/* Subtle Specular Reflection on Card */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/15 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity duration-700 pointer-events-none z-30" />
 
-                {/* Watermark Background */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-[0.06] pointer-events-none z-0">
-                    <img src="/logo.png" alt="" className="w-48 h-48 object-contain transform rotate-12" />
-                </div>
-
-                {/* Main Content - Horizontal Layout */}
-                <div className="flex-1 flex p-2 gap-1.5 relative z-10">
-                    {/* Left: Photo */}
-                    <div className="w-24 h-28 bg-slate-50 rounded-lg border-2 border-slate-100 flex items-center justify-center text-slate-300 overflow-hidden shadow-sm shrink-0">
-                        {safePhotoSrc ? <img src={safePhotoSrc} alt="P" className="w-full h-full object-cover" /> : <User size={32} />}
-                    </div>
-
-                    {/* Right: Details */}
-                    <div className="flex-1 flex flex-col justify-start min-w-0 space-y-1 pt-0.5">
-                        <div className="flex items-center justify-between gap-2">
-                            <div className="text-[9px] font-mono font-black text-brand-800 bg-brand-50 px-2 py-0.5 rounded border border-brand-100 inline-block shadow-sm">
-                                ID: {uniqueId}
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="text-[6px] font-bold text-slate-400 uppercase tracking-wider block">Full Name</label>
-                            <p className="text-[11px] font-black text-brand-950 leading-tight truncate">{name || '—'}</p>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-0.5">
-                            <div>
-                                <label className="text-[6px] font-bold text-slate-400 uppercase block">Joined Date</label>
-                                <p className="text-[9px] font-bold text-slate-700">{formatDateToDDMMYYYY(memberSince) || '—'}</p>
-                            </div>
-                            <div>
-                                <label className="text-[6px] font-bold text-slate-400 uppercase block">Location</label>
-                                <p className="text-[9px] font-semibold text-slate-700 truncate">{location || '—'}</p>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="text-[6px] font-bold text-slate-400 uppercase block">Phone Number</label>
-                            <p className="text-[9px] font-semibold text-slate-700">{formattedEmergency}</p>
-                        </div>
-                    </div>
-
-                    {/* QR Code Absolute Positioned */}
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setShowQrFullScreen(true);
-                        }}
-                        className="absolute bottom-2 right-2 bg-white p-0.5 border border-slate-100 rounded-lg shadow-sm hover:shadow-md transition-shadow"
-                        aria-label="Open QR code"
-                    >
-                        <div className="relative inline-block w-14 h-14 bg-white rounded-md">
-                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-                                <img src="/logo.png" alt="" className="w-10 h-10 object-contain opacity-[0.15]" />
-                            </div>
-                            <img src={qrCodeUrl} alt="QR" className="w-full h-full block relative z-10 mix-blend-multiply" crossOrigin="anonymous" />
-                        </div>
-                    </button>
-
-                    {/* Verified Member Badge */}
-                    {status === 'Active' && (
-                        <div className="absolute right-2 top-0 transform translate-y-1 flex items-center gap-1">
-                            <img src="/assets/doodles/doodle-color-268-avatar-man-in-reveal.gif" alt="Verified Identity Reveal" className="w-7 h-7 object-contain drop-shadow-md" />
-                            <div className="relative">
-                                <div className="absolute inset-0 bg-accent-500 blur-md opacity-20 rounded-full animate-pulse"></div>
-                                <div className="bg-gradient-to-br from-accent-400 to-accent-600 p-1.5 rounded-full shadow-lg border-2 border-white/50 relative">
-                                    <CheckCircle size={12} className="text-white" strokeWidth={4} />
-                                </div>
-                                <div className="absolute -bottom-1 -right-1 bg-white px-1.5 py-0.5 rounded-full border border-accent-100 shadow-sm">
-                                    <p className="text-[5px] font-black text-accent-700 uppercase tracking-tighter whitespace-nowrap">Verified Member</p>
-                                </div>
-                            </div>
+                {/* Left: Member Photo Frame */}
+                <div
+                    className="absolute overflow-hidden flex items-center justify-center bg-[#f0e7d5] rounded-[14px] sm:rounded-[18px] border-2 border-[#8c7355]/70 shadow-xs z-20"
+                    style={{
+                        left: '5.66%',
+                        top: '27.35%',
+                        width: '24.51%',
+                        height: '47.41%'
+                    }}
+                >
+                    {safePhotoSrc ? (
+                        <img
+                            src={safePhotoSrc}
+                            alt={name || "Member Photo"}
+                            className="w-full h-full object-cover"
+                            crossOrigin="anonymous"
+                        />
+                    ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-[#8c7355]/60 bg-gradient-to-b from-[#f5eee0] to-[#e6dac0]">
+                            <User size={34} strokeWidth={1.5} />
+                            <span className="text-[6px] font-bold uppercase tracking-wider text-[#8c7355]/70 mt-0.5">Photo</span>
                         </div>
                     )}
                 </div>
 
-                {/* Footer */}
-                <div className="bg-brand-950 px-3 py-1 flex justify-between items-center border-t-2 border-accent-400 relative overflow-hidden">
-                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20"></div>
-                    <span className="text-[5px] font-bold tracking-wider text-accent-300 uppercase italic z-10 shrink-0">தூய மனதால் இணைவோம்; உயிர்மெய் அருள் ஒளியை பெறுவோம்</span>
-                    <div className="text-[5px] text-slate-300 font-medium tracking-tight z-10 flex flex-col items-end leading-tight">
-                        <span>+91 805625478</span>
-                        <span>@COTMINISTRIES</span>
+                {/* ID Badge Pill */}
+                <div
+                    className="absolute flex items-center justify-center px-1 select-none z-20 pointer-events-none"
+                    style={{
+                        left: '31.84%',
+                        top: '27.35%',
+                        width: '22.07%',
+                        height: '8.41%'
+                    }}
+                >
+                    <span className="text-[8.5px] sm:text-[9.5px] font-black tracking-[0.06em] text-[#2c221a] uppercase font-mono whitespace-nowrap">
+                        ID: {uniqueId || 'COT-1960'}
+                    </span>
+                </div>
+
+                {/* Member Details in Antique Sovereign Typography */}
+                <div
+                    className="absolute flex flex-col justify-between select-none z-20 pointer-events-none"
+                    style={{
+                        left: '31.84%',
+                        top: '37.8%',
+                        width: '41.5%',
+                        height: '38.5%'
+                    }}
+                >
+                    {/* Full Name */}
+                    <div className="min-w-0">
+                        <span className="text-[5.5px] sm:text-[6.5px] font-bold tracking-wider text-[#635546] uppercase block leading-none">
+                            FULL NAME
+                        </span>
+                        <p className="text-[11px] sm:text-[13px] font-black text-[#1b120a] leading-tight truncate tracking-tight font-sans mt-0.5">
+                            {name || 'Sri Priya Srinivasan'}
+                        </p>
                     </div>
+
+                    {/* Joined Date & Location */}
+                    <div className="grid grid-cols-2 gap-1 min-w-0">
+                        <div className="min-w-0">
+                            <span className="text-[5px] sm:text-[6px] font-bold tracking-wider text-[#635546] uppercase block leading-none">
+                                JOINED DATE
+                            </span>
+                            <p className="text-[8px] sm:text-[9.5px] font-bold text-[#1b120a] leading-tight truncate mt-0.5 font-mono">
+                                {formatDateToDDMMYYYY(memberSince) || '20-01-2026'}
+                            </p>
+                        </div>
+                        <div className="min-w-0">
+                            <span className="text-[5px] sm:text-[6px] font-bold tracking-wider text-[#635546] uppercase block leading-none">
+                                LOCATION
+                            </span>
+                            <p className="text-[8px] sm:text-[9.5px] font-bold text-[#1b120a] leading-tight truncate mt-0.5">
+                                {location || 'Chennai'}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Phone Number */}
+                    <div className="min-w-0">
+                        <span className="text-[5px] sm:text-[6px] font-bold tracking-wider text-[#635546] uppercase block leading-none">
+                            PHONE NUMBER
+                        </span>
+                        <p className="text-[8px] sm:text-[9.5px] font-bold text-[#1b120a] leading-tight truncate mt-0.5 font-mono">
+                            {formattedEmergency || '+91 80561 25478'}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Unique Scannable Dynamic QR Code */}
+                <button
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setShowQrFullScreen(true);
+                    }}
+                    className="absolute overflow-hidden rounded-[3px] p-[2px] bg-[#f6f2e9] border border-[#8c7355]/50 shadow-xs cursor-pointer hover:scale-105 transition-transform z-20"
+                    style={{
+                        left: '73.73%',
+                        top: '54.21%',
+                        width: '15.62%',
+                        height: '25.89%'
+                    }}
+                    title="Tap to enlarge QR code"
+                    aria-label="Enlarge Entrust QR code"
+                >
+                    <img
+                        src={finalQrUrl}
+                        alt="Unique Entrust QR"
+                        className="w-full h-full object-contain block"
+                        crossOrigin="anonymous"
+                    />
+                </button>
+
+                {/* Verified Member Seal Glow */}
+                <div
+                    className="absolute pointer-events-none z-10"
+                    style={{
+                        left: '76.66%',
+                        top: '23.95%',
+                        width: '13.67%',
+                        height: '15.37%'
+                    }}
+                >
+                    <div className="w-full h-full relative">
+                        <div className="absolute inset-0 bg-amber-400/15 rounded-full blur-xs group-hover/card:animate-pulse pointer-events-none" />
+                    </div>
+                </div>
+
+                {/* Far-Right Hologram Iridescent Shimmer */}
+                <div
+                    className="absolute pointer-events-none overflow-hidden rounded-r-[6px] z-20"
+                    style={{
+                        left: '92.19%',
+                        top: '2.5%',
+                        width: '5.2%',
+                        height: '95%'
+                    }}
+                >
+                    {/* Animated Specular light reflection on the holographic strip */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/30 to-transparent opacity-0 group-hover/card:opacity-100 transition-all duration-700 pointer-events-none" />
                 </div>
             </div>
         );
@@ -412,8 +498,8 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
     const BackFace = () => {
         return (
             <div
-                className="absolute inset-0 rounded-[inherit] overflow-hidden border border-brand-900 shadow-2xl"
-                style={{ backfaceVisibility: 'hidden', transform: isStatic ? 'none' : 'rotateY(180deg)' }}
+                className="absolute inset-0 rounded-[inherit] overflow-hidden shadow-2xl group/card"
+                style={{ backfaceVisibility: 'hidden', transform: isStatic ? 'none' : 'rotateY(180deg)', backgroundColor: '#f6f1e8' }}
             >
                 {registrationType === 'family' ? (
                     <>
@@ -481,10 +567,13 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                 ) : (
                     <>
                         <img
-                            src={menorahBack}
-                            alt="Entrust Card Back"
-                            className="absolute inset-0 w-full h-full object-cover"
+                            src="/entrust-sovereign-back.jpg"
+                            alt="City of Truth Ministries Entrust Card Back"
+                            className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
+                            crossOrigin="anonymous"
                         />
+                        {/* Subtle Specular Reflection on Back Card */}
+                        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/15 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity duration-700 pointer-events-none z-30" />
                     </>
                 )}
             </div>
@@ -495,7 +584,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
         return (
             <>
                 <div 
-                    className={`relative w-[340px] h-[215px] bg-slate-100 overflow-hidden ${cardTransformClass}`} 
+                    className={`relative w-[356px] h-[215px] bg-[#f6f1e8] overflow-hidden ${cardTransformClass}`} 
                     style={cardFilterStyle}
                 >
                     {isBackSide ? <BackFace /> : <FrontFace />}
@@ -513,17 +602,43 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                                 initial={{ y: 20, scale: 0.95 }}
                                 animate={{ y: 0, scale: 1 }}
                                 exit={{ y: 20, scale: 0.95 }}
-                                className="bg-white rounded-3xl p-4 sm:p-6 w-full max-w-md text-center"
+                                className="bg-[#fcfaf6] rounded-3xl p-5 sm:p-6 w-full max-w-sm text-center border border-[#8c7355]/30 shadow-2xl"
                                 onClick={(e) => e.stopPropagation()}
                             >
-                                <p className="text-sm font-black text-brand-950 mb-4 uppercase tracking-widest">{qrModalTitle}</p>
-                                <div className="relative inline-block w-full max-w-[320px] mx-auto bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-                                        <img src="/logo.png" alt="" className="w-32 h-32 object-contain opacity-[0.15]" />
-                                    </div>
-                                    <img src={qrCodeUrl} alt="Entrust QR Code" className="w-full h-full block relative z-10 mix-blend-multiply" crossOrigin="anonymous" />
+                                <div className="inline-flex items-center gap-1.5 bg-[#8c7355]/10 text-[#5a4836] px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest mb-3">
+                                    <ShieldCheck size={12} className="text-[#8c7355]" /> Unique Entrust QR
                                 </div>
-                                <Button onClick={() => setShowQrFullScreen(false)} className="mt-5 w-full">
+                                <p className="text-base font-serif font-black text-[#1b120a] mb-1">Official Member QR</p>
+                                <p className="text-[11px] text-[#6b5847] font-medium mb-4">Contains verified member identity details</p>
+                                
+                                <div className="relative inline-block w-full max-w-[240px] mx-auto bg-[#f6f2e9] rounded-2xl border-2 border-[#8c7355]/30 p-3 shadow-inner">
+                                    <img src={finalQrUrl} alt="Unique Entrust QR Code" className="w-full h-full block relative z-10" />
+                                </div>
+
+                                <div className="mt-4 p-3 bg-white/70 rounded-xl border border-[#8c7355]/20 text-left space-y-1 text-[11px]">
+                                    <p className="font-mono font-bold text-[#1b120a] flex justify-between">
+                                        <span className="text-[#6b5847]">Member ID:</span>
+                                        <span className="font-black text-[#8c7355]">{uniqueId || 'COT-1960'}</span>
+                                    </p>
+                                    <p className="font-sans font-bold text-[#1b120a] flex justify-between">
+                                        <span className="text-[#6b5847]">Name:</span>
+                                        <span className="truncate max-w-[150px]">{name || 'Member'}</span>
+                                    </p>
+                                    <p className="font-sans font-medium text-[#1b120a] flex justify-between">
+                                        <span className="text-[#6b5847]">Location:</span>
+                                        <span>{location || 'Chennai'}</span>
+                                    </p>
+                                    <p className="font-mono font-medium text-[#1b120a] flex justify-between">
+                                        <span className="text-[#6b5847]">Phone:</span>
+                                        <span>{formattedEmergency || '—'}</span>
+                                    </p>
+                                    <p className="font-sans text-[10px] text-emerald-700 font-bold flex justify-between pt-1 border-t border-[#8c7355]/15">
+                                        <span>Status:</span>
+                                        <span>Verified Member ✓</span>
+                                    </p>
+                                </div>
+
+                                <Button onClick={() => setShowQrFullScreen(false)} className="mt-4 w-full bg-[#3c2a1c] hover:bg-[#251910] text-white">
                                     Close
                                 </Button>
                             </motion.div>
@@ -537,7 +652,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
     return (
         <>
             <div
-                className={`relative w-[340px] sm:w-[380px] h-[215px] sm:h-[240px] cursor-pointer mx-auto ${className}`}
+                className={`relative w-[356px] sm:w-[410px] h-[215px] sm:h-[248px] cursor-pointer mx-auto ${className}`}
                 onClick={() => setIsFlipped(!isFlipped)}
                 style={{ perspective: "1500px" }}
             >
@@ -548,10 +663,10 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                     transition={{ duration: 0.8, ease: "easeInOut" }}
                 >
                     <div className="w-full h-full">
-                        {/* Scale standard 340x215 card to fill 380x240 container if on sm+ screens */}
-                        <div className="w-full h-full origin-top-left sm:scale-[1.117]">
+                        {/* Scale standard 356x215 card to fill 410x248 container on sm+ screens */}
+                        <div className="w-full h-full origin-top-left sm:scale-[1.1517]">
                             <div 
-                                style={{ width: '340px', height: '215px', ...cardFilterStyle }}
+                                style={{ width: '356px', height: '215px', ...cardFilterStyle }}
                                 className={`overflow-hidden ${cardTransformClass}`}
                             >
                                 <FrontFace />
@@ -574,12 +689,43 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                             initial={{ y: 20, scale: 0.95 }}
                             animate={{ y: 0, scale: 1 }}
                             exit={{ y: 20, scale: 0.95 }}
-                            className="bg-white rounded-3xl p-4 sm:p-6 w-full max-w-md text-center"
+                            className="bg-[#fcfaf6] rounded-3xl p-5 sm:p-6 w-full max-w-sm text-center border border-[#8c7355]/30 shadow-2xl"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <p className="text-sm font-black text-brand-950 mb-4 uppercase tracking-widest">{qrModalTitle}</p>
-                            <img src={qrCodeUrl} alt="Entrust QR Code" className="w-full max-w-[320px] mx-auto rounded-2xl border border-slate-200" crossOrigin="anonymous" />
-                            <Button onClick={() => setShowQrFullScreen(false)} className="mt-5 w-full">
+                            <div className="inline-flex items-center gap-1.5 bg-[#8c7355]/10 text-[#5a4836] px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest mb-3">
+                                <ShieldCheck size={12} className="text-[#8c7355]" /> Unique Entrust QR
+                            </div>
+                            <p className="text-base font-serif font-black text-[#1b120a] mb-1">Official Member QR</p>
+                            <p className="text-[11px] text-[#6b5847] font-medium mb-4">Contains verified member identity details</p>
+
+                            <div className="relative inline-block w-full max-w-[240px] mx-auto bg-[#f6f2e9] rounded-2xl border-2 border-[#8c7355]/30 p-3 shadow-inner">
+                                <img src={finalQrUrl} alt="Unique Entrust QR Code" className="w-full h-full block relative z-10" />
+                            </div>
+
+                            <div className="mt-4 p-3 bg-white/70 rounded-xl border border-[#8c7355]/20 text-left space-y-1 text-[11px]">
+                                <p className="font-mono font-bold text-[#1b120a] flex justify-between">
+                                    <span className="text-[#6b5847]">Member ID:</span>
+                                    <span className="font-black text-[#8c7355]">{uniqueId || 'COT-1960'}</span>
+                                </p>
+                                <p className="font-sans font-bold text-[#1b120a] flex justify-between">
+                                    <span className="text-[#6b5847]">Name:</span>
+                                    <span className="truncate max-w-[150px]">{name || 'Member'}</span>
+                                </p>
+                                <p className="font-sans font-medium text-[#1b120a] flex justify-between">
+                                    <span className="text-[#6b5847]">Location:</span>
+                                    <span>{location || 'Chennai'}</span>
+                                </p>
+                                <p className="font-mono font-medium text-[#1b120a] flex justify-between">
+                                    <span className="text-[#6b5847]">Phone:</span>
+                                    <span>{formattedEmergency || '—'}</span>
+                                </p>
+                                <p className="font-sans text-[10px] text-emerald-700 font-bold flex justify-between pt-1 border-t border-[#8c7355]/15">
+                                    <span>Status:</span>
+                                    <span>Verified Member ✓</span>
+                                </p>
+                            </div>
+
+                            <Button onClick={() => setShowQrFullScreen(false)} className="mt-4 w-full bg-[#3c2a1c] hover:bg-[#251910] text-white">
                                 Close
                             </Button>
                         </motion.div>
@@ -951,7 +1097,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                     pixelRatio: 4,
                     quality: 1,
                     backgroundColor: '#ffffff',
-                    width: 340,
+                    width: 356,
                     height: 215
                 });
                 const link = document.createElement('a');
@@ -989,7 +1135,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                 await Promise.all([waitForNodeImages(frontNode), waitForNodeImages(backNode)]);
                 await new Promise(resolve => setTimeout(resolve, 300));
 
-                const captureOptions = { pixelRatio: 4, quality: 1, backgroundColor: '#ffffff', cacheBust: true, width: 340, height: 215 };
+                const captureOptions = { pixelRatio: 4, quality: 1, backgroundColor: '#ffffff', cacheBust: true, width: 356, height: 215 };
                 const [frontDataUrl, backDataUrl] = await Promise.all([
                     toPng(frontNode, captureOptions),
                     toPng(backNode, captureOptions)
@@ -1087,10 +1233,10 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
             )}
             {/* HIDDEN CAPTURE AREA */}
             <div className="fixed left-[-9999px] top-0 pointer-events-none">
-                <div id="capture-front" className="bg-white inline-block w-[340px] h-[215px] overflow-hidden rounded-xl">
+                <div id="capture-front" className="bg-white inline-block w-[356px] h-[215px] overflow-hidden rounded-xl">
                     <EntrustCard3D {...formData} uniqueId={uniqueId} photo={photo} status="Pending" registrationType={registrationType} familyMembers={familyMembers} isStatic={true} isBackSide={false} cardThemeTone={cardThemeTone} cardLayoutMode={cardLayoutMode} cardShapeMode={cardShapeMode} cardSizeMode={cardSizeMode} />
                 </div>
-                <div id="capture-back" className="bg-white inline-block w-[340px] h-[215px] overflow-hidden rounded-xl">
+                <div id="capture-back" className="bg-white inline-block w-[356px] h-[215px] overflow-hidden rounded-xl">
                     <EntrustCard3D {...formData} uniqueId={uniqueId} photo={photo} status="Pending" registrationType={registrationType} familyMembers={familyMembers} isStatic={true} isBackSide={true} cardThemeTone={cardThemeTone} cardLayoutMode={cardLayoutMode} cardShapeMode={cardShapeMode} cardSizeMode={cardSizeMode} />
                 </div>
             </div>

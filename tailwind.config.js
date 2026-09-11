@@ -39,6 +39,7 @@ export default {
       fontFamily: {
         serif: ['Playfair Display', 'serif'],
         sans: ['Inter', 'sans-serif'],
+        kanit: ['Kanit', 'sans-serif'],
         tamil: ['Mukta Malar', 'Noto Sans Tamil', 'Catamaran', 'sans-serif'],
         tamilSerif: ['Noto Serif Tamil', 'serif'],
         bamini25: ['Bamini_25', 'sans-serif'],

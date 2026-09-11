@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Image as ImageIcon, Clock, Tag, ChevronLeft, ChevronRight, X, ZoomIn } from 'lucide-react';
+import { extractYouTubeId, getSafeEmbedUrl, getYouTubeThumbnails } from '../services/youtubeService';
 
 interface MediaItem {
     type: 'image' | 'video';
@@ -18,6 +19,7 @@ interface MinistryGalleryProps {
 interface GalleryCardProps {
     item: MediaItem;
     index: number;
+    frameStyle: 'vintage' | 'polaroid';
     failedMedia: Record<string, boolean>;
     setFailedMedia: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
     onClick: () => void;
@@ -26,26 +28,30 @@ interface GalleryCardProps {
 const GalleryCard: React.FC<GalleryCardProps> = ({
     item,
     index,
+    frameStyle,
     failedMedia,
     setFailedMedia,
     onClick,
 }) => {
     const [isHovered, setIsHovered] = useState(false);
-    const tiltPattern = [-3.4, 2.6, -1.8, 3.2, -2.4, 1.5];
+    const tiltPattern = [-2.5, 2.0, -1.8, 2.4, -2.0, 1.5];
     const rotation = tiltPattern[index % tiltPattern.length];
     const staggerClass = index % 4 === 1
-        ? 'md:translate-y-8'
+        ? 'md:translate-y-6'
         : index % 4 === 3
-            ? 'md:-translate-y-6'
+            ? 'md:-translate-y-4'
             : '';
+
+    const ytId = item.type === 'video' ? extractYouTubeId(item.src) : null;
+    const ytThumbs = ytId ? getYouTubeThumbnails(ytId) : null;
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 24, rotate: rotation * 0.65 }}
+            initial={{ opacity: 0, y: 24, rotate: rotation * 0.6 }}
             whileInView={{ opacity: 1, y: 0, rotate: rotation }}
             viewport={{ once: true }}
-            transition={{ delay: (index % 5) * 0.1, duration: 0.5 }}
-            whileHover={{ y: -12, rotate: 0, scale: 1.035 }}
+            transition={{ delay: (index % 5) * 0.08, duration: 0.5 }}
+            whileHover={{ y: -10, rotate: 0, scale: 1.035 }}
             whileTap={{ scale: 0.98 }}
             onHoverStart={() => setIsHovered(true)}
             onHoverEnd={() => setIsHovered(false)}
@@ -64,89 +70,149 @@ const GalleryCard: React.FC<GalleryCardProps> = ({
                 tabIndex={0}
                 aria-label={`Open ${item.category || 'ministry'} ${item.type}`}
                 transition={{ type: 'spring', stiffness: 260, damping: 22 }}
-                style={{
-                    transformStyle: 'preserve-3d',
-                }}
-                className={`group relative overflow-hidden rounded-[1.35rem] md:rounded-[2.25rem] bg-white border border-white/70 aspect-[4/5] w-full cursor-pointer shadow-[0_16px_35px_rgba(6,28,52,0.14)] transition-shadow duration-500 ${
-                    isHovered
-                        ? 'shadow-[0_28px_70px_rgba(6,28,52,0.32)] border-accent-300 ring-2 ring-accent-300/30'
-                        : 'shadow-[0_16px_35px_rgba(6,28,52,0.14)]'
-                }`}
+                style={{ transformStyle: 'preserve-3d' }}
+                className="group relative w-full cursor-pointer"
             >
-                {/* Media Item */}
-                {item.type === 'image' && !failedMedia[item.id] ? (
-                    <img
-                        src={item.src}
-                        alt="Ministry Moment"
-                        className="w-full h-full object-cover transition-transform duration-700 ease-out pointer-events-none group-hover:scale-110"
-                        loading="lazy"
-                        decoding="async"
-                        onError={() => setFailedMedia(prev => ({ ...prev, [item.id]: true }))}
-                    />
-                ) : item.type === 'video' && !failedMedia[item.id] ? (
-                    <video
-                        src={item.src}
-                        className="w-full h-full object-cover pointer-events-none"
-                        controls={false}
-                        muted
-                        loop
-                        playsInline
-                        preload="metadata"
-                        onError={() => setFailedMedia(prev => ({ ...prev, [item.id]: true }))}
-                    />
+                {/* 1. Vintage Heirloom Frame */}
+                {frameStyle === 'vintage' ? (
+                    <div className="photo-frame-vintage">
+                        <div className="bracket tl" />
+                        <div className="bracket tr" />
+                        <div className="bracket bl" />
+                        <div className="bracket br" />
+
+                        <div className="deckle-wrapper">
+                            <div className="photo-inner">
+                                {item.type === 'image' && !failedMedia[item.id] ? (
+                                    <img
+                                        src={item.src}
+                                        alt={item.category || 'Ministry Moment'}
+                                        className="vintage-img"
+                                        loading="lazy"
+                                        decoding="async"
+                                        onError={() => setFailedMedia(prev => ({ ...prev, [item.id]: true }))}
+                                    />
+                                ) : item.type === 'video' && ytThumbs && !failedMedia[item.id] ? (
+                                    <img
+                                        src={ytThumbs.high}
+                                        alt={item.category || 'Sermon Video'}
+                                        className="vintage-img"
+                                        loading="lazy"
+                                        decoding="async"
+                                        onError={(e) => {
+                                            (e.currentTarget as HTMLImageElement).src = ytThumbs.medium;
+                                        }}
+                                    />
+                                ) : item.type === 'video' && !failedMedia[item.id] ? (
+                                    <video
+                                        src={item.src}
+                                        className="vintage-img"
+                                        controls={false}
+                                        muted
+                                        loop
+                                        playsInline
+                                        preload="metadata"
+                                        onError={() => setFailedMedia(prev => ({ ...prev, [item.id]: true }))}
+                                    />
+                                ) : (
+                                    <div className="w-full aspect-[4/5] flex flex-col items-center justify-center text-center bg-[#251d16] text-[#dfc8a8] px-4 pointer-events-none">
+                                        <ImageIcon size={24} className="mb-2" />
+                                        <p className="text-xs font-bold uppercase tracking-wide">Archived Moment</p>
+                                    </div>
+                                )}
+                                <div className="scratches-overlay" />
+                            </div>
+                        </div>
+
+                        {/* Faded Ink Stamp */}
+                        <div className="ink-stamp">
+                            <div>Archived</div>
+                            <div>★ COT ★</div>
+                            <div>Original</div>
+                        </div>
+
+                        {/* Vintage Typewriter Caption */}
+                        <div className="caption truncate px-1" title={item.date || 'Ministry Moment'}>
+                            {item.date || 'Ministry Moment'}
+                        </div>
+                    </div>
                 ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-center bg-slate-100 text-slate-500 px-4 pointer-events-none">
-                        <ImageIcon size={24} className="mb-2" />
-                        <p className="text-xs font-bold uppercase tracking-wide">Media unavailable</p>
-                        <p className="text-[10px] mt-1">{item.date || 'Ministry Moment'}</p>
+                    /* 2. Polaroid SX-70 Instant Film Frame */
+                    <div className="photo-frame-polaroid">
+                        <div className="scotch-tape" />
+                        <div className="frame-grain" />
+
+                        <div className="photo-inner">
+                            {item.type === 'image' && !failedMedia[item.id] ? (
+                                <img
+                                    src={item.src}
+                                    alt={item.category || 'Ministry Moment'}
+                                    className="polaroid-img"
+                                    loading="lazy"
+                                    decoding="async"
+                                    onError={() => setFailedMedia(prev => ({ ...prev, [item.id]: true }))}
+                                />
+                            ) : item.type === 'video' && ytThumbs && !failedMedia[item.id] ? (
+                                <img
+                                    src={ytThumbs.high}
+                                    alt={item.category || 'Sermon Video'}
+                                    className="polaroid-img"
+                                    loading="lazy"
+                                    decoding="async"
+                                    onError={(e) => {
+                                        (e.currentTarget as HTMLImageElement).src = ytThumbs.medium;
+                                    }}
+                                />
+                            ) : item.type === 'video' && !failedMedia[item.id] ? (
+                                <video
+                                    src={item.src}
+                                    className="polaroid-img"
+                                    controls={false}
+                                    muted
+                                    loop
+                                    playsInline
+                                    preload="metadata"
+                                    onError={() => setFailedMedia(prev => ({ ...prev, [item.id]: true }))}
+                                />
+                            ) : (
+                                <div className="w-full aspect-[4/5] flex flex-col items-center justify-center text-center bg-[#1c1815] text-[#ded6ce] px-4 pointer-events-none">
+                                    <ImageIcon size={24} className="mb-2" />
+                                    <p className="text-xs font-bold uppercase tracking-wide">Instant Memoir</p>
+                                </div>
+                            )}
+                            <div className="emulsion-glare" />
+                        </div>
+
+                        {/* Handwritten Script Caption */}
+                        <div className="caption truncate px-1" title={item.date || 'A sacred moment ♥'}>
+                            {item.date || 'A sacred moment ♥'}
+                        </div>
                     </div>
                 )}
 
-                {/* Refined Overlay */}
-                <div className={`absolute inset-0 bg-gradient-to-t from-brand-950/95 via-brand-950/15 to-transparent transition-opacity duration-500 pointer-events-none ${
-                    isHovered ? 'opacity-95' : 'opacity-75'
-                }`} />
-
-                {/* Zoom / Play hint on hover */}
-                <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 pointer-events-none ${
+                {/* Refined Hover Badges & Zoom Hint */}
+                <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 pointer-events-none z-20 ${
                     isHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
                 }`}>
-                    <div className="w-14 h-14 bg-accent-300/95 backdrop-blur-md rounded-full flex items-center justify-center text-brand-950 shadow-xl border border-white/60">
+                    <div className="w-12 h-12 bg-amber-400/90 backdrop-blur-md rounded-full flex items-center justify-center text-black shadow-xl border border-white/60">
                         {item.type === 'video'
-                            ? <Play size={22} className="ml-1 fill-current" />
-                            : <ZoomIn size={22} />
+                            ? <Play size={20} className="ml-1 fill-current" />
+                            : <ZoomIn size={20} />
                         }
                     </div>
                 </div>
 
-                {/* Content Overlays */}
-                <div className="absolute top-4 right-4 w-10 h-10 bg-brand-950/35 backdrop-blur-xl rounded-full flex items-center justify-center text-white border border-white/25 shadow-md pointer-events-none">
-                    {item.type === 'video' ? <Play size={16} fill="currentColor" /> : <ImageIcon size={16} />}
+                {/* Top Corner Type Badges */}
+                <div className="absolute top-2 right-2 z-20 w-8 h-8 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 shadow pointer-events-none">
+                    {item.type === 'video' ? <Play size={13} fill="currentColor" /> : <ImageIcon size={13} />}
                 </div>
-                <div className="absolute top-4 left-4 flex flex-col gap-2 pointer-events-none">
-                    {item.category && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-white/20 backdrop-blur-md border border-white/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white shadow">
-                            <Tag size={12} /> {item.category}
+                {item.category && (
+                    <div className="absolute top-2 left-2 z-20 pointer-events-none">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-md border border-white/20 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-200 shadow">
+                            <Tag size={10} /> {item.category}
                         </span>
-                    )}
-                    {item.type === 'video' && item.duration && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-brand-950/80 backdrop-blur-md border border-white/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white shadow">
-                            <Clock size={12} /> {item.duration}
-                        </span>
-                    )}
-                </div>
-
-                <div className={`absolute bottom-0 left-0 right-0 p-3 md:p-6 transition-all duration-500 pointer-events-none ${
-                    isHovered ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-90'
-                }`}>
-                    <div className="flex items-center gap-2 text-accent-400 mb-1 md:mb-2">
-                        <div className="w-5 h-[2px] bg-accent-300" />
-                        <span className="text-[8px] md:text-[10px] font-black tracking-[0.2em] uppercase">{item.type} archive</span>
                     </div>
-                    <div className="text-sm md:text-lg font-serif font-bold text-white mb-1 md:mb-2 leading-tight">
-                        {item.date || 'Ministry Moment'}
-                    </div>
-                </div>
+                )}
             </motion.div>
         </motion.div>
     );
@@ -154,6 +220,7 @@ const GalleryCard: React.FC<GalleryCardProps> = ({
 
 export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items = [] }) => {
     const [failedMedia, setFailedMedia] = useState<Record<string, boolean>>({});
+    const [frameFilter, setFrameFilter] = useState<'all' | 'vintage' | 'polaroid'>('all');
     const [lightboxIndex, setLightboxIndex] = useState<number>(0);
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const openLightbox = useCallback((index: number) => {
@@ -192,21 +259,65 @@ export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items = [] }) 
 
     return (
         <>
-            <div className="relative w-full py-8 md:py-12">
+            <div className="relative w-full py-6 md:py-10">
+                {/* Frame Style Filter Pills */}
+                <div className="flex items-center justify-end gap-2 px-4 sm:px-6 md:px-10 mb-4">
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 mr-1 hidden sm:inline-block">Frame:</span>
+                    <div className="inline-flex bg-black/40 p-1 rounded-xl border border-white/10 backdrop-blur-md">
+                        <button
+                            onClick={() => setFrameFilter('all')}
+                            className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                                frameFilter === 'all'
+                                    ? 'bg-amber-400 text-black shadow-md'
+                                    : 'text-slate-300 hover:text-white'
+                            }`}
+                        >
+                            Dual Mix
+                        </button>
+                        <button
+                            onClick={() => setFrameFilter('vintage')}
+                            className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                                frameFilter === 'vintage'
+                                    ? 'bg-amber-400 text-black shadow-md'
+                                    : 'text-slate-300 hover:text-white'
+                            }`}
+                        >
+                            🕰️ Vintage
+                        </button>
+                        <button
+                            onClick={() => setFrameFilter('polaroid')}
+                            className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                                frameFilter === 'polaroid'
+                                    ? 'bg-amber-400 text-black shadow-md'
+                                    : 'text-slate-300 hover:text-white'
+                            }`}
+                        >
+                            📸 Polaroid
+                        </button>
+                    </div>
+                </div>
+
                 <div className="pointer-events-none absolute inset-x-8 top-2 h-px bg-gradient-to-r from-transparent via-brand-200/70 to-transparent" />
                 <div
-                    className="grid grid-cols-2 gap-x-3 gap-y-10 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-12 md:grid-cols-3 md:gap-x-7 md:gap-y-16 xl:grid-cols-4 px-4 sm:px-6 md:px-10 pb-4 pt-5"
+                    className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-12 sm:gap-x-7 sm:gap-y-16 px-4 sm:px-6 md:px-10 pb-4 pt-5"
                 >
-                    {items.map((item, index) => (
-                        <GalleryCard
-                            key={item.id}
-                            item={item}
-                            index={index}
-                            failedMedia={failedMedia}
-                            setFailedMedia={setFailedMedia}
-                            onClick={() => openLightbox(index)}
-                        />
-                    ))}
+                    {items.map((item, index) => {
+                        const style: 'vintage' | 'polaroid' = frameFilter === 'all'
+                            ? (index % 2 === 0 ? 'vintage' : 'polaroid')
+                            : frameFilter;
+
+                        return (
+                            <GalleryCard
+                                key={item.id}
+                                item={item}
+                                index={index}
+                                frameStyle={style}
+                                failedMedia={failedMedia}
+                                setFailedMedia={setFailedMedia}
+                                onClick={() => openLightbox(index)}
+                            />
+                        );
+                    })}
                 </div>
             </div>
 
@@ -268,13 +379,25 @@ export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items = [] }) 
                             {activeLightboxItem ? (
                                 <>
                                     {activeLightboxItem.type === 'video' ? (
-                                        <video
-                                            src={activeLightboxItem.src}
-                                            controls
-                                            autoPlay
-                                            playsInline
-                                            className="w-full max-h-[78vh] rounded-2xl shadow-[0_40px_80px_rgba(0,0,0,0.6)] object-contain bg-black"
-                                        />
+                                        extractYouTubeId(activeLightboxItem.src) ? (
+                                            <div className="w-full aspect-video max-h-[78vh] rounded-2xl overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,0.7)] bg-black">
+                                                <iframe
+                                                    src={getSafeEmbedUrl(activeLightboxItem.src, { autoplay: true }) || ''}
+                                                    title="Ministry Sermon Video"
+                                                    className="w-full h-full border-0"
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                                    allowFullScreen
+                                                />
+                                            </div>
+                                        ) : (
+                                            <video
+                                                src={activeLightboxItem.src}
+                                                controls
+                                                autoPlay
+                                                playsInline
+                                                className="w-full max-h-[78vh] rounded-2xl shadow-[0_40px_80px_rgba(0,0,0,0.6)] object-contain bg-black"
+                                            />
+                                        )
                                     ) : (
                                         <img
                                             src={activeLightboxItem.src}

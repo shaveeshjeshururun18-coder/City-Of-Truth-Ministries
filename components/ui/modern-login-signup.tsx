@@ -16,21 +16,48 @@ export interface ModernLoginSignupProps {
  */
 export function DotShaderCanvas({ className = "fixed inset-0 w-full h-full pointer-events-none z-0" }: { className?: string } = {}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isNearViewport, setIsNearViewport] = useState(false);
+
+  // This canvas is also used in lower-page sections. Avoid loading Three.js or
+  // starting a render loop until the decoration is about to be visible.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    if (!('IntersectionObserver' in window)) {
+      setIsNearViewport(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsNearViewport(entry.isIntersecting),
+      { rootMargin: '250px 0px' }
+    );
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
+    if (!isNearViewport) return;
+
     let active = true;
     let renderer: any;
     let geometry: any;
     let material: any;
     let scene: any;
     let camera: any;
-    let animationId: number;
+    let animationId = 0;
+    let lastFrame = 0;
+    let pageIsVisible = !document.hidden;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true;
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, window.innerWidth < 768 ? 1 : 1.25);
 
     const initThree = (THREE: any) => {
       if (!canvasRef.current || !active) return;
       const canvas = canvasRef.current;
       renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setPixelRatio(pixelRatio);
       renderer.setSize(window.innerWidth, window.innerHeight);
 
       scene = new THREE.Scene();
@@ -38,7 +65,7 @@ export function DotShaderCanvas({ className = "fixed inset-0 w-full h-full point
 
       const uniforms = {
         u_time: { value: 0 },
-        u_resolution: { value: new THREE.Vector2(window.innerWidth * 2, window.innerHeight * 2) },
+        u_resolution: { value: new THREE.Vector2(window.innerWidth * pixelRatio, window.innerHeight * pixelRatio) },
         u_opacities: { value: [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 1.0] },
         u_colors: { value: [
           new THREE.Vector3(0.96, 0.77, 0.34), // Sacred Amber/Gold (#F59E0B)
@@ -128,23 +155,46 @@ export function DotShaderCanvas({ className = "fixed inset-0 w-full h-full point
       scene.add(mesh);
 
       const startTime = performance.now();
-      const animate = () => {
+      const animate = (now: number) => {
         if (!active) return;
+        if (!pageIsVisible) {
+          animationId = 0;
+          return;
+        }
+        if (prefersReducedMotion || saveData) {
+          uniforms.u_time.value = 0;
+          renderer.render(scene, camera);
+          animationId = 0;
+          return;
+        }
         animationId = requestAnimationFrame(animate);
-        uniforms.u_time.value = (performance.now() - startTime) / 1000.0;
+        // The shader is decorative; 30 FPS is visually smooth while leaving
+        // substantially more GPU time for scrolling and interaction.
+        if (now - lastFrame < 1000 / 30) return;
+        lastFrame = now;
+        uniforms.u_time.value = (now - startTime) / 1000.0;
         renderer.render(scene, camera);
       };
-      animate();
+      animationId = requestAnimationFrame(animate);
+
+      const handleVisibilityChange = () => {
+        pageIsVisible = !document.hidden;
+        if (pageIsVisible && !animationId && active && !prefersReducedMotion && !saveData) {
+          animationId = requestAnimationFrame(animate);
+        }
+      };
 
       const handleResize = () => {
         if (!renderer || !canvasRef.current) return;
         renderer.setSize(window.innerWidth, window.innerHeight);
-        uniforms.u_resolution.value.set(window.innerWidth * 2, window.innerHeight * 2);
+        uniforms.u_resolution.value.set(window.innerWidth * pixelRatio, window.innerHeight * pixelRatio);
       };
       window.addEventListener('resize', handleResize);
+      document.addEventListener('visibilitychange', handleVisibilityChange);
 
       return () => {
         window.removeEventListener('resize', handleResize);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
       };
     };
 
@@ -177,7 +227,7 @@ export function DotShaderCanvas({ className = "fixed inset-0 w-full h-full point
       if (geometry) geometry.dispose();
       if (material) material.dispose();
     };
-  }, []);
+  }, [isNearViewport]);
 
   return (
     <canvas

@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Scroll, Volume2, Sparkles, ArrowLeft, X, Download, PenTool, Check, Search } from 'lucide-react';
+import { Scroll, Volume2, Sparkles, ArrowLeft, X, Download, PenTool, Check, Search, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { audioService } from '../services/audioService';
 import { MouthPronunciationAnimator, HEBREW_LETTER_PHONEMES } from './MouthPronunciationAnimator';
 import { AnimatedTeacherCharacter } from './AnimatedTeacherCharacter';
 import { generateHebrewAlphabetPDF } from './HebrewAlphabetPDF';
 import { LetterTracingModal } from './LetterTracingModal';
+import { HebrewCalendarWidget } from './HebrewCalendarWidget';
 
 const PALEO_IMAGE_MAP: Record<string, string> = {
     ALEPH: "/paleo_letters/04_Aleph.png",
@@ -95,6 +96,7 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
     const [searchTerm, setSearchTerm] = useState('');
     const [pdfGenerating, setPdfGenerating] = useState(false);
     const [pdfError, setPdfError] = useState<string | null>(null);
+    const [pdfModalOpen, setPdfModalOpen] = useState(false);
     const [tracingModalOpen, setTracingModalOpen] = useState(false);
     const [tracingMode, setTracingMode] = useState<'modern' | 'paleo'>('modern');
     const [practiced, setPracticed] = useState<Record<string, boolean>>(() => {
@@ -195,24 +197,20 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
         });
     };
 
-    const handleGeneratePDF = async () => {
+    const handleGeneratePDF = () => {
         setPdfGenerating(true);
         setPdfError(null);
         try {
-            await generateHebrewAlphabetPDF();
+            const link = document.createElement('a');
+            link.href = '/downloads/ilovepdf_merged_organized.pdf';
+            link.download = 'Hebrew_Alphabet_Guide_Organized.pdf';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         } catch (error) {
-            console.error('PDF generation error:', error);
-            try {
-                const link = document.createElement('a');
-                link.href = '/downloads/ilovepdf_merged_organized.pdf';
-                link.download = 'Hebrew_Alphabet_Guide.pdf';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            } catch (_err) {
-                setPdfError('Failed to generate PDF. Please try again.');
-                setTimeout(() => setPdfError(null), 5000);
-            }
+            console.error('PDF download error:', error);
+            setPdfError('Failed to download PDF. Please try again.');
+            setTimeout(() => setPdfError(null), 5000);
         } finally {
             setTimeout(() => setPdfGenerating(false), 500);
         }
@@ -248,9 +246,10 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                 </button>
             )}
 
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10 pt-16 md:pt-20">
+            {/* Main Content Container with safe clearance below floating navbar */}
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10 pt-32 sm:pt-36 md:pt-40">
                 {/* INFINITE RUNNING HEBREW MARQUEE GLYPHS */}
-                <div className="overflow-hidden opacity-35 mb-4 select-none [mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)]">
+                <div className="overflow-hidden opacity-45 mb-6 select-none [mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)]">
                     <motion.div
                         animate={{ x: ['0%', '-50%'] }}
                         transition={{ ease: 'linear', duration: 45, repeat: Infinity }}
@@ -276,7 +275,7 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                         The Holy Tongue — ஆலெஃப் முதல் தாவ் வரை
                     </p>
 
-                    {/* Metadata Badges (WITHOUT GEMATRIA RANGE) */}
+                    {/* Metadata Badges */}
                     <div className="flex items-center justify-center gap-6 sm:gap-10 flex-wrap text-xs text-[#a5927a] mb-8 font-medium">
                         <div className="text-center">
                             <strong className="block font-serif text-2xl text-[#ede6d6] font-bold">22</strong>
@@ -294,15 +293,23 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                         </div>
                     </div>
 
-                    {/* Download HD PDF Button */}
-                    <div className="flex justify-center">
+                    {/* Download & Read PDF Guide Buttons */}
+                    <div className="flex items-center justify-center gap-3 flex-wrap">
                         <button
                             onClick={handleGeneratePDF}
                             disabled={pdfGenerating}
-                            className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl bg-gradient-to-r from-[#e8c468] to-[#c9a227] hover:from-[#f3d482] hover:to-[#e8c468] text-[#0f0d0a] font-extrabold text-xs uppercase tracking-widest shadow-[0_10px_25px_rgba(201,162,39,0.35)] hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-60 cursor-pointer"
+                            className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-gradient-to-r from-[#e8c468] to-[#c9a227] hover:from-[#f3d482] hover:to-[#e8c468] text-[#0f0d0a] font-extrabold text-xs uppercase tracking-widest shadow-[0_10px_25px_rgba(201,162,39,0.35)] hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-60 cursor-pointer"
                         >
                             <Download size={16} strokeWidth={2.5} />
-                            <span>{pdfGenerating ? 'Generating HD PDF...' : 'Download the HD Guide'}</span>
+                            <span>{pdfGenerating ? 'Opening Download...' : 'Download Organized PDF'}</span>
+                        </button>
+
+                        <button
+                            onClick={() => setPdfModalOpen(true)}
+                            className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-[#1d1712] hover:bg-[#282019] border border-[#c9a227]/40 text-[#ede6d6] font-bold text-xs uppercase tracking-widest shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+                        >
+                            <BookOpen size={16} className="text-[#e8c468]" />
+                            <span>Read PDF Guide Online</span>
                         </button>
                     </div>
 
@@ -311,6 +318,11 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                             {pdfError}
                         </div>
                     )}
+
+                    {/* LIVE HEBREW CALENDAR & BIBLICAL MOED WIDGET */}
+                    <div className="mt-8 max-w-2xl mx-auto text-left">
+                        <HebrewCalendarWidget />
+                    </div>
                 </header>
 
                 {/* STICKY GLASS TOOLBAR */}
@@ -631,6 +643,63 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                     mode={tracingMode}
                 />
             )}
+
+            {/* ─── In-Browser PDF Guide Modal (ilovepdf_merged_organized.pdf) ─── */}
+            <AnimatePresence>
+                {pdfModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[200] bg-black/92 backdrop-blur-md flex flex-col items-center justify-center p-2 sm:p-4"
+                        onClick={() => setPdfModalOpen(false)}
+                    >
+                        <div
+                            className="relative w-full max-w-5xl h-[92vh] bg-[#17130f] border border-[#c9a227]/30 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Modal Header */}
+                            <div className="flex items-center justify-between px-4 sm:px-6 py-3 bg-[#110e0b] border-b border-white/10 shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <BookOpen size={20} className="text-[#c9a227]" />
+                                    <div>
+                                        <h3 className="text-sm sm:text-base font-serif font-bold text-[#ede6d6]">
+                                            Hebrew Alphabet Organized Study Guide
+                                        </h3>
+                                        <p className="text-[10px] text-[#a5927a]">
+                                            ilovepdf_merged_organized.pdf • City of Truth Ministries
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={handleGeneratePDF}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#c9a227] hover:bg-[#e8c468] text-black rounded-lg text-xs font-bold transition-all cursor-pointer"
+                                    >
+                                        <Download size={14} />
+                                        <span className="hidden sm:inline">Download</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setPdfModalOpen(false)}
+                                        className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all cursor-pointer"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Embedded PDF Viewer */}
+                            <div className="flex-1 w-full h-full bg-[#0a0806] overflow-hidden">
+                                <iframe
+                                    src="/downloads/ilovepdf_merged_organized.pdf#toolbar=1"
+                                    title="Hebrew Alphabet Organized Guide PDF"
+                                    className="w-full h-full border-none"
+                                />
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

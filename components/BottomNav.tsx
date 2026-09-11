@@ -58,21 +58,28 @@ import { useState, useEffect, useRef } from 'react';
 export const BottomNav: React.FC<BottomNavProps> = ({ currentView, setView }) => {
     const [isVisible, setIsVisible] = useState(true);
     const lastScrollYRef = useRef(0);
+    const isVisibleRef = useRef(true);
 
     useEffect(() => {
         const handleScroll = () => {
+            const setVisibility = (visible: boolean) => {
+                if (isVisibleRef.current !== visible) {
+                    isVisibleRef.current = visible;
+                    setIsVisible(visible);
+                }
+            };
             if (currentView === ViewState.HOME) {
-                setIsVisible(true);
+                setVisibility(true);
                 return;
             }
             const currentScrollY = window.scrollY;
             const lastScrollY = lastScrollYRef.current;
             if (currentScrollY <= 12) {
-                setIsVisible(true);
+                setVisibility(true);
             } else if (currentScrollY > lastScrollY + 6 && currentScrollY > 90) {
-                setIsVisible(false);
+                setVisibility(false);
             } else if (currentScrollY < lastScrollY - 6) {
-                setIsVisible(true);
+                setVisibility(true);
             }
             lastScrollYRef.current = Math.max(0, currentScrollY);
         };

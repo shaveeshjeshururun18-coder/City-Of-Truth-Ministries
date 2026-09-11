@@ -4,6 +4,8 @@ import { MapPin, Mountain, History, Leaf, TrendingUp, CloudRain, Plane, Navigati
 import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { PeelingStackCards, PeelingCardItem } from './ui/peeling-stack-cards';
+import { ExactProjectStack, VALPARAI_DESTINATIONS_STACK } from './ui/exact-project-stack';
+import { ValparaiWeatherWidget } from './ValparaiWeatherWidget';
 
 interface DestinationData {
     name: string;
@@ -238,6 +240,11 @@ export const ValparaiPage: React.FC<{ setView?: any }> = () => {
                 </motion.p>
             </div>
 
+            {/* Live Valparai Hill Station Weather */}
+            <div className="container mx-auto px-6 max-w-4xl mb-12">
+                <ValparaiWeatherWidget />
+            </div>
+
             {/* Wikipedia-Style Fact Grid */}
             <div className="container mx-auto px-6 max-w-5xl mb-16">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -260,106 +267,16 @@ export const ValparaiPage: React.FC<{ setView?: any }> = () => {
                 </div>
             </div>
 
-            {/* 3D Peeling Stacking Cards - Scenic Explorations (Destinations) */}
-            {(() => {
-                const destinationCards: PeelingCardItem[] = DESTINATIONS.map((dest, index) => {
-                    let themeGradient = 'from-[#052e16] via-[#064e3b] to-[#022c22]';
-                    let borderColor = 'border-emerald-500/35';
-                    let badgeText = `Destination 0${index + 1} · High-Altitude Shola`;
-                    let badgeIcon = <Mountain size={12} className="text-emerald-400" />;
-
-                    if (index === 1) {
-                        themeGradient = 'from-[#082f49] via-[#075985] to-[#0c4a6e]';
-                        borderColor = 'border-cyan-500/35';
-                        badgeText = `Destination 0${index + 1} · Deep Mountain Reservoir`;
-                        badgeIcon = <Compass size={12} className="text-cyan-400" />;
-                    } else if (index === 2) {
-                        themeGradient = 'from-[#1e1b4b] via-[#312e81] to-[#0f172a]';
-                        borderColor = 'border-indigo-500/35';
-                        badgeText = `Destination 0${index + 1} · South Indian Cherrapunji`;
-                        badgeIcon = <CloudRain size={12} className="text-indigo-400" />;
-                    } else if (index === 3) {
-                        themeGradient = 'from-[#451a03] via-[#78350f] to-[#1c1917]';
-                        borderColor = 'border-amber-500/35';
-                        badgeText = `Destination 0${index + 1} · 40 Hairpin Ghat Bend`;
-                        badgeIcon = <MapPin size={12} className="text-amber-400" />;
-                    }
-
-                    return {
-                        id: `dest-${index}`,
-                        tabLabel: dest.name.split(' (')[0].replace(' & Hairpins', ''),
-                        tabIcon: <MapPin size={14} />,
-                        stageBadge: badgeText,
-                        badgeIcon,
-                        title: dest.name,
-                        tamilTitle: dest.tamilName,
-                        subtitle: `${dest.distance} · ${dest.tips}`,
-                        themeGradient,
-                        borderColor,
-                        content: (
-                            <div className="space-y-4 text-left">
-                                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-black/40 backdrop-blur-md border border-white/15 text-white/90 text-xs font-mono font-bold">
-                                    <MapPin size={13} className="text-amber-400" />
-                                    <span>{dest.distance}</span>
-                                </div>
-
-                                <p className="text-white/85 text-xs sm:text-sm leading-relaxed text-justify">
-                                    {dest.desc}
-                                </p>
-
-                                <div className="p-3.5 rounded-2xl bg-amber-500/10 border-l-4 border-amber-400 backdrop-blur-sm">
-                                    <div className="text-[10px] font-black uppercase tracking-wider text-amber-300 mb-1">
-                                        தமிழ் விளக்கம் (Tamil Summary)
-                                    </div>
-                                    <p className="text-amber-100/90 text-xs sm:text-sm font-serif leading-relaxed italic text-justify">
-                                        {dest.tamilDesc}
-                                    </p>
-                                </div>
-
-                                <div className="pt-2 flex items-center justify-between text-[11px] text-white/70 font-semibold border-t border-white/10">
-                                    <span className="flex items-center gap-1.5 text-amber-300">
-                                        <Info size={13} className="text-amber-400 shrink-0" />
-                                        <span>{dest.tips}</span>
-                                    </span>
-                                </div>
-                            </div>
-                        ),
-                        visualSide: (
-                            <div className="w-full h-full min-h-[280px] sm:min-h-[340px] rounded-3xl overflow-hidden border-2 border-amber-400/40 shadow-2xl relative group/visual flex flex-col justify-end p-4">
-                                <div className="absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 border-amber-400/80 z-20" />
-                                <div className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-amber-400/80 z-20" />
-                                <div className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-amber-400/80 z-20" />
-                                <div className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-amber-400/80 z-20" />
-
-                                <img
-                                    src={dest.imgUrl}
-                                    alt={dest.name}
-                                    className="absolute inset-0 w-full h-full object-cover group-hover/visual:scale-105 transition-transform duration-700"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none" />
-
-                                <div className="relative z-10 flex items-center justify-between text-white text-xs font-serif">
-                                    <span className="font-bold text-amber-300 text-sm drop-shadow">{dest.tamilName}</span>
-                                    <span className="px-2.5 py-0.5 rounded-full bg-black/70 border border-white/25 text-[10px] font-sans font-bold">
-                                        Full Color Archive
-                                    </span>
-                                </div>
-                            </div>
-                        )
-                    };
-                });
-
-                return (
-                    <PeelingStackCards
-                        badgeLabel="Scenic Explorations"
-                        title="Interactive Destination Guide"
-                        tamilTitle="வால்பாறை முக்கிய சுற்றுலா இடங்கள்"
-                        subtitle="Explore detailed tourist guides, scenic waterfalls, high-altitude grasslands, and mountain reservoirs across Valparai."
-                        items={destinationCards}
-                        className="mb-24"
-                    />
-                );
-            })()}
+            {/* Exact Sticky Stacking Destination Cards (Section 5 Spec) */}
+            <ExactProjectStack
+                badgeLabel="Scenic Explorations"
+                heading="Valparai"
+                tamilHeading="வால்பாறை முக்கிய சுற்றுலா இடங்கள்"
+                subtitle="Explore detailed tourist guides, scenic waterfalls, high-altitude grasslands, and mountain reservoirs across Valparai."
+                items={VALPARAI_DESTINATIONS_STACK}
+                allowJackToggle={false}
+                className="mb-24"
+            />
 
             {/* Download PDF Button */}
             <div className="container mx-auto px-6 max-w-5xl mb-8 flex justify-end">

@@ -134,6 +134,7 @@ const HOME_SECTIONS_INFO: Record<string, { name: string; desc: string; icon: any
     members: { name: 'Member Initials', desc: 'Names with two-letter identity logos', icon: Users, color: 'bg-orange-500' },
     preview: { name: 'Entrust Preview', desc: 'Quick overview of community card', icon: Phone, color: 'bg-violet-500' },
     donations: { name: 'Donations', desc: 'Support boxes and giving section', icon: CheckCircle, color: 'bg-orange-500' },
+    globalPresence: { name: 'Global Presence', desc: 'Interactive worldwide prayer globe and Valparai sanctuary map', icon: Globe, color: 'bg-sky-600' },
     verify: { name: 'Verify ID', desc: 'Security and verification portal', icon: CheckCircle, color: 'bg-slate-500' }
 };
 

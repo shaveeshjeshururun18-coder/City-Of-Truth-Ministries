@@ -164,6 +164,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
   const [isScrolled, setIsScrolled] = useState(false);
   const [isNavVisible, setIsNavVisible] = useState(true);
   const lastScrollYRef = useRef(0);
+  const isScrolledRef = useRef(false);
+  const isNavVisibleRef = useRef(true);
   const { language, setLanguage, t } = useLanguage();
   const currentPathMatchedByHref = navItems.some(item =>
     item.href === location.pathname ||
@@ -182,18 +184,29 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
       const lastScrollY = lastScrollYRef.current;
-      setIsScrolled(currentScrollY > 20);
+      const nextIsScrolled = currentScrollY > 20;
+      if (isScrolledRef.current !== nextIsScrolled) {
+        isScrolledRef.current = nextIsScrolled;
+        setIsScrolled(nextIsScrolled);
+      }
+
+      const setNavigationVisibility = (visible: boolean) => {
+        if (isNavVisibleRef.current !== visible) {
+          isNavVisibleRef.current = visible;
+          setIsNavVisible(visible);
+        }
+      };
 
       if (currentView === ViewState.HOME) {
-        setIsNavVisible(true);
+        setNavigationVisibility(true);
       } else if (currentScrollY <= 12) {
-        setIsNavVisible(true);
+        setNavigationVisibility(true);
       } else if (currentScrollY > lastScrollY + 6 && currentScrollY > 90) {
-        setIsNavVisible(false);
+        setNavigationVisibility(false);
         setDesktopHoverMenu(null);
         setMobileMenuOpen(false);
       } else if (currentScrollY < lastScrollY - 6) {
-        setIsNavVisible(true);
+        setNavigationVisibility(true);
       } else {
         return;
       }
@@ -216,21 +229,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
   return (
     <>
-      {/* Import Montserrat font directly for exactness */}
-      <style dangerouslySetInnerHTML={{
-        __html: `
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
-        .montserrat { font-family: 'Montserrat', sans-serif; }
-        @keyframes logo-shine {
-          0%, 58% { transform: translateX(0) rotate(12deg); opacity: 0; }
-          68% { opacity: 0.85; }
-          82%, 100% { transform: translateX(84px) rotate(12deg); opacity: 0; }
-        }
-      `}} />
-
       {/* Navigation bar */}
       <nav
-        className={`fixed top-3 inset-x-3 md:inset-x-6 z-[60] flex items-center gap-4 transition-all duration-300 montserrat rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-[0_18px_50px_-30px_rgba(15,23,42,0.7)] ${isScrolled ? 'px-3 md:px-5 py-1.5' : 'px-4 md:px-6 py-2.5'} ${!isNavVisible ? '-translate-y-[140%]' : 'translate-y-0'}`}
+        className={`fixed top-3 inset-x-3 md:inset-x-6 z-[60] flex items-center gap-4 transition-all duration-300 rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-[0_18px_50px_-30px_rgba(15,23,42,0.7)] ${isScrolled ? 'px-3 md:px-5 py-1.5' : 'px-4 md:px-6 py-2.5'} ${!isNavVisible ? '-translate-y-[140%]' : 'translate-y-0'}`}
         role="navigation"
         aria-label="Main navigation"
       >
@@ -264,6 +265,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             return (
               <li
                 key={item.label}
+                className="relative"
                 draggable={isEditMode}
                 onDragStart={(e) => handleDragStart(e, originalIndex)}
                 onDragOver={handleDragOver}
@@ -411,7 +413,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed top-0 right-0 bottom-0 z-[110] w-[78%] max-w-[19rem] bg-white shadow-2xl flex flex-col montserrat"
+              className="fixed top-0 right-0 bottom-0 z-[110] w-[78%] max-w-[19rem] bg-white shadow-2xl flex flex-col"
             >
 
 

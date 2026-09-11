@@ -66,9 +66,25 @@
   }
 }
 
-/* Hardware-accelerated Smooth Transitions */
-* {
-  transition: box-shadow 0.2s ease, background-color 0.2s ease;
+/*
+ * Do not put transitions on every node. On a dense page this makes the
+ * browser track paintable properties for thousands of elements while moving.
+ * Components that need a transition already declare one with Tailwind.
+ */
+
+/* Keep scrolling on the compositor thread. Expensive paint effects resume
+ * immediately after the gesture ends, but never compete with the scroll.
+ */
+html.is-scrolling *,
+html.is-scrolling *::before,
+html.is-scrolling *::after {
+  animation-play-state: paused !important;
+  transition-duration: 0ms !important;
+}
+
+html.is-scrolling [class*="backdrop-blur"] {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }
 
 html,
@@ -271,3 +287,304 @@ body {
   background-color: #ffffff;
   color: #1e293b;
 }
+
+/* =========================================================
+   ARTISAN PHOTO FRAMES (VINTAGE HEIRLOOM & POLAROID SX-70)
+========================================================= */
+
+/* 1. Vintage Retro Frame */
+.photo-frame-vintage {
+  position: relative;
+  width: 100%;
+  background: 
+    radial-gradient(circle at 50% 50%, rgba(247, 237, 218, 0.85) 0%, rgba(206, 177, 137, 0.95) 75%, #a67c52 100%),
+    #ddc7a0;
+  padding: 16px 16px 22px;
+  box-shadow: 
+    0 24px 45px rgba(0, 0, 0, 0.75),
+    0 6px 12px rgba(0, 0, 0, 0.4),
+    inset 0 0 35px rgba(97, 56, 18, 0.5);
+  border-radius: 3px;
+  border: 1px solid rgba(140, 95, 45, 0.35);
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+  user-select: none;
+}
+
+.photo-frame-vintage .deckle-wrapper {
+  position: relative;
+  background: #fbf5e8;
+  padding: 10px;
+  box-shadow: 
+    0 3px 10px rgba(70, 40, 15, 0.35),
+    inset 0 0 25px rgba(110, 65, 20, 0.35);
+  /* Keep the torn-paper feel at the border only. Applying an SVG displacement
+     filter here warps every face in the photo along with the paper edge. */
+  clip-path: polygon(0.6% 0.8%, 14% 0.2%, 30% 0.7%, 47% 0.1%, 64% 0.6%, 82% 0.2%, 99.4% 0.8%, 99.8% 18%, 99.3% 37%, 99.8% 56%, 99.2% 76%, 99.7% 99.2%, 82% 99.7%, 63% 99.2%, 45% 99.8%, 27% 99.3%, 9% 99.8%, 0.3% 99.1%, 0.7% 78%, 0.2% 57%, 0.8% 36%, 0.2% 17%);
+  overflow: hidden;
+}
+
+.photo-frame-vintage .photo-inner {
+  position: relative;
+  overflow: hidden;
+  background: #000;
+  border: 1px solid rgba(80, 50, 20, 0.4);
+}
+
+.photo-frame-vintage .vintage-img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4/5;
+  object-fit: cover;
+  filter: none;
+  transition: transform 0.6s ease;
+}
+
+.photo-frame-vintage:hover .vintage-img {
+  transform: scale(1.04);
+}
+
+.photo-frame-vintage .scratches-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: 
+    radial-gradient(ellipse at 40% 30%, rgba(255, 240, 210, 0.18) 0%, transparent 50%),
+    repeating-linear-gradient(45deg, rgba(0,0,0,0.035) 0px, rgba(0,0,0,0.035) 1px, transparent 1px, transparent 8px);
+  box-shadow: inset 0 0 22px rgba(60, 32, 10, 0.25);
+  opacity: 0.18;
+}
+
+.photo-frame-vintage .bracket {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  z-index: 10;
+  pointer-events: none;
+}
+.photo-frame-vintage .bracket.tl { top: 18px; left: 18px; border-top: 3px solid #846337; border-left: 3px solid #846337; box-shadow: -1px -1px 2px rgba(0,0,0,0.5); }
+.photo-frame-vintage .bracket.tr { top: 18px; right: 18px; border-top: 3px solid #846337; border-right: 3px solid #846337; box-shadow: 1px -1px 2px rgba(0,0,0,0.5); }
+.photo-frame-vintage .bracket.bl { bottom: 58px; left: 18px; border-bottom: 3px solid #846337; border-left: 3px solid #846337; box-shadow: -1px 1px 2px rgba(0,0,0,0.5); }
+.photo-frame-vintage .bracket.br { bottom: 58px; right: 18px; border-bottom: 3px solid #846337; border-right: 3px solid #846337; box-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+
+.photo-frame-vintage .ink-stamp {
+  position: absolute;
+  bottom: 18px;
+  right: -8px;
+  width: 76px;
+  height: 76px;
+  border: 2px dashed rgba(100, 40, 20, 0.72);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(15deg);
+  pointer-events: none;
+  color: rgba(90, 35, 18, 0.85);
+  font-family: 'Space Mono', monospace;
+  font-size: 7.5px;
+  text-transform: uppercase;
+  letter-spacing: 1.1px;
+  text-align: center;
+  background: radial-gradient(circle, rgba(230, 200, 160, 0.35) 0%, transparent 80%);
+  box-shadow: inset 0 0 10px rgba(100, 40, 20, 0.15);
+}
+
+.photo-frame-vintage .caption {
+  display: block;
+  margin-top: 12px;
+  text-align: center;
+  font-family: 'Special Elite', cursive, serif;
+  font-size: 15px;
+  color: #3b2a1a;
+  letter-spacing: 0.8px;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+}
+
+/* 2. Polaroid SX-70 Instant Film Frame */
+.photo-frame-polaroid {
+  position: relative;
+  width: 100%;
+  background: #faf8f5;
+  padding: 14px 14px 62px;
+  border-radius: 2px;
+  box-shadow: 
+    0 24px 44px -8px rgba(0, 0, 0, 0.72),
+    0 10px 18px -4px rgba(0, 0, 0, 0.38),
+    0 1px 2px rgba(0,0,0,0.12);
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+  user-select: none;
+}
+
+.photo-frame-polaroid::before {
+  content: "";
+  position: absolute;
+  bottom: 12px;
+  left: 10px;
+  width: 45%;
+  height: 20px;
+  background: transparent;
+  box-shadow: 0 18px 24px rgba(0,0,0,0.65);
+  transform: rotate(-4deg);
+  z-index: -1;
+}
+
+.photo-frame-polaroid::after {
+  content: "";
+  position: absolute;
+  bottom: 12px;
+  right: 10px;
+  width: 45%;
+  height: 20px;
+  background: transparent;
+  box-shadow: 0 18px 24px rgba(0,0,0,0.65);
+  transform: rotate(4deg);
+  z-index: -1;
+}
+
+.photo-frame-polaroid .photo-inner {
+  position: relative;
+  overflow: hidden;
+  background: #111;
+  border: 1px solid rgba(0,0,0,0.14);
+  box-shadow: inset 0 0 12px rgba(0,0,0,0.5);
+}
+
+.photo-frame-polaroid .polaroid-img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4/5;
+  object-fit: cover;
+  filter: none;
+  transition: transform 0.6s ease;
+}
+
+.photo-frame-polaroid:hover .polaroid-img {
+  transform: scale(1.04);
+}
+
+.photo-frame-polaroid .emulsion-glare {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.02) 40%, transparent 60%);
+  pointer-events: none;
+  opacity: 0.22;
+}
+
+.photo-frame-polaroid .frame-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(0,0,0,0.025) 1px, transparent 1px);
+  background-size: 3px 3px;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.09);
+}
+
+.photo-frame-polaroid .scotch-tape {
+  position: absolute;
+  top: -14px;
+  left: 32%;
+  width: 90px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transform: rotate(-2.5deg);
+  pointer-events: none;
+  opacity: 0.9;
+  z-index: 10;
+}
+
+.photo-frame-polaroid .caption {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  right: 14px;
+  text-align: center;
+  font-family: 'Homemade Apple', cursive;
+  font-size: 17px;
+  color: #1a1614;
+  line-height: 1.35;
+  transform: rotate(-0.5deg);
+}
+
+/* =========================================================
+   PUNK / NEWSPAPER CUTOUT RANSOM TITLE STYLES
+========================================================= */
+.ransom-banner-container {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  background: #09090b;
+  padding: 16px 24px;
+  border-radius: 6px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), inset 0 0 35px rgba(0,0,0,0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ransom-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.ransom-word {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+}
+
+.ransom-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ede4d1;
+  color: #0c0b0a;
+  font-family: 'Cinzel', 'Impact', sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-radius: 2px;
+  box-shadow: 0 5px 12px rgba(0,0,0,0.6), inset 0 0 4px rgba(0,0,0,0.3);
+  border: 1px solid rgba(0,0,0,0.3);
+  background-image: 
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.04) 0px, rgba(0,0,0,0.04) 1px, transparent 1px, transparent 3px),
+    radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(215,200,175,0.8) 100%);
+  filter: contrast(1.15) brightness(0.96);
+  text-shadow: 1px 1px 0 rgba(255,255,255,0.25);
+  user-select: none;
+  line-height: 1;
+}
+
+.ransom-ray-left, .ransom-ray-right {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: #ede4d1;
+  opacity: 0.9;
+}
+
+/* 3D Creator & Hero Heading Gradient Text */
+.hero-heading {
+  background: linear-gradient(180deg, #646973 0%, #BBCCD7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Lithos Geology Spotlight Hero Styles & Animations */
+.font-playfair { font-family: 'Playfair Display', serif; }
+
+@keyframes heroReveal { 0%{opacity:0;transform:translateY(28px);filter:blur(12px)} 100%{opacity:1;transform:translateY(0);filter:blur(0)} }
+@keyframes heroFadeUp { 0%{opacity:0;transform:translateY(20px)} 100%{opacity:1;transform:translateY(0)} }
+@keyframes heroZoom { 0%{transform:scale(1.12)} 100%{transform:scale(1)} }
+.hero-anim { opacity:0; animation-fill-mode:forwards; animation-timing-function:cubic-bezier(0.16,1,0.3,1); }
+.hero-reveal { animation-name:heroReveal; animation-duration:1.1s; }
+.hero-fade { animation-name:heroFadeUp; animation-duration:1s; }
+.hero-zoom { animation:heroZoom 1.8s cubic-bezier(0.16,1,0.3,1) forwards; }
+@media (prefers-reduced-motion: reduce){ .hero-anim,.hero-zoom{ animation:none; opacity:1; } }

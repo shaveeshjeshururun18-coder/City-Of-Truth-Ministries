@@ -17,7 +17,10 @@ import {
   ArrowUpRight,
   HeartHandshake,
   Compass,
+  CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
+import { validateEmail } from "../services/validationService";
 import { User, ViewState } from "../types";
 import { Cover } from "./ui/cover";
 import { DottedGlowBackground } from "./ui/dotted-glow-background";
@@ -65,6 +68,36 @@ export const ContactPage: React.FC<ContactPageProps> = ({
 
   const scrollToMap = () => {
     mapRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const emailValidation = React.useMemo(() => {
+    if (!contactForm.email) return null;
+    return validateEmail(contactForm.email);
+  }, [contactForm.email]);
+
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
+
+  const onSafeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitError(null);
+
+    const emailCheck = validateEmail(contactForm.email);
+    if (!emailCheck.isValid) {
+      setSubmitError(emailCheck.message || 'Please provide a valid email address');
+      return;
+    }
+
+    if (!contactForm.name?.trim()) {
+      setSubmitError('Please provide your name');
+      return;
+    }
+
+    if (!contactForm.message?.trim()) {
+      setSubmitError('Please enter your prayer petition or message');
+      return;
+    }
+
+    handleContactFormSubmit(e);
   };
 
   return (
@@ -282,7 +315,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                 </p>
               </div>
 
-              <form className="space-y-6 relative z-10" onSubmit={handleContactFormSubmit}>
+              <form className="space-y-6 relative z-10" onSubmit={onSafeSubmit}>
                 {currentUser && (
                   <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-sky-400 bg-sky-500/10 border border-sky-400/30 rounded-xl px-4 py-3">
                     <ShieldCheck size={16} />
@@ -341,10 +374,27 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                         className={`w-full pl-11 pr-4 py-3.5 rounded-xl border border-slate-700 outline-none text-sm font-medium transition-all ${
                           currentUser
                             ? "bg-slate-800/60 text-slate-400 cursor-not-allowed"
-                            : "bg-slate-950/80 text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                            : emailValidation && !emailValidation.isValid
+                              ? "bg-slate-950/80 text-white border-amber-500/70 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
+                              : emailValidation && emailValidation.isValid
+                                ? "bg-slate-950/80 text-white border-emerald-500/70 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
+                                : "bg-slate-950/80 text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                         }`}
                       />
                     </div>
+                    {emailValidation && (
+                      <div className="flex items-center gap-1.5 text-[11px] mt-1 ml-1">
+                        {emailValidation.isValid ? (
+                          <span className="text-emerald-400 flex items-center gap-1 font-medium">
+                            <CheckCircle2 size={12} /> Valid email syntax
+                          </span>
+                        ) : (
+                          <span className="text-amber-400 flex items-center gap-1 font-medium">
+                            <AlertTriangle size={12} /> {emailValidation.message}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -396,6 +446,14 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                     className="w-full p-4 bg-slate-950/80 border border-slate-700 rounded-xl text-sm font-medium text-white placeholder:text-slate-500 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none resize-none"
                   />
                 </div>
+
+                {/* Validation Error Banner */}
+                {submitError && (
+                  <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-center gap-2 font-medium">
+                    <AlertTriangle size={15} className="text-red-400 shrink-0" />
+                    <span>{submitError}</span>
+                  </div>
+                )}
 
                 {/* Submit Glowing Button */}
                 <button

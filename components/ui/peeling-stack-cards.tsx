@@ -61,6 +61,34 @@ export const PeelingStackCards: React.FC<PeelingStackCardsProps> = ({
     const wrapperRefs = useRef<(HTMLElement | null)[]>([]);
     const innerRefs = useRef<(HTMLElement | null)[]>([]);
     const containerRef = useRef<HTMLElement>(null);
+    const isScrollEngineNearRef = useRef(true);
+    // Scroll can fire dozens of times per second. Keep the last front card in a
+    // ref so the visual engine only asks React to update the navigation when the
+    // active card actually changes.
+    const activeTabIdRef = useRef(activeTabId);
+
+    useEffect(() => {
+        activeTabIdRef.current = activeTabId;
+    }, [activeTabId]);
+
+    // Israel contains more than one stack. Do not measure every card in every
+    // stack on every wheel tick: activate an engine only shortly before its
+    // section reaches the viewport.
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container || !('IntersectionObserver' in window)) return;
+
+        const observer = new IntersectionObserver(([entry]) => {
+            const wasNear = isScrollEngineNearRef.current;
+            isScrollEngineNearRef.current = entry.isIntersecting;
+            if (!wasNear && entry.isIntersecting) {
+                window.dispatchEvent(new Event('scroll'));
+            }
+        }, { rootMargin: '900px 0px' });
+
+        observer.observe(container);
+        return () => observer.disconnect();
+    }, []);
 
     deckCardRefs.current = items.map((_, i) => deckCardRefs.current[i] || null);
     wrapperRefs.current = items.map((_, i) => wrapperRefs.current[i] || null);
@@ -78,7 +106,11 @@ export const PeelingStackCards: React.FC<PeelingStackCardsProps> = ({
 
     const goToIndex = useCallback((idx: number) => {
         const clamped = Math.max(0, Math.min(idx, items.length - 1));
-        setActiveTabId(items[clamped].id);
+        const nextId = items[clamped].id;
+        if (activeTabIdRef.current !== nextId) {
+            activeTabIdRef.current = nextId;
+            setActiveTabId(nextId);
+        }
     }, [items]);
 
     // Touch handlers for mobile swipe
@@ -116,6 +148,7 @@ export const PeelingStackCards: React.FC<PeelingStackCardsProps> = ({
         let ticking = false;
 
         const updateSwipeStack = () => {
+            if (!isScrollEngineNearRef.current) return;
             const track = trackRef.current;
             if (!track) return;
             const cards = deckCardRefs.current.filter(Boolean) as HTMLElement[];
@@ -162,7 +195,11 @@ export const PeelingStackCards: React.FC<PeelingStackCardsProps> = ({
             });
 
             const currentFront = activeProgress > 0.5 ? Math.min(activeIdx + 1, numCards - 1) : activeIdx;
-            if (items[currentFront]) setActiveTabId(items[currentFront].id);
+            const nextActiveId = items[currentFront]?.id;
+            if (nextActiveId && activeTabIdRef.current !== nextActiveId) {
+                activeTabIdRef.current = nextActiveId;
+                setActiveTabId(nextActiveId);
+            }
         };
 
         const onScroll = () => {
@@ -183,6 +220,7 @@ export const PeelingStackCards: React.FC<PeelingStackCardsProps> = ({
         let ticking = false;
 
         const updateCascade = () => {
+            if (!isScrollEngineNearRef.current) return;
             const wrappers = wrapperRefs.current.filter(Boolean) as HTMLElement[];
             const inners = innerRefs.current.filter(Boolean) as HTMLElement[];
             if (!wrappers.length) return;
@@ -203,8 +241,10 @@ export const PeelingStackCards: React.FC<PeelingStackCardsProps> = ({
                         const nextStickyTop = baseStickyTop + ((index + 1) * 24);
                         progress = Math.max(0, Math.min(1, 1 - (nextRect.top - nextStickyTop) / (viewportHeight - nextStickyTop)));
                     }
-                    inner.style.transform = `translate3d(0, ${-(progress * 120).toFixed(1)}px, 0) scale(${(1 - progress * 0.10).toFixed(4)})`;
-                    inner.style.filter = `brightness(${(1 - progress * 0.40).toFixed(2)})`;
+                    const scale = 1 - progress * (1 - minScale);
+                    const brightness = 1 - progress * (1 - minBrightness);
+                    inner.style.transform = `translate3d(0, ${-(progress * 120).toFixed(1)}px, 0) scale(${scale.toFixed(4)})`;
+                    inner.style.filter = `brightness(${brightness.toFixed(2)})`;
                 } else {
                     inner.style.transform = 'translate3d(0, 0px, 0) scale(1)';
                     inner.style.filter = 'brightness(1)';
@@ -222,7 +262,7 @@ export const PeelingStackCards: React.FC<PeelingStackCardsProps> = ({
         window.addEventListener('resize', onScroll, { passive: true });
         updateCascade();
         return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); };
-    }, [viewMode, stackStyle, items, isMobile]);
+    }, [viewMode, stackStyle, items, isMobile, minScale, minBrightness]);
 
     const handleTabClick = (id: string) => {
         setActiveTabId(id);
