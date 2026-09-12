@@ -232,52 +232,7 @@ export const BaruchHashemPage: React.FC = () => {
     };
 
     useEffect(() => {
-        let hasInteracted = false;
-
-        const attemptPlay = () => {
-            if (audioRef.current && audioRef.current.paused) {
-                const playPromise = audioRef.current.play();
-                if (playPromise !== undefined) {
-                    playPromise
-                        .then(() => {
-                            setIsPlaying(true);
-                            removeInteractionListeners();
-                        })
-                        .catch((err) => {
-                            console.log("[BaruchHashem] Autoplay waiting for interaction:", err?.message || err);
-                        });
-                }
-            }
-        };
-
-        const onUserInteraction = () => {
-            if (!hasInteracted) {
-                hasInteracted = true;
-                attemptPlay();
-            }
-        };
-
-        const interactionEvents = ['click', 'touchstart', 'pointerdown', 'keydown', 'scroll'];
-
-        const removeInteractionListeners = () => {
-            interactionEvents.forEach((evt) => {
-                window.removeEventListener(evt, onUserInteraction);
-            });
-        };
-
-        // 1. Immediate attempt (succeeds if entered through click or supported browser state)
-        attemptPlay();
-
-        // 2. Short delays to catch when audio media buffer/ref is ready
-        const timer1 = setTimeout(attemptPlay, 150);
-        const timer2 = setTimeout(attemptPlay, 600);
-
-        // 3. Fallback: play on first user interaction anywhere on the screen
-        interactionEvents.forEach((evt) => {
-            window.addEventListener(evt, onUserInteraction, { once: true, passive: true });
-        });
-
-        // 4. Pause audio if user focuses an embedded YouTube video iframe
+        // Pause audio if user focuses an embedded YouTube video iframe
         const handleBlur = () => {
             setTimeout(() => {
                 if (document.activeElement && document.activeElement.tagName === 'IFRAME') {
@@ -292,9 +247,6 @@ export const BaruchHashemPage: React.FC = () => {
         window.addEventListener('blur', handleBlur);
 
         return () => {
-            clearTimeout(timer1);
-            clearTimeout(timer2);
-            removeInteractionListeners();
             window.removeEventListener('blur', handleBlur);
             if (audioRef.current) {
                 audioRef.current.pause();
@@ -444,7 +396,6 @@ export const BaruchHashemPage: React.FC = () => {
                                         className="hidden"
                                         src="/audio/baruch-hashem.mp3"
                                         preload="auto"
-                                        autoPlay
                                         loop
                                         playsInline
                                         onPlay={() => setIsPlaying(true)}
