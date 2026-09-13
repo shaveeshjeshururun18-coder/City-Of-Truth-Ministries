@@ -83,6 +83,7 @@ export const PastorPage: React.FC<PastorPageProps> = ({
     const [connectSuccess, setConnectSuccess] = useState(false);
     const [isConnectHovered, setIsConnectHovered] = useState(false);
     const [isConnectFocused, setIsConnectFocused] = useState(false);
+    const [hoveredPillar, setHoveredPillar] = useState<number | null>(null);
 
     const handleConnectSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -1443,270 +1444,244 @@ export const PastorPage: React.FC<PastorPageProps> = ({
                     </p>
                 </div>
 
-                {/* 3 Pillars Grid - Meditix Deep Forest (#2A3B24) with Radiant Cream Text (#F3EFE7) */}
+                {/* 3 Pillars Grid - Meditix Portrait Folder Cards */}
                 <div style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                    gap: 22,
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
+                    gap: 26,
                     marginBottom: 44,
                 }}>
-                    {/* Pillar 1: Sacred Hebrew Roots */}
-                    <div
-                        style={{
-                            padding: 'clamp(26px, 4vw, 34px)',
-                            borderRadius: 26,
-                            background: '#2A3B24',
-                            border: '1.5px solid #455A3D',
-                            boxShadow: '0 16px 36px -12px rgba(20,35,18,0.35)',
-                            transition: 'all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'space-between',
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-6px)';
-                            e.currentTarget.style.boxShadow = '0 24px 44px -12px rgba(42,59,36,0.5)';
-                            e.currentTarget.style.borderColor = '#C68A2E';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = '0 16px 36px -12px rgba(20,35,18,0.35)';
-                            e.currentTarget.style.borderColor = '#455A3D';
-                        }}
-                        onClick={() => navigate && navigate('/hebrew-alphabet')}
-                    >
-                        <div>
-                            <div style={{
-                                width: 48,
-                                height: 48,
-                                borderRadius: 16,
-                                background: 'rgba(243,239,231,0.1)',
-                                border: '1px solid rgba(226,220,207,0.25)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: '#DFC076',
-                                marginBottom: 20,
-                            }}>
-                                <BookOpen size={22} />
-                            </div>
-                            <p style={{
-                                margin: '0 0 6px',
-                                fontSize: 10.5,
-                                fontFamily: 'mono, monospace',
-                                fontWeight: 800,
-                                color: '#DFC076',
-                                letterSpacing: '0.22em',
-                                textTransform: 'uppercase',
-                            }}>
-                                Pillar 01
-                            </p>
-                            <h3 style={{
-                                margin: '0 0 12px',
-                                fontFamily: "'Source Serif 4', 'Georgia', serif",
-                                fontSize: 23,
-                                fontWeight: 700,
-                                color: '#F3EFE7',
-                                letterSpacing: '-0.01em',
-                            }}>
-                                Sacred Hebrew Roots
-                            </h3>
-                            <p style={{
-                                margin: '0 0 20px',
-                                fontSize: 14.5,
-                                color: '#D8E2D5',
-                                lineHeight: 1.65,
-                            }}>
-                                Uncovering the ancient Hebrew codex, Aleph-Tav mysteries, and foundational truths for deep spiritual discernment.
-                            </p>
-                        </div>
-                        <div style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            fontSize: 11.5,
-                            fontWeight: 800,
-                            letterSpacing: '0.12em',
-                            textTransform: 'uppercase',
-                            color: '#DFC076',
-                        }}>
-                            <span>Explore Hebrew Codex</span>
-                            <ChevronRight size={14} />
-                        </div>
-                    </div>
+                    {[
+                        {
+                            num: '01',
+                            tag: 'TORAH CODEX',
+                            icon: BookOpen,
+                            title1: 'Sacred Hebrew',
+                            title2: 'Roots & Mysteries',
+                            desc: 'Uncovering the ancient Hebrew codex, Aleph-Tav mysteries, and foundational scriptural truths for deep spiritual discernment.',
+                            cta: 'Explore Hebrew Codex',
+                            action: () => navigate && navigate('/hebrew-alphabet'),
+                        },
+                        {
+                            num: '02',
+                            tag: 'COVENANT',
+                            icon: ShieldCheck,
+                            title1: 'Covenant',
+                            title2: 'Discipleship Walk',
+                            desc: 'Devoted to raising genuine followers of Yeshua HaMashiach through prayer, covenant community, and Entrust member passes.',
+                            cta: 'Entrust Membership',
+                            action: () => setCurrentView && ViewState && setCurrentView(ViewState.ID_CARD),
+                        },
+                        {
+                            num: '03',
+                            tag: 'SANCTUARY',
+                            icon: Mountain,
+                            title1: 'Mountain Altar',
+                            title2: 'Sanctuary (2,400m)',
+                            desc: 'Set in the pristine hill-country heights of Valparai, Tamil Nadu, an altar of perpetual prayer and unceasing intercession.',
+                            cta: 'Sanctuary History',
+                            action: () => setCurrentView && ViewState && setCurrentView(ViewState.ABOUT_VALPARAI),
+                        },
+                    ].map((p, idx) => {
+                        const isHov = hoveredPillar === idx;
+                        const Icon = p.icon;
+                        return (
+                            <div
+                                key={p.num}
+                                style={{
+                                    position: 'relative',
+                                    minHeight: 490,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                                    transform: isHov ? 'translateY(-8px)' : 'translateY(0)',
+                                    filter: isHov 
+                                        ? 'drop-shadow(0 24px 36px rgba(20,35,18,0.38))' 
+                                        : 'drop-shadow(0 14px 24px rgba(20,35,18,0.22))',
+                                }}
+                                onMouseEnter={() => setHoveredPillar(idx)}
+                                onMouseLeave={() => setHoveredPillar(null)}
+                                onClick={p.action}
+                            >
+                                {/* Folder Shape SVG Background */}
+                                <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+                                    <svg
+                                        viewBox="0 0 400 520"
+                                        preserveAspectRatio="none"
+                                        style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            borderRadius: 24,
+                                        }}
+                                    >
+                                        <path
+                                            d="M 0,90 Q 0,60 30,60 L 220,60 Q 238,60 242,40 L 246,20 Q 250,0 268,0 L 370,0 Q 400,0 400,30 L 400,485 Q 400,520 370,520 L 30,520 Q 0,520 0,485 Z"
+                                            fill="#2A3B24"
+                                        />
+                                        <path
+                                            d="M 0,90 Q 0,60 30,60 L 220,60 Q 238,60 242,40 L 246,20 Q 250,0 268,0 L 370,0 Q 400,0 400,30 L 400,485 Q 400,520 370,520 L 30,520 Q 0,520 0,485 Z"
+                                            fill="url(#pastorNoise)"
+                                        />
+                                    </svg>
+                                </div>
 
-                    {/* Pillar 2: Covenant Discipleship */}
-                    <div
-                        style={{
-                            padding: 'clamp(26px, 4vw, 34px)',
-                            borderRadius: 26,
-                            background: '#2A3B24',
-                            border: '1.5px solid #455A3D',
-                            boxShadow: '0 16px 36px -12px rgba(20,35,18,0.35)',
-                            transition: 'all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'space-between',
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-6px)';
-                            e.currentTarget.style.boxShadow = '0 24px 44px -12px rgba(42,59,36,0.5)';
-                            e.currentTarget.style.borderColor = '#C68A2E';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = '0 16px 36px -12px rgba(20,35,18,0.35)';
-                            e.currentTarget.style.borderColor = '#455A3D';
-                        }}
-                        onClick={() => setCurrentView && ViewState && setCurrentView(ViewState.ID_CARD)}
-                    >
-                        <div>
-                            <div style={{
-                                width: 48,
-                                height: 48,
-                                borderRadius: 16,
-                                background: 'rgba(243,239,231,0.1)',
-                                border: '1px solid rgba(226,220,207,0.25)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: '#DFC076',
-                                marginBottom: 20,
-                            }}>
-                                <ShieldCheck size={22} />
-                            </div>
-                            <p style={{
-                                margin: '0 0 6px',
-                                fontSize: 10.5,
-                                fontFamily: 'mono, monospace',
-                                fontWeight: 800,
-                                color: '#DFC076',
-                                letterSpacing: '0.22em',
-                                textTransform: 'uppercase',
-                            }}>
-                                Pillar 02
-                            </p>
-                            <h3 style={{
-                                margin: '0 0 12px',
-                                fontFamily: "'Source Serif 4', 'Georgia', serif",
-                                fontSize: 23,
-                                fontWeight: 700,
-                                color: '#F3EFE7',
-                                letterSpacing: '-0.01em',
-                            }}>
-                                Covenant Discipleship
-                            </h3>
-                            <p style={{
-                                margin: '0 0 20px',
-                                fontSize: 14.5,
-                                color: '#D8E2D5',
-                                lineHeight: 1.65,
-                            }}>
-                                Devoted to raising genuine followers of Yeshua HaMashiach through prayer, covenant community, and Entrust member passes.
-                            </p>
-                        </div>
-                        <div style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            fontSize: 11.5,
-                            fontWeight: 800,
-                            letterSpacing: '0.12em',
-                            textTransform: 'uppercase',
-                            color: '#DFC076',
-                        }}>
-                            <span>Entrust Membership</span>
-                            <ChevronRight size={14} />
-                        </div>
-                    </div>
+                                {/* Content Layer */}
+                                <div style={{
+                                    position: 'relative',
+                                    zIndex: 10,
+                                    height: '100%',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    justifyContent: 'space-between',
+                                    padding: '0 24px 28px',
+                                }}>
+                                    {/* Top Tab Area (height 60px) */}
+                                    <div style={{
+                                        height: 60,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        paddingRight: 8,
+                                    }}>
+                                        <span style={{
+                                            color: '#2A3B24',
+                                            fontSize: 12,
+                                            fontWeight: 800,
+                                            letterSpacing: '0.2em',
+                                            textTransform: 'uppercase',
+                                            fontFamily: 'mono, monospace',
+                                            paddingLeft: 4,
+                                        }}>
+                                            PILLAR {p.num}
+                                        </span>
+                                        <span style={{
+                                            color: '#DFC076',
+                                            fontSize: 10,
+                                            fontWeight: 800,
+                                            fontFamily: 'mono, monospace',
+                                            letterSpacing: '0.14em',
+                                            textTransform: 'uppercase',
+                                            background: 'rgba(42,59,36,0.95)',
+                                            border: '1px solid rgba(223,192,118,0.3)',
+                                            padding: '3px 10px',
+                                            borderRadius: 999,
+                                        }}>
+                                            {p.tag}
+                                        </span>
+                                    </div>
 
-                    {/* Pillar 3: Mountain Sanctuary */}
-                    <div
-                        style={{
-                            padding: 'clamp(26px, 4vw, 34px)',
-                            borderRadius: 26,
-                            background: '#2A3B24',
-                            border: '1.5px solid #455A3D',
-                            boxShadow: '0 16px 36px -12px rgba(20,35,18,0.35)',
-                            transition: 'all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'space-between',
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-6px)';
-                            e.currentTarget.style.boxShadow = '0 24px 44px -12px rgba(42,59,36,0.5)';
-                            e.currentTarget.style.borderColor = '#C68A2E';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = '0 16px 36px -12px rgba(20,35,18,0.35)';
-                            e.currentTarget.style.borderColor = '#455A3D';
-                        }}
-                        onClick={() => setCurrentView && ViewState && setCurrentView(ViewState.ABOUT_VALPARAI)}
-                    >
-                        <div>
-                            <div style={{
-                                width: 48,
-                                height: 48,
-                                borderRadius: 16,
-                                background: 'rgba(243,239,231,0.1)',
-                                border: '1px solid rgba(226,220,207,0.25)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: '#DFC076',
-                                marginBottom: 20,
-                            }}>
-                                <Mountain size={22} />
+                                    {/* Card Body */}
+                                    <div style={{
+                                        flex: 1,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        justifyContent: 'space-between',
+                                        paddingTop: 18,
+                                        position: 'relative',
+                                    }}>
+                                        {/* Organic Leaf Watermark */}
+                                        <div style={{
+                                            position: 'absolute',
+                                            bottom: 30,
+                                            left: -15,
+                                            width: 170,
+                                            height: 170,
+                                            opacity: 0.045,
+                                            pointerEvents: 'none',
+                                        }}>
+                                            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                                                <path fill="#F3EFE7" d="M44.7,-76.4C58.8,-69.2,71.8,-59.1,81.3,-46.3C90.8,-33.5,96.8,-18,97.1,-2.3C97.4,13.4,92,29.3,83.1,43.4C74.2,57.5,61.8,69.8,47.3,78.2C32.8,86.6,16.4,91.1,0.5,90.2C-15.4,89.3,-30.8,83,-44.6,73.8C-58.4,64.6,-70.6,52.5,-78.9,38.3C-87.2,24.1,-91.6,7.8,-89.9,-8C-88.2,-23.8,-80.4,-39.1,-70.2,-52.1C-60,-65.1,-47.4,-75.8,-33.4,-82.1C-19.4,-88.4,-4,-90.3,10.6,-88.7C25.2,-87.1,30.6,-83.6,44.7,-76.4Z" transform="translate(100 100)" />
+                                            </svg>
+                                        </div>
+
+                                        <div>
+                                            {/* Circular Icon Container */}
+                                            <div style={{
+                                                width: 48,
+                                                height: 48,
+                                                borderRadius: '50%',
+                                                background: 'rgba(243,239,231,0.1)',
+                                                border: isHov ? '1.5px solid rgba(223,192,118,0.5)' : '1px solid rgba(226,220,207,0.25)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                color: '#DFC076',
+                                                marginBottom: 20,
+                                                transition: 'all 0.3s ease',
+                                                boxShadow: isHov ? '0 0 20px rgba(223,192,118,0.25)' : 'none',
+                                            }}>
+                                                <Icon size={22} />
+                                            </div>
+
+                                            {/* Two-Tone Title */}
+                                            <h3 style={{
+                                                margin: '0 0 14px',
+                                                fontFamily: "'Playfair Display', 'Source Serif 4', 'Georgia', serif",
+                                                fontSize: 24,
+                                                lineHeight: 1.15,
+                                                letterSpacing: '-0.01em',
+                                            }}>
+                                                <span style={{ display: 'block', color: '#F3EFE7', fontWeight: 700, marginBottom: 2 }}>
+                                                    {p.title1}
+                                                </span>
+                                                <span style={{ display: 'block', fontStyle: 'italic', fontWeight: 300, color: '#E2DCCF' }}>
+                                                    {p.title2}
+                                                </span>
+                                            </h3>
+
+                                            {/* Description */}
+                                            <p style={{
+                                                margin: '0 0 24px',
+                                                fontSize: 14,
+                                                color: '#D8E2D5',
+                                                lineHeight: 1.68,
+                                            }}>
+                                                {p.desc}
+                                            </p>
+                                        </div>
+
+                                        {/* Signature Meditix Bottom Pill Button */}
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            padding: '4px 6px 4px 16px',
+                                            borderRadius: 999,
+                                            border: isHov ? '1.5px solid #DFC076' : '1.5px solid #5C6E52',
+                                            background: isHov ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.18)',
+                                            transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                                            marginTop: 'auto',
+                                        }}>
+                                            <span style={{
+                                                color: isHov ? '#FFFFFF' : '#F3EFE7',
+                                                fontSize: 11.5,
+                                                fontWeight: 800,
+                                                letterSpacing: '0.12em',
+                                                textTransform: 'uppercase',
+                                                transition: 'color 0.3s ease',
+                                            }}>
+                                                {p.cta}
+                                            </span>
+                                            <div style={{
+                                                width: 34,
+                                                height: 34,
+                                                borderRadius: '50%',
+                                                background: isHov ? '#FFFFFF' : '#F3EFE7',
+                                                color: '#2A3B24',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                transform: isHov ? 'scale(1.1) translate(1px, -1px)' : 'none',
+                                                transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                                                boxShadow: isHov ? '0 4px 12px rgba(0,0,0,0.25)' : 'none',
+                                            }}>
+                                                <ChevronRight size={16} strokeWidth={2.6} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <p style={{
-                                margin: '0 0 6px',
-                                fontSize: 10.5,
-                                fontFamily: 'mono, monospace',
-                                fontWeight: 800,
-                                color: '#DFC076',
-                                letterSpacing: '0.22em',
-                                textTransform: 'uppercase',
-                            }}>
-                                Pillar 03
-                            </p>
-                            <h3 style={{
-                                margin: '0 0 12px',
-                                fontFamily: "'Source Serif 4', 'Georgia', serif",
-                                fontSize: 23,
-                                fontWeight: 700,
-                                color: '#F3EFE7',
-                                letterSpacing: '-0.01em',
-                            }}>
-                                Mountain Sanctuary (2,400m)
-                            </h3>
-                            <p style={{
-                                margin: '0 0 20px',
-                                fontSize: 14.5,
-                                color: '#D8E2D5',
-                                lineHeight: 1.65,
-                            }}>
-                                Set in the pristine hill-country heights of Valparai, Tamil Nadu, an altar of perpetual prayer and unceasing intercession.
-                            </p>
-                        </div>
-                        <div style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            fontSize: 11.5,
-                            fontWeight: 800,
-                            letterSpacing: '0.12em',
-                            textTransform: 'uppercase',
-                            color: '#DFC076',
-                        }}>
-                            <span>Sanctuary History</span>
-                            <ChevronRight size={14} />
-                        </div>
-                    </div>
+                        );
+                    })}
                 </div>
 
                 {/* ── Signature Meditix Folder Shape Card: Discipleship & Covenant Connect ── */}
@@ -1808,7 +1783,7 @@ export const PastorPage: React.FC<PastorPageProps> = ({
                                     }}
                                 >
                                     <span style={{ display: 'block', marginBottom: 6, color: '#F3EFE7' }}>
-                                        Connect with Your
+                                        Building Disciples
                                     </span>
                                     <span 
                                         style={{ 
@@ -1819,7 +1794,7 @@ export const PastorPage: React.FC<PastorPageProps> = ({
                                             color: '#E2DCCF',
                                         }}
                                     >
-                                        Sacred Calling
+                                        With Purpose
                                     </span>
                                 </h3>
                                 <p 
@@ -1830,7 +1805,7 @@ export const PastorPage: React.FC<PastorPageProps> = ({
                                         margin: '14px 0 0',
                                     }}
                                 >
-                                    Receive weekly Hebrew scripture teachings, pastoral letters, and prayer updates from the Valparai mountain altar.
+                                    Consecrated to raising genuine followers of Yeshua through deep Hebrew scripture teachings, mountain intercession at 2,400m, and covenant discipleship.
                                 </p>
                             </div>
 
