@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X, UserCheck, UserPlus, Flashlight, FlashlightOff, Maximize2, Minimize2, Share2, Download, ScanQrCode, FileUp, ScanFace, Fingerprint, BellRing, LayoutDashboard } from 'lucide-react';
+import { motion, AnimatePresence, useDragControls } from 'motion/react';
+import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X, UserCheck, UserPlus, Flashlight, FlashlightOff, Maximize2, Minimize2, Share2, Download, ScanQrCode, FileUp, ScanFace, Fingerprint, BellRing, LayoutDashboard, GripHorizontal, Zap } from 'lucide-react';
 import { Button } from './Button';
 import { CameraStage } from './FaceMesh/CameraStage';
 import { CapturedPhoto, FaceLandmark3D, GeometryAnalysis } from './FaceMesh/types';
@@ -63,6 +63,45 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     const [authScannerNotice, setAuthScannerNotice] = useState('Auto mode: expand, light on, then compact.');
     const [hideScanBorder, setHideScanBorder] = useState(false);
     const [scannerFail, setScannerFail] = useState(false);
+    const [qrDetected, setQrDetected] = useState(false);
+    const [scannerFullscreen, setScannerFullscreen] = useState(false);
+    const dragControls = useDragControls();
+
+    const playHudLockSound = () => {
+        try {
+            const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+            if (!AudioCtx) return;
+            const ctx = new AudioCtx();
+            const now = ctx.currentTime;
+            const osc1 = ctx.createOscillator();
+            const osc2 = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc1.type = 'sine';
+            osc2.type = 'triangle';
+
+            osc1.frequency.setValueAtTime(587.33, now); // D5
+            osc1.frequency.exponentialRampToValueAtTime(880, now + 0.1); // A5
+            osc1.frequency.exponentialRampToValueAtTime(1174.66, now + 0.2); // D6
+
+            osc2.frequency.setValueAtTime(880, now);
+            osc2.frequency.exponentialRampToValueAtTime(1320, now + 0.15);
+
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.16, now + 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+
+            osc1.connect(gain);
+            osc2.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc1.start(now);
+            osc2.start(now);
+            osc1.stop(now + 0.33);
+            osc2.stop(now + 0.33);
+        } catch (_e) {}
+    };
+
     const scannerRef = useRef<any>(null);
     const scannerTimeoutsRef = useRef<number[]>([]);
 
@@ -291,6 +330,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         setTorchOn(false);
         setTorchSupported(false);
         setScannerExpanded(true);
+        setQrDetected(false);
         setAuthScannerNotice(autoScannerMode ? 'Auto mode: expand, light on, then compact.' : 'Point camera at any QR code to scan.');
         if (scannerRef.current) {
             scannerRef.current.stop().then(() => {
@@ -306,6 +346,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         setTorchSupported(false);
         setHideScanBorder(false);
         setScannerFail(false);
+        setQrDetected(false);
         clearScannerTimeouts();
         userAdjustedSizeRef.current = false;
         userAdjustedTorchRef.current = false;
@@ -337,96 +378,57 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
         h5.start(
             { facingMode: 'environment' },
-            { fps: 10, qrbox: { width: 260, height: 260 } },
+            { fps: 15 },
             (decodedText: string) => {
+                if (qrDetected) return;
                 clearScannerTimeouts();
-                // Smooth camera zoom on QR detection
+                setQrDetected(true);
+                playHudLockSound();
+                setAuthScannerNotice('⚡ TARGET LOCKED · ZOOMING IN');
+
+                // Hardware zoom applied ONLY upon QR detection
                 const track = getAuthVideoTrack();
                 if (track) {
                     try {
                         const caps = (track.getCapabilities?.() as any) || {};
                         if (caps.zoom) {
-                            const targetZoom = Math.min(caps.zoom.max || 3, 2.5);
+                            const targetZoom = Math.min(caps.zoom.max || 3, 2.4);
                             track.applyConstraints({ advanced: [{ zoom: targetZoom } as any] }).catch(() => {});
                         }
                     } catch (_err) {}
                 }
-                setScannerExpanded(true);
-                setAuthScannerNotice('✨ QR Code Found! Zooming in…');
 
                 setTimeout(() => {
                     const qrData = extractIdentifier(decodedText);
                     applyAuthTorch(false).catch(() => {});
                     setIdentifier(qrData);
                     setShowScanner(false);
+                    setQrDetected(false);
                     handleSearch(qrData);
-                }, 350);
+                }, 600);
             },
             () => {}
         ).then(() => {
-            setTimeout(() => tryDetectTorch(), 800);
+            setTimeout(() => {
+                tryDetectTorch();
+                // Ensure initial zoom is strictly baseline 1x (no auto-zoom while searching)
+                const track = getAuthVideoTrack();
+                if (track) {
+                    try {
+                        const caps = (track.getCapabilities?.() as any) || {};
+                        if (caps.zoom) {
+                            track.applyConstraints({ advanced: [{ zoom: caps.zoom.min || 1 } as any] }).catch(() => {});
+                        }
+                    } catch (_err) {}
+                }
+            }, 800);
+
             if (autoScannerMode) {
                 runAuthAutoSizeCycle();
                 setupAuthAmbientSensor();
             }
 
-            // Schedule scanner failure and step-by-step automatic zoom timeouts
-            const t5 = window.setTimeout(async () => {
-                setHideScanBorder(true);
-                await applyAuthTorch(true);
-                const track = getAuthVideoTrack();
-                if (track) {
-                    try {
-                        const capabilities = track.getCapabilities?.() as any;
-                        if (capabilities?.zoom) {
-                            const minZoom = capabilities.zoom.min || 1;
-                            const maxZoom = capabilities.zoom.max || 1;
-                            const zoomSteps = [
-                                minZoom + (maxZoom - minZoom) * 0.25,
-                                minZoom + (maxZoom - minZoom) * 0.5,
-                                minZoom + (maxZoom - minZoom) * 0.75,
-                                maxZoom
-                            ];
-
-                            zoomSteps.forEach((zoomLevel, index) => {
-                                const stepTimeout = window.setTimeout(async () => {
-                                    try {
-                                        await track.applyConstraints({ advanced: [{ zoom: zoomLevel } as any] });
-                                    } catch (e) {
-                                        console.warn(`Failed to apply zoom step ${index}:`, e);
-                                    }
-                                }, index * 800);
-                                scannerTimeoutsRef.current.push(stepTimeout);
-                            });
-                        }
-                    } catch (e) {
-                        console.warn('Failed to setup automatic zoom steps:', e);
-                    }
-                }
-            }, 5000);
-            scannerTimeoutsRef.current.push(t5);
-
-            const tResetZoom = window.setTimeout(async () => {
-                const track = getAuthVideoTrack();
-                if (track) {
-                    try {
-                        const capabilities = track.getCapabilities?.() as any;
-                        if (capabilities?.zoom) {
-                            await track.applyConstraints({ advanced: [{ zoom: capabilities.zoom.min } as any] });
-                        }
-                    } catch (e) {
-                        console.warn('Failed to reset zoom minimum constraint:', e);
-                    }
-                }
-            }, 9000);
-            scannerTimeoutsRef.current.push(tResetZoom);
-
-            const t10 = window.setTimeout(() => {
-                stopScanner();
-                setScannerFail(true);
-            }, 10000);
-            scannerTimeoutsRef.current.push(t10);
-
+            // Continuous scanning: No auto-zoom timeouts while searching and no 10s failure screen per user request
         }).catch(() => {
             setShowScanner(false);
             clearScannerTimeouts();
@@ -1196,39 +1198,151 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                 )}
                             </AnimatePresence>
 
-                            {/* QR Scanner — full-screen static layout (no page scroll) */}
+                            {/* QR Scanner — Draggable Floating Window / Fullscreen Mode */}
                             {showScanner && (
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    className="fixed inset-0 z-[9999] bg-black text-white overflow-hidden touch-none overscroll-none"
-                                >
-                                    <style>{`
-                                        #qr-auth-page-reader,
-                                        #qr-auth-page-reader video {
-                                            width: 100% !important;
-                                            height: 100% !important;
-                                            object-fit: cover !important;
-                                        }
-                                        #qr-auth-page-reader__dashboard_section,
-                                        #qr-auth-page-reader__scan_region img,
-                                        #qr-auth-page-reader__status_span,
-                                        #qr-auth-page-reader img[alt="Info icon"] {
-                                            display: none !important;
-                                        }
-                                        #qr-auth-page-reader__scan_region {
-                                            border: none !important;
-                                            box-shadow: none !important;
-                                        }
-                                    `}</style>
+                                <div className="fixed inset-0 z-[9999] bg-black/65 backdrop-blur-md flex items-center justify-center p-0 sm:p-3 md:p-6 overflow-hidden pointer-events-auto">
+                                    <motion.div
+                                        drag={!scannerFullscreen}
+                                        dragListener={false}
+                                        dragControls={dragControls}
+                                        dragMomentum={false}
+                                        dragElastic={0.06}
+                                        initial={{ opacity: 0, scale: 0.94, y: 15 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.94, y: 15 }}
+                                        transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+                                        className={`relative flex flex-col bg-[#0f1115] text-white shadow-[0_25px_80px_rgba(0,0,0,0.9),0_0_50px_rgba(0,240,255,0.15)] border border-white/15 overflow-hidden select-none transition-all duration-300 ${
+                                            scannerFullscreen
+                                                ? 'w-full h-[100dvh] rounded-none'
+                                                : 'w-full max-w-[490px] h-[100dvh] sm:h-[92vh] sm:max-h-[760px] rounded-none sm:rounded-[36px]'
+                                        }`}
+                                    >
+                                        <style>{`
+                                            #qr-auth-page-reader,
+                                            #qr-auth-page-reader video {
+                                                width: 100% !important;
+                                                height: 100% !important;
+                                                object-fit: cover !important;
+                                                transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1) !important;
+                                            }
+                                            #qr-auth-page-reader video {
+                                                transform: ${qrDetected ? 'scale(1.36)' : 'scale(1)'} !important;
+                                            }
+                                            #qr-auth-page-reader__dashboard_section,
+                                            #qr-auth-page-reader__scan_region img,
+                                            #qr-auth-page-reader__status_span,
+                                            #qr-auth-page-reader img[alt="Info icon"],
+                                            #qr-auth-page-reader svg,
+                                            #qr-auth-page-reader rect {
+                                                display: none !important;
+                                            }
+                                            #qr-auth-page-reader,
+                                            #qr-auth-page-reader *,
+                                            #qr-auth-page-reader__scan_region,
+                                            #qr-auth-page-reader__scan_region *,
+                                            #qr-shaded-region,
+                                            #qr-auth-page-reader > div {
+                                                border: none !important;
+                                                border-width: 0 !important;
+                                                border-color: transparent !important;
+                                                outline: none !important;
+                                                box-shadow: none !important;
+                                                background: transparent !important;
+                                            }
+                                            @keyframes hudScanSweep {
+                                                0% { top: 6%; opacity: 0.8; }
+                                                50% { top: 90%; opacity: 1; }
+                                                100% { top: 6%; opacity: 0.8; }
+                                            }
+                                            @keyframes rainbowPulse {
+                                                0% { filter: hue-rotate(0deg) drop-shadow(0 0 16px rgba(0,240,255,0.6)); }
+                                                50% { filter: hue-rotate(180deg) drop-shadow(0 0 24px rgba(255,0,128,0.7)); }
+                                                100% { filter: hue-rotate(360deg) drop-shadow(0 0 16px rgba(0,240,255,0.6)); }
+                                            }
+                                        `}</style>
 
-                                    <div className="h-[100dvh] w-full flex flex-col overflow-hidden bg-black">
-                                        {/* Camera — flex grows/shrinks with expand/compact */}
-                                        <div
-                                            className={`relative min-h-0 bg-black transition-[flex] duration-300 ease-out ${
-                                                scannerExpanded ? 'flex-[1_1_72%]' : 'flex-[1_1_52%]'
+                                        {/* ── DRAGGABLE HEADER BAR (User can drag scanner anywhere in website) ── */}
+                                        <div 
+                                            onPointerDown={(e) => {
+                                                if (!scannerFullscreen) dragControls.start(e);
+                                            }}
+                                            className={`shrink-0 flex items-center justify-between px-4 py-2.5 bg-[#16191f]/90 backdrop-blur-xl border-b border-white/10 z-30 transition-colors ${
+                                                scannerFullscreen ? '' : 'cursor-grab active:cursor-grabbing hover:bg-[#1c212a]'
                                             }`}
+                                        >
+                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                {!scannerFullscreen && (
+                                                    <div className="flex items-center gap-1 text-white/40 group-hover:text-cyan-400 transition-colors">
+                                                        <GripHorizontal size={18} />
+                                                    </div>
+                                                )}
+                                                <div className="flex items-center gap-2">
+                                                    <span className="relative flex h-2.5 w-2.5">
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+                                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500" />
+                                                    </span>
+                                                    <span className="text-[11px] font-mono font-bold tracking-[0.18em] text-cyan-400 uppercase truncate">
+                                                        QUANTUM SCANNER {!scannerFullscreen && <span className="text-white/40 text-[9px] font-sans font-normal ml-1 hidden sm:inline">(DRAG TO MOVE)</span>}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Top Actions */}
+                                            <div className="flex items-center gap-1.5 shrink-0" onPointerDown={(e) => e.stopPropagation()}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (!torchSupported) return;
+                                                        userAdjustedTorchRef.current = true;
+                                                        const next = !torchOn;
+                                                        applyAuthTorch(next);
+                                                        setAuthScannerNotice(next ? 'Flashlight on' : 'Flashlight off');
+                                                    }}
+                                                    disabled={!torchSupported}
+                                                    className={`w-9 h-9 rounded-full flex items-center justify-center active:scale-95 transition-all ${
+                                                        torchOn
+                                                            ? 'bg-yellow-400 text-black shadow-lg shadow-yellow-400/50'
+                                                            : torchSupported
+                                                                ? 'bg-white/10 hover:bg-white/20 text-white border border-white/10'
+                                                                : 'bg-white/5 text-white/25 cursor-not-allowed border border-white/5'
+                                                    }`}
+                                                    aria-label={torchOn ? 'Turn off flashlight' : 'Turn on flashlight'}
+                                                    title={torchSupported ? (torchOn ? 'Flashlight on' : 'Flashlight off') : 'Flashlight not available on this device'}
+                                                >
+                                                    {torchOn ? <Flashlight size={16} /> : <FlashlightOff size={16} />}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setScannerFullscreen(!scannerFullscreen)}
+                                                    className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center active:scale-95 border border-white/10 transition-all hidden sm:flex"
+                                                    aria-label={scannerFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                                                    title={scannerFullscreen ? 'Restore floating window' : 'Expand full screen'}
+                                                >
+                                                    {scannerFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={openMyQrPanel}
+                                                    className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center active:scale-95 border border-white/10 transition-all"
+                                                    aria-label={registeredMemberForQr ? 'Show my COT ID QR code' : 'Show ministry website QR code'}
+                                                    title={registeredMemberForQr ? 'My QR code' : 'Ministry website QR'}
+                                                >
+                                                    <QrCode size={16} />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { stopScanner(); setShowScanner(false); }}
+                                                    className="w-9 h-9 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-400 hover:text-white flex items-center justify-center active:scale-95 border border-red-500/30 transition-all ml-1"
+                                                    aria-label="Close scanner"
+                                                >
+                                                    <X size={18} />
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Camera Viewport Area */}
+                                        <div
+                                            className="relative min-h-0 bg-black flex-1 overflow-hidden transition-all duration-300"
                                             onTouchStart={(e) => {
                                                 if (e.touches.length === 2) {
                                                     const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
@@ -1258,155 +1372,199 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                             }}
                                             onTouchEnd={() => { (window as any).lastPinchDist = undefined; }}
                                         >
+                                            {/* HTML5 QR Camera Stream */}
                                             <div id="qr-auth-page-reader" role="region" aria-label="QR code scanner" className="absolute inset-0 bg-black" />
 
-                                            {scannerFail && (
-                                                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-5 bg-slate-950 px-6 text-center">
-                                                    <div className="w-20 h-20 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 animate-bounce">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-                                                        </svg>
-                                                    </div>
-                                                    <h3 className="text-xl font-bold text-white tracking-wide">QR Code Not Detected</h3>
-                                                    <p className="text-xs text-white/50 max-w-[260px] leading-relaxed">
-                                                        We couldn't recognize any QR code. Make sure the code is well-lit, not blurry, and centered.
-                                                    </p>
-                                                    <button
-                                                        onClick={() => {
-                                                            setScannerFail(false);
-                                                            startLiveScanner();
-                                                        }}
-                                                        className="inline-flex items-center gap-2 px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded-full shadow-lg transition-colors active:scale-95 cursor-pointer mt-2"
-                                                    >
-                                                        Try Again
-                                                    </button>
-                                                </div>
+                                            {/* Dark Vignette / Aperture mask around viewfinder (like 2nd image) */}
+                                            <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(0,0,0,0.7)_85%)]" />
+
+                                            {/* Torch ambient glow */}
+                                            {torchOn && (
+                                                <div className="absolute inset-0 z-[5] pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, rgba(255,240,100,0.12) 0%, transparent 70%)' }} />
                                             )}
 
-                                            <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-4 pt-4 pb-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => { stopScanner(); setShowScanner(false); }}
-                                                    className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center active:scale-95 border border-white/10"
-                                                    aria-label="Close scanner"
+                                            {/* ── IRON MAN ARMOR HUD & VIBRANT RAINBOW BORDER ── */}
+                                            <div className="absolute left-1/2 top-1/2 z-10 w-[min(70vw,280px)] aspect-square -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                                                {/* Glowing Rainbow Aura Behind Brackets */}
+                                                <div 
+                                                    className={`absolute -inset-3 rounded-[34px] transition-all duration-500 ${
+                                                        qrDetected ? 'opacity-100 scale-105' : 'opacity-75'
+                                                    }`}
+                                                    style={{
+                                                        background: 'conic-gradient(from 0deg, #ff0055, #ff7700, #ffee00, #00f0ff, #7928ca, #00ff88, #ff0055)',
+                                                        animation: 'rainbowPulse 6s linear infinite',
+                                                        filter: qrDetected 
+                                                            ? 'blur(20px) drop-shadow(0 0 35px rgba(0,240,255,1))' 
+                                                            : 'blur(14px) drop-shadow(0 0 16px rgba(0,240,255,0.45))',
+                                                        maskImage: 'radial-gradient(circle, transparent 58%, black 100%)',
+                                                        WebkitMaskImage: 'radial-gradient(circle, transparent 58%, black 100%)'
+                                                    }}
+                                                />
+
+                                                {/* Armor Container with Snap-In Motion */}
+                                                <motion.div
+                                                    animate={qrDetected ? {
+                                                        scale: [1, 0.91, 1.05, 1],
+                                                        rotate: [0, -1, 1, 0]
+                                                    } : {
+                                                        scale: [1, 1.02, 1]
+                                                    }}
+                                                    transition={qrDetected ? {
+                                                        type: 'spring',
+                                                        stiffness: 480,
+                                                        damping: 18
+                                                    } : {
+                                                        duration: 3,
+                                                        repeat: Infinity,
+                                                        ease: 'easeInOut'
+                                                    }}
+                                                    className="relative w-full h-full rounded-[28px]"
                                                 >
-                                                    <X size={22} />
-                                                </button>
-                                                <div className="flex items-center gap-2.5">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            if (!torchSupported) return;
-                                                            userAdjustedTorchRef.current = true;
-                                                            const next = !torchOn;
-                                                            applyAuthTorch(next);
-                                                            setAuthScannerNotice(next ? 'Flashlight on' : 'Flashlight off');
-                                                        }}
-                                                        disabled={!torchSupported}
-                                                        className={`w-10 h-10 rounded-full flex items-center justify-center active:scale-95 ${
-                                                            torchOn
-                                                                ? 'bg-yellow-400 text-black shadow-lg shadow-yellow-400/40'
-                                                                : torchSupported
-                                                                    ? 'bg-black/40 backdrop-blur-md text-white border border-white/10'
-                                                                    : 'bg-black/25 text-white/30 cursor-not-allowed border border-white/5'
-                                                        }`}
-                                                        aria-label={torchOn ? 'Turn off flashlight' : 'Turn on flashlight'}
-                                                        title={torchSupported ? (torchOn ? 'Flashlight on' : 'Flashlight off') : 'Flashlight not available on this device'}
+                                                    {/* Viewfinder glass tint */}
+                                                    <div className={`absolute inset-0 rounded-[28px] border transition-all duration-500 ${
+                                                        qrDetected 
+                                                            ? 'bg-cyan-400/10 border-cyan-400/60 shadow-[inset_0_0_35px_rgba(0,240,255,0.35)]' 
+                                                            : 'bg-white/[0.02] border-white/10 shadow-[inset_0_0_20px_rgba(0,0,0,0.4)]'
+                                                    }`} />
+
+                                                    {/* ── 4 IRON MAN SUIT-UP ARMOR CORNER BRACKETS ── */}
+                                                    {/* TOP-LEFT: Hot Rod Red / Crimson Arc */}
+                                                    <motion.div 
+                                                        animate={qrDetected ? { x: [0, -6, 0], y: [0, -6, 0] } : {}}
+                                                        transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+                                                        className="absolute top-0 left-0 w-16 h-16 pointer-events-none"
                                                     >
-                                                        {torchOn ? <Flashlight size={20} /> : <FlashlightOff size={20} />}
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            userAdjustedSizeRef.current = true;
-                                                            clearAuthAutoMinimizeTimer();
-                                                            const next = !scannerExpanded;
-                                                            setScannerExpanded(next);
-                                                            setAuthScannerNotice(
-                                                                next ? 'Scanner expanded · tap ⊖ to compact' : 'Scanner compact · tap ⊕ to expand'
-                                                            );
-                                                            if (autoScannerMode && next && torchSupported && !userAdjustedTorchRef.current) {
-                                                                applyAuthTorch(true);
-                                                            }
-                                                        }}
-                                                        className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center active:scale-95 border border-white/10"
-                                                        aria-label={scannerExpanded ? 'Minimize scanner' : 'Maximize scanner'}
+                                                        <div className="w-full h-full border-t-[5px] border-l-[5px] border-[#ff1744] rounded-tl-[24px] shadow-[0_0_15px_#ff1744,inset_0_0_10px_#ff1744]" />
+                                                        <div className="absolute top-1 left-5 w-2.5 h-[3px] bg-amber-400 rounded-full shadow-[0_0_6px_#ffb800]" />
+                                                        <div className="absolute top-5 left-1 w-[3px] h-2.5 bg-amber-400 rounded-full shadow-[0_0_6px_#ffb800]" />
+                                                        <div className="absolute top-2 left-2 w-2 h-2 rounded-full bg-[#ff1744] shadow-[0_0_8px_#ff1744]" />
+                                                        <span className="absolute -top-5 left-1 text-[8px] font-mono tracking-widest text-[#ff1744]/90 font-bold">MK-85</span>
+                                                    </motion.div>
+
+                                                    {/* TOP-RIGHT: Cyber Gold / Amber Arc */}
+                                                    <motion.div 
+                                                        animate={qrDetected ? { x: [0, 6, 0], y: [0, -6, 0] } : {}}
+                                                        transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+                                                        className="absolute top-0 right-0 w-16 h-16 pointer-events-none"
                                                     >
-                                                        {scannerExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={openMyQrPanel}
-                                                        className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center active:scale-95 border border-white/10"
-                                                        aria-label={registeredMemberForQr ? 'Show my COT ID QR code' : 'Show ministry website QR code'}
-                                                        title={registeredMemberForQr ? 'My QR code' : 'Ministry website QR'}
+                                                        <div className="w-full h-full border-t-[5px] border-r-[5px] border-[#ffb020] rounded-tr-[24px] shadow-[0_0_15px_#ffb020,inset_0_0_10px_#ffb020]" />
+                                                        <div className="absolute top-1 right-5 w-2.5 h-[3px] bg-white rounded-full shadow-[0_0_6px_#ffffff]" />
+                                                        <div className="absolute top-5 right-1 w-[3px] h-2.5 bg-white rounded-full shadow-[0_0_6px_#ffffff]" />
+                                                        <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#ffb020] shadow-[0_0_8px_#ffb020]" />
+                                                        <span className="absolute -top-5 right-1 text-[8px] font-mono tracking-widest text-[#ffb020]/90 font-bold">HUD-01</span>
+                                                    </motion.div>
+
+                                                    {/* BOTTOM-RIGHT: Emerald Cyber / Quantum Green */}
+                                                    <motion.div 
+                                                        animate={qrDetected ? { x: [0, 6, 0], y: [0, 6, 0] } : {}}
+                                                        transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+                                                        className="absolute bottom-0 right-0 w-16 h-16 pointer-events-none"
                                                     >
-                                                        <QrCode size={20} />
-                                                    </button>
-                                                </div>
+                                                        <div className="w-full h-full border-b-[5px] border-r-[5px] border-[#00ff88] rounded-br-[24px] shadow-[0_0_15px_#00ff88,inset_0_0_10px_#00ff88]" />
+                                                        <div className="absolute bottom-1 right-5 w-2.5 h-[3px] bg-cyan-300 rounded-full shadow-[0_0_6px_#00f0ff]" />
+                                                        <div className="absolute bottom-5 right-1 w-[3px] h-2.5 bg-cyan-300 rounded-full shadow-[0_0_6px_#00f0ff]" />
+                                                        <div className="absolute bottom-2 right-2 w-2 h-2 rounded-full bg-[#00ff88] shadow-[0_0_8px_#00ff88]" />
+                                                        <span className="absolute -bottom-5 right-1 text-[8px] font-mono tracking-widest text-[#00ff88]/90 font-bold">ARC-SYS</span>
+                                                    </motion.div>
+
+                                                    {/* BOTTOM-LEFT: Arc Reactor Cyan / Electric Sapphire */}
+                                                    <motion.div 
+                                                        animate={qrDetected ? { x: [0, -6, 0], y: [0, 6, 0] } : {}}
+                                                        transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+                                                        className="absolute bottom-0 left-0 w-16 h-16 pointer-events-none"
+                                                    >
+                                                        <div className="w-full h-full border-b-[5px] border-l-[5px] border-[#00f0ff] rounded-bl-[24px] shadow-[0_0_15px_#00f0ff,inset_0_0_10px_#00f0ff]" />
+                                                        <div className="absolute bottom-1 left-5 w-2.5 h-[3px] bg-purple-400 rounded-full shadow-[0_0_6px_#a855f7]" />
+                                                        <div className="absolute bottom-5 left-1 w-[3px] h-2.5 bg-purple-400 rounded-full shadow-[0_0_6px_#a855f7]" />
+                                                        <div className="absolute bottom-2 left-2 w-2 h-2 rounded-full bg-[#00f0ff] shadow-[0_0_8px_#00f0ff]" />
+                                                        <span className="absolute -bottom-5 left-1 text-[8px] font-mono tracking-widest text-[#00f0ff]/90 font-bold">LOCK-ON</span>
+                                                    </motion.div>
+
+                                                    {/* Laser Scanner Sweep (active when searching) */}
+                                                    {!qrDetected && (
+                                                        <div 
+                                                            className="absolute inset-x-3 h-1 pointer-events-none z-10"
+                                                            style={{ animation: 'hudScanSweep 2.8s ease-in-out infinite' }}
+                                                        >
+                                                            <div className="w-full h-full bg-gradient-to-r from-transparent via-[#00f0ff] to-transparent shadow-[0_0_14px_#00f0ff,0_0_24px_#00f0ff]" />
+                                                            <div className="w-full h-8 -mt-4 bg-gradient-to-b from-cyan-400/25 via-cyan-400/5 to-transparent blur-sm" />
+                                                        </div>
+                                                    )}
+
+                                                    {/* Central HUD Targeting Reticle */}
+                                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                        {qrDetected ? (
+                                                            /* Arc Reactor Energy Shockwave & Target Acquired */
+                                                            <div className="relative flex items-center justify-center">
+                                                                <motion.div
+                                                                    initial={{ scale: 0.3, opacity: 1 }}
+                                                                    animate={{ scale: 2.2, opacity: 0 }}
+                                                                    transition={{ duration: 0.55, ease: 'easeOut' }}
+                                                                    className="absolute w-32 h-32 rounded-full border-2 border-cyan-400 bg-cyan-400/20 shadow-[0_0_30px_#00f0ff]"
+                                                                />
+                                                                <motion.div
+                                                                    initial={{ scale: 0.7, opacity: 0 }}
+                                                                    animate={{ scale: 1, opacity: 1 }}
+                                                                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                                                                    className="px-4 py-2 rounded-full bg-cyan-400 text-slate-950 font-mono font-black text-xs tracking-widest shadow-[0_0_25px_rgba(0,240,255,0.9)] flex items-center gap-1.5"
+                                                                >
+                                                                    <Zap size={14} className="fill-current animate-bounce" />
+                                                                    TARGET LOCKED
+                                                                </motion.div>
+                                                            </div>
+                                                        ) : (
+                                                            /* Subtle Jarvis standby reticle */
+                                                            <motion.div 
+                                                                animate={{ rotate: 360 }}
+                                                                transition={{ duration: 24, repeat: Infinity, ease: 'linear' }}
+                                                                className="w-14 h-14 rounded-full border border-white/15 border-dashed flex items-center justify-center opacity-40"
+                                                            >
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#00f0ff]" />
+                                                            </motion.div>
+                                                        )}
+                                                    </div>
+                                                </motion.div>
                                             </div>
 
-                                            {/* Scan frame — centered in camera area only */}
-                                            {!hideScanBorder && (
-                                                <div className="absolute left-1/2 top-1/2 z-10 w-[min(68vw,280px)] aspect-square -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                                                    <span className="absolute top-0 left-0 w-[22%] h-[22%] border-t-[5px] border-l-[5px] border-[#ff6b6b] rounded-tl-2xl" />
-                                                    <span className="absolute top-0 right-0 w-[22%] h-[22%] border-t-[5px] border-r-[5px] border-[#ffb020] rounded-tr-2xl" />
-                                                    <span className="absolute bottom-0 left-0 w-[22%] h-[22%] border-b-[5px] border-l-[5px] border-[#4f8cff] rounded-bl-2xl" />
-                                                    <span className="absolute bottom-0 right-0 w-[22%] h-[22%] border-b-[5px] border-r-[5px] border-[#27c46b] rounded-br-2xl" />
-                                                </div>
-                                            )}
-
-                                            {torchOn && (
-                                                <div className="absolute inset-0 z-[5] pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, rgba(255,240,100,0.08) 0%, transparent 70%)' }} />
-                                            )}
-
-                                            <div className="absolute inset-x-0 bottom-3 z-20 flex justify-center px-4">
+                                            {/* Upload from gallery floating pill */}
+                                            <div className="absolute inset-x-0 bottom-3 z-20 flex justify-center px-4 pointer-events-auto">
                                                 <button
                                                     type="button"
                                                     onClick={() => uploadInputRef.current?.click()}
-                                                    className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-800 shadow-lg active:scale-[0.98]"
+                                                    className="inline-flex items-center gap-2 rounded-full bg-white/95 hover:bg-white text-slate-900 px-5 py-2.5 text-xs sm:text-sm font-bold shadow-xl active:scale-[0.98] transition-all border border-white/30 backdrop-blur-md cursor-pointer"
                                                 >
-                                                    <UploadCloud size={18} />
+                                                    <UploadCloud size={17} />
                                                     Upload from gallery
                                                 </button>
                                             </div>
                                         </div>
 
-                                        {/* Info panel — fixed height, not overlapping camera */}
-                                        <section
-                                            className={`shrink-0 rounded-t-[28px] bg-[#232323] px-5 shadow-[0_-8px_32px_rgba(0,0,0,0.45)] transition-all duration-300 ${
-                                                scannerExpanded ? 'pt-3 pb-3' : 'pt-4 pb-4'
-                                            }`}
-                                        >
-                                            <div className="mx-auto mb-3 h-1 w-12 rounded-full bg-white/50" />
-                                            {!scannerExpanded && (
-                                                <>
-                                                    <p className="text-center text-xl font-semibold text-white leading-snug">Scan any QR code</p>
-                                                    <p className="mt-1 text-center text-sm text-white/65">COT ID · Entrust Card · Member QR</p>
-                                                </>
-                                            )}
-                                            {scannerExpanded && (
-                                                <p className="text-center text-sm font-medium text-white/80">Scan any QR code</p>
-                                            )}
-                                            <p className="mt-2 text-center text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">
+                                        {/* Bottom Status / Info panel */}
+                                        <section className="shrink-0 rounded-t-[24px] bg-[#171a21] px-5 pt-3 pb-3 border-t border-white/10 shadow-[0_-8px_32px_rgba(0,0,0,0.5)]">
+                                            <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-white/30" />
+                                            <p className="text-center text-sm sm:text-base font-bold text-white tracking-wide">
+                                                {qrDetected ? '✨ QR Code Identified · Decrypting COT ID' : 'Scan any QR code'}
+                                            </p>
+                                            <p className="mt-0.5 text-center text-xs text-white/55">COT ID · Entrust Card · Member QR</p>
+                                            <p className="mt-1.5 text-center text-[10px] font-mono font-bold uppercase tracking-[0.18em] text-cyan-400/75">
                                                 {authScannerNotice}
                                             </p>
                                         </section>
 
-                                        <footer className="shrink-0 bg-black border-t border-white/10 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-                                            <div className="flex items-center gap-2.5 mb-2.5">
-                                                <img src="/logo.webp" alt="" className="w-7 h-7 object-contain rounded-full bg-white/10 p-0.5" />
-                                                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/90">
-                                                    City of Truth Ministries © {new Date().getFullYear()}
-                                                </p>
+                                        {/* Footer */}
+                                        <footer className="shrink-0 bg-black/90 border-t border-white/10 px-4 py-2.5 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.14em] text-white/50">
+                                            <div className="flex items-center gap-2">
+                                                <img src="/logo.webp" alt="" className="w-5 h-5 object-contain rounded-full bg-white/10 p-0.5" />
+                                                <span>COT © {new Date().getFullYear()}</span>
                                             </div>
-                                            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.16em] text-white/55">
-                                                <span className="hover:text-white transition-colors cursor-pointer">Privacy Seal</span>
-                                                <span className="hover:text-white transition-colors cursor-pointer">Digital Covenant</span>
+                                            <div className="flex items-center gap-3">
+                                                <span className="hover:text-cyan-400 transition-colors cursor-pointer">Privacy Seal</span>
+                                                <span>·</span>
+                                                <span className="hover:text-cyan-400 transition-colors cursor-pointer">Digital Covenant</span>
                                             </div>
                                         </footer>
-                                    </div>
-                                </motion.div>
+                                    </motion.div>
+                                </div>
                             )}
 
                             {/* Account Status / Preview */}
