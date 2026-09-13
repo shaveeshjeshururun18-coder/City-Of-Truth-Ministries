@@ -3,7 +3,7 @@ import {
     BookOpen, Calendar, Clock, Download, Loader2, Mic, Sparkles, Star, Volume2,
 } from 'lucide-react';
 import { HEBREW_MONTH_ICONS } from './icons/modernIcons';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { HEBREW_MONTHS_DATA, KEY_DETAILS } from './PrintableReferenceGuide';

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Save, Undo, Redo, X, Settings, Eye, EyeOff, Palette, Layout, Copy, Trash2, Code, Zap } from 'lucide-react';
 import { useWebsiteBuilder } from './WebsiteBuilderContext';
 

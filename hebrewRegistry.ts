@@ -53,6 +53,17 @@ export const HEBREW_PAGES: HebrewPage[] = [
     iconName: 'calendar'
   },
   {
+    id: 'heavens',
+    label: 'The Heavens Declare',
+    shortLabel: 'Cosmos',
+    view: ViewState.HEAVENS_DECLARE,
+    type: 'content',
+    description: 'Biblical astronomy, creation order, and celestial wonders (Psalm 19:1)',
+    iconName: 'sparkles',
+    isStandalone: false,
+    route: '/heavens-declare'
+  },
+  {
     id: 'clock',
     label: 'Hebrew Clock',
     shortLabel: 'Clock',

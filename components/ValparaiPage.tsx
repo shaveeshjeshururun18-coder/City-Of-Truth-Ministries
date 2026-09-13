@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { MapPin, Mountain, History, Leaf, TrendingUp, CloudRain, Plane, Navigation, Sparkles, Scroll, ArrowRight, Video, Camera, Compass, Globe, Info, Download, Loader2, ShieldCheck } from 'lucide-react';
 import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
@@ -25,7 +25,7 @@ const DESTINATIONS: DestinationData[] = [
         desc: "A stunning, highly protected high-altitude shola grassland. Located at an elevation of 2,400m, it is a designated UNESCO World Heritage Site with unparalleled scenic beauty.",
         tamilDesc: "யுனெஸ்கோ உலக பாரம்பரிய சின்னமான இந்த புல்வெளி, கடல் மட்டத்திலிருந்து 2,400 மீட்டர் உயரத்தில் அமைந்துள்ள பாதுகாக்கப்பட்ட சோலை புல்வெளி காடாகும்.",
         tips: "Prior forest department permit is strictly required. Best visited between January and May.",
-        imgUrl: "/valparai/dest1.png"
+        imgUrl: "/valparai/dest1.webp"
     },
     {
         name: "Sholayar Dam",
@@ -34,7 +34,7 @@ const DESTINATIONS: DestinationData[] = [
         desc: "One of the deepest and most vital dams in Asia, surrounded by massive hills and tea estates. It is a key constituent of the Aliyar-Parambikulam Hydroelectric project.",
         tamilDesc: "ஆசியாவின் மிக ஆழமான அணைகளில் ஒன்றான இது, பிரமாண்ட மலைகள் மற்றும் தேயிலை தோட்டங்களால் சூழப்பட்ட நீர்மின் திட்டத்தின் முக்கிய அங்கமாகும்.",
         tips: "Fabulous photography spot. Best visited post-monsoon when gates are opened.",
-        imgUrl: "/valparai/dest2.png"
+        imgUrl: "/valparai/dest2.webp"
     },
     {
         name: "Chinnakallar Falls",
@@ -43,7 +43,7 @@ const DESTINATIONS: DestinationData[] = [
         desc: "Known historically as the 'Cherrapunji of South India' due to its extreme annual rainfall. A hanging bridge spans across the roaring waterfall, surrounded by dense jungle.",
         tamilDesc: "தென்னிந்தியாவின் 'சிராபுஞ்சி' என்று அழைக்கப்படும் இந்த இடம், நாட்டின் அதிக மழைப்பொழிவு பெறும் பகுதிகளில் ஒன்றாகும். இங்கு அடர்ந்த காடுகளுக்கு இடையே தொங்கு பாலம் அமைந்துள்ளது.",
         tips: "Careful during heavy monsoons. Keep an eye out for elephant migrations.",
-        imgUrl: "/valparai/dest3.png"
+        imgUrl: "/valparai/dest3.webp"
     },
     {
         name: "Loam's View Point & Hairpins",
@@ -165,12 +165,8 @@ export const ValparaiPage: React.FC<{ setView?: any }> = () => {
 
 
     return (
-        <motion.div
+        <div
             ref={pdfRef}
-            key="valparai"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
             className="min-h-screen bg-slate-50 pt-32 pb-20 font-sans text-slate-800 relative"
         >
             <style>{`
@@ -223,7 +219,7 @@ export const ValparaiPage: React.FC<{ setView?: any }> = () => {
                 <motion.div
                     initial={{ scale: 0.5, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.6, type: "spring" }}
+                    transition={{ delay: 0.24, type: "spring" }}
                     className="bg-white/80 backdrop-blur-md px-6 md:px-10 py-2 md:py-3 rounded-2xl inline-block mb-10 md:mb-12 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-purple-100"
                 >
                     <h2 className="text-2xl md:text-3xl font-serif text-[#7e22ce] font-bold tracking-wide">வால்பாறை</h2>
@@ -233,7 +229,7 @@ export const ValparaiPage: React.FC<{ setView?: any }> = () => {
                 <motion.p
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.8 }}
+                    transition={{ delay: 0.32 }}
                     className="text-gray-600 font-serif text-lg md:text-2xl leading-relaxed max-w-2xl mx-auto px-4 md:px-0"
                 >
                     A sanctuary in the clouds. <span className="italic font-bold text-brand-700">Valparai</span> is a scenic hill station in the Anaimalai Hills. Located <span className="font-bold text-gray-900 bg-amber-100 px-2 py-0.5 rounded">3,474 feet</span> above sea level.
@@ -277,21 +273,6 @@ export const ValparaiPage: React.FC<{ setView?: any }> = () => {
                 allowJackToggle={false}
                 className="mb-24"
             />
-
-            {/* Download PDF Button */}
-            <div className="container mx-auto px-6 max-w-5xl mb-8 flex justify-end">
-                <button
-                    onClick={handleDownloadPDF}
-                    disabled={isExporting}
-                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full hover:from-blue-700 hover:to-indigo-700 font-black text-xs uppercase tracking-widest transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50"
-                >
-                    {isExporting ? (
-                        <><Loader2 size={16} className="animate-spin" /> Generating PDF...</>
-                    ) : (
-                        <><Download size={16} /> Download Guide PDF</>
-                    )}
-                </button>
-            </div>
 
             {/* Hidden Printable PDF Section */}
             <div className="fixed left-[-9999px] top-0 pointer-events-none opacity-100 z-[-50]">
@@ -581,9 +562,9 @@ export const ValparaiPage: React.FC<{ setView?: any }> = () => {
                         badgeLabel="Interactive Knowledge Stacks"
                         title="Detailed Knowledge Hub"
                         tamilTitle="வால்பாறை களஞ்சியம்"
-                        subtitle="Scroll down to explore the 3D peeling stacking cards covering history, ecology, climate, and estate infrastructure."
+                        subtitle="Scroll down to explore the interactive stacking cards covering history, ecology, climate, and estate infrastructure."
                         items={valparaiKnowledgeCards}
-                        defaultViewMode="stack"
+                        
                     />
                 );
             })()}
@@ -683,7 +664,7 @@ export const ValparaiPage: React.FC<{ setView?: any }> = () => {
                     </div>
                 </motion.div>
             </div>
-        </motion.div>
+        </div>
     );
 };
 

@@ -39,11 +39,11 @@ export const PrintableHebrewCalendar = forwardRef<HTMLDivElement, PrintableHebre
         return (
             <div ref={ref} className="bg-[#FFFFFa] w-[1122px] min-h-[793px] relative overflow-hidden flex flex-col items-center justify-center text-center p-16 font-serif border-[16px] border-brand-900 double-border">
                 {/* Background Pattern */}
-                <div className="absolute inset-0 opacity-5 bg-[url('/assets/stardust.png')]"></div>
+                <div className="absolute inset-0 opacity-5 bg-[url('/assets/stardust.webp')]"></div>
 
                 {/* Content */}
                 <div className="relative z-10 flex flex-col items-center gap-10">
-                    <img src="/brand-logo.png" alt="City of Truth" className="w-56 h-56 object-contain drop-shadow-2xl mb-4" />
+                    <img src="/brand-logo.webp" alt="City of Truth" className="w-56 h-56 object-contain drop-shadow-2xl mb-4" />
 
                     <div className="space-y-6">
                         <div className="space-y-2">
@@ -77,18 +77,18 @@ export const PrintableHebrewCalendar = forwardRef<HTMLDivElement, PrintableHebre
                     </div>
 
                     <div className="mt-8 flex justify-center">
-                        <img src="/sacred-menorah.png" alt="Sacred Menorah" className="h-32 w-auto drop-shadow-lg opacity-90" />
+                        <img src="/sacred-menorah.webp" alt="Sacred Menorah" className="h-32 w-auto drop-shadow-lg opacity-90" />
                     </div>
 
                     <div className="mt-12 flex items-center justify-center gap-12 w-full">
                         {/* Flags */}
                         <div className="flex flex-col items-center gap-3 drop-shadow-md hover:scale-105 transition-transform">
-                            <img src="/assets/israel-flag.png" alt="Israel" className="h-16 w-auto shadow-md rounded-md ring-2 ring-white" />
+                            <img src="/assets/israel-flag.webp" alt="Israel" className="h-16 w-auto shadow-md rounded-md ring-2 ring-white" />
                             <span className="text-xs font-black tracking-widest text-brand-900 uppercase bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">ISRAEL</span>
                         </div>
                         <div className="h-12 w-px bg-brand-200"></div>
                         <div className="flex flex-col items-center gap-3 drop-shadow-md hover:scale-105 transition-transform">
-                            <img src="/assets/india-flag.png" alt="India" className="h-16 w-auto shadow-md rounded-md ring-2 ring-white" />
+                            <img src="/assets/india-flag.webp" alt="India" className="h-16 w-auto shadow-md rounded-md ring-2 ring-white" />
                             <span className="text-xs font-black tracking-widest text-brand-900 uppercase bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">INDIA</span>
                         </div>
                     </div>
@@ -118,7 +118,7 @@ export const PrintableHebrewCalendar = forwardRef<HTMLDivElement, PrintableHebre
             {/* Header */}
             <div className="w-full flex items-start justify-between mb-6 relative z-10 border-b-2 border-amber-500/30 pb-4">
                 <div className="flex items-center gap-6 text-left"> {/* Added text-left for safety */}
-                    <img src="/brand-logo.png" alt="Logo" className="w-24 h-24 object-contain drop-shadow-md" />
+                    <img src="/brand-logo.webp" alt="Logo" className="w-24 h-24 object-contain drop-shadow-md" />
                     <div className="border-l-2 border-slate-200 pl-6 flex items-center gap-6">
                         <div>
                             <h1 className="text-4xl font-black uppercase text-brand-950 leading-none tracking-tight">City of Truth Ministries</h1>
@@ -127,7 +127,7 @@ export const PrintableHebrewCalendar = forwardRef<HTMLDivElement, PrintableHebre
                         <div className="relative">
                             {/* Menorah Flag - Updated for "Pro Max HD" look */}
                             <img
-                                src="/menorah-flag-image.png"
+                                src="/menorah-flag-image.webp"
                                 className="w-32 h-24 object-contain drop-shadow-xl filter brightness-110 hover:scale-105 transition-transform"
                                 alt="Menorah Flag"
                             />
@@ -182,12 +182,12 @@ export const PrintableHebrewCalendar = forwardRef<HTMLDivElement, PrintableHebre
                                         {/* Icons for Friday (Candles) and Saturday (Symbol) */}
                                         {dayObj.day && isFri && (
                                             <div className="absolute top-2 right-2 w-8 h-8 opacity-90 z-20">
-                                                <img src="/assets/friday-symbol.png" alt="Shabbat Candle" className="w-full h-full object-contain" />
+                                                <img src="/assets/friday-symbol.webp" alt="Shabbat Candle" className="w-full h-full object-contain" />
                                             </div>
                                         )}
                                         {dayObj.day && isSat && (
                                             <div className="absolute top-2 right-2 w-8 h-8 opacity-90 z-20">
-                                                <img src="/assets/saturday-icon.png" alt="Shabbat Symbol" className="w-full h-full object-contain" />
+                                                <img src="/assets/saturday-icon.webp" alt="Shabbat Symbol" className="w-full h-full object-contain" />
                                             </div>
                                         )}
 

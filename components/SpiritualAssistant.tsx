@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Sparkles, Send, BookOpen, Stars } from 'lucide-react';
 import { generateSpatulaAIResponse } from '../services/openRouterService';
 import { Button } from './Button';
@@ -28,7 +28,7 @@ export const SpiritualAssistant: React.FC = () => {
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-accent-500/20 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2"></div>
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-brand-500/20 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2"></div>
 
-      <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
+      <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.webp')]"></div>
 
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-4xl mx-auto text-center">

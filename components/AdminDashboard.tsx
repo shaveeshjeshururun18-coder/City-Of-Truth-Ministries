@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import { motion, AnimatePresence, Reorder } from 'motion/react';
 import {
     Users, UserCheck, UserX, Clock, Search, Edit2, Trash2, X, User as UserIcon, ShieldAlert,
     ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Filter, Mail, Phone, MapPin, Droplet,
@@ -381,8 +381,8 @@ const TAMIL_NADU_DISTRICTS = [
 const MAX_SUGGESTED_COT_IDS = 200;
 const ADMIN_PASSWORD_OVERRIDE_KEY = 'cot_admin_password_override';
 const ADMIN_PASSWORD_CHANGE_PHRASE = import.meta.env.VITE_ADMIN_PASSWORD_CHANGE_PHRASE;
-const MEMBER_FORM_LOGO_URL = '/assets/member-form-logo.png';
-const MEMBER_FORM_STAMP_URL = '/assets/member-form-authorised-stamp-transparent.png';
+const MEMBER_FORM_LOGO_URL = '/assets/member-form-logo.webp';
+const MEMBER_FORM_STAMP_URL = '/assets/member-form-authorised-stamp-transparent.webp';
 const SAFE_IMAGE_HOSTS = new Set([
     'firebasestorage.googleapis.com',
     'lh3.googleusercontent.com',
@@ -1716,7 +1716,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         let blob: Blob;
         let contentType = 'image/jpeg';
-        let safeName = fileName || 'cropped-image.jpg';
+        let safeName = fileName || 'cropped-image.webp';
 
         if (typeof file === 'string' && file.startsWith('data:')) {
             const parts = file.split(',');
@@ -2945,7 +2945,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                     const dataUrl = await toPng(el, { quality: 0.95, pixelRatio: 2 });
                     const base64Data = dataUrl.replace(/^data:image\/(png|jpg);base64,/, "");
-                    zip.file(`${user.id}_${bulkDownloadType}.png`, base64Data, { base64: true });
+                    zip.file(`${user.id}_${bulkDownloadType}.webp`, base64Data, { base64: true });
                 }
 
                 const blob = await zip.generateAsync({ type: 'blob' });
@@ -7142,7 +7142,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                         type="text"
                                                         value={bulkAdminImageUrl}
                                                         onChange={(e) => setBulkAdminImageUrl(e.target.value)}
-                                                        placeholder="https://…/banner.jpg"
+                                                        placeholder="https://…/banner.webp"
                                                         className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs outline-none focus:border-brand-500 font-semibold"
                                                     />
                                                 </div>
@@ -7538,7 +7538,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                                          type="text"
                                                                          value={broadcastImageUrl}
                                                                          onChange={(e) => setBroadcastImageUrl(e.target.value)}
-                                                                         placeholder="https://example.com/image.jpg"
+                                                                         placeholder="https://example.com/image.webp"
                                                                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 text-xs font-semibold"
                                                                      />
                                                                  </div>
@@ -8061,7 +8061,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         >
                                             {m.image && !failedMinistryImages[m.id] ? (
                                                 mediaType === 'video' ? (
-                                                    <video
+                                                    <video preload="none" 
                                                         src={m.image}
                                                         className="w-full h-full object-cover"
                                                         muted
@@ -8572,7 +8572,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </div>
 
                             <div className="mt-12 p-8 bg-brand-950 rounded-[2.5rem] border border-brand-800 shadow-2xl flex items-start gap-6 relative overflow-hidden">
-                                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none" />
+                                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.webp')] opacity-10 pointer-events-none" />
                                 <div className="w-14 h-14 bg-brand-500/20 backdrop-blur-xl border border-brand-500/30 rounded-2xl flex items-center justify-center text-brand-400 shadow-xl shrink-0">
                                     <Globe size={28} className="animate-spin-slow" />
                                 </div>
@@ -9162,7 +9162,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     {/* Logo */}
                                     <div className="flex items-center gap-[10px]">
                                       <div className="w-10 h-10 rounded-lg flex items-center justify-center">
-                                        <img src="/logo.png" alt="COT Logo" className="w-full h-full object-contain"/>
+                                        <img src="/logo.webp" alt="COT Logo" className="w-full h-full object-contain"/>
                                       </div>
                                       <div className="flex flex-col justify-center">
                                         <span className="font-bold text-[1.1rem] leading-[1.1] tracking-[-0.5px] text-[#1a1a2e]">City of Truth</span>
@@ -9893,7 +9893,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <label className="text-sm font-bold text-slate-700 block">Notification Image URL (Optional)</label>
                                     <input
                                         type="text"
-                                        placeholder="https://example.com/image.jpg"
+                                        placeholder="https://example.com/image.webp"
                                         value={dailyGreetingSettings.imageUrl}
                                         onChange={(e) => setDailyGreetingSettings(prev => ({ ...prev, imageUrl: e.target.value }))}
                                         onBlur={(e) => handleDailyGreetingSettingsUpdate({ imageUrl: e.target.value })}
@@ -10127,7 +10127,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 type="text"
                                                 value={editingNotification.imageUrl || ''}
                                                 onChange={(e) => setEditingNotification({ ...editingNotification, imageUrl: e.target.value })}
-                                                placeholder="https://example.com/banner.jpg"
+                                                placeholder="https://example.com/banner.webp"
                                                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 text-xs font-semibold"
                                             />
                                         </div>
@@ -11540,7 +11540,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         {editingMinistry.image ? (
                                             <>
                                                 {previewMinistryMediaType === 'video' ? (
-                                                    <video
+                                                    <video preload="none" 
                                                         src={editingMinistry.image}
                                                         className="w-full h-full object-cover"
                                                         controls
@@ -11929,7 +11929,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                     {/* Thumbnail preview with Crop simulation */}
                                                     <div className="w-32 h-32 rounded-2xl bg-black border border-white/10 overflow-hidden shrink-0 relative flex items-center justify-center group">
                                                         {item.mediaType === 'video' ? (
-                                                            <video
+                                                            <video preload="none" 
                                                                 src={item.preview}
                                                                 muted
                                                                 playsInline

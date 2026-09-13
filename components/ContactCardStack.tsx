@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { ChevronLeft, ChevronRight, Star, Quote, Send, ShieldCheck, Heart } from "lucide-react";
 
 interface TestimonialCardItem {

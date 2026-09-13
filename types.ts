@@ -30,7 +30,9 @@ export enum ViewState {
   PASTOR = 'PASTOR',
   MEMBER_FORM = 'MEMBER_FORM',
   BUGS_FIXED = 'BUGS_FIXED',
-  ID_CARD = 'ID_CARD'
+  ID_CARD = 'ID_CARD',
+  HEAVENS_DECLARE = 'HEAVENS_DECLARE',
+  NOT_FOUND = 'NOT_FOUND'
 }
 
 export interface NavItem {

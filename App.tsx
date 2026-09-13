@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import emailjs from '@emailjs/browser';
 // import { collection, addDoc } from 'firebase/firestore'; // Removed Firebase mail collection usage
-import { db, messaging } from './services/firebase';
 import {
   Church,
   MapPin,
@@ -61,13 +60,14 @@ import { EditableText } from './components/EditableText';
 import { PermalinkDisplay } from './components/PermalinkDisplay';
 import { SharePageButton } from './components/SharePageButton';
 import { Button } from './components/Button';
-import { GoldenMenorah } from './components/GoldenMenorah';
+const GoldenMenorah = React.lazy(() => import('./components/GoldenMenorah').then(m => ({ default: m.GoldenMenorah })));
 import { GlobalPresenceSection } from './components/HomeSections/GlobalPresenceSection';
-import { MinistryHighlights, HebrewSanctuaryIntro, HebrewPagesPreviewSection, PastorBaruchPreviewSection, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, CommunityMembersSection, DailyPsalm119Section, HeroCinematicIntro, MinistryBentoGrid, TestimonialHighlights } from './components/HomeSections';
+import { MinistryHighlights, HebrewSanctuaryIntro, HebrewPagesPreviewSection, PastorBaruchPreviewSection, EntrustCardPreview, LeaderMessageSection, DonationsHighlight, CommunityMembersSection, DailyPsalm119Section, HeroCinematicIntro, MinistryBentoGrid, TestimonialHighlights, HeavensDeclarePreviewSection } from './components/HomeSections';
 import { InfiniteEmblemMarquee } from './components/ui/infinite-emblem-marquee';
-import { CinematicOpeningScreen } from './components/ui/cinematic-opening-screen';
+const CinematicOpeningScreen = React.lazy(() => import('./components/ui/cinematic-opening-screen').then(m => ({ default: m.CinematicOpeningScreen })));
+import { HeavenlySectionReveal } from './components/ui/HeavenlySectionReveal';
 import { DotMatrixText } from './components/ui/dot-text';
-import { DotShaderCanvas } from './components/ui/modern-login-signup';
+const DotShaderCanvas = React.lazy(() => import('./components/ui/modern-login-signup').then(m => ({ default: m.DotShaderCanvas })));
 import { MessageFromLeader } from './components/MessageFromLeader';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { GuidedTour, useTour } from './components/GuidedTour';
@@ -86,6 +86,7 @@ const UserDashboard = React.lazy(() => import('./components/UserDashboard').then
 const ValparaiPage = React.lazy(() => import('./components/ValparaiPage').then(m => ({ default: m.ValparaiPage })));
 const AdminDashboard = React.lazy(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const HebrewResources = React.lazy(() => import('./components/HebrewResources').then(m => ({ default: m.HebrewResources })));
+const HeavensDeclarePage = React.lazy(() => import('./components/HeavensDeclarePage').then(m => ({ default: m.HeavensDeclarePage })));
 const QRVerifyPage = React.lazy(() => import('./components/QRVerifyPage').then(m => ({ default: m.QRVerifyPage })));
 const DonationModal = React.lazy(() => import('./components/DonationModal').then(m => ({ default: m.DonationModal })));
 const PastorPage = React.lazy(() => import('./components/PastorPage').then(m => ({ default: m.PastorPage })));
@@ -94,6 +95,7 @@ const VerifyIDPage = React.lazy(() => import('./components/VerifyIDPage'));
 const ContactPage = React.lazy(() => import('./components/ContactPage').then(m => ({ default: m.ContactPage })));
 const Footer = React.lazy(() => import('./components/ui/footer-section').then(m => ({ default: m.Footer })));
 const InfiniteLogoScroll = React.lazy(() => import('./components/InfiniteLogoScroll').then(m => ({ default: m.InfiniteLogoScroll })));
+const TinyTrails404 = React.lazy(() => import('./components/TinyTrails404').then(m => ({ default: m.TinyTrails404 })));
 
 interface DeferredSiteFooterProps {
   currentView: ViewState;
@@ -136,7 +138,6 @@ import { dynamicTours } from './components/dynamicTours';
 
 import { api } from './services/api';
 import { getAbsolutePagePermalink, getPagePath } from './services/routePaths';
-import { getToken } from 'firebase/messaging';
 import { sendFCMNotification } from './services/fcmService';
 import { sendSMS } from './services/smsService';
 import { startVisitorSession, updateSessionUser } from './services/analyticsService';
@@ -153,7 +154,9 @@ const HERO_VERSES = [
   { text: 'Fear not, for I am with you; be not dismayed, for I am your God.', ref: 'Isaiah 41:10' },
   { text: 'For I know the plans I have for you, declares the Lord.', ref: 'Jeremiah 29:11' },
 ];
-const REGISTRATION_CLOSES_AT = new Date('2026-08-12T23:59:59+05:30').getTime();
+// Registration repeats every 10 days
+const REGISTRATION_CYCLE_DAYS = 10;
+const REGISTRATION_START_DATE = new Date('2026-01-01T00:00:00+05:30').getTime();
 
 const getPagePermalinkOverrides = (): Partial<Record<ViewState, string>> => {
   if (typeof window === 'undefined') return {};
@@ -340,6 +343,9 @@ const VIEW_ALIASES: Record<string, ViewState> = {
   MEMBERFORM: ViewState.MEMBER_FORM,
   MEMBER_PROFILE: ViewState.MEMBER_FORM,
   COMMUNITY_PROFILE: ViewState.MEMBER_FORM,
+  NOT_FOUND: ViewState.NOT_FOUND,
+  TINYTRAILS: ViewState.NOT_FOUND,
+  '404': ViewState.NOT_FOUND,
 };
 
 
@@ -395,7 +401,7 @@ const ensureHebrewNavItems = (items: NavItem[]): NavItem[] => {
   return withMenus;
 };
 
-const DEFAULT_HOME_SECTIONS_ORDER = ['hero', 'about', 'highlights', 'menorah', 'leader', 'hebrew', 'pastorBaruch', 'testimonials', 'members', 'preview', 'donations', 'globalPresence', 'verify'];
+const DEFAULT_HOME_SECTIONS_ORDER = ['hero', 'about', 'highlights', 'menorah', 'leader', 'hebrew', 'heavens', 'pastorBaruch', 'testimonials', 'members', 'preview', 'donations', 'globalPresence', 'verify'];
 
 const normalizeHomeSectionsOrder = (sections: string[]): string[] => {
   // Preserve the INPUT order — only deduplicate and add genuinely missing sections
@@ -547,7 +553,13 @@ const App: React.FC = () => {
   }, []);
 
   const heroVerse = HERO_VERSES[heroVerseIndex % HERO_VERSES.length];
-  const registrationRemainingMs = Math.max(0, REGISTRATION_CLOSES_AT - heroNow);
+  
+  // Calculate repeating 10-day countdown
+  const timeSinceStart = heroNow - REGISTRATION_START_DATE;
+  const cycleDurationMs = REGISTRATION_CYCLE_DAYS * 86400000; // 10 days in milliseconds
+  const timeInCurrentCycle = timeSinceStart % cycleDurationMs;
+  const registrationRemainingMs = cycleDurationMs - timeInCurrentCycle;
+  
   const countdown = {
     days: Math.floor(registrationRemainingMs / 86400000),
     hours: Math.floor((registrationRemainingMs % 86400000) / 3600000),
@@ -1349,7 +1361,7 @@ const App: React.FC = () => {
 
   // Request notification permissions and register the FCM device token
   useEffect(() => {
-    if (typeof window === 'undefined' || !('Notification' in window) || !currentUser || !messaging) return;
+    if (typeof window === 'undefined' || !('Notification' in window) || !currentUser) return;
 
     const registerFcmToken = async () => {
       try {
@@ -1360,6 +1372,9 @@ const App: React.FC = () => {
             console.warn("FCM VAPID key is missing (VITE_FCM_VAPID_KEY). Skipping device registration.");
             return;
           }
+          const { messaging } = await import('./services/firebase');
+          if (!messaging) return;
+          const { getToken } = await import('firebase/messaging');
           const token = await getToken(messaging, { vapidKey });
           if (token) {
             const currentTokens = currentUser.fcmTokens || [];
@@ -1492,6 +1507,7 @@ const App: React.FC = () => {
   const isVerifyScannerRoute = location.pathname === '/verify-id';
   const isHebrewAlphabetRoute = location.pathname === '/hebrew-alphabet';
   const isWebsiteBuilderMode = location.pathname === '/websitebuilder';
+  const is404Route = location.pathname === '/404' || location.pathname === '/tinytrails' || currentView === ViewState.NOT_FOUND;
 
   const [pendingTextChanges, setPendingTextChanges] = useState<Record<string, string>>({});
   const [undoStack, setUndoStack] = useState<any[]>([]);
@@ -1602,6 +1618,10 @@ const App: React.FC = () => {
       '/verify-id': ViewState.VERIFY_ID,
       '/developer': ViewState.DEVELOPER,
       '/bugs-fixed': ViewState.BUGS_FIXED,
+      '/heavens-declare': ViewState.HEAVENS_DECLARE,
+      '/cosmos': ViewState.HEAVENS_DECLARE,
+      '/404': ViewState.NOT_FOUND,
+      '/tinytrails': ViewState.NOT_FOUND,
     };
 
     Object.entries(getPagePermalinkOverrides()).forEach(([view, path]) => {
@@ -1619,7 +1639,7 @@ const App: React.FC = () => {
     }
 
     // Skip permalink processing for special routes
-    if (isAdminRoute || isVerifyRoute || isAuthRoute || isVerifyScannerRoute) {
+    if (isAdminRoute || isVerifyRoute || isAuthRoute || isVerifyScannerRoute || is404Route) {
       return;
     }
     
@@ -1670,6 +1690,7 @@ const App: React.FC = () => {
       case ViewState.BARUCH_HASHEM: return "bg-slate-50 text-brand-950";
       case ViewState.USER_DASHBOARD: return "bg-slate-50 text-slate-900";
       case ViewState.ADMIN_DASHBOARD: return "bg-slate-50 text-slate-900";
+      case ViewState.HEAVENS_DECLARE: return "bg-black text-white";
       default: return "bg-white text-brand-950";
     }
   };
@@ -2207,6 +2228,18 @@ const App: React.FC = () => {
     );
   }
 
+  // If on 404 / TinyTrails route
+  if (is404Route) {
+    return (
+      <React.Suspense fallback={<SanctuaryViewLoading />}>
+        <TinyTrails404 onBackHome={() => {
+          setCurrentView(ViewState.HOME);
+          navigate('/');
+        }} />
+      </React.Suspense>
+    );
+  }
+
   // If on verify route (QR code scan)
   if (isVerifyRoute && verifyUserId) {
     return (
@@ -2361,8 +2394,8 @@ const App: React.FC = () => {
               key="home"
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
             >
-              {/* Recycle Bin Notice Floating Banner */}
-              {!isFrame && deletedUsers && deletedUsers.length > 0 && !dismissRecycleNotice && (
+              {/* Recycle Bin Notice Floating Banner - Only show to Admin users */}
+              {!isFrame && currentUser?.role === 'Admin' && deletedUsers && deletedUsers.length > 0 && !dismissRecycleNotice && (
                 <motion.div 
                   initial={{ opacity: 0, y: -50, x: '-50%' }}
                   animate={{ opacity: 1, y: 0, x: '-50%' }}
@@ -2422,7 +2455,11 @@ const App: React.FC = () => {
                 const renderSectionContent = () => {
                 switch (sectionId) {
                   case 'dailyPsalm':
-                    return <DailyPsalm119Section key="dailyPsalm" />;
+                    return (
+                      <HeavenlySectionReveal key="dailyPsalm" aura="amber">
+                        <DailyPsalm119Section />
+                      </HeavenlySectionReveal>
+                    );
                   case 'hero':
                     return (
                       <React.Fragment key="hero">
@@ -2458,34 +2495,81 @@ const App: React.FC = () => {
                     );
                   case 'about':
                     return (
-                      <MinistryBentoGrid
-                        key="about"
-                        setView={setCurrentView}
-                        navigate={navigate}
-                        youtubeLink={youtubeLink}
-                      />
+                      <HeavenlySectionReveal key="about" aura="sapphire">
+                        <MinistryBentoGrid
+                          setView={setCurrentView}
+                          navigate={navigate}
+                          youtubeLink={youtubeLink}
+                        />
+                      </HeavenlySectionReveal>
                     );
-          case 'menorah': return <GoldenMenorah key="menorah" onPreviewClick={() => handleViewChange(ViewState.GOLDEN_MENORAH)} />;
-          case 'highlights': return <MinistryHighlights key="highlights" setView={handleViewChange} />;
-          case 'leader': return null; // Leader message is now a fixed overlay triggered by email input
-          case 'hebrew': return <HebrewSanctuaryIntro key="hebrew" setView={setCurrentView} />;
+          case 'menorah':
+            return (
+              <HeavenlySectionReveal key="menorah" aura="gold">
+                <GoldenMenorah onPreviewClick={() => handleViewChange(ViewState.GOLDEN_MENORAH)} />
+              </HeavenlySectionReveal>
+            );
+          case 'highlights':
+            return (
+              <HeavenlySectionReveal key="highlights" aura="gold">
+                <MinistryHighlights setView={handleViewChange} />
+              </HeavenlySectionReveal>
+            );
+          case 'leader': return null;
+          case 'hebrew':
+            return (
+              <HeavenlySectionReveal key="hebrew" aura="emerald">
+                <HebrewSanctuaryIntro setView={setCurrentView} />
+              </HeavenlySectionReveal>
+            );
+          case 'heavens':
+            return (
+              <HeavenlySectionReveal key="heavens" aura="sapphire">
+                <HeavensDeclarePreviewSection setView={setCurrentView} />
+              </HeavenlySectionReveal>
+            );
           case 'hebrewPages': return null;
-          case 'pastorBaruch': return <PastorBaruchPreviewSection key="pastorBaruch" setView={setCurrentView} />;
-          case 'testimonials': return <TestimonialHighlights key="testimonials" setView={setCurrentView} currentUser={currentUser || undefined} />;
-          case 'members': return <CommunityMembersSection key="members" setView={setCurrentView} users={users} />;
-          case 'preview': return <EntrustCardPreview key="preview" setView={setCurrentView} />;
+          case 'pastorBaruch':
+            return (
+              <HeavenlySectionReveal key="pastorBaruch" aura="amber">
+                <PastorBaruchPreviewSection setView={setCurrentView} />
+              </HeavenlySectionReveal>
+            );
+          case 'testimonials':
+            return (
+              <HeavenlySectionReveal key="testimonials" aura="amethyst">
+                <TestimonialHighlights setView={setCurrentView} currentUser={currentUser || undefined} />
+              </HeavenlySectionReveal>
+            );
+          case 'members':
+            return (
+              <HeavenlySectionReveal key="members" aura="sapphire">
+                <CommunityMembersSection setView={setCurrentView} users={users} />
+              </HeavenlySectionReveal>
+            );
+          case 'preview':
+            return (
+              <HeavenlySectionReveal key="preview" aura="sapphire">
+                <EntrustCardPreview setView={setCurrentView} />
+              </HeavenlySectionReveal>
+            );
           case 'donations': return null;
           case 'globalPresence':
-            return <GlobalPresenceSection key="globalPresence" />;
+            return (
+              <HeavenlySectionReveal key="globalPresence" aura="sapphire">
+                <GlobalPresenceSection />
+              </HeavenlySectionReveal>
+            );
           case 'verify':
             return (
-              <section key="verify" className="py-24 bg-slate-950 text-white relative overflow-hidden border-t border-b border-white/10">
+              <HeavenlySectionReveal key="verify" aura="sapphire">
+              <section className="py-24 bg-slate-950 text-white relative overflow-hidden border-t border-b border-white/10">
                 {/* Dynamic WebGL Dot Shader Canvas for Ambient Dots */}
                 <DotShaderCanvas className="absolute inset-0 w-full h-full pointer-events-none z-0 opacity-40" />
 
                 {/* Stardust Texture & Radial Dot Matrix Pattern */}
                 <div className="absolute inset-0 bg-[radial-gradient(#38bdf8_1.2px,transparent_1.2px)] [background-size:24px_24px] opacity-15 pointer-events-none z-0" />
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none z-0" />
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.webp')] opacity-10 pointer-events-none z-0" />
                 
                 {/* Ambient Glows */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-brand-500/15 blur-[140px] rounded-full pointer-events-none z-0" />
@@ -2550,6 +2634,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
               </section>
+              </HeavenlySectionReveal>
             );
           default: return null;
         }
@@ -2613,8 +2698,14 @@ const App: React.FC = () => {
           )}
 
           {currentView === ViewState.ABOUT_VALPARAI && (
-            <motion.div key="valparai" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div key="valparai">
               <ValparaiPage setView={setCurrentView} />
+            </div>
+          )}
+
+                    {currentView === ViewState.HEAVENS_DECLARE && (
+            <motion.div key="heavens-declare-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <HeavensDeclarePage onBack={() => setCurrentView(ViewState.HOME)} onNavigateView={setCurrentView} />
             </motion.div>
           )}
 
@@ -2638,7 +2729,13 @@ const App: React.FC = () => {
 
           {currentView === ViewState.PASTOR && (
             <motion.div key="pastor" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <PastorPage />
+              <PastorPage
+                onPlanVisit={() => setCurrentView(ViewState.CONTACT)}
+                onWatchSermons={() => setCurrentView(ViewState.BARUCH_HASHEM)}
+                navigate={navigate}
+                setCurrentView={setCurrentView}
+                ViewState={ViewState}
+              />
             </motion.div>
           )}
 
@@ -3157,12 +3254,12 @@ const App: React.FC = () => {
               {/* Glowing ring */}
               <motion.div
                 animate={{ scale: [1, 1.06, 1], opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 2, repeat: Infinity }}
+                transition={{ duration: 0.8, repeat: Infinity }}
                 className="absolute inset-0 rounded-[2.5rem] border-2 border-amber-400/40 pointer-events-none"
               />
               <motion.div
                 animate={{ scale: [1, 1.12, 1], opacity: [0.2, 0.5, 0.2] }}
-                transition={{ duration: 2.5, repeat: Infinity }}
+                transition={{ duration: 1.0, repeat: Infinity }}
                 className="absolute inset-0 rounded-[2.5rem] border border-amber-300/20 pointer-events-none"
               />
 
@@ -3204,7 +3301,7 @@ const App: React.FC = () => {
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.7 }}
+                transition={{ delay: 0.28 }}
                 className="text-white/40 text-sm italic mb-8"
               >
                 {celebrationMode === 'approval'

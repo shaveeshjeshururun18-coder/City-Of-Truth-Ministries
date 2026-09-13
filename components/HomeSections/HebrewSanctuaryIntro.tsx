@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Star, ArrowRight, BookOpen, MapPin, Globe, Sparkles, MessageSquare, QrCode, Heart, Users, Mountain, Leaf, CloudRain, Video, Sun, Music, FileText, Eye } from 'lucide-react';
 import { ViewState, User } from '../../types';
 import { MessageFromLeader } from '../MessageFromLeader';
@@ -39,8 +39,10 @@ export const HebrewSanctuaryIntro: React.FC<SectionProps> = ({ setView }) => {
             <div className="container mx-auto px-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center">
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
+                        initial={{ opacity: 0, scale: 0.94, filter: 'blur(8px)' }}
+                        whileInView={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.48, ease: [0.16, 1, 0.3, 1] }}
                         className="aspect-[4/3] md:aspect-square rounded-[2rem] bg-brand-950 relative overflow-hidden shadow-2xl"
                     >
                         <div className="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1543722518-971c6dd64070?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center" />
@@ -58,16 +60,24 @@ export const HebrewSanctuaryIntro: React.FC<SectionProps> = ({ setView }) => {
 
                     <div>
                         <motion.div
-                            initial={{ opacity: 0, x: 20 }}
-                            whileInView={{ opacity: 1, x: 0 }}
+                            initial={{ opacity: 0, y: 14, filter: 'blur(6px)' }}
+                            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.4, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
                             className="inline-flex items-center gap-2 bg-brand-950 text-brand-100 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] mb-4 md:mb-6"
                         >
                             <BookOpen size={12} />
                             {name}
                         </motion.div>
-                        <h2 className="text-3xl md:text-5xl lg:text-6xl font-serif font-black text-brand-950 leading-[0.9] tracking-tighter mb-4 md:mb-8">
+                        <motion.h2
+                            initial={{ opacity: 0, y: 16, filter: 'blur(8px)' }}
+                            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.45, delay: 0.16, ease: [0.16, 1, 0.3, 1] }}
+                            className="text-3xl md:text-5xl lg:text-6xl font-serif font-black text-brand-950 leading-[0.9] tracking-tighter mb-4 md:mb-8"
+                        >
                             {desc}
-                        </h2>
+                        </motion.h2>
                         <p className="text-base md:text-xl text-slate-500 font-light leading-relaxed mb-6 md:mb-10 max-w-xl">
                             From the Hebrew alphabet to the profound depth of the Biblical calendar, embark on a journey of spiritual discovery.
                         </p>

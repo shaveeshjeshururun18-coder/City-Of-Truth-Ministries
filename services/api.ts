@@ -817,7 +817,7 @@ export const api = {
                 const catIndex = i % 6;
                 assets.push({
                     name: `${categories[catIndex]} Moment ${i + 1}`,
-                    image: `/ministry/IMG-20231230-WA${num}.jpg`,
+                    image: `/ministry/IMG-20231230-WA${num}.webp`,
                     date: '2023-12-30',
                     category: categories[catIndex],
                     description: descriptions[catIndex],

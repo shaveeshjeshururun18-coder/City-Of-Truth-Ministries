@@ -35,6 +35,8 @@ export const VIEW_PATHS: Record<ViewState, string> = {
   [ViewState.PASTOR]: '/pastor',
   [ViewState.MEMBER_FORM]: '/member-form',
   [ViewState.BUGS_FIXED]: '/bugs-fixed',
+  [ViewState.HEAVENS_DECLARE]: '/heavens-declare',
+  [ViewState.NOT_FOUND]: '/404',
 };
 
 export const normalizePagePath = (value: string) => {

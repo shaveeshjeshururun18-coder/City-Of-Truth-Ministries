@@ -22,7 +22,7 @@ scratch_*.txt
 build.log
 *.log
 tsc_errors.txt
-step_*.json
-temp_codepen/
 temp_paleo_svgs/
+*.bak
+scratch/
 .vercel

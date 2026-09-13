@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { Sparkles, Maximize2, X, Eye, BookOpen, ShieldCheck } from "lucide-react";
 
 export interface EmblemItem {
@@ -21,7 +21,7 @@ export const SHOWCASE_EMBLEMS: EmblemItem[] = [
     title: "Sacred Menorah Seal",
     tamilTitle: "பரிசுத்த விளக்குத்தண்டு",
     category: "Official Seal",
-    src: "/showcase/logo-menorah-seal.png",
+    src: "/showcase/logo-menorah-seal.webp",
     badgeColor: "border-amber-400/40 text-amber-300 bg-amber-500/10",
     desc: "The sacred 7-branch Menorah emblem of City of Truth Ministries, symbolizing the sevenfold Spirit and eternal divine light.",
   },
@@ -30,7 +30,7 @@ export const SHOWCASE_EMBLEMS: EmblemItem[] = [
     title: "City of Truth Crest",
     tamilTitle: "சத்திய நகரின் சின்னம்",
     category: "Ministry Crest",
-    src: "/showcase/logo-truth-crest.png",
+    src: "/showcase/logo-truth-crest.webp",
     badgeColor: "border-blue-400/40 text-blue-300 bg-blue-500/10",
     desc: "Apostolic heraldic crest embodying the pillar of truth, the covenant, and righteousness.",
   },
@@ -39,7 +39,7 @@ export const SHOWCASE_EMBLEMS: EmblemItem[] = [
     title: "Divine Light Emblem",
     tamilTitle: "தெய்வீக ஜோதி",
     category: "Sanctuary Emblem",
-    src: "/showcase/logo-sacred-emblem.png",
+    src: "/showcase/logo-sacred-emblem.webp",
     badgeColor: "border-emerald-400/40 text-emerald-300 bg-emerald-500/10",
     desc: "Golden illumination representing the uncreated light of the Almighty shining into every heart.",
   },
@@ -48,7 +48,7 @@ export const SHOWCASE_EMBLEMS: EmblemItem[] = [
     title: "Celestial Covenant Mark",
     tamilTitle: "வானக உடன்படிக்கை",
     category: "Covenant Seal",
-    src: "/showcase/logo-divine-light.png",
+    src: "/showcase/logo-divine-light.webp",
     badgeColor: "border-indigo-400/40 text-indigo-300 bg-indigo-500/10",
     desc: "The celestial signet representing divine order, holy worship, and faithful service.",
   },
@@ -57,7 +57,7 @@ export const SHOWCASE_EMBLEMS: EmblemItem[] = [
     title: "City of Truth Gold Signature",
     tamilTitle: "பொன்மயமான முத்திரை",
     category: "Master Brand",
-    src: "/showcase/logo-cot-gold.png",
+    src: "/showcase/logo-cot-gold.webp",
     badgeColor: "border-amber-500/50 text-amber-300 bg-amber-500/15",
     desc: "Embossed golden emblem used on official pastoral publications, letters, and holy convocation banners.",
   },
@@ -66,7 +66,7 @@ export const SHOWCASE_EMBLEMS: EmblemItem[] = [
     title: "Hebrew Crown of Righteousness",
     tamilTitle: "நீதியின் கிரீடம்",
     category: "Hebrew Wisdom",
-    src: "/showcase/logo-hebrew-crown.png",
+    src: "/showcase/logo-hebrew-crown.webp",
     badgeColor: "border-yellow-400/40 text-yellow-300 bg-yellow-500/10",
     desc: "Keter (Crown) motif representing holy royalty in Yahweh and the crown of everlasting life.",
   },
@@ -75,7 +75,7 @@ export const SHOWCASE_EMBLEMS: EmblemItem[] = [
     title: "Wings of Truth & Refuge",
     tamilTitle: "சத்தியத்தின் செட்டைகள்",
     category: "Apostolic Wings",
-    src: "/showcase/logo-truth-wings.png",
+    src: "/showcase/logo-truth-wings.webp",
     badgeColor: "border-cyan-400/40 text-cyan-300 bg-cyan-500/10",
     desc: "Inspired by Psalm 91:4 — 'He will cover you with His feathers, and under His wings you will find refuge.'",
   },
@@ -84,7 +84,7 @@ export const SHOWCASE_EMBLEMS: EmblemItem[] = [
     title: "Shield of Faith & Defense",
     tamilTitle: "விசுவாசத்தின் கேடகம்",
     category: "Spiritual Armor",
-    src: "/showcase/logo-sacred-shield.png",
+    src: "/showcase/logo-sacred-shield.webp",
     badgeColor: "border-rose-400/40 text-rose-300 bg-rose-500/10",
     desc: "The shield of spiritual protection standing steadfast against deception and declaring the victory of Truth.",
   },
@@ -93,7 +93,7 @@ export const SHOWCASE_EMBLEMS: EmblemItem[] = [
     title: "Covenant Star of David",
     tamilTitle: "தாவீதின் நட்சத்திரம்",
     category: "Biblical Heritage",
-    src: "/showcase/logo-covenant-star.png",
+    src: "/showcase/logo-covenant-star.webp",
     badgeColor: "border-sky-400/40 text-sky-300 bg-sky-500/10",
     desc: "Ancient sign of the seed of David and the prophetic fulfillment in our Messiah.",
   },
@@ -102,7 +102,7 @@ export const SHOWCASE_EMBLEMS: EmblemItem[] = [
     title: "ஆத்தும நன்றி பலிகள்",
     tamilTitle: "Soul Thanksgiving Sacrifices",
     category: "Sacred Book Publication",
-    src: "/showcase/book-athuma-nanri-paligal.jpg",
+    src: "/showcase/book-athuma-nanri-paligal.webp",
     badgeColor: "border-amber-400/50 text-amber-200 bg-amber-500/20",
     isBook: true,
     desc: "The official holy book wrapper for 'ஆத்தும நன்றி பலிகள்' (Soul Thanksgiving Sacrifices) containing sacred prayers, meditations, and thanksgiving confessions.",

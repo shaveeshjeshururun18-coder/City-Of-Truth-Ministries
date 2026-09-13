@@ -402,7 +402,7 @@ export const CameraStage: React.FC<CameraStageProps> = ({ onPhotoCaptured, cardN
         )}
 
         {/* Video Stream (Mirrored Selfie View) */}
-        <video
+        <video preload="none" 
           ref={videoRef}
           playsInline
           muted

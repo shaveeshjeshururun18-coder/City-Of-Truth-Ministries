@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { User, Mail, Lock, ShieldCheck, ArrowRight, QrCode, Sparkles, CheckCircle2, KeyRound } from 'lucide-react';
 
 export interface ModernLoginSignupProps {
@@ -308,7 +308,7 @@ export default function Component({
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 via-amber-600 to-amber-800 p-0.5 shadow-[0_0_30px_rgba(245,158,11,0.35)] flex items-center justify-center">
             <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center overflow-hidden relative">
               <img
-                src="/logo.png"
+                src="/logo.webp"
                 alt="City of Truth Logo"
                 className="w-10 h-10 object-contain drop-shadow-[0_2px_8px_rgba(245,158,11,0.5)]"
                 onError={(e) => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Share2, Copy, Check, X, Facebook, Twitter, Mail, MessageCircle, Link as LinkIcon } from 'lucide-react';
 import { WidgetSettingsConfig } from '../types';
 

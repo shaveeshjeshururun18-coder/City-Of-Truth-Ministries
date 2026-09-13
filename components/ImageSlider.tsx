@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 
 interface ImageSliderProps {
     images?: string[];
@@ -7,16 +7,16 @@ interface ImageSliderProps {
 
 // Default images from the Baruch Hashem collection for demonstration
 const defaultImages = [
-    '/barch_hasem/1.jpg',
-    '/barch_hasem/2.png',
-    '/barch_hasem/3.png',
-    '/barch_hasem/4.png',
-    '/barch_hasem/5.png',
-    '/barch_hasem/6.png',
-    '/barch_hasem/7.png',
-    '/barch_hasem/8.png',
-    '/barch_hasem/9.png',
-    '/barch_hasem/10.png',
+    '/barch_hasem/1.webp',
+    '/barch_hasem/2.webp',
+    '/barch_hasem/3.webp',
+    '/barch_hasem/4.webp',
+    '/barch_hasem/5.webp',
+    '/barch_hasem/6.webp',
+    '/barch_hasem/7.webp',
+    '/barch_hasem/8.webp',
+    '/barch_hasem/9.webp',
+    '/barch_hasem/10.webp',
 ];
 
 export const ImageSlider: React.FC<ImageSliderProps> = ({ images = defaultImages }) => {
@@ -39,7 +39,7 @@ export const ImageSlider: React.FC<ImageSliderProps> = ({ images = defaultImages
                         transition={{
                             repeat: Infinity,
                             ease: "linear",
-                            duration: 30, // Adjust speed: higher = slower
+                            duration: 1.92, // Adjust speed: higher = slower
                         }}
                         className="flex flex-shrink-0 gap-6 px-3"
                     >

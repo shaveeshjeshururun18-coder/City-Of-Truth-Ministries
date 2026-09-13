@@ -28,8 +28,11 @@ export default defineConfig(({ mode }) => {
               if (id.includes('pdfjs-dist') || id.includes('jspdf')) {
                 return 'pdf-vendor';
               }
-              if (id.includes('three') || id.includes('cobe')) {
+              if (id.includes('three')) {
                 return 'three-vendor';
+              }
+              if (id.includes('cobe')) {
+                return 'globe-vendor';
               }
               if (id.includes('openai') || id.includes('@google/genai') || id.includes('@openrouter/sdk')) {
                 return 'ai-vendor';

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import type { ComponentProps, ReactNode } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion } from 'motion/react';
 import { 
   Youtube, 
   Facebook, 
@@ -108,29 +108,26 @@ export function Footer({
   ];
 
   return (
-    <div className="w-full bg-[#050403] pt-14 pb-6 px-3 sm:px-6">
-      {/* Dark Gold Curved Container Footer */}
-      <footer className="relative w-full max-w-7xl mx-auto rounded-t-[3rem] md:rounded-t-[4.5rem] bg-gradient-to-b from-[#0e0c08] via-[#090805] to-[#040302] text-amber-50 overflow-hidden pt-16 pb-14 px-6 lg:px-12 shadow-[0_-25px_60px_-10px_rgba(245,158,11,0.2)]">
-        
-        {/* Background Star Texture & Rich Radial Dark Gold Ambient Light */}
-        <div className="absolute inset-0 bg-[radial-gradient(55%_220px_at_50%_0%,rgba(245,158,11,0.38),transparent)] pointer-events-none" />
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-15 pointer-events-none" />
-        
-        {/* Luminous Top Gold Beam */}
-        <div className="absolute top-0 right-1/2 left-1/2 h-[2px] w-2/5 -translate-x-1/2 rounded-full bg-gradient-to-r from-transparent via-amber-400 to-transparent blur-[1px] shadow-[0_0_20px_rgba(251,191,36,0.9)]" />
+    <footer className="relative w-full bg-gradient-to-b from-[#0e0c08] via-[#090805] to-[#040302] text-amber-50 overflow-hidden pt-16 pb-12 px-6 sm:px-10 lg:px-16 border-t border-amber-500/20 shadow-[0_-25px_60px_-10px_rgba(245,158,11,0.2)]">
+      {/* Background Star Texture & Rich Radial Dark Gold Ambient Light */}
+      <div className="absolute inset-0 bg-[radial-gradient(55%_220px_at_50%_0%,rgba(245,158,11,0.38),transparent)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.webp')] opacity-15 pointer-events-none" />
+      
+      {/* Luminous Top Gold Beam across full width */}
+      <div className="absolute top-0 right-1/2 left-1/2 h-[2px] w-3/5 -translate-x-1/2 rounded-full bg-gradient-to-r from-transparent via-amber-400 to-transparent blur-[1px] shadow-[0_0_20px_rgba(251,191,36,0.9)]" />
 
-        <div className="relative z-10 mx-auto w-full">
-          <div className="grid grid-cols-1 gap-12 lg:grid-cols-4 lg:gap-8 mb-14">
-            
-            {/* Column 1: Dark Gold Brand Identity */}
-            <AnimatedContainer delay={0.1} className="space-y-6">
+      <div className="relative z-10 mx-auto w-full max-w-7xl">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-4 lg:gap-8 mb-14">
+          
+          {/* Column 1: Dark Gold Brand Identity */}
+          <AnimatedContainer delay={0.1} className="space-y-6">
               <div className="flex items-center gap-4">
                 <img 
-                  src="/footer-logo.png" 
+                  src="/footer-logo.webp" 
                   alt="City of Truth Ministries Logo" 
                   className="w-20 h-20 sm:w-24 sm:h-24 object-contain rounded-2xl drop-shadow-[0_0_22px_rgba(245,158,11,0.75)] hover:scale-105 transition-transform duration-300 shrink-0"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/logo.png';
+                    (e.target as HTMLImageElement).src = '/logo.webp';
                   }}
                 />
                 <div>
@@ -360,7 +357,7 @@ export function Footer({
                   <style>{`
                     .developer-btn-container {
                       --timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-                      --duration: 250ms;
+                      --duration: 16.0ms;
                       position: relative;
                       display: inline-flex;
                       align-items: center;
@@ -458,32 +455,17 @@ export function Footer({
           </div>
         </div>
       </footer>
-    </div>
   );
 }
 
 type ViewAnimationProps = {
   delay?: number;
-  className?: ComponentProps<typeof motion.div>['className'];
+  className?: string;
   children: ReactNode;
 };
 
-function AnimatedContainer({ className, delay = 0.1, children }: ViewAnimationProps) {
-  const shouldReduceMotion = useReducedMotion();
-
-  if (shouldReduceMotion) {
-    return <div className={className}>{children}</div>;
-  }
-
-  return (
-    <motion.div
-      initial={{ filter: 'blur(4px)', translateY: -8, opacity: 0 }}
-      whileInView={{ filter: 'blur(0px)', translateY: 0, opacity: 1 }}
-      viewport={{ once: true }}
-      transition={{ delay, duration: 0.8 }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
+function AnimatedContainer({ className, children }: ViewAnimationProps) {
+  return <div className={className}>{children}</div>;
 }
+
+export default Footer;

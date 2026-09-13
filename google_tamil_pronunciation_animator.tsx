@@ -26,14 +26,14 @@ const WORDS_DATA = {
       meaning: "உண்மையுடன் (With loyalty and devotion)",
       tip: "Bite your lower lip for the 'F' sound, then slide your tongue forward between your teeth for 'TH'.",
       sequence: [
-        { phoneme: "F", duration: 350, syllable: "fayth" },
-        { phoneme: "AH", duration: 150, syllable: "fayth" },
-        { phoneme: "EE", duration: 150, syllable: "fayth" },
-        { phoneme: "TH", duration: 400, syllable: "fayth" },
-        { phoneme: "F", duration: 250, syllable: "fu" },
-        { phoneme: "OO", duration: 350, syllable: "fu" },
-        { phoneme: "L", duration: 250, syllable: "lee" },
-        { phoneme: "EE", duration: 500, syllable: "lee" }
+        { phoneme: "F", duration: 56.0, syllable: "fayth" },
+        { phoneme: "AH", duration: 24.0, syllable: "fayth" },
+        { phoneme: "EE", duration: 24.0, syllable: "fayth" },
+        { phoneme: "TH", duration: 64.0, syllable: "fayth" },
+        { phoneme: "F", duration: 40.0, syllable: "fu" },
+        { phoneme: "OO", duration: 56.0, syllable: "fu" },
+        { phoneme: "L", duration: 40.0, syllable: "lee" },
+        { phoneme: "EE", duration: 80.0, syllable: "lee" }
       ]
     },
     {
@@ -43,14 +43,14 @@ const WORDS_DATA = {
       meaning: "அழகான (Aesthetically pleasing)",
       tip: "Start with tightly closed lips for 'B', shift instantly to a wide smile for 'EE', then round into 'OO'.",
       sequence: [
-        { phoneme: "P", duration: 250, syllable: "byoo" },
-        { phoneme: "EE", duration: 200, syllable: "byoo" },
-        { phoneme: "OO", duration: 500, syllable: "byoo" },
-        { phoneme: "L", duration: 200, syllable: "ti" },
-        { phoneme: "EE", duration: 300, syllable: "ti" },
-        { phoneme: "F", duration: 250, syllable: "ful" },
-        { phoneme: "OO", duration: 250, syllable: "ful" },
-        { phoneme: "L", duration: 400, syllable: "ful" }
+        { phoneme: "P", duration: 40.0, syllable: "byoo" },
+        { phoneme: "EE", duration: 32.0, syllable: "byoo" },
+        { phoneme: "OO", duration: 80.0, syllable: "byoo" },
+        { phoneme: "L", duration: 32.0, syllable: "ti" },
+        { phoneme: "EE", duration: 48.0, syllable: "ti" },
+        { phoneme: "F", duration: 40.0, syllable: "ful" },
+        { phoneme: "OO", duration: 40.0, syllable: "ful" },
+        { phoneme: "L", duration: 64.0, syllable: "ful" }
       ]
     },
     {
@@ -60,13 +60,13 @@ const WORDS_DATA = {
       meaning: "நேர்மை (The quality of being honest and genuine)",
       tip: "Keep your teeth close together for the hissing 'S' sound, followed by a light alveolar tap for 'r'.",
       sequence: [
-        { phoneme: "EE", duration: 250, syllable: "sin" },
-        { phoneme: "L", duration: 300, syllable: "sin" },
-        { phoneme: "EE", duration: 250, syllable: "ce" },
-        { phoneme: "L", duration: 200, syllable: "ri" },
-        { phoneme: "EE", duration: 250, syllable: "ri" },
-        { phoneme: "L", duration: 200, syllable: "ty" },
-        { phoneme: "EE", duration: 450, syllable: "ty" }
+        { phoneme: "EE", duration: 40.0, syllable: "sin" },
+        { phoneme: "L", duration: 48.0, syllable: "sin" },
+        { phoneme: "EE", duration: 40.0, syllable: "ce" },
+        { phoneme: "L", duration: 32.0, syllable: "ri" },
+        { phoneme: "EE", duration: 40.0, syllable: "ri" },
+        { phoneme: "L", duration: 32.0, syllable: "ty" },
+        { phoneme: "EE", duration: 72.0, syllable: "ty" }
       ]
     }
   ],
@@ -78,11 +78,11 @@ const WORDS_DATA = {
       meaning: "The sweet, ancient Tamil language",
       tip: "To pronounce 'ழ' (zh), curl your tongue fully backward without touching the roof of your mouth.",
       sequence: [
-        { phoneme: "TH", duration: 300, syllable: "ta" },
-        { phoneme: "AH", duration: 350, syllable: "ta" },
-        { phoneme: "P", duration: 250, syllable: "mizh" },
-        { phoneme: "EE", duration: 250, syllable: "mizh" },
-        { phoneme: "ZH", duration: 650, syllable: "mizh" }
+        { phoneme: "TH", duration: 48.0, syllable: "ta" },
+        { phoneme: "AH", duration: 56.0, syllable: "ta" },
+        { phoneme: "P", duration: 40.0, syllable: "mizh" },
+        { phoneme: "EE", duration: 40.0, syllable: "mizh" },
+        { phoneme: "ZH", duration: 104.0, syllable: "mizh" }
       ]
     },
     {
@@ -92,14 +92,14 @@ const WORDS_DATA = {
       meaning: "Traditional Tamil greeting / Hello",
       tip: "Start with soft lips for 'Va', tap the alveolar ridge for retroflex 'na', and finish with firmly closed lips.",
       sequence: [
-        { phoneme: "OO", duration: 250, syllable: "va" },
-        { phoneme: "AH", duration: 350, syllable: "va" },
-        { phoneme: "L", duration: 250, syllable: "nak" },
-        { phoneme: "AH", duration: 200, syllable: "nak" },
-        { phoneme: "K", duration: 250, syllable: "nak" },
-        { phoneme: "K", duration: 200, syllable: "kam" },
-        { phoneme: "AH", duration: 250, syllable: "kam" },
-        { phoneme: "P", duration: 500, syllable: "kam" }
+        { phoneme: "OO", duration: 40.0, syllable: "va" },
+        { phoneme: "AH", duration: 56.0, syllable: "va" },
+        { phoneme: "L", duration: 40.0, syllable: "nak" },
+        { phoneme: "AH", duration: 32.0, syllable: "nak" },
+        { phoneme: "K", duration: 40.0, syllable: "nak" },
+        { phoneme: "K", duration: 32.0, syllable: "kam" },
+        { phoneme: "AH", duration: 40.0, syllable: "kam" },
+        { phoneme: "P", duration: 80.0, syllable: "kam" }
       ]
     },
     {
@@ -109,12 +109,12 @@ const WORDS_DATA = {
       meaning: "Thank you",
       tip: "Press the tongue tip flat behind your teeth for 'Nan', then pull back for the soft rolling flap 'dri'.",
       sequence: [
-        { phoneme: "L", duration: 250, syllable: "nan" },
-        { phoneme: "AH", duration: 200, syllable: "nan" },
-        { phoneme: "L", duration: 250, syllable: "nan" },
-        { phoneme: "L", duration: 250, syllable: "dri" },
-        { phoneme: "ZH", duration: 200, syllable: "dri" },
-        { phoneme: "EE", duration: 500, syllable: "dri" }
+        { phoneme: "L", duration: 40.0, syllable: "nan" },
+        { phoneme: "AH", duration: 32.0, syllable: "nan" },
+        { phoneme: "L", duration: 40.0, syllable: "nan" },
+        { phoneme: "L", duration: 40.0, syllable: "dri" },
+        { phoneme: "ZH", duration: 32.0, syllable: "dri" },
+        { phoneme: "EE", duration: 80.0, syllable: "dri" }
       ]
     }
   ]

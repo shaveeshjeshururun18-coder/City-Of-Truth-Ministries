@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Star, ArrowRight } from 'lucide-react';
 import { ViewState } from '../../types';
 import { DeuteronomyCircleGraphic } from '../DeuteronomyCircleGraphic';
@@ -44,24 +44,36 @@ export const MinistryHighlights: React.FC<SectionProps> = ({ setView }) => {
                 <div className="flex flex-col md:flex-row items-end justify-between gap-6 max-w-7xl mx-auto">
                     <div>
                         <motion.div
-                            initial={{ opacity: 0, x: -20 }}
-                            whileInView={{ opacity: 1, x: 0 }}
+                            initial={{ opacity: 0, y: 12, filter: 'blur(6px)' }}
+                            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                             className="inline-flex items-center gap-2 bg-amber-500/10 text-amber-300 border border-amber-400/20 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] mb-4 backdrop-blur-md"
                         >
                             <Star size={12} className="text-amber-400" fill="currentColor" />
                             {name}
                         </motion.div>
-                        <h2 className="text-4xl md:text-6xl font-serif font-black text-white leading-[0.9] tracking-tighter">
+                        <motion.h2
+                            initial={{ opacity: 0, y: 18, filter: 'blur(8px)' }}
+                            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.45, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+                            className="text-4xl md:text-6xl font-serif font-black text-white leading-[0.9] tracking-tighter"
+                        >
                             {desc}
-                        </h2>
+                        </motion.h2>
                     </div>
-                    <button
+                    <motion.button
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.4, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
                         onClick={() => setView(ViewState.MINISTRIES)}
                         className="group flex items-center gap-3 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 px-8 py-4 rounded-full font-bold text-sm hover:scale-105 transition-transform shadow-xl shadow-amber-500/25 cursor-pointer shrink-0"
                     >
                         Explore All Ministries
                         <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                    </button>
+                    </motion.button>
                 </div>
             </div>
 

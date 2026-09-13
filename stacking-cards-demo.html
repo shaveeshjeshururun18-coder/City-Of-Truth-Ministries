@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City of Truth Ministries - Stacking Cards</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Color Theme Variables */
+        :root {
+            --bg-color: #0f172a; 
+            --text-main: #f1f5f9; 
+            --text-muted: #94a3b8; 
+            --accent: #3b82f6;
+            
+            /* Card 1 - Blue Theme */
+            --c1-g1: #1e3a8a; --c1-g2: #0c1e4a; --c1-txt: #dbeafe; --c1-bd: #2563eb;
+            
+            /* Card 2 - Purple Theme */
+            --c2-g1: #6b21a8; --c2-g2: #3b0764; --c2-txt: #f3e8ff; --c2-bd: #9333ea;
+            
+            /* Card 3 - Green Theme */
+            --c3-g1: #065f46; --c3-g2: #022c22; --c3-txt: #d1fae5; --c3-bd: #059669;
+            
+            /* Card 4 - Orange Theme */
+            --c4-g1: #9a3412; --c4-g2: #431407; --c4-txt: #ffedd5; --c4-bd: #ea580c;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        /* Text color utilities */
+        .text-accent { color: var(--accent); }
+        .text-muted { color: var(--text-muted); }
+
+        /* Card Theme Classes */
+        .card-1 { 
+            background: linear-gradient(135deg, var(--c1-g1), var(--c1-g2)); 
+            color: var(--c1-txt); 
+        }
+        .card-1-border { border-color: var(--c1-bd); }
+        .card-1-badge { 
+            background-color: var(--c1-bd); 
+            color: var(--c1-txt); 
+            border: 1px solid var(--c1-bd); 
+        }
+        .card-1-bg { background-color: var(--c1-g1); }
+
+        .card-2 { 
+            background: linear-gradient(135deg, var(--c2-g1), var(--c2-g2)); 
+            color: var(--c2-txt); 
+        }
+        .card-2-border { border-color: var(--c2-bd); }
+        .card-2-badge { 
+            background-color: var(--c2-bd); 
+            color: var(--c2-txt); 
+            border: 1px solid var(--c2-bd); 
+        }
+        .card-2-bg { background-color: var(--c2-g1); }
+
+        .card-3 { 
+            background: linear-gradient(135deg, var(--c3-g1), var(--c3-g2)); 
+            color: var(--c3-txt); 
+        }
+        .card-3-border { border-color: var(--c3-bd); }
+        .card-3-badge { 
+            background-color: var(--c3-bd); 
+            color: var(--c3-txt); 
+            border: 1px solid var(--c3-bd); 
+        }
+        .card-3-bg { background-color: var(--c3-g1); }
+
+        .card-4 { 
+            background: linear-gradient(135deg, var(--c4-g1), var(--c4-g2)); 
+            color: var(--c4-txt); 
+        }
+        .card-4-border { border-color: var(--c4-bd); }
+        .card-4-badge { 
+            background-color: var(--c4-bd); 
+            color: var(--c4-txt); 
+            border: 1px solid var(--c4-bd); 
+        }
+        .card-4-bg { background-color: var(--c4-g1); }
+
+        /* Stack Container */
+        .stack-container {
+            padding-top: 10vh;
+            padding-bottom: 20vh;
+            max-width: 1000px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* The Magic: Sticky Positioning with CSS Variables */
+        .card {
+            position: sticky;
+            top: calc(10vh + (var(--index) * 20px)); /* Each card stacks 20px below the previous */
+            min-height: 60vh;
+            border-radius: 24px;
+            padding: 3rem;
+            margin-bottom: 5rem;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.3);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            transform-origin: top center;
+            transition: all 0.3s ease;
+        }
+
+        /* Hero Section */
+        .hero {
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(to bottom, var(--bg-color), rgba(15, 23, 42, 0.8));
+        }
+
+        /* Scroll Indicator Animation */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 2rem;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            60% { transform: translateY(-10px); }
+        }
+        
+        /* Responsive Card Layout */
+        .card-content {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            gap: 2rem;
+        }
+
+        @media (min-width: 768px) {
+            .card-content {
+                flex-direction: row;
+                align-items: center;
+                gap: 3rem;
+            }
+        }
+
+        /* Logo/Icon Styling */
+        .icon-circle {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <p class="text-accent tracking-[0.3em] uppercase text-sm font-bold mb-4">Welcome to</p>
+        <h1 class="text-6xl md:text-8xl font-black mb-6 tracking-tight">City of Truth</h1>
+        <p class="text-xl md:text-2xl text-muted max-w-2xl">
+            A community built on faith, truth, and divine purpose. Scroll down to explore our mission.
+        </p>
+        
+        <div class="scroll-indicator flex flex-col items-center text-muted">
+            <span class="text-sm mb-2 uppercase tracking-widest">Scroll Down</span>
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+            </svg>
+        </div>
+    </header>
+
+    <!-- Stacking Cards Container -->
+    <main class="stack-container px-4">
+
+        <!-- Card 1: Our Vision -->
+        <article class="card card-1" style="--index: 0;">
+            <div class="card-content">
+                <div class="flex-1">
+                    <span class="inline-block py-1 px-3 rounded-full card-1-badge text-sm font-medium mb-6">Our Vision</span>
+                    <h2 class="text-4xl md:text-5xl font-bold mb-6">Building God's Kingdom</h2>
+                    <p class="text-lg leading-relaxed mb-6" style="opacity: 0.9;">
+                        We are called to be a light in the darkness, a beacon of hope in a world that desperately needs the truth of God's love. Our vision is to create a community where faith transforms lives.
+                    </p>
+                    <ul class="space-y-2" style="opacity: 0.85;">
+                        <li>• Proclaiming the Gospel with boldness</li>
+                        <li>• Building authentic relationships</li>
+                        <li>• Serving our community with love</li>
+                        <li>• Equipping believers for ministry</li>
+                    </ul>
+                </div>
+                <div class="flex-1 mt-8 md:mt-0 flex justify-center">
+                    <div class="icon-circle card-1-bg border-4 card-1-border">
+                        <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </article>
+
+        <!-- Card 2: Our Mission -->
+        <article class="card card-2" style="--index: 1;">
+            <div class="card-content">
+                <div class="flex-1 order-2 md:order-1 mt-8 md:mt-0 flex justify-center">
+                    <div class="icon-circle card-2-bg border-4 card-2-border">
+                        <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="flex-1 order-1 md:order-2">
+                    <span class="inline-block py-1 px-3 rounded-full card-2-badge text-sm font-medium mb-6">Our Mission</span>
+                    <h2 class="text-4xl md:text-5xl font-bold mb-6">Empowering Believers</h2>
+                    <p class="text-lg leading-relaxed mb-4" style="opacity: 0.9;">
+                        Our mission is to empower every believer to live out their God-given purpose. We believe that everyone has a unique role in advancing God's kingdom on earth.
+                    </p>
+                    <p class="text-lg leading-relaxed" style="opacity: 0.9;">
+                        Through discipleship, teaching, and community support, we help individuals discover their spiritual gifts and use them to make a lasting impact.
+                    </p>
+                </div>
+            </div>
+        </article>
+
+        <!-- Card 3: Our Values -->
+        <article class="card card-3" style="--index: 2;">
+            <div class="card-content">
+                <div class="flex-1">
+                    <span class="inline-block py-1 px-3 rounded-full card-3-badge text-sm font-medium mb-6">Our Values</span>
+                    <h2 class="text-4xl md:text-5xl font-bold mb-6">Walking in Truth</h2>
+                    <p class="text-lg leading-relaxed mb-6" style="opacity: 0.9;">
+                        Truth is the foundation of everything we do. We are committed to living authentically, speaking honestly, and following God's Word without compromise.
+                    </p>
+                    <div class="card-3-bg p-6 rounded-xl border-2 card-3-border">
+                        <h4 class="font-bold mb-3 text-xl">Core Values</h4>
+                        <div class="space-y-3 text-base" style="opacity: 0.85;">
+                            <div><strong>Integrity:</strong> Living with honesty and moral uprightness</div>
+                            <div><strong>Compassion:</strong> Showing Christ's love to everyone</div>
+                            <div><strong>Excellence:</strong> Pursuing God's best in all we do</div>
+                            <div><strong>Unity:</strong> Standing together as one body in Christ</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex-1 mt-8 md:mt-0 flex justify-center">
+                    <div class="icon-circle card-3-bg border-4 card-3-border">
+                        <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </article>
+
+        <!-- Card 4: Join Us -->
+        <article class="card card-4" style="--index: 3;">
+            <div class="card-content">
+                <div class="flex-1 order-2 md:order-1 mt-8 md:mt-0 flex justify-center">
+                    <div class="grid grid-cols-2 gap-4 w-full max-w-sm">
+                        <div class="card-4-bg aspect-square rounded-xl flex items-center justify-center p-4 border-2 card-4-border">
+                            <div class="text-center">
+                                <div class="text-3xl font-bold mb-1">Sun</div>
+                                <div class="text-sm opacity-80">10:00 AM</div>
+                            </div>
+                        </div>
+                        <div class="card-4-bg aspect-square rounded-xl flex items-center justify-center p-4 border-2 card-4-border">
+                            <div class="text-center">
+                                <div class="text-3xl font-bold mb-1">Wed</div>
+                                <div class="text-sm opacity-80">7:00 PM</div>
+                            </div>
+                        </div>
+                        <div class="card-4-bg aspect-[2/1] col-span-2 rounded-xl flex items-center justify-center px-6 border-2 card-4-border">
+                            <p class="text-sm text-center font-medium">All are welcome to worship with us</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex-1 order-1 md:order-2">
+                    <span class="inline-block py-1 px-3 rounded-full card-4-badge text-sm font-medium mb-6">Join Us</span>
+                    <h2 class="text-4xl md:text-5xl font-bold mb-6">Be Part of Our Family</h2>
+                    <p class="text-lg leading-relaxed mb-4" style="opacity: 0.9;">
+                        You don't have to walk this journey alone. We invite you to join our community and experience the transformative power of God's love.
+                    </p>
+                    <p class="text-lg leading-relaxed mb-6" style="opacity: 0.9;">
+                        Whether you're seeking answers, looking for a church home, or wanting to grow deeper in your faith, there's a place for you here.
+                    </p>
+                    <button class="card-4-badge py-3 px-8 rounded-full font-semibold hover:scale-105 transition-transform">
+                        Connect With Us
+                    </button>
+                </div>
+            </div>
+        </article>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-20 bg-black/30 backdrop-blur">
+        <h3 class="text-2xl font-bold mb-2">City of Truth Ministries</h3>
+        <p class="text-muted mb-4">Building lives on the foundation of God's eternal truth</p>
+        <p class="text-sm text-muted" style="opacity: 0.7;">
+            "And you will know the truth, and the truth will set you free." - John 8:32
+        </p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Smooth scroll animation for cards
+            const cards = document.querySelectorAll('.card');
+            
+            window.addEventListener('scroll', () => {
+                cards.forEach((card, index) => {
+                    const rect = card.getBoundingClientRect();
+                    const expectedTop = (window.innerHeight * 0.1) + (index * 20);
+                    
+                    // Fade in cards as they reach their sticky position
+                    if (rect.top <= expectedTop + 5) {
+                        card.style.opacity = '1';
+                    }
+                });
+            });
+
+            // Initialize opacity
+            cards.forEach(card => card.style.opacity = '0.3');
+            if (cards.length > 0) cards[0].style.opacity = '1';
+        });
+    </script>
+</body>
+</html>

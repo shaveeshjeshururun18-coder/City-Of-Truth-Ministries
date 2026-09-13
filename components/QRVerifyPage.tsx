@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle, XCircle, Loader2, Download, Shield, ArrowLeft, LogIn, Smartphone } from 'lucide-react';
 import { api } from '../services/api';
 import { User } from '../types';
@@ -88,7 +88,7 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack, onPr
             const dataUrl = await toPng(frontNode, opts);
             
             const link = document.createElement('a');
-            link.download = `COT-MOBILE-PASS-${user?.id}.png`;
+            link.download = `COT-MOBILE-PASS-${user?.id}.webp`;
             link.href = dataUrl;
             link.click();
             setDownloaded(true);
@@ -151,7 +151,7 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack, onPr
                     </button>
                 )}
                 <div className="flex items-center gap-3 mx-auto">
-                    <img src="/logo.png" alt="COT Logo" className="w-10 h-10 object-contain" />
+                    <img src="/logo.webp" alt="COT Logo" className="w-10 h-10 object-contain" />
                     <div>
                         <p className="font-bold text-slate-900 text-sm leading-none">City of Truth</p>
                         <p className="text-[10px] text-brand-600 font-bold uppercase tracking-widest">Ministries</p>
@@ -165,7 +165,7 @@ export const QRVerifyPage: React.FC<QRVerifyPageProps> = ({ userId, onBack, onPr
                         <div className="relative w-20 h-20">
                             <div className="absolute inset-0 rounded-full border-4 border-brand-100 animate-pulse" />
                             <div className="absolute inset-0 rounded-full border-t-4 border-brand-600 animate-spin" />
-                            <img src="/logo.png" alt="" className="absolute inset-2 w-12 h-12 object-contain" />
+                            <img src="/logo.webp" alt="" className="absolute inset-2 w-12 h-12 object-contain" />
                         </div>
                         <div className="text-center">
                             <h2 className="text-xl font-bold text-slate-800">Verifying Identity</h2>

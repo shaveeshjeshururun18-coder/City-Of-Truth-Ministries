@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Scroll, Download, Loader2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 

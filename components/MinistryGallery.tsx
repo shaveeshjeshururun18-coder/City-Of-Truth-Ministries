@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Play, Image as ImageIcon, Clock, Tag, ChevronLeft, ChevronRight, X, ZoomIn } from 'lucide-react';
 import { extractYouTubeId, getSafeEmbedUrl, getYouTubeThumbnails } from '../services/youtubeService';
 
@@ -14,6 +14,7 @@ interface MediaItem {
 
 interface MinistryGalleryProps {
     items: MediaItem[];
+    frameStyle?: 'vintage' | 'polaroid' | 'all';  // Added frameStyle prop
 }
 
 interface GalleryCardProps {
@@ -36,27 +37,24 @@ const GalleryCard: React.FC<GalleryCardProps> = ({
     const [isHovered, setIsHovered] = useState(false);
     const tiltPattern = [-2.5, 2.0, -1.8, 2.4, -2.0, 1.5];
     const rotation = tiltPattern[index % tiltPattern.length];
-    const staggerClass = index % 4 === 1
-        ? 'md:translate-y-6'
-        : index % 4 === 3
-            ? 'md:-translate-y-4'
-            : '';
+    const staggerClass = index % 2 === 1
+        ? 'translate-y-2'
+        : '-translate-y-1.5';
 
     const ytId = item.type === 'video' ? extractYouTubeId(item.src) : null;
     const ytThumbs = ytId ? getYouTubeThumbnails(ytId) : null;
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 24, rotate: rotation * 0.6 }}
-            whileInView={{ opacity: 1, y: 0, rotate: rotation }}
-            viewport={{ once: true }}
-            transition={{ delay: (index % 5) * 0.08, duration: 0.5 }}
-            whileHover={{ y: -10, rotate: 0, scale: 1.035 }}
+            initial={{ opacity: 0, y: 18, rotate: rotation * 0.7 }}
+            animate={{ opacity: 1, y: 0, rotate: rotation }}
+            transition={{ delay: Math.min(index * 0.05, 0.35), duration: 0.4 }}
+            whileHover={{ y: -8, rotate: 0, scale: 1.03 }}
             whileTap={{ scale: 0.98 }}
             onHoverStart={() => setIsHovered(true)}
             onHoverEnd={() => setIsHovered(false)}
-            className={`relative select-none ${staggerClass}`}
-            style={{ perspective: 1200 }}
+            className={`relative select-none shrink-0 w-[260px] sm:w-[290px] md:w-[325px] ${staggerClass}`}
+            style={{ perspective: 1200, scrollSnapAlign: 'start' }}
         >
             <motion.div
                 onClick={onClick}
@@ -104,14 +102,13 @@ const GalleryCard: React.FC<GalleryCardProps> = ({
                                         }}
                                     />
                                 ) : item.type === 'video' && !failedMedia[item.id] ? (
-                                    <video
-                                        src={item.src}
+                                    <video preload="none"                                         src={item.src}
                                         className="vintage-img"
                                         controls={false}
                                         muted
                                         loop
                                         playsInline
-                                        preload="metadata"
+                                        
                                         onError={() => setFailedMedia(prev => ({ ...prev, [item.id]: true }))}
                                     />
                                 ) : (
@@ -164,14 +161,13 @@ const GalleryCard: React.FC<GalleryCardProps> = ({
                                     }}
                                 />
                             ) : item.type === 'video' && !failedMedia[item.id] ? (
-                                <video
-                                    src={item.src}
+                                <video preload="none"                                     src={item.src}
                                     className="polaroid-img"
                                     controls={false}
                                     muted
                                     loop
                                     playsInline
-                                    preload="metadata"
+                                    
                                     onError={() => setFailedMedia(prev => ({ ...prev, [item.id]: true }))}
                                 />
                             ) : (
@@ -218,11 +214,74 @@ const GalleryCard: React.FC<GalleryCardProps> = ({
     );
 };
 
-export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items = [] }) => {
+export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items = [], frameStyle: defaultFrameStyle = 'all' }) => {
     const [failedMedia, setFailedMedia] = useState<Record<string, boolean>>({});
-    const [frameFilter, setFrameFilter] = useState<'all' | 'vintage' | 'polaroid'>('all');
+    const [frameFilter, setFrameFilter] = useState<'all' | 'vintage' | 'polaroid'>(defaultFrameStyle);
     const [lightboxIndex, setLightboxIndex] = useState<number>(0);
     const [isOpen, setIsOpen] = useState<boolean>(false);
+
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(true);
+
+    const isDraggingRef = useRef(false);
+    const startXRef = useRef(0);
+    const scrollLeftRef = useRef(0);
+    const hasDraggedRef = useRef(false);
+
+    const updateScrollButtons = useCallback(() => {
+        const el = scrollContainerRef.current;
+        if (!el) return;
+        const hasOverflow = el.scrollWidth > el.clientWidth;
+        setCanScrollLeft(el.scrollLeft > 15);
+        setCanScrollRight(hasOverflow && el.scrollLeft < el.scrollWidth - el.clientWidth - 15);
+    }, []);
+
+    useEffect(() => {
+        updateScrollButtons();
+        const handleResize = () => updateScrollButtons();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [items, frameFilter, updateScrollButtons]);
+
+    const scrollByDirection = (direction: 'left' | 'right') => {
+        const el = scrollContainerRef.current;
+        if (!el) return;
+        const cardStep = el.clientWidth > 768 ? 340 * 1.5 : 290;
+        const scrollAmount = direction === 'left' ? -cardStep : cardStep;
+        el.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    };
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        const el = scrollContainerRef.current;
+        if (!el) return;
+        isDraggingRef.current = true;
+        hasDraggedRef.current = false;
+        startXRef.current = e.pageX - el.offsetLeft;
+        scrollLeftRef.current = el.scrollLeft;
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isDraggingRef.current) return;
+        const el = scrollContainerRef.current;
+        if (!el) return;
+        e.preventDefault();
+        const x = e.pageX - el.offsetLeft;
+        const walk = (x - startXRef.current) * 1.4;
+        if (Math.abs(walk) > 6) {
+            hasDraggedRef.current = true;
+        }
+        el.scrollLeft = scrollLeftRef.current - walk;
+        updateScrollButtons();
+    };
+
+    const handleMouseUpOrLeave = () => {
+        isDraggingRef.current = false;
+        setTimeout(() => {
+            hasDraggedRef.current = false;
+        }, 80);
+    };
+
     const openLightbox = useCallback((index: number) => {
         setLightboxIndex(index);
         setIsOpen(true);
@@ -257,67 +316,164 @@ export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items = [] }) 
 
     const activeLightboxItem = (lightboxIndex >= 0 && lightboxIndex < items.length) ? items[lightboxIndex] : null;
 
+    if (!items || items.length === 0) return null;
+
     return (
         <>
-            <div className="relative w-full py-6 md:py-10">
-                {/* Frame Style Filter Pills */}
-                <div className="flex items-center justify-end gap-2 px-4 sm:px-6 md:px-10 mb-4">
-                    <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 mr-1 hidden sm:inline-block">Frame:</span>
-                    <div className="inline-flex bg-black/40 p-1 rounded-xl border border-white/10 backdrop-blur-md">
-                        <button
-                            onClick={() => setFrameFilter('all')}
-                            className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                                frameFilter === 'all'
-                                    ? 'bg-amber-400 text-black shadow-md'
-                                    : 'text-slate-300 hover:text-white'
-                            }`}
-                        >
-                            Dual Mix
-                        </button>
-                        <button
-                            onClick={() => setFrameFilter('vintage')}
-                            className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                                frameFilter === 'vintage'
-                                    ? 'bg-amber-400 text-black shadow-md'
-                                    : 'text-slate-300 hover:text-white'
-                            }`}
-                        >
-                            🕰️ Vintage
-                        </button>
-                        <button
-                            onClick={() => setFrameFilter('polaroid')}
-                            className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                                frameFilter === 'polaroid'
-                                    ? 'bg-amber-400 text-black shadow-md'
-                                    : 'text-slate-300 hover:text-white'
-                            }`}
-                        >
-                            📸 Polaroid
-                        </button>
+            <div className="relative w-full py-4 md:py-8 group/gallery">
+                {/* Frame Style Filter & Navigation Controls */}
+                <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-8 md:px-12 mb-4">
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-serif font-bold text-amber-300 tracking-wide">
+                            Memoir Archives
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400 px-2 py-0.5 rounded-full bg-white/5 border border-white/10">
+                            {items.length} {items.length === 1 ? 'Moment' : 'Moments'}
+                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        {/* Frame Style Filter Pills */}
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 mr-1 hidden sm:inline-block">Frame:</span>
+                            <div className="inline-flex bg-black/40 p-1 rounded-xl border border-white/10 backdrop-blur-md">
+                                <button
+                                    type="button"
+                                    onClick={() => setFrameFilter('all')}
+                                    className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                                        frameFilter === 'all'
+                                            ? 'bg-amber-400 text-black shadow-md'
+                                            : 'text-slate-300 hover:text-white'
+                                    }`}
+                                >
+                                    Dual Mix
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFrameFilter('vintage')}
+                                    className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                                        frameFilter === 'vintage'
+                                            ? 'bg-amber-400 text-black shadow-md'
+                                            : 'text-slate-300 hover:text-white'
+                                    }`}
+                                >
+                                    🕰️ Vintage
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFrameFilter('polaroid')}
+                                    className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                                        frameFilter === 'polaroid'
+                                            ? 'bg-amber-400 text-black shadow-md'
+                                            : 'text-slate-300 hover:text-white'
+                                    }`}
+                                >
+                                    📸 Polaroid
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Top Direct Arrow Buttons */}
+                        <div className="flex items-center gap-1.5 pl-2 border-l border-white/10">
+                            <button
+                                type="button"
+                                onClick={() => scrollByDirection('left')}
+                                disabled={!canScrollLeft}
+                                className="w-8 h-8 rounded-lg bg-black/50 hover:bg-amber-400 hover:text-black text-white border border-white/15 flex items-center justify-center transition-all disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer shadow active:scale-95"
+                                title="Scroll left"
+                                aria-label="Scroll left"
+                            >
+                                <ChevronLeft size={17} />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => scrollByDirection('right')}
+                                disabled={!canScrollRight}
+                                className="w-8 h-8 rounded-lg bg-black/50 hover:bg-amber-400 hover:text-black text-white border border-white/15 flex items-center justify-center transition-all disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer shadow active:scale-95"
+                                title="Scroll right"
+                                aria-label="Scroll right"
+                            >
+                                <ChevronRight size={17} />
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <div className="pointer-events-none absolute inset-x-8 top-2 h-px bg-gradient-to-r from-transparent via-brand-200/70 to-transparent" />
-                <div
-                    className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-12 sm:gap-x-7 sm:gap-y-16 px-4 sm:px-6 md:px-10 pb-4 pt-5"
-                >
-                    {items.map((item, index) => {
-                        const style: 'vintage' | 'polaroid' = frameFilter === 'all'
-                            ? (index % 2 === 0 ? 'vintage' : 'polaroid')
-                            : frameFilter;
+                <div className="pointer-events-none absolute inset-x-8 top-12 h-px bg-gradient-to-r from-transparent via-amber-300/20 to-transparent" />
 
-                        return (
-                            <GalleryCard
-                                key={item.id}
-                                item={item}
-                                index={index}
-                                frameStyle={style}
-                                failedMedia={failedMedia}
-                                setFailedMedia={setFailedMedia}
-                                onClick={() => openLightbox(index)}
-                            />
-                        );
-                    })}
+                {/* Horizontal Scroll Track Wrapper */}
+                <div className="relative w-full overflow-hidden">
+                    {/* Floating Left Arrow Button */}
+                    <button
+                        type="button"
+                        onClick={() => scrollByDirection('left')}
+                        disabled={!canScrollLeft}
+                        aria-label="Previous photos"
+                        className={`absolute left-2 sm:left-4 md:left-6 top-1/2 -translate-y-1/2 z-30 w-11 h-11 sm:w-13 sm:h-13 md:w-14 md:h-14 rounded-full flex items-center justify-center backdrop-blur-xl border transition-all duration-300 shadow-2xl ${
+                            canScrollLeft
+                                ? 'bg-slate-950/85 hover:bg-amber-400 text-white hover:text-slate-950 border-white/25 hover:border-amber-300 hover:scale-110 active:scale-95 cursor-pointer opacity-90 hover:opacity-100'
+                                : 'bg-slate-950/20 text-white/10 border-white/5 cursor-not-allowed opacity-0 pointer-events-none'
+                        }`}
+                    >
+                        <ChevronLeft size={26} className="stroke-[2.5]" />
+                    </button>
+
+                    {/* Floating Right Arrow Button */}
+                    <button
+                        type="button"
+                        onClick={() => scrollByDirection('right')}
+                        disabled={!canScrollRight}
+                        aria-label="Next photos"
+                        className={`absolute right-2 sm:right-4 md:right-6 top-1/2 -translate-y-1/2 z-30 w-11 h-11 sm:w-13 sm:h-13 md:w-14 md:h-14 rounded-full flex items-center justify-center backdrop-blur-xl border transition-all duration-300 shadow-2xl ${
+                            canScrollRight
+                                ? 'bg-slate-950/85 hover:bg-amber-400 text-white hover:text-slate-950 border-white/25 hover:border-amber-300 hover:scale-110 active:scale-95 cursor-pointer opacity-90 hover:opacity-100'
+                                : 'bg-slate-950/20 text-white/10 border-white/5 cursor-not-allowed opacity-0 pointer-events-none'
+                        }`}
+                    >
+                        <ChevronRight size={26} className="stroke-[2.5]" />
+                    </button>
+
+                    {/* Left & Right subtle edge fade gradients */}
+                    {canScrollLeft && (
+                        <div className="pointer-events-none absolute left-0 inset-y-0 w-12 sm:w-20 bg-gradient-to-r from-[#0d2232] via-[#0d2232]/70 to-transparent z-20 transition-opacity duration-300" />
+                    )}
+                    {canScrollRight && (
+                        <div className="pointer-events-none absolute right-0 inset-y-0 w-12 sm:w-20 bg-gradient-to-l from-[#0d2232] via-[#0d2232]/70 to-transparent z-20 transition-opacity duration-300" />
+                    )}
+
+                    {/* Horizontal Scroll Track */}
+                    <div
+                        ref={scrollContainerRef}
+                        onScroll={updateScrollButtons}
+                        onMouseDown={handleMouseDown}
+                        onMouseMove={handleMouseMove}
+                        onMouseUp={handleMouseUpOrLeave}
+                        onMouseLeave={handleMouseUpOrLeave}
+                        className="flex items-center overflow-x-auto no-scrollbar scroll-smooth gap-5 sm:gap-7 md:gap-8 px-6 sm:px-12 md:px-16 pt-8 pb-12 cursor-grab active:cursor-grabbing select-none"
+                        style={{ scrollSnapType: 'x proximity' }}
+                    >
+                        {items.map((item, index) => {
+                            const style: 'vintage' | 'polaroid' = frameFilter === 'all'
+                                ? (index % 2 === 0 ? 'vintage' : 'polaroid')
+                                : frameFilter;
+
+                            return (
+                                <GalleryCard
+                                    key={item.id}
+                                    item={item}
+                                    index={index}
+                                    frameStyle={style}
+                                    failedMedia={failedMedia}
+                                    setFailedMedia={setFailedMedia}
+                                    onClick={() => {
+                                        if (!hasDraggedRef.current) {
+                                            openLightbox(index);
+                                        }
+                                    }}
+                                />
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
 
@@ -390,8 +546,7 @@ export const MinistryGallery: React.FC<MinistryGalleryProps> = ({ items = [] }) 
                                                 />
                                             </div>
                                         ) : (
-                                            <video
-                                                src={activeLightboxItem.src}
+                                            <video preload="none"                                                 src={activeLightboxItem.src}
                                                 controls
                                                 autoPlay
                                                 playsInline

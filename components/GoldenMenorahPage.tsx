@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Sparkles, Download } from 'lucide-react';
 import { InteractiveMenorah } from './InteractiveMenorah';
 
@@ -8,17 +8,17 @@ interface GoldenMenorahPageProps {
 }
 
 export const GoldenMenorahPage: React.FC<GoldenMenorahPageProps> = () => {
-    const [flagImageSrc, setFlagImageSrc] = React.useState('/menorah-flag-image.png');
+    const [flagImageSrc, setFlagImageSrc] = React.useState('/menorah-flag-image.webp');
     const [isFlagUnavailable, setIsFlagUnavailable] = React.useState(false);
     const [videoError, setVideoError] = React.useState(false);
 
     const handleFlagImageError = () => {
-        if (flagImageSrc === '/menorah-flag-image.png') {
-            setFlagImageSrc('/menorah-flag.png');
+        if (flagImageSrc === '/menorah-flag-image.webp') {
+            setFlagImageSrc('/menorah-flag.webp');
             return;
         }
-        if (flagImageSrc === '/menorah-flag.png') {
-            setFlagImageSrc('/sacred-menorah.png');
+        if (flagImageSrc === '/menorah-flag.webp') {
+            setFlagImageSrc('/sacred-menorah.webp');
             return;
         }
         setIsFlagUnavailable(true);
@@ -53,13 +53,13 @@ export const GoldenMenorahPage: React.FC<GoldenMenorahPageProps> = () => {
                             <div className="absolute top-6 right-6 flex items-center gap-2 text-amber-500/50 font-bold text-xs uppercase tracking-[0.3em]"><Sparkles size={14} /> Sacred Standard</div>
                             <div className="relative overflow-hidden rounded-2xl shadow-[0_0_30px_rgba(245,158,11,0.15)] group-hover:shadow-[0_0_40px_rgba(245,158,11,0.4)] border border-amber-500/20 group-hover:border-amber-400/40 w-full max-w-md mx-auto h-full flex items-center justify-center transition-all duration-700 bg-black/40">
                                 {!videoError ? (
-                                    <video
+                                    <video preload="none" 
                                         src="/gemini_generated_video_cf07149d.mp4"
                                         autoPlay
                                         loop
                                         muted
                                         playsInline
-                                        preload="auto"
+                                        
                                         className="w-full h-full object-cover transform scale-100 group-hover:scale-105 transition-transform duration-[1.5s] ease-out-quint"
                                         onError={() => setVideoError(true)}
                                     />
@@ -85,7 +85,7 @@ export const GoldenMenorahPage: React.FC<GoldenMenorahPageProps> = () => {
                                 {!isFlagUnavailable && (
                                     <motion.a
                                         href={flagImageSrc}
-                                        download="COT-Menorah-Flag.png"
+                                        download="COT-Menorah-Flag.webp"
                                         whileHover={{ y: -2, scale: 1.03 }}
                                         whileTap={{ scale: 0.98 }}
                                         className="group mt-4 relative inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-400 text-[#2f2200] font-black text-xs uppercase tracking-[0.18em] border border-amber-100/80 shadow-[0_10px_28px_-12px_rgba(251,191,36,0.95)] hover:shadow-[0_14px_32px_-12px_rgba(251,191,36,1)] transition-all duration-500 overflow-hidden"
@@ -105,14 +105,14 @@ export const GoldenMenorahPage: React.FC<GoldenMenorahPageProps> = () => {
                 <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4 }} className="mt-16 text-center max-w-4xl mx-auto pb-12">
                      <div className="relative group p-6 md:p-8 bg-gradient-to-b from-white/[0.05] to-white/[0.02] backdrop-blur-md rounded-[2.5rem] border border-amber-500/20 shadow-[0_0_50px_rgba(245,158,11,0.05)]">
                          <div className="relative rounded-2xl overflow-hidden border border-amber-500/30 shadow-[0_0_30px_rgba(245,158,11,0.15)] group-hover:shadow-[0_0_50px_rgba(245,158,11,0.3)] transition-all duration-700">
-                             <img src="/assets/golden_menorah.png" alt="Golden Menorah Temple" className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-[2s] ease-out-quint" />
+                             <img src="/assets/golden_menorah.webp" alt="Golden Menorah Temple" className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-[2s] ease-out-quint" />
                          </div>
                          <div className="mt-8">
                             <h3 className="text-2xl font-bold text-amber-200 mb-2 font-serif tracking-wide">The Golden Menorah Concept</h3>
                             <p className="text-amber-100/70 mb-6 font-light max-w-2xl mx-auto">A visual representation of the divine shrine to be established.</p>
                              <motion.a
-                                href="/assets/golden_menorah.png"
-                                download="Golden-Menorah-Temple.png"
+                                href="/assets/golden_menorah.webp"
+                                download="Golden-Menorah-Temple.webp"
                                 whileHover={{ y: -2, scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 className="group relative inline-flex items-center gap-3 px-8 py-4 rounded-full bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-amber-950 font-black text-sm uppercase tracking-[0.2em] shadow-[0_10px_30px_-10px_rgba(251,191,36,0.5)] hover:shadow-[0_15px_40px_-10px_rgba(251,191,36,0.7)] transition-all duration-500 overflow-hidden"

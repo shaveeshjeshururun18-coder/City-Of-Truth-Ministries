@@ -1,9 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { User as UserIcon, ArrowLeft, ArrowRight, Phone, Shield, IdCard, CheckCircle, MapPin, QrCode, UploadCloud, X, UserCheck, UserPlus, Flashlight, FlashlightOff, Maximize2, Minimize2, Share2, Download, ScanQrCode, FileUp, ScanFace, Fingerprint, BellRing, LayoutDashboard } from 'lucide-react';
 import { Button } from './Button';
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { CameraStage } from './FaceMesh/CameraStage';
 import { CapturedPhoto, FaceLandmark3D, GeometryAnalysis } from './FaceMesh/types';
 import { calculateFacialGeometry } from './FaceMesh/utils/facialGeometry';
@@ -14,8 +12,6 @@ import { validateUploadedFile } from '../services/fileValidationService';
 import { DotShaderCanvas } from './ui/modern-login-signup';
 import { CovenantTrustSeal } from './ui/covenant-trust-seal';
 import { DotMatrixText } from './ui/dot-text';
-
-GlobalWorkerOptions.workerSrc = pdfWorker;
 
 interface AuthPageProps {
     onLogin: (identifier: string) => void;
@@ -592,7 +588,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
                     if (!blob) continue;
                     try {
-                        const pageImage = new File([blob], `page-${pageNum}.png`, { type: 'image/png' });
+                        const pageImage = new File([blob], `page-${pageNum}.webp`, { type: 'image/png' });
                         return await scanImageFile(pageImage);
                     } catch (_err) {
                         continue;
@@ -819,7 +815,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             <DotShaderCanvas />
 
             {/* Background pattern */}
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.05] pointer-events-none z-0" />
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.webp')] opacity-[0.05] pointer-events-none z-0" />
 
             {/* Header / Hero Area — Glassmorphic Royal Navy Variant */}
             <div className={`${heroContainerClass} bg-gradient-to-br from-brand-950/70 via-brand-900/50 to-slate-950/70 backdrop-blur-md border-b border-white/10 relative flex flex-col items-center overflow-hidden flex-shrink-0 px-6 z-10`}>
@@ -923,7 +919,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                             className="max-w-3xl mx-auto space-y-8 md:space-y-12"
                         >
                             <div className="bg-gradient-to-br from-brand-900/75 via-brand-800/60 to-brand-950/80 backdrop-blur-2xl p-5 sm:p-8 md:p-16 rounded-[2rem] md:rounded-[4rem] border border-white/20 shadow-[0_30px_100px_rgba(15,23,42,0.6)] text-center relative overflow-hidden">
-                                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none" />
+                                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.webp')] opacity-10 pointer-events-none" />
                                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-white/50 to-white/20 opacity-60" />
                                 
                                 {/* Dynamic Dot Matrix Typography Banner */}
@@ -1153,7 +1149,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                                             </div>
                                                         ) : (
                                                             <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
-                                                                <img src="/logo.png" alt="" className="w-9 h-9 object-contain" />
+                                                                <img src="/logo.webp" alt="" className="w-9 h-9 object-contain" />
                                                             </div>
                                                         )}
                                                         <div className="text-left min-w-0">
@@ -1165,7 +1161,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                                                     <div className="relative mx-auto w-[min(72vw,280px)] aspect-square bg-white p-2 rounded-2xl border border-slate-100">
                                                         <img src={myQrImage} alt="" className="w-full h-full object-contain" />
                                                         <div className="absolute left-1/2 top-1/2 w-12 h-12 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-md flex items-center justify-center border border-slate-100">
-                                                            <img src="/logo.png" alt="" className="w-8 h-8 object-contain" />
+                                                            <img src="/logo.webp" alt="" className="w-8 h-8 object-contain" />
                                                         </div>
                                                     </div>
 
@@ -1399,7 +1395,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
                                         <footer className="shrink-0 bg-black border-t border-white/10 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                                             <div className="flex items-center gap-2.5 mb-2.5">
-                                                <img src="/logo.png" alt="" className="w-7 h-7 object-contain rounded-full bg-white/10 p-0.5" />
+                                                <img src="/logo.webp" alt="" className="w-7 h-7 object-contain rounded-full bg-white/10 p-0.5" />
                                                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/90">
                                                     City of Truth Ministries © {new Date().getFullYear()}
                                                 </p>
@@ -1546,7 +1542,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     {view === 'forgot-id' && (
                         <motion.div key="forgot" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto px-2">
                             <div className="bg-gradient-to-br from-brand-700 to-brand-900 rounded-[2rem] sm:rounded-[4rem] p-6 sm:p-12 text-center text-white shadow-[0_50px_100px_rgba(59,130,246,0.15)] relative overflow-hidden">
-                                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10" />
+                                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.webp')] opacity-10" />
                                 <div className="absolute -top-20 -right-20 w-64 h-64 bg-white/10 rounded-full" />
 
                                 <div className="w-16 h-16 sm:w-24 sm:h-24 bg-white/10 rounded-[1.5rem] sm:rounded-[2rem] flex items-center justify-center mx-auto mb-6 sm:mb-10 border border-white/20 shadow-xl"><Phone size={32} className="sm:w-11 sm:h-11" /></div>
@@ -1617,7 +1613,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             <footer className="py-12 border-t border-brand-50 relative z-10 bg-brand-50/10">
                 <div className="max-w-5xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="flex items-center gap-4">
-                        <img src="/brand-logo.png" className="w-10 h-10 object-contain grayscale opacity-20" alt="Logo" />
+                        <img src="/brand-logo.webp" className="w-10 h-10 object-contain grayscale opacity-20" alt="Logo" />
                         <div className="text-[10px] font-black text-brand-200 uppercase tracking-[0.3em]">City of Truth Ministries © 2026</div>
                     </div>
                     <div className="flex gap-8 text-[10px] font-black text-brand-200 uppercase tracking-[0.3em]">

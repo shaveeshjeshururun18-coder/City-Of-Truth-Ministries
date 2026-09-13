@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Star, ArrowRight, BookOpen, MapPin, Globe, Sparkles, MessageSquare, QrCode, Heart, Users, Mountain, Leaf, CloudRain, Video, Sun, Music, FileText, Eye } from 'lucide-react';
 import { ViewState, User } from '../../types';
 import { MessageFromLeader } from '../MessageFromLeader';
@@ -42,22 +42,24 @@ export const DailyPsalm119Section: React.FC = () => {
 
     return (
         <section className="py-20 bg-gradient-to-br from-brand-950 via-slate-900 to-brand-900 relative overflow-hidden">
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none"></div>
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.webp')] opacity-10 pointer-events-none"></div>
             <div className="container mx-auto px-4 md:px-6 relative z-10 max-w-6xl">
                 <div className="text-center max-w-3xl mx-auto space-y-4 mb-10">
                     <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        whileInView={{ opacity: 1, y: 0 }}
+                        initial={{ opacity: 0, y: 10, filter: 'blur(6px)' }}
+                        whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                         viewport={{ once: true }}
+                        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                         className="inline-flex items-center gap-2 bg-amber-500/10 text-amber-400 px-4 py-1.5 rounded-full text-xs font-black tracking-widest uppercase border border-amber-500/20"
                     >
                         <BookOpen size={14} /> Daily Psalm 119 Meditation
                     </motion.div>
 
                     <motion.h2
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
+                        initial={{ opacity: 0, y: 16, filter: 'blur(8px)' }}
+                        whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.45, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
                         className="text-3xl md:text-5xl font-serif font-black text-white leading-tight"
                     >
                         Psalm 119: All 22 Hebrew Letter Stanzas

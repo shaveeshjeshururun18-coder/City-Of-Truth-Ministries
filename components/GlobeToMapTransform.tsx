@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { Globe as GlobeIcon, MapPin, Compass, Navigation, ExternalLink, Mountain, Clock, Sparkles } from "lucide-react";
 import { Globe } from "./ui/globe";
 import { Button } from "./Button";

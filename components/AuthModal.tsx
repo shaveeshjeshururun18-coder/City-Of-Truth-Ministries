@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { X, Mail, Lock, User, ArrowRight, Phone, Shield, IdCard, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { Button } from './Button';
 

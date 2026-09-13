@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Sparkles, Star, Globe, Heart, Music, Droplets } from 'lucide-react';
 import { MinistryGallery } from './MinistryGallery';
 import { CoverFlowCarousel, CarouselItem } from './ui/3-d-coverflow-carousel';
@@ -16,7 +16,7 @@ const generateAssets = () => {
         assets.push({
             id: `img-${i}`,
             type: 'image',
-            src: `${import.meta.env.BASE_URL}ministry/IMG-20231230-WA${num}.jpg`,
+            src: `${import.meta.env.BASE_URL}ministry/IMG-20231230-WA${num}.webp`,
             date: 'December 30, 2023'
         });
     }
@@ -149,7 +149,7 @@ export const MinistriesPage: React.FC<{ currentUser?: any; setView?: any }> = ()
             const category = categoryLabels[i % categoryLabels.length];
             list.push({
                 title: `${category} • Moment #${i + 1}`,
-                url: `${import.meta.env.BASE_URL}ministry/IMG-20231230-WA${num}.jpg`
+                url: `${import.meta.env.BASE_URL}ministry/IMG-20231230-WA${num}.webp`
             });
         }
 
@@ -209,7 +209,7 @@ export const MinistriesPage: React.FC<{ currentUser?: any; setView?: any }> = ()
 
                         {/* Master Ministry Title Banner */}
                         <img
-                            src="/ministry/ministries_title_banner.png"
+                            src="/ministry/ministries_title_banner.webp"
                             alt="City of Truth Ministries"
                             className="relative z-10 w-full max-w-2xl mx-auto object-contain rounded-xl filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.9)] hover:scale-[1.01] transition-transform duration-300"
                         />
@@ -254,7 +254,7 @@ export const MinistriesPage: React.FC<{ currentUser?: any; setView?: any }> = ()
                             <h2 className="text-4xl md:text-5xl font-serif font-black text-white">Spiritual Gatherings</h2>
                             <p className="text-brand-100/60 mt-4 max-w-xl font-light">Deepening our connection with the Divine through prayer and fellowship.</p>
                         </div>
-                        <MinistryGallery items={spiritualItems} />
+                        <MinistryGallery items={spiritualItems} frameStyle="polaroid" />
                     </div>
                 </section>
 
@@ -272,7 +272,7 @@ export const MinistriesPage: React.FC<{ currentUser?: any; setView?: any }> = ()
                             <h2 className="text-4xl md:text-5xl font-serif font-black text-white">Youth Ministry</h2>
                             <p className="text-brand-100/60 mt-4 max-w-xl font-light ml-auto lg:ml-0">Empowering the next generation to walk in the light of Truth.</p>
                         </div>
-                        <MinistryGallery items={youthItems} />
+                        <MinistryGallery items={youthItems} frameStyle="vintage" />
                     </div>
                 </section>
 
@@ -289,13 +289,13 @@ export const MinistriesPage: React.FC<{ currentUser?: any; setView?: any }> = ()
                         <p className="text-brand-100/60 mt-4 max-w-xl font-light">Transforming lives and building stronger communities together.</p>
                     </div>
                     <div className="relative z-10 pl-4 md:pl-12">
-                        <MinistryGallery items={communityItems} />
+                        <MinistryGallery items={communityItems} frameStyle="polaroid" />
                     </div>
                 </section>
 
                 {/* Helping Hands - Charity */}
                 <section id="helping-hands" className="bg-[#06101c] py-32 relative overflow-hidden border-y border-white/5">
-                    <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] pointer-events-none" />
+                    <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.webp')] pointer-events-none" />
                     <div className="container mx-auto px-6 mb-16 relative z-10 text-center">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9 }}
@@ -325,7 +325,7 @@ export const MinistriesPage: React.FC<{ currentUser?: any; setView?: any }> = ()
                             <h2 className="text-4xl md:text-5xl font-serif font-black text-white">Sacred Music & Praise</h2>
                             <p className="text-brand-100/60 mt-4 max-w-xl font-light">Celebrating the Word through the beauty of song and worship.</p>
                         </div>
-                        <MinistryGallery items={musicItems} />
+                        <MinistryGallery items={musicItems} frameStyle="vintage" />
                     </div>
                 </section>
 
@@ -342,7 +342,7 @@ export const MinistriesPage: React.FC<{ currentUser?: any; setView?: any }> = ()
                         <p className="text-brand-100/65 mt-4 max-w-xl mx-auto font-light">Witnessing the miraculous power of prayer and restoration.</p>
                     </div>
                     <div className="relative z-10 pl-4 md:pl-12">
-                        <MinistryGallery items={healingItems} />
+                        <MinistryGallery items={healingItems} frameStyle="polaroid" />
                     </div>
                 </section>
             </div>

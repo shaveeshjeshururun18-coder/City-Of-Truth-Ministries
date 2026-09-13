@@ -10,7 +10,7 @@ import {
   useState,
 } from "react";
 
-import { LayoutGroup, motion } from "framer-motion";
+import { LayoutGroup, motion } from "motion/react";
 
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 

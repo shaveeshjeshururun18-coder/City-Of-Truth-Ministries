@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Volume2, Sparkles, X } from 'lucide-react';
 import { MouthPronunciationAnimator, HEBREW_LETTER_PHONEMES, PhonemeStep } from './MouthPronunciationAnimator';
 
@@ -108,7 +108,7 @@ export const AnimatedTeacherCharacter: React.FC<AnimatedTeacherCharacterProps> =
             {/* Float Wrapper */}
             <motion.div
               animate={{ y: [0, -4, 0] }}
-              transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
+              transition={{ repeat: Infinity, duration: 1.2, ease: 'easeInOut' }}
               className="relative w-full h-full"
             >
               <svg viewBox="0 0 120 140" className="w-full h-full drop-shadow-2xl">

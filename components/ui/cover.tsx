@@ -1,6 +1,6 @@
 "use client";
 import React, { useId, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "motion/react";
 import { cn } from "../../lib/utils";
 import { Sparkles } from "lucide-react";
 
@@ -41,7 +41,7 @@ export const Cover: React.FC<CoverProps> = ({ children, className }) => {
           }}
           transition={{
             repeat: Infinity,
-            duration: 3,
+            duration: 1.2,
             ease: "linear",
           }}
           className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-sky-300/60 to-transparent blur-xs transform -skew-x-12"
@@ -53,9 +53,9 @@ export const Cover: React.FC<CoverProps> = ({ children, className }) => {
         <div className="absolute inset-0 pointer-events-none overflow-visible">
           {[
             { top: "-6px", left: "10%", delay: 0, size: 10 },
-            { top: "-8px", right: "15%", delay: 0.6, size: 12 },
-            { bottom: "-6px", left: "25%", delay: 1.2, size: 9 },
-            { bottom: "-8px", right: "20%", delay: 1.8, size: 11 },
+            { top: "-8px", right: "15%", delay: 0.24, size: 12 },
+            { bottom: "-6px", left: "25%", delay: 0.48, size: 9 },
+            { bottom: "-8px", right: "20%", delay: 0.29, size: 11 },
           ].map((spark, idx) => (
             <motion.div
               key={`${id}-spark-${idx}`}
@@ -67,7 +67,7 @@ export const Cover: React.FC<CoverProps> = ({ children, className }) => {
               }}
               transition={{
                 repeat: Infinity,
-                duration: 2.2,
+                duration: 0.88,
                 delay: spark.delay,
                 ease: "easeInOut",
               }}

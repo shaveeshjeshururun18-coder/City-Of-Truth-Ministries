@@ -20,7 +20,7 @@ export const defaultHelpingHandsProjects: FilmstripProject[] = [
     subtitle: "Provision & Comfort",
     tag: "Welfare & Charity",
     url: "#helping-hands",
-    img: "/ministry/IMG-20231230-WA0007.jpg",
+    img: "/ministry/IMG-20231230-WA0007.webp",
   },
   {
     id: "food-distribution",
@@ -28,7 +28,7 @@ export const defaultHelpingHandsProjects: FilmstripProject[] = [
     subtitle: "Nourishing Families",
     tag: "Compassion Drive",
     url: "#helping-hands",
-    img: "/ministry/IMG-20231230-WA0008.jpg",
+    img: "/ministry/IMG-20231230-WA0008.webp",
   },
   {
     id: "home-visits",
@@ -36,7 +36,7 @@ export const defaultHelpingHandsProjects: FilmstripProject[] = [
     subtitle: "Prayer & Personal Care",
     tag: "Door-to-Door",
     url: "#helping-hands",
-    img: "/ministry/IMG-20231230-WA0009.jpg",
+    img: "/ministry/IMG-20231230-WA0009.webp",
   },
   {
     id: "children-welfare",
@@ -44,7 +44,7 @@ export const defaultHelpingHandsProjects: FilmstripProject[] = [
     subtitle: "Education & Hope",
     tag: "Youth Care",
     url: "#helping-hands",
-    img: "/ministry/IMG-20231230-WA0011.jpg",
+    img: "/ministry/IMG-20231230-WA0011.webp",
   },
   {
     id: "elderly-shelter",
@@ -52,7 +52,7 @@ export const defaultHelpingHandsProjects: FilmstripProject[] = [
     subtitle: "Dignity & Health",
     tag: "Honor the Elders",
     url: "#helping-hands",
-    img: "/ministry/IMG-20231230-WA0013.jpg",
+    img: "/ministry/IMG-20231230-WA0013.webp",
   },
   {
     id: "community-relief",
@@ -60,7 +60,7 @@ export const defaultHelpingHandsProjects: FilmstripProject[] = [
     subtitle: "Healing & Restoration",
     tag: "Rapid Aid",
     url: "#helping-hands",
-    img: "/ministry/IMG-20231230-WA0014.jpg",
+    img: "/ministry/IMG-20231230-WA0014.webp",
   },
 ];
 

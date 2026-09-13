@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, Pause, Volume2, RotateCcw } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 // ==========================================
 // PHONEME TARGETS — Mouth anatomy presets
@@ -54,28 +54,28 @@ export const PHONEME_VISEME_FILES: Record<string, string> = {
 // Hebrew letter → phoneme sequence mapping
 // ==========================================
 export const HEBREW_LETTER_PHONEMES: Record<string, { phoneme: string; duration: number; syllable: string }[]> = {
-  'א': [{ phoneme: "AH", duration: 400, syllable: "ah" }, { phoneme: "L", duration: 250, syllable: "lef" }, { phoneme: "EE", duration: 200, syllable: "lef" }, { phoneme: "F", duration: 350, syllable: "lef" }],
-  'ב': [{ phoneme: "P", duration: 300, syllable: "bet" }, { phoneme: "EE", duration: 250, syllable: "bet" }, { phoneme: "TH", duration: 400, syllable: "bet" }],
-  'ג': [{ phoneme: "K", duration: 300, syllable: "gee" }, { phoneme: "EE", duration: 350, syllable: "gee" }, { phoneme: "P", duration: 200, syllable: "mel" }, { phoneme: "EE", duration: 200, syllable: "mel" }, { phoneme: "L", duration: 350, syllable: "mel" }],
-  'ד': [{ phoneme: "TH", duration: 300, syllable: "dah" }, { phoneme: "AH", duration: 350, syllable: "dah" }, { phoneme: "L", duration: 250, syllable: "let" }, { phoneme: "EE", duration: 200, syllable: "let" }, { phoneme: "TH", duration: 350, syllable: "let" }],
-  'ה': [{ phoneme: "H", duration: 400, syllable: "heh" }, { phoneme: "EE", duration: 450, syllable: "heh" }],
-  'ו': [{ phoneme: "V", duration: 350, syllable: "vav" }, { phoneme: "AH", duration: 300, syllable: "vav" }, { phoneme: "V", duration: 350, syllable: "vav" }],
-  'ז': [{ phoneme: "S", duration: 300, syllable: "zah" }, { phoneme: "AH", duration: 350, syllable: "zah" }, { phoneme: "EE", duration: 200, syllable: "yin" }, { phoneme: "N", duration: 350, syllable: "yin" }],
-  'ח': [{ phoneme: "K", duration: 400, syllable: "khet" }, { phoneme: "H", duration: 300, syllable: "khet" }, { phoneme: "EE", duration: 200, syllable: "khet" }, { phoneme: "TH", duration: 350, syllable: "khet" }],
-  'ט': [{ phoneme: "TH", duration: 300, syllable: "tet" }, { phoneme: "EE", duration: 250, syllable: "tet" }, { phoneme: "TH", duration: 400, syllable: "tet" }],
-  'י': [{ phoneme: "EE", duration: 300, syllable: "yod" }, { phoneme: "OO", duration: 350, syllable: "yod" }, { phoneme: "TH", duration: 350, syllable: "yod" }],
-  'כ': [{ phoneme: "K", duration: 350, syllable: "kaf" }, { phoneme: "AH", duration: 300, syllable: "kaf" }, { phoneme: "F", duration: 400, syllable: "kaf" }],
-  'ל': [{ phoneme: "L", duration: 300, syllable: "lah" }, { phoneme: "AH", duration: 350, syllable: "lah" }, { phoneme: "P", duration: 200, syllable: "med" }, { phoneme: "EE", duration: 200, syllable: "med" }, { phoneme: "TH", duration: 350, syllable: "med" }],
-  'מ': [{ phoneme: "P", duration: 350, syllable: "mem" }, { phoneme: "EE", duration: 300, syllable: "mem" }, { phoneme: "P", duration: 400, syllable: "mem" }],
-  'נ': [{ phoneme: "N", duration: 300, syllable: "noon" }, { phoneme: "OO", duration: 400, syllable: "noon" }, { phoneme: "N", duration: 350, syllable: "noon" }],
-  'ס': [{ phoneme: "S", duration: 300, syllable: "sah" }, { phoneme: "AH", duration: 350, syllable: "sah" }, { phoneme: "P", duration: 200, syllable: "mekh" }, { phoneme: "EE", duration: 200, syllable: "mekh" }, { phoneme: "K", duration: 350, syllable: "mekh" }],
-  'ע': [{ phoneme: "AH", duration: 400, syllable: "ah" }, { phoneme: "EE", duration: 300, syllable: "yin" }, { phoneme: "N", duration: 350, syllable: "yin" }],
-  'פ': [{ phoneme: "P", duration: 350, syllable: "peh" }, { phoneme: "EE", duration: 400, syllable: "peh" }],
-  'צ': [{ phoneme: "TS", duration: 350, syllable: "tsah" }, { phoneme: "AH", duration: 300, syllable: "tsah" }, { phoneme: "TH", duration: 250, syllable: "deh" }, { phoneme: "EE", duration: 350, syllable: "deh" }],
-  'ק': [{ phoneme: "K", duration: 350, syllable: "qof" }, { phoneme: "OO", duration: 300, syllable: "qof" }, { phoneme: "F", duration: 400, syllable: "qof" }],
-  'ר': [{ phoneme: "R", duration: 350, syllable: "resh" }, { phoneme: "EE", duration: 250, syllable: "resh" }, { phoneme: "SH", duration: 400, syllable: "resh" }],
-  'ש': [{ phoneme: "SH", duration: 350, syllable: "sheen" }, { phoneme: "EE", duration: 350, syllable: "sheen" }, { phoneme: "N", duration: 350, syllable: "sheen" }],
-  'ת': [{ phoneme: "TH", duration: 300, syllable: "tav" }, { phoneme: "AH", duration: 300, syllable: "tav" }, { phoneme: "V", duration: 400, syllable: "tav" }],
+  'א': [{ phoneme: "AH", duration: 25.6, syllable: "ah" }, { phoneme: "L", duration: 16.0, syllable: "lef" }, { phoneme: "EE", duration: 12.8, syllable: "lef" }, { phoneme: "F", duration: 22.4, syllable: "lef" }],
+  'ב': [{ phoneme: "P", duration: 19.2, syllable: "bet" }, { phoneme: "EE", duration: 16.0, syllable: "bet" }, { phoneme: "TH", duration: 25.6, syllable: "bet" }],
+  'ג': [{ phoneme: "K", duration: 19.2, syllable: "gee" }, { phoneme: "EE", duration: 22.4, syllable: "gee" }, { phoneme: "P", duration: 12.8, syllable: "mel" }, { phoneme: "EE", duration: 12.8, syllable: "mel" }, { phoneme: "L", duration: 22.4, syllable: "mel" }],
+  'ד': [{ phoneme: "TH", duration: 19.2, syllable: "dah" }, { phoneme: "AH", duration: 22.4, syllable: "dah" }, { phoneme: "L", duration: 16.0, syllable: "let" }, { phoneme: "EE", duration: 12.8, syllable: "let" }, { phoneme: "TH", duration: 22.4, syllable: "let" }],
+  'ה': [{ phoneme: "H", duration: 25.6, syllable: "heh" }, { phoneme: "EE", duration: 28.8, syllable: "heh" }],
+  'ו': [{ phoneme: "V", duration: 22.4, syllable: "vav" }, { phoneme: "AH", duration: 19.2, syllable: "vav" }, { phoneme: "V", duration: 22.4, syllable: "vav" }],
+  'ז': [{ phoneme: "S", duration: 19.2, syllable: "zah" }, { phoneme: "AH", duration: 22.4, syllable: "zah" }, { phoneme: "EE", duration: 12.8, syllable: "yin" }, { phoneme: "N", duration: 22.4, syllable: "yin" }],
+  'ח': [{ phoneme: "K", duration: 25.6, syllable: "khet" }, { phoneme: "H", duration: 19.2, syllable: "khet" }, { phoneme: "EE", duration: 12.8, syllable: "khet" }, { phoneme: "TH", duration: 22.4, syllable: "khet" }],
+  'ט': [{ phoneme: "TH", duration: 19.2, syllable: "tet" }, { phoneme: "EE", duration: 16.0, syllable: "tet" }, { phoneme: "TH", duration: 25.6, syllable: "tet" }],
+  'י': [{ phoneme: "EE", duration: 19.2, syllable: "yod" }, { phoneme: "OO", duration: 22.4, syllable: "yod" }, { phoneme: "TH", duration: 22.4, syllable: "yod" }],
+  'כ': [{ phoneme: "K", duration: 22.4, syllable: "kaf" }, { phoneme: "AH", duration: 19.2, syllable: "kaf" }, { phoneme: "F", duration: 25.6, syllable: "kaf" }],
+  'ל': [{ phoneme: "L", duration: 19.2, syllable: "lah" }, { phoneme: "AH", duration: 22.4, syllable: "lah" }, { phoneme: "P", duration: 12.8, syllable: "med" }, { phoneme: "EE", duration: 12.8, syllable: "med" }, { phoneme: "TH", duration: 22.4, syllable: "med" }],
+  'מ': [{ phoneme: "P", duration: 22.4, syllable: "mem" }, { phoneme: "EE", duration: 19.2, syllable: "mem" }, { phoneme: "P", duration: 25.6, syllable: "mem" }],
+  'נ': [{ phoneme: "N", duration: 19.2, syllable: "noon" }, { phoneme: "OO", duration: 25.6, syllable: "noon" }, { phoneme: "N", duration: 22.4, syllable: "noon" }],
+  'ס': [{ phoneme: "S", duration: 19.2, syllable: "sah" }, { phoneme: "AH", duration: 22.4, syllable: "sah" }, { phoneme: "P", duration: 12.8, syllable: "mekh" }, { phoneme: "EE", duration: 12.8, syllable: "mekh" }, { phoneme: "K", duration: 22.4, syllable: "mekh" }],
+  'ע': [{ phoneme: "AH", duration: 25.6, syllable: "ah" }, { phoneme: "EE", duration: 19.2, syllable: "yin" }, { phoneme: "N", duration: 22.4, syllable: "yin" }],
+  'פ': [{ phoneme: "P", duration: 22.4, syllable: "peh" }, { phoneme: "EE", duration: 25.6, syllable: "peh" }],
+  'צ': [{ phoneme: "TS", duration: 22.4, syllable: "tsah" }, { phoneme: "AH", duration: 19.2, syllable: "tsah" }, { phoneme: "TH", duration: 16.0, syllable: "deh" }, { phoneme: "EE", duration: 22.4, syllable: "deh" }],
+  'ק': [{ phoneme: "K", duration: 22.4, syllable: "qof" }, { phoneme: "OO", duration: 19.2, syllable: "qof" }, { phoneme: "F", duration: 25.6, syllable: "qof" }],
+  'ר': [{ phoneme: "R", duration: 22.4, syllable: "resh" }, { phoneme: "EE", duration: 16.0, syllable: "resh" }, { phoneme: "SH", duration: 25.6, syllable: "resh" }],
+  'ש': [{ phoneme: "SH", duration: 22.4, syllable: "sheen" }, { phoneme: "EE", duration: 22.4, syllable: "sheen" }, { phoneme: "N", duration: 22.4, syllable: "sheen" }],
+  'ת': [{ phoneme: "TH", duration: 19.2, syllable: "tav" }, { phoneme: "AH", duration: 19.2, syllable: "tav" }, { phoneme: "V", duration: 25.6, syllable: "tav" }],
 };
 
 // ==========================================

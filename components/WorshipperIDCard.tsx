@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Church, RefreshCw, User, X, Phone, Mail, MapPin, UploadCloud, CheckCircle, ArrowRight, Download, Sparkles, Youtube, FileText, Lock, Eye, EyeOff, Users, Plus, Trash2, ChevronDown, ChevronUp, ShieldCheck, Camera } from 'lucide-react';
 import { Button } from './Button';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
-import menorahBack from '/entrust-card-flag.png';
+import menorahBack from '/entrust-card-flag.webp';
 import QRCode from 'qrcode';
 import { ImageCropper } from './ImageCropper';
 import { CameraStage } from './FaceMesh/CameraStage';
@@ -246,7 +246,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
             >
                 {/* Sovereign Banknote Card Background */}
                 <img
-                    src="/entrust-sovereign-bg.jpg"
+                    src="/entrust-sovereign-bg.webp"
                     alt="City of Truth Ministries Entrust Card"
                     className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
                     crossOrigin="anonymous"
@@ -409,7 +409,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
             <div className="absolute inset-0 bg-white rounded-[inherit] overflow-hidden border border-brand-900 shadow-2xl flex flex-col" style={{ backfaceVisibility: "hidden" }}>
                 <div className="bg-[#082260] text-white px-3 py-1 flex items-center justify-between shrink-0 h-[42px] relative z-20">
                     <div className="flex items-center gap-1.5">
-                        <img src="/logo.png" alt="Logo" className="w-7 h-7 object-contain" />
+                        <img src="/logo.webp" alt="Logo" className="w-7 h-7 object-contain" />
                         <div>
                             <h2 className="font-bold text-[8px] tracking-wide leading-tight">CITY OF TRUTH<br/>MINISTRIES</h2>
                             <p className="text-[6px] text-amber-400 font-bold leading-tight">குடும்ப அங்கத்தினர்<br/>அடையாள அட்டை</p>
@@ -505,7 +505,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                     <>
                         <div className="bg-[#082260] text-white px-3 py-1 flex items-center justify-between shrink-0 h-[42px] relative z-20">
                             <div className="flex items-center gap-1.5">
-                                <img src="/logo.png" alt="Logo" className="w-7 h-7 object-contain" />
+                                <img src="/logo.webp" alt="Logo" className="w-7 h-7 object-contain" />
                                 <div>
                                     <h2 className="font-bold text-[8px] tracking-wide leading-tight">CITY OF TRUTH<br/>MINISTRIES</h2>
                                 </div>
@@ -567,7 +567,7 @@ export const EntrustCard3D: React.FC<EntrustCardProps> = ({
                 ) : (
                     <>
                         <img
-                            src="/entrust-sovereign-back.jpg"
+                            src="/entrust-sovereign-back.webp"
                             alt="City of Truth Ministries Entrust Card Back"
                             className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
                             crossOrigin="anonymous"
@@ -1101,7 +1101,7 @@ export const WorshipperIDCard: React.FC<WorshipperIDCardProps> = ({ onRegister, 
                     height: 215
                 });
                 const link = document.createElement('a');
-                link.download = `ENTRUST-FRONT-HD-${uniqueId}.png`;
+                link.download = `ENTRUST-FRONT-HD-${uniqueId}.webp`;
                 link.href = dataUrl;
                 link.click();
             } catch (err) {

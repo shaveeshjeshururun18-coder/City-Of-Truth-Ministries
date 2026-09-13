@@ -1,7 +1,7 @@
 import React from 'react';
 import { Flame, Calendar, Clock3, Type, Volume2, Hash, Calculator, BookOpen, Languages, Globe, LucideIcon, CreditCard, Download, Bell, User as UserIcon } from 'lucide-react';
 import { ViewState } from '../types';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { HEBREW_PAGES } from '../hebrewRegistry';
 
 interface BottomNavProps {

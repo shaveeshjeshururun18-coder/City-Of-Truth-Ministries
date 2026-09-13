@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Sparkles, Save, RotateCcw, Eye, EyeOff } from 'lucide-react';
 import { Button } from './Button';
 
@@ -103,7 +103,7 @@ export const DivineAssistantSettings: React.FC = () => {
                                 className="rounded-full bg-slate-950 border-2 border-amber-400 flex items-center justify-center overflow-hidden ring-2 ring-black/20 relative"
                                 style={{ width: `${config.size}px`, height: `${config.size}px` }}
                             >
-                                <div className="absolute inset-0 bg-[url('/menorah-flag.png')] bg-cover bg-center"></div>
+                                <div className="absolute inset-0 bg-[url('/menorah-flag.webp')] bg-cover bg-center"></div>
                                 <div className="absolute inset-0 bg-gradient-to-t from-amber-900/40 to-transparent"></div>
                                 <Sparkles 
                                     className="text-amber-200 relative z-10" 

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Search, Type, BookOpen, Sparkles, Volume2, Play, Loader2, Info, Fingerprint, History, Trash2, ChevronDown, ChevronUp, Clock, Download, FileImage, X, Mic } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { analyzeHebrewWord } from '../services/openRouterService';
 import { audioService } from '../services/audioService';
 import { toJpeg } from 'html-to-image';
@@ -46,9 +46,9 @@ function generatePhonemeSequence(breakdownEn: string): PhonemeStep[] {
             (clean.startsWith('sh') ? 'SH' : clean.startsWith('ch') ? 'K' : clean.startsWith('th') ? 'TH' :
                 clean.startsWith('ts') ? 'TS' : clean.endsWith('ah') || clean.endsWith('a') ? 'AH' :
                     clean.endsWith('ee') || clean.endsWith('i') ? 'EE' : clean.endsWith('oo') || clean.endsWith('u') ? 'OO' : 'AH');
-        sequence.push({ phoneme, duration: 350, syllable: clean });
+        sequence.push({ phoneme, duration: 22.4, syllable: clean });
     }
-    return sequence.length > 0 ? sequence : [{ phoneme: 'AH', duration: 500, syllable: breakdownEn }];
+    return sequence.length > 0 ? sequence : [{ phoneme: 'AH', duration: 32.0, syllable: breakdownEn }];
 }
 
 // Gematria letter values
@@ -298,7 +298,7 @@ export const HebrewWordHub: React.FC = () => {
             const filename = `COT-Hebrew-${sanitizeFilename(wordDetails.pronunciation)}`;
             if (format === 'jpeg') {
                 const link = document.createElement('a');
-                link.download = `${filename}.jpg`;
+                link.download = `${filename}.webp`;
                 link.href = dataUrl;
                 link.click();
             } else {
@@ -988,7 +988,7 @@ export const HebrewWordHub: React.FC = () => {
                         {/* Header */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', paddingBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                <img src="/logo.png" alt="COT Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '12px', background: 'rgba(255,255,255,0.08)', padding: '6px' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                                <img src="/logo.webp" alt="COT Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '12px', background: 'rgba(255,255,255,0.08)', padding: '6px' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                                 <div>
                                     <div style={{ fontSize: '18px', fontWeight: 900, letterSpacing: '0.06em', color: '#f0c040', textTransform: 'uppercase' }}>City of Truth Ministries</div>
                                     <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: '3px' }}>Valparai &bull; India</div>

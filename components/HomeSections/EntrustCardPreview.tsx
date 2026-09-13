@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { ArrowRight, Sparkles, QrCode, ShieldCheck, Ticket, CheckCircle2 } from 'lucide-react';
 import { ViewState } from '../../types';
 import AdmitOneTicket, {
@@ -133,8 +133,21 @@ const ROTATION_INTERVAL_MS = 60 * 1000;
 
 export const EntrustCardPreview: React.FC<SectionProps> = ({ setView }) => {
   const [paletteIndex, setPaletteIndex] = useState(0);
+  const [ticketWidth, setTicketWidth] = useState(600);
 
   const currentPalette = PALETTES[paletteIndex];
+
+  // Responsive width calculation so ticket renders natively on mobile without horizontal overflow
+  useEffect(() => {
+    const handleResize = () => {
+      const padding = window.innerWidth < 640 ? 36 : 48;
+      const available = window.innerWidth - padding;
+      setTicketWidth(Math.min(600, Math.max(280, Math.floor(available))));
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Automatic 1-minute color rotation
   useEffect(() => {
@@ -159,7 +172,7 @@ export const EntrustCardPreview: React.FC<SectionProps> = ({ setView }) => {
       />
 
       {/* Stardust Sacred Texture Overlay */}
-      <div className="absolute inset-0 opacity-15 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] pointer-events-none" />
+      <div className="absolute inset-0 opacity-15 bg-[url('https://www.transparenttextures.com/patterns/stardust.webp')] pointer-events-none" />
 
       {/* Top & Bottom Subtle Shimmer Border Dividers */}
       <div
@@ -290,60 +303,56 @@ export const EntrustCardPreview: React.FC<SectionProps> = ({ setView }) => {
               <span>Hover & move cursor to tilt card with 3D glare</span>
             </div>
 
-            {/* Ticket Card Container with Responsive Scaler */}
-            <div className="w-full flex justify-center items-center py-2 relative z-10">
+            {/* Ticket Card Container with Native Responsive Fit */}
+            <div className="w-full flex justify-center items-center py-2 relative z-10 overflow-hidden">
               <div
-                className="w-full flex justify-center overflow-visible"
+                className="w-full flex justify-center items-center overflow-hidden"
                 style={{
-                  maxWidth: 620,
+                  maxWidth: ticketWidth,
                 }}
               >
-                <div
-                  className="origin-center transition-transform duration-300"
-                  style={{
-                    transform: 'scale(min(1, calc((100vw - 48px) / 640)))',
+                <AdmitOneTicket
+                  name="SACRED ENTRUST PASS"
+                  presenter="CITY OF TRUTH MINISTRIES PRESENTS"
+                  event="OFFICIAL WORSHIPPER CREDENTIAL · SACRED COVENANT"
+                  venue="SANCTUARY OF TRUTH · VALPARAI"
+                  dates="SEASON 2026 · ADMIT TO ALL MINISTRIES"
+                  stubText="ENTRUST · 2026"
+                  watermark="COT"
+                  width={ticketWidth}
+                  layout={{
+                    ...TICKET_LAYOUT,
+                    inkColor: currentPalette.inkColor,
+                    watermarkColor: currentPalette.watermarkColor,
                   }}
-                >
-                  <AdmitOneTicket
-                    name="SACRED ENTRUST PASS"
-                    presenter="CITY OF TRUTH MINISTRIES PRESENTS"
-                    event="OFFICIAL WORSHIPPER CREDENTIAL · SACRED COVENANT"
-                    venue="SANCTUARY OF TRUTH · VALPARAI"
-                    dates="SEASON 2026 · ADMIT TO ALL MINISTRIES"
-                    stubText="ENTRUST · 2026"
-                    watermark="COT"
-                    width={600}
-                    layout={{
-                      ...TICKET_LAYOUT,
-                      inkColor: currentPalette.inkColor,
-                      watermarkColor: currentPalette.watermarkColor,
-                    }}
-                    texture={{
-                      ...TICKET_STYLE.texture,
-                      colorBack: currentPalette.colorBack,
-                      colorFront: currentPalette.colorFront,
-                      colorHighlight: currentPalette.colorHighlight,
-                      shape: currentPalette.shape,
-                      speed: 0.45,
-                    }}
-                    gradient={{
-                      ...TICKET_STYLE.gradient,
-                      colorLight: currentPalette.colorFront,
-                      colorMid: currentPalette.colorHighlight,
-                      colorDark: currentPalette.colorBack,
-                    }}
-                    tilt={{
-                      maxTilt: 11,
-                      glare: 0.24,
-                      scale: 1.02,
-                    }}
-                  />
-                </div>
+                  texture={{
+                    ...TICKET_STYLE.texture,
+                    colorBack: currentPalette.colorBack,
+                    colorFront: currentPalette.colorFront,
+                    colorHighlight: currentPalette.colorHighlight,
+                    shape: currentPalette.shape,
+                    speed: 0.45,
+                  }}
+                  gradient={{
+                    ...TICKET_STYLE.gradient,
+                    colorLight: currentPalette.colorFront,
+                    colorMid: currentPalette.colorHighlight,
+                    colorDark: currentPalette.colorBack,
+                  }}
+                  tilt={{
+                    maxTilt: 11,
+                    glare: 0.24,
+                    scale: 1.02,
+                  }}
+                />
               </div>
             </div>
 
             {/* Clean Minimal Badge under Ticket */}
-            <div className="mt-5 flex items-center justify-between w-full max-w-[600px] px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 backdrop-blur-md text-xs text-white/75">
+            <div
+              className="mt-5 flex items-center justify-between w-full px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 backdrop-blur-md text-xs text-white/75"
+              style={{ maxWidth: ticketWidth }}
+            >
               <div className="flex items-center gap-2">
                 <CheckCircle2 size={13} className="text-emerald-400" />
                 <span className="font-semibold text-white">Sanctuary of Truth · Valparai</span>

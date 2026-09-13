@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { X, ChevronLeft, ChevronRight, Maximize2, Sparkles } from "lucide-react";
 
 export interface ImageData {
@@ -12,27 +12,27 @@ export interface ImageData {
 export const defaultImages: ImageData[] = [
   {
     title: "Mini canine",
-    url: "https://cdn.21st.dev/assets/mirror/b1/b1ab68992eb01519f23a76b122d710baf7737e6fb5ba81fe0e6ce827c0adca53.jpg",
+    url: "https://cdn.21st.dev/assets/mirror/b1/b1ab68992eb01519f23a76b122d710baf7737e6fb5ba81fe0e6ce827c0adca53.webp",
   },
   {
     title: "Wheely tent",
-    url: "https://cdn.21st.dev/assets/mirror/5a/5a176462f7be28c9ee9b8feb93bdd78ae287f855e8d1abc19ca7614d124d0d63.jpg",
+    url: "https://cdn.21st.dev/assets/mirror/5a/5a176462f7be28c9ee9b8feb93bdd78ae287f855e8d1abc19ca7614d124d0d63.webp",
   },
   {
     title: "Red food things",
-    url: "https://cdn.21st.dev/assets/mirror/59/59404a1cb0c461264e7c4a431db19a9562702ea0f8aa98183ea402b4fc36888d.jpg",
+    url: "https://cdn.21st.dev/assets/mirror/59/59404a1cb0c461264e7c4a431db19a9562702ea0f8aa98183ea402b4fc36888d.webp",
   },
   {
     title: "Sand boat",
-    url: "https://cdn.21st.dev/assets/mirror/45/45f394d2aeb2dfaa436d09342f030468eb70bf8646e82c6e650c8302063aaded.jpg",
+    url: "https://cdn.21st.dev/assets/mirror/45/45f394d2aeb2dfaa436d09342f030468eb70bf8646e82c6e650c8302063aaded.webp",
   },
   {
     title: "Screen thing",
-    url: "https://cdn.21st.dev/assets/mirror/36/363360a8b7b8cbd8294000ce1b9131a30f69a81300d0830dc249d7ae0b045b34.jpg",
+    url: "https://cdn.21st.dev/assets/mirror/36/363360a8b7b8cbd8294000ce1b9131a30f69a81300d0830dc249d7ae0b045b34.webp",
   },
   {
     title: "Horse tornado",
-    url: "https://cdn.21st.dev/assets/mirror/c3/c309fef094d8c89f53ee1e530fc7b1d861a63bb4bfd276bc1d9f51ff69ebcddb.jpg",
+    url: "https://cdn.21st.dev/assets/mirror/c3/c309fef094d8c89f53ee1e530fc7b1d861a63bb4bfd276bc1d9f51ff69ebcddb.webp",
   },
 ];
 

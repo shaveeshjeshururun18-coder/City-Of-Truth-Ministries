@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>City of Truth Ministries — Stacked Motion Reveal Showcase</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #090a10;
+    color: #f8fafc;
+    overflow-x: hidden;
+  }
+
+  /* Sticky Viewport Container */
+  .sticky-viewport {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    perspective: 1600px;
+  }
+
+  /* Card Stack Deck */
+  .card-deck {
+    position: relative;
+    width: min(1080px, 92vw);
+    height: min(680px, 80vh);
+  }
+
+  /* Individual Card */
+  .peel-card {
+    position: absolute;
+    inset: 0;
+    border-radius: 28px;
+    padding: clamp(24px, 4vw, 48px);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transform-origin: center bottom;
+    will-change: transform, opacity;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: box-shadow 0.3s ease;
+  }
+
+  .scroll-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 22px;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    border-radius: 9999px;
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    animation: bounce 2s infinite;
+  }
+
+  @keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-8px); }
+    60% { transform: translateY(-4px); }
+  }
+
+  .nav-active {
+    background: #f59e0b !important;
+    color: #090a10 !important;
+    font-weight: 800;
+    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.35);
+  }
+</style>
+</head>
+<body>
+
+  <!-- Top Hero Header -->
+  <header class="py-20 px-6 text-center max-w-4xl mx-auto">
+    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-black uppercase tracking-widest mb-4">
+      <span>✦ Stacked Motion Reveal Experience</span>
+    </div>
+    <h1 class="text-4xl sm:text-6xl font-black font-serif tracking-tight text-white mb-4">
+      Tearing-Paper Peel Reveal
+    </h1>
+    <p class="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto mb-8">
+      Based on <code class="text-amber-300 bg-amber-950/40 px-2 py-0.5 rounded border border-amber-500/30">stacked_motion_reveal.html</code>. Experience interactive card peeling across <strong>Israel Regions</strong>, <strong>Hebrew Grammar</strong>, and the <strong>Valparai Knowledge Hub</strong>.
+    </p>
+
+    <!-- Section Switcher Tabs -->
+    <div class="flex flex-wrap items-center justify-center gap-3 mb-10">
+      <a href="#israel-stack" class="px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-sm transition-all border border-white/15">
+        🇮🇱 1. Israel Regions
+      </a>
+      <a href="#grammar-stack" class="px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-sm transition-all border border-white/15">
+        📜 2. Hebrew Grammar
+      </a>
+      <a href="#valparai-stack" class="px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-sm transition-all border border-white/15">
+        🌿 3. Valparai Knowledge Hub
+      </a>
+    </div>
+
+    <div class="scroll-indicator">
+      Scroll Down to Peel Cards ↓
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- 1. ISRAEL REGIONS STACK -->
+  <!-- ========================================================================= -->
+  <div class="text-center pt-16 pb-6 px-4" id="israel-stack">
+    <span class="text-amber-400 text-xs font-black tracking-widest uppercase">Section 01 · Holy Land Heritage</span>
+    <h2 class="text-3xl sm:text-5xl font-serif font-black text-white mt-1">Discover Israel's Regions</h2>
+    <p class="text-amber-400 font-serif text-xl font-bold mt-1">இஸ்ரேலின் புனித மண்டலங்கள்</p>
+    <p class="text-slate-400 text-sm mt-2">Scroll down to peel through the five biblical regions of the Promised Land.</p>
+  </div>
+
+  <section class="motion-stack-section relative w-full" data-stack-id="israel" style="height: 480vh;">
+    <div class="sticky-viewport">
+      <div class="card-deck">
+
+        <!-- Card 5: Negev (Bottom) -->
+        <article class="peel-card bg-gradient-to-br from-[#7c2d12] to-[#1c0803]" style="z-index: 1;">
+          <div class="flex justify-between items-center border-b border-white/15 pb-3">
+            <span class="px-3 py-1 rounded-full bg-white/10 text-[10px] font-black tracking-wider uppercase text-amber-300">
+              Region 05 · The Negev Desert
+            </span>
+            <span class="font-mono text-sm text-amber-300 font-bold">05 / 05</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-auto">
+            <div>
+              <h3 class="text-3xl sm:text-4xl font-serif font-black text-white">The Negev Desert</h3>
+              <p class="text-amber-300 font-bold text-lg font-serif">நெகேவ் பாலைவனம் (הַנֶּגֶב)</p>
+              <p class="text-white/80 text-sm mt-3 leading-relaxed">
+                Vast southern expanse occupying over half of Israel. Site of Abraham's covenant at Beersheba and the ancient spice routes.
+              </p>
+              <div class="mt-4 p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-amber-200">
+                📖 <strong>Biblical Significance:</strong> Where Abraham and Isaac dug wells in Beersheba. Moses sent the twelve spies from the wilderness of Zin.
+              </div>
+            </div>
+            <div class="p-6 rounded-2xl bg-black/50 border border-white/10 flex flex-col justify-center">
+              <span class="text-xs font-mono text-white/60 mb-2 uppercase tracking-wider">Archaeological Highlights</span>
+              <ul class="text-sm space-y-2 text-white/90">
+                <li>✦ Tel Beer Sheba (Abraham's Well)</li>
+                <li>✦ Nabataean Incense Route (Avdat, Shivta)</li>
+                <li>✦ King Solomon's Copper Mines at Timna</li>
+              </ul>
+            </div>
+          </div>
+          <div class="border-t border-white/15 pt-3 flex justify-between text-xs text-white/60 font-mono">
+            <span>ERETZ ISRAEL GEOGRAPHY</span>
+            <span class="text-emerald-400 font-bold">✦ Final Region Card</span>
+          </div>
+        </article>
+
+        <!-- Card 4: Coastal Plain -->
+        <article class="peel-card bg-gradient-to-br from-[#0e7490] to-[#082f49]" style="z-index: 2;">
+          <div class="flex justify-between items-center border-b border-white/15 pb-3">
+            <span class="px-3 py-1 rounded-full bg-white/10 text-[10px] font-black tracking-wider uppercase text-cyan-300">
+              Region 04 · Coastal Plain
+            </span>
+            <span class="font-mono text-sm text-cyan-300 font-bold">04 / 05</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-auto">
+            <div>
+              <h3 class="text-3xl sm:text-4xl font-serif font-black text-white">Coastal Plain</h3>
+              <p class="text-cyan-300 font-bold text-lg font-serif">கடற்கரை சமவெளி (מִישׁוֹר הַחוֹף)</p>
+              <p class="text-white/80 text-sm mt-3 leading-relaxed">
+                Mediterranean shoreline with ancient ports Jaffa and Caesarea Maritima, connecting ancient Israel to maritime nations.
+              </p>
+              <div class="mt-4 p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-cyan-100">
+                📖 <strong>Biblical Significance:</strong> Apostle Peter received the vision in Jaffa opening the Gospel to Gentiles. Paul was imprisoned in Caesarea.
+              </div>
+            </div>
+            <div class="p-6 rounded-2xl bg-black/50 border border-white/10 flex flex-col justify-center">
+              <span class="text-xs font-mono text-white/60 mb-2 uppercase tracking-wider">Key Sites</span>
+              <ul class="text-sm space-y-2 text-white/90">
+                <li>✦ Ancient Port of Jaffa (4,000+ years)</li>
+                <li>✦ Caesarea Roman Aqueduct & Theater</li>
+                <li>✦ Mount Carmel Maritime Ridge</li>
+              </ul>
+            </div>
+          </div>
+          <div class="border-t border-white/15 pt-3 flex justify-between text-xs text-white/60 font-mono">
+            <span>ERETZ ISRAEL GEOGRAPHY</span>
+            <span>Scroll down to peel card ↓</span>
+          </div>
+        </article>
+
+        <!-- Card 3: Jerusalem -->
+        <article class="peel-card bg-gradient-to-br from-[#854d0e] to-[#422006]" style="z-index: 3;">
+          <div class="flex justify-between items-center border-b border-white/15 pb-3">
+            <span class="px-3 py-1 rounded-full bg-white/10 text-[10px] font-black tracking-wider uppercase text-yellow-300">
+              Region 03 · Holy Epicenter
+            </span>
+            <span class="font-mono text-sm text-yellow-300 font-bold">03 / 05</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-auto">
+            <div>
+              <h3 class="text-3xl sm:text-4xl font-serif font-black text-white">Jerusalem</h3>
+              <p class="text-yellow-300 font-bold text-lg font-serif">எருசலேம் (יְרוּשָׁלַיִם)</p>
+              <p class="text-white/80 text-sm mt-3 leading-relaxed">
+                The eternal golden city, capital established by King David, and the spiritual epicenter of the biblical universe.
+              </p>
+              <div class="mt-4 p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-yellow-100">
+                📖 <strong>Biblical Significance:</strong> Solomon's Temple, the Crucifixion, the Resurrection, and Pentecost outpouring of the Ruach HaKodesh.
+              </div>
+            </div>
+            <div class="p-6 rounded-2xl bg-black/50 border border-white/10 flex flex-col justify-center">
+              <span class="text-xs font-mono text-white/60 mb-2 uppercase tracking-wider">Spiritual Landmarks</span>
+              <ul class="text-sm space-y-2 text-white/90">
+                <li>✦ Western Wall (Kotel) & Temple Mount</li>
+                <li>✦ City of David & Pool of Siloam</li>
+                <li>✦ Mount of Olives & Garden of Gethsemane</li>
+              </ul>
+            </div>
+          </div>
+          <div class="border-t border-white/15 pt-3 flex justify-between text-xs text-white/60 font-mono">
+            <span>ERETZ ISRAEL GEOGRAPHY</span>
+            <span>Scroll down to peel card ↓</span>
+          </div>
+        </article>
+
+        <!-- Card 2: Judea & Samaria -->
+        <article class="peel-card bg-gradient-to-br from-[#78350f] to-[#291003]" style="z-index: 4;">
+          <div class="flex justify-between items-center border-b border-white/15 pb-3">
+            <span class="px-3 py-1 rounded-full bg-white/10 text-[10px] font-black tracking-wider uppercase text-amber-300">
+              Region 02 · Patriarchal Heartland
+            </span>
+            <span class="font-mono text-sm text-amber-300 font-bold">02 / 05</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-auto">
+            <div>
+              <h3 class="text-3xl sm:text-4xl font-serif font-black text-white">Judea & Samaria</h3>
+              <p class="text-amber-300 font-bold text-lg font-serif">யூதேயா மற்றும் சமாரியா (יְהוּדָה וְשׁוֹமְரோன்)</p>
+              <p class="text-white/80 text-sm mt-3 leading-relaxed">
+                The rugged biblical hill country. Land of Abraham, Isaac, Jacob, and the ancient resting place of the Tabernacle at Shiloh.
+              </p>
+              <div class="mt-4 p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-amber-100">
+                📖 <strong>Biblical Significance:</strong> Covenant land where Kings of Judah ruled, and Tel Shiloh held the Tabernacle for over 300 years.
+              </div>
+            </div>
+            <div class="p-6 rounded-2xl bg-black/50 border border-white/10 flex flex-col justify-center">
+              <span class="text-xs font-mono text-white/60 mb-2 uppercase tracking-wider">Patriarchal Sites</span>
+              <ul class="text-sm space-y-2 text-white/90">
+                <li>✦ Cave of Machpelah (Hebron)</li>
+                <li>✦ Ancient Tabernacle Excavation at Shiloh</li>
+                <li>✦ Mount Gerizim & Jacob's Well (Shechem)</li>
+              </ul>
+            </div>
+          </div>
+          <div class="border-t border-white/15 pt-3 flex justify-between text-xs text-white/60 font-mono">
+            <span>ERETZ ISRAEL GEOGRAPHY</span>
+            <span>Scroll down to peel card ↓</span>
+          </div>
+        </article>
+
+        <!-- Card 1: Galilee & Golan (Top) -->
+        <article class="peel-card bg-gradient-to-br from-[#065f46] to-[#022c22]" style="z-index: 5;">
+          <div class="flex justify-between items-center border-b border-white/15 pb-3">
+            <span class="px-3 py-1 rounded-full bg-white/10 text-[10px] font-black tracking-wider uppercase text-emerald-300">
+              Region 01 · Northern Majesty
+            </span>
+            <span class="font-mono text-sm text-emerald-300 font-bold">01 / 05</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-auto">
+            <div>
+              <h3 class="text-3xl sm:text-4xl font-serif font-black text-white">Galilee & Golan</h3>
+              <p class="text-emerald-300 font-bold text-lg font-serif">கலிலேயா மற்றும் கோலான் (הַגָּלִיל)</p>
+              <p class="text-white/80 text-sm mt-3 leading-relaxed">
+                Lush mountainous northern region of Israel. Home to the freshwater Sea of Galilee (Kinneret), ancient Mount Hermon, and fruitful valleys.
+              </p>
+              <div class="mt-4 p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-emerald-100">
+                📖 <strong>Biblical Significance:</strong> Where Yeshua spent most of His earthly ministry. The walking on water, multiplication of loaves, and Sermon on the Mount.
+              </div>
+            </div>
+            <div class="p-6 rounded-2xl bg-black/50 border border-white/10 flex flex-col justify-center">
+              <span class="text-xs font-mono text-white/60 mb-2 uppercase tracking-wider">Historical Findings</span>
+              <ul class="text-sm space-y-2 text-white/90">
+                <li>✦ 1st-Century Galilean Fishing Boat</li>
+                <li>✦ Ancient Synagogue of Capernaum</li>
+                <li>✦ Mount Arbel & Hermon Headwaters</li>
+              </ul>
+            </div>
+          </div>
+          <div class="border-t border-white/15 pt-3 flex justify-between text-xs text-white/60 font-mono">
+            <span>ERETZ ISRAEL GEOGRAPHY</span>
+            <span class="text-amber-300 animate-pulse font-bold">Scroll down to peel this card ↓</span>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- 2. HEBREW GRAMMAR ARCHITECTURE STACK -->
+  <!-- ========================================================================= -->
+  <div class="text-center pt-24 pb-6 px-4" id="grammar-stack">
+    <span class="text-amber-400 text-xs font-black tracking-widest uppercase">Section 02 · Sacred Language Foundation</span>
+    <h2 class="text-3xl sm:text-5xl font-serif font-black text-white mt-1">Hebrew Grammar Architecture</h2>
+    <p class="text-amber-400 font-serif text-xl font-bold mt-1">எபிரேய இலக்கண கட்டமைப்பு</p>
+    <p class="text-slate-400 text-sm mt-2">Scroll down to peel through the foundational grammar patterns of Biblical Hebrew.</p>
+  </div>
+
+  <section class="motion-stack-section relative w-full" data-stack-id="grammar" style="height: 480vh;">
+    <div class="sticky-viewport">
+      <div class="card-deck">
+
+        <!-- Card 4: Pronominal Suffixes (Bottom) -->
+        <article class="peel-card bg-gradient-to-br from-[#581c87] to-[#1e0736]" style="z-index: 1;">
+          <div class="flex justify-between items-center border-b border-white/15 pb-3">
+            <span class="px-3 py-1 rounded-full bg-white/10 text-[10px] font-black tracking-wider uppercase text-purple-300">
+              Grammar 04 · Pronominal Attachments
+            </span>
+            <span class="font-mono text-sm text-purple-300 font-bold">04 / 04</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-auto">
+            <div>
+              <h3 class="text-3xl sm:text-4xl font-serif font-black text-white">Pronominal Suffixes</h3>
+              <p class="text-purple-300 font-bold text-lg font-serif">பிரதிப்பெயர் பின்னொட்டுகள்</p>
+              <p class="text-white/80 text-sm mt-3 leading-relaxed">
+                In Biblical Hebrew, pronouns like "my", "your", "his", "our" attach directly to the tail of nouns, verbs, and prepositions to create integrated, covenantal words.
+              </p>
+              <div class="mt-4 p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-purple-100">
+                ✨ <strong>Example:</strong> סוּס (Horse) + יִ (My) = סוּסִי (My Horse). בֵּית (House) + נוּ (Our) = בֵּיתֵנוּ (Our House).
+              </div>
+            </div>
+            <div class="p-6 rounded-2xl bg-black/50 border border-white/10 flex flex-col justify-center">
+              <span class="text-xs font-mono text-white/60 mb-2 uppercase tracking-wider">Covenant Pronouns</span>
+              <ul class="text-sm space-y-2 text-white/90">
+                <li>✦ <strong>-i (י-)</strong> : 1st Person Singular ("My")</li>
+                <li>✦ <strong>-kha (ךָ-)</strong> : 2nd Person Masculine ("Your")</li>
+                <li>✦ <strong>-o (וֹ-)</strong> : 3rd Person Masculine ("His")</li>
+                <li>✦ <strong>-enu (נוּ-)</strong> : 1st Person Plural ("Our")</li>
+              </ul>
+            </div>
+          </div>
+          <div class="border-t border-white/15 pt-3 flex justify-between text-xs text-white/60 font-mono">
+            <span>LASHON HAKODESH ARCHITECTURE</span>
+            <span class="text-emerald-400 font-bold">✦ Final Grammar Card</span>
+          </div>
+        </article>
+
+        <!-- Card 3: Binyanim Verb Patterns -->
+        <article class="peel-card bg-gradient-to-br from-[#1e3a8a] to-[#08153b]" style="z-index: 2;">
+          <div class="flex justify-between items-center border-b border-white/15 pb-3">
+            <span class="px-3 py-1 rounded-full bg-white/10 text-[10px] font-black tracking-wider uppercase text-blue-300">
+              Grammar 03 · 7 Menorah Verb Patterns
+            </span>
+            <span class="font-mono text-sm text-blue-300 font-bold">03 / 04</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-auto">
+            <div>
+              <h3 class="text-3xl sm:text-4xl font-serif font-black text-white">The 7 Binyanim</h3>
+              <p class="text-blue-300 font-bold text-lg font-serif">ஏழு வினைச்சொல் அமைப்புகள் (בִּנְיָנִים)</p>
+              <p class="text-white/80 text-sm mt-3 leading-relaxed">
+                Seven distinct grammatical stems that mirror the 7 branches of the Golden Menorah. They transform a single root into simple, intensive, causative, and reflexive actions.
+              </p>
+              <div class="mt-4 p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-blue-100">
+                ✨ <strong>The Center Lamp:</strong> Hitpa'el (Reflexive Intensive) sits at the center, representing inward transformation, prayer (Hitpallel), and sanctification.
+              </div>
+            </div>
+            <div class="p-6 rounded-2xl bg-black/50 border border-white/10 flex flex-col justify-center">
+              <span class="text-xs font-mono text-white/60 mb-2 uppercase tracking-wider">The 7 Stems</span>
+              <ul class="text-xs space-y-1.5 text-white/90">
+                <li>✦ <strong>Pa'al (Qal)</strong> : Simple active (He wrote)</li>
+                <li>✦ <strong>Nif'al</strong> : Simple passive / reflexive (It was written)</li>
+                <li>✦ <strong>Pi'el</strong> : Intensive active (He shattered)</li>
+                <li>✦ <strong>Pu'al</strong> : Intensive passive (It was shattered)</li>
+                <li>✦ <strong>Hif'il</strong> : Causative active (He caused to write)</li>
+                <li>✦ <strong>Hof'al</strong> : Causative passive (He was made to write)</li>
+                <li>✦ <strong>Hitpa'el</strong> : Reflexive intensive (He sanctified himself)</li>
+              </ul>
+            </div>
+          </div>
+          <div class="border-t border-white/15 pt-3 flex justify-between text-xs text-white/60 font-mono">
+            <span>LASHON HAKODESH ARCHITECTURE</span>
+            <span>Scroll down to peel card ↓</span>
+          </div>
+        </article>
+
+        <!-- Card 2: Shoresh 3-Letter Root System -->
+        <article class="peel-card bg-gradient-to-br from-[#854d0e] to-[#3a1d04]" style="z-index: 3;">
+          <div class="flex justify-between items-center border-b border-white/15 pb-3">
+            <span class="px-3 py-1 rounded-full bg-white/10 text-[10px] font-black tracking-wider uppercase text-amber-300">
+              Grammar 02 · Trilateral Roots
+            </span>
+            <span class="font-mono text-sm text-amber-300 font-bold">02 / 04</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-auto">
+            <div>
+              <h3 class="text-3xl sm:text-4xl font-serif font-black text-white">The Shoresh Root</h3>
+              <p class="text-amber-300 font-bold text-lg font-serif">முவ்வெழுத்து வேர்ச்சொல் அமைப்பு (שׁוֹרֶשׁ)</p>
+              <p class="text-white/80 text-sm mt-3 leading-relaxed">
+                Nearly every Hebrew word branches from a 3-consonant seed (Shoresh). Like genetic DNA, the root infuses all nouns, adjectives, and verbs with sacred core meaning.
+              </p>
+              <div class="mt-4 p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-amber-100">
+                ✨ <strong>Example:</strong> Root ק-ד-שׁ (Q-D-SH = Holy) yields Kadosh (Holy), Mikdash (Sanctuary), Kiddush (Sanctification), and Kodesh HaKodashim (Holy of Holies).
+              </div>
+            </div>
+            <div class="p-6 rounded-2xl bg-black/50 border border-white/10 flex flex-col justify-center">
+              <span class="text-xs font-mono text-white/60 mb-2 uppercase tracking-wider">Root Transformations</span>
+              <ul class="text-sm space-y-2 text-white/90">
+                <li>✦ <strong>ש-ל-ם (SH-L-M)</strong> : Shalom (Peace), Shalem (Complete)</li>
+                <li>✦ <strong>ב-ר-ך (B-R-KH)</strong> : Berakhah (Blessing), Baruch (Blessed)</li>
+                <li>✦ <strong>מ-ל-ך (M-L-KH)</strong> : Melekh (King), Malkhut (Kingdom)</li>
+              </ul>
+            </div>
+          </div>
+          <div class="border-t border-white/15 pt-3 flex justify-between text-xs text-white/60 font-mono">
+            <span>LASHON HAKODESH ARCHITECTURE</span>
+            <span>Scroll down to peel card ↓</span>
+          </div>
+        </article>
+
+        <!-- Card 1: Consonants & Nikkud (Top) -->
+        <article class="peel-card bg-gradient-to-br from-[#1e293b] to-[#0f172a]" style="z-index: 4;">
+          <div class="flex justify-between items-center border-b border-white/15 pb-3">
+            <span class="px-3 py-1 rounded-full bg-white/10 text-[10px] font-black tracking-wider uppercase text-amber-300">
+              Grammar 01 · Script Foundation
+            </span>
+            <span class="font-mono text-sm text-amber-300 font-bold">01 / 04</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-auto">
+            <div>
+              <h3 class="text-3xl sm:text-4xl font-serif font-black text-white">Aleph-Bet & Nikkud</h3>
+              <p class="text-amber-300 font-bold text-lg font-serif">ஆலேப்-பெத் & நிக்குட் புள்ளிகள்</p>
+              <p class="text-white/80 text-sm mt-3 leading-relaxed">
+                Hebrew is written right-to-left with 22 sacred consonants. Vowel points (Nikkud) are divine dots and dashes added by Masoretes to preserve exact biblical recitation.
+              </p>
+              <div class="mt-4 p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-amber-100">
+                📖 <strong>Five Final Letters (Sofit):</strong> Kaf (ך), Mem (ם), Nun (ן), Pe (ף), and Tsade (ץ) change to majestic straight-line forms when ending a word.
+              </div>
+            </div>
+            <div class="p-6 rounded-2xl bg-black/50 border border-white/10 flex flex-col justify-center">
+              <span class="text-xs font-mono text-white/60 mb-2 uppercase tracking-wider">The Primary Vowels</span>
+              <ul class="text-sm space-y-2 text-white/90">
+                <li>✦ <strong>Kamatz / Patakh (ָ / ַ)</strong> : "Ah" sound</li>
+                <li>✦ <strong>Tzere / Segol (ֵ / ֶ)</strong> : "Eh" sound</li>
+                <li>✦ <strong>Chiriq (ִ)</strong> : "Ee" sound</li>
+                <li>✦ <strong>Cholam (ֹ)</strong> : "Oh" sound</li>
+                <li>✦ <strong>Shuruk / Kubutz (וּ / ֻ)</strong> : "Oo" sound</li>
+              </ul>
+            </div>
+          </div>
+          <div class="border-t border-white/15 pt-3 flex justify-between text-xs text-white/60 font-mono">
+            <span>LASHON HAKODESH ARCHITECTURE</span>
+            <span class="text-amber-300 animate-pulse font-bold">Scroll down to peel this card ↓</span>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- 3. VALPARAI KNOWLEDGE HUB STACK -->
+  <!-- ========================================================================= -->
+  <div class="text-center pt-24 pb-6 px-4" id="valparai-stack">
+    <span class="text-amber-400 text-xs font-black tracking-widest uppercase">Section 03 · Anamalai Hills Sanctuary</span>
+    <h2 class="text-3xl sm:text-5xl font-serif font-black text-white mt-1">Valparai Detailed Knowledge Hub</h2>
+    <p class="text-amber-400 font-serif text-xl font-bold mt-1">வால்பாறை களஞ்சியம்</p>
+    <p class="text-slate-400 text-sm mt-2">Scroll down to peel through the ecology, history, hydro engineering, and wildlife of Valparai.</p>
+  </div>
+
+  <section class="motion-stack-section relative w-full" data-stack-id="valparai" style="height: 480vh;">
+    <div class="sticky-viewport">
+      <div class="card-deck">
+
+        <!-- Card 4: PAP Hydroelectric Complex (Bottom) -->
+        <article class="peel-card bg-gradient-to-br from-[#1e1b4b] to-[#0c0a24]" style="z-index: 1;">
+          <div class="flex justify-between items-center border-b border-white/15 pb-3">
+            <span class="px-3 py-1 rounded-full bg-white/10 text-[10px] font-black tracking-wider uppercase text-indigo-300">
+              Valparai 04 · Hydro Power
+            </span>
+            <span class="font-mono text-sm text-indigo-300 font-bold">04 / 04</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-auto">
+            <div>
+              <h3 class="text-3xl sm:text-4xl font-serif font-black text-white">PAP Hydro Complex</h3>
+              <p class="text-indigo-300 font-bold text-lg font-serif">பரம்பிகுளம் ஆழியாறு பாசனத் திட்டம்</p>
+              <p class="text-white/80 text-sm mt-3 leading-relaxed">
+                The engineering wonder of South India. Sholayar Dam holds 160 feet of deep mountain water, feeding underground flume tunnels and power stations.
+              </p>
+              <div class="mt-4 p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-indigo-100">
+                ⚡ <strong>Hydro Capacity:</strong> 54+ MW hydroelectric power generation, nourishing both Tamil Nadu and Kerala through interstate river accords.
+              </div>
+            </div>
+            <div class="p-6 rounded-2xl bg-black/50 border border-white/10 flex flex-col justify-center">
+              <span class="text-xs font-mono text-white/60 mb-2 uppercase tracking-wider">Engineering Feats</span>
+              <ul class="text-sm space-y-2 text-white/90">
+                <li>✦ Upper & Lower Sholayar Dam Networks</li>
+                <li>✦ 8.5km Underground Contour Tunnel</li>
+                <li>✦ Subterranean Turbines at Manampally</li>
+              </ul>
+            </div>
+          </div>
+          <div class="border-t border-white/15 pt-3 flex justify-between text-xs text-white/60 font-mono">
+            <span>VALPARAI ECO-KNOWLEDGE</span>
+            <span class="text-emerald-400 font-bold">✦ Final Knowledge Card</span>
+          </div>
+        </article>
+
+        <!-- Card 3: Tea Estates & Heritage -->
+        <article class="peel-card bg-gradient-to-br from-[#14532d] to-[#052e16]" style="z-index: 2;">
+          <div class="flex justify-between items-center border-b border-white/15 pb-3">
+            <span class="px-3 py-1 rounded-full bg-white/10 text-[10px] font-black tracking-wider uppercase text-emerald-300">
+              Valparai 03 · Agro-Forestry
+            </span>
+            <span class="font-mono text-sm text-emerald-300 font-bold">03 / 04</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-auto">
+            <div>
+              <h3 class="text-3xl sm:text-4xl font-serif font-black text-white">Tea & Coffee Estates</h3>
+              <p class="text-emerald-300 font-bold text-lg font-serif">தேயிலை மற்றும் காபி தோட்டங்கள்</p>
+              <p class="text-white/80 text-sm mt-3 leading-relaxed">
+                Carver Marsh pioneered tea plantations in 1890. Today over 50,000 acres of high-grown orthodox teas flourish at 3,500 - 4,500 ft elevation.
+              </p>
+              <div class="mt-4 p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-emerald-100">
+                ☕ <strong>Cool Climate Harvest:</strong> Heavy monsoon mists and rich volcanic soils produce globally celebrated high-aroma teas and shade-grown Arabica coffee.
+              </div>
+            </div>
+            <div class="p-6 rounded-2xl bg-black/50 border border-white/10 flex flex-col justify-center">
+              <span class="text-xs font-mono text-white/60 mb-2 uppercase tracking-wider">Estate Heritage</span>
+              <ul class="text-sm space-y-2 text-white/90">
+                <li>✦ Carver Marsh Statue & Pioneer Memorial</li>
+                <li>✦ Heritage Colonial Bungalows</li>
+                <li>✦ Sustainable Rainforest Alliance Certified Fields</li>
+              </ul>
+            </div>
+          </div>
+          <div class="border-t border-white/15 pt-3 flex justify-between text-xs text-white/60 font-mono">
+            <span>VALPARAI ECO-KNOWLEDGE</span>
+            <span>Scroll down to peel card ↓</span>
+          </div>
+        </article>
+
+        <!-- Card 2: Wildlife & Biodiversity -->
+        <article class="peel-card bg-gradient-to-br from-[#854d0e] to-[#291602]" style="z-index: 3;">
+          <div class="flex justify-between items-center border-b border-white/15 pb-3">
+            <span class="px-3 py-1 rounded-full bg-white/10 text-[10px] font-black tracking-wider uppercase text-amber-300">
+              Valparai 02 · Endemic Wildlife
+            </span>
+            <span class="font-mono text-sm text-amber-300 font-bold">02 / 04</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-auto">
+            <div>
+              <h3 class="text-3xl sm:text-4xl font-serif font-black text-white">Flora & Fauna Sanctuary</h3>
+              <p class="text-amber-300 font-bold text-lg font-serif">வனவிலங்கு மற்றும் பல்லுயிர் வளம்</p>
+              <p class="text-white/80 text-sm mt-3 leading-relaxed">
+                Nestled within the Anamalai Tiger Reserve (ATR), Valparai is a global biodiversity hotspot sheltering endangered endemic species.
+              </p>
+              <div class="mt-4 p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-amber-100">
+                🐾 <strong>Key Inhabitants:</strong> Nilgiri Tahr (state animal of TN), Lion-tailed Macaque, Great Indian Hornbill, Asiatic Elephants, and Royal Bengal Tigers.
+              </div>
+            </div>
+            <div class="p-6 rounded-2xl bg-black/50 border border-white/10 flex flex-col justify-center">
+              <span class="text-xs font-mono text-white/60 mb-2 uppercase tracking-wider">Conservation Sanctuaries</span>
+              <ul class="text-sm space-y-2 text-white/90">
+                <li>✦ Grass Hills National Park (2,400m UNESCO)</li>
+                <li>✦ Puthuthottam Macaque Canopy Corridor</li>
+                <li>✦ Chinnakallar "Wetlands of South India"</li>
+              </ul>
+            </div>
+          </div>
+          <div class="border-t border-white/15 pt-3 flex justify-between text-xs text-white/60 font-mono">
+            <span>VALPARAI ECO-KNOWLEDGE</span>
+            <span>Scroll down to peel card ↓</span>
+          </div>
+        </article>
+
+        <!-- Card 1: Geography & 40 Hairpins (Top) -->
+        <article class="peel-card bg-gradient-to-br from-[#1e293b] to-[#090e17]" style="z-index: 4;">
+          <div class="flex justify-between items-center border-b border-white/15 pb-3">
+            <span class="px-3 py-1 rounded-full bg-white/10 text-[10px] font-black tracking-wider uppercase text-sky-300">
+              Valparai 01 · Mountain Ascent
+            </span>
+            <span class="font-mono text-sm text-sky-300 font-bold">01 / 04</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-auto">
+            <div>
+              <h3 class="text-3xl sm:text-4xl font-serif font-black text-white">40 Hairpin Bends</h3>
+              <p class="text-sky-300 font-bold text-lg font-serif">40 கொண்டை ஊசி வளைவுகள்</p>
+              <p class="text-white/80 text-sm mt-3 leading-relaxed">
+                The thrilling mountain ascent from Pollachi rising through 40 hairpin bends. Panoramic viewpoints reveal the Aliyar Dam reservoir and majestic Anamalai peaks.
+              </p>
+              <div class="mt-4 p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-sky-100">
+                🚗 <strong>Scenic Highlights:</strong> 9th Hairpin Loam's View Point, Attakatti misty ridge, and Tiger Valley mist waterfalls.
+              </div>
+            </div>
+            <div class="p-6 rounded-2xl bg-black/50 border border-white/10 flex flex-col justify-center">
+              <span class="text-xs font-mono text-white/60 mb-2 uppercase tracking-wider">Elevation & Climate</span>
+              <ul class="text-sm space-y-2 text-white/90">
+                <li>✦ Elevation: 3,500 ft (Town) to 7,800 ft (Peaks)</li>
+                <li>✦ Annual Rainfall: Up to 5,000 mm</li>
+                <li>✦ Year-round cool temperature: 15°C - 25°C</li>
+              </ul>
+            </div>
+          </div>
+          <div class="border-t border-white/15 pt-3 flex justify-between text-xs text-white/60 font-mono">
+            <span>VALPARAI ECO-KNOWLEDGE</span>
+            <span class="text-amber-300 animate-pulse font-bold">Scroll down to peel this card ↓</span>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="py-16 text-center text-slate-500 border-t border-white/10">
+    <p class="text-sm">City of Truth Ministries · Stacked Motion Reveal System</p>
+    <p class="text-xs text-slate-600 mt-1">Inspired by <code>stacked_motion_reveal.html</code></p>
+  </footer>
+
+  <!-- Scroll-Linked Motion Reveal Engine -->
+  <script>
+    function clamp(val, min, max) {
+      return Math.max(min, Math.min(max, val));
+    }
+
+    const sections = Array.from(document.querySelectorAll('.motion-stack-section'));
+
+    function updateSectionCards() {
+      sections.forEach(section => {
+        const sectionRect = section.getBoundingClientRect();
+        const sectionTop = sectionRect.top;
+        const sectionHeight = sectionRect.height;
+        const windowHeight = window.innerHeight;
+
+        const totalScrollable = sectionHeight - windowHeight;
+        if (totalScrollable <= 0) return;
+
+        let progress = -sectionTop / totalScrollable;
+        progress = clamp(progress, 0, 1);
+
+        // Get cards in this section (ordered from top to bottom)
+        const cards = Array.from(section.querySelectorAll('.peel-card')).reverse();
+        const numCardsToPeel = cards.length - 1;
+
+        cards.forEach((card, index) => {
+          // Last card stays in place
+          if (index === cards.length - 1) {
+            card.style.transform = 'translateY(0) rotateZ(0deg)';
+            card.style.opacity = 1;
+            card.style.pointerEvents = 'auto';
+            return;
+          }
+
+          const start = index / numCardsToPeel;
+          const end = (index + 1) / numCardsToPeel;
+
+          let localProgress = (progress - start) / (end - start);
+          localProgress = clamp(localProgress, 0, 1);
+
+          // Quadratic ease-in-out
+          const easeProgress = localProgress < 0.5
+            ? 2 * localProgress * localProgress
+            : 1 - Math.pow(-2 * localProgress + 2, 2) / 2;
+
+          // Slide upward
+          const yOffset = easeProgress * -110;
+
+          // Physical paper tilt: alternate direction
+          const dir = index % 2 === 0 ? -1 : 1;
+          const rotateZ = easeProgress * 14 * dir;
+
+          // Late-stage fade
+          let opacity = 1;
+          if (localProgress > 0.6) {
+            opacity = 1 - ((localProgress - 0.6) / 0.4);
+          }
+
+          card.style.transform = `translateY(${yOffset}vh) rotateZ(${rotateZ}deg)`;
+          card.style.opacity = opacity;
+          card.style.pointerEvents = localProgress >= 0.85 ? 'none' : 'auto';
+        });
+      });
+    }
+
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          updateSectionCards();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    }, { passive: true });
+
+    window.addEventListener('resize', updateSectionCards, { passive: true });
+    updateSectionCards();
+  </script>
+</body>
+</html>

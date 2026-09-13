@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import {
     BookOpen,
     Sparkles,
@@ -208,7 +208,7 @@ export const PastorBaruchPreviewSection: React.FC<SectionProps> = ({ setView }) 
                                 </div>
                                 <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-white/60 shadow-md shrink-0 bg-white/20">
                                     <img
-                                        src="/assets/pastor.jpeg"
+                                        src="/assets/pastor.webp"
                                         alt="Pastor Lazarus"
                                         className="w-full h-full object-cover object-top"
                                     />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, Maximize2, Minimize2, Loader, Trash2, BookOpen, ChevronRight } from 'lucide-react';
-import { motion, AnimatePresence, useAnimation } from 'framer-motion';
+import { motion, AnimatePresence, useAnimation } from 'motion/react';
 import { generateSpatulaAIResponse, streamSpatulaAIResponse } from '../services/openRouterService';
 import LordIconWrapper from './LordIconWrapper';
 
@@ -371,7 +371,7 @@ export default function AIChatAssistant({ isAdmin = false, onHelpHighlight }: { 
                         transition={{
                             scale: { duration: 0.5, ease: 'backOut' },
                             rotate: { duration: 0.5, ease: 'backOut' },
-                            y: { duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay: 0.6 }
+                            y: { duration: 1.4, repeat: Infinity, ease: 'easeInOut', delay: 0.24 }
                         }}
                         exit={{ scale: 0, rotate: 180 }}
                         whileHover={{ scale: 1.12 * (widgetSettings?.cotChatSize || 1), cursor: 'grab' }}

@@ -12,7 +12,6 @@ const MAX_OUTPUT_DIM = 1024;
 
 export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComplete, onCancel }) => {
     const [currentImageSrc, setCurrentImageSrc] = useState(imageSrc);
-    const [isRemovingBg, setIsRemovingBg] = useState(false);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [scale, setScale] = useState(1);
@@ -88,24 +87,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
         draw();
     }, [scale, imagePosition, currentImageSrc]);
 
-    const handleRemoveBackground = async () => {
-        setIsRemovingBg(true);
-        try {
-            const { removeBackground } = await import('@imgly/background-removal');
-            const blob = await removeBackground(currentImageSrc, {
-                progress: (key, current, total) => {
-                    console.log(`Downloading AI model: ${key} ${current}/${total}`);
-                }
-            });
-            const url = URL.createObjectURL(blob);
-            setCurrentImageSrc(url);
-        } catch (error) {
-            console.error('Failed to remove background:', error);
-            alert('Failed to remove background. Please try again.');
-        } finally {
-            setIsRemovingBg(false);
-        }
-    };
+    // Background removal removed to prevent downloading 24MB+ AI WASM models
 
     // Image dragging
     const handleImageMouseDown = (e: React.MouseEvent) => {
@@ -441,21 +423,6 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onCropComp
                     </div>
                 </div>
 
-                <div className="px-4 pb-2">
-                    <Button onClick={handleRemoveBackground} variant="secondary" className="w-full relative overflow-hidden" disabled={isRemovingBg}>
-                        {isRemovingBg ? (
-                            <span className="flex items-center justify-center animate-pulse">
-                                <Sparkles size={16} className="mr-2 text-brand-500" />
-                                Applying AI Magic...
-                            </span>
-                        ) : (
-                            <span className="flex items-center justify-center">
-                                <Sparkles size={16} className="mr-2 text-brand-500" />
-                                AI Remove Background
-                            </span>
-                        )}
-                    </Button>
-                </div>
 
                 <div className="p-4 bg-white border-t border-gray-100 flex gap-3">
                     <Button onClick={onCancel} variant="outline" className="flex-1">

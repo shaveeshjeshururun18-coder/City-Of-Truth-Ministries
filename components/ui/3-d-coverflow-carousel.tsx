@@ -47,7 +47,7 @@ export const defaultMinistries: CarouselItem[] = [
     titleLine1: "SPIRITUAL",
     titleLine2: "GATHERINGS",
     desc: "Deepening our divine connection with prayer, fellowship, and holy communion",
-    img: "/ministry/IMG-20231230-WA0001.jpg",
+    img: "/ministry/IMG-20231230-WA0001.webp",
     ctaText: "Explore Gatherings",
     ctaUrl: "#spiritual-gatherings",
     category: "Spiritual Gatherings",
@@ -57,7 +57,7 @@ export const defaultMinistries: CarouselItem[] = [
     titleLine1: "YOUTH",
     titleLine2: "MINISTRY",
     desc: "Empowering young hearts and minds to walk boldly in biblical truth",
-    img: "/ministry/IMG-20231230-WA0004.jpg",
+    img: "/ministry/IMG-20231230-WA0004.webp",
     ctaText: "Explore Youth",
     ctaUrl: "#youth-ministry",
     category: "Youth Ministry",
@@ -67,7 +67,7 @@ export const defaultMinistries: CarouselItem[] = [
     titleLine1: "HELPING",
     titleLine2: "HANDS",
     desc: "Charity in action, visiting widows and fatherless in their affliction",
-    img: "/ministry/IMG-20231230-WA0007.jpg",
+    img: "/ministry/IMG-20231230-WA0007.webp",
     ctaText: "Explore Charity",
     ctaUrl: "#helping-hands",
     category: "Helping Hands",
@@ -77,7 +77,7 @@ export const defaultMinistries: CarouselItem[] = [
     titleLine1: "SACRED MUSIC",
     titleLine2: "& PRAISE",
     desc: "Exalting the Holy Name through inspired hymns, strings, and worship melodies",
-    img: "/ministry/IMG-20231230-WA0010.jpg",
+    img: "/ministry/IMG-20231230-WA0010.webp",
     ctaText: "Explore Worship",
     ctaUrl: "#sacred-music",
     category: "Sacred Music & Praise",
@@ -87,7 +87,7 @@ export const defaultMinistries: CarouselItem[] = [
     titleLine1: "HEALING &",
     titleLine2: "MIRACLES",
     desc: "Witnessing God's supernatural power and restoration through faithful prayers",
-    img: "/ministry/IMG-20231230-WA0012.jpg",
+    img: "/ministry/IMG-20231230-WA0012.webp",
     ctaText: "Explore Service",
     ctaUrl: "#healing-miracles",
     category: "Healing & Miracle Service",
@@ -97,7 +97,7 @@ export const defaultMinistries: CarouselItem[] = [
     titleLine1: "COMMUNITY",
     titleLine2: "IMPACT",
     desc: "Bringing light into villages and towns through acts of kindness and truth",
-    img: "/ministry/IMG-20231230-WA0015.jpg",
+    img: "/ministry/IMG-20231230-WA0015.webp",
     ctaText: "Explore Outreach",
     ctaUrl: "#community-impact",
     category: "Community Impact",
@@ -108,15 +108,24 @@ export function CoverFlowCarousel({
   items = defaultMinistries,
   sectionLabel = "MINISTRY HIGHLIGHTS",
   autoplay = true,
-  autoplayDelay = 4500,
+  autoplayDelay = 3500,
   className = "",
   onCtaClick,
 }: CoverFlowCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isHovered, setIsHovered] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const touchStartX = useRef(0);
   const containerRef = useRef<HTMLElement>(null);
   const total = items.length;
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const nextSlide = useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % total);
@@ -130,11 +139,12 @@ export function CoverFlowCarousel({
     setCurrentIndex(idx % total);
   };
 
+  // Continuous auto-advancing showcase every 3.5s
   useEffect(() => {
-    if (!autoplay || isHovered || total <= 1) return;
+    if (!autoplay || total <= 1) return;
     const interval = setInterval(nextSlide, autoplayDelay);
     return () => clearInterval(interval);
-  }, [autoplay, autoplayDelay, isHovered, nextSlide, total]);
+  }, [autoplay, autoplayDelay, nextSlide, total]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -151,7 +161,7 @@ export function CoverFlowCarousel({
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     const diff = e.changedTouches[0].clientX - touchStartX.current;
-    if (Math.abs(diff) > 45) {
+    if (Math.abs(diff) > 40) {
       if (diff < 0) nextSlide();
       else prevSlide();
     }
@@ -162,14 +172,12 @@ export function CoverFlowCarousel({
   return (
     <section
       ref={containerRef}
-      className={`relative w-full min-h-[720px] flex items-center justify-center overflow-hidden py-14 select-none ${className}`}
+      className={`relative w-full ${isMobile ? 'min-h-[460px] py-6' : 'min-h-[720px] py-14'} flex items-center justify-center overflow-hidden select-none ${className}`}
       style={{
         backgroundColor: "#070a14",
         color: "#ffffff",
         fontFamily: "system-ui, -apple-system, sans-serif",
       }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
@@ -218,15 +226,15 @@ export function CoverFlowCarousel({
 
         {/* 3D Coverflow Stage with Crav-Burgers Dynamic Angle Fan */}
         <div
-          className="relative w-full h-[540px] flex justify-center items-center mb-8"
+          className={`relative w-full ${isMobile ? 'h-[400px] mb-4' : 'h-[540px] mb-8'} flex justify-center items-center`}
           style={{
-            perspective: "1400px",
+            perspective: isMobile ? "1000px" : "1400px",
           }}
         >
           {items.map((item, idx) => {
             const offset = (idx - currentIndex + total) % total;
 
-            // Center card is elevated; left and right cards follow (+5°, -5°, +8°) dynamic fan
+            // Center card is elevated; left and right cards follow dynamic fan
             let transform = "translateX(0px) scale(0.4) rotateY(0deg) rotate(0deg)";
             let opacity = 0;
             let zIndex = 0;
@@ -235,32 +243,42 @@ export function CoverFlowCarousel({
 
             if (offset === 0) {
               isCenter = true;
-              transform = "translateX(0px) translateY(-10px) scale(1.02) rotateY(0deg) rotate(0deg)";
+              transform = isMobile
+                ? "translateX(0px) translateY(-6px) scale(1) rotateY(0deg) rotate(0deg)"
+                : "translateX(0px) translateY(-10px) scale(1.02) rotateY(0deg) rotate(0deg)";
               opacity = 1;
               zIndex = 30;
               filter = "brightness(1)";
             } else if (offset === 1) {
               // Right neighbor: tilted slightly right (+5deg) with natural fan drop
-              transform = "translateX(300px) translateY(8px) scale(0.86) rotateY(-22deg) rotate(5deg)";
-              opacity = 0.74;
+              transform = isMobile
+                ? "translateX(135px) translateY(4px) scale(0.82) rotateY(-18deg) rotate(3deg)"
+                : "translateX(300px) translateY(8px) scale(0.86) rotateY(-22deg) rotate(5deg)";
+              opacity = isMobile ? 0.65 : 0.74;
               zIndex = 20;
               filter = "brightness(0.80)";
             } else if (offset === 2) {
-              // Far right: tilted further right (+8deg) with playing card fan elevation
-              transform = "translateX(530px) translateY(20px) scale(0.70) rotateY(-34deg) rotate(8deg)";
-              opacity = 0.44;
+              // Far right
+              transform = isMobile
+                ? "translateX(240px) scale(0.5) opacity(0)"
+                : "translateX(530px) translateY(20px) scale(0.70) rotateY(-34deg) rotate(8deg)";
+              opacity = isMobile ? 0 : 0.44;
               zIndex = 10;
               filter = "brightness(0.55) blur(1px)";
             } else if (offset === total - 1) {
               // Left neighbor: tilted slightly left (-5deg) with natural fan drop
-              transform = "translateX(-300px) translateY(8px) scale(0.86) rotateY(22deg) rotate(-5deg)";
-              opacity = 0.74;
+              transform = isMobile
+                ? "translateX(-135px) translateY(4px) scale(0.82) rotateY(18deg) rotate(-3deg)"
+                : "translateX(-300px) translateY(8px) scale(0.86) rotateY(22deg) rotate(-5deg)";
+              opacity = isMobile ? 0.65 : 0.74;
               zIndex = 20;
               filter = "brightness(0.80)";
             } else if (offset === total - 2) {
-              // Far left: tilted further left (-8deg) with playing card fan elevation
-              transform = "translateX(-530px) translateY(20px) scale(0.70) rotateY(34deg) rotate(-8deg)";
-              opacity = 0.44;
+              // Far left
+              transform = isMobile
+                ? "translateX(-240px) scale(0.5) opacity(0)"
+                : "translateX(-530px) translateY(20px) scale(0.70) rotateY(34deg) rotate(-8deg)";
+              opacity = isMobile ? 0 : 0.44;
               zIndex = 10;
               filter = "brightness(0.55) blur(1px)";
             }
@@ -271,13 +289,13 @@ export function CoverFlowCarousel({
                 onClick={() => !isCenter && goToSlide(idx)}
                 style={{
                   position: "absolute",
-                  width: "330px",
-                  height: "500px",
-                  borderRadius: "26px",
+                  width: isMobile ? "245px" : "330px",
+                  height: isMobile ? "370px" : "500px",
+                  borderRadius: isMobile ? "20px" : "26px",
                   overflow: "hidden",
                   backgroundColor: "#111625",
                   border: isCenter
-                    ? "2px solid rgba(251, 191, 36, 0.4)"
+                    ? "2px solid rgba(251, 191, 36, 0.45)"
                     : "1px solid rgba(255, 255, 255, 0.12)",
                   transform,
                   opacity,
@@ -289,6 +307,7 @@ export function CoverFlowCarousel({
                     ? "0 30px 70px rgba(0,0,0,0.9), 0 0 40px rgba(251,191,36,0.25)"
                     : "0 18px 40px rgba(0,0,0,0.65)",
                   cursor: isCenter ? "default" : "pointer",
+                  pointerEvents: opacity === 0 ? "none" : isCenter ? "auto" : "auto",
                 }}
               >
                 {/* Photo */}
@@ -329,7 +348,7 @@ export function CoverFlowCarousel({
                     position: "relative",
                     width: "100%",
                     height: "100%",
-                    padding: "22px 20px 24px",
+                    padding: isMobile ? "14px 12px 14px" : "22px 20px 24px",
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "space-between",
@@ -346,12 +365,12 @@ export function CoverFlowCarousel({
                     <span
                       style={{
                         display: "inline-block",
-                        fontSize: "0.74rem",
+                        fontSize: isMobile ? "0.64rem" : "0.74rem",
                         fontWeight: 700,
                         letterSpacing: "0.08em",
                         color: "#fbbf24",
                         backgroundColor: "rgba(0,0,0,0.5)",
-                        padding: "4px 10px",
+                        padding: isMobile ? "2px 8px" : "4px 10px",
                         borderRadius: "9999px",
                         backdropFilter: "blur(6px)",
                         border: "1px solid rgba(251,191,36,0.3)",
@@ -367,14 +386,14 @@ export function CoverFlowCarousel({
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
-                      gap: "4px",
+                      gap: "3px",
                       marginTop: "auto",
-                      paddingBottom: "4px",
+                      paddingBottom: "2px",
                     }}
                   >
                     <h2
                       style={{
-                        fontSize: "1.75rem",
+                        fontSize: isMobile ? "1.32rem" : "1.75rem",
                         fontWeight: 900,
                         textTransform: "uppercase",
                         letterSpacing: "0.04em",
@@ -390,7 +409,7 @@ export function CoverFlowCarousel({
                     {item.titleLine2 && (
                       <span
                         style={{
-                          fontSize: "1.15rem",
+                          fontSize: isMobile ? "0.92rem" : "1.15rem",
                           fontWeight: 800,
                           textTransform: "uppercase",
                           letterSpacing: "0.06em",
@@ -409,7 +428,7 @@ export function CoverFlowCarousel({
                         height: "2px",
                         backgroundColor: "#fbbf24",
                         borderRadius: "2px",
-                        margin: "6px auto 5px",
+                        margin: "5px auto 4px",
                         boxShadow: "0 0 10px rgba(251,191,36,0.8)",
                       }}
                     />
@@ -417,12 +436,16 @@ export function CoverFlowCarousel({
                     {item.desc && (
                       <p
                         style={{
-                          fontSize: "0.82rem",
+                          fontSize: isMobile ? "0.72rem" : "0.82rem",
                           color: "rgba(255,255,255,0.9)",
-                          maxWidth: "280px",
-                          margin: "0 0 12px",
-                          lineHeight: 1.35,
+                          maxWidth: isMobile ? "220px" : "280px",
+                          margin: "0 0 10px",
+                          lineHeight: 1.3,
                           textShadow: "0 2px 8px rgba(0,0,0,0.9)",
+                          display: isMobile ? "-webkit-box" : "block",
+                          WebkitLineClamp: isMobile ? 2 : undefined,
+                          WebkitBoxOrient: isMobile ? "vertical" : undefined,
+                          overflow: isMobile ? "hidden" : undefined,
                         }}
                       >
                         {item.desc}
@@ -477,11 +500,11 @@ export function CoverFlowCarousel({
           aria-label="Previous card"
           style={{
             position: "absolute",
-            left: "16px",
+            left: isMobile ? "6px" : "16px",
             top: "50%",
             transform: "translateY(-50%)",
-            width: "48px",
-            height: "48px",
+            width: isMobile ? "36px" : "48px",
+            height: isMobile ? "36px" : "48px",
             borderRadius: "50%",
             backgroundColor: "rgba(15,23,42,0.75)",
             border: "1px solid rgba(251,191,36,0.3)",
@@ -512,11 +535,11 @@ export function CoverFlowCarousel({
           aria-label="Next card"
           style={{
             position: "absolute",
-            right: "16px",
+            right: isMobile ? "6px" : "16px",
             top: "50%",
             transform: "translateY(-50%)",
-            width: "48px",
-            height: "48px",
+            width: isMobile ? "36px" : "48px",
+            height: isMobile ? "36px" : "48px",
             borderRadius: "50%",
             backgroundColor: "rgba(15,23,42,0.75)",
             border: "1px solid rgba(251,191,36,0.3)",

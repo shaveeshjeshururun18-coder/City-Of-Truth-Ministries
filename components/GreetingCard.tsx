@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Sparkles, X, Volume2, Download, Share2, Copy, Check, ArrowRight, ArrowLeft,
   Maximize2, Minimize2, Heart, Calendar, Image as ImageIcon, MessageSquare, Edit3, Send, Shield, FileText,
@@ -288,7 +288,7 @@ const PenWritingText = ({ text, className }: { text: string, className?: string 
       <motion.div
         initial={{ clipPath: 'inset(0 100% 0 0)' }}
         animate={{ clipPath: 'inset(0 0% 0 0)' }}
-        transition={{ duration: 3, ease: 'linear', delay: 0.5 }}
+        transition={{ duration: 1.2, ease: 'linear', delay: 0.5 }}
         className="inline-block relative"
       >
         {text}
@@ -296,13 +296,13 @@ const PenWritingText = ({ text, className }: { text: string, className?: string 
           initial={{ left: '0%', opacity: 1 }}
           animate={{ left: '100%', opacity: 0 }}
           transition={{
-            left: { duration: 3, ease: 'linear', delay: 0.5 },
-            opacity: { delay: 3.5, duration: 0.2 }
+            left: { duration: 1.2, ease: 'linear', delay: 0.5 },
+            opacity: { delay: 0.22, duration: 0.2 }
           }}
           className="absolute top-0 -translate-y-1/2 -ml-1 text-amber-400"
           style={{ fontSize: '1.2em' }}
         >
-          <i className="bi bi-pen"></i>
+          <Edit3 size={18} />
         </motion.div>
       </motion.div>
     </div>
@@ -362,7 +362,7 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
     try {
       const dataUrl = await toPng(cardRef.current, { pixelRatio: 4, quality: 1, cacheBust: true });
       const link = document.createElement('a');
-      link.download = `COT-Greeting-Card-${selectedOccasion.id}-${Date.now()}.png`;
+      link.download = `COT-Greeting-Card-${selectedOccasion.id}-${Date.now()}.webp`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -396,7 +396,7 @@ export default function GreetingCard({ currentUser, isAdmin = false, onClose, on
       const dataUrl = await toPng(cardRef.current, { pixelRatio: 3, quality: 1, cacheBust: true });
       const response = await fetch(dataUrl);
       const blob = await response.blob();
-      const file = new File([blob], `COT-Greeting-Card-${Date.now()}.png`, { type: 'image/png' });
+      const file = new File([blob], `COT-Greeting-Card-${Date.now()}.webp`, { type: 'image/png' });
 
       const textToShare = `${customHebrewTitle}\n\nDear ${recipientName || 'Beloved'},\n${messageText}\n\n"${scriptureText}"\n\nBlessings,\n${senderName}\n\nCity of Truth Ministries`;
 

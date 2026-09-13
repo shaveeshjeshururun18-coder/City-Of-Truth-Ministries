@@ -57,7 +57,7 @@ const concurrentSeed = async (seeds: any[], items: any[], delayMs: number = 20) 
 describe('API Seeding Optimization Benchmark', () => {
     it('should demonstrate a significant speedup with concurrent seeding', async () => {
         const testSeeds = Array.from({ length: 47 }, (_, i) => ({
-            image: `/ministry/IMG-${i}.jpg`,
+            image: `/ministry/IMG-${i}.webp`,
             order: i,
             fail: i === 5 // Simulate one failure to ensure error handling is preserved
         }));

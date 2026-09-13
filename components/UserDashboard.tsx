@@ -8,7 +8,7 @@ import { generateHebrewAlphabetPDF } from './HebrewAlphabetPDF';
 import { Download, Edit2, AlertCircle, CheckCircle, X, FileText, QrCode, LogOut, Camera, Calendar, Users, UserPlus, Trash2, ShieldCheck, MessageSquare, Share2, PlusCircle, ScanLine, UploadCloud, LogIn, Flag, Copy, ExternalLink, Moon, Sun, Award, Star, Sparkles, Fingerprint, Lock, User as UserIcon, BookOpen, Settings, Search, Bell, ChevronDown, ChevronUp } from 'lucide-react';
 import { BadgeIcon } from './icons/modernIcons';
 import { Button } from './Button';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { TestimonialModal } from './TestimonialModal';
 import { toPng, toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
@@ -25,9 +25,9 @@ import { CommunityProfileForm } from './CommunityProfileForm';
 import { getInitials } from './utils';
 import { GuidedTour, WelcomeTourModal, useTour } from './GuidedTour';
 
-const MEMBER_FORM_LOGO_URL = '/assets/member-form-logo.png';
-const MEMBER_FORM_STAMP_URL = '/assets/member-form-authorised-stamp-transparent.png';
-const MEMBER_FORM_SIGNATURE_URL = '/assets/signature.png';
+const MEMBER_FORM_LOGO_URL = '/assets/member-form-logo.webp';
+const MEMBER_FORM_STAMP_URL = '/assets/member-form-authorised-stamp-transparent.webp';
+const MEMBER_FORM_SIGNATURE_URL = '/assets/signature.webp';
 
 interface UserDashboardProps {
     user: User;
@@ -61,18 +61,18 @@ const TAMIL_NADU_LOCATIONS = [
 ];
 
 const DEFAULT_DASHBOARD_BADGES = [
-    { id: 'verified-member', ribbonText: 'VERIFIED MEMBER', image: '/assets/badges/verified-member.png', name: 'Verified Member', color: 'from-emerald-400 via-teal-500 to-cyan-700', desc: 'Officially Verified Member' },
-    { id: 'scripture-reader', ribbonText: 'SCRIPTURE READER', image: '/assets/badges/scripture-reader.png', name: 'Scripture Reader', color: 'from-sky-400 via-blue-600 to-indigo-800', desc: 'Faithful Reader of God\'s Word' },
-    { id: 'prayer-warrior', ribbonText: 'PRAYER WARRIOR', image: '/assets/badges/prayer-warrior.png', name: 'Prayer Warrior', color: 'from-indigo-500 via-violet-600 to-fuchsia-700', desc: 'Devoted Intercessor in Prayer' },
-    { id: 'worship-leader', ribbonText: 'WORSHIP LEADER', image: '/assets/badges/worship-leader.png', name: 'Worship Leader', color: 'from-orange-400 via-red-500 to-rose-800', desc: 'Anointed Leader of Praise' },
-    { id: 'volunteer-heart', ribbonText: 'VOLUNTEER HEART', image: '/assets/badges/volunteer-heart.png', name: 'Volunteer Heart', color: 'from-rose-400 via-red-500 to-pink-700', desc: 'Selfless Ministry Servant' },
-    { id: 'faith-builder', ribbonText: 'FAITH BUILDER', image: '/assets/badges/faith-builder.png', name: 'Faith Builder', color: 'from-lime-300 via-emerald-500 to-green-800', desc: 'Building Strong Faith Foundations' },
-    { id: 'evangelist', ribbonText: 'EVANGELIST', image: '/assets/badges/evangelist.png', name: 'Evangelist', color: 'from-amber-400 via-orange-500 to-red-600', desc: 'Proclaimer of Good News' },
-    { id: 'kingdom-builder', ribbonText: 'KINGDOM BUILDER', image: '/assets/badges/kingdom-builder.png', name: 'Kingdom Builder', color: 'from-yellow-400 via-amber-500 to-orange-600', desc: 'Advancing God\'s Kingdom' },
-    { id: 'light-bearer', ribbonText: 'LIGHT BEARER', image: '/assets/badges/light-bearer.png', name: 'Light Bearer', color: 'from-yellow-200 via-amber-400 to-stone-800', desc: 'Shining Divine Light' },
-    { id: 'shepherd', ribbonText: 'SHEPHERD', image: '/assets/badges/shepherd.png', name: 'Shepherd', color: 'from-teal-400 via-emerald-600 to-slate-900', desc: 'Caring Ministry Shepherd' },
-    { id: 'disciple', ribbonText: 'DISCIPLE', image: '/assets/badges/disciple.png', name: 'Disciple', color: 'from-blue-500 via-indigo-600 to-purple-800', desc: 'Follower of Truth' },
-    { id: 'overcomer', ribbonText: 'OVERCOMER', image: '/assets/badges/overcomer.png', name: 'Overcomer', color: 'from-amber-600 via-orange-600 to-yellow-700', desc: 'Victorious Overcomer' },
+    { id: 'verified-member', ribbonText: 'VERIFIED MEMBER', image: '/assets/badges/verified-member.webp', name: 'Verified Member', color: 'from-emerald-400 via-teal-500 to-cyan-700', desc: 'Officially Verified Member' },
+    { id: 'scripture-reader', ribbonText: 'SCRIPTURE READER', image: '/assets/badges/scripture-reader.webp', name: 'Scripture Reader', color: 'from-sky-400 via-blue-600 to-indigo-800', desc: 'Faithful Reader of God\'s Word' },
+    { id: 'prayer-warrior', ribbonText: 'PRAYER WARRIOR', image: '/assets/badges/prayer-warrior.webp', name: 'Prayer Warrior', color: 'from-indigo-500 via-violet-600 to-fuchsia-700', desc: 'Devoted Intercessor in Prayer' },
+    { id: 'worship-leader', ribbonText: 'WORSHIP LEADER', image: '/assets/badges/worship-leader.webp', name: 'Worship Leader', color: 'from-orange-400 via-red-500 to-rose-800', desc: 'Anointed Leader of Praise' },
+    { id: 'volunteer-heart', ribbonText: 'VOLUNTEER HEART', image: '/assets/badges/volunteer-heart.webp', name: 'Volunteer Heart', color: 'from-rose-400 via-red-500 to-pink-700', desc: 'Selfless Ministry Servant' },
+    { id: 'faith-builder', ribbonText: 'FAITH BUILDER', image: '/assets/badges/faith-builder.webp', name: 'Faith Builder', color: 'from-lime-300 via-emerald-500 to-green-800', desc: 'Building Strong Faith Foundations' },
+    { id: 'evangelist', ribbonText: 'EVANGELIST', image: '/assets/badges/evangelist.webp', name: 'Evangelist', color: 'from-amber-400 via-orange-500 to-red-600', desc: 'Proclaimer of Good News' },
+    { id: 'kingdom-builder', ribbonText: 'KINGDOM BUILDER', image: '/assets/badges/kingdom-builder.webp', name: 'Kingdom Builder', color: 'from-yellow-400 via-amber-500 to-orange-600', desc: 'Advancing God\'s Kingdom' },
+    { id: 'light-bearer', ribbonText: 'LIGHT BEARER', image: '/assets/badges/light-bearer.webp', name: 'Light Bearer', color: 'from-yellow-200 via-amber-400 to-stone-800', desc: 'Shining Divine Light' },
+    { id: 'shepherd', ribbonText: 'SHEPHERD', image: '/assets/badges/shepherd.webp', name: 'Shepherd', color: 'from-teal-400 via-emerald-600 to-slate-900', desc: 'Caring Ministry Shepherd' },
+    { id: 'disciple', ribbonText: 'DISCIPLE', image: '/assets/badges/disciple.webp', name: 'Disciple', color: 'from-blue-500 via-indigo-600 to-purple-800', desc: 'Follower of Truth' },
+    { id: 'overcomer', ribbonText: 'OVERCOMER', image: '/assets/badges/overcomer.webp', name: 'Overcomer', color: 'from-amber-600 via-orange-600 to-yellow-700', desc: 'Victorious Overcomer' },
 ];
 
 export const getBadgeUnlockStatus = (badgeId: string, u: User): { unlocked: boolean; requirement: string } => {
@@ -579,7 +579,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
         }
         const link = document.createElement('a');
         link.href = photoToDownload;
-        link.download = `${(displayProfile.name || user.name || 'profile').replace(/\s+/g, '_')}_profile_photo.png`;
+        link.download = `${(displayProfile.name || user.name || 'profile').replace(/\s+/g, '_')}_profile_photo.webp`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -604,24 +604,24 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
 
             // 1. Website Logo
             try {
-                const resLogo = await fetch('/logo.png');
+                const resLogo = await fetch('/logo.webp');
                 if (resLogo.ok) {
                     const blobLogo = await resLogo.blob();
-                    zip.file("1_City_Of_Truth_Website_Logo.png", blobLogo);
+                    zip.file("1_City_Of_Truth_Website_Logo.webp", blobLogo);
                 }
             } catch (err) {
-                console.warn("Could not fetch logo.png", err);
+                console.warn("Could not fetch logo.webp", err);
             }
 
             // 2. Golden Menorah Asset
             try {
-                const resMenorah = await fetch('/assets/golden_menorah.png');
+                const resMenorah = await fetch('/assets/golden_menorah.webp');
                 if (resMenorah.ok) {
                     const blobMenorah = await resMenorah.blob();
-                    zip.file("2_Golden_Menorah_Symbol.png", blobMenorah);
+                    zip.file("2_Golden_Menorah_Symbol.webp", blobMenorah);
                 }
             } catch (err) {
-                console.warn("Could not fetch golden_menorah.png", err);
+                console.warn("Could not fetch golden_menorah.webp", err);
             }
 
             // 3. Capture User's Entrust ID Card (Front/Back PNGs & PDF)
@@ -636,8 +636,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                         toPng(backNode, opts)
                     ]);
 
-                    zip.file(`3_User_Entrust_Card_Front_${displayProfile.id}.png`, frontDataUrl.split(',')[1], { base64: true });
-                    zip.file(`3_User_Entrust_Card_Back_${displayProfile.id}.png`, backDataUrl.split(',')[1], { base64: true });
+                    zip.file(`3_User_Entrust_Card_Front_${displayProfile.id}.webp`, frontDataUrl.split(',')[1], { base64: true });
+                    zip.file(`3_User_Entrust_Card_Back_${displayProfile.id}.webp`, backDataUrl.split(',')[1], { base64: true });
 
                     const pdfCard = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
                     addCenteredCardPage(pdfCard, frontDataUrl, 'PNG', true);
@@ -1617,7 +1617,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
             const objectUrl = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = objectUrl;
-            link.download = `COT-QR-${displayProfile.id}.png`;
+            link.download = `COT-QR-${displayProfile.id}.webp`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -1800,7 +1800,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                 <div className="absolute top-2/3 right-1/4 w-[500px] h-[500px] bg-blue-500/12 rounded-full blur-[130px]" />
             </div>
 
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.06] pointer-events-none z-0" />
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.webp')] opacity-[0.06] pointer-events-none z-0" />
             {topNotification && dismissedTopNotificationId !== topNotification.id && (
                 <div className="sticky top-20 z-50 w-full max-w-md lg:max-w-7xl xl:max-w-[88rem] 2xl:max-w-[95rem] mb-3">
                     {topNotification.kind === 'approved' ? (
@@ -3466,7 +3466,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                                     title="Click to download QR code"
                                                 >
                                                     <img
-                                                        src="/logo.png"
+                                                        src="/logo.webp"
                                                         alt="Logo watermark"
                                                         className="absolute inset-0 w-full h-full object-contain p-8 opacity-20 pointer-events-none"
                                                     />
@@ -3769,8 +3769,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                 return;
                             }
                             const link = document.createElement('a');
-                            link.href = '/menorah-flag-image.png';
-                            link.download = 'COT-Menorah-Flag.png';
+                            link.href = '/menorah-flag-image.webp';
+                            link.download = 'COT-Menorah-Flag.webp';
                             document.body.appendChild(link);
                             link.click();
                             document.body.removeChild(link);
@@ -3839,7 +3839,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         <div className="relative group p-0.5" title="City of Truth Website Logo">
                                             <div className="absolute inset-0 rounded-full p-[2px] bg-[conic-gradient(from_0deg,#00F2FE,#38BDF8,#4FACFE,#F0C040,#D4A547,#38BDF8,#00F2FE)] animate-[spin_4s_linear_infinite] shadow-lg" />
                                             <div className="relative w-14 h-14 rounded-full bg-slate-950 p-1.5 shadow-2xl flex items-center justify-center z-10 overflow-hidden border border-cyan-400/40">
-                                                <img src="/logo.png" alt="Website Logo" className="w-full h-full object-contain drop-shadow" />
+                                                <img src="/logo.webp" alt="Website Logo" className="w-full h-full object-contain drop-shadow" />
                                             </div>
                                         </div>
 
@@ -3847,7 +3847,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         <div className="relative group p-0.5" title="Golden Menorah Temple Symbol">
                                             <div className="absolute inset-0 rounded-full p-[2px] bg-[conic-gradient(from_0deg,#F0C040,#D4A547,#F59E0B,#38BDF8,#F0C040)] animate-[spin_5s_linear_infinite] shadow-lg shadow-amber-500/40" />
                                             <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-amber-950 via-slate-900 to-amber-900 p-1 shadow-2xl flex items-center justify-center z-20 overflow-hidden border border-amber-400/60">
-                                                <img src="/assets/golden_menorah.png" alt="Golden Temple Symbol" className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]" />
+                                                <img src="/assets/golden_menorah.webp" alt="Golden Temple Symbol" className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]" />
                                             </div>
                                         </div>
                                     </div>
@@ -3904,10 +3904,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onUpdate, on
                                         {/* Included Asset Tags Preview */}
                                         <div className="flex items-center gap-2 mt-3 flex-wrap">
                                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-500/20 border border-cyan-400/30 text-cyan-200 text-[10px] font-bold">
-                                                <img src="/logo.png" className="w-3.5 h-3.5 object-contain" alt="" /> Website Logo
+                                                <img src="/logo.webp" className="w-3.5 h-3.5 object-contain" alt="" /> Website Logo
                                             </span>
                                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-400/30 text-amber-200 text-[10px] font-bold">
-                                                <img src="/assets/golden_menorah.png" className="w-3.5 h-3.5 object-contain" alt="" /> Golden Temple Symbol
+                                                <img src="/assets/golden_menorah.webp" className="w-3.5 h-3.5 object-contain" alt="" /> Golden Temple Symbol
                                             </span>
                                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-500/20 border border-purple-400/30 text-purple-200 text-[10px] font-bold">
                                                 💳 Entrust Card PDF & PNGs

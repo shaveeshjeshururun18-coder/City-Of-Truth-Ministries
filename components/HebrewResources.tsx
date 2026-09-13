@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Bell, Search, Calculator, Calendar as CalendarIcon, Clock, Hash, ChevronLeft, ChevronRight, Flame, Sparkles, BookOpen, Heart, Type, Volume2, Loader2, Info, Fingerprint, FileImage, Download, Printer, Globe, Star, Moon, Sun, MapPin, Share2, X, Mic, CheckCircle } from 'lucide-react';
 import { analyzeHebrewWord } from '../services/openRouterService';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import { motion, AnimatePresence, Reorder } from 'motion/react';
 import { HebrewYearDropdown } from './HebrewYearDropdown';
 import { HebrewConverter } from './HebrewConverter';
 import { HebrewWordHub } from './HebrewWordHub';
@@ -1019,7 +1019,7 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
 
             const link = document.createElement('a');
             link.href = dataUrl;
-            link.download = `COT-Hebrew-Calendar-${name}-${year}.png`;
+            link.download = `COT-Hebrew-Calendar-${name}-${year}.webp`;
             link.click();
         } catch (e) {
             console.error(e);
@@ -1091,7 +1091,7 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                             className="absolute w-0.5 h-0.5 bg-white rounded-full"
                             style={{ left: `${(i * 37 + 11) % 100}%`, top: `${(i * 53 + 7) % 100}%` }}
                             animate={{ opacity: [0.2, 1, 0.2], scale: [1, 1.5, 1] }}
-                            transition={{ duration: 2 + (i % 4), repeat: Infinity, delay: i * 0.3 }}
+                            transition={{ duration: 0.8 + (i % 4), repeat: Infinity, delay: i * 0.3 }}
                         />
                     ))}
                 </div>
@@ -1838,7 +1838,7 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                 {/* ── Copyright Footer ── */}
                 <div className="px-4 md:px-8 py-3.5 border-t border-white/15 bg-black/20 flex flex-col sm:flex-row items-center justify-between gap-2 mt-6 rounded-b-[2rem]">
                     <div className="flex items-center gap-2">
-                        <img src="/brand-logo.png" alt="COT" className="w-6 h-6 object-contain opacity-80" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                        <img src="/brand-logo.webp" alt="COT" className="w-6 h-6 object-contain opacity-80" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                         <p className="text-[10px] font-black text-white uppercase tracking-[0.15em]">City of Truth Ministries</p>
                     </div>
                     <p className="text-[10px] font-black text-amber-300 uppercase tracking-[0.2em]">Hebrew Calendar {safeYear}</p>
@@ -1975,7 +1975,7 @@ const HebrewCalendarView: React.FC<{ currentUser?: User }> = ({ currentUser }) =
                                                             try {
                                                                 const dataUrl = await toJpeg(cardNode, { backgroundColor: '#0c1445', quality: 0.95 });
                                                                 const link = document.createElement('a');
-                                                                link.download = `Hebrew_Date_${selectedDay}_${name}_${safeYear}.jpg`;
+                                                                link.download = `Hebrew_Date_${selectedDay}_${name}_${safeYear}.webp`;
                                                                 link.href = dataUrl;
                                                                 link.click();
                                                                 setToastMsg('Saved particular date image!');
@@ -2840,7 +2840,7 @@ const HebrewClockView: React.FC = () => {
             const dataUrl = await captureNodeToJpeg(clockRef.current, { backgroundColor: '#020617', width: 1200 });
             const link = document.createElement('a');
             link.href = dataUrl;
-            link.download = `COT-Hebrew-Clock-${Date.now()}.jpg`;
+            link.download = `COT-Hebrew-Clock-${Date.now()}.webp`;
             link.click();
         } catch (e) {
             console.error('Failed to export clock:', e);
@@ -3211,7 +3211,7 @@ const GrammarView: React.FC = () => {
             if (format === 'png') {
                 const link = document.createElement('a');
                 link.href = image;
-                link.download = `${fileBase}.png`;
+                link.download = `${fileBase}.webp`;
                 link.click();
             } else {
                 const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -3324,7 +3324,7 @@ const GrammarView: React.FC = () => {
                         {/* Header */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', paddingBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                <img src="/logo.png" alt="COT Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '12px', background: 'rgba(255,255,255,0.08)', padding: '6px' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                                <img src="/logo.webp" alt="COT Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '12px', background: 'rgba(255,255,255,0.08)', padding: '6px' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                                 <div>
                                     <div style={{ fontSize: '18px', fontWeight: 900, letterSpacing: '0.06em', color: '#f0c040', textTransform: 'uppercase' }}>City of Truth Ministries</div>
                                     <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: '3px' }}>Valparai &bull; India</div>
@@ -3667,7 +3667,7 @@ const HebrewConverterNumbers: React.FC = () => {
                         {/* Header */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', paddingBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                <img src="/logo.png" alt="COT Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '12px', background: 'rgba(255,255,255,0.08)', padding: '6px' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                                <img src="/logo.webp" alt="COT Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '12px', background: 'rgba(255,255,255,0.08)', padding: '6px' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                                 <div>
                                     <div style={{ fontSize: '18px', fontWeight: 900, letterSpacing: '0.06em', color: '#f0c040', textTransform: 'uppercase' }}>City of Truth Ministries</div>
                                     <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: '3px' }}>வால்பாறை (Valparai) &bull; Tamil Nadu &bull; India</div>
@@ -3804,7 +3804,7 @@ const HebrewGematriaCalc: React.FC = () => {
             if (format === 'png') {
                 const link = document.createElement('a');
                 link.href = dataUrl;
-                link.download = `${fileBase}.jpg`;
+                link.download = `${fileBase}.webp`;
                 link.click();
             } else {
                 const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -4155,7 +4155,7 @@ const HebrewGematriaCalc: React.FC = () => {
                         {/* Header */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', paddingBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                <img src="/logo.png" alt="COT Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '12px', background: 'rgba(255,255,255,0.08)', padding: '6px' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                                <img src="/logo.webp" alt="COT Logo" style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '12px', background: 'rgba(255,255,255,0.08)', padding: '6px' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                                 <div>
                                     <div style={{ fontSize: '18px', fontWeight: 900, letterSpacing: '0.06em', color: '#f0c040', textTransform: 'uppercase' }}>City of Truth Ministries</div>
                                     <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: '3px' }}>வால்பாறை (Valparai) &bull; Tamil Nadu &bull; India</div>
@@ -4267,9 +4267,9 @@ const buildAudioMouthSequence = (breakdown?: string): PhonemeStep[] => {
                                 : clean.endsWith('i') || clean.endsWith('ee') ? 'EE'
                                     : clean.endsWith('u') || clean.endsWith('oo') ? 'OO'
                                         : 'AH');
-        return { phoneme, duration: 360, syllable: clean };
+        return { phoneme, duration: 23.04, syllable: clean };
     });
-    return steps.length ? steps : [{ phoneme: 'AH', duration: 500, syllable: 'speak' }];
+    return steps.length ? steps : [{ phoneme: 'AH', duration: 32.0, syllable: 'speak' }];
 };
 
 const RAINBOW_GRADIENTS = [
@@ -4384,7 +4384,7 @@ const HebrewLettersAudioLab: React.FC = () => {
             const filename = `COT-Hebrew-Insight-${safeWord}`;
             if (format === 'jpeg') {
                 const link = document.createElement('a');
-                link.download = `${filename}.jpg`;
+                link.download = `${filename}.webp`;
                 link.href = dataUrl;
                 link.click();
             } else {
@@ -4779,7 +4779,7 @@ interface HebrewResourcesProps {
     setView?: (view: ViewState) => void;
 }
 
-type HebrewResourceTab = 'numbers' | 'calendar' | 'clock' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio' | 'grammar' | 'israel';
+type HebrewResourceTab = 'numbers' | 'calendar' | 'clock' | 'festivals' | 'reference' | 'words' | 'gematria' | 'lettersaudio' | 'grammar' | 'israel' | 'heavens';
 
 const getHebrewTabIcon = (iconName: string): React.ReactNode => {
     switch (iconName) {
@@ -4793,6 +4793,7 @@ const getHebrewTabIcon = (iconName: string): React.ReactNode => {
         case 'lettersaudio': return <Volume2 size={16} />;
         case 'numbers': return <Hash size={16} />;
         case 'gematria': return <Calculator size={16} />;
+        case 'sparkles': return <Sparkles size={16} />;
         default: return <BookOpen size={16} />;
     }
 };
@@ -4896,7 +4897,7 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
                 </motion.div>
 
                 {/* Mobile Bottom navigation menu has been removed in favor of global BottomNav */}
-                {/* Ensure we still render the hidden version if framer-motion is trying to mount/unmount something in hydration */}
+                {/* Ensure we still render the hidden version if motion/react is trying to mount/unmount something in hydration */}
                 <div className="hidden md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-amber-500/10 shadow-[0_-4px_20px_-10px_rgba(217,119,6,0.1)] transition-all duration-300">
                 </div>
 
@@ -4911,6 +4912,30 @@ export const HebrewResources: React.FC<HebrewResourcesProps> = ({ initialTab, mo
                             className="w-full"
                         >
                             {tab === 'israel' && <IsraelPage />}
+                            {tab === 'heavens' && (
+                                <div className="w-full rounded-3xl overflow-hidden border border-cyan-500/20 shadow-2xl bg-black min-h-[85vh] relative flex flex-col">
+                                    <div className="bg-slate-950/90 border-b border-cyan-500/20 px-6 py-3 flex items-center justify-between text-xs text-cyan-200">
+                                        <div className="flex items-center gap-2">
+                                            <Sparkles size={14} className="text-cyan-400" />
+                                            <span className="font-semibold tracking-wider uppercase">Biblical Astronomy • Psalm 19:1</span>
+                                        </div>
+                                        <a
+                                            href="/heavens-declare.html"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="px-3 py-1 rounded-full bg-cyan-950 border border-cyan-500/30 hover:bg-cyan-900 transition-colors font-medium text-white"
+                                        >
+                                            Open Fullscreen ↗
+                                        </a>
+                                    </div>
+                                    <iframe
+                                        src="/heavens-declare.html"
+                                        title="The Heavens Declare — Biblical Astronomy & Creation"
+                                        className="w-full flex-1 min-h-[82vh] border-0"
+                                        allow="autoplay; encrypted-media; fullscreen"
+                                    />
+                                </div>
+                            )}
                             {tab === 'festivals' && <FestivalsView />}
                             {tab === 'calendar' && <HebrewCalendarView currentUser={currentUser} />}
                             {tab === 'clock' && <HebrewClockView />}

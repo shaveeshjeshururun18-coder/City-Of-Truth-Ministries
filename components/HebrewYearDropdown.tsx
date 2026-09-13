@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Calendar, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 // Helper to convert number to Hebrew (simplified for year display)
 const toHebrewYear = (num: number): string => {

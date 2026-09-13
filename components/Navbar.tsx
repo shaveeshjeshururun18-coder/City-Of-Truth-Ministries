@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Church, Home, Info, Heart, Flame, Phone, ChevronRight, CreditCard, Facebook, Youtube, Instagram, MapPin, Languages, Zap, Sparkles, Send, Globe, LogIn, CircleUser, LogOut, ChevronDown, Calendar, Clock, Hash, Star, BookOpen, ExternalLink, Plus } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { ViewState, NavItem } from '../types';
 import { Button } from './Button';
 import { User as UserType } from '../types';
@@ -34,13 +34,14 @@ const getIcon = (view: ViewState) => {
     case ViewState.MINISTRIES: return <Heart size={18} />;
     case ViewState.HEBREW: return <Languages size={18} />;
     case ViewState.CONTACT: return <Phone size={18} />;
-    case ViewState.ID_CARD: return <img src="/logo.png" alt="Card" className="w-[18px] h-[18px] object-contain" />;
+    case ViewState.ID_CARD: return <img src="/logo.webp" alt="Card" className="w-[18px] h-[18px] object-contain" />;
     case ViewState.ABOUT_VALPARAI: return <MapPin size={18} />;
     case ViewState.MENORAH: return <Flame size={18} />;
     case ViewState.MENORAH_FLAG: return <Flame size={18} />;
     case ViewState.GOLDEN_MENORAH: return <Flame size={18} />;
     case ViewState.BARUCH_HASHEM: return <Globe size={18} />;
     case ViewState.AI: return <Sparkles size={18} />;
+    case ViewState.HEAVENS_DECLARE: return <Sparkles size={18} />;
     default: return <Church size={18} />;
   }
 };
@@ -161,6 +162,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeMobileSubmenu, setActiveMobileSubmenu] = useState<string | null>(null);
   const [desktopHoverMenu, setDesktopHoverMenu] = useState<string | null>(null);
+  const [desktopMoreOpen, setDesktopMoreOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isNavVisible, setIsNavVisible] = useState(true);
   const lastScrollYRef = useRef(0);
@@ -180,43 +182,85 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
     return label;
   };
 
+  const isHomePage = currentView === ViewState.HOME || location.pathname === '/' || location.pathname === '';
+
+  // Ensure navbar is immediately visible when entering home page
+  useEffect(() => {
+    if (isHomePage) {
+      setIsNavVisible(true);
+      isNavVisibleRef.current = true;
+    }
+  }, [isHomePage]);
+
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
       const lastScrollY = lastScrollYRef.current;
+      const scrollDifference = currentScrollY - lastScrollY;
+      
+      // Update scroll state for styling (compact navbar when scrolled)
       const nextIsScrolled = currentScrollY > 20;
       if (isScrolledRef.current !== nextIsScrolled) {
         isScrolledRef.current = nextIsScrolled;
         setIsScrolled(nextIsScrolled);
       }
 
-      const setNavigationVisibility = (visible: boolean) => {
-        if (isNavVisibleRef.current !== visible) {
-          isNavVisibleRef.current = visible;
-          setIsNavVisible(visible);
+      // On the home page, the navbar should NEVER disappear
+      if (isHomePage) {
+        if (!isNavVisibleRef.current) {
+          isNavVisibleRef.current = true;
+          setIsNavVisible(true);
         }
-      };
-
-      if (currentView === ViewState.HOME) {
-        setNavigationVisibility(true);
-      } else if (currentScrollY <= 12) {
-        setNavigationVisibility(true);
-      } else if (currentScrollY > lastScrollY + 6 && currentScrollY > 90) {
-        setNavigationVisibility(false);
-        setDesktopHoverMenu(null);
-        setMobileMenuOpen(false);
-      } else if (currentScrollY < lastScrollY - 6) {
-        setNavigationVisibility(true);
-      } else {
+        lastScrollYRef.current = currentScrollY;
         return;
       }
 
-      lastScrollYRef.current = Math.max(0, currentScrollY);
+      // Keep navbar visible if any menus/dropdowns are actively open
+      if (mobileMenuOpen || desktopMoreOpen || desktopHoverMenu !== null) {
+        if (!isNavVisibleRef.current) {
+          isNavVisibleRef.current = true;
+          setIsNavVisible(true);
+        }
+        lastScrollYRef.current = currentScrollY;
+        return;
+      }
+
+      // Always visible at the very top (first 80px)
+      if (currentScrollY <= 80) {
+        if (!isNavVisibleRef.current) {
+          isNavVisibleRef.current = true;
+          setIsNavVisible(true);
+        }
+        lastScrollYRef.current = currentScrollY;
+        return;
+      }
+
+      // Scrolling DOWN - hide navbar only after scrolling 30px down
+      if (scrollDifference > 30 && currentScrollY > 150) {
+        if (isNavVisibleRef.current) {
+          isNavVisibleRef.current = false;
+          setIsNavVisible(false);
+          setDesktopHoverMenu(null);
+          setMobileMenuOpen(false);
+        }
+      }
+      // Scrolling UP - show navbar immediately
+      else if (scrollDifference < 0) {
+        if (!isNavVisibleRef.current) {
+          isNavVisibleRef.current = true;
+          setIsNavVisible(true);
+        }
+      }
+      
+      lastScrollYRef.current = currentScrollY;
     };
+
     handleScroll();
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [currentView]);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [isHomePage, mobileMenuOpen, desktopMoreOpen, desktopHoverMenu]);
 
   const triggerTamilOnlyMode = () => {
     setLanguage('ta');
@@ -229,11 +273,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
 
   return (
     <>
-      {/* Navigation bar */}
+      {/* Navigation bar with enhanced smooth animations */}
       <nav
-        className={`fixed top-3 inset-x-3 md:inset-x-6 z-[60] flex items-center gap-4 transition-all duration-300 rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-[0_18px_50px_-30px_rgba(15,23,42,0.7)] ${isScrolled ? 'px-3 md:px-5 py-1.5' : 'px-4 md:px-6 py-2.5'} ${!isNavVisible ? '-translate-y-[140%]' : 'translate-y-0'}`}
+        className={`fixed top-3 inset-x-3 md:inset-x-6 z-[60] flex items-center gap-3 sm:gap-4 rounded-3xl border border-slate-200/90 bg-white/95 backdrop-blur-xl text-slate-900 shadow-[0_18px_50px_-25px_rgba(15,23,42,0.4)] transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] will-change-transform ${isScrolled ? 'px-3 md:px-5 py-1.5 shadow-[0_12px_35px_-20px_rgba(15,23,42,0.3)]' : 'px-4 md:px-6 py-2.5'} ${!isNavVisible ? '-translate-y-[calc(100%+2rem)] opacity-0 pointer-events-none scale-95' : 'translate-y-0 opacity-100 scale-100'}`}
         role="navigation"
         aria-label="Main navigation"
+        style={{
+          transition: 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease-out, box-shadow 0.3s ease, padding 0.3s ease, scale 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
+        }}
       >
         {/* LOGO STYLING */}
         <div
@@ -242,7 +289,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
           onClick={() => setView(ViewState.HOME)}
         >
           <div className={`${isScrolled ? 'w-9 h-9' : 'w-10 h-10'} relative rounded-2xl flex items-center justify-center overflow-hidden transition-all duration-300`}>
-            <img src="/logo.png" alt="COT Logo" className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" />
+            <img src="/logo.webp" alt="COT Logo" className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" />
             <span className="absolute inset-y-0 -left-8 w-6 rotate-12 bg-white/70 blur-[2px] animate-[logo-shine_3.8s_ease-in-out_infinite]" />
           </div>
           <div className="flex flex-col justify-center transition-all duration-300 min-w-0">
@@ -252,9 +299,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
         </div>
 
 
-        {/* MENU LINKS STYLING (Desktop Only) */}
-        <div className="hidden xl:flex flex-1 min-w-0 mx-2 relative overflow-visible">
-            <ul className="flex items-center justify-start 2xl:justify-center gap-1 list-none w-full px-2 py-1">
+        {/* MENU LINKS STYLING (Desktop Only - Smart Responsive Fit) */}
+        <div className="hidden xl:flex flex-1 min-w-0 mx-1 2xl:mx-2 relative overflow-visible">
+            <ul className="flex items-center justify-center gap-0.5 2xl:gap-1 list-none w-full px-1 py-1">
           {navItems.map((item, originalIndex) => {
             if (item.hidden && !isEditMode) return null;
             const isActive = item.href
@@ -265,7 +312,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
             return (
               <li
                 key={item.label}
-                className="relative"
+                className={`relative ${originalIndex >= 7 ? 'hidden 2xl:block' : ''}`}
                 draggable={isEditMode}
                 onDragStart={(e) => handleDragStart(e, originalIndex)}
                 onDragOver={handleDragOver}
@@ -294,7 +341,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                     }
                     openNavItem(item);
                   }}
-                  className={`text-[0.62rem] 2xl:text-[0.68rem] uppercase tracking-[0.2px] px-2 2xl:px-3 py-1.5 rounded-[20px] transition-all duration-200 no-underline whitespace-nowrap flex items-center gap-0.5 cursor-pointer ${
+                  className={`text-[0.61rem] 2xl:text-[0.67rem] uppercase tracking-[0.2px] px-2 2xl:px-2.5 py-1.5 rounded-[20px] transition-all duration-200 no-underline whitespace-nowrap flex items-center gap-0.5 cursor-pointer ${
                     isActive
                       ? 'bg-brand-50 text-brand-700 shadow-sm border border-brand-200/80 font-black'
                       : 'text-slate-700 hover:text-brand-600 hover:bg-slate-100/80 font-bold'
@@ -339,6 +386,64 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
               </li>
             );
           })}
+
+          {/* More Dropdown for xl screens so items never clip before the Register button */}
+          {navItems.filter(i => !i.hidden).length > 7 && (
+            <li
+              className="relative 2xl:hidden"
+              onMouseEnter={() => setDesktopMoreOpen(true)}
+              onMouseLeave={() => setDesktopMoreOpen(false)}
+            >
+              <button
+                onClick={() => setDesktopMoreOpen(prev => !prev)}
+                className={`text-[0.61rem] uppercase tracking-[0.2px] px-2 py-1.5 rounded-[20px] transition-all duration-200 no-underline whitespace-nowrap flex items-center gap-1 cursor-pointer font-bold ${
+                  desktopMoreOpen
+                    ? 'bg-brand-50 text-brand-700 shadow-sm border border-brand-200/80'
+                    : 'text-slate-700 hover:text-brand-600 hover:bg-slate-100/80'
+                }`}
+              >
+                <span>MORE</span>
+                <ChevronDown size={10} className={`transition-transform duration-300 ${desktopMoreOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              <AnimatePresence>
+                {desktopMoreOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 6 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute top-full right-0 pt-2 min-w-[210px] z-[75]"
+                  >
+                    <div className="bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.18)] border border-slate-100 py-2 overflow-hidden">
+                      {navItems.slice(7).filter(i => !i.hidden).map((moreItem) => {
+                        const isSubActive = moreItem.href
+                          ? location.pathname === moreItem.href
+                          : !currentPathMatchedByHref && currentView === moreItem.view;
+                        return (
+                          <button
+                            key={moreItem.label}
+                            onMouseEnter={() => prefetchView(moreItem.view)}
+                            onTouchStart={() => prefetchView(moreItem.view)}
+                            onClick={() => {
+                              openNavItem(moreItem);
+                              setDesktopMoreOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-[10.5px] font-bold transition-all uppercase tracking-wider flex items-center gap-2.5 group cursor-pointer ${
+                              isSubActive ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-brand-50 hover:text-brand-600'
+                            }`}
+                          >
+                            <div className={`w-1.5 h-1.5 rounded-full ${isSubActive ? 'bg-brand-600' : 'bg-slate-300 group-hover:bg-brand-500'} transition-colors`} />
+                            {translateLabel(moreItem.label)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </li>
+          )}
         </ul>
         </div>
 
@@ -365,7 +470,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                 onMouseEnter={() => prefetchView(currentUser ? ViewState.USER_DASHBOARD : ViewState.ID_CARD)}
                 onTouchStart={() => prefetchView(currentUser ? ViewState.USER_DASHBOARD : ViewState.ID_CARD)}
                 onClick={() => currentUser ? setView(ViewState.USER_DASHBOARD) : setView(ViewState.ID_CARD)}
-                className={`relative z-10 ${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-11 h-11 rounded-2xl shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-[#1a2133] hover:bg-[#1a2133]/90 border-[1.5px] border-cyan-500/80 px-4 h-[38px] sm:h-10 rounded-full shadow-[0_0_15px_-3px_rgba(6,182,212,0.3)]'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group overflow-hidden`}
+                className={`relative z-10 ${currentUser ? 'bg-gradient-to-b from-white to-slate-50 border border-brand-100 w-11 h-11 rounded-2xl shadow-[0_10px_18px_-12px_rgba(36,53,108,0.55)] hover:shadow-[0_16px_24px_-12px_rgba(36,53,108,0.65)]' : 'bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:via-amber-700 hover:to-amber-800 border-[1.5px] border-amber-300/80 px-4 h-[38px] sm:h-10 rounded-full shadow-[0_10px_20px_-8px_rgba(217,119,6,0.6)] hover:shadow-[0_14px_24px_-8px_rgba(217,119,6,0.75)]'} cursor-pointer flex items-center justify-center gap-2 transition-all duration-300 group overflow-hidden`}
                 title={currentUser ? "My Account" : "Register"}
                 aria-label={currentUser ? "Open my account dashboard" : "Register account"}
               >
@@ -377,7 +482,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                   </span>
                 ) : (
                   <>
-                    <CircleUser size={16} className="text-cyan-400 shrink-0 group-hover:scale-110 transition-transform" />
+                    <CircleUser size={16} className="text-amber-100 shrink-0 group-hover:scale-110 transition-transform" />
                     <span className="text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wider">Register</span>
                   </>
                 )}
@@ -422,7 +527,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onLoginCli
                 <div className="flex justify-between items-center w-full mb-5">
                   <div className="flex items-center gap-4">
                     <div className="w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center border border-brand-100">
-                      <img src="/logo.png" alt="COT Logo" className="w-5 h-5 object-contain" />
+                      <img src="/logo.webp" alt="COT Logo" className="w-5 h-5 object-contain" />
                     </div>
                     <div className="text-left">
                       <h2 className="font-bold text-sm text-[#1a1a2e] leading-none">City of Truth</h2>

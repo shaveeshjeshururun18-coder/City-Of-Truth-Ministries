@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { X, ChevronRight, ChevronLeft, MapPin, Sparkles } from 'lucide-react';
 
 export interface TourStep {
@@ -239,7 +239,7 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({
                         <motion.div
                             initial={{ opacity: 0, scale: 0.85 }}
                             animate={{ opacity: [0.5, 0, 0.5], scale: [1, 1.15, 1] }}
-                            transition={{ duration: 1.8, repeat: Infinity }}
+                            transition={{ duration: 0.72, repeat: Infinity }}
                             className="fixed z-[901] pointer-events-none rounded-xl border-2"
                             style={{
                                 left: spotX - 4, top: spotY - 4,
@@ -398,7 +398,7 @@ export const WelcomeTourModal: React.FC<WelcomeModalProps> = ({ isOpen, onStartT
                 >
                     {/* Gradient header */}
                     <div className="relative h-36 bg-gradient-to-br from-brand-900 via-brand-700 to-indigo-800 flex flex-col items-center justify-center">
-                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20" />
+                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.webp')] opacity-20" />
                         <div className="relative z-10 flex flex-col items-center gap-2">
                             <div className="w-14 h-14 bg-white/10 border border-white/20 rounded-2xl flex items-center justify-center">
                                 <Sparkles size={28} className="text-amber-300" />

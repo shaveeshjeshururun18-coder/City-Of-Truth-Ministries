@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, RefreshCw, Volume2, VolumeX } from 'lucide-react';
 
 export interface IconStyle {
@@ -208,7 +208,7 @@ export function GhosttyIconCycler({
             opacity: 0.35,
             scale: [1, 1.05, 1],
           }}
-          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
           className="absolute -inset-3 rounded-[44px] blur-2xl -z-10 transition-colors duration-500 pointer-events-none"
         />
 

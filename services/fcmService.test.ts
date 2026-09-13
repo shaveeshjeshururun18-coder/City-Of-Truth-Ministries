@@ -38,7 +38,7 @@ describe('FCM Notification Service - sendFCMNotification', () => {
       json: async () => ({ success: true, successCount: 2 })
     });
 
-    const result = await sendFCMNotification(['token1', 'token2'], 'Test Title', 'Test Body', 'http://example.com/image.png');
+    const result = await sendFCMNotification(['token1', 'token2'], 'Test Title', 'Test Body', 'http://example.com/image.webp');
 
     expect(mockFetch).toHaveBeenCalledWith('/api/sendPush', {
       method: 'POST',
@@ -49,7 +49,7 @@ describe('FCM Notification Service - sendFCMNotification', () => {
         tokens: ['token1', 'token2'],
         title: 'Test Title',
         body: 'Test Body',
-        imageUrl: 'http://example.com/image.png'
+        imageUrl: 'http://example.com/image.webp'
       })
     });
 

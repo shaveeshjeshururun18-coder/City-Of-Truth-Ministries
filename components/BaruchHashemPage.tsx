@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import {
     BookOpen,
     Play,
@@ -289,17 +289,17 @@ export const BaruchHashemPage: React.FC = () => {
                 <motion.div
                     className="absolute -top-28 -left-24 h-96 w-96 rounded-full bg-sky-500/12 blur-3xl pointer-events-none"
                     animate={{ opacity: [0.3, 0.65, 0.3], scale: [1, 1.1, 1] }}
-                    transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+                    transition={{ duration: 1.28, repeat: Infinity, ease: 'easeInOut' }}
                 />
                 <motion.div
                     className="absolute -bottom-24 -right-16 h-96 w-96 rounded-full bg-amber-500/20 blur-3xl pointer-events-none"
                     animate={{ opacity: [0.25, 0.55, 0.25], scale: [1.05, 1, 1.05] }}
-                    transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+                    transition={{ duration: 0.64, repeat: Infinity, ease: 'easeInOut' }}
                 />
 
                 {/* Background Menorah Emblem Watermark */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-[0.05] pointer-events-none select-none">
-                    <img src="/assets/golden_menorah.png" alt="Menorah Watermark" className="w-[600px] h-[600px] object-contain filter drop-shadow-[0_0_80px_rgba(245,158,11,0.5)]" />
+                    <img src="/assets/golden_menorah.webp" alt="Menorah Watermark" className="w-[600px] h-[600px] object-contain filter drop-shadow-[0_0_80px_rgba(245,158,11,0.5)]" />
                 </div>
 
                 <div className="container mx-auto px-4 sm:px-6 relative z-10 max-w-7xl">
@@ -474,12 +474,12 @@ export const BaruchHashemPage: React.FC = () => {
                                 <div className="relative aspect-[1.418/1] rounded-2xl overflow-hidden shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),0_0_50px_rgba(245,158,11,0.35)] border-2 border-amber-400/70 ring-1 ring-amber-300/30 bg-gradient-to-br from-amber-950 via-slate-950 to-black">
                                     {/* Authentic Wrapper Artwork */}
                                     <img
-                                        src="/images/baruch-hashem/athuma-nandri-wrapper.jpg"
+                                        src="/images/baruch-hashem/athuma-nandri-wrapper.webp"
                                         alt="ஆத்தும நன்றி பலிகள் Sacred Wrapper Cover"
                                         className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                                         onError={(e) => {
-                                            // Fallback to wrapper.jpg
-                                            (e.target as HTMLImageElement).src = '/images/baruch-hashem/wrapper.jpg';
+                                            // Fallback to wrapper.webp
+                                            (e.target as HTMLImageElement).src = '/images/baruch-hashem/wrapper.webp';
                                         }}
                                     />
 
@@ -579,7 +579,7 @@ export const BaruchHashemPage: React.FC = () => {
                             <div className="p-4 sm:p-6 overflow-y-auto flex-1 flex flex-col items-center justify-center bg-black/50">
                                 <div className="relative rounded-2xl overflow-hidden border border-amber-400/30 shadow-2xl max-w-4xl">
                                     <img
-                                        src="/images/baruch-hashem/athuma-nandri-wrapper.jpg"
+                                        src="/images/baruch-hashem/athuma-nandri-wrapper.webp"
                                         alt="Full Sacred Wrapper"
                                         className="w-full h-auto object-contain max-h-[60vh] select-none"
                                     />
@@ -774,7 +774,7 @@ export const BaruchHashemPage: React.FC = () => {
 
             {/* 3. How to Read (Interactive) */}
             <section className="py-24 bg-brand-950 text-white relative overflow-hidden">
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.webp')] opacity-10"></div>
                 <div className="container mx-auto px-6 max-w-5xl relative z-10">
                     <div className="text-center mb-16">
                         <span className="text-amber-500 font-bold uppercase tracking-widest text-xs">Reading Guide</span>
@@ -795,7 +795,7 @@ export const BaruchHashemPage: React.FC = () => {
                                         אֱלֹהִים אֱמֶת
                                         <motion.div
                                             animate={{ x: [-20, 20, -20] }}
-                                            transition={{ duration: 2, repeat: Infinity }}
+                                            transition={{ duration: 0.8, repeat: Infinity }}
                                             className="h-0.5 bg-amber-500 mt-1 w-full opacity-50"
                                         />
                                     </div>

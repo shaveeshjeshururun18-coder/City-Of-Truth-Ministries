@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { X, Mail, Church, User, Quote, Send, Sparkles, CheckCircle, ArrowRight, MapPin } from 'lucide-react';
 import { Button } from './Button';
 import { User as UserType } from '../types';

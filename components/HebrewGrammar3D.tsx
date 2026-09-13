@@ -1,81 +1,57 @@
 import React, { useState, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { Sparkles, Layers, BookType, MessageCircleQuestion, Calculator, Hexagon, Download, Loader2 } from 'lucide-react';
+import { motion } from 'motion/react';
+import {
+  Sparkles,
+  Layers,
+  BookType,
+  MessageCircleQuestion,
+  Calculator,
+  Hexagon,
+  Download,
+  Loader2,
+  ChevronRight,
+  Flame,
+  Volume2
+} from 'lucide-react';
 import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
+import { PeelingStackCards, PeelingCardItem } from './ui/peeling-stack-cards';
 
 const VOWEL_CHART = [
-  { mark: 'ָ', name: 'Kamatz', sound: 'AH (Long)', example: 'אָב (Av)' },
-  { mark: 'ַ', name: 'Patach', sound: 'AH (Short)', example: 'בַּיִת (Bayit)' },
-  { mark: 'ֶ', name: 'Segol', sound: 'EH (Short)', example: 'מֶלֶךְ (Melekh)' },
-  { mark: 'ְ', name: 'Shva', sound: 'EH or STOP', example: 'סְפָרִים (Sfarim)' },
-  { mark: 'ִ', name: 'Chirik', sound: 'EE (Short)', example: 'עִיר (Ir)' },
-  { mark: 'וֹ', name: 'Cholam', sound: 'OH (Long)', example: 'שָׁלוֹם (Shalom)' },
-  { mark: 'וּ', name: 'Shuruk', sound: 'OO (Long)', example: 'סוּס (Sus)' },
-  { mark: 'ֵ', name: 'Tsere', sound: 'AY (Long)', example: 'סֵפֶר (Sefer)' },
+  { mark: 'ָ', name: 'Kamatz', sound: 'AH (Long)', example: 'אָב (Av - Father)' },
+  { mark: 'ַ', name: 'Patach', sound: 'AH (Short)', example: 'בַּיִת (Bayit - House)' },
+  { mark: 'ֶ', name: 'Segol', sound: 'EH (Short)', example: 'מֶלֶךְ (Melekh - King)' },
+  { mark: 'ְ', name: 'Shva', sound: 'EH or STOP', example: 'סְפָרִים (Sfarim - Books)' },
+  { mark: 'ִ', name: 'Chirik', sound: 'EE (Short)', example: 'עִיר (Ir - City)' },
+  { mark: 'וֹ', name: 'Cholam', sound: 'OH (Long)', example: 'שָׁלוֹם (Shalom - Peace)' },
+  { mark: 'וּ', name: 'Shuruk', sound: 'OO (Long)', example: 'סוּס (Sus - Horse)' },
+  { mark: 'ֵ', name: 'Tsere', sound: 'AY (Long)', example: 'סֵפֶר (Sefer - Book)' },
 ];
 
 const BINYANIM_MENORAH = [
-  { id: 4, name: "Hitpa'el", type: 'Reflexive', active: true, desc: "Reflexive/Reciprocal", ex: "הִתְלַבֵּשׁ (Hitlabash)" },
-  { id: 1, name: "Pa'al", type: 'Active', active: true, desc: "Simple Active", ex: "לָבַשׁ (Lavash)" },
-  { id: 7, name: "Nif'al", type: 'Passive', active: false, desc: "Simple Passive", ex: "נִלְבַּשׁ (Nilbash)" },
-  { id: 2, name: "Pi'el", type: 'Active', active: true, desc: "Intensive Active", ex: "דִּבֵּר (Diber)" },
-  { id: 6, name: "Pu'al", type: 'Passive', active: false, desc: "Intensive Passive", ex: "דֻּבַּר (Dubar)" },
-  { id: 3, name: "Hif'il", type: 'Active', active: true, desc: "Causative Active", ex: "הִלְבִּישׁ (Hilbish)" },
-  { id: 5, name: "Huf'al", type: 'Passive', active: false, desc: "Causative Passive", ex: "הֻלְבַּשׁ (Hulbash)" },
+  { id: 1, name: "Pa'al", type: 'Active', active: true, desc: "Simple Active Stem", ex: "לָבַשׁ (Lavash - Wore)", formula: "Base 3-letter root" },
+  { id: 2, name: "Pi'el", type: 'Active', active: true, desc: "Intensive Active Stem", ex: "דִּבֵּר (Diber - Spoke)", formula: "Dagesh doubling in 2nd radical" },
+  { id: 3, name: "Hif'il", type: 'Active', active: true, desc: "Causative Active Stem", ex: "הִלְבִּישׁ (Hilbish - Dressed someone)", formula: "Prefix ה (He) + י (Yod)" },
+  { id: 4, name: "Hitpa'el", type: 'Reflexive', active: true, desc: "Reflexive / Reciprocal", ex: "הִתְלַבֵּשׁ (Hitlabash - Dressed oneself)", formula: "Prefix הִת (Hit-)" },
+  { id: 5, name: "Huf'al", type: 'Passive', active: false, desc: "Causative Passive Stem", ex: "הֻלְבַּשׁ (Hulbash - Was made to wear)", formula: "Prefix הֻ (Hu-) passive of Hif'il" },
+  { id: 6, name: "Pu'al", type: 'Passive', active: false, desc: "Intensive Passive Stem", ex: "דֻּבַּר (Dubar - Was spoken)", formula: "Kubutz vowel in 1st radical" },
+  { id: 7, name: "Nif'al", type: 'Passive', active: false, desc: "Simple Passive / Reciprocal", ex: "נִלְבַּשׁ (Nilbash - Was worn)", formula: "Prefix נ (Nun) passive of Pa'al" },
 ];
 
-const GRAMMAR_SECTIONS = [
-  {
-    title: "1. Foundation: Aleph to Tav & Nikkud",
-    icon: <BookType className="text-amber-500" size={32} />,
-    content: "Hebrew is written right-to-left with 22 consonants. Vowels (Nikkud) are marks above, below, or inside letters, used mostly by beginners.",
-    tamilDesc: "எபிரேயம் வலமிருந்து இடமாக எழுதப்படுகிறது. 22 உயிரில்லா எழுத்துகள் உள்ளன. உயிரெழுத்து குறியீடுகள் (நிக்குட்) எழுத்துக்களின் மேல், கீழ் அல்லது உள்ளே குறிக்கப்படுகின்றன.",
-    interactive: 'vowels'
-  },
-  {
-    title: "2. The Skeleton: Root System (Shoresh)",
-    icon: <Hexagon className="text-blue-500" size={32} />,
-    content: "Almost every word is built on a 3-consonant root. E.g., כ-ת-ב (K-T-V) means Writing. Kotev (Writes), Mikhtav (Letter), Katav (Reporter).",
-    tamilDesc: "ஏறக்குறைய ஒவ்வொரு வார்த்தையும் 3 உயிரில்லா எழுத்துகளின் வேர் (ஷோரேஷ்) அடிப்படையில் கட்டமைக்கப்படுகிறது. எ.கா: כ-ת-ב (K-T-V) என்பது எழுதுவது என்பதைக் குறிக்கிறது.",
-    interactive: 'roots'
-  },
-  {
-    title: "3. The Engines: Verb System (Binyanim)",
-    icon: <Sparkles className="text-amber-500" size={32} />,
-    content: "Verbs are structured into 7 'buildings' (Binyanim) that shift the root's meaning to active, passive, reflexive, or causative.",
-    tamilDesc: "வினைச்சொற்கள் 7 'கட்டடங்கள்' (பின்யானிம்) என்று அழைக்கப்படும் அமைப்பில் கட்டமைக்கப்பட்டுள்ளன. இவை வேரின் அர்த்தத்தை செயல்வினை, செயப்படு வினை, பிரதிபலிப்பு அல்லது காரண வினையாக மாற்றுகின்றன.",
-    interactive: 'menorah'
-  },
-  {
-    title: "4. Building Blocks: Nouns & Gender",
-    icon: <Layers className="text-emerald-500" size={32} />,
-    content: "Every noun is Masculine or Feminine. Adjectives must strictly match the noun in both gender and number.",
-    tamilDesc: "ஒவ்வொரு பெயர்ச்சொல்லும் ஆண்பால் அல்லது பெண்பால் என வகைப்படுத்தப்படுகிறது. உரிச்சொற்கள் பெயர்ச்சொல்லின் பால் மற்றும் எண்ணைப் பொருத்தி வரவேண்டும்.",
-    interactive: 'gender'
-  },
-  {
-    title: "5. Forming Questions",
-    icon: <MessageCircleQuestion className="text-purple-500" size={32} />,
-    content: "Question words come at the beginning: Mi (Who), Ma (What), Eifo (Where), Matay (When), Lama (Why), Eikh (How).",
-    tamilDesc: "கேள்வி வார்த்தைகள் தொடக்கத்தில் வருகின்றன: மி (யார்), மா (என்ன), ஐஃபோ (எங்கே), மாத்தாய் (எப்போது), லாமா (ஏன்), எய்க் (எப்படி).",
-    interactive: 'questions'
-  },
-  {
-    title: "6. Numbers and Gender",
-    icon: <Calculator className="text-rose-500" size={32} />,
-    content: "Numbers have masculine and feminine forms to match the noun. Interestingly, masculine numbers 3-10 end in a feminine-sounding '-a' (ה).",
-    tamilDesc: "எண்களுக்கு ஆண்பால் மற்றும் பெண்பால் வடிவங்கள் உள்ளன. சுவாரஸ்யமாக, ஆண்பால் எண்கள் 3-10 பெண்பால் ஒலியில் '-a' (ה) என முடிகின்றன.",
-    interactive: 'numbers'
-  }
+const QUESTION_WORDS = [
+  { h: 'מִי', e: 'Who', phon: 'Mi', eg: 'מִי אַתָּה?', egTr: 'Mi atah? (Who are you?)' },
+  { h: 'מָה', e: 'What', phon: 'Ma', eg: 'מָה שְׁמֶךָ?', egTr: 'Ma shimkha? (What is your name?)' },
+  { h: 'אֵיפֹה', e: 'Where', phon: 'Eifo', eg: 'אֵיפֹה בֵּיתְךָ?', egTr: 'Eifo beitkha? (Where is your house?)' },
+  { h: 'מָתַי', e: 'When', phon: 'Matay', eg: 'מָתַי תָּבוֹא?', egTr: 'Matay tavo? (When will you come?)' },
+  { h: 'לָמָּה', e: 'Why', phon: 'Lama', eg: 'לָמָּה תִירָא?', egTr: 'Lama tira? (Why do you fear?)' },
+  { h: 'אֵיךְ', e: 'How', phon: 'Eikh', eg: 'אֵיךְ זֶה יִהְיֶה?', egTr: 'Eikh zeh yihyeh? (How shall this be?)' }
 ];
-
 
 const FlipCard: React.FC<{ front: React.ReactNode, back: React.ReactNode }> = ({ front, back }) => {
   const [isFlipped, setIsFlipped] = useState(false);
 
   return (
-    <div className="w-full h-48 relative" style={{ perspective: 1000 }}>
+    <div className="w-full h-44 sm:h-48 relative select-none" style={{ perspective: 1000 }}>
       <motion.div
         className="w-full h-full absolute transition-all duration-700 cursor-pointer"
         style={{ transformStyle: 'preserve-3d' }}
@@ -83,14 +59,16 @@ const FlipCard: React.FC<{ front: React.ReactNode, back: React.ReactNode }> = ({
         onClick={() => setIsFlipped(!isFlipped)}
       >
         <div
-          className="absolute w-full h-full backface-hidden bg-white border border-amber-100 rounded-3xl shadow-lg flex flex-col items-center justify-center p-6 text-center hover:border-amber-400 transition-colors"
+          className="absolute w-full h-full backface-hidden bg-slate-900/80 border border-amber-500/20 rounded-2xl sm:rounded-3xl shadow-lg flex flex-col items-center justify-center p-4 text-center hover:border-amber-400/50 hover:bg-slate-900 transition-all backdrop-blur-sm"
           style={{ backfaceVisibility: 'hidden' }}
         >
           {front}
-          <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mt-4 absolute bottom-4">Click to Flip</p>
+          <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-amber-400/70 font-black mt-2 absolute bottom-2.5">
+            Click to Flip
+          </p>
         </div>
         <div
-          className="absolute w-full h-full backface-hidden bg-gradient-to-br from-brand-900 to-slate-900 rounded-3xl shadow-xl flex flex-col items-center justify-center p-6 text-center border border-brand-700"
+          className="absolute w-full h-full backface-hidden bg-gradient-to-br from-amber-600 via-amber-700 to-orange-800 rounded-2xl sm:rounded-3xl shadow-xl flex flex-col items-center justify-center p-4 text-center border border-amber-400/50 text-white"
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
         >
           {back}
@@ -103,6 +81,8 @@ const FlipCard: React.FC<{ front: React.ReactNode, back: React.ReactNode }> = ({
 export const HebrewGrammar3D: React.FC = () => {
   const exportRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedBinyan, setSelectedBinyan] = useState<number>(4); // Hitpa'el selected by default
+  const [selectedQuestion, setSelectedQuestion] = useState<number>(0);
 
   const handleDownloadPDF = async () => {
     if (!exportRef.current) return;
@@ -113,11 +93,10 @@ export const HebrewGrammar3D: React.FC = () => {
       const pdfW = pdf.internal.pageSize.getWidth();
       const pdfH = pdf.internal.pageSize.getHeight();
 
-      // Capture full scrollable content at high res
       const dataUrl = await toJpeg(el, {
-        quality: 0.97,
+        quality: 0.95,
         pixelRatio: 2,
-        backgroundColor: '#f8f9fa',
+        backgroundColor: '#0c0d14',
         cacheBust: true,
       });
 
@@ -138,7 +117,7 @@ export const HebrewGrammar3D: React.FC = () => {
         pdf.addImage(dataUrl, 'JPEG', 0, yPos, imgW, imgH);
         heightLeft -= pdfH;
       }
-      pdf.save('COT-Hebrew-Grammar-Reference.pdf');
+      pdf.save('COT-Hebrew-Grammar-Architecture.pdf');
     } catch (e) {
       console.error(e);
       alert('PDF export failed. Please try again.');
@@ -147,259 +126,471 @@ export const HebrewGrammar3D: React.FC = () => {
     }
   };
 
-  return (
-    <div className="w-full bg-[#f8f9fa] rounded-[2rem] md:rounded-[3rem] p-4 md:p-12 overflow-hidden shadow-inner border border-slate-200">
+  const currentBinyanData = BINYANIM_MENORAH.find(b => b.id === selectedBinyan) || BINYANIM_MENORAH[0];
 
-      <div ref={exportRef}>
-
-        {/* Header */}
-        <div className="text-center mb-16 relative z-10">
-          <motion.h2
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-6xl font-serif font-black text-brand-950 mb-6 tracking-tight drop-shadow-sm"
-          >
-            Hebrew Grammar Architecture
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="text-2xl md:text-3xl font-bold text-blue-600 mb-4"
-          >
-            எபிரேய இலக்கண கட்டமைப்பு
-          </motion.p>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="text-lg text-slate-500 font-medium tracking-wide max-w-2xl mx-auto"
-          >
-            An interactive 3D exploration of the Holy Language. Scroll down to discover the foundations from top to bottom.
-          </motion.p>
-          <div className="h-1.5 w-32 bg-gradient-to-r from-amber-400 to-orange-500 mx-auto mt-8 rounded-full" />
+  // Build the 6 interactive stacking cards for Hebrew Grammar Architecture
+  const grammarCards: PeelingCardItem[] = [
+    // CARD 1: Vowels & Nikkud
+    {
+      id: 'grammar-vowels',
+      stageBadge: 'STAGE 01 • SCRIPT FOUNDATION',
+      badgeIcon: <BookType className="text-amber-400" size={12} />,
+      title: '1. Foundation: Aleph to Tav & Nikkud',
+      tamilTitle: 'அடிப்படை: ஆலேப் முதல் தாவ் வரை & நிக்குட் (உயிரெழுத்து குறிகள்)',
+      subtitle: 'Hebrew is written right-to-left with 22 sacred consonants. Vowels (Nikkud) are divine markings placed above, below, or inside letters to guide sacred pronunciation.',
+      themeGradient: 'from-amber-950/95 via-yellow-950/90 to-[#0c0d14]',
+      borderColor: 'border-amber-500/30',
+      content: (
+        <div className="mt-4 w-full">
+          <p className="text-xs sm:text-sm text-amber-200/80 mb-4 leading-relaxed font-medium">
+            Click any vowel tile below to flip and discover its phonetic sound, name, and biblical example word:
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+            {VOWEL_CHART.map((v, i) => (
+              <FlipCard
+                key={i}
+                front={
+                  <>
+                    <div className="text-4xl sm:text-5xl font-serif text-amber-300 font-bold mb-2 drop-shadow-md">
+                      {v.mark}
+                    </div>
+                    <div className="font-bold text-white text-sm sm:text-base tracking-wide">
+                      {v.name}
+                    </div>
+                    <span className="text-[11px] text-amber-400/80 font-mono mt-0.5">
+                      {v.sound.split(' ')[0]}
+                    </span>
+                  </>
+                }
+                back={
+                  <>
+                    <div className="text-xs uppercase tracking-widest text-amber-200 font-bold mb-1">
+                      Phonetic Sound
+                    </div>
+                    <div className="text-base sm:text-lg font-black text-white mb-2">
+                      {v.sound}
+                    </div>
+                    <div className="text-xs text-amber-100 font-serif leading-tight">
+                      {v.example}
+                    </div>
+                  </>
+                }
+              />
+            ))}
+          </div>
+          <div className="mt-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200/90 text-xs flex items-center justify-between">
+            <span>💡 <strong>Biblical Tip:</strong> Modern Israeli texts omit Nikkud; native readers infer vowels through 3-letter roots.</span>
+          </div>
         </div>
+      )
+    },
 
-        {/* Scrolling Sections */}
-        <div className="max-w-5xl mx-auto space-y-24">
-          {GRAMMAR_SECTIONS.map((section, idx) => (
+    // CARD 2: Root System (Shoresh)
+    {
+      id: 'grammar-roots',
+      stageBadge: 'STAGE 02 • TRILITERAL ROOTS',
+      badgeIcon: <Hexagon className="text-blue-400" size={12} />,
+      title: '2. The Skeleton: Root System (Shoresh)',
+      tamilTitle: 'எலும்புக்கூடு: 3 எழுத்து வேர் முறைமை (ஷோரேஷ்)',
+      subtitle: 'Almost every Hebrew word is built from an immutable 3-consonant divine root (Shoresh). By changing vowels and prefixes, an entire tree of meaning blossoms from one root.',
+      themeGradient: 'from-indigo-950/95 via-blue-950/90 to-[#060a14]',
+      borderColor: 'border-blue-500/30',
+      content: (
+        <div className="mt-4 w-full flex flex-col md:flex-row items-center gap-6 lg:gap-10">
+          {/* Rotating Root Visual */}
+          <div className="flex flex-col items-center justify-center shrink-0">
             <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 80, rotateX: 10 }}
-              whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ type: "spring", stiffness: 80, damping: 15, duration: 0.8 }}
-              className="bg-white rounded-[2.5rem] p-8 md:p-12 border border-slate-200 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)] relative"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
+              className="w-36 h-36 sm:w-44 sm:h-44 rounded-full border-[3px] border-dashed border-cyan-400/50 flex items-center justify-center relative shadow-[0_0_35px_rgba(6,182,212,0.25)] bg-cyan-950/30 backdrop-blur-md"
             >
-
-              {/* Section Header */}
-              <div className="flex flex-col md:flex-row items-center gap-6 mb-10 text-center md:text-left">
-                <motion.div
-                  whileHover={{ rotate: 10, scale: 1.1 }}
-                  className="p-5 bg-amber-50 rounded-2xl shadow-inner border border-amber-100"
-                >
-                  {section.icon}
-                </motion.div>
-                <div>
-                  <h3 className="font-serif font-black text-3xl text-brand-950 mb-3">{section.title}</h3>
-                  <p className="text-slate-600 text-lg leading-relaxed max-w-3xl">
-                    {section.content}
-                  </p>
-                  {section.tamilDesc && (
-                    <p className="text-blue-700 text-base leading-relaxed max-w-3xl mt-2 font-medium">
-                      {section.tamilDesc}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Interactive Content */}
-              <div className="mt-8 perspective-[2000px]">
-
-                {/* Vowels Interactive */}
-                {section.interactive === 'vowels' && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    {VOWEL_CHART.slice(0, 4).map((v, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: i * 0.1 }}
-                        viewport={{ once: true }}
-                      >
-                        <FlipCard
-                          front={
-                            <>
-                              <div className="text-6xl font-serif text-brand-950 mb-4">{v.mark}</div>
-                              <div className="font-bold text-slate-700 text-lg">{v.name}</div>
-                            </>
-                          }
-                          back={
-                            <>
-                              <div className="text-xl font-black text-amber-400 mb-3">{v.sound}</div>
-                              <div className="text-md text-slate-300 italic">{v.example}</div>
-                            </>
-                          }
-                        />
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Roots Interactive */}
-                {section.interactive === 'roots' && (
-                  <div className="flex flex-col items-center justify-center space-y-12 py-8">
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-                      className="w-56 h-56 rounded-full border-[6px] border-dashed border-amber-300 flex items-center justify-center relative shadow-xl"
-                    >
-                      <div className="absolute text-6xl font-black text-brand-950" style={{ transform: "rotate(-360deg)" }}>
-                        כ-ת-ב
-                      </div>
-                    </motion.div>
-                    <div className="flex flex-wrap justify-center gap-6">
-                      <motion.span whileHover={{ y: -5 }} className="px-6 py-3 bg-blue-50 text-blue-700 rounded-xl font-bold border-2 border-blue-200 shadow-md text-lg">Kotev (Writes)</motion.span>
-                      <motion.span whileHover={{ y: -5 }} className="px-6 py-3 bg-emerald-50 text-emerald-700 rounded-xl font-bold border-2 border-emerald-200 shadow-md text-lg">Mikhtav (Letter)</motion.span>
-                      <motion.span whileHover={{ y: -5 }} className="px-6 py-3 bg-purple-50 text-purple-700 rounded-xl font-bold border-2 border-purple-200 shadow-md text-lg">Katav (Reporter)</motion.span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Binyanim Menorah 3D */}
-                {section.interactive === 'menorah' && (
-                  <div className="flex justify-center items-end h-80 gap-3 md:gap-6 relative px-4 mt-12 pb-4">
-                    <div className="absolute bottom-0 w-full h-6 bg-slate-900 rounded-2xl shadow-2xl" />
-                    {BINYANIM_MENORAH.map((b, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ height: 0, opacity: 0 }}
-                        whileInView={{ height: b.id === 4 ? '100%' : b.active ? '70%' : '50%', opacity: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: i * 0.1, type: "spring", stiffness: 60 }}
-                        className={`w-14 md:w-20 rounded-t-xl relative group cursor-crosshair border-x-2 border-t-2 flex flex-col items-center justify-start pt-6 shadow-[0_0_25px_rgba(0,0,0,0.15)] ${b.id === 4 ? 'bg-gradient-to-t from-brand-900 to-blue-600 border-blue-400 z-10 scale-[1.15]' :
-                            b.active ? 'bg-gradient-to-t from-slate-900 to-slate-800 border-slate-600' :
-                              'bg-gradient-to-t from-slate-200 to-white border-slate-300 text-slate-900'
-                          }`}
-                      >
-                        <div className="text-xs md:text-sm font-black rotate-[-90deg] whitespace-nowrap text-white mt-10 tracking-widest">{b.name}</div>
-
-                        {/* Tooltip */}
-                        <div className="absolute -top-24 bg-slate-900 text-white p-4 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-2xl pointer-events-none z-50">
-                          <p className="font-bold text-amber-400 mb-2 text-sm">{b.type}</p>
-                          <p className="text-sm text-slate-300 font-medium">{b.desc}</p>
-                          <p className="text-xs text-slate-500 mt-1">{b.ex}</p>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Nouns & Gender */}
-                {section.interactive === 'gender' && (
-                  <div className="grid md:grid-cols-2 gap-10">
-                    <motion.div
-                      whileHover={{ scale: 1.03 }}
-                      className="bg-gradient-to-b from-blue-50 to-white border-2 border-blue-200 rounded-[2rem] p-8 text-center shadow-lg"
-                    >
-                      <div className="text-sm font-black uppercase tracking-[0.2em] text-blue-500 mb-6">Masculine (זָכָר)</div>
-                      <div className="text-5xl font-serif text-brand-950 mb-3">יֶלֶד</div>
-                      <div className="font-bold text-slate-700 text-xl">Yeled (Boy)</div>
-                      <div className="mt-6 pt-6 border-t-2 border-blue-100">
-                        <span className="text-sm text-slate-500 block mb-2 uppercase tracking-widest">Plural (+im)</span>
-                        <div className="text-3xl font-black text-brand-900">יְלָדִים <span className="text-blue-500/50 text-xl font-medium">(Yeladim)</span></div>
-                      </div>
-                    </motion.div>
-                    <motion.div
-                      whileHover={{ scale: 1.03 }}
-                      className="bg-gradient-to-b from-pink-50 to-white border-2 border-pink-200 rounded-[2rem] p-8 text-center shadow-lg"
-                    >
-                      <div className="text-sm font-black uppercase tracking-[0.2em] text-pink-500 mb-6">Feminine (נְקֵבָה)</div>
-                      <div className="text-5xl font-serif text-brand-950 mb-3">יַלְדָּה</div>
-                      <div className="font-bold text-slate-700 text-xl">Yalda (Girl)</div>
-                      <div className="mt-6 pt-6 border-t-2 border-pink-100">
-                        <span className="text-sm text-slate-500 block mb-2 uppercase tracking-widest">Plural (+ot)</span>
-                        <div className="text-3xl font-black text-brand-900">יְלָדוֹת <span className="text-pink-500/50 text-xl font-medium">(Yeladot)</span></div>
-                      </div>
-                    </motion.div>
-                  </div>
-                )}
-
-                {/* Questions */}
-                {section.interactive === 'questions' && (
-                  <div className="flex flex-wrap justify-center gap-6">
-                    {[
-                      { h: 'מִי', e: 'Who', base: 'bg-purple-50', border: 'border-purple-200', text1: 'text-purple-600', text2: 'group-hover:text-purple-100', hoverBg: 'hover:bg-purple-500', hoverBorder: 'hover:border-purple-600' },
-                      { h: 'מָה', e: 'What', base: 'bg-blue-50', border: 'border-blue-200', text1: 'text-blue-600', text2: 'group-hover:text-blue-100', hoverBg: 'hover:bg-blue-500', hoverBorder: 'hover:border-blue-600' },
-                      { h: 'אֵיפֹה', e: 'Where', base: 'bg-emerald-50', border: 'border-emerald-200', text1: 'text-emerald-600', text2: 'group-hover:text-emerald-100', hoverBg: 'hover:bg-emerald-500', hoverBorder: 'hover:border-emerald-600' },
-                      { h: 'מָתַי', e: 'When', base: 'bg-amber-50', border: 'border-amber-200', text1: 'text-amber-600', text2: 'group-hover:text-amber-100', hoverBg: 'hover:bg-amber-500', hoverBorder: 'hover:border-amber-600' },
-                      { h: 'לָמָּה', e: 'Why', base: 'bg-rose-50', border: 'border-rose-200', text1: 'text-rose-600', text2: 'group-hover:text-rose-100', hoverBg: 'hover:bg-rose-500', hoverBorder: 'hover:border-rose-600' },
-                      { h: 'אֵיךְ', e: 'How', base: 'bg-indigo-50', border: 'border-indigo-200', text1: 'text-indigo-600', text2: 'group-hover:text-indigo-100', hoverBg: 'hover:bg-indigo-500', hoverBorder: 'hover:border-indigo-600' }
-                    ].map((q, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ scale: 0 }}
-                        whileInView={{ scale: 1 }}
-                        transition={{ delay: i * 0.1, type: 'spring' }}
-                        viewport={{ once: true }}
-                        whileHover={{ scale: 1.15, rotate: Math.random() * 12 - 6 }}
-                        className={`w-32 h-32 ${q.base} rounded-[2rem] border-2 ${q.border} flex flex-col items-center justify-center shadow-lg cursor-pointer ${q.hoverBg} ${q.hoverBorder} transition-colors group`}
-                      >
-                        <div className="text-3xl font-black text-brand-950 group-hover:text-white mb-2">{q.h}</div>
-                        <div className={`text-sm font-bold ${q.text1} ${q.text2} uppercase tracking-widest`}>{q.e}</div>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Numbers */}
-                {section.interactive === 'numbers' && (
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    className="bg-gradient-to-br from-slate-900 to-brand-950 rounded-[2.5rem] p-10 text-white relative overflow-hidden shadow-2xl border border-slate-800"
-                  >
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/20 rounded-full blur-[80px]" />
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/20 rounded-full blur-[80px]" />
-
-                    <h4 className="text-2xl font-black mb-8 text-amber-400 flex items-center gap-3">
-                      <Calculator /> The Number Three (3)
-                    </h4>
-
-                    <div className="space-y-4 relative z-10">
-                      <div className="flex flex-col md:flex-row justify-between items-center bg-white/10 rounded-2xl p-6 border border-white/20 backdrop-blur-md">
-                        <div className="mb-4 md:mb-0">
-                          <div className="text-xs text-slate-400 uppercase tracking-[0.2em] mb-2">Masculine Nouns</div>
-                          <div className="text-4xl font-serif mb-1">שְׁלוֹשָׁה יְלָדִים</div>
-                          <div className="text-md font-bold text-amber-200">Shlosha yeladim</div>
-                        </div>
-                        <div className="text-center md:text-right">
-                          <span className="inline-block bg-amber-500/20 px-4 py-2 rounded-full text-amber-300 font-black border border-amber-500/50 text-sm tracking-wide shadow-inner">
-                            Ends in -a (ה)
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col md:flex-row justify-between items-center bg-black/20 rounded-2xl p-6 border border-white/10 backdrop-blur-md">
-                        <div className="mb-4 md:mb-0">
-                          <div className="text-xs text-slate-400 uppercase tracking-[0.2em] mb-2">Feminine Nouns</div>
-                          <div className="text-4xl font-serif mb-1">שָׁלוֹשׁ יְלָדוֹת</div>
-                          <div className="text-md font-bold text-slate-300">Shalosh yeladot</div>
-                        </div>
-                        <div className="text-center md:text-right">
-                          <span className="inline-block bg-slate-500/30 px-4 py-2 rounded-full text-slate-300 font-black border border-slate-500/50 text-sm tracking-wide shadow-inner">
-                            No ending
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-
+              <div
+                className="absolute text-3xl sm:text-4xl font-black text-cyan-200 font-serif tracking-wider"
+                style={{ transform: "rotate(-360deg)" }}
+              >
+                כ-ת-ב
               </div>
             </motion.div>
-          ))}
+            <span className="text-[10px] font-mono tracking-widest text-cyan-400 uppercase font-black mt-3">
+              ROOT: K-T-V (Writing)
+            </span>
+          </div>
+
+          {/* Word Family Branches */}
+          <div className="flex-1 w-full">
+            <h4 className="text-sm sm:text-base font-bold text-cyan-200 mb-2">
+              Words sprouted from root כ-ת-ב (To Write):
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+              {[
+                { h: 'כּוֹתֵב', tr: 'Kotev', en: 'Writes (Active Present)', desc: 'Present masculine action' },
+                { h: 'מִכְתָּב', tr: 'Mikhtav', en: 'A Letter (Noun)', desc: 'Written document / message' },
+                { h: 'כַּתָּב', tr: 'Katav', en: 'Journalist / Reporter', desc: 'One who writes professionally' },
+                { h: 'כְּתוּבִים', tr: 'Ketuvim', en: 'The Writings (Biblical)', desc: 'Third section of Tanakh' },
+                { h: 'מִכְתָּבָה', tr: 'Miktavah', en: 'Writing Desk (Place)', desc: 'Physical station for writing' },
+                { h: 'כְּתֹבֶת', tr: 'Ktovet', en: 'Address / Inscription', desc: 'Location written on letter' }
+              ].map((item, idx) => (
+                <div
+                  key={idx}
+                  className="p-2.5 sm:p-3 rounded-xl bg-blue-950/40 border border-blue-500/20 hover:border-cyan-400/50 hover:bg-blue-900/30 transition-all flex items-center justify-between"
+                >
+                  <div>
+                    <span className="text-xs font-bold text-white">{item.tr}</span>
+                    <p className="text-[10px] text-cyan-300/80">{item.en}</p>
+                  </div>
+                  <span className="font-serif text-lg font-bold text-cyan-300">{item.h}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div> {/* end exportRef */}
+      )
+    },
+
+    // CARD 3: Verb Stems (Binyanim Menorah)
+    {
+      id: 'grammar-binyanim',
+      stageBadge: 'STAGE 03 • 7 VERBAL STEMS',
+      badgeIcon: <Sparkles className="text-amber-400" size={12} />,
+      title: '3. The Seven Engines: Verb Binyanim',
+      tamilTitle: 'ஏழு இயந்திரங்கள்: வினைக் கட்டடங்கள் (பின்யானிம்)',
+      subtitle: 'Hebrew verbs branch into 7 divine "buildings" (Binyanim) arranged like the Golden Menorah. They modulate the root into active, passive, causative, and reflexive forms.',
+      themeGradient: 'from-amber-950/95 via-orange-950/90 to-[#0d0703]',
+      borderColor: 'border-amber-400/40',
+      content: (
+        <div className="mt-4 w-full">
+          <p className="text-xs sm:text-sm text-amber-200/80 mb-3 font-medium">
+            Tap on any menorah branch to inspect its stem function, voice, and live biblical root demonstration:
+          </p>
+
+          {/* Menorah 3D Branches */}
+          <div className="flex justify-center items-end h-56 sm:h-64 gap-2 sm:gap-4 relative px-2 pt-6 pb-3 my-3">
+            <div className="absolute bottom-0 inset-x-0 h-4 bg-slate-900 rounded-xl border-t border-amber-500/40 shadow-xl" />
+            {BINYANIM_MENORAH.map((b) => {
+              const isSelected = selectedBinyan === b.id;
+              const isCenter = b.id === 4;
+
+              return (
+                <button
+                  key={b.id}
+                  onClick={() => setSelectedBinyan(b.id)}
+                  style={{
+                    height: isCenter ? '95%' : b.active ? '75%' : '58%'
+                  }}
+                  className={`w-10 sm:w-16 md:w-20 rounded-t-xl relative cursor-pointer border-t-2 border-x transition-all duration-300 flex flex-col items-center justify-between pb-2 outline-none group ${
+                    isSelected
+                      ? 'bg-gradient-to-t from-amber-600 via-orange-500 to-yellow-400 border-yellow-200 shadow-[0_0_25px_rgba(245,158,11,0.5)] z-20 scale-105'
+                      : isCenter
+                      ? 'bg-gradient-to-t from-amber-900 to-amber-700 border-amber-400/80 hover:scale-102 z-10'
+                      : b.active
+                      ? 'bg-gradient-to-t from-slate-900 to-slate-800 border-slate-600 hover:border-amber-400/60'
+                      : 'bg-gradient-to-t from-slate-900/60 to-slate-800/60 border-slate-700/60 hover:border-amber-400/40 opacity-80'
+                  }`}
+                >
+                  {/* Flame on top */}
+                  <Flame
+                    size={14}
+                    className={`transition-transform duration-200 ${
+                      isSelected
+                        ? 'text-yellow-200 animate-pulse scale-125'
+                        : 'text-amber-400 group-hover:scale-110'
+                    }`}
+                  />
+
+                  {/* Vertical Label */}
+                  <div
+                    className={`text-[10px] sm:text-xs font-black rotate-[-90deg] whitespace-nowrap tracking-wider ${
+                      isSelected ? 'text-slate-950 font-extrabold' : 'text-white'
+                    }`}
+                  >
+                    {b.name}
+                  </div>
+
+                  {/* Active/Passive indicator */}
+                  <span
+                    className={`text-[8px] sm:text-[9px] font-bold uppercase rounded px-1 ${
+                      isSelected
+                        ? 'bg-slate-950 text-amber-300'
+                        : b.active
+                        ? 'bg-amber-500/20 text-amber-300'
+                        : 'bg-slate-700 text-slate-300'
+                    }`}
+                  >
+                    {b.type[0]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Selected Binyan Details Card */}
+          <div className="p-4 rounded-2xl bg-slate-900/90 border border-amber-500/30 backdrop-blur-md shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-base sm:text-lg font-black text-amber-300 font-serif">
+                  {currentBinyanData.name}
+                </span>
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  {currentBinyanData.type} Voice
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-300 font-medium">
+                {currentBinyanData.desc} • <span className="text-amber-400">{currentBinyanData.formula}</span>
+              </p>
+            </div>
+            <div className="bg-white/10 px-4 py-2 rounded-xl text-right shrink-0 border border-white/10">
+              <span className="text-[10px] text-amber-300 font-mono block uppercase">Example</span>
+              <span className="text-xs sm:text-sm font-bold text-white">{currentBinyanData.ex}</span>
+            </div>
+          </div>
+        </div>
+      )
+    },
+
+    // CARD 4: Nouns & Gender
+    {
+      id: 'grammar-gender',
+      stageBadge: 'STAGE 04 • GENDER & NUMBER',
+      badgeIcon: <Layers className="text-emerald-400" size={12} />,
+      title: '4. Building Blocks: Nouns & Gender',
+      tamilTitle: 'கட்டமைப்பு கற்கள்: பெயர்ச்சொற்கள் மற்றும் பால் (ஆண்பால் / பெண்பால்)',
+      subtitle: 'Every Hebrew noun is intrinsically Masculine (זָכָר) or Feminine (נְקֵבָה). All adjectives, numbers, and verbs must strictly harmonize with the gender and count of the noun.',
+      themeGradient: 'from-emerald-950/95 via-teal-950/90 to-[#040f0c]',
+      borderColor: 'border-emerald-500/30',
+      content: (
+        <div className="mt-4 w-full grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Masculine Card */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-blue-950/60 to-slate-900/80 border border-blue-400/30 shadow-lg">
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-blue-400/20">
+              <span className="text-xs font-black uppercase tracking-widest text-blue-400">
+                Masculine (זָכָר • Zakhar)
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-mono font-bold">
+                Plural Suffix: -im (ים)
+              </span>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-blue-950/40 border border-blue-500/20">
+                <div>
+                  <span className="text-xs text-slate-400 block">Singular</span>
+                  <span className="text-sm font-bold text-white">Yeled (Boy)</span>
+                </div>
+                <span className="text-2xl font-serif text-blue-300 font-bold">יֶלֶד</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-xl bg-blue-900/30 border border-blue-400/30">
+                <div>
+                  <span className="text-xs text-blue-300 block">Plural (+im)</span>
+                  <span className="text-sm font-bold text-white">Yeladim (Boys)</span>
+                </div>
+                <span className="text-2xl font-serif text-blue-200 font-bold">יְלָדִים</span>
+              </div>
+            </div>
+            <p className="text-[11px] text-blue-200/70 mt-3 italic leading-relaxed">
+              Default form has no suffix. Plural adds ים- (eem). E.g., סוּס (Horse) → סוּסִים (Horses).
+            </p>
+          </div>
+
+          {/* Feminine Card */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-pink-950/60 to-slate-900/80 border border-pink-400/30 shadow-lg">
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-pink-400/20">
+              <span className="text-xs font-black uppercase tracking-widest text-pink-400">
+                Feminine (נְקֵבָה • Nekeivah)
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-300 font-mono font-bold">
+                Plural Suffix: -ot (ות)
+              </span>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-pink-950/40 border border-pink-500/20">
+                <div>
+                  <span className="text-xs text-slate-400 block">Singular (ends in ָה or ת)</span>
+                  <span className="text-sm font-bold text-white">Yalda (Girl)</span>
+                </div>
+                <span className="text-2xl font-serif text-pink-300 font-bold">יַלְדָּה</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-xl bg-pink-900/30 border border-pink-400/30">
+                <div>
+                  <span className="text-xs text-pink-300 block">Plural (+ot)</span>
+                  <span className="text-sm font-bold text-white">Yeladot (Girls)</span>
+                </div>
+                <span className="text-2xl font-serif text-pink-200 font-bold">יְלָדוֹת</span>
+              </div>
+            </div>
+            <p className="text-[11px] text-pink-200/70 mt-3 italic leading-relaxed">
+              Singular ends in ָה (-ah) or ת (-et/-it). Plural replaces it with וֹת- (-ot). E.g., סוּסָה → סוּסוֹת.
+            </p>
+          </div>
+        </div>
+      )
+    },
+
+    // CARD 5: Forming Questions
+    {
+      id: 'grammar-questions',
+      stageBadge: 'STAGE 05 • INTERROGATIVE CLAUSES',
+      badgeIcon: <MessageCircleQuestion className="text-purple-400" size={12} />,
+      title: '5. The Interrogatives: Question Words',
+      tamilTitle: 'வினாச் சொற்கள்: எபிரேயத்தில் கேள்விகள் உருவாக்குதல்',
+      subtitle: 'Hebrew interrogatives are placed right at the beginning of clauses. Unravel the 6 fundamental question words of the Holy Scriptures.',
+      themeGradient: 'from-purple-950/95 via-fuchsia-950/90 to-[#0d0414]',
+      borderColor: 'border-purple-500/30',
+      content: (
+        <div className="mt-4 w-full">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5 sm:gap-3 mb-4">
+            {QUESTION_WORDS.map((q, idx) => {
+              const isSelected = selectedQuestion === idx;
+              return (
+                <button
+                  key={idx}
+                  onClick={() => setSelectedQuestion(idx)}
+                  className={`p-3 rounded-2xl border transition-all text-center cursor-pointer outline-none ${
+                    isSelected
+                      ? 'bg-purple-600 border-purple-300 text-white shadow-[0_0_20px_rgba(168,85,247,0.4)] scale-105'
+                      : 'bg-purple-950/40 border-purple-500/20 text-purple-200 hover:bg-purple-900/40 hover:border-purple-400/50'
+                  }`}
+                >
+                  <span className="text-2xl sm:text-3xl font-serif font-bold block mb-1">
+                    {q.h}
+                  </span>
+                  <span className="text-xs font-black uppercase tracking-wider block">
+                    {q.e}
+                  </span>
+                  <span className="text-[10px] text-purple-300/80 font-mono">
+                    {q.phon}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Selected Question Example */}
+          <div className="p-4 rounded-2xl bg-purple-950/60 border border-purple-400/30 backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div>
+              <span className="text-[10px] font-black uppercase text-purple-300 tracking-widest block mb-0.5">
+                Selected Interrogative Pattern
+              </span>
+              <p className="text-base sm:text-lg font-bold text-white">
+                {QUESTION_WORDS[selectedQuestion].h} ({QUESTION_WORDS[selectedQuestion].phon}) = {QUESTION_WORDS[selectedQuestion].e}
+              </p>
+            </div>
+            <div className="p-3 rounded-xl bg-purple-900/50 border border-purple-400/40 text-center sm:text-right">
+              <span className="text-xl font-serif font-bold text-amber-300 block">
+                {QUESTION_WORDS[selectedQuestion].eg}
+              </span>
+              <span className="text-xs text-purple-200 font-medium">
+                {QUESTION_WORDS[selectedQuestion].egTr}
+              </span>
+            </div>
+          </div>
+        </div>
+      )
+    },
+
+    // CARD 6: Numbers & Gender Concordance
+    {
+      id: 'grammar-numbers',
+      stageBadge: 'STAGE 06 • NUMERICAL AGREEMENT',
+      badgeIcon: <Calculator className="text-rose-400" size={12} />,
+      title: '6. Divine Concordance: Numbers & Gender',
+      tamilTitle: 'எண்களும் பாலும்: எண்களின் விசித்திரமான எதிர் பாலின உடன்பாடு',
+      subtitle: 'Biblical Hebrew features a fascinating inverted concord: Numbers 3 to 10 take a feminine-sounding ending (-ah) when counting masculine nouns, and no suffix when counting feminine nouns!',
+      themeGradient: 'from-rose-950/95 via-red-950/90 to-[#120306]',
+      borderColor: 'border-rose-500/30',
+      content: (
+        <div className="mt-4 w-full space-y-3 sm:space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Masculine Nouns Rule */}
+            <div className="p-4 rounded-2xl bg-rose-950/40 border border-rose-500/30">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-black uppercase tracking-wider text-rose-300">
+                  Counting Masculine Nouns
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-200 font-mono font-bold">
+                  Number ends in -a (ה)
+                </span>
+              </div>
+              <div className="p-3 rounded-xl bg-black/40 border border-rose-500/20 flex items-center justify-between">
+                <div>
+                  <span className="text-xs text-slate-400 block">Three Boys</span>
+                  <span className="text-sm font-bold text-rose-200">Shlosha yeladim</span>
+                </div>
+                <span className="text-2xl font-serif text-white font-bold">שְׁלוֹשָׁה יְלָדִים</span>
+              </div>
+              <p className="text-[11px] text-rose-200/80 mt-2 italic">
+                Notice: The number <strong>שְׁלוֹשָׁה</strong> takes the feminine suffix ָה!
+              </p>
+            </div>
+
+            {/* Feminine Nouns Rule */}
+            <div className="p-4 rounded-2xl bg-rose-950/40 border border-rose-500/30">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-black uppercase tracking-wider text-rose-300">
+                  Counting Feminine Nouns
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-200 font-mono font-bold">
+                  Number has NO ending
+                </span>
+              </div>
+              <div className="p-3 rounded-xl bg-black/40 border border-rose-500/20 flex items-center justify-between">
+                <div>
+                  <span className="text-xs text-slate-400 block">Three Girls</span>
+                  <span className="text-sm font-bold text-rose-200">Shalosh yeladot</span>
+                </div>
+                <span className="text-2xl font-serif text-white font-bold">שָׁלוֹשׁ יְלָדוֹת</span>
+              </div>
+              <p className="text-[11px] text-rose-200/80 mt-2 italic">
+                Notice: The number <strong>שָׁלוֹשׁ</strong> has no suffix when counting girls!
+              </p>
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between text-xs text-amber-200">
+            <span>✨ <strong>Chiastic Agreement:</strong> This inversion (Chiasmus) in numbers 3-10 is a signature hallmark of classical biblical Hebrew literature.</span>
+          </div>
+        </div>
+      )
+    }
+  ];
+
+  return (
+    <div className="w-full bg-[#0c0d14] text-white rounded-[2rem] md:rounded-[3rem] p-3 sm:p-6 md:p-10 shadow-2xl border border-amber-500/20 relative">
+      <div ref={exportRef}>
+        {/* Header Action Bar */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 pb-6 border-b border-white/10">
+          <div className="text-center sm:text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-black uppercase tracking-widest mb-2">
+              <Sparkles size={12} className="text-amber-400 animate-pulse" />
+              <span>Interactive Holy Language Architecture</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-black text-white tracking-tight">
+              Hebrew Grammar Architecture
+            </h2>
+            <p className="text-base sm:text-lg font-bold text-amber-400 mt-0.5">
+              எபிரேய இலக்கண கட்டமைப்பு
+            </p>
+          </div>
+
+          <button
+            onClick={handleDownloadPDF}
+            disabled={isExporting}
+            className="px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg transition-all active:scale-95 disabled:opacity-50 shrink-0 cursor-pointer border-none outline-none"
+          >
+            {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            <span>Download Reference PDF</span>
+          </button>
+        </div>
+
+        {/* Interactive Stacking Cards */}
+        <PeelingStackCards
+          badgeLabel="Hebrew Grammar Stacks"
+          title="Hebrew Grammar Architecture"
+          tamilTitle="எபிரேய இலக்கண கட்டமைப்பு"
+          subtitle="Scroll down to explore the interactive stacking cards covering consonants, nikkud, roots, binyanim patterns, and suffixes."
+          items={grammarCards}
+        />
+      </div>
     </div>
   );
 };
+
+export default HebrewGrammar3D;

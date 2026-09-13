@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Send, Zap, Sparkles, MessageCircle, User, Trash2, ChevronLeft, ImagePlus, X } from 'lucide-react';
 import { streamSpatulaAIResponse, generateSpatulaAIResponse, analyzeImageWithAI, getOpenRouterKeyDetails, getOpenRouterModelDetails } from '../services/openRouterService';
 import { useLanguage } from './LanguageContext';

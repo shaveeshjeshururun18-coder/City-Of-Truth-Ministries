@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Link, Share2, Copy, Check, X, Facebook, Twitter, Mail, MessageCircle } from 'lucide-react';
 import { Permalink, ViewState } from '../types';
 

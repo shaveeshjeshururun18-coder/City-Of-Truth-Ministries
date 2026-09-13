@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { X, Send, MessageSquare, Star, AlertCircle } from 'lucide-react';
 import { Button } from './Button';
 import { User } from '../types';
@@ -77,7 +77,7 @@ export const TestimonialModal: React.FC<TestimonialModalProps> = ({ isOpen, onCl
                     <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-accent-500/30 rounded-full blur-2xl"></div>
 
                     <div className="z-10 text-center flex flex-col items-center">
-                        <img src="/assets/images/chatgpt-image-1.png" alt="Testimony Doodle" className="w-12 h-12 object-contain drop-shadow-md mb-1" />
+                        <img src="/assets/images/chatgpt-image-1.webp" alt="Testimony Doodle" className="w-12 h-12 object-contain drop-shadow-md mb-1" />
                         <h2 className="text-xl font-serif text-white font-bold tracking-tight flex items-center gap-2">
                             <MessageSquare size={20} /> Share Ministry Testimony
                         </h2>
@@ -113,7 +113,7 @@ export const TestimonialModal: React.FC<TestimonialModalProps> = ({ isOpen, onCl
 
                             {/* Rating Stars & Green 5-Star Image */}
                             <div className="flex flex-col items-center gap-2 py-2">
-                                <img src="/assets/images/chatgpt-image-2.png" alt="5-Star Rating" className="h-9 object-contain drop-shadow-sm" />
+                                <img src="/assets/images/chatgpt-image-2.webp" alt="5-Star Rating" className="h-9 object-contain drop-shadow-sm" />
                                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                                     Rate Your Ministry Experience
                                 </label>
@@ -159,7 +159,7 @@ export const TestimonialModal: React.FC<TestimonialModalProps> = ({ isOpen, onCl
                         </>
                     ) : (
                         <div className="text-center py-8">
-                            <img src="/assets/images/chatgpt-image-1.png" alt="Testimony Sent" className="w-20 h-20 object-contain mx-auto mb-3 animate-bounce" />
+                            <img src="/assets/images/chatgpt-image-1.webp" alt="Testimony Sent" className="w-20 h-20 object-contain mx-auto mb-3 animate-bounce" />
                             <h3 className="text-xl font-bold text-brand-950">Thank You!</h3>
                             <p className="text-slate-600 mt-2">Your testimony has been submitted for review.</p>
                         </div>

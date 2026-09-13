@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import {
     Users, Globe, Clock, Activity, TrendingUp, Monitor, Smartphone,
     Tablet, UserCheck, UserX, RefreshCw, Eye, Timer
@@ -87,7 +87,7 @@ export default function SiteAnalyticsPage({ users }: { users?: any[] } = {}) {
         <div className="space-y-6">
             {/* Header Banner */}
             <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
-                <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]" />
+                <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.webp')]" />
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <div className="flex items-center gap-2 mb-1">

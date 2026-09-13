@@ -1,15 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, CheckCircle, XCircle, ScanLine, X, LogIn, Flashlight, FlashlightOff, Maximize2, Minimize2, QrCode, Share2, Download, ArrowLeft, UploadCloud } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { api } from '../services/api';
 import { User } from '../types';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-
-GlobalWorkerOptions.workerSrc = pdfWorker;
 
 interface VerifyIDPageProps {
     onProceedToDashboard?: (identifier: string) => void;
@@ -449,7 +445,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                 await page.render({ canvasContext: context, viewport } as any).promise;
                 const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
                 if (!blob) continue;
-                const pageImage = new File([blob], `page-${pageNum}.png`, { type: 'image/png' });
+                const pageImage = new File([blob], `page-${pageNum}.webp`, { type: 'image/png' });
                 try {
                     return await scanImageFile(pageImage);
                 } catch (_err) {
@@ -538,7 +534,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                 <div className="max-w-6xl mx-auto px-4 h-full flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg overflow-hidden border border-white/20 bg-white flex items-center justify-center">
-                            <img src="/logo.png" alt="COT" className="w-7 h-7 object-contain" />
+                            <img src="/logo.webp" alt="COT" className="w-7 h-7 object-contain" />
                         </div>
                         <div>
                             <p className="text-white font-black text-sm leading-none tracking-wide">City of Truth</p>
@@ -613,7 +609,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                                         </div>
                                     ) : (
                                         <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 flex items-center justify-center">
-                                            <img src="/logo.png" alt="City of Truth Ministries" className="w-11 h-11 object-contain" />
+                                            <img src="/logo.webp" alt="City of Truth Ministries" className="w-11 h-11 object-contain" />
                                         </div>
                                     )}
                                     <div className="text-left">
@@ -629,7 +625,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                                         className="w-full h-full object-contain"
                                     />
                                     <div className="absolute left-1/2 top-1/2 w-16 h-16 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-lg flex items-center justify-center border border-slate-100">
-                                        <img src="/logo.png" alt="" className="w-11 h-11 object-contain" />
+                                        <img src="/logo.webp" alt="" className="w-11 h-11 object-contain" />
                                     </div>
                                 </div>
 
@@ -821,7 +817,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                 {/* ── FOOTER (fixed) ── */}
                 <footer className="shrink-0 bg-black border-t border-white/10 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                     <div className="flex items-center gap-2.5 mb-2.5">
-                        <img src="/logo.png" alt="" className="w-7 h-7 object-contain rounded-full bg-white/10 p-0.5" />
+                        <img src="/logo.webp" alt="" className="w-7 h-7 object-contain rounded-full bg-white/10 p-0.5" />
                         <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/90">
                             City of Truth Ministries © {new Date().getFullYear()}
                         </p>
@@ -870,7 +866,7 @@ const VerifyIDPage: React.FC<VerifyIDPageProps> = ({ onProceedToDashboard, curre
                                 <div className="absolute inset-0 rounded-full border-4 border-[#d4a547]/20 animate-pulse" />
                                 <div className="absolute inset-0 rounded-full border-t-4 border-[#d4a547] animate-spin" />
                                 <div className="absolute inset-3 rounded-full bg-white/5 flex items-center justify-center">
-                                    <img src="/logo.png" alt="" className="w-9 h-9 object-contain" />
+                                    <img src="/logo.webp" alt="" className="w-9 h-9 object-contain" />
                                 </div>
                             </div>
                             <div>

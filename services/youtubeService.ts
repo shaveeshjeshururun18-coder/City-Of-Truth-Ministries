@@ -69,9 +69,9 @@ export function getYouTubeThumbnails(urlOrId: string): { maxRes: string; high: s
     if (!videoId) return null;
 
     return {
-        maxRes: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
-        high: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-        medium: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+        maxRes: `https://img.youtube.com/vi/${videoId}/maxresdefault.webp`,
+        high: `https://img.youtube.com/vi/${videoId}/hqdefault.webp`,
+        medium: `https://img.youtube.com/vi/${videoId}/mqdefault.webp`
     };
 }
 

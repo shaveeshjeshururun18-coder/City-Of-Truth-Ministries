@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Flame, Sparkles, Book, Download } from 'lucide-react';
 
 
@@ -12,15 +12,15 @@ interface GoldenMenorahProps {
 }
 
 export const GoldenMenorah: React.FC<GoldenMenorahProps> = ({ onPreviewClick }) => {
-  const [flagImageSrc, setFlagImageSrc] = React.useState('/menorah-flag-image.png');
+  const [flagImageSrc, setFlagImageSrc] = React.useState('/menorah-flag-image.webp');
 
   const handleFlagError = () => {
-    if (flagImageSrc === '/menorah-flag-image.png') {
-      setFlagImageSrc('/menorah-flag.png');
+    if (flagImageSrc === '/menorah-flag-image.webp') {
+      setFlagImageSrc('/menorah-flag.webp');
       return;
     }
-    if (flagImageSrc === '/menorah-flag.png') {
-      setFlagImageSrc('/sacred-menorah.png');
+    if (flagImageSrc === '/menorah-flag.webp') {
+      setFlagImageSrc('/sacred-menorah.webp');
     }
   };
 
@@ -32,9 +32,10 @@ export const GoldenMenorah: React.FC<GoldenMenorahProps> = ({ onPreviewClick }) 
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
           {/* Left Column - Text Content & Button */}
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 1 }}
+            initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
+            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-col items-center text-center lg:items-start lg:text-left"
           >
             <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-amber-400 mb-4 lg:mb-8">
@@ -54,9 +55,10 @@ export const GoldenMenorah: React.FC<GoldenMenorahProps> = ({ onPreviewClick }) 
 
             {/* Visit Menorah Page Button - Appears after image on mobile, before on desktop */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
+              initial={{ opacity: 0, y: 14, filter: 'blur(4px)' }}
+              whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
               className="flex justify-start pt-2 lg:pt-6 order-2 lg:order-none"
             >
               <button
@@ -77,9 +79,10 @@ export const GoldenMenorah: React.FC<GoldenMenorahProps> = ({ onPreviewClick }) 
           {/* Right Column - Flag Image */}
           <div className="relative h-[400px] lg:h-[600px] flex items-center justify-center order-1 lg:order-none">
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 1 }}
+              initial={{ opacity: 0, scale: 0.94, filter: 'blur(10px)' }}
+              whileInView={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.48, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
               className="w-full max-w-lg"
             >
               {/* Full Flag Image Display */}
@@ -106,7 +109,7 @@ export const GoldenMenorah: React.FC<GoldenMenorahProps> = ({ onPreviewClick }) 
               <div className="mt-4 flex justify-center">
                 <motion.a
                   href={flagImageSrc}
-                  download="COT-Menorah-Flag.png"
+                  download="COT-Menorah-Flag.webp"
                   whileHover={{ y: -2, scale: 1.03 }}
                   whileTap={{ scale: 0.98 }}
                   className="group relative inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-400 text-[#2f2200] font-black text-xs uppercase tracking-[0.18em] border border-amber-100/80 shadow-[0_10px_28px_-12px_rgba(251,191,36,0.95)] hover:shadow-[0_14px_32px_-12px_rgba(251,191,36,1)] transition-all duration-500 overflow-hidden"

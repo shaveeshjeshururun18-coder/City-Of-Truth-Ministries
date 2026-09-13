@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, Maximize2, X, Eye, BookOpen, Pause, Play } from 'lucide-react';
 
 export interface LogoItem {
@@ -21,7 +21,7 @@ export const EMBLEM_ITEMS: LogoItem[] = [
     title: "Sacred Menorah Seal",
     tamilTitle: "பரிசுத்த விளக்குத்தண்டு பிரதான முத்திரை",
     category: "Master Seal",
-    src: "/logos/20250212_202819.png",
+    src: "/logos/20250212_202819.webp",
     badgeColor: "border-amber-400/40 text-amber-300 bg-amber-500/10",
     desc: "The official sacred Menorah emblem of City of Truth Ministries, symbolizing the sevenfold Spirit of Yahweh, divine apostolic authority, and eternal uncreated light.",
   },
@@ -30,7 +30,7 @@ export const EMBLEM_ITEMS: LogoItem[] = [
     title: "City of Truth Apostolic Crest",
     tamilTitle: "சத்திய நகரின் அப்போஸ்தலிக்க சின்னம்",
     category: "Ministry Crest",
-    src: "/logos/c058e7e1-e3bc-417c-8553-f86b4217c7bc.png",
+    src: "/logos/c058e7e1-e3bc-417c-8553-f86b4217c7bc.webp",
     badgeColor: "border-blue-400/40 text-blue-300 bg-blue-500/10",
     desc: "Apostolic heraldic crest embodying the pillar and foundation of truth, the covenant, and righteousness declared across the nations.",
   },
@@ -39,7 +39,7 @@ export const EMBLEM_ITEMS: LogoItem[] = [
     title: "Celestial Covenant Mark",
     tamilTitle: "வானக உடன்படிக்கையின் ஜோதி",
     category: "Covenant Seal",
-    src: "/logos/chatgpt-image-jan-22.png",
+    src: "/logos/chatgpt-image-jan-22.webp",
     badgeColor: "border-indigo-400/40 text-indigo-300 bg-indigo-500/10",
     desc: "The celestial signet representing heavenly alignment, divine priesthood order, and sacred devotion to Yahweh.",
   },
@@ -48,7 +48,7 @@ export const EMBLEM_ITEMS: LogoItem[] = [
     title: "City of Truth Gold Signature",
     tamilTitle: "பொன்மயமான ராஜ முத்திரை",
     category: "Master Brand",
-    src: "/logos/file_00000000bee08211b89fc359d36cbf5c.png",
+    src: "/logos/file_00000000bee08211b89fc359d36cbf5c.webp",
     badgeColor: "border-amber-500/50 text-amber-300 bg-amber-500/15",
     desc: "Embossed golden signature emblem adorning official pastoral convocations, solemn decrees, and ministerial letters.",
   },
@@ -57,7 +57,7 @@ export const EMBLEM_ITEMS: LogoItem[] = [
     title: "Hebrew Crown of Righteousness",
     tamilTitle: "நீதியின் எபிரேய கிரீடம் (கெத்தெர்)",
     category: "Hebrew Wisdom",
-    src: "/logos/file_00000000e60081fb99da2bd76c7f3ad7.png",
+    src: "/logos/file_00000000e60081fb99da2bd76c7f3ad7.webp",
     badgeColor: "border-yellow-400/40 text-yellow-300 bg-yellow-500/10",
     desc: "Keter (Holy Crown) representing royal priesthood, sanctified wisdom, and the incorruptible crown of life promised to the faithful.",
   },
@@ -66,7 +66,7 @@ export const EMBLEM_ITEMS: LogoItem[] = [
     title: "Wings of Truth & Refuge",
     tamilTitle: "சத்தியத்தின் தெய்வீகச் செட்டைகள்",
     category: "Apostolic Wings",
-    src: "/logos/file_00000000f18481fab3d5fa14e5badfc0.png",
+    src: "/logos/file_00000000f18481fab3d5fa14e5badfc0.webp",
     badgeColor: "border-cyan-400/40 text-cyan-300 bg-cyan-500/10",
     desc: "Inspired by Psalm 91:4 — 'He will cover you with His feathers, and under His wings you will find refuge.' Symbol of divine sanctuary and peace.",
   },
@@ -75,7 +75,7 @@ export const EMBLEM_ITEMS: LogoItem[] = [
     title: "Shield of Faith & Defense",
     tamilTitle: "விசுவாசத்தின் பாதுகாப்பு கேடகம்",
     category: "Spiritual Armor",
-    src: "/logos/file_0000000057d48211a3bd31f00dd037b8.png",
+    src: "/logos/file_0000000057d48211a3bd31f00dd037b8.webp",
     badgeColor: "border-rose-400/40 text-rose-300 bg-rose-500/10",
     desc: "The steadfast shield of spiritual armor extinguishing every deceitful dart and standing immovable upon the rock of Truth.",
   },
@@ -84,7 +84,7 @@ export const EMBLEM_ITEMS: LogoItem[] = [
     title: "Covenant Star of David",
     tamilTitle: "தாவீதின் உடன்படிக்கை நட்சத்திரம்",
     category: "Biblical Heritage",
-    src: "/logos/file_00000000277082119d8a6446847f2630.png",
+    src: "/logos/file_00000000277082119d8a6446847f2630.webp",
     badgeColor: "border-sky-400/40 text-sky-300 bg-sky-500/10",
     desc: "Sacred sign of the seed of David, the prophetic lineage, and covenant fulfillment in our Messiah.",
   },
@@ -93,7 +93,7 @@ export const EMBLEM_ITEMS: LogoItem[] = [
     title: "ஆத்தும நன்றி பலிகள்",
     tamilTitle: "Soul Thanksgiving Sacrifices (Book Wrapper)",
     category: "Sacred Publication",
-    src: "/logos/wrapper.jpg",
+    src: "/logos/wrapper.webp",
     badgeColor: "border-amber-400/50 text-amber-200 bg-amber-500/20",
     isBook: true,
     desc: "The sacred publication wrapper for 'ஆத்தும நன்றி பலிகள்' (Soul Thanksgiving Sacrifices) — containing holy prayers, deep confessions of gratitude, biblical praises, and prophetic spiritual sacrifices.",
@@ -125,7 +125,7 @@ export function InfiniteLogoScroll() {
       <div 
         className="absolute inset-0 opacity-15 pointer-events-none mix-blend-overlay bg-cover bg-center filter blur-[1px]"
         style={{
-          backgroundImage: `url('/logos/wrapper.jpg')`,
+          backgroundImage: `url('/logos/wrapper.webp')`,
         }}
       />
 
@@ -232,7 +232,7 @@ export function InfiniteLogoScroll() {
                       const target = e.currentTarget;
                       if (!target.dataset.triedFallback) {
                         target.dataset.triedFallback = "true";
-                        target.src = "/logo.png";
+                        target.src = "/logo.webp";
                       }
                     }}
                   />
@@ -324,7 +324,7 @@ export function InfiniteLogoScroll() {
                     alt={selectedItem.title}
                     className="max-w-full max-h-full object-contain drop-shadow-[0_10px_30px_rgba(0,0,0,0.9)]"
                     onError={(e) => {
-                      e.currentTarget.src = "/logo.png";
+                      e.currentTarget.src = "/logo.webp";
                     }}
                   />
                 </div>

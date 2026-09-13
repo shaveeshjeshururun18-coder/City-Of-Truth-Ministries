@@ -5,7 +5,6 @@ import App from './App'; // Note: App.tsx is in the root
 import { LanguageProvider } from './components/LanguageContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './astryx-styles.css';
-import 'bootstrap-icons/font/bootstrap-icons.css';
 
 import { SmoothScroll } from './components/SmoothScroll';
 

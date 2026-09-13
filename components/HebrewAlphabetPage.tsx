@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Scroll, Volume2, Sparkles, ArrowLeft, X, Download, PenTool, Check, Search, BookOpen } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { audioService } from '../services/audioService';
 import { MouthPronunciationAnimator, HEBREW_LETTER_PHONEMES } from './MouthPronunciationAnimator';
 import { AnimatedTeacherCharacter } from './AnimatedTeacherCharacter';
@@ -9,28 +9,28 @@ import { LetterTracingModal } from './LetterTracingModal';
 import { HebrewCalendarWidget } from './HebrewCalendarWidget';
 
 const PALEO_IMAGE_MAP: Record<string, string> = {
-    ALEPH: "/paleo_letters/04_Aleph.png",
-    BET: "/paleo_letters/03_Bet.png",
-    GIMEL: "/paleo_letters/02_Gimel.png",
-    DALET: "/paleo_letters/01_Dalet.png",
-    HE: "/paleo_letters/08_He.png",
-    VAV: "/paleo_letters/07_Waw.png",
-    ZAYIN: "/paleo_letters/06_Zayin.png",
-    CHET: "/paleo_letters/05_Het.png",
-    TET: "/paleo_letters/12_Tet.png",
-    YOD: "/paleo_letters/11_Yod.png",
-    KAF: "/paleo_letters/10_Kaph.png",
-    LAMED: "/paleo_letters/09_Lamed.png",
-    MEM: "/paleo_letters/16_Mem.png",
-    NUN: "/paleo_letters/15_Nun.png",
-    SAMEKH: "/paleo_letters/14_Samekh.png",
-    AYIN: "/paleo_letters/13_Ayin.png",
-    PE: "/paleo_letters/20_Pe.png",
-    TSADE: "/paleo_letters/19_Tsade.png",
-    QOPH: "/paleo_letters/18_Qoph.png",
-    RESH: "/paleo_letters/17_Resh.png",
-    SHIN: "/paleo_letters/22_Shin.png",
-    TAV: "/paleo_letters/21_Taw.png"
+    ALEPH: "/paleo_letters/04_Aleph.webp",
+    BET: "/paleo_letters/03_Bet.webp",
+    GIMEL: "/paleo_letters/02_Gimel.webp",
+    DALET: "/paleo_letters/01_Dalet.webp",
+    HE: "/paleo_letters/08_He.webp",
+    VAV: "/paleo_letters/07_Waw.webp",
+    ZAYIN: "/paleo_letters/06_Zayin.webp",
+    CHET: "/paleo_letters/05_Het.webp",
+    TET: "/paleo_letters/12_Tet.webp",
+    YOD: "/paleo_letters/11_Yod.webp",
+    KAF: "/paleo_letters/10_Kaph.webp",
+    LAMED: "/paleo_letters/09_Lamed.webp",
+    MEM: "/paleo_letters/16_Mem.webp",
+    NUN: "/paleo_letters/15_Nun.webp",
+    SAMEKH: "/paleo_letters/14_Samekh.webp",
+    AYIN: "/paleo_letters/13_Ayin.webp",
+    PE: "/paleo_letters/20_Pe.webp",
+    TSADE: "/paleo_letters/19_Tsade.webp",
+    QOPH: "/paleo_letters/18_Qoph.webp",
+    RESH: "/paleo_letters/17_Resh.webp",
+    SHIN: "/paleo_letters/22_Shin.webp",
+    TAV: "/paleo_letters/21_Taw.webp"
 };
 
 export const HEBREW_LETTERS = [
@@ -233,7 +233,7 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
         <div className="min-h-screen w-full bg-[#0f0d0a] text-[#ede6d6] pb-28 relative font-sans select-none">
             {/* Subtle ancient parchment vignette & radial lighting */}
             <div className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(201,162,39,0.14)_0%,transparent_60%)]" />
-            <div className="fixed inset-0 pointer-events-none z-0 opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]" />
+            <div className="fixed inset-0 pointer-events-none z-0 opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/stardust.webp')]" />
 
             {/* Back Button */}
             {onBack && (
@@ -252,7 +252,7 @@ export const HebrewAlphabetPage: React.FC<HebrewAlphabetPageProps> = ({ onBack }
                 <div className="overflow-hidden opacity-45 mb-6 select-none [mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)]">
                     <motion.div
                         animate={{ x: ['0%', '-50%'] }}
-                        transition={{ ease: 'linear', duration: 45, repeat: Infinity }}
+                        transition={{ ease: 'linear', duration: 8, repeat: Infinity }}
                         className="flex gap-10 whitespace-nowrap w-max"
                     >
                         {[...HEBREW_LETTERS, ...HEBREW_LETTERS].map((l, i) => (

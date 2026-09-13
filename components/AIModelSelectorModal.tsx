@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { X, Sparkles, Zap, BookOpen, Crown, Cpu, Check, Layers, Info } from 'lucide-react';
 
 export interface AIModelSpec {

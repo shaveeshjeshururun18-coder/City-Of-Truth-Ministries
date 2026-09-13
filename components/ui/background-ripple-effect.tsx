@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../../lib/utils";
 
 interface RipplePoint {
@@ -56,7 +56,7 @@ export const BackgroundRippleEffect: React.FC<BackgroundRippleEffectProps> = ({
               }}
               transition={{
                 repeat: Infinity,
-                duration: 6,
+                duration: 0.96,
                 delay: ring * 1.5,
                 ease: "easeOut",
               }}
@@ -79,7 +79,7 @@ export const BackgroundRippleEffect: React.FC<BackgroundRippleEffectProps> = ({
                   }}
                   exit={{ opacity: 0 }}
                   transition={{
-                    duration: 1.8,
+                    duration: 0.72,
                     delay: waveIndex * 0.25,
                     ease: "easeOut",
                   }}

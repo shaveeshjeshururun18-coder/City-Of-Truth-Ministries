@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Calendar, Download, FileText, CheckCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Button } from './Button';
 import { getCalendarData5786 } from './CalendarLogic';
 

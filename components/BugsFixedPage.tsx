@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { CheckCircle, Zap, Code, Camera, Database, Sparkles, ChevronDown, ChevronUp, ArrowLeft, Download, Edit2, Plus, Save, Trash2, X } from 'lucide-react';
 import { BugFixIcon } from './icons/modernIcons';
 import { BugFixItem, User } from '../types';
@@ -156,7 +156,7 @@ export const BugsFixedPage: React.FC<{ onBack?: () => void; currentUser?: User |
             className="absolute w-1 h-1 rounded-full bg-indigo-400/30"
             style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%` }}
             animate={{ opacity: [0, 1, 0], scale: [0, 1.5, 0] }}
-            transition={{ duration: 3 + Math.random() * 3, repeat: Infinity, delay: Math.random() * 5 }}
+            transition={{ duration: 1.2 + Math.random() * 3, repeat: Infinity, delay: Math.random() * 5 }}
           />
         ))}
       </div>

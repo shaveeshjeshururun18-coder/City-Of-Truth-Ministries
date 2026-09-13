@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import {
   Youtube,
   BookOpen,
@@ -36,9 +36,10 @@ export const MinistryBentoGrid: React.FC<MinistryBentoGridProps> = ({
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
           <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 12, filter: 'blur(6px)' }}
+            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
             viewport={{ once: true }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-amber-400/30 text-amber-300 text-xs font-black uppercase tracking-widest backdrop-blur-md"
           >
             <Sparkles size={13} className="text-amber-400" />
@@ -46,10 +47,10 @@ export const MinistryBentoGrid: React.FC<MinistryBentoGridProps> = ({
           </motion.div>
 
           <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 16, filter: 'blur(8px)' }}
+            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
             viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
+            transition={{ duration: 0.45, delay: 0.06, ease: [0.16, 1, 0.3, 1] }}
             className="text-4xl sm:text-5xl lg:text-6xl font-serif font-black tracking-tight leading-tight"
           >
             A Sanctuary of{' '}
@@ -59,10 +60,10 @@ export const MinistryBentoGrid: React.FC<MinistryBentoGridProps> = ({
           </motion.h2>
 
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 14, filter: 'blur(6px)' }}
+            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
             viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
+            transition={{ duration: 0.42, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
             className="text-white/70 text-base sm:text-lg font-light leading-relaxed"
           >
             Explore our anointed broadcast studio, deep ancient Hebrew word wisdom, the mountain prayer sanctuary in Valparai, and the prophetic Menorah.
@@ -73,10 +74,10 @@ export const MinistryBentoGrid: React.FC<MinistryBentoGridProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
           {/* Card 1: Broadcasting Hub (Wide 7 cols) */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 20, filter: 'blur(8px)', scale: 0.98 }}
+            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)', scale: 1 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.7 }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
             className="lg:col-span-7 group relative rounded-[2.5rem] p-8 sm:p-10 bg-gradient-to-br from-[#180909] via-[#100608] to-[#080204] border border-red-500/20 overflow-hidden backdrop-blur-xl shadow-2xl flex flex-col justify-between"
           >
             {/* Background Glow */}
@@ -131,10 +132,10 @@ export const MinistryBentoGrid: React.FC<MinistryBentoGridProps> = ({
 
           {/* Card 2: Ancient Hebrew Alphabet & Word Hub (5 cols) */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 20, filter: 'blur(8px)', scale: 0.98 }}
+            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)', scale: 1 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.7, delay: 0.15 }}
+            transition={{ duration: 0.45, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
             onClick={() => navigate('/hebrew-alphabet')}
             className="lg:col-span-5 group relative rounded-[2.5rem] p-8 sm:p-10 bg-gradient-to-br from-[#0b1026] via-[#070b1a] to-[#04060e] border border-sky-500/25 overflow-hidden backdrop-blur-xl shadow-2xl flex flex-col justify-between cursor-pointer hover:border-sky-400/50 transition-all duration-300"
           >
@@ -179,16 +180,16 @@ export const MinistryBentoGrid: React.FC<MinistryBentoGridProps> = ({
 
           {/* Card 3: Valparai Mountain Presence (4 cols) */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 20, filter: 'blur(8px)', scale: 0.98 }}
+            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)', scale: 1 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.7, delay: 0.2 }}
+            transition={{ duration: 0.45, delay: 0.14, ease: [0.16, 1, 0.3, 1] }}
             onClick={() => setView(ViewState.ABOUT_VALPARAI)}
             className="lg:col-span-4 group relative rounded-[2.5rem] p-8 bg-gradient-to-br from-[#061e12] via-[#04140c] to-[#020b06] border border-emerald-500/25 overflow-hidden backdrop-blur-xl shadow-2xl flex flex-col justify-between cursor-pointer hover:border-emerald-400/50 transition-all duration-300 min-h-[320px]"
           >
             {/* Background image preview with darkened gradient */}
             <img
-              src="/valparai-grass-hills.jpg"
+              src="/valparai-grass-hills.webp"
               alt="Valparai Hills"
               className="absolute inset-0 w-full h-full object-cover opacity-25 group-hover:opacity-40 group-hover:scale-105 transition-all duration-700"
             />
@@ -214,10 +215,10 @@ export const MinistryBentoGrid: React.FC<MinistryBentoGridProps> = ({
 
           {/* Card 4: Prophetic Golden Menorah (4 cols) */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 20, filter: 'blur(8px)', scale: 0.98 }}
+            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)', scale: 1 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.7, delay: 0.3 }}
+            transition={{ duration: 0.45, delay: 0.20, ease: [0.16, 1, 0.3, 1] }}
             onClick={() => setView(ViewState.GOLDEN_MENORAH)}
             className="lg:col-span-4 group relative rounded-[2.5rem] p-8 bg-gradient-to-br from-[#241503] via-[#170e02] to-[#0a0601] border border-amber-500/30 overflow-hidden backdrop-blur-xl shadow-2xl flex flex-col justify-between cursor-pointer hover:border-amber-400/60 transition-all duration-300 min-h-[320px]"
           >
@@ -244,10 +245,10 @@ export const MinistryBentoGrid: React.FC<MinistryBentoGridProps> = ({
 
           {/* Card 5: Divine Assistant AI Companion (4 cols) */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 20, filter: 'blur(8px)', scale: 0.98 }}
+            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)', scale: 1 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.7, delay: 0.4 }}
+            transition={{ duration: 0.45, delay: 0.26, ease: [0.16, 1, 0.3, 1] }}
             onClick={() => setView(ViewState.AI)}
             className="lg:col-span-4 group relative rounded-[2.5rem] p-8 bg-gradient-to-br from-[#160a2b] via-[#0e061c] to-[#06020c] border border-fuchsia-500/25 overflow-hidden backdrop-blur-xl shadow-2xl flex flex-col justify-between cursor-pointer hover:border-fuchsia-400/50 transition-all duration-300 min-h-[320px]"
           >

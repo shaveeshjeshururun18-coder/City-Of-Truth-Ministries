@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Globe, MapPin, Sparkles, Scroll, Landmark, History, Compass, ArrowRight, Volume2, ShieldCheck, Heart, Download, Loader2 } from 'lucide-react';
 import { audioService } from '../services/audioService';
 import html2canvas from 'html2canvas';
@@ -177,6 +177,26 @@ export const IsraelPage: React.FC = () => {
                     from { transform: rotate(0deg); }
                     to { transform: rotate(360deg); }
                 }
+                @keyframes bounce {
+                    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+                    40% { transform: translateY(-20px); }
+                    60% { transform: translateY(-10px); }
+                }
+                .stack-container {
+                    padding-top: 5vh;
+                    padding-bottom: 15vh;
+                }
+                .stacking-card {
+                    position: sticky;
+                    min-height: 65vh;
+                    border-radius: 24px;
+                    padding: 3rem;
+                    margin-bottom: 5rem;
+                    box-shadow: 0 -10px 30px rgba(0,0,0,0.15);
+                    border-top: 1px solid rgba(255,255,255,0.2);
+                    transform-origin: top center;
+                    transition: all 0.3s ease;
+                }
             `}</style>
             <div className="max-w-6xl mx-auto space-y-12">
 
@@ -250,7 +270,7 @@ export const IsraelPage: React.FC = () => {
 
                         {/* Waving Golden Menorah Flag - Dynamic Video */}
                         <div className="relative w-full max-w-[280px] aspect-[3/2] overflow-hidden rounded-lg shadow-lg border border-slate-200 group-hover:scale-[1.02] transition-transform duration-500 bg-black">
-                            <video
+                            <video preload="none" 
                                 src="/gemini_generated_video_cf07149d.mp4"
                                 autoPlay
                                 loop
@@ -265,7 +285,7 @@ export const IsraelPage: React.FC = () => {
                     </div>
                 </section>
 
-                {/* 3D Peeling Stacking Cards - Discover Israel's Regions */}
+                {/* Discover Israel's Regions - 3D Peeling Stacking Cards Deck */}
                 {(() => {
                     const regionCards: PeelingCardItem[] = REGIONS.map((region, index) => {
                         const isJerusalem = region.id === 'jerusalem';
@@ -324,78 +344,65 @@ export const IsraelPage: React.FC = () => {
                             themeGradient,
                             borderColor,
                             content: (
-                                <div className="space-y-4 text-left">
+                                <div className="space-y-2.5 text-left">
                                     {/* Hebrew Pronunciation & Audio Bar */}
-                                    <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-black/40 backdrop-blur-md border border-white/10">
-                                        <div>
-                                            <div className="text-[10px] font-mono tracking-widest text-amber-300 uppercase font-bold">
-                                                Hebrew Name & Audio
-                                            </div>
-                                            <div className="text-xl font-serif font-bold text-white tracking-wide">
+                                    <div className="flex items-center justify-between gap-2 p-2 px-3 rounded-xl bg-black/40 border border-white/10">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-mono tracking-widest text-amber-300 uppercase font-bold">
+                                                Hebrew:
+                                            </span>
+                                            <span className="text-base font-serif font-bold text-white tracking-wide">
                                                 {region.hebrew}
-                                            </div>
+                                            </span>
                                         </div>
                                         <button
                                             onClick={() => handlePlayAudio(region.hebrew)}
-                                            className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold text-xs flex items-center gap-2 hover:from-amber-600 hover:to-amber-700 transition-all shadow-md shadow-amber-500/20 active:scale-95 cursor-pointer"
+                                            className="px-3 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold text-[11px] flex items-center gap-1.5 hover:from-amber-600 hover:to-amber-700 transition-all shadow-sm active:scale-95 cursor-pointer"
                                             title="Listen to authentic Hebrew pronunciation"
                                         >
-                                            <Volume2 size={15} />
-                                            <span>Listen ({region.hebrew})</span>
+                                            <Volume2 size={13} />
+                                            <span>Listen</span>
                                         </button>
                                     </div>
 
                                     {/* Tamil Description Callout Box */}
-                                    <div className="p-3.5 rounded-2xl bg-amber-500/10 border-l-4 border-amber-400 backdrop-blur-sm">
-                                        <div className="text-[10px] font-black uppercase tracking-wider text-amber-300 mb-1">
-                                            தமிழ் விளக்கம் (Tamil Summary)
-                                        </div>
-                                        <p className="text-amber-100/90 text-xs sm:text-sm font-serif leading-relaxed italic">
+                                    <div className="p-2.5 rounded-xl bg-amber-500/10 border-l-2 border-amber-400">
+                                        <p className="text-amber-100/90 text-xs font-serif leading-relaxed italic">
                                             {region.tamilDesc}
                                         </p>
                                     </div>
 
                                     {/* 2-Column Grid: Biblical History & Archaeology */}
-                                    <div className="grid sm:grid-cols-2 gap-3.5">
-                                        <div className="p-4 rounded-2xl bg-black/35 backdrop-blur-md border border-white/10 space-y-1.5">
-                                            <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
-                                                <Scroll size={12} /> Biblical History & Covenants
+                                    <div className="grid sm:grid-cols-2 gap-2.5">
+                                        <div className="p-2.5 rounded-xl bg-black/35 border border-white/10 space-y-1">
+                                            <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider flex items-center gap-1">
+                                                <Scroll size={11} /> Biblical History
                                             </span>
-                                            <p className="text-white/80 text-xs leading-relaxed">
+                                            <p className="text-white/80 text-[11px] leading-relaxed">
                                                 {region.biblicalSignificance}
                                             </p>
                                         </div>
-                                        <div className="p-4 rounded-2xl bg-black/35 backdrop-blur-md border border-white/10 space-y-1.5">
-                                            <span className="text-[10px] font-black uppercase text-blue-300 tracking-wider flex items-center gap-1.5">
-                                                <Landmark size={12} /> Archaeological Marvels
+                                        <div className="p-2.5 rounded-xl bg-black/35 border border-white/10 space-y-1">
+                                            <span className="text-[10px] font-black uppercase text-blue-300 tracking-wider flex items-center gap-1">
+                                                <Landmark size={11} /> Archaeology
                                             </span>
-                                            <p className="text-white/80 text-xs leading-relaxed">
+                                            <p className="text-white/80 text-[11px] leading-relaxed">
                                                 {region.archaeology}
                                             </p>
                                         </div>
                                     </div>
-
-                                    {/* Bottom Covenant Indicator */}
-                                    <div className="pt-2 flex items-center justify-between text-[11px] text-white/60 font-semibold">
-                                        <span className="flex items-center gap-1 text-amber-300/80">
-                                            <MapPin size={12} className="text-amber-400" /> Eretz Covenant Boundary
-                                        </span>
-                                        <span className="uppercase text-[9px] tracking-widest text-white/50">
-                                            City of Truth Sanctuary Hub
-                                        </span>
-                                    </div>
                                 </div>
                             ),
                             visualSide: (
-                                <div className="w-full h-full min-h-[360px] p-5 rounded-3xl bg-black/45 backdrop-blur-xl border border-white/15 flex flex-col items-center justify-center text-center relative overflow-hidden group/map shadow-2xl">
-                                    <div className="absolute top-3 left-4 text-[9px] text-amber-300/80 uppercase tracking-widest font-mono flex items-center gap-1">
+                                <div className="w-full lg:w-[260px] p-3 rounded-2xl bg-black/45 border border-white/15 flex flex-col items-center justify-center text-center relative overflow-hidden shadow-xl">
+                                    <div className="text-[9px] text-amber-300/80 uppercase tracking-widest font-mono flex items-center gap-1 mb-1">
                                         <Compass size={10} className="text-amber-400 animate-spin-slow" />
                                         <span>Territory Map · {region.name.split(' ')[0]}</span>
                                     </div>
 
-                                    <div className="py-2 w-full flex items-center justify-center">
+                                    <div className="py-1 w-full flex items-center justify-center">
                                         <svg
-                                            className="w-full max-w-[240px] h-auto text-slate-400 drop-shadow-2xl"
+                                            className="w-full max-w-[160px] h-[170px] text-slate-400 drop-shadow-xl"
                                             viewBox="0 0 200 350"
                                             fill="none"
                                             stroke="#cbd5e1"
@@ -425,21 +432,18 @@ export const IsraelPage: React.FC = () => {
                                             })}
 
                                             {/* Holy Cities Pins */}
-                                            {/* Jerusalem Pin */}
                                             <circle cx="102" cy="139" r="4.5" fill="#ef4444" stroke="#ffffff" strokeWidth="1.5" className="animate-pulse" />
                                             <text x="109" y="142" fill="#fca5a5" fontSize="8" fontWeight="bold" fontFamily="sans-serif">Jerusalem</text>
 
-                                            {/* Sea of Galilee */}
                                             <ellipse cx="132" cy="50" rx="6" ry="10" fill="#38bdf8" fillOpacity="0.9" stroke="#0284c7" strokeWidth="1" />
                                             <text x="141" y="53" fill="#93c5fd" fontSize="7" fontWeight="bold" fontFamily="sans-serif">Galilee</text>
 
-                                            {/* Dead Sea */}
                                             <ellipse cx="112" cy="180" rx="5" ry="25" fill="#38bdf8" fillOpacity="0.8" stroke="#0284c7" strokeWidth="1" />
                                             <text x="120" y="183" fill="#93c5fd" fontSize="7" fontWeight="bold" fontFamily="sans-serif">Dead Sea</text>
                                         </svg>
                                     </div>
 
-                                    <div className="w-full mt-2 pt-3 border-t border-white/10 flex items-center justify-between text-[10px] text-white/70 font-mono">
+                                    <div className="w-full mt-1 pt-1.5 border-t border-white/10 flex items-center justify-between text-[9px] text-white/70 font-mono">
                                         <span className="text-amber-400 font-bold">{region.hebrew}</span>
                                         <span className="text-white/50">{region.id.toUpperCase()} SECTOR</span>
                                     </div>
@@ -455,11 +459,12 @@ export const IsraelPage: React.FC = () => {
                             tamilTitle="இஸ்ரேலின் புனித மண்டலங்கள்"
                             subtitle="Explore the biblical significance, geographic wonder, and archaeological marvels across the five holy regions of the Promised Land."
                             items={regionCards}
+                            className="mb-24"
                         />
                     );
                 })()}
 
-                {/* 3D Peeling Stacking Cards - Knowledge Hub */}
+                {/* Stacking Cards - Knowledge Hub */}
                 {(() => {
                     const israelKnowledgeCards: PeelingCardItem[] = [
                         {
@@ -739,9 +744,9 @@ export const IsraelPage: React.FC = () => {
                             badgeLabel="Holy Land Knowledge Stacks"
                             title="Eretz Israel Knowledge Hub"
                             tamilTitle="இஸ்ரேல் தேசக் களஞ்சியம்"
-                            subtitle="Scroll through the 3D peeling stacking cards covering covenants, prophetic history, geography, archaeology, and the Hebrew language."
+                            subtitle="Scroll through the interactive stacking cards covering covenants, prophetic history, geography, archaeology, and the Hebrew language."
                             items={israelKnowledgeCards}
-                            defaultViewMode="stack"
+                            
                         />
                     );
                 })()}

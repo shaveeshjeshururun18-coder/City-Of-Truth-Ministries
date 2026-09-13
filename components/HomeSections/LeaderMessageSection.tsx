@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Star, ArrowRight, BookOpen, MapPin, Globe, Sparkles, MessageSquare, QrCode, Heart, Users, Mountain, Leaf, CloudRain, Video, Sun, Music, FileText, Eye } from 'lucide-react';
 import { ViewState, User } from '../../types';
 import { MessageFromLeader } from '../MessageFromLeader';
@@ -34,7 +34,7 @@ interface SectionProps {
 export const LeaderMessageSection: React.FC<SectionProps & { onClose?: () => void }> = ({ setView, onClose }) => {
     return (
         <section className="py-24 bg-brand-50 relative overflow-hidden">
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 pointer-events-none"></div>
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.webp')] opacity-30 pointer-events-none"></div>
             <div className="container mx-auto px-6 relative z-10">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}

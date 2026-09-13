@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { X, Send, Maximize2, Minimize2, Loader, Sparkles, Trash2, Hand, Quote, Settings, Download, BookOpen, Clock, Zap, BarChart3, Volume2, Copy, ThumbsUp, ThumbsDown, Cpu, User } from 'lucide-react';
-import { motion, AnimatePresence, PanInfo, useAnimation } from 'framer-motion';
+import { motion, AnimatePresence, PanInfo, useAnimation } from 'motion/react';
 import { streamSpatulaAIResponse } from '../services/openRouterService';
 import { jsPDF } from 'jspdf';
 import { LordIconWrapper } from './LordIconWrapper';
@@ -611,7 +611,7 @@ export const DivineAssistant: React.FC = () => {
                         {/* Inner container for background masking */}
                         <div className="absolute inset-0 rounded-full overflow-hidden">
                             {/* Golden Menorah Image */}
-                            <div className="absolute inset-0 bg-[url('/menorah-flag.png')] bg-cover bg-center transition-transform duration-700 group-hover:scale-110"></div>
+                            <div className="absolute inset-0 bg-[url('/menorah-flag.webp')] bg-cover bg-center transition-transform duration-700 group-hover:scale-110"></div>
                             {/* Overlay Gradient for Depth */}
                             <div className="absolute inset-0 bg-gradient-to-t from-amber-900/40 to-transparent"></div>
                         </div>
@@ -636,7 +636,7 @@ export const DivineAssistant: React.FC = () => {
                             {config.showAnimation && (
                                 <motion.div
                                     animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0, 0.5] }}
-                                    transition={{ duration: 2.5, repeat: Infinity }}
+                                    transition={{ duration: 1.0, repeat: Infinity }}
                                     className="absolute inset-0 bg-amber-300 rounded-full blur-xl -z-10"
                                 />
                             )}

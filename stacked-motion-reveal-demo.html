@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stacked Motion Reveal — Hebrew Grammar, Valparai & Israel</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: #090a10;
+    color: #f8fafc;
+    overflow-x: hidden;
+}
+
+/* Hero Section */
+.hero {
+    min-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 60px 5vw;
+    background: radial-gradient(circle at 50% 40%, rgba(30, 35, 55, 0.9) 0%, rgba(9, 10, 16, 1) 100%);
+    position: relative;
+}
+
+.hero h1 {
+    font-size: clamp(40px, 7vw, 96px);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, #ffffff 0%, #fef08a 50%, #f59e0b 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.hero p {
+    font-size: clamp(15px, 1.8vw, 20px);
+    color: #94a3b8;
+    max-width: 680px;
+    margin-bottom: 32px;
+    line-height: 1.6;
+}
+
+.scroll-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    background: rgba(245, 158, 11, 0.08);
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #fcd34d;
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-8px); }
+    60% { transform: translateY(-4px); }
+}
+
+/* Stack Section Track */
+.stack-section {
+    position: relative;
+    height: 480vh;
+    background: #090a10;
+}
+
+/* Pinned Sticky Viewport */
+.sticky-container {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    perspective: 1500px;
+    padding: 20px;
+}
+
+/* Deck Container */
+.card-stack {
+    position: relative;
+    width: min(1060px, 92vw);
+    height: min(680px, 80vh);
+}
+
+/* Individual Stacked Card */
+.card {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 28px;
+    padding: clamp(24px, 4vw, 44px);
+    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transform-origin: center bottom;
+    will-change: transform, opacity;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    overflow: hidden;
+    user-select: none;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.card-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 32px;
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.card-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.card-text h2 {
+    font-size: clamp(26px, 4.2vw, 48px);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    font-weight: 900;
+    margin-bottom: 8px;
+    color: #ffffff;
+}
+
+.card-text .tamil-sub {
+    font-size: clamp(14px, 1.6vw, 18px);
+    font-weight: 700;
+    color: #fcd34d;
+    margin-bottom: 12px;
+}
+
+.card-text p.desc {
+    font-size: clamp(13px, 1.4vw, 16px);
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: 18px;
+}
+
+.card-visual {
+    width: clamp(240px, 32%, 340px);
+    flex-shrink: 0;
+    border-radius: 20px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.card-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #ffffff;
+    color: #0f172a;
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-radius: 9999px;
+    transition: all 0.25s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.card-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(255, 255, 255, 0.25);
+    background: #fef08a;
+}
+
+.card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    font-family: monospace;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Category Theme Palettes */
+/* Israel Regions */
+.theme-galilee { background: linear-gradient(135deg, #064e3b 0%, #022c22 60%, #061e18 100%); }
+.theme-judea { background: linear-gradient(135deg, #78350f 0%, #451a03 60%, #1c0a02 100%); }
+.theme-jerusalem { background: linear-gradient(135deg, #854d0e 0%, #713f12 50%, #241400 100%); border-color: rgba(245, 158, 11, 0.5) !important; }
+.theme-coastal { background: linear-gradient(135deg, #1e3a8a 0%, #0c1e4a 60%, #040d21 100%); }
+.theme-negev { background: linear-gradient(135deg, #9a3412 0%, #541c08 60%, #1c0500 100%); }
+
+/* Hebrew Grammar */
+.theme-vowels { background: linear-gradient(135deg, #78350f 0%, #3d1a04 70%, #120701 100%); }
+.theme-roots { background: linear-gradient(135deg, #1e1b4b 0%, #172554 70%, #050b14 100%); }
+.theme-binyanim { background: linear-gradient(135deg, #854d0e 0%, #451a03 70%, #140801 100%); }
+.theme-nouns { background: linear-gradient(135deg, #064e3b 0%, #042f2e 70%, #011412 100%); }
+.theme-numbers { background: linear-gradient(135deg, #831843 0%, #4c0519 70%, #170107 100%); }
+
+/* Valparai Hub */
+.theme-history { background: linear-gradient(135deg, #3f2c1d 0%, #1f140c 70%, #0a0604 100%); }
+.theme-rainforest { background: linear-gradient(135deg, #064e3b 0%, #022c22 70%, #01120e 100%); }
+.theme-monsoon { background: linear-gradient(135deg, #075985 0%, #082f49 70%, #02111a 100%); }
+.theme-hydro { background: linear-gradient(135deg, #312e81 0%, #1e1b4b 70%, #08061a 100%); }
+
+@media (max-width: 800px) {
+    .card-content { flex-direction: column; align-items: flex-start; }
+    .card-visual { width: 100%; margin-top: 14px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header Navigation Bar -->
+<nav class="sticky top-0 z-50 bg-[#0c0d14]/90 backdrop-blur-md border-b border-white/10 px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-2">
+        <span class="text-amber-400 font-serif font-black text-xl">City of Truth</span>
+        <span class="text-xs uppercase tracking-widest text-slate-400 font-mono">/ Stacked Motion Reveal</span>
+    </div>
+
+    <!-- Section Selectors -->
+    <div class="flex items-center gap-2 bg-white/5 p-1 rounded-full border border-white/10">
+        <button onclick="switchDataset('israel')" id="btn-israel" class="px-4 py-1.5 rounded-full text-xs font-bold transition-all bg-amber-500 text-slate-950 shadow-md">
+            🇮🇱 Israel Holy Regions
+        </button>
+        <button onclick="switchDataset('hebrew')" id="btn-hebrew" class="px-4 py-1.5 rounded-full text-xs font-bold transition-all text-slate-300 hover:text-white">
+            ✡️ Hebrew Grammar
+        </button>
+        <button onclick="switchDataset('valparai')" id="btn-valparai" class="px-4 py-1.5 rounded-full text-xs font-bold transition-all text-slate-300 hover:text-white">
+            🌿 Valparai Knowledge Hub
+        </button>
+    </div>
+</nav>
+
+<!-- Hero Section -->
+<section class="hero">
+    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-[11px] font-black tracking-widest uppercase text-amber-400 mb-4">
+        ✨ Inspired by stacked_motion_reveal.html
+    </div>
+    <h1 id="hero-title">Israel's Holy Regions</h1>
+    <p id="hero-desc">Scroll down to experience the "tearing paper" card peel swipe effect. The cards rotate with physical bottom-hinge tilt and glide upwards to unveil each layer beneath.</p>
+    <div class="scroll-indicator">
+        <span>Scroll Down to Peel Cards</span>
+        <span>↓</span>
+    </div>
+</section>
+
+<!-- Stacked Motion Section Track -->
+<section class="stack-section" id="stack-section">
+    <div class="sticky-container">
+        <div class="card-stack" id="card-stack">
+            <!-- Cards populated dynamically via JavaScript -->
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="py-16 text-center text-slate-500 text-xs font-mono border-t border-white/10 bg-[#07080d]">
+    <p class="mb-2">City of Truth Ministries • Stacked Motion Reveal Engine</p>
+    <p class="text-slate-600">Reversible scroll physics • Perspective 1500px • Alternating tilt ±15° • Native 60/120fps</p>
+</footer>
+
+<script>
+// DATASETS
+const DATASETS = {
+    israel: {
+        title: "Israel's Holy Regions",
+        desc: "Scroll down to experience the peeling paper card reveal across Galilee, Judea, Jerusalem, Coastal Plain, and the Negev Desert.",
+        cards: [
+            {
+                badge: "Region 01 · Northern Realm",
+                counter: "01",
+                title: "Galilee & Golan (HaGalil)",
+                tamil: "கலிலேயா மற்றும் கோலான் · הַגָּלִיל",
+                theme: "theme-galilee",
+                desc: "Lush mountainous northern region of Israel. Home to the Sea of Galilee (Kinneret), ancient Mount Hermon, Capernaum, and picturesque fertile valleys where Yeshua spent most of His ministry.",
+                scripture: "Isaiah 9:1 — 'In the future he will honor Galilee of the nations, by the Way of the Sea.'",
+                archaeology: "Capernaum 1st-century Synagogue & ancient fishing boat.",
+                visual: "🌊 Sea of Galilee & Mount Hermon"
+            },
+            {
+                badge: "Region 02 · Covenant Hills",
+                counter: "02",
+                title: "Judea & Samaria",
+                tamil: "யூதேயா மற்றும் சமாரியா · יְהוּדָה וְשׁוֹמְרוֹן",
+                theme: "theme-judea",
+                desc: "The ancient heartland of Israel, stretching across rugged mountains, biblical vineyards, and historic cities like Hebron, Shechem, and Bethel where the Patriarchs walked.",
+                scripture: "Genesis 13:14 — 'Lift up your eyes from where you are: north and south, east and west...'",
+                archaeology: "Tel Shiloh Tabernacle site & Cave of the Patriarchs.",
+                visual: "⛰️ Rugged Biblical Heartland"
+            },
+            {
+                badge: "Region 03 · Eternal Capital",
+                counter: "03",
+                title: "Jerusalem (Yerushalayim)",
+                tamil: "எருசலேம் (யெருசலாயீம்) · יְרוּשָׁלַיִם",
+                theme: "theme-jerusalem",
+                desc: "The eternal golden city, capital of Israel, and spiritual epicenter of the biblical world. Home to the Temple Mount, Mount of Olives, and the divine sanctuary chosen by Yahweh forever.",
+                scripture: "Psalm 132:13 — 'For the Lord has chosen Zion; He has desired it for His dwelling place.'",
+                archaeology: "City of David, Western Wall & Pool of Siloam excavations.",
+                visual: "⭐ Golden City & Temple Mount"
+            },
+            {
+                badge: "Region 04 · Mediterranean Shoreline",
+                counter: "04",
+                title: "Coastal Plain (Mishor HaHof)",
+                tamil: "கடற்கரை சமவெளி · מִישׁוֹר הַחוֹף",
+                theme: "theme-coastal",
+                desc: "Vibrant Mediterranean coastline encompassing ancient biblical ports like Jaffa and Caesarea Maritima, extending into fertile Sharon plains.",
+                scripture: "Acts 10 — Apostle Peter's divine vision at Jaffa opening salvation to the nations.",
+                archaeology: "Caesarea Roman Theater, Pontius Pilate Inscription & Aqueducts.",
+                visual: "⛵ Ancient Ports & Azure Seas"
+            },
+            {
+                badge: "Region 05 · Southern Wilderness",
+                counter: "05",
+                title: "The Negev Desert (HaNegev)",
+                tamil: "நெகேவ் பாலைவனம் · הַנֶּגֶב",
+                theme: "theme-negev",
+                desc: "The vast southern desert occupying over half of Israel's landmass. Renowned for Makhtesh Ramon geological crater, Abraham's Wells at Beersheba, and King Solomon's copper mines at Timna.",
+                scripture: "Genesis 21:33 — 'Abraham planted a tamarisk tree in Beersheba and called on the name of the Lord.'",
+                archaeology: "Tel Beer Sheba gate, Avdat Nabataean city & Timna Valley.",
+                visual: "🏜️ Timna Pillars & Ramon Crater"
+            }
+        ]
+    },
+    hebrew: {
+        title: "Hebrew Grammar Architecture",
+        desc: "Explore the divine structural layers of Biblical Hebrew through scroll-driven stacked motion reveal.",
+        cards: [
+            {
+                badge: "Stage 01 · Phonetics",
+                counter: "01",
+                title: "The Vowel System (Nikkud)",
+                tamil: "உயிரெழுத்து குறிகள் (நிக்குத்)",
+                theme: "theme-vowels",
+                desc: "Hebrew consists of 22 sacred consonants. Vowels are divine dot-and-dash markings (Nikkud) placed above, below, or inside letters to preserve ancient pronunciation.",
+                scripture: "Kamatz (ָ), Patach (ַ), Segol (ֶ), Shva (ְ), Chirik (ִ), Cholam (וֹ), Shuruk (וּ).",
+                archaeology: "Masoretic Text tradition preserved by Tiberian scholars.",
+                visual: "🔤 Sacred Nikkud Markings"
+            },
+            {
+                badge: "Stage 02 · Skeleton",
+                counter: "02",
+                title: "Triliteral Root System (Shoresh)",
+                tamil: "3 எழுத்து வேர் முறைமை (ஷோரேஷ்)",
+                theme: "theme-roots",
+                desc: "Almost every biblical word stems from an immutable 3-consonant divine root (Shoresh). By changing vowels, prefixes, and suffixes, a vast forest of related meanings branches outward.",
+                scripture: "Root כ-ת-ב (K-T-V): Kotev (writes), Mikhtav (letter), Katav (scribe), Ketuvim (Writings).",
+                archaeology: "Semitic morphological linguistic foundation.",
+                visual: "🌱 Triliteral Root Matrix"
+            },
+            {
+                badge: "Stage 03 · Seven Engines",
+                counter: "03",
+                title: "The Seven Verb Stems (Binyanim)",
+                tamil: "ஏழு வினைக் கட்டடங்கள் (பின்யானிம்)",
+                theme: "theme-binyanim",
+                desc: "Verbs branch into seven divine 'buildings' (Binyanim) arranged symmetrically like the Golden Menorah: Pa'al, Pi'el, Hif'il, Hitpa'el, Huf'al, Pu'al, and Nif'al.",
+                scripture: "Active, intensive, causative, and reflexive voices that modulate any root.",
+                archaeology: "Menorah 7-branch grammatical harmony.",
+                visual: "🔥 Menorah Stem Engine"
+            },
+            {
+                badge: "Stage 04 · Building Blocks",
+                counter: "04",
+                title: "Nouns, Gender & Agreement",
+                tamil: "பெயர்ச்சொற்கள் மற்றும் பால் (ஆண்பால் / பெண்பால்)",
+                theme: "theme-nouns",
+                desc: "Every Hebrew noun is intrinsically Masculine (זָכָר) or Feminine (נְקֵבָה). All adjectives, numbers, and verb actions must strictly harmonize with the gender and plural count.",
+                scripture: "Plural masculine suffix: -im (ים) • Plural feminine suffix: -ot (ות).",
+                archaeology: "Grammatical concord in ancient Torah scrolls.",
+                visual: "⚖️ Gender Concord Balance"
+            },
+            {
+                badge: "Stage 05 · Chiastic Literature",
+                counter: "05",
+                title: "Misparim & Chiastic Inversion",
+                tamil: "எண்கள் மற்றும் கியாஸ்டிக் முறைமை",
+                theme: "theme-numbers",
+                desc: "Hebrew numbers 3-10 display a stunning Chiastic Gender Inversion: masculine nouns take numbers with feminine suffixes, while feminine nouns take numbers with no suffix!",
+                scripture: "Shloshah Banim (3 sons) vs Shalosh Banot (3 daughters).",
+                archaeology: "Hallmark of classical high-order biblical rhetoric.",
+                visual: "✨ Chiastic Signature"
+            }
+        ]
+    },
+    valparai: {
+        title: "Valparai Knowledge Hub",
+        desc: "Tear through the rich heritage, misty shola grasslands, roaring monsoons, and hydroelectric engineering of Valparai.",
+        cards: [
+            {
+                badge: "Stage 01 · Pioneer Era",
+                counter: "01",
+                title: "Colonial Plantation Era",
+                tamil: "தோட்ட வரலாறு (1846–1903)",
+                theme: "theme-history",
+                desc: "From K. Ramasamy Mudaliar's first coffee sapling in 1846 to W. Wintil's tea pioneering in 1890, and the carving of the 40 hairpin ghat road in 1903.",
+                scripture: "Ghat engineering connecting Pollachi across 40 dramatic hairpin bends.",
+                archaeology: "Heritage stone bungalows and historical survey markers.",
+                visual: "☕ Plantation Birth 1846"
+            },
+            {
+                badge: "Stage 02 · UNESCO Bio-Reserve",
+                counter: "02",
+                title: "Rainforest Ecology & Sholas",
+                tamil: "மழைக்காடு மற்றும் புல்வெளி சோலை",
+                theme: "theme-rainforest",
+                desc: "Nestled within the Anaimalai Tiger Reserve, harboring endangered Nilgiri Tahr at Grass Hills, lion-tailed macaques, and ancient tropical evergreen shola corridors.",
+                scripture: "High-altitude grasslands located 2,400 meters above sea level.",
+                archaeology: "Living biodiversity heritage protected under strict conservation laws.",
+                visual: "🐆 Nilgiri Tahr Sanctuary"
+            },
+            {
+                badge: "Stage 03 · Extreme Hydrology",
+                counter: "03",
+                title: "Monsoon Climate & Chinnakallar",
+                tamil: "சின்னக்கல்லார் பெருமழை மையம்",
+                theme: "theme-monsoon",
+                desc: "Known as the Cherrapunji of South India, Chinnakallar receives exceptional precipitation from both Southwest and Northeast monsoons, feeding cascading jungle waterfalls.",
+                scripture: "Hanging bridge across roaring Chinnakallar falls.",
+                archaeology: "Deep mountain rain gauges and historic climate records.",
+                visual: "🌧️ Cherrapunji of the South"
+            },
+            {
+                badge: "Stage 04 · Green Energy",
+                counter: "04",
+                title: "Hydroelectric Power & PAP Complex",
+                tamil: "நீர்மின் திட்டம் மற்றும் சோலையாறு அணை",
+                theme: "theme-hydro",
+                desc: "The Parambikulam-Aliyar Project (PAP) houses Sholayar Dam, one of the deepest reservoirs in Asia, channeling water through underground mountain tunnels to power South India.",
+                scripture: "Engineering masterpiece balancing clean energy and agricultural irrigation.",
+                archaeology: "Underground flume tunnels and mountain powerhouse turbines.",
+                visual: "⚡ Clean Hydroelectric Power"
+            }
+        ]
+    }
+};
+
+let currentKey = 'israel';
+let cardsElements = [];
+
+function switchDataset(key) {
+    currentKey = key;
+    ['israel', 'hebrew', 'valparai'].forEach(k => {
+        const btn = document.getElementById('btn-' + k);
+        if (k === key) {
+            btn.className = "px-4 py-1.5 rounded-full text-xs font-bold transition-all bg-amber-500 text-slate-950 shadow-md";
+        } else {
+            btn.className = "px-4 py-1.5 rounded-full text-xs font-bold transition-all text-slate-300 hover:text-white";
+        }
+    });
+
+    const data = DATASETS[key];
+    document.getElementById('hero-title').innerText = data.title;
+    document.getElementById('hero-desc').innerText = data.desc;
+
+    renderCards(data.cards);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderCards(cards) {
+    const stackContainer = document.getElementById('card-stack');
+    const stackSection = document.getElementById('stack-section');
+    
+    // Set scroll track height proportional to card count
+    stackSection.style.height = `${cards.length * 95}vh`;
+
+    stackContainer.innerHTML = '';
+
+    // Render cards (In DOM: bottom card rendered first, top card rendered last or explicitly z-indexed)
+    cards.forEach((card, idx) => {
+        const zIndex = cards.length - idx; // Card 0 has highest z-index
+        const el = document.createElement('article');
+        el.className = `card ${card.theme}`;
+        el.style.zIndex = zIndex;
+
+        el.innerHTML = `
+            <div class="card-header">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-[10px] font-black uppercase tracking-wider text-amber-300 border border-white/15">
+                    ${card.badge}
+                </span>
+                <span class="font-mono text-xs font-bold text-white/80 bg-black/40 px-3 py-1 rounded-full border border-white/10">
+                    CARD ${card.counter} / 0${cards.length}
+                </span>
+            </div>
+
+            <div class="card-content">
+                <div class="card-text">
+                    <h2>${card.title}</h2>
+                    <div class="tamil-sub">${card.tamil}</div>
+                    <p class="desc">${card.desc}</p>
+                    
+                    <div class="p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-amber-200/90 mb-3 leading-relaxed">
+                        📖 <strong>Significance:</strong> ${card.scripture}
+                    </div>
+                    <div class="p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-slate-300 leading-relaxed">
+                        🏛️ <strong>Heritage / Detail:</strong> ${card.archaeology}
+                    </div>
+                </div>
+
+                <div class="card-visual">
+                    <div class="text-3xl mb-2">${card.visual.split(' ')[0]}</div>
+                    <div class="font-serif font-bold text-white text-sm mb-1">${card.visual.substring(2)}</div>
+                    <span class="text-[10px] font-mono text-amber-300 uppercase tracking-widest mt-2 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30">
+                        Interactive Deck
+                    </span>
+                </div>
+            </div>
+
+            <div class="card-footer">
+                <span class="text-amber-300 font-bold">CITY OF TRUTH MINISTRIES</span>
+                <span>${idx === cards.length - 1 ? '✦ Final Foundation Card' : 'Scroll down to peel card ↓'}</span>
+            </div>
+        `;
+
+        stackContainer.appendChild(el);
+    });
+
+    cardsElements = Array.from(stackContainer.querySelectorAll('.card'));
+    updateCards();
+}
+
+function clamp(val, min, max) {
+    return Math.max(min, Math.min(max, val));
+}
+
+function updateCards() {
+    const section = document.getElementById('stack-section');
+    if (!section || cardsElements.length === 0) return;
+
+    const sectionRect = section.getBoundingClientRect();
+    const sectionTop = sectionRect.top;
+    const sectionHeight = sectionRect.height;
+    const windowHeight = window.innerHeight;
+
+    const totalScrollable = sectionHeight - windowHeight;
+    if (totalScrollable <= 0) return;
+
+    let progress = -sectionTop / totalScrollable;
+    progress = clamp(progress, 0, 1);
+
+    const numCards = cardsElements.length;
+    const numCardsToPeel = numCards - 1;
+
+    cardsElements.forEach((card, index) => {
+        // The last card stays anchored
+        if (index === numCards - 1) {
+            card.style.transform = `translateY(0) rotateZ(0deg)`;
+            card.style.opacity = '1';
+            card.style.pointerEvents = 'auto';
+            return;
+        }
+
+        const cardStartProgress = index / numCardsToPeel;
+        const cardEndProgress = (index + 1) / numCardsToPeel;
+
+        let localProgress = (progress - cardStartProgress) / (cardEndProgress - cardStartProgress);
+        localProgress = clamp(localProgress, 0, 1);
+
+        // Smooth ease-in-out quadratic curve
+        const easeProgress = localProgress < 0.5
+            ? 2 * localProgress * localProgress
+            : 1 - Math.pow(-2 * localProgress + 2, 2) / 2;
+
+        // ANIMATION FORMULA FROM stacked_motion_reveal.html
+        // 1. Move upwards (translateY)
+        const yOffset = easeProgress * -110; // in vh
+
+        // 2. Rotate sideways (alternating rotation direction)
+        const rotationDir = index % 2 === 0 ? -1 : 1;
+        const rotateZ = easeProgress * 15 * rotationDir; // Max rotate 15 degrees
+
+        // 3. Late-stage fade out
+        let opacity = 1;
+        if (localProgress > 0.6) {
+            opacity = 1 - ((localProgress - 0.6) / 0.4);
+        }
+
+        card.style.transform = `translateY(${yOffset}vh) rotateZ(${rotateZ}deg)`;
+        card.style.opacity = String(opacity);
+        card.style.pointerEvents = localProgress >= 0.85 ? 'none' : 'auto';
+    });
+}
+
+// RequestAnimationFrame Scroll Handler
+let ticking = false;
+window.addEventListener('scroll', () => {
+    if (!ticking) {
+        window.requestAnimationFrame(() => {
+            updateCards();
+            ticking = false;
+        });
+        ticking = true;
+    }
+}, { passive: true });
+
+window.addEventListener('resize', updateCards, { passive: true });
+
+// Initial Render
+renderCards(DATASETS.israel.cards);
+</script>
+</body>
+</html>

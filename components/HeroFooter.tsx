@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import {
     MapPin, ArrowRight, Download, Check, Send, BookOpen, Globe, HandHeart, ScrollText,
     Flame, Cross, Mountain, Mail, IdCard, Landmark, Star, Smartphone, Leaf, Sparkles, type LucideIcon,

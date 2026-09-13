@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Search, Calculator, Type, Volume2, BookOpen, Sparkles } from 'lucide-react';
 import { GematriaHint } from './icons/modernIcons';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { audioService } from '../services/audioService';
 
 // Gematria letter values
