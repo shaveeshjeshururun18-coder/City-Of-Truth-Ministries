@@ -1444,7 +1444,7 @@ export const PastorPage: React.FC<PastorPageProps> = ({
                     </p>
                 </div>
 
-                {/* 3 Pillars Grid - Meditix Portrait Folder Cards */}
+                {/* 3 Pillars Grid - Exact Meditix Folder Cards */}
                 <div style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
@@ -1490,7 +1490,7 @@ export const PastorPage: React.FC<PastorPageProps> = ({
                                 key={p.num}
                                 style={{
                                     position: 'relative',
-                                    minHeight: 490,
+                                    minHeight: 510,
                                     cursor: 'pointer',
                                     transition: 'all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)',
                                     transform: isHov ? 'translateY(-8px)' : 'translateY(0)',
@@ -1502,10 +1502,10 @@ export const PastorPage: React.FC<PastorPageProps> = ({
                                 onMouseLeave={() => setHoveredPillar(null)}
                                 onClick={p.action}
                             >
-                                {/* Folder Shape SVG Background */}
+                                {/* Folder Shape SVG Background - Exact Replica of Meditix Silhouette */}
                                 <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
                                     <svg
-                                        viewBox="0 0 400 520"
+                                        viewBox="0 0 500 650"
                                         preserveAspectRatio="none"
                                         style={{
                                             width: '100%',
@@ -1514,11 +1514,11 @@ export const PastorPage: React.FC<PastorPageProps> = ({
                                         }}
                                     >
                                         <path
-                                            d="M 0,90 Q 0,60 30,60 L 220,60 Q 238,60 242,40 L 246,20 Q 250,0 268,0 L 370,0 Q 400,0 400,30 L 400,485 Q 400,520 370,520 L 30,520 Q 0,520 0,485 Z"
+                                            d="M 0,115 Q 0,75 40,75 L 290,75 Q 320,75 320,55 L 320,30 Q 320,0 350,0 L 460,0 Q 500,0 500,40 L 500,610 Q 500,650 460,650 L 40,650 Q 0,650 0,610 Z"
                                             fill="#2A3B24"
                                         />
                                         <path
-                                            d="M 0,90 Q 0,60 30,60 L 220,60 Q 238,60 242,40 L 246,20 Q 250,0 268,0 L 370,0 Q 400,0 400,30 L 400,485 Q 400,520 370,520 L 30,520 Q 0,520 0,485 Z"
+                                            d="M 0,115 Q 0,75 40,75 L 290,75 Q 320,75 320,55 L 320,30 Q 320,0 350,0 L 460,0 Q 500,0 500,40 L 500,610 Q 500,650 460,650 L 40,650 Q 0,650 0,610 Z"
                                             fill="url(#pastorNoise)"
                                         />
                                     </svg>
@@ -1534,9 +1534,9 @@ export const PastorPage: React.FC<PastorPageProps> = ({
                                     justifyContent: 'space-between',
                                     padding: '0 24px 28px',
                                 }}>
-                                    {/* Top Tab Area (height 60px) */}
+                                    {/* Top Tab Area (height 75px) */}
                                     <div style={{
-                                        height: 60,
+                                        height: 75,
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'space-between',
@@ -1544,7 +1544,7 @@ export const PastorPage: React.FC<PastorPageProps> = ({
                                     }}>
                                         <span style={{
                                             color: '#2A3B24',
-                                            fontSize: 12,
+                                            fontSize: 12.5,
                                             fontWeight: 800,
                                             letterSpacing: '0.2em',
                                             textTransform: 'uppercase',
@@ -1575,7 +1575,7 @@ export const PastorPage: React.FC<PastorPageProps> = ({
                                         display: 'flex',
                                         flexDirection: 'column',
                                         justifyContent: 'space-between',
-                                        paddingTop: 18,
+                                        paddingTop: 16,
                                         position: 'relative',
                                     }}>
                                         {/* Organic Leaf Watermark */}
@@ -1605,7 +1605,7 @@ export const PastorPage: React.FC<PastorPageProps> = ({
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
                                                 color: '#DFC076',
-                                                marginBottom: 20,
+                                                marginBottom: 18,
                                                 transition: 'all 0.3s ease',
                                                 boxShadow: isHov ? '0 0 20px rgba(223,192,118,0.25)' : 'none',
                                             }}>
@@ -1644,7 +1644,7 @@ export const PastorPage: React.FC<PastorPageProps> = ({
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'space-between',
-                                            padding: '4px 6px 4px 16px',
+                                            padding: '5px 6px 5px 18px',
                                             borderRadius: 999,
                                             border: isHov ? '1.5px solid #DFC076' : '1.5px solid #5C6E52',
                                             background: isHov ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.18)',
@@ -1662,8 +1662,8 @@ export const PastorPage: React.FC<PastorPageProps> = ({
                                                 {p.cta}
                                             </span>
                                             <div style={{
-                                                width: 34,
-                                                height: 34,
+                                                width: 36,
+                                                height: 36,
                                                 borderRadius: '50%',
                                                 background: isHov ? '#FFFFFF' : '#F3EFE7',
                                                 color: '#2A3B24',
@@ -1674,7 +1674,7 @@ export const PastorPage: React.FC<PastorPageProps> = ({
                                                 transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
                                                 boxShadow: isHov ? '0 4px 12px rgba(0,0,0,0.25)' : 'none',
                                             }}>
-                                                <ChevronRight size={16} strokeWidth={2.6} />
+                                                <ChevronRight size={18} strokeWidth={2.6} />
                                             </div>
                                         </div>
                                     </div>
@@ -1783,7 +1783,7 @@ export const PastorPage: React.FC<PastorPageProps> = ({
                                     }}
                                 >
                                     <span style={{ display: 'block', marginBottom: 6, color: '#F3EFE7' }}>
-                                        Building Disciples
+                                        Connect with Your
                                     </span>
                                     <span 
                                         style={{ 
@@ -1794,7 +1794,7 @@ export const PastorPage: React.FC<PastorPageProps> = ({
                                             color: '#E2DCCF',
                                         }}
                                     >
-                                        With Purpose
+                                        Sacred Calling
                                     </span>
                                 </h3>
                                 <p 
@@ -1805,7 +1805,7 @@ export const PastorPage: React.FC<PastorPageProps> = ({
                                         margin: '14px 0 0',
                                     }}
                                 >
-                                    Consecrated to raising genuine followers of Yeshua through deep Hebrew scripture teachings, mountain intercession at 2,400m, and covenant discipleship.
+                                    Receive weekly Hebrew scripture teachings, pastoral letters, and prayer updates from the Valparai mountain altar.
                                 </p>
                             </div>
 
